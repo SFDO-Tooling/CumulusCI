@@ -265,48 +265,48 @@ def shell(runtime):
     code.interact(local=dict(globals(), **locals()))
 
 
+CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
 GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
 Please ensure that your GitHub personal access token has the 'Create gists' scope."""
-CCI_LOG_NOT_FOUND_MSG = """No logfile to open at path: {}
-Please ensure you're running this command from the same directory you were experiencing an issue."""
-LAST_CMD_HEADER = "\n\n\nLast Command Run\n================================\n"
-CCI_LOGFILE_PATH = Path.home() / ".cumulusci/logs/cci.log"
 
 
 @cli.command(name="gist", help="Create a GitHub gist from the latest logfile")
 @pass_runtime(require_project=False)
 def gist(runtime):
-    try:
-        with open(CCI_LOGFILE_PATH, "r") as last_cmd_log:
-            log_content = last_cmd_log.read()
-            filename = f"cci_output_{datetime.utcnow()}.txt"
-            files = {
-                filename: {
-                    "content": f"{get_context_info()}{LAST_CMD_HEADER}{log_content}"
-                }
-            }
+    CCI_LOG_NOT_FOUND_MSG = """No logfile to open at path: {}
+    Please ensure you're running this command from the same directory you were experiencing an issue."""
+    LAST_CMD_HEADER = "\n\n\nLast Command Run\n================================\n"
 
-            try:
-                gh = RUNTIME.keychain.get_service("github")
-                gist = create_gist(
-                    get_github_api(gh.config["username"], gh.config["password"]),
-                    "CumulusCI Error Output",
-                    files,
-                )
-            except Exception as e:
-                if e.response.status_code == 404:
-                    raise CumulusCIException(GIST_404_ERR_MSG)
-                else:
-                    raise CumulusCIException(
-                        f"An error occurred attempting to create your gist:\n{e}"
-                    )
-            else:
-                click.echo(f"Gist created: {gist.html_url}")
-                webbrowser.open(gist.html_url)
-    except FileNotFoundError:
+    if CCI_LOGFILE_PATH.is_file():
+        log_content = CCI_LOGFILE_PATH.read_text()
+    else:
+        # FileNotFound
         error_msg = CCI_LOG_NOT_FOUND_MSG.format(CCI_LOGFILE_PATH)
         click.echo(error_msg)
         raise CumulusCIException(error_msg)
+
+    filename = f"cci_output_{datetime.utcnow()}.txt"
+    files = {
+        filename: {"content": f"{get_context_info()}{LAST_CMD_HEADER}{log_content}"}
+    }
+
+    try:
+        gh = RUNTIME.keychain.get_service("github")
+        gist = create_gist(
+            get_github_api(gh.config["username"], gh.config["password"]),
+            "CumulusCI Error Output",
+            files,
+        )
+    except Exception as e:
+        if hasattr(e, "response") and e.response.status_code == 404:
+            raise CumulusCIException(GIST_404_ERR_MSG)
+        else:
+            raise CumulusCIException(
+                f"An error occurred attempting to create your gist:\n{e}"
+            )
+    else:
+        click.echo(f"Gist created: {gist.html_url}")
+        webbrowser.open(gist.html_url)
 
 
 def get_context_info():

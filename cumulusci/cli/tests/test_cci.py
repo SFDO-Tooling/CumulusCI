@@ -220,14 +220,16 @@ class TestCCI(unittest.TestCase):
 
         os.remove(logfile)
 
-    @mock.patch("cumulusci.cli.cci.open")
+    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.webbrowser")
     @mock.patch("cumulusci.cli.cci.os")
     @mock.patch("cumulusci.cli.cci.sys")
     @mock.patch("cumulusci.cli.cci.datetime")
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
-    def test_gist(self, gh_api, create_gist, date, sys, cci_os, webbrowser, cci_open):
+    def test_gist(
+        self, gh_api, create_gist, date, sys, cci_os, webbrowser, logfile_path
+    ):
 
         cci_os.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
         sys.version = "1.0.0 (default Jul 24 2019)"
@@ -238,12 +240,8 @@ class TestCCI(unittest.TestCase):
         create_gist.return_value = mock.Mock(html_url=expected_gist_url)
 
         expected_logfile_content = "Hello there, I'm a logfile."
-
-        test_log_name = "cci.test.log"
-        with open(test_log_name, "w") as f:
-            f.write(expected_logfile_content)
-
-        cci_open.return_value = open(test_log_name, "r")
+        logfile_path.is_file.return_value = True
+        logfile_path.read_text.return_value = expected_logfile_content
 
         runtime = mock.Mock()
         runtime.project_config.repo_root = None
@@ -268,9 +266,6 @@ Environment Info: Rossian / x68_46
         )
         webbrowser.open.assert_called_once_with(expected_gist_url)
 
-        os.remove(test_log_name)
-
-    @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.click")
     @mock.patch("cumulusci.cli.cci.os")
     @mock.patch("cumulusci.cli.cci.sys")
@@ -278,7 +273,7 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
     def test_gist__gist_creation_error(
-        self, gh_api, create_gist, date, sys, os_mock, click, cci_open
+        self, gh_api, create_gist, date, sys, os_mock, click
     ):
 
         os_mock.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
@@ -292,13 +287,6 @@ Environment Info: Rossian / x68_46
                 self.response = mock.Mock(status_code=status_code)
 
         create_gist.side_effect = ExceptionWithResponse(503)
-
-        expected_logfile_content = "Hello there, I'm a logfile."
-        test_log_name = "cci.test.log"
-        with open(test_log_name, "w") as f:
-            f.write(expected_logfile_content)
-
-        cci_open.__enter__.return_value = open(test_log_name, "r")
 
         runtime = mock.Mock()
         runtime.project_config.repo_root = None
@@ -319,16 +307,16 @@ Environment Info: Rossian / x68_46
             run_click_command(cci.gist, runtime=runtime)
         assert cci.GIST_404_ERR_MSG in context.exception.args[0]
 
-        os.remove(test_log_name)
-
-    @mock.patch("cumulusci.cli.cci.open")
+    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.click")
     @mock.patch("cumulusci.cli.cci.os")
     @mock.patch("cumulusci.cli.cci.datetime")
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
-    def test_gist__file_not_found(self, gh_api, create_gist, date, os, click, open):
-        open.side_effect = FileNotFoundError
+    def test_gist__file_not_found(
+        self, gh_api, create_gist, date, os, click, logfile_path
+    ):
+        logfile_path.is_file.return_value = False
         with pytest.raises(CumulusCIException):
             run_click_command(cci.gist)
 

@@ -244,7 +244,7 @@ class TestGithub(GithubApiTestMixin):
         description = "Test Gist Creation"
         filename = "error_output.txt"
         content = "Hello there gist!"
-        files = [{filename: content}]
+        files = {filename: content}
 
         self.mock_gist(description, files)
         gist = create_gist(gh_api, description, files)

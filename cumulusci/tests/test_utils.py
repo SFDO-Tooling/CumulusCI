@@ -501,7 +501,7 @@ Options:
             sys.stdout.write(expected_stdout_text)
             sys.stderr.write(expected_stderr_text)
 
-        logger.debug.call_count == 2
-        logger.debug.call_args_list[0] == "cci test"
-        logger.debug.call_args_list[1] == expected_stdout_text
-        logger.debug.call_args_list[2] == expected_stderr_text
+        assert logger.debug.call_count == 3
+        assert logger.debug.call_args_list[0][0][0] == "cci test"
+        assert logger.debug.call_args_list[1][0][0] == expected_stdout_text
+        assert logger.debug.call_args_list[2][0][0] == expected_stderr_text

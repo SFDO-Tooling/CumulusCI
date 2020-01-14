@@ -20,15 +20,15 @@ class TestLogger:
             "stdout/stderr", Path("/Users/bob.ross/.cumulusci/logs/cci.log")
         )
 
+    @patch("cumulusci.cli.logger.RotatingFileHandler")
     @patch("cumulusci.cli.logger.logging")
-    def test_get_rot_file_logger(self, logging):
+    def test_get_rot_file_logger(self, logging, rot_filehandler):
+
         logger_name = "The happy logger"
-        logfile_path = "happy/logger/path"
-        logger = get_rot_file_logger(logger_name, logfile_path)
+        path = "happy/logger/path"
+        logger = get_rot_file_logger(logger_name, path)
 
         logging.getLogger.assert_called_once_with(logger_name)
-        logging.handlers.RotatingFileHandler.assert_called_once_with(
-            logfile_path, backupCount=5
-        )
+        rot_filehandler.assert_called_once_with(path, backupCount=5)
         logger.addHandler.assert_called_once()
         logger.setLevel.assert_called_once()

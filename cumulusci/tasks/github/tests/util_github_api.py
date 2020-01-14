@@ -473,17 +473,16 @@ class GithubApiTestMixin(object):
         gh_id = self.create_id(20)
 
         gist_files = {}
-        for f in files:
-            for filename in f.keys():
-                gist_files[filename] = {
-                    "filename": filename,
-                    "type": "text/plain",
-                    "language": "text",
-                    "raw_url": f"https://gist.githubusercontent.com/octocat/{gh_id}/raw/99c1bf3a345505c2e6195198d5f8c36267de570b/hello_world.py",
-                    "size": 199,
-                    "truncated": False,
-                    "content": f[filename],
-                }
+        for filename, content in files.items():
+            gist_files[filename] = {
+                "filename": filename,
+                "type": "text/plain",
+                "language": "text",
+                "raw_url": f"https://gist.githubusercontent.com/octocat/{gh_id}/raw/99c1bf3a345505c2e6195198d5f8c36267de570b/hello_world.py",
+                "size": 199,
+                "truncated": False,
+                "content": content,
+            }
 
         expected_gist = {
             "url": f"https://api.github.com/gists/{gh_id}",

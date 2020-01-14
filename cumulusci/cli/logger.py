@@ -1,6 +1,6 @@
 """ CLI logger """
 import logging
-import logging.handlers
+from logging.handlers import RotatingFileHandler
 import os
 import sys
 import requests
@@ -52,7 +52,7 @@ def get_rot_file_logger(name, path):
     """Returns a logger with a rotating file handler"""
     logger = logging.getLogger(name)
 
-    handler = logging.handlers.RotatingFileHandler(path, backupCount=5)
+    handler = RotatingFileHandler(path, backupCount=5)
     handler.doRollover()  # rollover existing log files
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
