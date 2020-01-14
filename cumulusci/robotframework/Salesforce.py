@@ -783,6 +783,15 @@ class Salesforce(object):
             self.builtin.log("waiting for a refresh...", "DEBUG")
             self.selenium.capture_page_screenshot()
             time.sleep(interval)
+            location = self.selenium.get_location()
+            if "//test.salesforce.com" in location:
+                # did we land on https://test.salesforce.com? If so, maybe
+                # the authentication succeeded so let's try the url without
+                # the frontdoor servelet
+                login_url = self.cumulusci.org.config["instance_url"]
+                self.builtin.log(
+                    f"setting login_url temporarily to {login_url}", "DEBUG"
+                )
             self.selenium.go_to(login_url)
 
     def breakpoint(self):
