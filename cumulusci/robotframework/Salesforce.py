@@ -97,6 +97,23 @@ class Salesforce(object):
         # libraries.
         locator_manager.add_location_strategies()
 
+    def _jsclick(self, locator):
+        """Use javascript to click an element on the page
+
+        See https://help.salesforce.com/articleView?id=000352057&language=en_US&mode=1&type=1
+        """
+
+        self.builtin.log("jsclick, at your service!")
+        self.selenium.wait_until_page_contains_element(locator)
+        element = self.selenium.get_webelement(locator)
+        # Setting the focus first seems to be required as of Spring'20
+        # (read: without it, tests started failing in that release). I
+        # suspect it's because there is a focusOut handler on form
+        # fields which need to be triggered for data to be accepted.
+        self.selenium.driver.execute_script(
+            "arguments[0].focus(); arguments[0].click()", element
+        )
+
     def get_latest_api_version(self):
         return self.cumulusci.org.latest_api_version
 
@@ -118,12 +135,14 @@ class Salesforce(object):
     def click_modal_button(self, title):
         """Clicks a button in a Lightning modal."""
         locator = lex_locators["modal"]["button"].format(title)
-        self.selenium.click_button(locator)
+        self.selenium.wait_until_page_contains_element(locator)
+        self.selenium.wait_until_element_is_enabled(locator)
+        self._jsclick(locator)
 
     def click_object_button(self, title):
         """Clicks a button in an object's actions."""
         locator = lex_locators["object"]["button"].format(title)
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
         self.wait_until_modal_is_open()
 
     def load_related_list(self, heading):
@@ -156,14 +175,18 @@ class Salesforce(object):
         locator = lex_locators["record"]["related"]["button"].format(
             heading, button_title
         )
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
         self.wait_until_modal_is_open()
 
     def click_related_item_link(self, heading, title):
-        """Clicks a link in the related list with the specified heading."""
+        """Clicks a link in the related list with the specified heading.
+
+        This keyword will automatically call `Wait until loading is complete`
+        """
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
+        self.wait_until_loading_is_complete()
 
     def click_related_item_popup_link(self, heading, title, link):
         """Clicks a link in the popup menu for a related list item.
@@ -176,15 +199,17 @@ class Salesforce(object):
         locator = lex_locators["record"]["related"]["popup_trigger"].format(
             heading, title
         )
+
         self.selenium.wait_until_page_contains_element(locator)
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
         locator = lex_locators["popup"]["link"].format(link)
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
+        self.wait_until_loading_is_complete()
 
     def close_modal(self):
         """ Closes the open modal """
         locator = lex_locators["modal"]["close"]
-        self.selenium.click_button(locator)
+        self._jsclick(locator)
 
     def current_app_should_be(self, app_name):
         """ Validates the currently selected Salesforce App """
@@ -341,7 +366,7 @@ class Salesforce(object):
     def click_header_field_link(self, label):
         """Clicks a link in record header."""
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
 
     def header_field_should_be_checked(self, label):
         """ Validates that a checkbox field in the record header is checked """
@@ -365,7 +390,7 @@ class Salesforce(object):
         """ Opens the Saleforce App Launcher """
         locator = lex_locators["app_launcher"]["button"]
         self.builtin.log("Clicking App Launcher button")
-        self.selenium.click_button(locator)
+        self._jsclick(locator)
         self.wait_until_modal_is_open()
 
     def populate_field(self, name, value):
@@ -394,7 +419,7 @@ class Salesforce(object):
             else:
                 break
         self.selenium.set_focus_to_element(menu_locator)
-        self.selenium.get_webelement(menu_locator).click()
+        self._jsclick(menu_locator)
 
     def _populate_field(self, locator, value):
         field = self.selenium.get_webelement(locator)
@@ -476,9 +501,9 @@ class Salesforce(object):
         """Selects a record type while adding an object."""
         self.wait_until_modal_is_open()
         locator = lex_locators["object"]["record_type_option"].format(label)
-        self.selenium.get_webelement(locator).click()
+        self._jsclick(locator)
         locator = lex_locators["modal"]["button"].format("Next")
-        self.selenium.click_button("Next")
+        self._jsclick(locator)
 
     def select_app_launcher_app(self, app_name):
         """Navigates to a Salesforce App via the App Launcher """
@@ -695,6 +720,7 @@ class Salesforce(object):
         try:
             self.selenium.wait_until_page_contains_element(locator)
             self.wait_for_aura()
+
         except Exception:
             try:
                 self.selenium.capture_page_screenshot()
