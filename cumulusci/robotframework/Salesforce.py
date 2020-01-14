@@ -103,7 +103,6 @@ class Salesforce(object):
         See https://help.salesforce.com/articleView?id=000352057&language=en_US&mode=1&type=1
         """
 
-        self.builtin.log("jsclick, at your service!")
         self.selenium.wait_until_page_contains_element(locator)
         element = self.selenium.get_webelement(locator)
         # Setting the focus first seems to be required as of Spring'20
