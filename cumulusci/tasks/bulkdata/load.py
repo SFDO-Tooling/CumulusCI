@@ -69,11 +69,11 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             )
         self.reset_oids = self.options.get("reset_oids", True)
         self.bulk_mode = (
-            self.options.get("bulk_mode") and self.options.get("bulk_mode").lower()
+            self.options.get("bulk_mode") and self.options.get("bulk_mode").title()
         )
         if self.bulk_mode and self.bulk_mode not in [
-            "serial",
-            "parallel",
+            "Serial",
+            "Parallel",
         ]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
