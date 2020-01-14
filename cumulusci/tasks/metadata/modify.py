@@ -5,6 +5,7 @@ import lxml.etree as ET
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import cd
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 xml_encoding = '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -15,17 +16,32 @@ class RemoveElementsXPath(BaseTask):
     """Remove elements based on an XPath."""
 
     task_options = {
+        "xpath": {
+            "description": (
+                "An XPath specification of elements to remove. Supports the re: "
+                "regexp function namespace. As in re:match(text(), '.*__c')"
+                "Use ns: to refer to the Salesforce namespace for metadata elements."
+                "for example: ./ns:Layout/ns:relatedLists (one-level) or //ns:relatedLists (recursive)"
+                "Many advanced examples are available here: "
+                "https://github.com/SalesforceFoundation/NPSP/blob/26b585409720e2004f5b7785a56e57498796619f/cumulusci.yml#L342"
+            )
+        },
+        "path": {
+            "description": (
+                "A path to the files to change. Supports wildcards including ** for directory recursion. "
+                "More info on the details: "
+                "https://www.poftut.com/python-glob-function-to-match-path-directory-file-names-with-examples/ "
+                "https://www.tutorialspoint.com/How-to-use-Glob-function-to-find-files-recursively-in-Python "
+            )
+        },
         "elements": {
             "description": (
                 "A list of dictionaries containing path and xpath "
-                "keys. The path key is a file path that supports "
-                "wildcards and xpath is the xpath for the elements "
-                "to remove.  Multiple dictionaries can be passed in "
+                "keys. Multiple dictionaries can be passed in "
                 "the list to run multiple removal queries in the same "
-                "task.  Metadata elements in the xpath need to be prefixed "
-                "with ns:, for example: ./ns:Layout/ns:relatedLists"
-            ),
-            "required": True,
+                "task. This parameter is intended for usages invoked as part "
+                "of a cumulusci.yml ."
+            )
         },
         "chdir": {
             "description": "Change the current directory before running the replace"
@@ -35,7 +51,21 @@ class RemoveElementsXPath(BaseTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
         self.chdir = self.options.get("chdir")
-        self.elements = self.options["elements"]
+        self.elements = self.options.get("elements")
+        xpath = self.options.get("xpath")
+        path = self.options.get("path")
+        if xpath and not path:
+            raise TaskOptionsError("Specified XPath without `path` to work on.")
+        elif path and not xpath:
+            raise TaskOptionsError("Specified path without `xpath` to apply.")
+        elif (path and self.elements) or (not self.elements and not path):
+            raise TaskOptionsError(
+                "Please specify either a single `path` and `xpath` (in CLI or cumulusci.yml) "
+                "or a list of several through the `elements` option (cumulusci.yml)."
+            )
+
+        if not self.elements:
+            self.elements = [{"xpath": xpath, "path": path}]
 
     def _run_task(self):
         if self.chdir:
