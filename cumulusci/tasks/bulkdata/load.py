@@ -68,7 +68,10 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 "You must set either the database_url or sql_path option."
             )
         self.reset_oids = self.options.get("reset_oids", True)
-        if self.options.get("bulk_mode") and self.options["bulk_mode"] not in [
+        self.bulk_mode = (
+            self.options.get("bulk_mode") and self.options.get("bulk_mode").title()
+        )
+        if self.bulk_mode and self.bulk_mode not in [
             "Serial",
             "Parallel",
         ]:
@@ -119,7 +122,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         """Initiate a bulk insert or update and upload batches to run in parallel."""
         action = mapping["action"]
         step_mode = mapping.get("bulk_mode")
-        task_mode = self.options.get("bulk_mode")
+        task_mode = self.bulk_mode
         mode = step_mode or task_mode or "Parallel"
 
         if action == "insert":

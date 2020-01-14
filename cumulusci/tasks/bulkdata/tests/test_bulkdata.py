@@ -387,8 +387,25 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             _make_task(bulkdata.LoadData, {"options": {}})
 
     def test_init_options__invalid_bulk_mode(self):
-        with self.assertRaises(TaskOptionsError):
-            _make_task(bulkdata.LoadData, {"options": {"bulk_mode": "nonsense"}})
+        with self.assertRaises(TaskOptionsError) as e:
+            _make_task(
+                bulkdata.LoadData,
+                {"options": {"bulk_mode": "nonsense", "database_url": "foo://bar"}},
+            )
+        assert "Serial" in str(e.exception), e
+
+    def test_init_options__case_insensitive(self):
+        task = _make_task(
+            bulkdata.LoadData,
+            {
+                "options": {
+                    "bulk_mode": "SERIAL",
+                    "database_url": "foo://bar",
+                    "mapping": "foo.yml",
+                }
+            },
+        )
+        assert task.bulk_mode == "Serial"
 
     def test_expand_mapping_creates_after_steps(self):
         base_path = os.path.dirname(__file__)
