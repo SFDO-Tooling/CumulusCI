@@ -42,6 +42,10 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         "ignore_row_errors": {
             "description": "If True, allow the load to continue even if individual rows fail to load."
         },
+        "reset_oids": {
+            "description": "If True (the default), and the _sf_ids tables exist, reset them before continuing.",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs):
@@ -55,12 +59,12 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self.options["sql_path"] = None
         elif self.options.get("sql_path"):
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
-            self.logger.info("Using in-memory sqlite database")
-            self.options["database_url"] = "sqlite://"
+            self.options["database_url"] = None
         else:
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
             )
+        self.reset_oids = self.options.get("reset_oids", True)
 
     def _run_task(self):
         self._init_mapping()
@@ -307,7 +311,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         """Get the job results and process the results. If we're raising for
         row-level errors, do so; if we're inserting, store the new Ids."""
         if mapping["action"] == "insert":
-            id_table_name = self._reset_id_table(mapping)
+            id_table_name = self._initialize_id_table(mapping, self.reset_oids)
             conn = self.session.connection()
 
         for batch_id, local_ids in local_ids_for_batch.items():
@@ -360,13 +364,25 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     raise BulkDataException(f"Error on row {i}: {row[3]}")
             i += 1
 
-    def _reset_id_table(self, mapping):
-        """Create an empty table to hold the inserted SF Ids"""
+    def _initialize_id_table(self, mapping, should_reset_table):
+        """initalize or find table to hold the inserted SF Ids
+
+        The table has a name like xxx_sf_ids and has just two columns, id and sf_id.
+
+        If the table already exists, should_reset_table determines whether to
+        drop and recreate it or not.
+        """
+        id_table_name = f"{mapping['table']}_sf_ids"
+
+        already_exists = id_table_name in self.metadata.tables
+
+        if already_exists and not should_reset_table:
+            return id_table_name
+
         if not hasattr(self, "_initialized_id_tables"):
             self._initialized_id_tables = set()
-        id_table_name = f"{mapping['table']}_sf_ids"
         if id_table_name not in self._initialized_id_tables:
-            if id_table_name in self.metadata.tables:
+            if already_exists:
                 self.metadata.remove(self.metadata.tables[id_table_name])
             id_table = Table(
                 id_table_name,
@@ -392,7 +408,10 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _init_db(self):
         # initialize the DB engine
-        self.engine = create_engine(self.options["database_url"])
+        database_url = self.options["database_url"] or "sqlite://"
+        if database_url == "sqlite://":
+            self.logger.info("Using in-memory SQLite database")
+        self.engine = create_engine(database_url)
 
         # initialize the DB session
         self.session = Session(self.engine)

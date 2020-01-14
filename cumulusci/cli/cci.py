@@ -71,13 +71,13 @@ def timestamp_file():
 FINAL_VERSION_RE = re.compile(r"^[\d\.]+$")
 
 
-def is_final_release(version):
+def is_final_release(version: str) -> bool:
     """Returns bool whether version string should be considered a final release.
 
     cumulusci versions are considered final if they contain only digits and periods.
     e.g. 1.0.1 is final but 2.0b1 and 2.0.dev0 are not.
     """
-    return FINAL_VERSION_RE.match(version)
+    return bool(FINAL_VERSION_RE.match(version))
 
 
 def get_latest_final_version():
@@ -403,14 +403,14 @@ def project_init(config):
     ):
         click.echo("Please select from the following options:")
         click.echo("  1: EDA (https://github.com/SalesforceFoundation/EDA)")
-        click.echo("  2: NPSP (https://github.com/SalesforceFoundation/Cumulus)")
+        click.echo("  2: NPSP (https://github.com/SalesforceFoundation/NPSP)")
         click.echo(
             "  3: Github URL (provide a URL to a Github repository configured for CumulusCI)"
         )
         selection = click.prompt(click.style("Enter your selection", bold=True))
         github_url = {
             "1": "https://github.com/SalesforceFoundation/EDA",
-            "2": "https://github.com/SalesforceFoundation/Cumulus",
+            "2": "https://github.com/SalesforceFoundation/NPSP",
         }.get(selection)
         if github_url is None:
             print(selection)
@@ -594,12 +594,6 @@ def project_init(config):
             "Your project is now initialized for use with CumulusCI",
             bold=True,
             fg="green",
-        )
-    )
-    click.echo(
-        click.style(
-            "You can use the project edit command to edit the project's config file",
-            fg="yellow",
         )
     )
 

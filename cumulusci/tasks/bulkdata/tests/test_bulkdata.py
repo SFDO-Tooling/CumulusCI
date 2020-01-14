@@ -626,7 +626,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         )
         self.assertIsInstance(task._convert(datetime.now()), str)
 
-    def test_reset_id_table__already_exists(self):
+    def test_initialize_id_table__already_exists(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
         task = _make_task(
@@ -639,9 +639,27 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
         )
         id_table.create()
-        task._reset_id_table({"table": "test"})
+        task._initialize_id_table({"table": "test"}, True)
         new_id_table = task.metadata.tables["test_sf_ids"]
         self.assertFalse(new_id_table is id_table)
+
+    def test_initialize_id_table__already_exists_and_should_not_reset_table(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task.mapping = {}
+        task._init_db()
+        id_table = Table(
+            "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
+        )
+        id_table.create()
+        table_name = task._initialize_id_table({"table": "test"}, False)
+        assert table_name == "test_sf_ids"
+        new_id_table = task.metadata.tables["test_sf_ids"]
+        assert new_id_table is id_table
 
     def test_run_task__exception_failure(self):
         base_path = os.path.dirname(__file__)
@@ -684,14 +702,14 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             status=200,
         )
         task.session = mock.Mock()
-        task._reset_id_table = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task._sql_bulk_insert_from_csv = mock.Mock()
 
         mapping = {"table": "Account", "action": "insert"}
         task._process_job_results(mapping, "1", {"2": ["001111111111112"]})
 
         task.session.connection.assert_called_once()
-        task._reset_id_table.assert_called_once_with(mapping)
+        task._initialize_id_table.assert_called_once_with(mapping, True)
         task._sql_bulk_insert_from_csv.assert_called_once()
         task.session.commit.assert_called_once()
 
@@ -718,14 +736,14 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             status=200,
         )
         task.session = mock.Mock()
-        task._reset_id_table = mock.Mock()
+        task._initialize_id_table = mock.Mock()
         task._sql_bulk_insert_from_csv = mock.Mock()
 
         mapping = {"table": "Account", "action": "update"}
         task._process_job_results(mapping, "1", {"2": ["001111111111112"]})
 
         task.session.connection.assert_not_called()
-        task._reset_id_table.assert_not_called()
+        task._initialize_id_table.assert_not_called()
         task._sql_bulk_insert_from_csv.assert_not_called()
         task.session.commit.assert_not_called()
 
@@ -750,7 +768,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             status=500,
         )
         task.session = mock.Mock()
-        task._reset_id_table = mock.Mock()
+        task._initialize_id_table = mock.Mock()
 
         with self.assertRaises(BulkDataException) as ex:
             task._process_job_results(
@@ -784,7 +802,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task.metadata.tables = {"Account": "test"}
 
         task.session = mock.Mock()
-        task._reset_id_table = mock.Mock(return_value="Account")
+        task._initialize_id_table = mock.Mock(return_value="Account")
 
         with self.assertRaises(BulkDataException) as ex:
             task._process_job_results(

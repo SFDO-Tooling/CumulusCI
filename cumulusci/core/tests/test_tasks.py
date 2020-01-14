@@ -89,7 +89,7 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
             self.project_config, self.task_config, self.org_config
         )
 
-        self.assertIsInstance(task, collections.Callable)
+        self.assertIsInstance(task, collections.abc.Callable)
 
     def test_option_overrides(self):
         task = self.__class__.task_class(
