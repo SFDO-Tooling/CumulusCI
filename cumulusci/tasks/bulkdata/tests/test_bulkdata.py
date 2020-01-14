@@ -285,7 +285,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         task._create_job(mapping)
 
         task.bulk.create_update_job.assert_called_once_with(
-            "Account", contentType="CSV", concurrency="serial"
+            "Account", contentType="CSV", concurrency="Serial"
         )
 
     def test_run_task__after_steps_failure(self):
@@ -405,7 +405,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
                 }
             },
         )
-        assert task.bulk_mode == "serial"
+        assert task.bulk_mode == "Serial"
 
     def test_expand_mapping_creates_after_steps(self):
         base_path = os.path.dirname(__file__)
