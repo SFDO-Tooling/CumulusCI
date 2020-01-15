@@ -7,7 +7,7 @@ History
 
 Changes:
 
-* Bulk data mappings now allow bulk_mode: Serial to select serial mode.
+* The ``load_dataset`` task now accepts a ``bulk_mode`` option which can be set to ``Serial`` to load batches serially instead of in parallel.
 
 * CumulusCI now stores the logs from the last five executions under ``~/.cumulusci/logs``
 
