@@ -150,7 +150,7 @@ def render_recursive(data, indent=None):
 RUNTIME = None
 
 
-def pass_runtime(func=None, require_project=True):
+def pass_runtime(func=None, require_project=True, require_keychain=False):
     """Decorator which passes the CCI runtime object as the first arg to a click command."""
 
     def decorate(func):
@@ -158,6 +158,8 @@ def pass_runtime(func=None, require_project=True):
             runtime = RUNTIME
             if require_project and runtime.project_config is None:
                 raise runtime.project_config_error
+            if require_keychain:
+                runtime._load_keychain()
             func(RUNTIME, *args, **kw)
 
         return functools.update_wrapper(new_func, func)
@@ -193,7 +195,7 @@ def main(args=None):
 
         # Load CCI config
         global RUNTIME
-        RUNTIME = CliRuntime()
+        RUNTIME = CliRuntime(load_keychain=False)
         RUNTIME.check_cumulusci_version()
 
         # Configure logging
@@ -259,7 +261,7 @@ def version():
 
 
 @cli.command(name="shell", help="Drop into a Python shell")
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def shell(runtime):
     # alias for backwards-compatibility
     config = runtime
@@ -273,7 +275,7 @@ Please ensure that your GitHub personal access token has the 'Create gists' scop
 
 
 @cli.command(name="gist", help="Create a GitHub gist from the latest logfile")
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def gist(runtime):
     if CCI_LOGFILE_PATH.is_file():
         log_content = CCI_LOGFILE_PATH.read_text()
@@ -659,7 +661,7 @@ def project_info(runtime):
     name="dependencies",
     help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created",
 )
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def project_dependencies(runtime):
     dependencies = runtime.project_config.get_static_dependencies()
     for line in runtime.project_config.pretty_dependencies(dependencies):
@@ -672,7 +674,7 @@ def project_dependencies(runtime):
 @service.command(name="list", help="List services available for configuration and use")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def service_list(runtime, plain, print_json):
     services = (
         runtime.project_config.services
@@ -721,6 +723,7 @@ class ConnectServiceCommand(click.MultiCommand):
 
     def get_command(self, ctx, name):
         runtime = RUNTIME
+        runtime._load_keychain()
         services = self._get_services_config(RUNTIME)
         try:
             service_config = services[name]
@@ -767,7 +770,7 @@ def service_connect():
 @service.command(name="info", help="Show the details of a connected service")
 @click.argument("service_name")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def service_info(runtime, service_name, plain):
     try:
         plain = plain or runtime.global_config.cli__plain_output
@@ -799,7 +802,7 @@ def service_info(runtime, service_name, plain):
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
 )
 @click.argument("org_name", required=False)
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def org_browser(runtime, org_name):
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
@@ -829,7 +832,7 @@ def org_browser(runtime, org_name):
 @click.option(
     "--global-org", help="Set True if org should be used by any project", is_flag=True
 )
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     runtime.check_org_overwrite(org_name)
 
@@ -870,7 +873,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     is_flag=True,
     help="Unset the org as the default org leaving no default org selected",
 )
-@pass_runtime()
+@pass_runtime(require_keychain=True)
 def org_default(runtime, org_name, unset):
     if unset:
         runtime.keychain.unset_default_org()
@@ -883,7 +886,7 @@ def org_default(runtime, org_name, unset):
 @org.command(name="import", help="Import a scratch org from Salesforce DX")
 @click.argument("username_or_alias")
 @click.argument("org_name")
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def org_import(runtime, username_or_alias, org_name):
     org_config = {"username": username_or_alias}
     scratch_org_config = ScratchOrgConfig(org_config, org_name)
@@ -914,7 +917,7 @@ def calculate_org_days(info):
 @org.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
 @click.option("print_json", "--json", is_flag=True, help="Print as JSON")
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def org_info(runtime, org_name, print_json):
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
@@ -970,7 +973,7 @@ def org_info(runtime, org_name, print_json):
 
 @org.command(name="list", help="Lists the connected orgs for the current project")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def org_list(runtime, plain):
     plain = plain or runtime.global_config.cli__plain_output
     header = ["Name", "Default", "Username", "Expires"]
@@ -1027,7 +1030,7 @@ def org_list(runtime, plain):
     is_flag=True,
     help="Set this option to force remove a global org.  Default behavior is to error if you attempt to delete a global org.",
 )
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def org_remove(runtime, org_name, global_org):
     try:
         org_config = runtime.keychain.get_org(org_name)
@@ -1066,7 +1069,7 @@ def org_remove(runtime, org_name, global_org):
 @click.option(
     "--no-password", is_flag=True, help="If set, don't set a password for the org"
 )
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def org_scratch(runtime, config_name, org_name, default, devhub, days, no_password):
     runtime.check_org_overwrite(org_name)
 
@@ -1098,7 +1101,7 @@ def org_scratch(runtime, config_name, org_name, default, devhub, days, no_passwo
     help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration",
 )
 @click.argument("org_name")
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def org_scratch_delete(runtime, org_name):
     org_config = runtime.keychain.get_org(org_name)
     if not org_config.scratch:
@@ -1115,7 +1118,7 @@ def org_scratch_delete(runtime, org_name):
     "as well as the `org_config` and `project_config`.",
 )
 @click.argument("org_name", required=False)
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def org_shell(runtime, org_name):
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
@@ -1235,7 +1238,7 @@ def task_info(runtime, task_name):
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
 )
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_prompt):
 
     # Get necessary configs
@@ -1355,7 +1358,7 @@ def flow_info(runtime, flow_name):
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
 )
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Get necessary configs
