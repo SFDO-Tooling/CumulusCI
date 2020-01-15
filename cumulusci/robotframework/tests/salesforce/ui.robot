@@ -74,12 +74,13 @@ Click related item link
     ...  Verify that 'Click related item link' works
 
     [Setup]  Create test data
-    Go to page  Detail  Contact  ${CONTACT ID}
+    set log level  DEBUG
     Salesforce Insert  Note
     ...  Title=This is the title of the note
     ...  Body=This is the body of the note
     ...  ParentId=${CONTACT ID}
 
+    Go to page  Detail  Contact  ${CONTACT ID}
     Click related item link
     ...  Notes & Attachments
     ...  This is the title of the note
