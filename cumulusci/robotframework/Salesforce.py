@@ -806,10 +806,19 @@ class Salesforce(object):
             self.selenium.capture_page_screenshot()
             time.sleep(interval)
             location = self.selenium.get_location()
-            if "//test.salesforce.com" in location:
-                # did we land on https://test.salesforce.com? If so, maybe
-                # the authentication succeeded so let's try the url without
-                # the frontdoor servelet
+            if (
+                "//test.salesforce.com" in location
+                or "//login.salesforce.com" in location
+            ):
+                # Sometimes we get redirected to a login URL rather
+                # than being logged in, and we've yet to figure out
+                # precisely why that happens. Experimentation shows
+                # that authentication has already happened, so in
+                # this case we'll try going back to the instance url
+                # rather than the front door servlet.
+                #
+                # Admittedly, this is a bit of a hack, but it's better
+                # than never getting past this redirect.
                 login_url = self.cumulusci.org.config["instance_url"]
                 self.builtin.log(
                     f"setting login_url temporarily to {login_url}", "DEBUG"
