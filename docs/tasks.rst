@@ -1266,6 +1266,7 @@ Options:
 * **sql_path**: If specified, a database will be created from an SQL script at the provided path **Default: datasets/sample.sql**
 * **ignore_row_errors**: If True, allow the load to continue even if individual rows fail to load.
 * **reset_oids**: If True (the default), and the _sf_ids tables exist, reset them before continuing.
+* **bulk_mode**: Set to Serial to force serial mode on all jobs. Parallel is the default.
 
 load_custom_settings
 ==========================================

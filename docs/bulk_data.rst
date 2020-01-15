@@ -102,6 +102,9 @@ referenced record is expected to be available. CumulusCI will defer populating t
 until the referenced step has been completed. In the example above, an ``after`` definition
 is used to support the ``ParentId`` self-lookup on ``Account``.
 
+CumulusCI defaults to using the Bulk API in Parallel mode. If required to avoid row locks,
+specify the key ``bulk_mode: Serial`` in each step requiring the use of serial mode.
+
 Record Types
 ------------
 
