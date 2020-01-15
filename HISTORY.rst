@@ -2,8 +2,18 @@
 History
 =======
 
-3.5.0 (2020-01--15)
--------------------
+3.5.1 (2020-01-15)
+------------------
+
+Issues closed:
+
+* Avoid errors that can happen when trying to store the CumulusCI encryption key in the system keychain using Python's keyring library, which can fail on some systems such as CI systems:
+
+  * We fixed a regression that caused CumulusCI to try to load the keychain even for commands where it's not used.
+  * We fixed a bug that caused CumulusCI to try to load the keychain key even when using an unencrypted keychain such as the EnvironmentProjectKeychain.
+
+3.5.0 (2020-01-15)
+------------------
 
 Changes:
 
