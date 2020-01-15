@@ -391,10 +391,21 @@ class Salesforce(object):
         self.builtin.log(output, level=loglevel)
 
     def open_app_launcher(self):
-        """ Opens the Saleforce App Launcher """
+        """Opens the Saleforce App Launcher Modal
+
+        Note: starting with Spring '20 the app launcher button opens a
+        menu rather than a modal. To maintain backwards compatibility,
+        this keyword will continue to open the modal rather than the
+        menu. If you need to interact with the app launcher menu, you
+        will need to create a custom keyword.
+        """
         locator = lex_locators["app_launcher"]["button"]
         self.builtin.log("Clicking App Launcher button")
         self._jsclick(locator)
+
+        api_version = int(float(self.get_latest_api_version()))
+        if api_version >= 48:
+            self.selenium.click_element(lex_locators["app_launcher"]["view_all"])
         self.wait_until_modal_is_open()
 
     def populate_field(self, name, value):
@@ -531,8 +542,8 @@ class Salesforce(object):
         self.builtin.log("Opening the App Launcher")
         self.open_app_launcher()
         self.builtin.log("Clicking App Tab")
-        self.selenium.set_focus_to_element(locator)
-        self.selenium.get_webelement(locator).click()
+        element = self.selenium.get_webelement(locator)
+        self._jsclick(element)
         self.builtin.log("Waiting for modal to close")
         self.wait_until_modal_is_closed()
 
