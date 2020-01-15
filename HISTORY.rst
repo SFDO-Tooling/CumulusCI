@@ -2,6 +2,25 @@
 History
 =======
 
+3.5.0 (2020-01--15)
+-------------------
+
+Changes:
+
+* Bulk data mappings now allow bulk_mode: Serial to select serial mode.
+
+* CumulusCI now stores the logs from the last five executions under ``~/.cumulusci/logs``
+
+* CumulusCI has a new top-level command: ``cci gist``. This command creates a secret GitHub gist which includes: The user's current CumulusCI version, current Python version, path to python binary, sysname (e.g. Darwin), machine (e.g. x86_64), and the most recent CumulusCI logfile (``~/.cumulusci/logs/cci.log``). The command outputs a link to the created gist and opens a browser tab with the new GitHub gist. This can be helpful for sharing information regarding errors and issues encountered when working with cci. This feature uses a users GitHub access token for creation of gists. If your access token does not have the 'gist (Create gists)' scope this command will result in a 404 error. For more info see: https://cumulusci.readthedocs.io/en/latest/features.html#reporting-error-logs
+
+*  Changed ``UpdateAdminProfile`` so that it only deploys the modified Admin profile. While it is necessary to retrieve profiles along their associated metadata objects, we don't need to do that for deployments.
+
+* Added ``RunSpecifiedTests`` support to the ``deploy`` task.
+
+# Issues Closed
+
+* Added ``check_only`` and ``test_level`` parameters to the ``deploy`` task.
+
 3.4.0 (2020-01-09)
 ------------------
 
