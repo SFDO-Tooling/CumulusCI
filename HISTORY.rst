@@ -15,11 +15,7 @@ Changes:
 
 *  Changed ``UpdateAdminProfile`` so that it only deploys the modified Admin profile. While it is necessary to retrieve profiles along their associated metadata objects, we don't need to do that for deployments.
 
-* Added ``RunSpecifiedTests`` support to the ``deploy`` task.
-
-# Issues Closed
-
-* Added ``check_only`` and ``test_level`` parameters to the ``deploy`` task.
+* Added options to the `deploy` task: ``check_only``, ``test_level``, and ``specified_tests``. Run ``cci task info deploy`` for details. (#1066)
 
 3.4.0 (2020-01-09)
 ------------------
