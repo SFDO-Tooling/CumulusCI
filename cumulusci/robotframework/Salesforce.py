@@ -183,7 +183,6 @@ class Salesforce(object):
 
         This keyword will automatically call `Wait until loading is complete`
         """
-        self.builtin.set_log_level("DEBUG")
         self.builtin.log("loading related list...", "DEBUG")
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
