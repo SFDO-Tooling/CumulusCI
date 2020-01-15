@@ -8,12 +8,10 @@ import unittest
 import click
 
 import cumulusci
-from cumulusci.cli.config import CliRuntime
+from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import ProjectConfigNotFound
 
 
 class TestCliRuntime(unittest.TestCase):
@@ -36,27 +34,14 @@ class TestCliRuntime(unittest.TestCase):
             self.assertIn(key, config.keychain.config)
         self.assertIn(config.project_config.repo_root, sys.path)
 
-    @mock.patch("cumulusci.cli.config.CliRuntime._load_project_config")
-    def test_load_project_not_in_project(self, load_proj_cfg_mock):
-        load_proj_cfg_mock.side_effect = NotInProject
-
-        with self.assertRaises(click.UsageError):
-            CliRuntime()
-
-    @mock.patch("cumulusci.cli.config.CliRuntime._load_project_config")
-    def test_load_project_config_no_file(self, load_proj_cfg_mock):
-        load_proj_cfg_mock.side_effect = ProjectConfigNotFound
-        with self.assertRaises(click.UsageError):
-            CliRuntime()
-
-    @mock.patch("cumulusci.cli.config.CliRuntime._load_project_config")
+    @mock.patch("cumulusci.cli.runtime.CliRuntime._load_project_config")
     def test_load_project_config_error(self, load_proj_cfg_mock):
         load_proj_cfg_mock.side_effect = ConfigError
 
         with self.assertRaises(click.UsageError):
             CliRuntime()
 
-    @mock.patch("cumulusci.cli.config.keyring")
+    @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__migrates_from_env_to_keyring(self, keyring):
         keyring.get_password.return_value = None
 
@@ -66,14 +51,14 @@ class TestCliRuntime(unittest.TestCase):
             "cumulusci", "CUMULUSCI_KEY", self.key
         )
 
-    @mock.patch("cumulusci.cli.config.keyring")
+    @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__env_takes_precedence(self, keyring):
         keyring.get_password.return_value = "overridden"
 
         config = CliRuntime()
         self.assertEqual(self.key, config.keychain.key)
 
-    @mock.patch("cumulusci.cli.config.keyring")
+    @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__generates_key(self, keyring):
         del os.environ["CUMULUSCI_KEY"]
         keyring.get_password.return_value = None
@@ -82,7 +67,7 @@ class TestCliRuntime(unittest.TestCase):
         self.assertNotEqual(self.key, config.keychain.key)
         self.assertEqual(16, len(config.keychain.key))
 
-    @mock.patch("cumulusci.cli.config.keyring")
+    @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__warns_if_generated_key_cannot_be_stored(self, keyring):
         del os.environ["CUMULUSCI_KEY"]
         keyring.get_password.side_effect = Exception
@@ -182,8 +167,8 @@ class TestCliRuntime(unittest.TestCase):
         with self.assertRaises(click.UsageError):
             config.check_cumulusci_version()
 
-    @mock.patch("cumulusci.cli.config.call")
-    @mock.patch("cumulusci.cli.config.click.echo")
+    @mock.patch("cumulusci.cli.runtime.call")
+    @mock.patch("cumulusci.cli.runtime.click.echo")
     @mock.patch("sys.platform", "darwin")
     def test_alert_osx(self, echo_mock, shell_mock):
         config = CliRuntime()
@@ -193,8 +178,8 @@ class TestCliRuntime(unittest.TestCase):
         shell_mock.assert_called_once()
         self.assertIn("osascript", shell_mock.call_args[0][0])
 
-    @mock.patch("cumulusci.cli.config.call")
-    @mock.patch("cumulusci.cli.config.click.echo")
+    @mock.patch("cumulusci.cli.runtime.call")
+    @mock.patch("cumulusci.cli.runtime.click.echo")
     @mock.patch("sys.platform", "linux2")
     def test_alert_linux(self, echo_mock, shell_mock):
         config = CliRuntime()
@@ -204,8 +189,8 @@ class TestCliRuntime(unittest.TestCase):
         shell_mock.assert_called_once()
         self.assertIn("notify-send", shell_mock.call_args[0][0])
 
-    @mock.patch("cumulusci.cli.config.call")
-    @mock.patch("cumulusci.cli.config.click.echo")
+    @mock.patch("cumulusci.cli.runtime.call")
+    @mock.patch("cumulusci.cli.runtime.click.echo")
     @mock.patch("sys.platform", "darwin")
     def test_alert__disabled(self, echo_mock, shell_mock):
         config = CliRuntime()
@@ -215,8 +200,8 @@ class TestCliRuntime(unittest.TestCase):
         echo_mock.assert_not_called()
         shell_mock.assert_not_called()
 
-    @mock.patch("cumulusci.cli.config.call")
-    @mock.patch("cumulusci.cli.config.click.echo")
+    @mock.patch("cumulusci.cli.runtime.call")
+    @mock.patch("cumulusci.cli.runtime.click.echo")
     @mock.patch("sys.platform", "darwin")
     def test_alert__os_error(self, echo_mock, shell_mock):
         shell_mock.side_effect = OSError

@@ -9,10 +9,8 @@ import pkg_resources
 from cumulusci import __version__
 from cumulusci.core.runtime import BaseCumulusCI
 from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import KeychainKeyNotFound
-from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.utils import import_global
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils import random_alphanumeric_underscore
@@ -22,8 +20,6 @@ class CliRuntime(BaseCumulusCI):
     def __init__(self, *args, **kwargs):
         try:
             super(CliRuntime, self).__init__(*args, **kwargs)
-        except (ProjectConfigNotFound, NotInProject) as e:
-            raise click.UsageError(str(e))
         except ConfigError as e:
             raise click.UsageError(f"Config Error: {str(e)}")
         except (KeychainKeyNotFound) as e:
@@ -32,13 +28,14 @@ class CliRuntime(BaseCumulusCI):
     def get_keychain_class(self):
         default_keychain_class = (
             self.project_config.cumulusci__keychain
-            if not self.is_global_keychain
+            if self.project_config is not None
             else self.global_config.cumulusci__keychain
         )
         keychain_class = os.environ.get(
             "CUMULUSCI_KEYCHAIN_CLASS", default_keychain_class
         )
-        return import_global(keychain_class)
+        if keychain_class:
+            return import_global(keychain_class)
 
     def get_keychain_key(self):
         key_from_env = os.environ.get("CUMULUSCI_KEY")
@@ -149,6 +146,7 @@ class CliRuntime(BaseCumulusCI):
                     )
 
 
+# for backwards-compatibility
 CliConfig = CliRuntime
 
 

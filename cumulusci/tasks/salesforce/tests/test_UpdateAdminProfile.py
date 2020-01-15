@@ -143,7 +143,7 @@ def test_retrieve_unpackaged(ApiRetrieveUnpackaged):
 def test_deploy_metadata(tmpdir):
     task = create_task(UpdateAdminProfile)
     task.retrieve_dir = Path(tmpdir, "retrieve", "profiles")
-    task.deploy_dir = Path(tmpdir, "deploy", "profiles")
+    task.deploy_dir = Path(tmpdir, "deploy")
     task.retrieve_dir.mkdir(parents=True)
     task.deploy_dir.mkdir(parents=True)
     task.retrieve_dir = task.retrieve_dir.parent

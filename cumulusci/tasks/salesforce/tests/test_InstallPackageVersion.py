@@ -11,7 +11,6 @@ from .util import create_task
 
 
 class TestInstallPackageVersion(unittest.TestCase):
-    @mock.patch("time.sleep", mock.Mock())
     def test_run_task_with_retry(self):
         project_config = create_project_config()
         project_config.get_latest_version = mock.Mock(return_value="1.0")
