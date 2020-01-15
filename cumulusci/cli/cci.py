@@ -4,16 +4,20 @@ from urllib.parse import urlparse
 import code
 import functools
 import json
+import re
 import os
+import pdb
 import shutil
 import sys
 import time
+import traceback
 from datetime import datetime
 import webbrowser
-
-from contextlib import contextmanager
+import contextlib
+from pathlib import Path
 
 import click
+import github3
 import pkg_resources
 import requests
 from rst2ansi import rst2ansi
@@ -21,34 +25,32 @@ from jinja2 import Environment
 from jinja2 import PackageLoader
 
 import cumulusci
-from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.core.exceptions import CumulusCIFailure
-from cumulusci.core.exceptions import CumulusCIUsageError
+from cumulusci.core.github import create_gist, get_github_api
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
+
 from cumulusci.core.utils import import_global
-from cumulusci.cli.config import CliRuntime
-from cumulusci.cli.config import get_installed_version
+from cumulusci.cli.runtime import CliRuntime
+from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task
+from cumulusci.utils import doc_task, tee_stdout_stderr
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
-from .logger import init_logger
-import re
+from .logger import init_logger, get_gist_logger
 
 
-@contextmanager
+@contextlib.contextmanager
 def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
     config_dir = os.path.join(
@@ -120,28 +122,11 @@ def check_latest_version():
             )
 
 
-def handle_exception_debug(config, debug, throw_exception=None, no_prompt=None):
-    if debug:
-        import pdb
-        import traceback
-
-        traceback.print_exc()
-        pdb.post_mortem()
-    else:
-        if throw_exception:
-            raise throw_exception
-        else:
-            handle_sentry_event(config, no_prompt)
-            raise
-
-
 def render_recursive(data, indent=None):
     if indent is None:
         indent = 0
     indent_str = " " * indent
-    if isinstance(data, BaseConfig):
-        render_recursive(data.config)
-    elif isinstance(data, list):
+    if isinstance(data, list):
         for item in data:
             if isinstance(item, (bytes, str)):
                 click.echo(f"{indent_str}- {item}")
@@ -161,52 +146,19 @@ def render_recursive(data, indent=None):
                 click.echo(f"{indent_str}{key_str} {value}")
 
 
-def handle_sentry_event(config, no_prompt):
-    event = config.project_config.sentry_event
-    if not event:
-        return
-
-    sentry_config = config.project_config.keychain.get_service("sentry")
-    event_url = f"{config.project_config.sentry.remote.base_url}/{sentry_config.org_slug}/{sentry_config.project_slug}/?query={event}"
-    click.echo(
-        f"An error event was recorded in sentry.io and can be viewed at the url:\n{event_url}"
-    )
-
-    if not no_prompt and click.confirm(
-        click.style(
-            "Do you want to open a browser to view the error in sentry.io?", bold=True
-        )
-    ):
-        webbrowser.open(event_url)
+# global reference to active runtime
+RUNTIME = None
 
 
-# hook for tests
-TEST_CONFIG = None
-
-
-def load_config(
-    load_project_config=True, load_keychain=True, allow_global_keychain=False
-):
-    try:
-        config = TEST_CONFIG or CliRuntime(
-            load_project_config=load_project_config,
-            load_keychain=load_keychain,
-            allow_global_keychain=allow_global_keychain,
-        )
-        config.check_cumulusci_version()
-    except click.UsageError as e:
-        click.echo(str(e))
-        sys.exit(1)
-    return config
-
-
-def pass_config(func=None, **config_kw):
-    """Decorator which passes the CCI config object as the first arg to a click command."""
+def pass_runtime(func=None, require_project=True):
+    """Decorator which passes the CCI runtime object as the first arg to a click command."""
 
     def decorate(func):
         def new_func(*args, **kw):
-            config = load_config(**config_kw)
-            func(config, *args, **kw)
+            runtime = RUNTIME
+            if require_project and runtime.project_config is None:
+                raise runtime.project_config_error
+            func(RUNTIME, *args, **kw)
 
         return functools.update_wrapper(new_func, func)
 
@@ -216,25 +168,71 @@ def pass_config(func=None, **config_kw):
         return decorate(func)
 
 
+SUGGEST_GIT_GIST_COMMAND = """\nIt looks like you may have run into an error. Did you know cci has a command for sending this error to a GitHub gist?
+Just run `$ cci gist` and make sure that your GitHub access token has the 'create gist' scope.\n"""
+
+
+#
 # Root command
-
-
-@click.group("main", help="")
-def main():
+#
+def main(args=None):
     """Main CumulusCI CLI entry point.
 
     This runs as the first step in processing any CLI command.
+
+    This wraps the `click` library in order to do some initialization and centralized error handling.
     """
-    # Avoid checking for updates if we've been asked to output JSON,
-    # or if we're going to check anyway as part of the `version` command.
-    is_version_command = len(sys.argv) > 1 and sys.argv[1] == "version"
-    if "--json" not in sys.argv and not is_version_command:
-        check_latest_version()
-    log_requests = "--debug" in sys.argv
-    init_logger(log_requests=log_requests)
+    with contextlib.ExitStack() as stack:
+        args = args or sys.argv
+        # Check for updates _unless_ we've been asked to output JSON,
+        # or if we're going to check anyway as part of the `version` command.
+        is_version_command = len(args) > 1 and args[1] == "version"
+        if "--json" not in args and not is_version_command:
+            check_latest_version()
+
+        # Load CCI config
+        global RUNTIME
+        RUNTIME = CliRuntime()
+        RUNTIME.check_cumulusci_version()
+
+        # Configure logging
+        debug = "--debug" in args
+        if debug:
+            args.remove("--debug")
+
+        # Only create logfiles for commands
+        # that are not `cci gist`
+        is_gist_command = len(args) > 1 and args[1] == "gist"
+        if not is_gist_command:
+            logger = get_gist_logger()
+            stack.enter_context(tee_stdout_stderr(args, logger))
+
+        init_logger(log_requests=debug)
+        # Hand CLI processing over to click, but handle exceptions
+        try:
+            cli(standalone_mode=False)
+        except Exception as e:
+            # Display the error
+            if debug:
+                traceback.print_exc()
+                pdb.post_mortem()
+            else:
+                click.echo(click.style(f"Error: {e}", fg="red"))
+                click.echo(click.style(SUGGEST_GIT_GIST_COMMAND, fg="yellow"))
+
+                with open(CCI_LOGFILE_PATH, "a") as log_file:
+                    traceback.print_exc(file=log_file)  # log stacktrace silently
+            # TODO: errorsdb
+            # Return a non-zero exit code to indicate a problem
+            sys.exit(1)
 
 
-@main.command(name="version", help="Print the current version of CumulusCI")
+@click.group("main", help="")
+def cli():
+    """Top-level `click` command group."""
+
+
+@cli.command(name="version", help="Print the current version of CumulusCI")
 def version():
     click.echo("CumulusCI version: ", nl=False)
     click.echo(click.style(cumulusci.__version__, bold=True), nl=False)
@@ -259,42 +257,92 @@ def version():
     click.echo()
 
 
-@main.command(name="shell", help="Drop into a Python shell")
-def shell():
-    try:
-        config = load_config(load_project_config=True, load_keychain=True)
-    except SystemExit:
-        config = load_config(load_project_config=False, load_keychain=False)
+@cli.command(name="shell", help="Drop into a Python shell")
+@pass_runtime(require_project=False)
+def shell(runtime):
+    # alias for backwards-compatibility
+    config = runtime
 
     code.interact(local=dict(globals(), **locals()))
+
+
+CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
+GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
+Please ensure that your GitHub personal access token has the 'Create gists' scope."""
+
+
+@cli.command(name="gist", help="Create a GitHub gist from the latest logfile")
+@pass_runtime(require_project=False)
+def gist(runtime):
+    if CCI_LOGFILE_PATH.is_file():
+        log_content = CCI_LOGFILE_PATH.read_text()
+    else:
+        log_not_found_msg = """No logfile to open at path: {}
+        Please ensure you're running this command from the same directory you were experiencing an issue."""
+        error_msg = log_not_found_msg.format(CCI_LOGFILE_PATH)
+        click.echo(error_msg)
+        raise CumulusCIException(error_msg)
+
+    last_cmd_header = "\n\n\nLast Command Run\n================================\n"
+    filename = f"cci_output_{datetime.utcnow()}.txt"
+    files = {
+        filename: {"content": f"{get_context_info()}{last_cmd_header}{log_content}"}
+    }
+
+    try:
+        gh = RUNTIME.keychain.get_service("github")
+        gist = create_gist(
+            get_github_api(gh.config["username"], gh.config["password"]),
+            "CumulusCI Error Output",
+            files,
+        )
+    except github3.exceptions.NotFoundError:
+        raise CumulusCIException(GIST_404_ERR_MSG)
+    except Exception as e:
+        raise CumulusCIException(
+            f"An error occurred attempting to create your gist:\n{e}"
+        )
+    else:
+        click.echo(f"Gist created: {gist.html_url}")
+        webbrowser.open(gist.html_url)
+
+
+def get_context_info():
+    host_info = os.uname()
+
+    info = []
+    info.append(f"CumulusCI version: {cumulusci.__version__}")
+    info.append(f"Python version: {sys.version.split()[0]} ({sys.executable})")
+    info.append(f"Environment Info: {host_info.sysname} / {host_info.machine}")
+    return "\n".join(info)
 
 
 # Top Level Groups
 
 
-@main.group(
+@cli.group(
     "project", help="Commands for interacting with project repository configurations"
 )
 def project():
     pass
 
 
-@main.group("org", help="Commands for connecting and interacting with Salesforce orgs")
+@cli.group("org", help="Commands for connecting and interacting with Salesforce orgs")
 def org():
     pass
 
 
-@main.group("task", help="Commands for finding and running tasks for a project")
+@cli.group("task", help="Commands for finding and running tasks for a project")
 def task():
     pass
 
 
-@main.group("flow", help="Commands for finding and running flows for a project")
+@cli.group("flow", help="Commands for finding and running flows for a project")
 def flow():
     pass
 
 
-@main.group("service", help="Commands for connecting services to the keychain")
+@cli.group("service", help="Commands for connecting services to the keychain")
 def service():
     pass
 
@@ -314,8 +362,8 @@ def validate_project_name(value):
 @project.command(
     name="init", help="Initialize a new project for use with the cumulusci toolbelt"
 )
-@pass_config(load_project_config=False)
-def project_init(config):
+@pass_runtime(require_project=False)
+def project_init(runtime):
     if not os.path.isdir(".git"):
         raise click.ClickException("You are not in the root of a Git repository")
 
@@ -374,7 +422,7 @@ def project_init(config):
     click.echo()
     context["api_version"] = click.prompt(
         click.style("Salesforce API Version", bold=True),
-        default=config.global_config.project__package__api_version,
+        default=runtime.global_config.project__package__api_version,
     )
 
     click.echo()
@@ -433,7 +481,7 @@ def project_init(config):
     )
     if (
         git_default_branch
-        and git_default_branch != config.global_config.project__git__default_branch
+        and git_default_branch != runtime.global_config.project__git__default_branch
     ):
         git_config["default_branch"] = git_default_branch
 
@@ -442,7 +490,7 @@ def project_init(config):
     )
     if (
         git_prefix_feature
-        and git_prefix_feature != config.global_config.project__git__prefix_feature
+        and git_prefix_feature != runtime.global_config.project__git__prefix_feature
     ):
         git_config["prefix_feature"] = git_prefix_feature
 
@@ -451,7 +499,7 @@ def project_init(config):
     )
     if (
         git_prefix_beta
-        and git_prefix_beta != config.global_config.project__git__prefix_beta
+        and git_prefix_beta != runtime.global_config.project__git__prefix_beta
     ):
         git_config["prefix_beta"] = git_prefix_beta
 
@@ -460,7 +508,7 @@ def project_init(config):
     )
     if (
         git_prefix_release
-        and git_prefix_release != config.global_config.project__git__prefix_release
+        and git_prefix_release != runtime.global_config.project__git__prefix_release
     ):
         git_config["prefix_release"] = git_prefix_release
 
@@ -475,11 +523,11 @@ def project_init(config):
 
     test_name_match = click.prompt(
         click.style("Test Name Match", bold=True),
-        default=config.global_config.project__test__name_match,
+        default=runtime.global_config.project__test__name_match,
     )
     if (
         test_name_match
-        and test_name_match == config.global_config.project__test__name_match
+        and test_name_match == runtime.global_config.project__test__name_match
     ):
         test_name_match = None
     context["test_name_match"] = test_name_match
@@ -601,19 +649,19 @@ def project_init(config):
 @project.command(
     name="info", help="Display information about the current project's configuration"
 )
-@pass_config(load_keychain=False)
-def project_info(config):
-    render_recursive(config.project_config.project)
+@pass_runtime
+def project_info(runtime):
+    render_recursive(runtime.project_config.project)
 
 
 @project.command(
     name="dependencies",
     help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created",
 )
-@pass_config
-def project_dependencies(config):
-    dependencies = config.project_config.get_static_dependencies()
-    for line in config.project_config.pretty_dependencies(dependencies):
+@pass_runtime
+def project_dependencies(runtime):
+    dependencies = runtime.project_config.get_static_dependencies()
+    for line in runtime.project_config.pretty_dependencies(dependencies):
         click.echo(line)
 
 
@@ -623,15 +671,15 @@ def project_dependencies(config):
 @service.command(name="list", help="List services available for configuration and use")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
-@pass_config(allow_global_keychain=True)
-def service_list(config, plain, print_json):
+@pass_runtime(require_project=False)
+def service_list(runtime, plain, print_json):
     services = (
-        config.project_config.services
-        if not config.is_global_keychain
-        else config.global_config.services
+        runtime.project_config.services
+        if runtime.project_config is not None
+        else runtime.global_config.services
     )
-    configured_services = config.keychain.list_services()
-    plain = plain or config.global_config.cli__plain_output
+    configured_services = runtime.keychain.list_services()
+    plain = plain or runtime.global_config.cli__plain_output
 
     data = [["Name", "Description", "Configured"]]
     for serv, schema in services.items():
@@ -654,19 +702,16 @@ def service_list(config, plain, print_json):
 
 
 class ConnectServiceCommand(click.MultiCommand):
-    load_config_kwargs = {"allow_global_keychain": True}
-
-    def _get_services_config(self, config):
+    def _get_services_config(self, runtime):
         return (
-            config.project_config.services
-            if not config.is_global_keychain
-            else config.global_config.services
+            runtime.project_config.services
+            if runtime.project_config
+            else runtime.global_config.services
         )
 
     def list_commands(self, ctx):
         """ list the services that can be configured """
-        config = load_config(**self.load_config_kwargs)
-        services = self._get_services_config(config)
+        services = self._get_services_config(RUNTIME)
         return sorted(services.keys())
 
     def _build_param(self, attribute, details):
@@ -674,8 +719,8 @@ class ConnectServiceCommand(click.MultiCommand):
         return click.Option((f"--{attribute}",), prompt=req, required=req)
 
     def get_command(self, ctx, name):
-        config = load_config(**self.load_config_kwargs)
-        services = self._get_services_config(config)
+        runtime = RUNTIME
+        services = self._get_services_config(RUNTIME)
         try:
             service_config = services[name]
         except KeyError:
@@ -683,11 +728,11 @@ class ConnectServiceCommand(click.MultiCommand):
         attributes = service_config["attributes"].items()
 
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
-        if not config.is_global_keychain:
+        if runtime.project_config is not None:
             params.append(click.Option(("--project",), is_flag=True))
 
         def callback(*args, **kwargs):
-            if config.is_global_keychain:
+            if runtime.project_config is None:
                 project = False
             else:
                 project = kwargs.pop("project", False)
@@ -699,12 +744,9 @@ class ConnectServiceCommand(click.MultiCommand):
             validator_path = service_config.get("validator")
             if validator_path:
                 validator = import_global(validator_path)
-                try:
-                    validator(serv_conf)
-                except Exception as e:
-                    raise click.UsageError(str(e))
+                validator(serv_conf)
 
-            config.keychain.set_service(name, ServiceConfig(serv_conf), project)
+            runtime.keychain.set_service(name, ServiceConfig(serv_conf), project)
             if project:
                 click.echo(f"{name} is now configured for this project.")
             else:
@@ -724,11 +766,11 @@ def service_connect():
 @service.command(name="info", help="Show the details of a connected service")
 @click.argument("service_name")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
-@pass_config(allow_global_keychain=True)
-def service_info(config, service_name, plain):
+@pass_runtime(require_project=False)
+def service_info(runtime, service_name, plain):
     try:
-        plain = plain or config.global_config.cli__plain_output
-        service_config = config.keychain.get_service(service_name)
+        plain = plain or runtime.global_config.cli__plain_output
+        service_config = runtime.keychain.get_service(service_name)
         service_data = [["Key", "Value"]]
         service_data.extend(
             [
@@ -756,14 +798,14 @@ def service_info(config, service_name, plain):
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
 )
 @click.argument("org_name", required=False)
-@pass_config
-def org_browser(config, org_name):
-    org_name, org_config = config.get_org(org_name)
-    org_config.refresh_oauth_token(config.keychain)
+@pass_runtime(require_project=False)
+def org_browser(runtime, org_name):
+    org_name, org_config = runtime.get_org(org_name)
+    org_config.refresh_oauth_token(runtime.keychain)
 
     webbrowser.open(org_config.start_url)
     # Save the org config in case it was modified
-    config.keychain.set_org(org_config)
+    runtime.keychain.set_org(org_config)
 
 
 @org.command(
@@ -786,11 +828,11 @@ def org_browser(config, org_name):
 @click.option(
     "--global-org", help="Set True if org should be used by any project", is_flag=True
 )
-@pass_config
-def org_connect(config, org_name, sandbox, login_url, default, global_org):
-    config.check_org_overwrite(org_name)
+@pass_runtime(require_project=False)
+def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
+    runtime.check_org_overwrite(org_name)
 
-    connected_app = config.keychain.get_service("connected_app")
+    connected_app = runtime.keychain.get_service("connected_app")
     if sandbox:
         login_url = "https://test.salesforce.com"
 
@@ -812,10 +854,11 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
             org_config.organization_sobject["TrialExpirationDate"]
         ).date()
 
-    config.keychain.set_org(org_config, global_org)
+    global_org = global_org or runtime.project_config is None
+    runtime.keychain.set_org(org_config, global_org)
 
     if default:
-        config.keychain.set_default_org(org_name)
+        runtime.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
 
 
@@ -826,21 +869,21 @@ def org_connect(config, org_name, sandbox, login_url, default, global_org):
     is_flag=True,
     help="Unset the org as the default org leaving no default org selected",
 )
-@pass_config
-def org_default(config, org_name, unset):
+@pass_runtime()
+def org_default(runtime, org_name, unset):
     if unset:
-        config.keychain.unset_default_org()
+        runtime.keychain.unset_default_org()
         click.echo(f"{org_name} is no longer the default org.  No default org set.")
     else:
-        config.keychain.set_default_org(org_name)
+        runtime.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
 
 
 @org.command(name="import", help="Import a scratch org from Salesforce DX")
 @click.argument("username_or_alias")
 @click.argument("org_name")
-@pass_config
-def org_import(config, username_or_alias, org_name):
+@pass_runtime
+def org_import(runtime, username_or_alias, org_name):
     org_config = {"username": username_or_alias}
     scratch_org_config = ScratchOrgConfig(org_config, org_name)
     scratch_org_config.config["created"] = True
@@ -849,7 +892,7 @@ def org_import(config, username_or_alias, org_name):
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 
-    config.keychain.set_org(scratch_org_config)
+    runtime.keychain.set_org(scratch_org_config)
     click.echo(
         "Imported scratch org: {org_id}, username: {username}".format(
             **scratch_org_config.scratch_info
@@ -870,13 +913,10 @@ def calculate_org_days(info):
 @org.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
 @click.option("print_json", "--json", is_flag=True, help="Print as JSON")
-@pass_config
-def org_info(config, org_name, print_json):
-    try:
-        org_name, org_config = config.get_org(org_name)
-        org_config.refresh_oauth_token(config.keychain)
-    except OrgNotFound as e:
-        raise click.ClickException(e)
+@pass_runtime(require_project=False)
+def org_info(runtime, org_name, print_json):
+    org_name, org_config = runtime.get_org(org_name)
+    org_config.refresh_oauth_token(runtime.keychain)
 
     if print_json:
         click.echo(
@@ -924,20 +964,19 @@ def org_info(config, org_name, print_json):
             click.echo("Org expires on {:%c}".format(org_config.expires))
 
     # Save the org config in case it was modified
-    config.keychain.set_org(org_config)
+    runtime.keychain.set_org(org_config)
 
 
 @org.command(name="list", help="Lists the connected orgs for the current project")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
-@pass_config
-def org_list(config, plain):
-    plain = plain or config.global_config.cli__plain_output
+@pass_runtime(require_project=False)
+def org_list(runtime, plain):
+    plain = plain or runtime.global_config.cli__plain_output
     header = ["Name", "Default", "Username", "Expires"]
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
     org_configs = {
-        org: config.project_config.keychain.get_org(org)
-        for org in config.project_config.keychain.list_orgs()
+        org: runtime.keychain.get_org(org) for org in runtime.keychain.list_orgs()
     }
     rows_to_dim = []
     for org, org_config in org_configs.items():
@@ -987,10 +1026,10 @@ def org_list(config, plain):
     is_flag=True,
     help="Set this option to force remove a global org.  Default behavior is to error if you attempt to delete a global org.",
 )
-@pass_config
-def org_remove(config, org_name, global_org):
+@pass_runtime(require_project=False)
+def org_remove(runtime, org_name, global_org):
     try:
-        org_config = config.keychain.get_org(org_name)
+        org_config = runtime.keychain.get_org(org_name)
     except OrgNotFound:
         raise click.ClickException(f"Org {org_name} does not exist in the keychain")
 
@@ -1002,7 +1041,8 @@ def org_remove(config, org_name, global_org):
             click.echo("Deleting scratch org failed with error:")
             click.echo(e)
 
-    config.keychain.remove_org(org_name, global_org)
+    global_org = global_org or runtime.project_config is None
+    runtime.keychain.remove_org(org_name, global_org)
 
 
 @org.command(
@@ -1025,11 +1065,11 @@ def org_remove(config, org_name, global_org):
 @click.option(
     "--no-password", is_flag=True, help="If set, don't set a password for the org"
 )
-@pass_config
-def org_scratch(config, config_name, org_name, default, devhub, days, no_password):
-    config.check_org_overwrite(org_name)
+@pass_runtime
+def org_scratch(runtime, config_name, org_name, default, devhub, days, no_password):
+    runtime.check_org_overwrite(org_name)
 
-    scratch_configs = getattr(config.project_config, "orgs__scratch")
+    scratch_configs = getattr(runtime.project_config, "orgs__scratch")
     if not scratch_configs:
         raise click.UsageError("No scratch org configs found in cumulusci.yml")
     scratch_config = scratch_configs.get(config_name)
@@ -1041,12 +1081,12 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
     if devhub:
         scratch_config["devhub"] = devhub
 
-    config.keychain.create_scratch_org(
+    runtime.keychain.create_scratch_org(
         org_name, config_name, days, set_password=not (no_password)
     )
 
     if default:
-        config.keychain.set_default_org(org_name)
+        runtime.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
     else:
         click.echo(f"{org_name} is configured for use")
@@ -1057,18 +1097,15 @@ def org_scratch(config, config_name, org_name, default, devhub, days, no_passwor
     help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration",
 )
 @click.argument("org_name")
-@pass_config
-def org_scratch_delete(config, org_name):
-    org_config = config.keychain.get_org(org_name)
+@pass_runtime
+def org_scratch_delete(runtime, org_name):
+    org_config = runtime.keychain.get_org(org_name)
     if not org_config.scratch:
         raise click.UsageError(f"Org {org_name} is not a scratch org")
 
-    try:
-        org_config.delete_org()
-    except ScratchOrgException as e:
-        raise click.UsageError(str(e))
+    org_config.delete_org()
 
-    config.keychain.set_org(org_config)
+    runtime.keychain.set_org(org_config)
 
 
 @org.command(
@@ -1077,24 +1114,24 @@ def org_scratch_delete(config, org_name):
     "as well as the `org_config` and `project_config`.",
 )
 @click.argument("org_name", required=False)
-@pass_config
-def org_shell(config, org_name):
-    org_name, org_config = config.get_org(org_name)
-    org_config.refresh_oauth_token(config.keychain)
+@pass_runtime
+def org_shell(runtime, org_name):
+    org_name, org_config = runtime.get_org(org_name)
+    org_config.refresh_oauth_token(runtime.keychain)
 
-    sf = get_simple_salesforce_connection(config.project_config, org_config)
+    sf = get_simple_salesforce_connection(runtime.project_config, org_config)
 
     code.interact(
         banner=f"Use `sf` to access org `{org_name}` via simple_salesforce",
         local={
             "sf": sf,
             "org_config": org_config,
-            "project_config": config.project_config,
+            "project_config": runtime.project_config,
         },
     )
 
     # Save the org config in case it was modified
-    config.keychain.set_org(org_config)
+    runtime.keychain.set_org(org_config)
 
 
 # Commands for group: task
@@ -1103,11 +1140,15 @@ def org_shell(config, org_name):
 @task.command(name="list", help="List available tasks for the current context")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
-@pass_config(load_keychain=False)
-def task_list(config, plain, print_json):
+@pass_runtime(require_project=False)
+def task_list(runtime, plain, print_json):
     task_groups = {}
-    tasks = config.project_config.list_tasks()
-    plain = plain or config.global_config.cli__plain_output
+    tasks = (
+        runtime.project_config.list_tasks()
+        if runtime.project_config is not None
+        else runtime.global_config.list_tasks()
+    )
+    plain = plain or runtime.global_config.cli__plain_output
 
     if print_json:
         click.echo(json.dumps(tasks))
@@ -1133,16 +1174,16 @@ def task_list(config, plain, print_json):
 
 
 @task.command(name="doc", help="Exports RST format documentation for all tasks")
-@pass_config(load_keychain=False)
-def task_doc(config):
-    config_src = config.global_config
+@pass_runtime(require_project=False)
+def task_doc(runtime):
+    config_src = runtime.global_config
 
     click.echo("==========================================")
     click.echo("Tasks Reference")
     click.echo("==========================================")
     click.echo("")
 
-    for name, options in list(config_src.tasks.items()):
+    for name, options in config_src.tasks.items():
         task_config = TaskConfig(options)
         doc = doc_task(name, task_config)
         click.echo(doc)
@@ -1151,12 +1192,13 @@ def task_doc(config):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
-@pass_config()
-def task_info(config, task_name):
-    try:
-        task_config = config.project_config.get_task(task_name)
-    except CumulusCIUsageError as e:
-        raise click.UsageError(str(e))
+@pass_runtime(require_project=False)
+def task_info(runtime, task_name):
+    task_config = (
+        runtime.project_config.get_task(task_name)
+        if runtime.project_config is not None
+        else runtime.global_config.get_task(task_name)
+    )
 
     doc = doc_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
@@ -1192,15 +1234,12 @@ def task_info(config, task_name):
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
 )
-@pass_config
-def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_prompt):
+@pass_runtime
+def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_prompt):
 
     # Get necessary configs
-    org, org_config = config.get_org(org, fail_if_missing=False)
-    try:
-        task_config = config.project_config.get_task(task_name)
-    except CumulusCIUsageError as e:
-        raise click.UsageError(str(e))
+    org, org_config = runtime.get_org(org, fail_if_missing=False)
+    task_config = runtime.project_config.get_task(task_name)
 
     # Get the class to look up options
     class_path = task_config.class_path
@@ -1237,20 +1276,8 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
             import pdb
 
             pdb.set_trace()
-
-    except CumulusCIUsageError as e:
-        # Usage error; report with usage line and no traceback
-        exception = click.UsageError(str(e))
-        handle_exception_debug(config, debug, throw_exception=exception)
-    except (CumulusCIFailure, ScratchOrgException) as e:
-        # Expected failure; report without traceback
-        exception = click.ClickException(str(e) or e.__class__.__name__)
-        handle_exception_debug(config, debug, throw_exception=exception)
-    except Exception:
-        # Unexpected exception; log to sentry and raise
-        handle_exception_debug(config, debug, no_prompt=no_prompt)
     finally:
-        config.alert(f"Task complete: {task_name}")
+        runtime.alert(f"Task complete: {task_name}")
 
 
 # Commands for group: flow
@@ -1259,10 +1286,14 @@ def task_run(config, task_name, org, o, debug, debug_before, debug_after, no_pro
 @flow.command(name="list", help="List available flows for the current context")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
-@pass_config(load_keychain=False)
-def flow_list(config, plain, print_json):
-    plain = plain or config.global_config.cli__plain_output
-    flows = config.project_config.list_flows()
+@pass_runtime(require_project=False)
+def flow_list(runtime, plain, print_json):
+    plain = plain or runtime.global_config.cli__plain_output
+    flows = (
+        runtime.project_config.list_flows()
+        if runtime.project_config is not None
+        else runtime.global_config.list_flows()
+    )
 
     if print_json:
         click.echo(json.dumps(flows))
@@ -1283,10 +1314,10 @@ def flow_list(config, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
-@pass_config
-def flow_info(config, flow_name):
+@pass_runtime
+def flow_info(runtime, flow_name):
     try:
-        coordinator = config.get_flow(flow_name)
+        coordinator = runtime.get_flow(flow_name)
         output = coordinator.get_summary()
         click.echo(output)
     except FlowNotFoundError as e:
@@ -1323,11 +1354,11 @@ def flow_info(config, flow_name):
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
 )
-@pass_config
-def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
+@pass_runtime
+def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Get necessary configs
-    org, org_config = config.get_org(org)
+    org, org_config = runtime.get_org(org)
     if delete_org and not org_config.scratch:
         raise click.UsageError("--delete-org can only be used with a scratch org")
 
@@ -1340,18 +1371,10 @@ def flow_run(config, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
     # Create the flow and handle initialization exceptions
     try:
-        coordinator = config.get_flow(flow_name, options=options)
+        coordinator = runtime.get_flow(flow_name, options=options)
         coordinator.run(org_config)
-    except CumulusCIUsageError as e:
-        exception = click.UsageError(str(e))
-        handle_exception_debug(config, debug, throw_exception=exception)
-    except (CumulusCIFailure, ScratchOrgException) as e:
-        exception = click.ClickException(str(e) or e.__class__.__name__)
-        handle_exception_debug(config, debug, throw_exception=exception)
-    except Exception:
-        handle_exception_debug(config, debug, no_prompt=no_prompt)
     finally:
-        config.alert(f"Flow Complete: {flow_name}")
+        runtime.alert(f"Flow Complete: {flow_name}")
 
     # Delete the scratch org if --delete-org was set
     if delete_org:
