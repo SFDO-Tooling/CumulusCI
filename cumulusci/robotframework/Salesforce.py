@@ -520,6 +520,7 @@ class Salesforce(object):
         locator = lex_locators["modal"]["button"].format("Next")
         self._jsclick(locator)
 
+    @capture_screenshot_on_error
     def select_app_launcher_app(self, app_name):
         """Navigates to a Salesforce App via the App Launcher """
         locator = lex_locators["app_launcher"]["app_link"].format(app_name)
@@ -536,6 +537,7 @@ class Salesforce(object):
         self.builtin.log("Waiting for modal to close")
         self.wait_until_modal_is_closed()
 
+    @capture_screenshot_on_error
     def select_app_launcher_tab(self, tab_name):
         """Navigates to a tab via the App Launcher"""
         locator = lex_locators["app_launcher"]["tab_link"].format(tab_name)
