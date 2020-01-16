@@ -133,7 +133,6 @@ class TestUtils:
         mock_parse.return_value = _marker
         assert utils.elementtree_parse_file("test_file") == _marker
 
-
     @mock.patch("xml.etree.ElementTree.parse")
     def test_elementtree_parse_file_error(self, mock_parse):
         err = ET.ParseError()
@@ -447,7 +446,6 @@ Options\n------------------------------------------\n\n
 
         zf = utils.zip_clean_metaxml(zf)
         assert b"<root>\xc3\xb1</root>" in zf.read("classes/test-meta.xml")
-
 
     def test_doc_task_not_inherited(self):
         task_config = TaskConfig(
