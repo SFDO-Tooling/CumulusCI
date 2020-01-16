@@ -27,7 +27,6 @@ def init_logger(log_requests=False):
 
     formatter = coloredlogs.ColoredFormatter(fmt="%(asctime)s: %(message)s")
     handler = logging.StreamHandler(stream=sys.stdout)
-    handler.terminator = ""  # click.echo already adds a newline
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -55,6 +54,7 @@ def get_rot_file_logger(name, path):
 
     handler = RotatingFileHandler(path, backupCount=5)
     handler.doRollover()  # rollover existing log files
+    handler.terminator = ""  # click.echo already adds a newline
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
     return logger
