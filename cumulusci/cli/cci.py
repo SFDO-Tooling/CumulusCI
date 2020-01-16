@@ -214,6 +214,9 @@ def main(args=None):
         # Hand CLI processing over to click, but handle exceptions
         try:
             cli(standalone_mode=False)
+        except click.Abort:  # Keyboard interrupt
+            click.echo("\nAborted!")
+            sys.exit(1)
         except Exception as e:
             # Display the error
             if debug:

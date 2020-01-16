@@ -564,7 +564,7 @@ def tee_stdout_stderr(args, logger):
     real_stderr_write = sys.stderr.write
 
     # Add current command args as first line in logfile
-    logger.debug(" ".join(args))
+    logger.debug(" ".join(args) + "\n")
 
     def stdout_write(s):
         output = strip_ansi_sequences(s)
