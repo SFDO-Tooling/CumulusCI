@@ -148,8 +148,8 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         keychain = self.keychain_class(self.project_config, self.key)
         self.assertEqual(keychain.get_default_org()[1], None)
 
-    @mock.patch("cumulusci.core.sfdx.sfdx")
-    def test_set_default_org(self, sfdx):
+    @mock.patch("sarge.Command")
+    def test_set_default_org(self, Command):
         keychain = self.keychain_class(self.project_config, self.key)
         org_config = self.org_config.config.copy()
         org_config = OrgConfig(org_config, "test")
@@ -160,8 +160,8 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
         self.assertEqual(expected_org_config, keychain.get_default_org()[1].config)
 
-    @mock.patch("cumulusci.core.sfdx.sfdx")
-    def test_unset_default_org(self, sfdx):
+    @mock.patch("sarge.Command")
+    def test_unset_default_org(self, Command):
         keychain = self.keychain_class(self.project_config, self.key)
         org_config = self.org_config.config.copy()
         org_config = OrgConfig(org_config, "test")
@@ -344,6 +344,12 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
         config = keychain._decrypt_config(BaseConfig, None)
         self.assertEqual(config.__class__, BaseConfig)
         self.assertEqual(config.config, {})
+
+    # def test_decrypt_config__py2_bytes(self):
+    #     keychain = self.keychain_class(self.project_config, self.key)
+    #     s =
+    #     config = keychain._decrypt_config(BaseConfig, s)
+    #     assert config["tést"] == "ünicode"
 
     def test_validate_key__not_set(self):
         with self.assertRaises(KeychainKeyNotFound):

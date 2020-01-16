@@ -2,6 +2,37 @@
 History
 =======
 
+3.5.1 (2020-01-15)
+------------------
+
+Issues closed:
+
+* Fixed an issue that was preventing newlines in output.
+
+* Don't show the prompt to create a gist if the user aborts the process.
+
+* Avoid errors that can happen when trying to store the CumulusCI encryption key in the system keychain using Python's keyring library, which can fail on some systems such as CI systems:
+
+  * We fixed a regression that caused CumulusCI to try to load the keychain even for commands where it's not used.
+  * We fixed a bug that caused CumulusCI to try to load the keychain key even when using an unencrypted keychain such as the EnvironmentProjectKeychain.
+
+* Adjusted some keywords in the Salesforce library for Robot Framework to handle changes in the Spring '20 release.
+
+3.5.0 (2020-01-15)
+------------------
+
+Changes:
+
+* The ``load_dataset`` task now accepts a ``bulk_mode`` option which can be set to ``Serial`` to load batches serially instead of in parallel.
+
+* CumulusCI now stores the logs from the last five executions under ``~/.cumulusci/logs``
+
+* CumulusCI has a new top-level command: ``cci gist``. This command creates a secret GitHub gist which includes: The user's current CumulusCI version, current Python version, path to python binary, sysname (e.g. Darwin), machine (e.g. x86_64), and the most recent CumulusCI logfile (``~/.cumulusci/logs/cci.log``). The command outputs a link to the created gist and opens a browser tab with the new GitHub gist. This can be helpful for sharing information regarding errors and issues encountered when working with cci. This feature uses a users GitHub access token for creation of gists. If your access token does not have the 'gist (Create gists)' scope this command will result in a 404 error. For more info see: https://cumulusci.readthedocs.io/en/latest/features.html#reporting-error-logs
+
+*  Changed ``UpdateAdminProfile`` so that it only deploys the modified Admin profile. While it is necessary to retrieve profiles along their associated metadata objects, we don't need to do that for deployments.
+
+* Added options to the `deploy` task: ``check_only``, ``test_level``, and ``specified_tests``. Run ``cci task info deploy`` for details. (#1066)
+
 3.4.0 (2020-01-09)
 ------------------
 

@@ -1,7 +1,7 @@
 import os
-import shutil
 import tempfile
 
+from pathlib import Path
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
@@ -55,11 +55,19 @@ class UpdateAdminProfile(Deploy):
         }
 
     def _run_task(self):
-        self.tempdir = tempfile.mkdtemp()
-        self._retrieve_unpackaged()
-        self._process_metadata()
-        self._deploy_metadata()
-        shutil.rmtree(self.tempdir)
+        self.retrieve_dir = None
+        self.deploy_dir = None
+        with tempfile.TemporaryDirectory() as tempdir:
+            self._create_directories(tempdir)
+            self._retrieve_unpackaged()
+            self._process_metadata()
+            self._deploy_metadata()
+
+    def _create_directories(self, tempdir):
+        self.retrieve_dir = Path(tempdir, "retrieve")
+        self.deploy_dir = Path(tempdir, "deploy")
+        self.retrieve_dir.mkdir()
+        self.deploy_dir.mkdir()
 
     def _retrieve_unpackaged(self):
         path = self.options.get("package_xml") or os.path.join(
@@ -82,11 +90,11 @@ class UpdateAdminProfile(Deploy):
             self.project_config.project__package__api_version,
         )
         unpackaged = api_retrieve()
-        unpackaged.extractall(self.tempdir)
+        unpackaged.extractall(self.retrieve_dir)
 
     def _process_metadata(self):
-        self.logger.info("Processing retrieved metadata in {}".format(self.tempdir))
-        path = os.path.join(self.tempdir, "profiles", "Admin.profile")
+        self.logger.info(f"Processing retrieved metadata in {self.retrieve_dir}")
+        path = self.retrieve_dir / "profiles" / "Admin.profile"
         self.tree = elementtree_parse_file(path)
 
         self._set_apps_visible()
@@ -175,6 +183,18 @@ class UpdateAdminProfile(Deploy):
             elem.find("sf:visibility", self.namespaces).text = "DefaultOn"
 
     def _deploy_metadata(self):
-        self.logger.info("Deploying updated Admin.profile from {}".format(self.tempdir))
-        api = self._get_api(path=self.tempdir)
+        self.logger.info(f"Deploying updated Admin.profile from {self.deploy_dir}")
+
+        target_profile_xml = Path(self.deploy_dir, "package.xml")
+        target_profile_xml.write_text(
+            """<?xml version="1.0" encoding="UTF-8"?><Package xmlns="http://soap.sforce.com/2006/04/metadata">
+        <types><members>Admin</members><name>Profile</name></types><version>39.0</version></Package>
+        """
+        )
+
+        retrieved_profile_dir = Path(self.retrieve_dir, "profiles")
+        target_profile_dir = Path(self.deploy_dir, "profiles")
+        retrieved_profile_dir.replace(target_profile_dir)
+
+        api = self._get_api(path=self.deploy_dir)
         return api()

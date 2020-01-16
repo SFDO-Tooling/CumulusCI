@@ -528,8 +528,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
 </CustomObject>"""
         project_config = create_project_config()
         project_config.keychain.get_service = Mock()
-        project_config.init_sentry = Mock()
-        project_config.sentry = Mock()
         project_config.project__name = "Project"
 
         task = create_task(
