@@ -495,13 +495,13 @@ Options:
     def test_tee_stdout_stderr(self):
         args = ["cci", "test"]
         logger = mock.Mock()
-        expected_stdout_text = "This is expected stdout."
-        expected_stderr_text = "This is expected stderr."
+        expected_stdout_text = "This is expected stdout.\n"
+        expected_stderr_text = "This is expected stderr.\n"
         with utils.tee_stdout_stderr(args, logger):
             sys.stdout.write(expected_stdout_text)
             sys.stderr.write(expected_stderr_text)
 
         assert logger.debug.call_count == 3
-        assert logger.debug.call_args_list[0][0][0] == "cci test"
+        assert logger.debug.call_args_list[0][0][0] == "cci test\n"
         assert logger.debug.call_args_list[1][0][0] == expected_stdout_text
         assert logger.debug.call_args_list[2][0][0] == expected_stderr_text
