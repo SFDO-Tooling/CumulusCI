@@ -7,6 +7,7 @@ import re
 import shutil
 import sys
 import tempfile
+import textwrap
 import zipfile
 from datetime import datetime
 
@@ -386,8 +387,12 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     doc.append(f"**Class:** {task_config.class_path}\n")
 
     task_class = import_global(task_config.class_path)
-    task_option_info = get_task_option_info(task_config, task_class)
 
+    if "task_docs" in task_class.__dict__:
+        task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
+        doc.append(task_docs)
+
+    task_option_info = get_task_option_info(task_config, task_class)
     doc.append("Command Syntax\n------------------------------------------\n")
     command_syntax = get_command_syntax(task_name)
     doc.append(command_syntax)
@@ -466,7 +471,7 @@ def create_task_options_doc(task_options):
     for option in task_options:
         usage_str = option.get("usage")
         if usage_str:
-            doc.append(f"\n``[{usage_str}]``")
+            doc.append(f"\n``{usage_str}``")
 
         if option.get("required"):
             doc.append(f"\t *Required*")

@@ -197,18 +197,19 @@ class TestUtils:
 ==========================================\n
 **Description:** Scoops icecream\n
 **Class:** cumulusci.tests.test_utils.FunTestTask\n
+extra docs
 Command Syntax\n------------------------------------------\n
 ``$ cci task run scoop_icecream``\n\n
 Options\n------------------------------------------\n\n
-``[-o flavor VANILLA]``
+``-o flavor VANILLA``
 \t *Required*\n
 \t What flavor\n
 \t Type: string\n
-``[-o color COLOR]``
+``-o color COLOR``
 \t *Optional*\n
 \t What color\n
 \t Default: black\n
-``[-o size SIZE]``
+``-o size SIZE``
 \t *Optional*\n
 \t How big"""
         )
