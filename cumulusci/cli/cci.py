@@ -6,6 +6,7 @@ import functools
 import json
 import re
 import os
+import platform
 import pdb
 import shutil
 import sys
@@ -314,12 +315,12 @@ def gist(runtime):
 
 
 def get_context_info():
-    host_info = os.uname()
+    host_info = platform.uname()
 
     info = []
     info.append(f"CumulusCI version: {cumulusci.__version__}")
     info.append(f"Python version: {sys.version.split()[0]} ({sys.executable})")
-    info.append(f"Environment Info: {host_info.sysname} / {host_info.machine}")
+    info.append(f"Environment Info: {host_info.system} / {host_info.machine}")
     return "\n".join(info)
 
 
