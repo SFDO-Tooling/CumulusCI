@@ -102,7 +102,10 @@ is installed correctly by running ``cci version``:
 .. code:: console
 
    $ cci version
-   CumulusCI version: 3.1.2
+    CumulusCI version: 3.5.1 (/path/to/bin/cci)
+    Python version: 3.7.4 (/path/to/bin/python)
+
+    You have the latest version of CumulusCI.
 
 You can also use this command in the future to check whether your CumulusCI installation is up to date.
 

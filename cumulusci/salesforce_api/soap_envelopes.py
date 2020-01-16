@@ -11,13 +11,15 @@ DEPLOY = """<?xml version="1.0" encoding="utf-8"?>
       <DeployOptions>
         <allowMissingFiles>false</allowMissingFiles>
         <autoUpdatePackage>false</autoUpdatePackage>
-        <checkOnly>false</checkOnly>
+        <checkOnly>{check_only}</checkOnly>
         <ignoreWarnings>true</ignoreWarnings>
         <performRetrieve>false</performRetrieve>
         <purgeOnDelete>{purge_on_delete}</purgeOnDelete>
         <rollbackOnError>true</rollbackOnError>
         <runAllTests>false</runAllTests>
         <singlePackage>true</singlePackage>
+        {test_level}
+        {run_tests}
       </DeployOptions>
     </deploy>
   </soap:Body>

@@ -14,6 +14,7 @@ from cumulusci.core.exceptions import GithubException
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.core.github import (
+    create_gist,
     get_github_api,
     validate_service,
     create_pull_request,
@@ -235,3 +236,26 @@ class TestGithub(GithubApiTestMixin):
         expected_link = f"{pr.title} [[PR{pr.number}]({pr.html_url})]"
 
         assert expected_link == actual_link
+
+    @responses.activate
+    def test_create_gist(self, gh_api, mock_util):
+        self.init_github()
+
+        description = "Test Gist Creation"
+        filename = "error_output.txt"
+        content = "Hello there gist!"
+        files = {filename: content}
+
+        self.mock_gist(description, files)
+        gist = create_gist(gh_api, description, files)
+
+        expected_url = f"https://gist.github.com/{gist.id}"
+        assert expected_url == gist.html_url
+
+    def mock_gist(self, description, files):
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/gists",
+            json=self._get_expected_gist(description, files),
+            status=201,
+        )

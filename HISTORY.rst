@@ -2,6 +2,85 @@
 History
 =======
 
+3.5.1 (2020-01-15)
+------------------
+
+Issues closed:
+
+* Fixed an issue that was preventing newlines in output.
+
+* Don't show the prompt to create a gist if the user aborts the process.
+
+* Avoid errors that can happen when trying to store the CumulusCI encryption key in the system keychain using Python's keyring library, which can fail on some systems such as CI systems:
+
+  * We fixed a regression that caused CumulusCI to try to load the keychain even for commands where it's not used.
+  * We fixed a bug that caused CumulusCI to try to load the keychain key even when using an unencrypted keychain such as the EnvironmentProjectKeychain.
+
+* Adjusted some keywords in the Salesforce library for Robot Framework to handle changes in the Spring '20 release.
+
+3.5.0 (2020-01-15)
+------------------
+
+Changes:
+
+* The ``load_dataset`` task now accepts a ``bulk_mode`` option which can be set to ``Serial`` to load batches serially instead of in parallel.
+
+* CumulusCI now stores the logs from the last five executions under ``~/.cumulusci/logs``
+
+* CumulusCI has a new top-level command: ``cci gist``. This command creates a secret GitHub gist which includes: The user's current CumulusCI version, current Python version, path to python binary, sysname (e.g. Darwin), machine (e.g. x86_64), and the most recent CumulusCI logfile (``~/.cumulusci/logs/cci.log``). The command outputs a link to the created gist and opens a browser tab with the new GitHub gist. This can be helpful for sharing information regarding errors and issues encountered when working with cci. This feature uses a users GitHub access token for creation of gists. If your access token does not have the 'gist (Create gists)' scope this command will result in a 404 error. For more info see: https://cumulusci.readthedocs.io/en/latest/features.html#reporting-error-logs
+
+*  Changed ``UpdateAdminProfile`` so that it only deploys the modified Admin profile. While it is necessary to retrieve profiles along their associated metadata objects, we don't need to do that for deployments.
+
+* Added options to the `deploy` task: ``check_only``, ``test_level``, and ``specified_tests``. Run ``cci task info deploy`` for details. (#1066)
+
+3.4.0 (2020-01-09)
+------------------
+
+Changes:
+
+* Added ``activate_flow`` task which can be used to activate Flows and Process Builder processes.
+
+* Added two tasks, ``disable_tdtm_trigger_handlers`` and ``restore_tdtm_trigger_handlers``, which can be used to disable trigger handlers for the table-driven trigger management feature of NPSP and EDA.
+
+* In the ``load_dataset`` task, added a way to avoid resetting the Salesforce Id mapping tables by setting the ``reset_oids`` option to False. This can be useful when running the task multiple times with the same org.
+
+* Added support for a few new metadata types from API versions 47 and 48 in the ``update_package_xml`` task.
+
+* Added a way for Robot Framework libraries to register custom locators for use by the selenium library.
+
+Issues closed:
+
+* Fixed a bug with freezing the ``load_data`` task for MetaDeploy where it would use an invalid option for ``database_url``.
+
+* Fixed a bug in the ``github_release_notes`` task when processing a pull request with no description. (#1444)
+
+* Fixed inaccurate instructions shown at the end of ``cci project init``.
+
+3.3.0 (2019-12-27)
+------------------
+
+Breaking changes:
+
+* Removed tasks which are no longer in use: ``mrbelvedere_publish``, ``generate_apex_docs``, and ``commit_apex_docs``.
+
+Changes:
+
+* Updated Robot Framework Salesforce library to support the Spring '20 release.
+
+* Added ``remove_metadata_xml_elements`` task which can be used to remove specified XML elements from metadata files.
+
+* Updated references to the NPSP repository to use its new name instead of Cumulus.
+
+Issues closed:
+
+* Fixed the error message shown when a task config has a bad ``class_path``.
+
+* Fixed a warning when running the command task in Python 3.8.
+
+* When the CumulusCI Robot Framework library calls Salesforce APIs, it will now automatically retry when it is safe to do so. It will also avoid reusing old connections that might have been closed.
+
+* Fixed the ``-o debug True`` option for the ``robot`` task.
+
 3.2.0 (2019-12-11)
 ------------------
 

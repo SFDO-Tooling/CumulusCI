@@ -124,12 +124,12 @@ Quick background about CumulusCI tasks
 
 All tasks in CumulusCI are python classes that subclass `cumulusci.core.tasks.BaseTask`.  The general usage of a task is two step: initialize an instance then call it to run the task.
 
-For most tasks, you'll want to override the `_run_task` method in your subclass to provide the implementation. The return value of this function is saved as part of the StepResult. Exceptions from `cumulus.core.exceptions` should be raised to communicate task status to the user or flow. If no exceptions are thrown, the task is considered to have completed successfully.
+For most tasks, you'll want to override the `_run_task` method in your subclass to provide the implementation. The return value of this function is saved as part of the StepResult. Exceptions from `cumulusci.core.exceptions` should be raised to communicate task status to the user or flow. If no exceptions are thrown, the task is considered to have completed successfully.
 
 Task Exceptions
 ---------------
 
-If the task has an error that should be considered a build failure (e.g. a metadata deployment failure, test failure, etc) it can raise the exception `cumulus.core.exceptions.CumulusCIFailure`. If you want to flag a usage error (e.g. the task receives an invalid set of options) it should raise the exception `cumulus.core.exceptions.CumulusCIUsageError`.
+If the task has an error that should be considered a build failure (e.g. a metadata deployment failure, test failure, etc) it can raise the exception `cumulusci.core.exceptions.CumulusCIFailure`. If you want to flag a usage error (e.g. the task receives an invalid set of options) it should raise the exception `cumulusci.core.exceptions.CumulusCIUsageError`.
 
 Query the Enterprise API for Data
 ---------------------------------
@@ -191,7 +191,7 @@ Extend the default update_admin_profile task
 
 The previous examples showed how to add a completely new task, but what if we need to implement some custom project specific logic into an existing task?  For this example, we'll take a look at how the Salesforce.org Nonprofit Success Pack modifies the `update_admin_profile` task to grant FLS on custom fields added to a managed object and set the visibility and default values for project specific record types.
 
-The following is the content of the `tasks/salesforce.py` file in the Cumulus repository::
+The following is the content of the `tasks/salesforce.py` file in the NPSP repository::
 
     import os
     from cumulusci.tasks.salesforce import UpdateAdminProfile as BaseUpdateAdminProfile

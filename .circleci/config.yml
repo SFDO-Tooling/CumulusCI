@@ -20,7 +20,7 @@ jobs:
       - checkout
       - run:
           name: Install python3
-          command: choco install python --version=3.6.4
+          command: choco install python
       - run:
           name: pip install dependencies
           command: pip install -r requirements_dev.txt
@@ -135,8 +135,8 @@ jobs:
           command: |
             echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
             sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-            venv/bin/cci org info dev > org_info.txt
-            venv/bin/cci org default dev
+            venv/bin/cci org info prerelease > org_info.txt
+            venv/bin/cci org default prerelease
       - run:
           name: Run robot tests
           command: |
@@ -161,7 +161,7 @@ jobs:
       - run:
           name: Delete scratch org
           command: |
-            venv/bin/cci org scratch_delete dev
+            venv/bin/cci org scratch_delete prerelease
           when: always
       - run:
           name: Preserve coverage

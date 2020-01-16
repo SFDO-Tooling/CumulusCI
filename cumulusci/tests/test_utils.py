@@ -2,9 +2,10 @@
 
 import io
 import os
+import sys
 import sarge
-import zipfile
 import pytest
+import zipfile
 from datetime import datetime
 
 from xml.etree import ElementTree as ET
@@ -130,7 +131,8 @@ class TestUtils:
     def test_elementtree_parse_file(self, mock_parse):
         _marker = object()
         mock_parse.return_value = _marker
-        assert utils.elementtree_parse_file("test_file") is _marker
+        assert utils.elementtree_parse_file("test_file") == _marker
+
 
     @mock.patch("xml.etree.ElementTree.parse")
     def test_elementtree_parse_file_error(self, mock_parse):
@@ -446,6 +448,7 @@ Options\n------------------------------------------\n\n
         zf = utils.zip_clean_metaxml(zf)
         assert b"<root>\xc3\xb1</root>" in zf.read("classes/test-meta.xml")
 
+
     def test_doc_task_not_inherited(self):
         task_config = TaskConfig(
             {
@@ -562,3 +565,27 @@ Options\n------------------------------------------\n\n
 
         assert utils.get_git_config("user.email") is None
         p.run.assert_called_once()
+
+    def test_strip_ansi_sequences(self):
+        ansi_str = "\033[31mGoodbye ANSI color sequences!\033[0m"
+        plain_str = "This is [just a plain old string with some] [symbols]"
+
+        ansi_string_result = utils.strip_ansi_sequences(ansi_str)
+        plain_string_result = utils.strip_ansi_sequences(plain_str)
+
+        assert ansi_string_result == "Goodbye ANSI color sequences!"
+        assert plain_string_result == plain_str
+
+    def test_tee_stdout_stderr(self):
+        args = ["cci", "test"]
+        logger = mock.Mock()
+        expected_stdout_text = "This is expected stdout.\n"
+        expected_stderr_text = "This is expected stderr.\n"
+        with utils.tee_stdout_stderr(args, logger):
+            sys.stdout.write(expected_stdout_text)
+            sys.stderr.write(expected_stderr_text)
+
+        assert logger.debug.call_count == 3
+        assert logger.debug.call_args_list[0][0][0] == "cci test\n"
+        assert logger.debug.call_args_list[1][0][0] == expected_stdout_text
+        assert logger.debug.call_args_list[2][0][0] == expected_stderr_text

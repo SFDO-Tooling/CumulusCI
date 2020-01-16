@@ -396,8 +396,8 @@ If the repository you are referring to has dependency metadata under unpackaged/
             - github: https://github.com/SalesforceFoundation/EDA
               skip: unpackaged/post/course_connection_record_types
 
-Case Study: SalesforceFoundation/Cumulus
-----------------------------------------
+Case Study: SalesforceFoundation/NPSP
+-------------------------------------
 
 The following will create a dependency against the open source repository for Salesforce.org's Nonprofit Success Pack:
 
@@ -405,21 +405,21 @@ The following will create a dependency against the open source repository for Sa
 
     project:
         dependencies:
-            - github: https://github.com/SalesforceFoundation/Cumulus
+            - github: https://github.com/SalesforceFoundation/NPSP
 
 With this one simple line in the project's dependencies, the following dependencies are included:
 
-* unpackaged/pre/account_record_types from SalesforceFoundation/Cumulus
-* unpackaged/pre/opportunity_record_types from SalesforceFoundation/Cumulus
+* unpackaged/pre/account_record_types from SalesforceFoundation/NPSP
+* unpackaged/pre/opportunity_record_types from SalesforceFoundation/NPSP
 * npe01 3.6
 * npo02 3.8
 * npe03 3.8
 * npe4 3.5
 * npe5 3.5
 * npsp 3.99
-* unpackaged/post/first from SalesforceFoundation/Cumulus with namespace tokens replaced with ``npsp__``
+* unpackaged/post/first from SalesforceFoundation/NPSP with namespace tokens replaced with ``npsp__``
 
-This happens because of the following from the cumulusci.yml in the the Cumulus (npsp) repository:
+This happens because of the following from the cumulusci.yml in the the NPSP repository:
 
 .. code-block:: yaml
 
@@ -441,9 +441,9 @@ Note that npo02 includes npe01.  This is because the dependencies for SaleforceF
         # npe01
         - github: https://github.com/SalesforceFoundation/Contacts_and_Organizations
 
-As a result, npe01 is included because the repository for npo02 refers to npe01's repository as a dependency and Cumulus refers to npo02's repository as a dependency.
+As a result, npe01 is included because the repository for npo02 refers to npe01's repository as a dependency and NPSP refers to npo02's repository as a dependency.
 
-You can see how complex a single repository dependency can be with the following command output from the single depedency reference to the Cumulus repository:
+You can see how complex a single repository dependency can be with the following command output from the single dependency reference to the NPSP repository:
 
 .. code-block:: console
 
@@ -455,7 +455,7 @@ You can see how complex a single repository dependency can be with the following
     2017-06-03 16:55:31: Pending
     2017-06-03 16:55:33: [Done]
     2017-06-03 16:55:34: Dependencies:
-    2017-06-03 16:55:34: Processing dependencies from Github repo https://github.com/SalesforceFoundation/Cumulus
+    2017-06-03 16:55:34: Processing dependencies from Github repo https://github.com/SalesforceFoundation/NPSP
     2017-06-03 16:55:36: Processing dependencies from Github repo https://github.com/SalesforceFoundation/Households
     2017-06-03 16:55:37: Processing dependencies from Github repo https://github.com/SalesforceFoundation/Contacts_and_Organizations
     2017-06-03 16:55:39:     npe01: Install version 3.6
@@ -467,12 +467,12 @@ You can see how complex a single repository dependency can be with the following
     2017-06-03 16:55:42: Processing dependencies from Github repo https://github.com/SalesforceFoundation/Affiliations
     2017-06-03 16:55:43:     npe5: Install version 3.5
     2017-06-03 16:55:43:     npsp: Install version 3.99
-    2017-06-03 16:55:43: Deploying unmanaged metadata from /Cumulus-dev/unpackaged/pre/account_record_types of https://github.com/SalesforceFoundation/Cumulus/archive/dev.zip
+    2017-06-03 16:55:43: Deploying unmanaged metadata from /NPSP-dev/unpackaged/pre/account_record_types of https://github.com/SalesforceFoundation/NPSP/archive/dev.zip
     2017-06-03 16:55:48: Pending
     2017-06-03 16:55:49: [InProgress]: Processing Type: CustomObject
     2017-06-03 16:55:50: [Done]
     2017-06-03 16:55:51: [Success]: Succeeded
-    2017-06-03 16:55:51: Deploying unmanaged metadata from /Cumulus-dev/unpackaged/pre/opportunity_record_types of https://github.com/SalesforceFoundation/Cumulus/archive/dev.zip
+    2017-06-03 16:55:51: Deploying unmanaged metadata from /NPSP-dev/unpackaged/pre/opportunity_record_types of https://github.com/SalesforceFoundation/NPSP/archive/dev.zip
     2017-06-03 16:55:56: Pending
     2017-06-03 16:55:57: [InProgress]: Processing Type: CustomObject
     2017-06-03 16:55:59: [Done]
@@ -519,7 +519,7 @@ You can see how complex a single repository dependency can be with the following
     ...
     2017-06-03 17:01:53: [Done]
     2017-06-03 17:01:54: [Success]: Succeeded
-    2017-06-03 17:01:54: Deploying unmanaged metadata from /Cumulus-dev/unpackaged/post/first of https://github.com/SalesforceFoundation/Cumulus/archive/dev.zip
+    2017-06-03 17:01:54: Deploying unmanaged metadata from /NPSP-dev/unpackaged/post/first of https://github.com/SalesforceFoundation/NPSP/archive/dev.zip
     2017-06-03 17:01:58: Replacing namespace tokens with npsp__
     2017-06-03 17:01:58: Pending
     2017-06-03 17:01:59: [Pending]: next check in 1 seconds
@@ -555,7 +555,7 @@ must be named in the ``sources`` section of cumulusci.yml:
 
     sources:
       npsp:
-        github: https://github.com/SalesforceFoundation/Cumulus
+        github: https://github.com/SalesforceFoundation/NPSP
 
 This says that when tasks or flows are referenced using the `npsp` namespace,
 CumulusCI should fetch the source from this GitHub repository. By default,
@@ -566,7 +566,7 @@ It's also possible to fetch a specific ``tag``:
 
     sources:
       npsp:
-        github: https://github.com/SalesforceFoundation/Cumulus
+        github: https://github.com/SalesforceFoundation/NPSP
         tag: rel/3.163
 
 or a specific ``commit`` or ``branch``.
@@ -729,4 +729,25 @@ the source should get pushed successfully from the ``force-app`` directory.
 Caveats:
 
 * It’s possible there may be some minor errors in the automatic conversion that need special attention in order to deploy successfully.
-* See https://ntotten.com/2018/05/11/convert-metadata-to-source-format-while-maintain-git-history/ for some tips on preserving git history while converting your source format.
+* See `this link <https://ntotten.com/2018/05/11/convert-metadata-to-source-format-while-maintain-git-history/>`_ for some tips on preserving git history while converting your source format.
+
+
+Reporting Error Logs 
+====================
+Use the ``cci gist`` command to send the log of your last ``cci`` command to a GitHub gist so you can submit it for support if needed.
+
+For this feature to work you will need to ensure that your `github service is setup with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
+
+The gist command creates a gist comprised of:
+    * The current version of ``cci``
+    * The current python version
+    * The path to the python executable
+    * The ``sysname`` of the host (e.g. Darwin)
+    * The machine name of the host (e.g. x86_64)
+    * The most recent logfile (cci.log) that CumulusCI has created.
+
+The URL for the gist is displayed on the terminal of the user as output, and a web browser will automatically open a tab to the gist.
+
+**Logfiles**
+
+CumulusCI creates a logfile every time a cci command is run. The only exception to this is when the cci gist command is run. Logfiles are stored under `~/.cumulusci/logs`.

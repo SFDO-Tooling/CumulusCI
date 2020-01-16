@@ -2,7 +2,7 @@
 
 Resource        cumulusci/robotframework/Salesforce.robot
 Library         cumulusci.robotframework.PageObjects
-Suite Setup     Open Test Browser
+Suite Setup     Run keywords  Create test data  AND  Open Test Browser
 Suite Teardown  Delete Records and Close Browser
 
 
@@ -28,6 +28,26 @@ Create Contact
     &{contact} =     Salesforce Get  Contact  ${contact_id}
     [return]  &{contact}
 
+Create test data
+    # This was added well after 'Create Account' and
+    # 'Create Contact'
+    ${CONTACT ID}=      Salesforce Insert  Contact
+    ...                 FirstName=Eleanor
+    ...                 LastName=Rigby
+    Set suite variable  ${CONTACT ID}
+
+    ${ACCOUNT ID}=      Salesforce Insert  Account
+    ...                 Name=Big Money Account
+    Set suite variable  ${ACCOUNT ID}
+
+    ${OPPORTUNITY ID}=  Salesforce Insert  Opportunity
+    ...                 CloseDate=2020-01-27
+    ...                 Name=Big Opportunity!
+    ...                 StageName=Prospecting
+    ...                 AccountId=${ACCOUNT ID}
+    ...                 ContactId=${CONTACT ID}
+    Set suite variable  ${OPPORTUNITY ID}
+
 *** Test Cases ***
 
 Click Modal Button
@@ -48,6 +68,36 @@ Click Related List Button
     Click Related List Button  Opportunities  New
     Wait Until Modal Is Open
     Page Should Contain        New Opportunity
+
+Click related item link
+    [Documentation]
+    ...  Verify that 'Click related item link' works
+
+    [Setup]  Create test data
+    set log level  DEBUG
+    Salesforce Insert  Note
+    ...  Title=This is the title of the note
+    ...  Body=This is the body of the note
+    ...  ParentId=${CONTACT ID}
+
+    Go to page  Detail  Contact  ${CONTACT ID}
+    Click related item link
+    ...  Notes & Attachments
+    ...  This is the title of the note
+
+    Current page should be   Detail  Note
+
+Click related item popup link
+    [Setup]  Create test data
+
+    Go to page  Detail  Contact  ${CONTACT ID}
+    Click Related item popup link
+    ...  Opportunities
+    ...  Big Opportunity!
+    ...  Edit
+
+    Wait for modal        Edit  Opportunity  expected_heading=Edit Big Opportunity!
+    Click modal button    Cancel
 
 Close Modal
     Go To Object Home        Contact

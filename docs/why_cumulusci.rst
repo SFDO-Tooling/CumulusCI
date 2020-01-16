@@ -67,7 +67,7 @@ The following example is of a simple **cumulusci.yml** file with only a few over
 https://github.com/SFDO-Tooling/CumulusCI-Test/blob/bda79331f13849f70081c2bcfe998fad8da4b05a/cumulusci.yml
 
 The following example is from the Nonprofit Success Pack and shows a heavily configured **cumulusci.yml** file: 
-https://github.com/SalesforceFoundation/Cumulus/blob/master/cumulusci.yml
+https://github.com/SalesforceFoundation/NPSP/blob/master/cumulusci.yml
 
 Both of these projects have all the standard CumulusCI tasks, flows, and orgs available to them in addition to project specific custom tasks, flows, and orgs defined in the **cumulusci.yml** for the project.
 

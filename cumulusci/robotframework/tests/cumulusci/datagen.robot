@@ -24,6 +24,10 @@ Assert Row Count
     ${matching_records} =   Set Variable    ${result}[0][expr0]
     Should Be Equal As Numbers        ${matching_records}     ${count}
 
+Attempt To Load Snowfakery
+    Import Library      snowfakery
+    Return From Keyword     True
+
 
 *** Test Cases ***
 
@@ -57,10 +61,26 @@ Test Batching
     Assert Row Count  15  Contact  MailingStreet=Baker St.
 
 Test Error Handling
-    Run Keyword and Expect Error    STARTS:TaskOptionsError:
+    Run Keyword and Expect Error    STARTS:TaskOptionsError
     ...  Run Task Class   cumulusci.tasks.bulkdata.generate_and_load_data.GenerateAndLoadData
     ...     num_records=20
     ...     mapping=cumulusci/tasks/bulkdata/tests/mapping_vanilla_sf.yml
     ...     batch_size=5
     ...     database_url=sqlite:////tmp/foo.db
-    ...     data_generation_task=cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData
+
+
+
+Test Snowfakery
+    ${status}        ${retVal}=     Run Keyword And Ignore Error          Attempt To Load Snowfakery
+    Log     ${status}
+
+    Run Keyword Unless	    $status == 'PASS'       Log     Snowfakery is not available
+
+    Run Keyword If	    $status == 'PASS'       Run Task Class          
+    ...     cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml
+    ...     num_records=20
+    ...     num_records_tablename=Account
+    ...     batch_size=5
+    ...     generator_yaml=cumulusci/tasks/bulkdata/tests/simple_snowfakery.yml
+
+
