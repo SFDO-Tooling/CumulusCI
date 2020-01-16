@@ -47,21 +47,30 @@ Open Test Browser Twice
 Browser aliases
     [Documentation]  Verify that aliases are properly handled in Open Test Browser
     [Tags]  issue:1068
-    [Setup]  Run keywords
-    ...  Open test browser  alias=browser1
-    ...  AND  Open test browser  alias=browser2
-    ...  AND  Go to  about:blank
     [Teardown]  Close all browsers
 
-    # This also doubles as a test which verifies the default
-    # landing page is the Setup home page
-    Switch browser  browser1
-    Location should contain  /lightning/setup/SetupOneHome/home
-    Capture page screenshot
+    # Open the default browser, go to a specific page and
+    # save the location
+    Open test browser  alias=browser1
+    Go to setup home
+    ${browser1 location}=  get location
 
+    # open a second browser to a different specific page
+    Open test browser  alias=browser2
+    Go to  about:blank
+
+    # Switch back to the first to verify that the location
+    # hasn't changed
+    Switch browser  browser1
+    Location should be  ${browser1 location}
+
+    # Go to a new location in the first browser,
+    Go to setup object manager
+
+    # ... and then verify the location of the second
+    # browser hasn't changed.
     Switch browser  browser2
     Location should be  about:blank
-    Capture page screenshot
 
 
 Default browser size
