@@ -16,6 +16,7 @@ lex_locators["record"]["header"]["field_value_link"] = (
     "//p[contains(@class, 'fieldComponent')]//a[text()]"
 )
 
+lex_locators["app_launcher"]["menu"] = "//div[contains(@class, 'appLauncherMenu')]"
 lex_locators["app_launcher"]["view_all"] = (
     "//div[contains(@class, 'appLauncherMenu')]" "//button[text()='View All']"
 )

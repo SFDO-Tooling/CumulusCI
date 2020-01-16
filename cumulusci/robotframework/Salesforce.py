@@ -404,7 +404,16 @@ class Salesforce(object):
 
         api_version = int(float(self.get_latest_api_version()))
         if api_version >= 48:
-            self.selenium.click_element(lex_locators["app_launcher"]["view_all"])
+            self.selenium.wait_until_element_is_visible(
+                lex_locators["app_launcher"]["menu"],
+                error="Expected to see the app launcher menu, but didn't",
+            )
+            element = self.selenium.get_webelement(
+                lex_locators["app_launcher"]["view_all"]
+            )
+            self.builtin.log("clicking 'view all' button")
+            self.selenium.capture_page_screenshot()
+            self._jsclick(element)
         self.wait_until_modal_is_open()
 
     def populate_field(self, name, value):
@@ -715,10 +724,13 @@ class Salesforce(object):
         self.builtin.log("Storing {} {} to session records".format(obj_type, obj_id))
         self._session_records.append({"type": obj_type, "id": obj_id})
 
+    @capture_screenshot_on_error
     def wait_until_modal_is_open(self):
         """ Wait for modal to open """
         self.selenium.wait_until_page_contains_element(
-            lex_locators["modal"]["is_open"], timeout=15
+            lex_locators["modal"]["is_open"],
+            timeout=15,
+            error="Expected to see a modal window, but didn't",
         )
 
     def wait_until_modal_is_closed(self):
