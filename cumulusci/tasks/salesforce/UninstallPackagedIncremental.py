@@ -7,10 +7,11 @@ from cumulusci.tasks.salesforce import UninstallPackaged
 from cumulusci.utils import package_xml_from_dict
 from cumulusci.utils import temporary_dir
 
+DEFAULT_SKIP_TYPES = ["RecordType"]
+
 
 class UninstallPackagedIncremental(UninstallPackaged):
     name = "UninstallPackagedIncremental"
-    skip_types = ["RecordType"]
     task_options = {
         "path": {
             "description": "The local path to compare to the retrieved packaged metadata from the org.  Defaults to src",
@@ -27,6 +28,9 @@ class UninstallPackagedIncremental(UninstallPackaged):
         "ignore": {
             "description": "Components to ignore in the org and not try to delete. Mapping of component type to a list of member names."
         },
+        "skip_types": {
+            "description": f"List of component types to ignore in the org and not try to delete. Defaults to {DEFAULT_SKIP_TYPES}"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -36,7 +40,8 @@ class UninstallPackagedIncremental(UninstallPackaged):
         self.options["purge_on_delete"] = process_bool_arg(
             self.options.get("purge_on_delete", True)
         )
-        self.options["ignore"] = self.options.get("ignore") or {}
+        self.options["ignore"] = self.options.get("ignore", {})
+        self.options["skip_types"] = self.options.get("skip_types", DEFAULT_SKIP_TYPES)
 
     def _get_destructive_changes(self, path=None):
         self.logger.info(
@@ -82,8 +87,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
             if isinstance(md_type["members"], str):
                 master_items[md_type["name"]].append(md_type["members"])
             else:
-                for item in md_type["members"]:
-                    master_items[md_type["name"]].append(item)
+                master_items[md_type["name"]].extend(md_type["members"])
 
         md_types = compare_xml["Package"].get("types", [])
         md_types = [md_types] if not isinstance(md_types, list) else md_types
@@ -111,7 +115,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
 
         if delete:
             self.logger.info("Deleting metadata:")
-            for skip_type in self.skip_types:
+            for skip_type in self.options["skip_types"]:
                 delete.pop(skip_type, None)
             for md_type, members in delete.items():
                 for member in members:

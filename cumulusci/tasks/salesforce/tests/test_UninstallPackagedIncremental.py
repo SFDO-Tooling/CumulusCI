@@ -38,7 +38,10 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
             project_config.config["project"]["package"]["api_version"] = "43.0"
             task = create_task(
                 UninstallPackagedIncremental,
-                {"ignore": {"ApexClass": ["Ignored"]}},
+                {
+                    "ignore": {"ApexClass": ["Ignored"]},
+                    "skip_types": ["CustomObjectTranslation", "RecordType"],
+                },
                 project_config,
             )
             zf = zipfile.ZipFile(io.BytesIO(), "w")
@@ -60,6 +63,11 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
     <types>
         <members>Page1</members>
         <name>ApexPage</name>
+    </types>
+    <types>
+        <members>Test__c-en_US</members>
+        <members>Test__c-es_MX</members>
+        <name>CustomObjectTranslation</name>
     </types>
     <types>
         <name>Empty</name>
