@@ -7,6 +7,7 @@ SalesforceBrowserTest - a task designed to wrap browser testing that could run l
 
 import json
 import os
+import platform
 import subprocess
 import sys
 
@@ -100,8 +101,13 @@ class Command(BaseTask):
     ):
         if not command:
             command = self.options["command"]
+
         interactive_mode = process_bool_arg(self.options["interactive"])
+        if platform.system() == "Windows":
+            interactive_mode = True
+
         self.logger.info("Running command: %s", command)
+
         p = subprocess.Popen(
             command,
             stdout=sys.stdout if interactive_mode else subprocess.PIPE,
