@@ -3,7 +3,7 @@ import io
 import requests
 import tempfile
 import time
-import unicodecsv
+import csv
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 
@@ -28,16 +28,6 @@ def download_file(uri, bulk_api):
             f.write(chunk)
         f.seek(0)
         yield f
-
-
-def process_incoming_rows(f, record_type=None):
-    if record_type and not isinstance(record_type, bytes):
-        record_type = record_type.encode("utf-8")
-    for line in f:
-        if record_type:
-            yield line.rstrip() + b"," + record_type + b"\n"
-        else:
-            yield line
 
 
 def get_lookup_key_field(lookup, sf_field):
@@ -104,24 +94,11 @@ class BulkJobTaskMixin(object):
 
         return result
 
-    def _sql_bulk_insert_from_csv(self, conn, table, columns, data_file):
-        if conn.dialect.name in ("postgresql", "psycopg2"):
-            # psycopg2 (the postgres driver) supports COPY FROM
-            # to efficiently bulk insert rows in CSV format
-            with conn.connection.cursor() as cursor:
-                cursor.copy_expert(
-                    f"COPY {table} ({','.join(columns)}) FROM STDIN WITH (FORMAT CSV)",
-                    data_file,
-                )
-        else:
-            # For other db drivers we need to use standard SQL
-            # -- this is optimized for ease of implementation
-            # rather than performance and may need more work.
-            reader = unicodecsv.DictReader(data_file, columns)
-            table = self.metadata.tables[table]
-            rows = list(reader)
-            if rows:
-                conn.execute(table.insert().values(rows))
+    def _sql_bulk_insert_from_records(self, conn, table, columns, records):
+        table = self.metadata.tables[table]
+        # FIXME: we no longer handle the empty case.
+        conn.execute(table.insert(), (dict(zip(columns, row)) for row in records))
+
         self.session.flush()
 
     def _create_record_type_table(self, table_name):
@@ -140,7 +117,7 @@ class BulkJobTaskMixin(object):
             f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
         )
         data_file = io.BytesIO()
-        writer = unicodecsv.writer(data_file)
+        writer = csv.writer(data_file)
         for rt in self.sf.query(query)["records"]:
             writer.writerow([rt["Id"], rt["DeveloperName"]])
         data_file.seek(0)
