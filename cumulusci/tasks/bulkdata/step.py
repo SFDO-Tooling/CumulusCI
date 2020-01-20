@@ -1,12 +1,16 @@
 import csv
 import io
+import os
+import pathlib
 import requests
+import tempfile
 import time
 import xml.etree.ElementTree as ET
 
 from collections import namedtuple
+from contextlib import contextmanager
 from enum import Enum
-from cumulusci.tasks.bulkdata.utils import download_file, BatchIterator
+from cumulusci.tasks.bulkdata.utils import BatchIterator
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
@@ -31,6 +35,22 @@ class Status(Enum):
 
 
 Result = namedtuple("Result", ["id", "error"])
+
+
+@contextmanager
+def download_file(uri, bulk_api):
+    """Download the bulk API result file for a single batch"""
+    (handle, path) = tempfile.mkstemp(text=False)
+    resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
+    f = os.fdopen(handle, "wb")
+    for chunk in resp.iter_content(chunk_size=None):
+        f.write(chunk)
+
+    f.close()
+    with open(path, "r") as f:
+        yield f
+
+    pathlib.Path(path).unlink()
 
 
 class BulkJobTaskMixin:
@@ -122,6 +142,7 @@ class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
         )
         for result_id in result_ids:
             uri = f"{self.bulk.endpoint}/job/{self.job_id}/batch/{self.batch_id}/result/{result_id}"
+
             with download_file(uri, self.bulk) as f:
                 reader = csv.reader(f)
                 self.headers = next(reader)

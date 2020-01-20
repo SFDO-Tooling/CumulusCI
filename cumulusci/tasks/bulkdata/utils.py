@@ -1,10 +1,7 @@
 import datetime
 import io
 import itertools
-import requests
-import tempfile
 import csv
-from contextlib import contextmanager
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -25,17 +22,6 @@ def BatchIterator(iterator, n=10000):
             return
 
         yield batch
-
-
-@contextmanager
-def download_file(uri, bulk_api):
-    """Download the bulk API result file for a single batch"""
-    resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
-    with tempfile.TemporaryFile("w+b") as f:
-        for chunk in resp.iter_content(chunk_size=None):
-            f.write(chunk)
-        f.seek(0)
-        yield f
 
 
 def get_lookup_key_field(lookup, sf_field):

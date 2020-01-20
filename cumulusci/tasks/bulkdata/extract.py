@@ -116,15 +116,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _import_results(self, mapping, step):
         conn = self.session.connection()
 
-        def process_incoming_rows(f, record_type=None):
-            if record_type and not isinstance(record_type, bytes):
-                record_type = record_type.encode("utf-8")
-            for line in f:
-                if record_type:
-                    yield line.rstrip() + b"," + record_type + b"\n"
-                else:
-                    yield line
-
         # Map SF field names to local db column names
         fields = self._fields_for_mapping(mapping)
         columns = []
