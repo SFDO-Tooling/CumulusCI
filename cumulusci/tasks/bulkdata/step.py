@@ -1,9 +1,12 @@
 import csv
 import io
-import itertools
+import requests
+import time
+import xml.etree.ElementTree as ET
+
 from collections import namedtuple
 from enum import Enum
-from cumulusci.tasks.bulkdata.utils import BulkJobTaskMixin, download_file
+from cumulusci.tasks.bulkdata.utils import download_file, BatchIterator
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
@@ -30,13 +33,44 @@ class Status(Enum):
 Result = namedtuple("Result", ["id", "error"])
 
 
-def BatchIterator(iterator, n=10000):
-    while True:
-        batch = list(itertools.islice(iterator, n))
-        if not batch:
-            return
+class BulkJobTaskMixin:
+    def _job_state_from_batches(self, job_id):
+        uri = f"{self.bulk.endpoint}/job/{job_id}/batch"
+        response = requests.get(uri, headers=self.bulk.headers())
+        return self._parse_job_state(response.content)
 
-        yield batch
+    def _parse_job_state(self, xml):
+        tree = ET.fromstring(xml)
+        statuses = [el.text for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS)]
+        state_messages = [
+            el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
+        ]
+
+        if "Not Processed" in statuses:
+            return "Aborted", None
+        elif "InProgress" in statuses or "Queued" in statuses:
+            return "InProgress", None
+        elif "Failed" in statuses:
+            return "Failed", state_messages
+
+        return "Completed", None
+
+    def _wait_for_job(self, job_id):
+        while True:
+            job_status = self.bulk.job_status(job_id)
+            self.logger.info(
+                f"    Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']})"
+            )
+            result, messages = self._job_state_from_batches(job_id)
+            if result != "InProgress":
+                break
+            time.sleep(10)
+        self.logger.info(f"Job {job_id} finished with result: {result}")
+        if result == "Failed":
+            for state_message in messages:
+                self.logger.error(f"Batch failure message: {state_message}")
+
+        return result
 
 
 class Step:
@@ -51,6 +85,9 @@ class Step:
         self.operation = operation
         self.api_options = api_options
         self.context = context
+        self.bulk = context.bulk
+        self.sf = context.sf
+        self.logger = context.logger
         self.status = None
 
 
@@ -74,20 +111,18 @@ class QueryStep(Step):
 
 class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
     def query(self):
-        self.job_id = self.context.bulk.create_query_job(
-            self.sobject, contentType="CSV"
-        )
-        self.batch_id = self.context.bulk.query(self.job_id, self.query)
+        self.job_id = self.bulk.create_query_job(self.sobject, contentType="CSV")
+        self.batch_id = self.bulk.query(self.job_id, self.query)
         self.bulk.wait_for_batch(self.job_id, self.batch_id)
         self.bulk.close_job(self.job_id)
 
     def get_results(self):
-        result_ids = self.context.bulk.get_query_batch_result_ids(
+        result_ids = self.bulk.get_query_batch_result_ids(
             self.batch_id, job_id=self.job_id
         )
         for result_id in result_ids:
-            uri = f"{self.context.bulk.endpoint}/job/{self.job_id}/batch/{self.batch_id}/result/{result_id}"
-            with download_file(uri, self.context.bulk) as f:
+            uri = f"{self.bulk.endpoint}/job/{self.job_id}/batch/{self.batch_id}/result/{result_id}"
+            with download_file(uri, self.bulk) as f:
                 reader = csv.reader(f)
                 self.headers = next(reader)
                 if "Records not found for this query" in self.headers:
@@ -124,9 +159,7 @@ class DmlStep(Step):
 class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
     def start(self):
         if self.operation is Operation.INSERT:
-            self.job_id = self.context.bulk.create_insert_job(
-                self.sobject, contentType="CSV"
-            )
+            self.job_id = self.bulk.create_insert_job(self.sobject, contentType="CSV")
         else:
             self.job_id = self.context.create_update_job(
                 self.sobject, contentType="CSV"
@@ -136,11 +169,11 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
         self.batch_ids = []
 
         for batch_file in self._batch(records):
-            self.batch_ids.append(self.context.bulk.post_batch(self.job_id, batch_file))
+            self.batch_ids.append(self.bulk.post_batch(self.job_id, batch_file))
 
     def _batch(self, records):
         for batch in BatchIterator(records, self.api_options.get("batch_size", 10000)):
-            batch_file = io.BytesIO()
+            batch_file = io.StringIO()
             writer = csv.writer(batch_file)
 
             writer.writerow(self.fields)
@@ -161,7 +194,9 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
     def get_new_ids(self):
         for batch_id in self.batch_ids:
             try:
-                results_url = f"{self.context.bulk.endpoint}/job/{self.job_id}/batch/{batch_id}/result"
+                results_url = (
+                    f"{self.bulk.endpoint}/job/{self.job_id}/batch/{batch_id}/result"
+                )
                 # Download entire result file to a temporary file first
                 # to avoid the server dropping connections
                 with download_file(results_url, self.bulk) as f:

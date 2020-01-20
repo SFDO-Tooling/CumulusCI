@@ -1,10 +1,9 @@
 import datetime
 import io
+import itertools
 import requests
 import tempfile
-import time
 import csv
-import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 
 from sqlalchemy import types
@@ -17,6 +16,15 @@ from sqlalchemy.orm import mapper
 
 from cumulusci.utils import convert_to_snake_case
 from cumulusci.core.exceptions import BulkDataException
+
+
+def BatchIterator(iterator, n=10000):
+    while True:
+        batch = list(itertools.islice(iterator, n))
+        if not batch:
+            return
+
+        yield batch
 
 
 @contextmanager
@@ -55,49 +63,12 @@ def setup_epoch(inspector, table, column_info):
         column_info["type"] = EpochType()
 
 
-class BulkJobTaskMixin(object):
-    def _job_state_from_batches(self, job_id):
-        uri = f"{self.bulk.endpoint}/job/{job_id}/batch"
-        response = requests.get(uri, headers=self.bulk.headers())
-        return self._parse_job_state(response.content)
-
-    def _parse_job_state(self, xml):
-        tree = ET.fromstring(xml)
-        statuses = [el.text for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS)]
-        state_messages = [
-            el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
-        ]
-
-        if "Not Processed" in statuses:
-            return "Aborted", None
-        elif "InProgress" in statuses or "Queued" in statuses:
-            return "InProgress", None
-        elif "Failed" in statuses:
-            return "Failed", state_messages
-
-        return "Completed", None
-
-    def _wait_for_job(self, job_id):
-        while True:
-            job_status = self.bulk.job_status(job_id)
-            self.logger.info(
-                f"    Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']})"
-            )
-            result, messages = self._job_state_from_batches(job_id)
-            if result != "InProgress":
-                break
-            time.sleep(10)
-        self.logger.info(f"Job {job_id} finished with result: {result}")
-        if result == "Failed":
-            for state_message in messages:
-                self.logger.error(f"Batch failure message: {state_message}")
-
-        return result
-
+class SqlAlchemyMixin:
     def _sql_bulk_insert_from_records(self, conn, table, columns, records):
         table = self.metadata.tables[table]
         # FIXME: we no longer handle the empty case.
-        conn.execute(table.insert(), (dict(zip(columns, row)) for row in records))
+        for batch in BatchIterator(records, n=100):
+            conn.execute(table.insert(), [dict(zip(columns, row)) for row in batch])
 
         self.session.flush()
 

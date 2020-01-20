@@ -2,21 +2,21 @@ import datetime
 import yaml
 
 from collections import defaultdict
-from salesforce_bulk.util import IteratorBytesIO
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
 from sqlalchemy.ext.automap import automap_base
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.bulkdata.utils import get_lookup_key_field
+from cumulusci.tasks.bulkdata.utils import get_lookup_key_field, SqlAlchemyMixin
+
 from cumulusci.tasks.bulkdata.step import BulkApiDmlStep, Status, Operation
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils import os_friendly_path
 
 
-class LoadData(BaseSalesforceApiTask):
+class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
     task_options = {
         "database_url": {
             "description": "The database url to a database containing the test data to load"
@@ -98,7 +98,7 @@ class LoadData(BaseSalesforceApiTask):
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
         step = BulkApiDmlStep(
-            mapping["sobject"],
+            mapping["sf_object"],
             Operation.INSERT if mapping.get("action") == "insert" else Operation.UPDATE,
             {},
             self,
@@ -276,8 +276,8 @@ class LoadData(BaseSalesforceApiTask):
 
         results_generator = self._generate_results_id_map(step, self.local_ids)
         if mapping["action"] == "insert":
-            self._sql_bulk_insert_from_csv(
-                conn, id_table_name, ("id", "sf_id"), IteratorBytesIO(results_generator)
+            self._sql_bulk_insert_from_records(
+                conn, id_table_name, ("id", "sf_id"), results_generator
             )
         else:
             for r in results_generator:
