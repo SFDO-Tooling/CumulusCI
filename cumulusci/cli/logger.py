@@ -52,7 +52,7 @@ def get_rot_file_logger(name, path):
     """Returns a logger with a rotating file handler"""
     logger = logging.getLogger(name)
 
-    handler = RotatingFileHandler(path, backupCount=5)
+    handler = RotatingFileHandler(path, backupCount=5, encoding="utf-8")
     handler.doRollover()  # rollover existing log files
     handler.terminator = ""  # click.echo already adds a newline
     logger.addHandler(handler)

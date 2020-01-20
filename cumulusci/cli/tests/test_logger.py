@@ -29,6 +29,6 @@ class TestLogger:
         logger = get_rot_file_logger(logger_name, path)
 
         logging.getLogger.assert_called_once_with(logger_name)
-        rot_filehandler.assert_called_once_with(path, backupCount=5)
+        rot_filehandler.assert_called_once_with(path, backupCount=5, encoding="utf-8")
         logger.addHandler.assert_called_once()
         logger.setLevel.assert_called_once()
