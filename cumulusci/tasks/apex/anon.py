@@ -37,14 +37,14 @@ class AnonymousApexTask(BaseSalesforceApiTask):
         },
         "param1": {
             "description": (
-                "Parameter to pass to the apex. Use as %%%PARAM_1%%% in the Apex code"
+                "Parameter to pass to the Apex. Use as %%%PARAM_1%%% in the Apex code."
                 "Defaults to an empty value."
             ),
             "required": False,
         },
         "param2": {
             "description": (
-                "Parameter to pass to the apex. Use as %%%PARAM_2%%% in the Apex code"
+                "Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code."
                 "Defaults to an empty value."
             ),
             "required": False,

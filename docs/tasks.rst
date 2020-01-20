@@ -288,8 +288,8 @@ Options:
 * **apex**: A string of Apex to run (after the file, if specified).
 * **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
 * **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
-* **param1**: Optional parameter to pass to apex. Tokenized as %%%PARAM_1%%% in the Apex code
-* **param2**: Optional parameter to pass to apex. Tokenized as %%%PARAM_2%%% in the Apex code
+* **param1**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_1%%% in the Apex code.
+* **param2**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_2%%% in the Apex code.
 
 generate_data_dictionary
 ==========================================
@@ -1328,4 +1328,3 @@ Options:
 * **active**: True or False to activate or deactivate trigger handlers.
 * **restore_file**: Path to the state file to store the current trigger handler state. **Default: trigger_status.yml**
 * **restore**: If True, restore the state of Trigger Handlers to that stored in the restore file. **Default: True**
-
