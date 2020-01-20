@@ -560,7 +560,7 @@ class TestAnonymousApexTask(unittest.TestCase):
             "path": apex_path,
             "apex": 'system.debug("Hello World!")',
             "namespaced": True,
-            "param1": "StringValue"
+            "param1": "StringValue",
         }
         self.project_config = BaseProjectConfig(
             self.global_config, config={"noyaml": True}
