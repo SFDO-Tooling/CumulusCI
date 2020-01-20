@@ -35,6 +35,20 @@ class AnonymousApexTask(BaseSalesforceApiTask):
             ),
             "required": False,
         },
+        "param1": {
+            "description": (
+                "Parameter to pass to the apex. Use as %%%PARAM_1%%% in the Apex code"
+                "Defaults to an empty value."
+            ),
+            "required": False,
+        },
+        "param2": {
+            "description": (
+                "Parameter to pass to the apex. Use as %%%PARAM_2%%% in the Apex code"
+                "Defaults to an empty value."
+            ),
+            "required": False,
+        },
     }
 
     def _validate_options(self):
@@ -93,6 +107,12 @@ class AnonymousApexTask(BaseSalesforceApiTask):
         apex = apex.replace("%%%NAMESPACE%%%", namespace_prefix)
         apex = apex.replace("%%%NAMESPACED_ORG%%%", namespace_prefix)
         apex = apex.replace("%%%NAMESPACED_RT%%%", record_type_prefix)
+
+        # Process optional parameter token replacement
+        param1 = self.options.get("param1") or ""
+        apex = apex.replace("%%%PARAM_1%%%", param1)
+        param2 = self.options.get("param2") or ""
+        apex = apex.replace("%%%PARAM_2%%%", param2)
 
         return apex
 
