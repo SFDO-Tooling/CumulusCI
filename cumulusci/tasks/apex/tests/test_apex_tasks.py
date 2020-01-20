@@ -616,13 +616,13 @@ class TestAnonymousApexTask(unittest.TestCase):
         self.assertEqual(expected, task._prepare_apex(before))
 
     def test_optional_parameter_1_replacment(self):
-        task = AnonymousApexTask(self.project_config, task_config, self.org_config)
+        task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
         before = "String str = '%%%PARAM_1%%%';"
         expected = "String str = 'StringValue';"
         self.assertEqual(expected, task._prepare_apex(before))
 
     def test_optional_parameter_2_replacment(self):
-        task = AnonymousApexTask(self.project_config, task_config, self.org_config)
+        task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
         before = "String str = '%%%PARAM_2%%%';"
         expected = "String str = '';"
         self.assertEqual(expected, task._prepare_apex(before))

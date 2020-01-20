@@ -288,6 +288,8 @@ Options:
 * **apex**: A string of Apex to run (after the file, if specified).
 * **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
 * **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
+* **param1**: Optional parameter to pass to apex. Tokenized as %%%PARAM_1%%% in the Apex code
+* **param2**: Optional parameter to pass to apex. Tokenized as %%%PARAM_2%%% in the Apex code
 
 generate_data_dictionary
 ==========================================
