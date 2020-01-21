@@ -32,7 +32,6 @@ class Api(Enum):
 class Status(Enum):
     SUCCESS = "Succeeded"
     FAILURE = "Failed"
-    PARTIAL_SUCCESS = "PartialSuccess"
 
 
 Result = namedtuple("Result", ["id", "success", "error"])
@@ -210,8 +209,7 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
             writer = csv.writer(batch_file)
 
             writer.writerow(self.fields)
-            for record in batch:
-                writer.writerow(record)
+            writer.writerows(batch)
 
             batch_file.seek(0)
             yield batch_file
