@@ -219,16 +219,16 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.webbrowser")
-    @mock.patch("cumulusci.cli.cci.os")
+    @mock.patch("cumulusci.cli.cci.platform")
     @mock.patch("cumulusci.cli.cci.sys")
     @mock.patch("cumulusci.cli.cci.datetime")
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
     def test_gist(
-        self, gh_api, create_gist, date, sys, cci_os, webbrowser, logfile_path
+        self, gh_api, create_gist, date, sys, platform, webbrowser, logfile_path
     ):
 
-        cci_os.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
+        platform.uname.return_value = mock.Mock(system="Rossian", machine="x68_46")
         sys.version = "1.0.0 (default Jul 24 2019)"
         sys.executable = "User/bob.ross/.pyenv/versions/cci-374/bin/python"
         date.utcnow.return_value = "01/01/1970"
@@ -265,20 +265,20 @@ Environment Info: Rossian / x68_46
 
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.click")
-    @mock.patch("cumulusci.cli.cci.os")
+    @mock.patch("cumulusci.cli.cci.platform")
     @mock.patch("cumulusci.cli.cci.sys")
     @mock.patch("cumulusci.cli.cci.datetime")
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
     def test_gist__gist_creation_error(
-        self, gh_api, create_gist, date, sys, os_mock, click, logfile_path
+        self, gh_api, create_gist, date, sys, platform, click, logfile_path
     ):
 
         expected_logfile_content = "Hello there, I'm a logfile."
         logfile_path.is_file.return_value = True
         logfile_path.read_text.return_value = expected_logfile_content
 
-        os_mock.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
+        platform.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
         sys.version = "1.0.0 (default Jul 24 2019)"
         sys.executable = "User/bob.ross/.pyenv/versions/cci-374/bin/python"
         date.utcnow.return_value = "01/01/1970"

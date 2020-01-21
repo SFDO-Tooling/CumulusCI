@@ -6,6 +6,7 @@ import functools
 import json
 import re
 import os
+import platform
 import pdb
 import shutil
 import sys
@@ -224,7 +225,9 @@ def main(args=None):
                 pdb.post_mortem()
             else:
                 click.echo(click.style(f"Error: {e}", fg="red"))
-                click.echo(click.style(SUGGEST_GIT_GIST_COMMAND, fg="yellow"))
+                # Only suggest gist command if it wasn't run
+                if not is_gist_command:
+                    click.echo(click.style(SUGGEST_GIT_GIST_COMMAND, fg="yellow"))
 
                 with open(CCI_LOGFILE_PATH, "a") as log_file:
                     traceback.print_exc(file=log_file)  # log stacktrace silently
@@ -314,12 +317,12 @@ def gist(runtime):
 
 
 def get_context_info():
-    host_info = os.uname()
+    host_info = platform.uname()
 
     info = []
     info.append(f"CumulusCI version: {cumulusci.__version__}")
     info.append(f"Python version: {sys.version.split()[0]} ({sys.executable})")
-    info.append(f"Environment Info: {host_info.sysname} / {host_info.machine}")
+    info.append(f"Environment Info: {host_info.system} / {host_info.machine}")
     return "\n".join(info)
 
 
