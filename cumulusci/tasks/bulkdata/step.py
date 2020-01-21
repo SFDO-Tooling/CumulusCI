@@ -13,6 +13,7 @@ from enum import Enum
 from cumulusci.tasks.bulkdata.utils import BatchIterator
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.utils import process_bool_arg
 
 
 class Operation(Enum):
@@ -34,7 +35,7 @@ class Status(Enum):
     PARTIAL_SUCCESS = "PartialSuccess"
 
 
-Result = namedtuple("Result", ["id", "error"])
+Result = namedtuple("Result", ["id", "success", "error"])
 
 
 @contextmanager
@@ -179,17 +180,26 @@ class DmlStep(Step):
 
 class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
     def start(self):
-        if self.operation is Operation.INSERT:
-            self.job_id = self.bulk.create_insert_job(self.sobject, contentType="CSV")
+        self.job_id = self.bulk.create_job(
+            self.sobject,
+            self.operation,
+            contentType="CSV",
+            concurrency=self.api_options.get("bulk_mode", "Parallel"),
+        )
+
+    def end(self):
+        self.bulk.close_job(self.job_id)
+        result = self._wait_for_job(self.job_id)
+        if result == "Completed":
+            self.status = Status.SUCCESS
         else:
-            self.job_id = self.context.create_update_job(
-                self.sobject, contentType="CSV"
-            )
+            self.status = Status.FAILURE
 
     def load_records(self, records):
         self.batch_ids = []
 
-        for batch_file in self._batch(records):
+        for count, batch_file in enumerate(self._batch(records)):
+            self.context.logger.info(f"Uploading batch {count + 1}")
             self.batch_ids.append(self.bulk.post_batch(self.job_id, batch_file))
 
     def _batch(self, records):
@@ -204,15 +214,7 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
             batch_file.seek(0)
             yield batch_file
 
-    def end(self):
-        self.bulk.close_job(self.job_id)
-        result = self._wait_for_job(self.job_id)
-        if result == "Completed":
-            self.status = Status.SUCCESS
-        else:
-            self.status = Status.FAILURE
-
-    def get_new_ids(self):
+    def get_results(self):
         for batch_id in self.batch_ids:
             try:
                 results_url = (
@@ -221,7 +223,7 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
                 # Download entire result file to a temporary file first
                 # to avoid the server dropping connections
                 with download_file(results_url, self.bulk) as f:
-                    self.logger.info(f"  Downloaded results for batch {batch_id}")
+                    self.logger.info(f"Downloaded results for batch {batch_id}")
 
                     reader = csv.reader(f)
                     next(reader)  # skip header
@@ -229,6 +231,7 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
                     for row in reader:
                         yield Result(
                             row[0] if row[1] == "true" else None,
+                            process_bool_arg(row[1]),
                             row[3] if row[1] != "true" else None,
                         )
             except Exception as e:

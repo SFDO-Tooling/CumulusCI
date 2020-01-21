@@ -290,7 +290,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         """Consume results from load and prepare rows for id table.
         Raise BulkDataException on row errors if configured to do so."""
 
-        for result, local_id in zip(step.get_new_ids(), local_ids):
+        for result, local_id in zip(step.get_results(), local_ids):
             if result.id:  # Success
                 yield f"{local_id},{result.id}\n".encode("utf-8")
             else:
