@@ -121,7 +121,7 @@ class QueryStep(Step):
         query: str,
     ):
         super().__init__(sobject, Operation.QUERY, api_options, context)
-        self.query = query
+        self.soql = query
 
     def query(self):
         pass
@@ -133,7 +133,7 @@ class QueryStep(Step):
 class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
     def query(self):
         self.job_id = self.bulk.create_query_job(self.sobject, contentType="CSV")
-        self.batch_id = self.bulk.query(self.job_id, self.query)
+        self.batch_id = self.bulk.query(self.job_id, self.soql)
         self.bulk.wait_for_batch(self.job_id, self.batch_id)
         self.bulk.close_job(self.job_id)
 
@@ -148,7 +148,7 @@ class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
                 reader = csv.reader(f)
                 self.headers = next(reader)
                 if "Records not found for this query" in self.headers:
-                    raise StopIteration
+                    return
 
                 yield from reader
 
@@ -182,7 +182,7 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
     def start(self):
         self.job_id = self.bulk.create_job(
             self.sobject,
-            self.operation,
+            self.operation.value,
             contentType="CSV",
             concurrency=self.api_options.get("bulk_mode", "Parallel"),
         )
@@ -200,11 +200,13 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
 
         for count, batch_file in enumerate(self._batch(records)):
             self.context.logger.info(f"Uploading batch {count + 1}")
-            self.batch_ids.append(self.bulk.post_batch(self.job_id, batch_file))
+            self.batch_ids.append(
+                self.bulk.post_batch(self.job_id, batch_file)
+            )  # FIXME: does accept a generator.
 
     def _batch(self, records):
         for batch in BatchIterator(records, self.api_options.get("batch_size", 10000)):
-            batch_file = io.StringIO()
+            batch_file = io.StringIO()  # FIXME: memory-expensive
             writer = csv.writer(batch_file)
 
             writer.writerow(self.fields)

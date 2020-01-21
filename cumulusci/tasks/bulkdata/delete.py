@@ -44,15 +44,15 @@ class DeleteData(BaseSalesforceApiTask):
         for obj in self.options["objects"]:
             self.logger.info(f"Deleting {self._object_description(obj)} ")
 
-            query = f"SELECT Id FROM {self.sobject}"
-            if self.where:
-                query += f" WHERE {self.where}"
+            query = f"SELECT Id FROM {obj}"
+            if self.options["where"]:
+                query += f" WHERE {self.options['where']}"
 
-            if not self.where:
+            if not self.options["where"]:
                 # FIXME: Perform a count() query to determine whether we have work to do.
                 pass
 
-            qs = BulkApiQueryStep(obj, {}, self, query.format("Id"))
+            qs = BulkApiQueryStep(obj, {}, self, query)
             qs.query()
 
             ds = BulkApiDmlStep(
@@ -65,7 +65,7 @@ class DeleteData(BaseSalesforceApiTask):
                 ["Id"],
             )
             ds.start()
-            ds.load_records(map(lambda result: result.id, qs.get_results()))
+            ds.load_records(map(lambda result: [result[0]], qs.get_results()))
             ds.end()
 
             for result in ds.get_results():

@@ -292,7 +292,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         for result, local_id in zip(step.get_results(), local_ids):
             if result.id:  # Success
-                yield f"{local_id},{result.id}\n".encode("utf-8")
+                yield (local_id, result.id)
             else:
                 if self.options["ignore_row_errors"]:
                     self.logger.warning(
