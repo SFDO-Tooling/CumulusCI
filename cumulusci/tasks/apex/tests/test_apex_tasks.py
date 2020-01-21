@@ -764,6 +764,13 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
             ],
         }
 
+    def _update_job_result(self, response: dict, result_dict: dict):
+        "Extend the result from _get_query_resp with additional batch records"
+        template_result = response["records"][-1]
+        assert isinstance(template_result, dict)
+        result = {**template_result, **result_dict}
+        return {**response, "records": [result]}  # it's 'limit 1' in the SOQL
+
     def _get_url_and_task(self):
         task = BatchApexWait(self.project_config, self.task_config, self.org_config)
         url = (
@@ -809,3 +816,56 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         responses.add(responses.GET, url, json=response)
         task()
         self.assertEqual(task.delta, 61)
+
+    @responses.activate
+    def test_chained_batches(self):
+        "Test batches that kick off a successor before they complete"
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"][0]["JobItemsProcessed"] = 1
+        response["records"][0]["TotalJobItems"] = 3
+        response["records"][0]["Status"] = "Processing"
+
+        responses.add(responses.GET, url, json=response)
+
+        response = self._update_job_result(response, {"Id": "Id2", "NumberOfErrors": 1})
+        responses.add(responses.GET, url, json=response)
+
+        # found another error
+        response = self._update_job_result(response, {"Id": "Id2", "NumberOfErrors": 2})
+        responses.add(responses.GET, url, json=response)
+
+        # new batch: found another error
+        response = self._update_job_result(response, {"Id": "Id3", "NumberOfErrors": 1})
+        responses.add(responses.GET, url, json=response.copy())
+        # found another error
+        response = self._update_job_result(response, {"Id": "Id3", "NumberOfErrors": 3})
+        responses.add(responses.GET, url, json=response.copy())
+
+        # new batch. No errors
+        response = self._update_job_result(response, {"Id": "Id4", "NumberOfErrors": 0})
+        responses.add(responses.GET, url, json=response.copy())
+        # Complete, no errors in this sub-batch
+        response = self._update_job_result(
+            response,
+            {
+                "Id": "Id4",
+                "Status": "Completed",
+                "CompletedDate": "2018-08-07T16:02:57.000+0000",
+            },
+        )
+        responses.add(responses.GET, url, json=response.copy())
+
+        with self.assertRaises(SalesforceException) as e:
+            task()
+
+        assert len(task.batches) == 4
+        assert not task.success
+        assert not task.done_for_sure
+        assert task.delta == 121
+        summary = task.summarize_batches()
+        assert summary["Name"] == "ADDR_Seasonal_BATCH"
+        assert summary["JobItemsProcessed"] == 4
+        assert summary["TotalJobItems"] == 12
+        assert summary["NumberOfErrors"] == 5
+        assert "import errors" in str(e.exception)

@@ -12,7 +12,6 @@ class BatchApexWait(BaseSalesforceApiTask):
         for an apex class completes or fails """
 
     name = "BatchApexWait"
-    batch = object()
 
     task_options = {
         "class_name": {
@@ -26,78 +25,105 @@ class BatchApexWait(BaseSalesforceApiTask):
     }
 
     def _run_task(self):
+        self.batches = {}  # Order matters here. Luckily Python dicts are ordered.
+
         self.poll_interval_s = int(self.options.get("poll_interval", 10))
 
         self._poll()  # will block until poll_complete
 
         self.logger.info("Job is complete.")
 
-        vals = {
-            key: value
-            for key, value in self.batch.items()
-            if key
-            in {
-                "Id",
-                "Status",
-                "ExtendedStatus",
-                "NumberOfErrors",
-                "JobItemsProcessed",
-                "TotalJobItems",
-            }
-        }
-        if not self.success:
+        summary = self.summarize_batches()
+        failed_batches = self.failed_batches()
+
+        if failed_batches:
             self.logger.info("There have been some batch failures.")
             self.logger.info("Error values:")
-            self.logger.info(repr(vals))
-            raise SalesforceException("There were import errors: %s" % repr(vals))
+            self.logger.info(repr(failed_batches))
+            raise SalesforceException(
+                f"There were import errors: {repr(failed_batches)}"
+            )
         elif not self.done_for_sure:
             self.logger.info("The final record counts do not add up.")
             self.logger.info("This is probably related to W-1132237")
-            self.logger.info(repr(vals))
+            self.logger.info(repr(summary))
 
         self.logger.info(
-            "%s took %d seconds to process %d batches.",
-            self.batch["ApexClass"]["Name"],
-            self.delta,
-            self.batch["TotalJobItems"],
+            f"{summary['Name']} took {self.delta} seconds to process {summary['TotalJobItems']} batches."
         )
 
         return self.success
+
+    def failed_batches(self):
+        failed_batches = []
+        for batch in self.batches.values():
+            if batch["NumberOfErrors"]:
+                failed_batches.append(
+                    {
+                        key: value
+                        for key, value in batch.items()
+                        if key
+                        in {
+                            "Id",
+                            "Status",
+                            "ExtendedStatus",
+                            "NumberOfErrors",
+                            "JobItemsProcessed",
+                            "TotalJobItems",
+                        }
+                    }
+                )
+        return failed_batches
 
     def _poll_action(self):
         # get batch status
         query_results = self.tooling.query(self._batch_query)
 
-        self.batch = query_results["records"][0]
+        self.current_batch = query_results["records"][0]
+
+        summary = self.summarize_batches()
         self.logger.info(
-            "%s: %d of %d (%d failures)",
-            self.batch["ApexClass"]["Name"],
-            self.batch["JobItemsProcessed"],
-            self.batch["TotalJobItems"],
-            self.batch["NumberOfErrors"],
+            f"{summary['Name']}: "
+            f"{summary['JobItemsProcessed']} of {summary['TotalJobItems']} "
+            f"({summary['NumberOfErrors']} failures)"
         )
+        batch_id = self.current_batch["Id"]
+        self.batches[batch_id] = self.current_batch
 
         self.poll_complete = not self._poll_again()
 
+    def summarize_batches(self):
+        def sum_val(valname: str):
+            return sum(batch[valname] for batch in self.batches.values())
+
+        return {
+            "Name": self.current_batch["ApexClass"]["Name"],
+            "JobItemsProcessed": sum_val("JobItemsProcessed"),
+            "TotalJobItems": sum_val("TotalJobItems"),
+            "NumberOfErrors": sum_val("NumberOfErrors"),
+        }
+
     def _poll_again(self):
-        return self.batch["Status"] not in COMPLETED_STATUSES
+        return self.current_batch["Status"] not in COMPLETED_STATUSES
 
     @property
     def success(self):
-        return self.batch["NumberOfErrors"] == 0
+        return self.summarize_batches()["NumberOfErrors"] == 0
 
     @property
     def done_for_sure(self):
         """ returns True if all batches were counted and succeeded """
-        return (self.batch["JobItemsProcessed"] == self.batch["TotalJobItems"]) and (
-            self.batch["NumberOfErrors"] == 0
+        summary = self.summarize_batches()
+        return (summary["JobItemsProcessed"] == summary["TotalJobItems"]) and (
+            summary["NumberOfErrors"] == 0
         )
 
     @property
     def delta(self):
-        """ returns the time (in seconds) that the batch took, if complete """
-        completed_date = parse_api_datetime(self.batch["CompletedDate"])
-        created_date = parse_api_datetime(self.batch["CreatedDate"])
+        """ returns the time (in seconds) that the batches took, if complete """
+        batches = list(self.batches.values())
+        completed_date = parse_api_datetime(batches[-1]["CompletedDate"])
+        created_date = parse_api_datetime(batches[0]["CreatedDate"])
         td = completed_date - created_date
         return td.total_seconds()
 
