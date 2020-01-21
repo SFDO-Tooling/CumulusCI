@@ -120,9 +120,6 @@ class BaseTask(object):
         pass
 
     def __call__(self):
-        # If sentry is configured, initialize sentry for error capture
-        self.project_config.init_sentry()
-
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg(
                 "This task requires a salesforce org. "
@@ -135,28 +132,9 @@ class BaseTask(object):
         with stacked_task(self):
             self.working_path = os.getcwd()
             with cd(self.project_config.repo_root):
-                try:
-                    self._log_begin()
-                    self.result = self._run_task()
-                    return self.return_values
-                except Exception as e:
-                    self._process_exception(e)
-                    raise
-
-    def _process_exception(self, e):
-        if self.project_config.use_sentry:
-            self.logger.info("Logging error to sentry.io")
-
-            tags = {"task class": self.__class__.__name__}
-            if self.org_config:
-                tags["org username"] = self.org_config.username
-                tags["scratch org"] = self.org_config.scratch is True
-            for key, value in list(self.options.items()):
-                tags["option_" + key] = value
-            self.project_config.sentry.tags_context(tags)
-
-            resp = self.project_config.sentry.captureException()
-            self.project_config.sentry_event = resp
+                self._log_begin()
+                self.result = self._run_task()
+                return self.return_values
 
     def _run_task(self):
         """ Subclasses should override to provide their implementation """
