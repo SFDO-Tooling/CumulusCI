@@ -72,9 +72,10 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             if not started and start_step and name != start_step:
                 self.logger.info(f"Skipping step: {name}")
                 continue
+
             started = True
 
-            self.logger.info(f"Running Job: {name}")
+            self.logger.info(f"Running step: {name}")
             result = self._load_mapping(mapping)
             if result is Status.FAILURE:
                 raise BulkDataException(f"Step {name} did not complete successfully")
@@ -85,7 +86,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                     result = self._load_mapping(after_step)
                     if result is Status.FAILURE:
                         raise BulkDataException(
-                            f"Job {after_name} did not complete successfully"
+                            f"Step {after_name} did not complete successfully"
                         )
 
     def _load_mapping(self, mapping):
@@ -123,7 +124,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         total_rows = 0
         self.local_ids = []
 
-        for row in query:
+        for (
+            row
+        ) in query:  # FIXME: use .yield_per(10000) to clamp upper limit of memory use?
             total_rows += 1
 
             # Add static values to row
@@ -257,8 +260,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             lookup_column = getattr(model, key_field)
             query = query.order_by(lookup_column)
 
-        self.logger.debug(str(query))
-
         return query
 
     def _convert(self, value):
@@ -291,12 +292,12 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         Raise BulkDataException on row errors if configured to do so."""
 
         for result, local_id in zip(step.get_results(), local_ids):
-            if result.id:  # Success
+            if result.success:
                 yield (local_id, result.id)
             else:
                 if self.options["ignore_row_errors"]:
                     self.logger.warning(
-                        f"      Error on record with id {local_id}: {result.error}"
+                        f"Error on record with id {local_id}: {result.error}"
                     )
                 else:
                     raise BulkDataException(
