@@ -80,7 +80,7 @@ class BulkJobTaskMixin:
         while True:
             job_status = self.bulk.job_status(job_id)
             self.logger.info(
-                f"    Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']})"
+                f"Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']})"
             )
             result, messages = self._job_state_from_batches(job_id)
             if result != "InProgress":

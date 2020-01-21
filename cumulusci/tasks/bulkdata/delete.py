@@ -1,5 +1,10 @@
 from cumulusci.core.utils import process_bool_arg, process_list_arg
-from cumulusci.tasks.bulkdata.step import BulkApiDmlStep, BulkApiQueryStep, Operation
+from cumulusci.tasks.bulkdata.step import (
+    BulkApiDmlStep,
+    BulkApiQueryStep,
+    Operation,
+    Status,
+)
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 
@@ -54,6 +59,8 @@ class DeleteData(BaseSalesforceApiTask):
 
             qs = BulkApiQueryStep(obj, {}, self, query)
             qs.query()
+            if qs.status is not Status.SUCCESS:
+                raise BulkDataException(f"Unable to query records for {obj}")
 
             ds = BulkApiDmlStep(
                 obj,

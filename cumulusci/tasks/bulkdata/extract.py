@@ -107,7 +107,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         return soql
 
     def _run_query(self, soql, mapping):
-        step = BulkApiQueryStep(mapping["sobject"], {}, self, soql)
+        step = BulkApiQueryStep(mapping["sf_object"], {}, self, soql)
 
         step.query()
 
