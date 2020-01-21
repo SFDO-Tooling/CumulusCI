@@ -2,6 +2,17 @@
 History
 =======
 
+3.5.2 (2020-01-21)
+------------------
+
+Issues closed:
+
+* Fixed an issue where errors running the `cci gist` command prompt the user to use the `cci gist` command.
+
+* Removed reference to `os.uname()` so that `cci gist` works on Windows.
+
+* Fixed an issue where the `dx_pull` task causes an infinite loop to occur on Windows.
+
 3.5.1 (2020-01-15)
 ------------------
 
