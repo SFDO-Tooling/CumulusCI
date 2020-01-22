@@ -9,7 +9,7 @@ BUSINESS_PROCESS_METADATA = """<businessProcesses>
         <isActive>true</isActive>
         <values>
             <fullName>{stage_name}</fullName>
-            <default>false</default>
+            <default>{default}</default>
         </values>
     </businessProcesses>"""
 
@@ -74,9 +74,13 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
                 "Record Type Developer Name value must contain only alphanumeric or underscore characters"
             )
 
+        # We don't currently support standard objects
+        if self.options["sobject"].endswith("__c"):
+            raise TaskOptionsError("EnsureRecordTypes does not support custom objects")
+
     def _infer_requirements(self):
-        # If our sObject is Lead or Opportunity, we need to generate businessProcess
-        # metadata to make the record type deployable.
+        # If our sObject is Lead, Opportunity, Case, or Solution,
+        # we need to generate businessProcess metadata to make the record type deployable.
 
         # Regardless of sObject, we don't need to do any work if it already
         # has record types in the target org.
@@ -116,11 +120,19 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
                         self.options["sobject"]
                     )
                 )
+                # Lead, Case, and Solution require a default value in their Business Process
+                # Opportunity prohibits it.
+                if self.options["sobject"] == "Opportunity":
+                    default = "false"
+                else:
+                    default = "true"
+
                 business_process_metadata = BUSINESS_PROCESS_METADATA.format(
                     record_type_developer_name=self.options[
                         "record_type_developer_name"
                     ],
                     stage_name=self.options["stage_name"],
+                    default=default,
                 )
                 business_process_link = BUSINESS_PROCESS_LINK.format(
                     record_type_developer_name=self.options[
