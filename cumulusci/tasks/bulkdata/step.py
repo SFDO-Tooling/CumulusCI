@@ -129,12 +129,14 @@ class QueryStep(Step):
         pass
 
 
-class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
+class BulkApiQueryStep(QueryStep):
     def query(self):
         self.job_id = self.bulk.create_query_job(self.sobject, contentType="CSV")
         self.batch_id = self.bulk.query(self.job_id, self.soql)
         self.bulk.wait_for_batch(self.job_id, self.batch_id)
         self.bulk.close_job(self.job_id)
+
+        # FIXME: set the status
 
     def get_results(self):
         result_ids = self.bulk.get_query_batch_result_ids(
