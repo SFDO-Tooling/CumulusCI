@@ -269,6 +269,20 @@ Options:
 * **command** *(required)*: The full command to run with the sfdx cli. **Default: force:source:push**
 * **extra**: Append additional options to the command
 
+ensure_record_type
+==========================================
+
+**Description:** Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
+
+**Class::** cumulusci.tasks.salesforce.EnsureRecordTypes
+
+Options:
+------------------------------------------
+
+* **record_type_developer_name** *(required)*: The Developer Name of the Record Type (unique).  Must contain only alphanumeric characters and underscores. **Default: Default**
+* **record_type_label** *(required)*: The Label of the Record Type. **Default: Default**
+* **sobject** *(required)*: The sObject on which to deploy the Record Type and optional Business Process.
+
 execute_anon
 ==========================================
 
