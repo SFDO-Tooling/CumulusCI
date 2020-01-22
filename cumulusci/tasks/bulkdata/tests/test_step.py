@@ -76,4 +76,3 @@ class test_BulkApiQueryStep(unittest.TestCase):
             ["003000000000002"],
             ["003000000000003"],
         ]
-
