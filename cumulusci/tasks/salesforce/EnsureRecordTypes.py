@@ -122,10 +122,7 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
                 )
                 # Lead, Case, and Solution require a default value in their Business Process
                 # Opportunity prohibits it.
-                if self.options["sobject"] == "Opportunity":
-                    default = "false"
-                else:
-                    default = "true"
+                default = self.options["sobject"] != "Opportunity":
 
                 business_process_metadata = BUSINESS_PROCESS_METADATA.format(
                     record_type_developer_name=self.options[
