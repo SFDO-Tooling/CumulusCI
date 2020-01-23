@@ -73,7 +73,6 @@ Click Related List Button
 Click related item link
     [Documentation]
     ...  Verify that 'Click related item link' works
-    [tags]  foo
     [Setup]  Create test data
 
     Salesforce Insert  Note
