@@ -181,14 +181,17 @@ class Salesforce(object):
     def click_related_item_link(self, heading, title):
         """Clicks a link in the related list with the specified heading.
 
-        This keyword will automatically call `Wait until loading is complete`
+         This keyword will automatically call `Wait until loading is complete`
         """
-        self.builtin.log("loading related list...", "DEBUG")
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
-        self.builtin.log("clicking...", "DEBUG")
-        self._jsclick(locator)
-        self.builtin.log("waiting...", "DEBUG")
+        try:
+            self._jsclick(locator)
+        except Exception as e:
+            self.builtin.log(f"Exception: {e}", "DEBUG")
+            raise Exception(
+                f"Unable to find related link under heading '{heading}' with the text '{title}'"
+            )
         self.wait_until_loading_is_complete()
 
     def click_related_item_popup_link(self, heading, title, link):
@@ -560,8 +563,7 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
         locator = lex_locators["object"]["record_type_option"].format(label)
         self._jsclick(locator)
-        locator = lex_locators["modal"]["button"].format("Next")
-        self._jsclick(locator)
+        self.click_modal_button("Next")
 
     @capture_screenshot_on_error
     def select_app_launcher_app(self, app_name):

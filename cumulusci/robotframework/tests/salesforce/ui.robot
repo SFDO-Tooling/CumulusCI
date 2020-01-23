@@ -73,7 +73,7 @@ Click Related List Button
 Click related item link
     [Documentation]
     ...  Verify that 'Click related item link' works
-
+    [tags]  foo
     [Setup]  Create test data
 
     Salesforce Insert  Note
@@ -87,6 +87,17 @@ Click related item link
     ...  This is the title of the note
 
     Current page should be   Detail  Note
+
+Click related item link exception
+    [Documentation]
+    ...  Verify that 'Click related item link' throws a useful error
+
+    [Setup]  Create test data
+
+    Go to page  Detail  Contact  ${CONTACT ID}
+    Run keyword and expect error
+    ...  Unable to find related link under heading 'Notes & Attachments' with the text 'Bogus'
+    ...  Click related item link  Notes & Attachments  Bogus
 
 Click related item popup link
     [Setup]  Create test data
