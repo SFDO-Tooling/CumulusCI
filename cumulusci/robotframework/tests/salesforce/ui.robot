@@ -1,9 +1,10 @@
-*** Settings ***
+** Settings ***
 
 Resource        cumulusci/robotframework/Salesforce.robot
 Library         cumulusci.robotframework.PageObjects
 Suite Setup     Run keywords  Create test data  AND  Open Test Browser
 Suite Teardown  Delete Records and Close Browser
+Library         Dialogs
 
 
 *** Keywords ***
@@ -74,7 +75,7 @@ Click related item link
     ...  Verify that 'Click related item link' works
 
     [Setup]  Create test data
-    set log level  DEBUG
+
     Salesforce Insert  Note
     ...  Title=This is the title of the note
     ...  Body=This is the body of the note
@@ -223,7 +224,12 @@ Populate Form
     ${account_name} =    Generate Random String
     Go To Object Home    Account
     Click Object Button  New
-    Populate Form        Account Name=${account_name}
+    Populate Form
+    ...  Ticker Symbol=CASH
+    ...  Account Name=${account_name}
     ${locator} =         Get Locator  object.field  Account Name
     ${value} =           Get Value  ${locator}
     Should Be Equal      ${value}  ${account_name}
+    ${locator}=          Get Locator  object.field  Ticker Symbol
+    ${value} =           Get Value  ${locator}
+    Should Be Equal      ${value}  CASH
