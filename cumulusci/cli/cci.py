@@ -16,6 +16,7 @@ from datetime import datetime
 import webbrowser
 import contextlib
 from pathlib import Path
+import runpy
 
 import click
 import github3
@@ -267,12 +268,23 @@ def version():
 
 
 @cli.command(name="shell", help="Drop into a Python shell")
+@click.option("--script", help="Path to a script to run", type=click.Path())
+@click.option(
+    "--python", help="Python code to run directly",
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def shell(runtime):
+def shell(runtime, script=None, python=None):
     # alias for backwards-compatibility
-    config = runtime
+    config = runtime  # noQA
 
-    code.interact(local=dict(globals(), **locals()))
+    if script:
+        if python:
+            raise click.UsageError("Cannot specify both --script and --python")
+        runpy.run_path(script, init_globals={**globals(), **locals()})
+    elif python:
+        exec(python)
+    else:
+        code.interact(local={**globals(), **locals()})
 
 
 CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
@@ -1124,21 +1136,33 @@ def org_scratch_delete(runtime, org_name):
     "as well as the `org_config` and `project_config`.",
 )
 @click.argument("org_name", required=False)
+@click.option("--script", help="Path to a script to run", type=click.Path())
+@click.option(
+    "--python", help="Python code to run directly",
+)
 @pass_runtime(require_keychain=True)
-def org_shell(runtime, org_name):
+def org_shell(runtime, org_name, script=None, python=None):
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
+    globals = {
+        "sf": sf,
+        "org_config": org_config,
+        "project_config": runtime.project_config,
+    }
 
-    code.interact(
-        banner=f"Use `sf` to access org `{org_name}` via simple_salesforce",
-        local={
-            "sf": sf,
-            "org_config": org_config,
-            "project_config": runtime.project_config,
-        },
-    )
+    if script:
+        if python:
+            raise click.UsageError("Cannot specify both --script and --python")
+        runpy.run_path(script, init_globals=globals)
+    elif python:
+        exec(python)
+    else:
+        code.interact(
+            banner=f"Use `sf` to access org `{org_name}` via simple_salesforce",
+            local=globals,
+        )
 
     # Save the org config in case it was modified
     runtime.keychain.set_org(org_config)
