@@ -1411,17 +1411,16 @@ def info(num_lines):
 
 def lines_from_traceback(log_content, num_lines):
     """Returns the the last num_lines of the logfile,
-    or the whole traceback, whichever is shorter.
+    or the whole traceback, whichever is shorter. If
+    no stacktrace is found in the logfile, the user is
+    notified.
     """
-    stacktrace = ""
     stacktrace_start = "Traceback (most recent call last):"
-
     if stacktrace_start not in log_content:
         return f"\nNo stacktrace found in: {CCI_LOGFILE_PATH}\n"
 
-    log_lines = log_content.split("\n")
-
-    for line in reversed(log_lines):
+    stacktrace = ""
+    for line in reversed(log_content.split("\n")):
         stacktrace = "\n" + line + stacktrace
         if stacktrace_start in line:
             break
