@@ -333,13 +333,16 @@ def service():
 @cli.group("error")
 def error():
     """
-    If you'd like to dig into this error more yourself,
+    If you'd like to dig into an error more yourself,
     you can get the last few lines of context about it
     from `cci error info`.
 
-    If you'd like to submit it to a developer for converation,
+    If you'd like to submit it to a developer for conversation,
     you can use the `cci error gist` command. Just make sure
     that your GitHub access token has the 'create gist' scope.
+
+    For more information on working with errors in CumulusCI visit:
+    https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors
     """
     pass
 
