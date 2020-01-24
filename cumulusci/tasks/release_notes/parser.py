@@ -253,7 +253,11 @@ class GithubIssuesParser(IssuesParser):
         # Ensure all issues have a comment on which release they were fixed
         prefix_beta = self.release_notes_generator.github_info["prefix_beta"]
         prefix_prod = self.release_notes_generator.github_info["prefix_prod"]
-        if self.release_notes_generator.current_tag.startswith(prefix_beta):
+
+        # ParentPullRequestNotesGenerator doesn't utilize a current_tag
+        if not hasattr(self.release_notes_generator, "current_tag"):
+            return
+        elif self.release_notes_generator.current_tag.startswith(prefix_beta):
             is_beta = True
         elif self.release_notes_generator.current_tag.startswith(prefix_prod):
             is_beta = False

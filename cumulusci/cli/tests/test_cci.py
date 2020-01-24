@@ -359,6 +359,27 @@ Environment Info: Rossian / x68_46
         self.assertIn("config", interact.call_args[1]["local"])
         self.assertIn("runtime", interact.call_args[1]["local"])
 
+    @mock.patch("runpy.run_path")
+    def test_shell_script(self, runpy):
+        run_click_command(cci.shell, script="foo.py")
+        runpy.assert_called_once()
+        self.assertIn("config", runpy.call_args[1]["init_globals"])
+        self.assertIn("runtime", runpy.call_args[1]["init_globals"])
+        assert runpy.call_args[0][0] == "foo.py", runpy.call_args[0]
+
+    @mock.patch("cumulusci.cli.cci.print")
+    def test_shell_code(self, print):
+        run_click_command(cci.shell, python="print(config, runtime)")
+        print.assert_called_once()
+
+    @mock.patch("cumulusci.cli.cci.print")
+    def test_shell_mutually_exclusive_args(self, print):
+        with self.assertRaises(Exception) as e:
+            run_click_command(
+                cci.shell, script="foo.py", python="print(config, runtime)"
+            )
+        self.assertIn("Cannot specify both", str(e.exception))
+
     @mock.patch("code.interact")
     def test_shell__no_project(self, interact):
         with temporary_dir():
@@ -1187,6 +1208,50 @@ Environment Info: Rossian / x68_46
 
         mock_code.assert_called_once()
         self.assertIn("sf", mock_code.call_args[1]["local"])
+
+    @mock.patch("runpy.run_path")
+    def test_org_shell_script(self, runpy):
+        org_config = mock.Mock()
+        org_config.instance_url = "https://salesforce.com"
+        org_config.access_token = "TEST"
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
+        run_click_command(
+            cci.org_shell, runtime=runtime, org_name="test", script="foo.py"
+        )
+        runpy.assert_called_once()
+        self.assertIn("sf", runpy.call_args[1]["init_globals"])
+        assert runpy.call_args[0][0] == "foo.py", runpy.call_args[0]
+
+    @mock.patch("cumulusci.cli.cci.print")
+    def test_org_shell_code(self, print):
+        org_config = mock.Mock()
+        org_config.instance_url = "https://salesforce.com"
+        org_config.access_token = "TEST"
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
+        run_click_command(
+            cci.org_shell, runtime=runtime, org_name="test", python="print(sf)"
+        )
+        print.assert_called_once()
+        assert "Salesforce" in str(type(print.call_args[0][0]))
+
+    @mock.patch("cumulusci.cli.cci.print")
+    def test_org_shell_mutually_exclusive_args(self, print):
+        org_config = mock.Mock()
+        org_config.instance_url = "https://salesforce.com"
+        org_config.access_token = "TEST"
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
+        with self.assertRaises(Exception) as e:
+            run_click_command(
+                cci.org_shell,
+                runtime=runtime,
+                org_name="foo",
+                script="foo.py",
+                python="print(config, runtime)",
+            )
+        self.assertIn("Cannot specify both", str(e.exception))
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_task_list(self, cli_tbl):
