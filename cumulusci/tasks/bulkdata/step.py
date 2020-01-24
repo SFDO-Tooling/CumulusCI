@@ -231,10 +231,11 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
                     next(reader)  # skip header
 
                     for row in reader:
+                        success = process_bool_arg(row[1])
                         yield Result(
-                            row[0] if row[1] == "true" else None,
-                            process_bool_arg(row[1]),
-                            row[3] if row[1] != "true" else None,
+                            row[0] if success else None,
+                            success,
+                            row[3] if not success else None,
                         )
             except Exception as e:
                 raise BulkDataException(
