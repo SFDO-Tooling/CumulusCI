@@ -8,3 +8,6 @@ lex_locators["record"]["related"][
 lex_locators["record"]["related"][
     "popup_trigger"
 ] = "//article[.//span[@title='{}'][//a[text()='{}']]]//div[contains(@class, 'forceVirtualAction')]/a"
+lex_locators["object"][
+    "field_label"
+] = "//label[@for!='' and text()='{}']|//label[@for!=''][./span[text()='{}']]"

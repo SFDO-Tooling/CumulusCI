@@ -1,9 +1,10 @@
-*** Settings ***
+** Settings ***
 
 Resource        cumulusci/robotframework/Salesforce.robot
 Library         cumulusci.robotframework.PageObjects
 Suite Setup     Run keywords  Create test data  AND  Open Test Browser
 Suite Teardown  Delete Records and Close Browser
+Library         Dialogs
 
 
 *** Keywords ***
@@ -72,9 +73,8 @@ Click Related List Button
 Click related item link
     [Documentation]
     ...  Verify that 'Click related item link' works
-
     [Setup]  Create test data
-    set log level  DEBUG
+
     Salesforce Insert  Note
     ...  Title=This is the title of the note
     ...  Body=This is the body of the note
@@ -86,6 +86,17 @@ Click related item link
     ...  This is the title of the note
 
     Current page should be   Detail  Note
+
+Click related item link exception
+    [Documentation]
+    ...  Verify that 'Click related item link' throws a useful error
+
+    [Setup]  Create test data
+
+    Go to page  Detail  Contact  ${CONTACT ID}
+    Run keyword and expect error
+    ...  Unable to find related link under heading 'Notes & Attachments' with the text 'Bogus'
+    ...  Click related item link  Notes & Attachments  Bogus
 
 Click related item popup link
     [Setup]  Create test data
@@ -223,7 +234,12 @@ Populate Form
     ${account_name} =    Generate Random String
     Go To Object Home    Account
     Click Object Button  New
-    Populate Form        Account Name=${account_name}
+    Populate Form
+    ...  Ticker Symbol=CASH
+    ...  Account Name=${account_name}
     ${locator} =         Get Locator  object.field  Account Name
     ${value} =           Get Value  ${locator}
     Should Be Equal      ${value}  ${account_name}
+    ${locator}=          Get Locator  object.field  Ticker Symbol
+    ${value} =           Get Value  ${locator}
+    Should Be Equal      ${value}  CASH
