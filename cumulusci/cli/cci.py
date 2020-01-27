@@ -1403,7 +1403,7 @@ def info(num_lines):
     if not CCI_LOGFILE_PATH.is_file():
         click.echo(f"No logfile found at: {CCI_LOGFILE_PATH}")
     else:
-        output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), num_lines or 30)
+        output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), num_lines)
         click.echo(output)
 
 
