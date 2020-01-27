@@ -181,14 +181,17 @@ class Salesforce(object):
     def click_related_item_link(self, heading, title):
         """Clicks a link in the related list with the specified heading.
 
-        This keyword will automatically call `Wait until loading is complete`
+         This keyword will automatically call `Wait until loading is complete`
         """
-        self.builtin.log("loading related list...", "DEBUG")
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
-        self.builtin.log("clicking...", "DEBUG")
-        self._jsclick(locator)
-        self.builtin.log("waiting...", "DEBUG")
+        try:
+            self._jsclick(locator)
+        except Exception as e:
+            self.builtin.log(f"Exception: {e}", "DEBUG")
+            raise Exception(
+                f"Unable to find related link under heading '{heading}' with the text '{title}'"
+            )
         self.wait_until_loading_is_complete()
 
     def click_related_item_popup_link(self, heading, title, link):
@@ -417,19 +420,24 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     def populate_field(self, name, value):
-        """Enters a value into a text field.
+        """Enters a value into an input or textarea field.
+
+        'name' represents the label on the page (eg: "First Name"),
+        and 'value' is the new value.
 
         Any existing value will be replaced.
         """
-        locator = lex_locators["object"]["field"].format(name)
+        locator = self._get_input_field_locator(name)
         self._populate_field(locator, value)
 
     def populate_lookup_field(self, name, value):
         """Enters a value into a lookup field.
         """
-        input_locator = lex_locators["object"]["field"].format(name)
+        input_locator = self._get_input_field_locator(name)
         menu_locator = lex_locators["object"]["field_lookup_link"].format(value)
-        self.populate_field(name, value)
+
+        self._populate_field(input_locator, value)
+
         for x in range(3):
             self.wait_for_aura()
             try:
@@ -444,7 +452,38 @@ class Salesforce(object):
         self.selenium.set_focus_to_element(menu_locator)
         self._jsclick(menu_locator)
 
+    def _get_input_field_locator(self, name):
+        """Given an input field label, return a locator for the related input field
+
+        This looks for a <label> element with the given text, or
+        a label with a span with the given text. The value of the
+        'for' attribute is then extracted from the label and used
+        to create a new locator with that id.
+
+        For example, the locator 'abc123' will be returned
+        for the following html:
+
+        <label for='abc123'>First Name</label>
+        -or-
+        <label for='abc123'><span>First Name</span>
+        """
+        try:
+            # we need to make sure that if a modal is open, we only find
+            # the input element inside the modal. Otherwise it's possible
+            # that the xpath could pick the wrong element.
+            self.selenium.get_webelement(lex_locators["modal"]["is_open"])
+            modal_prefix = "//div[contains(@class, 'modal-container')]"
+        except ElementNotFound:
+            modal_prefix = ""
+
+        locator = modal_prefix + lex_locators["object"]["field_label"].format(
+            name, name
+        )
+        input_element_id = self.selenium.get_element_attribute(locator, "for")
+        return input_element_id
+
     def _populate_field(self, locator, value):
+        self.builtin.log(f"value: {value}' locator: '{locator}'", "DEBUG")
         field = self.selenium.get_webelement(locator)
         self._focus(field)
         if field.get_attribute("value"):
@@ -506,8 +545,7 @@ class Salesforce(object):
     def populate_form(self, **kwargs):
         """Enters multiple values from a mapping into form fields."""
         for name, value in kwargs.items():
-            locator = lex_locators["object"]["field"].format(name)
-            self._populate_field(locator, value)
+            self.populate_field(name, value)
 
     def remove_session_record(self, obj_type, obj_id):
         """Remove a record from the list of records that should be automatically removed."""
@@ -525,8 +563,7 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
         locator = lex_locators["object"]["record_type_option"].format(label)
         self._jsclick(locator)
-        locator = lex_locators["modal"]["button"].format("Next")
-        self._jsclick(locator)
+        self.click_modal_button("Next")
 
     @capture_screenshot_on_error
     def select_app_launcher_app(self, app_name):
