@@ -1533,6 +1533,46 @@ Environment Info: Rossian / x68_46
             "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
         )
 
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
+    def test_error_info_no_logfile_present(self, log_path, echo):
+        log_path.is_file.return_value = False
+        run_click_command(cci.error_info, num_lines=30)
+
+        echo.assert_called_once_with(f"No logfile found at: {cci.CCI_LOGFILE_PATH}")
+
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
+    def test_error_info(self, log_path, echo):
+        log_path.is_file.return_value = True
+        log_path.read_text.return_value = (
+            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
+        )
+
+        run_click_command(cci.error_info, num_lines=30)
+        echo.assert_called_once_with("\nTraceback (most recent call last):\n1\n2\n3\n4")
+
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
+    def test_error_info_output_less(self, log_path, echo):
+        log_path.is_file.return_value = True
+        log_path.read_text.return_value = (
+            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
+        )
+
+        run_click_command(cci.error_info, num_lines=3)
+        echo.assert_called_once_with("\n1\n2\n3\n4")
+
+    def test_lines_from_traceback_no_traceback(self):
+        output = cci.lines_from_traceback("test_content", 10)
+        assert "\nNo stacktrace found in:" in output
+
+    def test_lines_from_traceback(self):
+        traceback = "\nTraceback (most recent call last):\n1\n2\n3\n4"
+        content = "This\nis\na" + traceback
+        output = cci.lines_from_traceback(content, 10)
+        assert output == traceback
+
 
 class SetTrace(Exception):
     pass
