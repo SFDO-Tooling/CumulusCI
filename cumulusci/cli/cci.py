@@ -344,7 +344,6 @@ def error():
     For more information on working with errors in CumulusCI visit:
     https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors
     """
-    pass
 
 
 # Commands for group: project
@@ -1399,17 +1398,13 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
 
 
 @error.command(name="info", help="Outputs the last part of the most recent traceback")
-@click.argument("num_lines", required=False)
+@click.option("--num-lines", "-n", default=30, show_default=True, type=int)
 def info(num_lines):
     if not CCI_LOGFILE_PATH.is_file():
         click.echo(f"No logfile found at: {CCI_LOGFILE_PATH}")
-        return
-
-    if not num_lines:
-        output_lines = 30
-
-    output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), output_lines)
-    click.echo(output)
+    else:
+        output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), num_lines or 30)
+        click.echo(output)
 
 
 def lines_from_traceback(log_content, num_lines):
