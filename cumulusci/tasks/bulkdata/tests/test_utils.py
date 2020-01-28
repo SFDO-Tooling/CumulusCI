@@ -1,15 +1,19 @@
 import os
+import responses
 import unittest
+import yaml
 
+from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy import MetaData
 from sqlalchemy import Integer
+from sqlalchemy import types
 from sqlalchemy import Unicode
-import yaml
+from unittest import mock
 
-from cumulusci.utils import temporary_dir
-
+from cumulusci.tasks import bulkdata
 from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.utils import temporary_dir
 
 
 def create_db_file(filename):
@@ -19,6 +23,66 @@ def create_db_file(filename):
     metadata = MetaData()
     metadata.bind = engine
     return engine, metadata
+
+
+class TestEpochType(unittest.TestCase):
+    def test_process_bind_param(self):
+        obj = bulkdata.utils.EpochType()
+        dt = datetime(1970, 1, 1, 0, 0, 1)
+        result = obj.process_bind_param(dt, None)
+        self.assertEqual(1000, result)
+
+    def test_process_result_value(self):
+        obj = bulkdata.utils.EpochType()
+
+        # Non-None value
+        result = obj.process_result_value(1000, None)
+        self.assertEqual(datetime(1970, 1, 1, 0, 0, 1), result)
+
+        # None value
+        result = obj.process_result_value(None, None)
+        self.assertEqual(None, result)
+
+    def test_setup_epoch(self):
+        column_info = {"type": types.DateTime()}
+        bulkdata.utils.setup_epoch(mock.Mock(), mock.Mock(), column_info)
+        self.assertIsInstance(column_info["type"], bulkdata.utils.EpochType)
+
+
+class TestRecordTypeUtils(unittest.TestCase):
+    @mock.patch("cumulusci.tasks.bulkdata.utils.Table")
+    @mock.patch("cumulusci.tasks.bulkdata.utils.mapper")
+    def test_create_record_type_table(self, mapper, table):
+        util = bulkdata.utils.SqlAlchemyMixin()
+        util.models = {}
+        util.metadata = mock.Mock()
+
+        util._create_record_type_table("Account_rt_mapping")
+
+        self.assertIn("Account_rt_mapping", util.models)
+
+    @responses.activate
+    def test_extract_record_types(self):
+        util = bulkdata.utils.SqlAlchemyMixin()
+        util._sql_bulk_insert_from_records = mock.Mock()
+        util.sf = mock.Mock()
+        util.sf.query.return_value = {
+            "records": [{"Id": "012000000000000", "DeveloperName": "Organization"}]
+        }
+        util.logger = mock.Mock()
+
+        conn = mock.Mock()
+        util._extract_record_types("Account", "test_table", conn)
+
+        util.sf.query.assert_called_once_with(
+            "SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='Account'"
+        )
+        util._sql_bulk_insert_from_records.assert_called_once()
+        call = util._sql_bulk_insert_from_records.call_args_list[0][0]
+        assert call[0] == conn
+        assert call[1] == "test_table"
+        assert call[2] == ["record_type_id", "developer_name"]
+        assert list(call[3]) == [["012000000000000", "Organization"]]
 
 
 class TestCreateTable(unittest.TestCase):

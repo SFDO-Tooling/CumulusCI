@@ -3,7 +3,7 @@ from unittest import mock
 
 from cumulusci.tasks.bulkdata import DeleteData
 from cumulusci.tasks.bulkdata.step import Status, Result, Operation
-from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 
 

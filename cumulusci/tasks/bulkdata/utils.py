@@ -73,14 +73,15 @@ class SqlAlchemyMixin:
         query = (
             f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
         )
-        data_file = io.BytesIO()
-        writer = csv.writer(data_file)
-        for rt in self.sf.query(query)["records"]:
-            writer.writerow([rt["Id"], rt["DeveloperName"]])
-        data_file.seek(0)
 
-        self._sql_bulk_insert_from_csv(
-            conn, table, ["record_type_id", "developer_name"], data_file
+        self._sql_bulk_insert_from_records(
+            conn,
+            table,
+            ["record_type_id", "developer_name"],
+            map(
+                lambda rt: [rt["Id"], rt["DeveloperName"]],
+                self.sf.query(query)["records"],
+            ),
         )
 
 

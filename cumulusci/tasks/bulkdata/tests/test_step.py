@@ -14,6 +14,7 @@ from cumulusci.tasks.bulkdata.step import (
 from cumulusci.core.exceptions import BulkDataException
 
 import io
+import os
 import unittest
 from unittest import mock
 
@@ -23,7 +24,27 @@ class test_download_file(unittest.TestCase):
 
 
 class test_BulkDataJobTaskMixin(unittest.TestCase):
-    pass
+    def test_wait_for_job__logs_state_messages(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task.bulk = mock.Mock()
+        task.bulk.job_status.return_value = {
+            "numberBatchesCompleted": 1,
+            "numberBatchesTotal": 1,
+        }
+        task._job_state_from_batches = mock.Mock(
+            return_value=("Failed", ["Test1", "Test2"])
+        )
+        task.logger = mock.Mock()
+
+        task._wait_for_job("750000000000000")
+        task.logger.error.assert_any_call("Batch failure message: Test1")
+        task.logger.error.assert_any_call("Batch failure message: Test2")
 
 
 class test_Step(unittest.TestCase):
@@ -225,14 +246,14 @@ class test_BulkApiDmlStep(unittest.TestCase):
     def test_get_results__failure(self, download_mock):
         context = mock.Mock()
         context.bulk.endpoint = "https://test"
-        download_mock.side_effect = Exception
+        download_mock.return_value.side_effect = Exception
 
         step = BulkApiDmlStep("Contact", Operation.INSERT, {}, context, ["LastName"])
         step.job_id = "JOB"
         step.batch_ids = ["BATCH1", "BATCH2"]
 
         with self.assertRaises(BulkDataException):
-            step.get_results()
+            list(step.get_results())
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_end_to_end(self, download_mock):
