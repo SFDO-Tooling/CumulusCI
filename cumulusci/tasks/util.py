@@ -6,7 +6,7 @@ from xml.dom.minidom import parse
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import download_extract_zip, findReplace, findReplaceRegex
-
+from cumulusci.core.utils import process_list_arg
 
 class DownloadZip(BaseTask):
     name = "Download"
@@ -130,7 +130,7 @@ class FindReplace(BaseTask):
         },
         "path": {"description": "The path to recursively search", "required": True},
         "file_pattern": {
-            "description": "A UNIX like filename pattern used for matching filenames.  See python fnmatch docs for syntax.  Defaults to *",
+            "description": "A UNIX like filename pattern used for matching filenames, or a list of them. See python fnmatch docs for syntax. If passed via command line, use a comma separated string. Defaults to *",
             "required": True,
         },
         "max": {
@@ -149,14 +149,21 @@ class FindReplace(BaseTask):
         kwargs = {}
         if "max" in self.options:
             kwargs["max"] = self.options["max"]
-        findReplace(
-            find=self.options["find"],
-            replace=self.options["replace"],
-            directory=self.options["path"],
-            filePattern=self.options["file_pattern"],
-            logger=self.logger,
-            **kwargs
-        )
+
+        # Split and trim file_pattern string into a list if not already a list
+        filePatterns = process_list_arg(self.options["file_pattern"])
+        if not len(filePatterns):
+            raise TaskOptionsError("At least one file_pattern must be specified.")
+
+        for fp in filePatterns:
+            findReplace(
+                find=self.options["find"],
+                replace=self.options["replace"],
+                directory=self.options["path"],
+                filePattern=fp,
+                logger=self.logger,
+                **kwargs
+            )
 
 
 find_replace_regex_options = FindReplace.task_options.copy()
