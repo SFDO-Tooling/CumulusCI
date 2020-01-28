@@ -8,6 +8,7 @@ from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import download_extract_zip, findReplace, findReplaceRegex
 from cumulusci.core.utils import process_list_arg
 
+
 class DownloadZip(BaseTask):
     name = "Download"
     task_options = {
