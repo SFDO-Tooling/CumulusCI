@@ -1397,13 +1397,16 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
             click.echo(str(e))
 
 
-@error.command(name="info", help="Outputs the last part of the most recent traceback")
-@click.option("--num-lines", "-n", default=30, show_default=True, type=int)
-def error_info(num_lines):
+@error.command(
+    name="info",
+    help="Outputs the last part of the most recent traceback (if one exists in the most recent log)",
+)
+@click.option("--max-lines", "-m", default=30, show_default=True, type=int)
+def error_info(max_lines):
     if not CCI_LOGFILE_PATH.is_file():
         click.echo(f"No logfile found at: {CCI_LOGFILE_PATH}")
     else:
-        output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), num_lines)
+        output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), max_lines)
         click.echo(output)
 
 

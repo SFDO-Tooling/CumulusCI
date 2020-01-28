@@ -1537,7 +1537,7 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     def test_error_info_no_logfile_present(self, log_path, echo):
         log_path.is_file.return_value = False
-        run_click_command(cci.error_info, num_lines=30)
+        run_click_command(cci.error_info, max_lines=30)
 
         echo.assert_called_once_with(f"No logfile found at: {cci.CCI_LOGFILE_PATH}")
 
@@ -1549,7 +1549,7 @@ Environment Info: Rossian / x68_46
             "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
         )
 
-        run_click_command(cci.error_info, num_lines=30)
+        run_click_command(cci.error_info, max_lines=30)
         echo.assert_called_once_with("\nTraceback (most recent call last):\n1\n2\n3\n4")
 
     @mock.patch("cumulusci.cli.cci.click.echo")
@@ -1560,7 +1560,7 @@ Environment Info: Rossian / x68_46
             "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
         )
 
-        run_click_command(cci.error_info, num_lines=3)
+        run_click_command(cci.error_info, max_lines=3)
         echo.assert_called_once_with("\n1\n2\n3\n4")
 
     def test_lines_from_traceback_no_traceback(self):
