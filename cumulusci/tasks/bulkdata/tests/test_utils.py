@@ -11,6 +11,7 @@ from sqlalchemy import types
 from sqlalchemy import Unicode
 from unittest import mock
 
+from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks import bulkdata
 from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
 from cumulusci.utils import temporary_dir
@@ -119,6 +120,20 @@ class TestCreateTable(unittest.TestCase):
             assert isinstance(t.columns["first_name"].type, Unicode)
             assert isinstance(t.columns["last_name"].type, Unicode)
             assert isinstance(t.columns["email"].type, Unicode)
+
+    def test_create_table__already_exists(self):
+        mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v2.yml")
+        with open(mapping_file, "r") as fh:
+            content = yaml.safe_load(fh)
+            account_mapping = content["Insert Contacts"]
+
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "temp.db")
+
+            engine, metadata = create_db_file(tmp_db_path)
+            create_table(account_mapping, metadata)
+            with self.assertRaises(BulkDataException):
+                create_table(account_mapping, metadata)
 
 
 class TestBatching(unittest.TestCase):

@@ -8,43 +8,153 @@ from cumulusci.tasks.bulkdata.step import (
     DmlStep,
     QueryStep,
     BulkApiQueryStep,
-    DmlStep,
     BulkApiDmlStep,
 )
 from cumulusci.core.exceptions import BulkDataException
 
 import io
-import os
+import responses
 import unittest
 from unittest import mock
 
+BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
+<batch>
+    <state>{first_state}</state>
+    <stateMessage>{first_message}</stateMessage>
+</batch>
+<batch>
+    <state>{second_state}</state>
+    <stateMessage>{second_message}</stateMessage>
+</batch>
+</root>"""
+
 
 class test_download_file(unittest.TestCase):
-    pass
+    pass  # FIXME: implement
 
 
 class test_BulkDataJobTaskMixin(unittest.TestCase):
-    def test_wait_for_job__logs_state_messages(self):
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, self.mapping_file)
-        task = _make_task(
-            LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
-        )
+    @responses.activate
+    def test_job_state_from_batches(self):
+        mixin = BulkJobTaskMixin()
+        mixin.bulk = mock.Mock()
+        mixin.bulk.endpoint = "https://example.com"
+        mixin.bulk.headers.return_value = {"HEADER": "test"}
+        mixin._parse_job_state = mock.Mock()
 
-        task.bulk = mock.Mock()
-        task.bulk.job_status.return_value = {
+        responses.add(
+            "GET",
+            "https://example.com/job/JOB/batch",
+            adding_headers=mixin.bulk.headers.return_value,
+            body="TEST",
+        )
+        assert (
+            mixin._job_state_from_batches("JOB") == mixin._parse_job_state.return_value
+        )
+        mixin._parse_job_state.assert_called_once_with(b"TEST")
+
+    def test_parse_job_state(self):
+        mixin = BulkJobTaskMixin()
+        mixin.bulk = mock.Mock()
+        mixin.bulk.jobNS = "http://ns"
+
+        assert mixin._parse_job_state(
+            BULK_BATCH_RESPONSE.format(
+                **{
+                    "first_state": "Not Processed",
+                    "first_message": "Test",
+                    "second_state": "Completed",
+                    "second_message": "",
+                }
+            )
+        ) == ("Aborted", None)
+
+        assert mixin._parse_job_state(
+            BULK_BATCH_RESPONSE.format(
+                **{
+                    "first_state": "InProgress",
+                    "first_message": "Test",
+                    "second_state": "Completed",
+                    "second_message": "",
+                }
+            )
+        ) == ("InProgress", None)
+
+        assert mixin._parse_job_state(
+            BULK_BATCH_RESPONSE.format(
+                **{
+                    "first_state": "Failed",
+                    "first_message": "Bad",
+                    "second_state": "Failed",
+                    "second_message": "Worse",
+                }
+            )
+        ) == ("Failed", ["Bad", "Worse"])
+
+        assert mixin._parse_job_state(
+            BULK_BATCH_RESPONSE.format(
+                **{
+                    "first_state": "Completed",
+                    "first_message": "Test",
+                    "second_state": "Completed",
+                    "second_message": "",
+                }
+            )
+        ) == ("Completed", None)
+
+    @mock.patch("time.sleep")
+    def test_wait_for_job(self, sleep_patch):
+        mixin = BulkJobTaskMixin()
+
+        mixin.bulk = mock.Mock()
+        mixin.bulk.job_status.return_value = {
             "numberBatchesCompleted": 1,
             "numberBatchesTotal": 1,
         }
-        task._job_state_from_batches = mock.Mock(
+        mixin._job_state_from_batches = mock.Mock(
+            side_effect=[("InProgress", None), ("Completed", None)]
+        )
+        mixin.logger = mock.Mock()
+
+        result = mixin._wait_for_job("750000000000000")
+        mixin._job_state_from_batches.assert_has_calls(
+            [mock.call("750000000000000"), mock.call("750000000000000")]
+        )
+        assert result == "Completed"
+
+    def test_wait_for_job__failed(self):
+        mixin = BulkJobTaskMixin()
+
+        mixin.bulk = mock.Mock()
+        mixin.bulk.job_status.return_value = {
+            "numberBatchesCompleted": 1,
+            "numberBatchesTotal": 1,
+        }
+        mixin._job_state_from_batches = mock.Mock(
             return_value=("Failed", ["Test1", "Test2"])
         )
-        task.logger = mock.Mock()
+        mixin.logger = mock.Mock()
 
-        task._wait_for_job("750000000000000")
-        task.logger.error.assert_any_call("Batch failure message: Test1")
-        task.logger.error.assert_any_call("Batch failure message: Test2")
+        result = mixin._wait_for_job("750000000000000")
+        mixin._job_state_from_batches.assert_called_once_with("750000000000000")
+        assert result == "Failed"
+
+    def test_wait_for_job__logs_state_messages(self):
+        mixin = BulkJobTaskMixin()
+
+        mixin.bulk = mock.Mock()
+        mixin.bulk.job_status.return_value = {
+            "numberBatchesCompleted": 1,
+            "numberBatchesTotal": 1,
+        }
+        mixin._job_state_from_batches = mock.Mock(
+            return_value=("Failed", ["Test1", "Test2"])
+        )
+        mixin.logger = mock.Mock()
+
+        mixin._wait_for_job("750000000000000")
+        mixin.logger.error.assert_any_call("Batch failure message: Test1")
+        mixin.logger.error.assert_any_call("Batch failure message: Test2")
 
 
 class test_Step(unittest.TestCase):
@@ -100,7 +210,7 @@ class test_BulkApiQueryStep(unittest.TestCase):
         )
 
     def test_query__failure(self):
-        raise NotImplementedException
+        raise NotImplementedError
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_get_results(self, download_mock):
@@ -133,6 +243,29 @@ class test_BulkApiQueryStep(unittest.TestCase):
             ["003000000000002"],
             ["003000000000003"],
         ]
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
+    def test_get_results__no_results(self, download_mock):
+        context = mock.Mock()
+        context.bulk.endpoint = "https://test"
+        context.bulk.create_query_job.return_value = "JOB"
+        context.bulk.query.return_value = "BATCH"
+        context.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
+
+        download_mock.return_value = io.StringIO("Records not found for this query")
+        query = BulkApiQueryStep("Contact", {}, context, "SELECT Id FROM Contact")
+        query.query()
+
+        results = list(query.get_results())
+
+        context.bulk.get_query_batch_result_ids.assert_called_once_with(
+            "BATCH", job_id="JOB"
+        )
+        download_mock.assert_called_once_with(
+            f"https://test/job/JOB/batch/BATCH/result/RESULT", context.bulk
+        )
+
+        assert list(results) == []
 
 
 class test_BulkApiDmlStep(unittest.TestCase):
