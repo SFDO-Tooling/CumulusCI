@@ -22,7 +22,6 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
-BULK_BATCH_RESPONSE = '<root xmlns="http://ns"><batch><state>{}</state></batch></root>'
 
 MAPPING_FILE = """Insert Households:
     sf_object: Account

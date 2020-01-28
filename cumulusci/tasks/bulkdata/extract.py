@@ -17,9 +17,9 @@ from cumulusci.tasks.bulkdata.utils import (
     create_table,
     fields_for_mapping,
 )
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.tasks.bulkdata.step import BulkApiQueryStep
+from cumulusci.tasks.bulkdata.step import BulkApiQueryStep, Status
 from cumulusci.utils import os_friendly_path
 
 
@@ -111,7 +111,10 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         step.query()
 
-        self._import_results(mapping, step)
+        if step.status is Status.SUCCESS:
+            self._import_results(mapping, step)
+        else:
+            raise BulkDataException("Bulk query failed")
 
     def _import_results(self, mapping, step):
         conn = self.session.connection()

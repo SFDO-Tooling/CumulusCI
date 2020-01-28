@@ -137,6 +137,7 @@ class BulkApiQueryStep(QueryStep):
         self.bulk.close_job(self.job_id)
 
         # FIXME: set the status
+        self.status = Status.SUCCESS
 
     def get_results(self):
         result_ids = self.bulk.get_query_batch_result_ids(
