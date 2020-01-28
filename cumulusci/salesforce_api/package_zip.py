@@ -1,6 +1,3 @@
-from future import standard_library
-
-standard_library.install_aliases()
 from base64 import b64encode
 from zipfile import ZipFile
 from tempfile import TemporaryFile

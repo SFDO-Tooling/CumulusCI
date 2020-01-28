@@ -1,3 +1,4 @@
+import os
 import sys
 
 from robot import run as robot_run
@@ -9,6 +10,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
 from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.salesforce import BaseSalesforceTask
+from cumulusci.tasks.robotframework.debugger import DebugListener
 
 
 class Robot(BaseSalesforceTask):
@@ -32,6 +34,9 @@ class Robot(BaseSalesforceTask):
         "name": {"description": "Sets the name of the top level test suite"},
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
         "verbose": {"description": "If true, log each keyword as it runs."},
+        "debug": {
+            "description": "If true, enable the `breakpoint` keyword to enable the robot debugger"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -47,8 +52,22 @@ class Robot(BaseSalesforceTask):
         if "options" not in self.options:
             self.options["options"] = {}
 
+        # There are potentially many robot options that are or could
+        # be lists, but the only one we currently care about is the
+        # listener option since we may need to append additional values
+        # onto it.
+        for option in ("listener",):
+            if option in self.options["options"]:
+                self.options["options"][option] = process_list_arg(
+                    self.options["options"][option]
+                )
+
+        listeners = self.options["options"].setdefault("listener", [])
         if process_bool_arg(self.options.get("verbose")):
-            self.options["options"]["listener"] = KeywordLogger
+            listeners.append(KeywordLogger())
+
+        if process_bool_arg(self.options.get("debug")):
+            listeners.append(DebugListener())
 
         if process_bool_arg(self.options.get("pdb")):
             patch_statusreporter()
@@ -60,6 +79,9 @@ class Robot(BaseSalesforceTask):
             if option in self.options:
                 options[option] = self.options[option]
         options["variable"] = self.options.get("vars") or []
+        options["outputdir"] = os.path.relpath(
+            os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
+        )
 
         num_failed = robot_run(self.options["suites"], **options)
         if num_failed:
@@ -85,7 +107,7 @@ class RobotTestDoc(BaseTask):
 class KeywordLogger(object):
     ROBOT_LISTENER_API_VERSION = 2
 
-    def start_keyword(name, attrs):
+    def start_keyword(self, name, attrs):
         sys.stdout.write("  {}  {}\n".format(attrs["kwname"], "  ".join(attrs["args"])))
         sys.stdout.flush()
 
@@ -103,3 +125,24 @@ def patch_statusreporter():
         return orig_exit(self, exc_type, exc_val, exc_tb)
 
     StatusReporter.__exit__ = __exit__
+
+
+def patch_executescript():
+    # convert executeScript calls into executeAsyncScript
+    # to work around an issue in chromedriver 77
+    # https://bugs.chromium.org/p/chromedriver/issues/detail?id=3103
+    from selenium.webdriver.remote.webdriver import WebDriver
+
+    def execute_script(self, script, *args):
+        # the last argument is the function called to say the async operation is done
+        script = (
+            "arguments[arguments.length - 1](function(){"
+            + script
+            + "}.apply(null, Array.prototype.slice.call(arguments, 0, -1)));"
+        )
+        return self.execute_async_script(script, *args)
+
+    WebDriver.execute_script = execute_script
+
+
+patch_executescript()

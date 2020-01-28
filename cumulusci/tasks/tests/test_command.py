@@ -1,14 +1,12 @@
 """ Tests for the Command tasks """
 
-import mock
+from unittest import mock
 import unittest
-import logging
 from io import BytesIO
 
 from testfixtures.popen import MockPopen
 from testfixtures import Replacer
 
-import cumulusci.core.tasks
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig

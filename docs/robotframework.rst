@@ -30,8 +30,11 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
    *** Settings ***
 
    Resource        cumulusci/robotframework/Salesforce.robot
+   Library         cumulusci.robotframework.PageObjects
+
    Suite Setup     Open Test Browser
    Suite Teardown  Delete Records and Close Browser
+
 
    *** Test Cases ***
 
@@ -41,19 +44,25 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
        ${contact_id} =       Salesforce Insert  Contact
        ...                     FirstName=${first_name}
        ...                     LastName=${last_name}
+
        &{contact} =          Salesforce Get  Contact  ${contact_id}
        Validate Contact      ${contact_id}  ${first_name}  ${last_name}
 
    Via UI
        ${first_name} =       Generate Random String
        ${last_name} =        Generate Random String
-       Go To Object Home     Contact
+
+       Go to page            Home  Contact
        Click Object Button   New
+       Wait for modal        New  Contact
+
        Populate Form
        ...                   First Name=${first_name}
        ...                   Last Name=${last_name}
        Click Modal Button    Save
+
        Wait Until Modal Is Closed
+
        ${contact_id} =       Get Current Record Id
        Store Session Record  Contact  ${contact_id}
        Validate Contact      ${contact_id}  ${first_name}  ${last_name}
@@ -63,9 +72,15 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
 
    Validate Contact
        [Arguments]          ${contact_id}  ${first_name}  ${last_name}
+       [Documentation]
+       ...  Given a contact id, validate that the contact has the
+       ...  expected first and last name both through the detail page in
+       ...  the UI and via the API.
+
        # Validate via UI
-       Go To Record Home    Contact  ${contact_id}
-       Page Should Contain  ${first_name} ${last_name}
+       Go to page             Detail   Contact  ${contact_id}
+       Page Should Contain    ${first_name} ${last_name}
+
        # Validate via API
        &{contact} =     Salesforce Get  Contact  ${contact_id}
        Should Be Equal  ${first_name}  &{contact}[FirstName]
@@ -232,30 +247,31 @@ When you create a page object class, you start by inheriting from one
 of the provided base classes. No matter which class your inherit from,
 your class gets the following predefined properties:
 
-- **self.object_name** - the name of the object related to the
+- **self.object_name** is the name of the object related to the
   class. This is defined via the `object_name` parameter to the
   ``pageobject`` decorator. You should not add the namespace
   prefix in the decorator. This attribute will automatically add the
   prefix from cumulusci.yml when necessary.
 
-- **self.builtin** - this is a reference to the robot framework
+- **self.builtin** is a reference to the robot framework
   ``BuiltIn`` library, and can be used to directly call built-in
   keywords. Any built-in keyword can be called by converting the name
-  to all lowercase, and replace spaces with underscores (eg:
+  to all lowercase, and replacing all spaces with underscores (eg:
   ``self.builtin.log``, ``self.builtin.get_variable_value``, etc).
 
-- **self.cumulusci** - this is a reference to the CumulusCI keyword
+- **self.cumulusci** is a reference to the CumulusCI keyword
   library. You can call any keyword in this library by converting the
-  name to all lowercase, and replace spaces with understcores (eg:
+  name to all lowercase, and replacing all spaces with underscores (eg:
   ``self.cumulusci.get_org_info``, etc).
 
-- **salesforce** - this is a reference to the Salesforce keyword
+- **self.salesforce** is a reference to the Salesforce keyword
   library. You can call any keyword in this library by converting the
-  name to all lowercase, and replace spaces with understcores (eg:
+  name to all lowercase, and replacing all spaces with underscores (eg:
   ``self.salesforce.wait_until_loading_is_complete``, etc).
 
-- **selenium** - this is a reference to SeleniumLibrary. You can call any keyword in this library by converting the
-  name to all lowercase, and replace spaces with understcores (eg:
+- **self.selenium** is a reference to SeleniumLibrary. You can call
+  any keyword in this library by converting the name to all lowercase,
+  and replacing all spaces with underscores (eg:
   ``self.selenim.wait_until_page_contains_element``, etc)
 
 
@@ -268,13 +284,22 @@ Presently, cumulusci provides the following base classes,
 which should be used for all classes that use the ``pageobject`` decorator:
 
 - ``cumulusci.robotframework.pageobjects.BasePage`` - a generic base
-  class, which should be used if none of the following classes are used.
+  class used by the other base classes. It can be used when creating
+  custom page objects when none of the other base classes make sense.
 - ``cumulusci.robotframework.pageobjects.DetailPage`` - a class
   for a page object which represents a detail page
 - ``cumulusci.robotframework.pageobjects.HomePage`` - a class for a
   page object which represents a home page
 - ``cumulusci.robotframework.pageobjects.ListingPage`` - a class for a
   page object which represents a listing page
+- ``cumulusci.robotframework.pageobject.NewModal`` - a class for a
+  page object which represents the "new object" modal
+
+The ``BasePage`` class adds the following keyword to every page object:
+
+- ``Log current page object`` - this keyword is mostly useful
+  while debugging tests. It will add to the log information about the
+  currently loaded page object.
 
 Example Page Object
 -------------------
@@ -298,7 +323,7 @@ The :code:`pageobject` decorator takes two arguments: :code:`page_type` and
 :code:`object_name`. These two arguments are used to identify the page
 object (eg: :code:`Go To Page  Listing  Contact`). The values can be
 any arbitrary string, but ordinarily should represent standard page
-types ("Listing", "Detail", "Home"), and standard object names.
+types ("Detail", "Home", "Listing", "New"), and standard object names.
 
 
 Importing the library into a test
@@ -350,9 +375,12 @@ Page Object Keywords
 The **PageObjects** library provides the following keywords:
 
 * Current Page Should Be
+* Get Page Object
 * Go To Page Object
 * Load Page Object
 * Log Page Object Keywords
+* Wait For Modal
+* Wait For Page Object
 
 Current Page Should Be
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -363,7 +391,7 @@ This keyword will attempt to validate that the given page object
 represents the current page. Each page object may use its own method
 for making the determination, but the built-in page objects all
 compare the page location to an expected pattern
-(eg: _.../lightning/o/..._). If the assertion passes, the keywords for
+(eg: ``.../lightning/o/...``). If the assertion passes, the keywords for
 that page object will autoamtically be loaded.
 
 This keyword is useful if you get to a page via a button or some other
@@ -371,10 +399,22 @@ form of navigation, in that it allows you to both assert that you are
 on the page you think you should be on, and load the keywords for that
 page, all with a single statement.
 
-Go To Page Object
-^^^^^^^^^^^^^^^^^
+Get Page Object
+^^^^^^^^^^^^^^^
 
-Example: :code:`Go to page object  Listing  Contact`
+Example: :code:`Get page object  Listing  Contact`
+
+This keyword is rarely used in a test. It is mostly useful
+to get the reference to a other keyword from another keyword. It is
+similar in function to robot's built-in `Get library instance
+<http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Get%20Library%20Instance>`_
+keyword.
+
+
+Go To Page
+^^^^^^^^^^
+
+Example: :code:`Go to page  Listing  Contact`
 
 This will attempt to go to the listing page for the Contact object,
 and then load the keywords for that page.
@@ -397,6 +437,26 @@ This will load the page object for the given **page_type** and
 page object without first navigating to that page (i.e. when you are
 already on the page and don't want to navigate away).
 
+Wait For Modal
+^^^^^^^^^^^^^^^
+
+Example: :code:`Wait for modal  New  Contact`
+
+This keyword can be used to wait for a modal, such as the one
+that pops up when creating a new object. The keyword will return once
+a modal appears, and has a title of "New _object_" (eg: "New
+Contact").
+
+Wait For Page Object
+^^^^^^^^^^^^^^^^^^^^
+
+Example: :code:`Wait for page object  Popup  ActivityManager`
+
+Page objects don't necessarily have to represent entire pages. You can
+use Wait for page object to wait for a page object representing a
+single element on a page such as a popup window.
+
+
 
 Generic Page Objects
 --------------------
@@ -410,7 +470,7 @@ For example, if you use :code:`Current page should be  Home  Event` and
 there is no page object by that name, a generic :code:`Home` page object
 will be loaded, and its object name will be set to :code:`Event`.
 
-For example, let's say your project has created a custom object named
+Let's say your project has created a custom object named
 **Island**. You don't have a home page, but the object does have a
 standard listing page. Without creating any page objects, this test
 should work by using generic implementations of the Home and Listing
@@ -426,6 +486,21 @@ page objects:
 
        # Verify that the redirect happened
        Current Page Should Be  Listing  Islands
+
+CumulusCI provides the following generic page objects:
+
+- **Detail** (eg: :code:`Go to page  Detail  Contact  ${contact id}`)
+  Detail pages refer to pages with a URL that matches the
+  pattern "<host>/lightning/r/<object name>/<object id>/view"
+- **Home** (eg: :code:`Go to page  Home  Contact`)
+  Home pages refer to pages with a URL that matches the pattern
+  "<host>/lightning/o/<object name>/home"
+- **Listing** (eg: :code:`Go to  page  Listing  Contact`)
+  Listing pages refer to pages with a URL that matches the pattern
+  "<host>b/lightning/o/<object name>/list"
+- **New** (eg: :code:`Wait for modal  New  Contact`)
+  The New page object refers to the modal that pops up
+  when creating a new object.
 
 Of course, the real power comes when you create your own page object
 class which implements keywords which can be used with your custom
@@ -443,29 +518,64 @@ the CumulusCI and Salesforce keywords
 CumulusCI Robot Tasks
 =====================
 
-CumulusCI includes two tasks for working with Robot Framework tests and keyword libraries:
+CumulusCI includes several tasks for working with Robot Framework tests and keyword libraries:
 
 * **robot**: Runs robot test suites.  By default, recursively runs all tests located under the folder **robot/<project name>/tests/**.  Test suites can be overridden via the **suites** keyword and variables inside robot files can be overridden using the **vars** option with the syntax VAR:value (ex: BROWSER:firefox).
 * **robot_testdoc**: Generates html documentation of your whole robot test suite and writes to **robot/<project name>/doc/<project_name>.html**.
 * **robot_lint**: Performs static analysis of robot files (files with
   .robot and .resource), flagging issues that may reduce the quality of the code.
+* **robot_libdoc**:  This task can be wired up to generate library
+  documentation if you choose to create a library of robot keywords
+  for your project.
 
-Additionally, the **robot_libdoc** task can be wired up to generate library documentation if you choose to create a library of robot keywords for your project. For example, if you have defined a robot resource file named MyProject.resource and placed it in the **resources** folder, you would add the following to the cumulusci.yml file:
+Configuring the libdoc task
+---------------------------
+
+If you have defined a robot resource file named MyProject.resource and
+placed it in the **resources** folder, you can add the following
+configuration to your cumulusci.yml file in order to enable the
+**robot_libdoc** task to generate documentation:
 
 .. code-block:: yaml
 
    tasks:
       robot_libdoc:
-          description: Generates HTML documentation for the MyProject Robot Framework library
+          description: Generates HTML documentation for the MyProject Robot Framework Keywords
           options:
-              path: robot/MyProject/resources/MyProject.robot
+              path: robot/MyProject/resources/MyProject.resource
               output: robot/MyProject/doc/MyProject_Library.html
 
-.. note::
 
-   You can generate documentation for more than one keyword file or
-   library by giving a comma-separated list of files for the **path**
-   option.
+You can generate documentation for more than one keyword file or
+library by giving a comma-separated list of files for the **path**
+option, or by defining path as a list in cumulusci.yml.  In the
+following example, documentation will be generated for MyLibrary.py
+and MyLibrary.resource:
+
+.. code-block:: yaml
+
+   tasks:
+      robot_libdoc:
+          description: Generates HTML documentation for the MyProject Robot Framework Keywords
+          options:
+              path:
+                - robot/MyProject/resources/MyProject.resource
+                - robot/MyProject/resources/MyProject.py
+              output: robot/MyProject/doc/MyProject_Library.html
+
+You can also use basic filesystem wildcards. For example,
+to document all robot files in robot/MyProject/resources you could
+configure your yaml file like this:
+
+.. code-block:: yaml
+
+   tasks:
+      robot_libdoc:
+          description: Generates HTML documentation for the MyProject Robot Framework Keywords
+          options:
+              path: robot/MyProject/resources/*.resource
+              output: robot/MyProject/doc/MyProject_Library.html
+
 
 
 Robot Directory Structure

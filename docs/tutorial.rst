@@ -28,7 +28,7 @@ Project Initialization
 The `cci` command is git repository aware. Changing directories from one local git repository to another will change the project context. Each project context isolates the following:
 
 * Orgs: Connected Salesforce Orgs are stored in a project specific keychain
-* Services: Named service connections such as Github, ApexTestsDB, and mrbelvedere
+* Services: Named service connections such as Github
 
 If you run the `cci` command from outside a git repository, it will generate an error.
 
@@ -74,15 +74,6 @@ If you run the `cci project info` command from inside a git repository that has 
         repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
     test:
         name_match: %_TEST%
-    apexdoc:
-        homepage: None
-        banner: None
-        version: 1.1.7
-        scope: global;public;private;testmethod;webService
-        branch: gh-pages
-        repo_dir: ApexDocumentation
-            namespace: pub
-            version: 1.5
 
 If you run the same command from inside a git repository that has not yet been set up for CumulusCI, you will get an error:
 
@@ -129,7 +120,7 @@ GitHub Service
 
 To get through some of the tasks later in the tutorial, you will need to connect GitHub as a service in cci.
 
-Go to https://github.com/settings/tokens/new and create a new personal access token with the "repo" scope. Copy the access token to use as the password when configuring the GitHub service.
+Go to https://github.com/settings/tokens/new and create a new personal access token with both "repo" and "gist" scopes specified. Copy the access token to use as the password when configuring the GitHub service.
 
 Run the following and provide your GitHub username and use the access token as the password:
 
@@ -335,7 +326,7 @@ Once you have the org, connect it to `cci`'s project keychain with `cci org conn
     Spawning HTTP server at http://localhost:8080/callback with timeout of 300 seconds.
     If you are unable to log in to Salesforce you can press ctrl+c to kill the server and return to the command line.
 
-This should open a browser on your computer pointed to the Salesforce login page. Log in and then grant access to the app. Note that since the login to capture credentials occurs in your normal browser, you can use browser password managers such as LastPass to log in. Once access is granted and you see a browser page that says `OK` you can close the browser tab and return to the terminal. Your org is now connected via OAuth and CumulusCI never needs to know your actual user password. As an added benefit, OAuth authentication remains valid even after password changes.
+This should open a browser on your computer pointed to the Salesforce login page. Log in and then grant access to the app. Note that since the login to capture credentials occurs in your normal browser, you can use browser password managers such as LastPass to log in. Once access is granted and you see a browser page that says `Congratulations` you can close the browser tab and return to the terminal. Your org is now connected via OAuth and CumulusCI never needs to know your actual user password. As an added benefit, OAuth authentication remains valid even after password changes.
 
 You should now see the packaging org available in `cci org list`:
 

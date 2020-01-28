@@ -1,4 +1,3 @@
-import os
 import tempfile
 import unicodecsv
 
@@ -10,6 +9,7 @@ from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import create_session, mapper
 from sqlalchemy.ext.automap import automap_base
+import yaml
 
 from cumulusci.tasks.bulkdata.utils import (
     BulkJobTaskMixin,
@@ -21,7 +21,6 @@ from cumulusci.tasks.bulkdata.utils import (
 )
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.utils import log_progress, os_friendly_path
 from salesforce_bulk.util import IteratorBytesIO
 
@@ -29,8 +28,7 @@ from salesforce_bulk.util import IteratorBytesIO
 class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
     task_options = {
         "database_url": {
-            "description": "A DATABASE_URL where the query output should be written",
-            "required": True,
+            "description": "A DATABASE_URL where the query output should be written"
         },
         "mapping": {
             "description": "The path to a yaml file containing mappings of the database fields to Salesforce object fields",
@@ -44,14 +42,17 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(ExtractData, self)._init_options(kwargs)
-        if self.options.get("sql_path"):
-            if self.options.get("database_url"):
-                raise TaskOptionsError(
-                    "The database_url option is set dynamically with the sql_path option.  Please unset the database_url option."
-                )
+        if self.options.get("database_url"):
+            # prefer database_url if it's set
+            self.options["sql_path"] = None
+        elif self.options.get("sql_path"):
             self.logger.info("Using in-memory sqlite database")
             self.options["database_url"] = "sqlite://"
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
+        else:
+            raise TaskOptionsError(
+                "You must set either the database_url or sql_path option."
+            )
 
     def _run_task(self):
         self._init_mapping()
@@ -88,7 +89,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
-            self.mappings = ordered_yaml_load(f)
+            self.mappings = yaml.safe_load(f)
 
     def _soql_for_mapping(self, mapping):
         sf_object = mapping["sf_object"]
@@ -96,26 +97,23 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if not mapping["oid_as_pk"]:
             fields.append("Id")
         fields += [field["sf"] for field in fields_for_mapping(mapping)]
-        soql = "SELECT {fields} FROM {sf_object}".format(
-            **{"fields": ", ".join(fields), "sf_object": sf_object}
-        )
+        field_list = ", ".join(fields)
+        soql = f"SELECT {field_list} FROM {sf_object}"
         if "record_type" in mapping:
-            soql += " WHERE RecordType.DeveloperName = '{}'".format(
-                mapping["record_type"]
-            )
+            soql += f" WHERE RecordType.DeveloperName = '{mapping['record_type']}'"
         return soql
 
     def _run_query(self, soql, mapping):
-        self.logger.info("Creating bulk job for: {sf_object}".format(**mapping))
+        self.logger.info(f"Creating bulk job for: {mapping['sf_object']}")
         job = self.bulk.create_query_job(mapping["sf_object"], contentType="CSV")
-        self.logger.info("Job id: {0}".format(job))
-        self.logger.info("Submitting query: {}".format(soql))
+        self.logger.info(f"Job id: {job}")
+        self.logger.info(f"Submitting query: {soql}")
         batch = self.bulk.query(job, soql)
-        self.logger.info("Batch id: {0}".format(batch))
+        self.logger.info(f"Batch id: {batch}")
         self.bulk.wait_for_batch(job, batch)
-        self.logger.info("Batch {0} finished".format(batch))
+        self.logger.info(f"Batch {batch} finished")
         self.bulk.close_job(job)
-        self.logger.info("Job {0} closed".format(job))
+        self.logger.info(f"Job {job} closed")
 
         conn = self.session.connection()
         for result_file in self._get_results(batch, job):
@@ -124,12 +122,12 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _get_results(self, batch_id, job_id):
         result_ids = self.bulk.get_query_batch_result_ids(batch_id, job_id=job_id)
         for result_id in result_ids:
-            self.logger.info("Result id: {}".format(result_id))
-            uri = "{}/job/{}/batch/{}/result/{}".format(
-                self.bulk.endpoint, job_id, batch_id, result_id
+            self.logger.info(f"Result id: {result_id}")
+            uri = (
+                f"{self.bulk.endpoint}/job/{job_id}/batch/{batch_id}/result/{result_id}"
             )
             with download_file(uri, self.bulk) as f:
-                self.logger.info("Result {} downloaded".format(result_id))
+                self.logger.info(f"Result {result_id} downloaded")
                 yield f
 
     def _import_results(self, mapping, result_file, conn):
@@ -178,6 +176,11 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     self._sql_bulk_insert_from_csv(
                         conn, mapping["sf_id_table"], ["sf_id"], data_file_ids
                     )
+
+        if "RecordTypeId" in mapping["fields"]:
+            self._extract_record_types(
+                mapping["sf_object"], mapping["record_type_table"], conn
+            )
 
         self.session.commit()
 
@@ -228,17 +231,24 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.metadata.create_all()
 
     def _create_table(self, mapping):
-        model_name = "{}Model".format(mapping["table"])
+        model_name = f"{mapping['table']}Model"
         mapper_kwargs = {}
         self.models[mapping["table"]] = type(model_name, (object,), {})
 
         t = create_table(mapping, self.metadata)
 
+        if "RecordTypeId" in mapping["fields"]:
+            # We're using Record Type Mapping support.
+            mapping["record_type_table"] = mapping["sf_object"] + "_rt_mapping"
+            # If multiple mappings point to the same table, don't recreate the table
+            if mapping["record_type_table"] not in self.models:
+                self._create_record_type_table(mapping["record_type_table"])
+
         if not mapping["oid_as_pk"]:
             mapping["sf_id_table"] = mapping["table"] + "_sf_id"
             # If multiple mappings point to the same table, don't recreate the table
             if mapping["sf_id_table"] not in self.models:
-                sf_id_model_name = "{}Model".format(mapping["sf_id_table"])
+                sf_id_model_name = f"{mapping['sf_id_table']}Model"
                 self.models[mapping["sf_id_table"]] = type(
                     sf_id_model_name, (object,), {}
                 )
@@ -259,8 +269,6 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _sqlite_dump(self):
         path = self.options["sql_path"]
-        if os.path.exists(path):
-            os.remove(path)
         with open(path, "w") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")

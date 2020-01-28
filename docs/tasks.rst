@@ -2,6 +2,18 @@
 Tasks Reference
 ==========================================
 
+activate_flow
+==========================================
+
+**Description:** Activates Flows identified by a given list of Developer Names
+
+**Class::** cumulusci.tasks.salesforce.activate_flow.ActivateFlow
+
+Options:
+------------------------------------------
+
+* **developer_names** *(required)*: List of DeveloperNames to query in SOQL
+
 batch_apex_wait
 ==========================================
 
@@ -22,6 +34,16 @@ command
 
 **Class::** cumulusci.tasks.command.Command
 
+**Example Command-line Usage::** cci task run command -o command "echo 'Hello command task!'"
+
+**Example Task to Run Command::**
+hello_world:
+    description: Says hello world
+    class_path: cumulusci.tasks.command.Command
+    options:
+    command: echo 'Hello World!'
+
+
 Options:
 ------------------------------------------
 
@@ -30,22 +52,6 @@ Options:
 * **env**: Environment variables to set for command. Must be flat dict, either as python dict from YAML or as JSON string.
 * **pass_env** *(required)*: If False, the current environment variables will not be passed to the child process. Defaults to True
 * **interactive**: If True, the command will use stderr, stdout, and stdin of the main process.Defaults to False.
-
-commit_apex_docs
-==========================================
-
-**Description:** commit local ApexDocs to GitHub branch
-
-**Class::** cumulusci.tasks.github.CommitApexDocs
-
-Options:
-------------------------------------------
-
-* **branch**: Branch name; default=project__apexdoc__branch
-* **dir_local**: Local dir of ApexDocs (contains index.html). default=repo_root/ApexDocumentation
-* **dir_repo**: Location relative to repo root. default=project__apexdoc__repo_dir
-* **dry_run**: Execute a dry run if True (default=False)
-* **commit_message**: Message for commit; default="Update Apex docs"
 
 connected_app
 ==========================================
@@ -81,7 +87,7 @@ Options:
 * **template** *(required)*: Name of the template for the community.
 * **name** *(required)*: Name of the community.
 * **description**: Description of the community.
-* **url_path_prefix** *(required)*: URL prefix for the community.
+* **url_path_prefix**: URL prefix for the community.
 * **timeout**: Time to wait, in seconds, for the community to be created
 
 create_package
@@ -138,6 +144,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -157,6 +166,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -176,6 +188,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -195,6 +210,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -251,6 +269,20 @@ Options:
 * **command** *(required)*: The full command to run with the sfdx cli. **Default: force:source:push**
 * **extra**: Append additional options to the command
 
+ensure_record_type
+==========================================
+
+**Description:** Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
+
+**Class::** cumulusci.tasks.salesforce.EnsureRecordTypes
+
+Options:
+------------------------------------------
+
+* **record_type_developer_name** *(required)*: The Developer Name of the Record Type (unique).  Must contain only alphanumeric characters and underscores. **Default: Default**
+* **record_type_label** *(required)*: The Label of the Record Type. **Default: Default**
+* **sobject** *(required)*: The sObject on which to deploy the Record Type and optional Business Process.
+
 execute_anon
 ==========================================
 
@@ -270,24 +302,32 @@ Options:
 * **apex**: A string of Apex to run (after the file, if specified).
 * **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
 * **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
+* **param1**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_1%%% in the Apex code.
+* **param2**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_2%%% in the Apex code.
 
-generate_apex_docs
+generate_data_dictionary
 ==========================================
 
-**Description:** Generate documentation for local code. Configure settings in cumulusci.yml/project/apexdoc - homepage, banner, branch, repo_dir
+**Description:** Create a data dictionary for the project in CSV format.
 
-**Class::** cumulusci.tasks.apexdoc.GenerateApexDocs
+**Class::** cumulusci.tasks.datadictionary.GenerateDataDictionary
+
+Generate a data dictionary for the project by walking all GitHub releases.
+The data dictionary is output as two CSV files.
+One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
+with one row per packaged object.
+The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
+Picklist Values (if any), Version Introduced.
+Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
+is processed for SFDX projects.
+
 
 Options:
 ------------------------------------------
 
-* **tag**: The tag to use for links back to the repo. If not provided, source_url arg to ApexDoc is omitted.
-* **source_directory**: The folder location which contains your apex .cls classes. default=<RepoRoot>/src/classes/
-* **out_dir**: The folder location where documentation will be generated to. Defaults to project config value project/apexdoc/dir if present, otherwise uses repo root.
-* **home_page**: The full path to an html file that contains the contents for the home page's content area. Defaults to project config value project/apexdoc/homepage if present, otherwise is not used.
-* **banner_page**: The full path to an html file that contains the content for the banner section of each generated page. Defaults to project config value project/apexdoc/banner if present, otherwise is not used.
-* **scope**: A semicolon separated list of scopes to document. Defaults to project config value project/apexdoc/scope if present, otherwise allows ApexDoc to use its default (global;public;webService).
-* **version**: Version of ApexDoc to use. Defaults to project config value project/apexdoc/version.
+* **object_path**: Path to a CSV file to contain an sObject-level data dictionary.
+* **field_path**: Path to a CSV file to contain an field-level data dictionary.
+* **release_prefix** *(required)*: The tag prefix used for releases. **Default: $project_config.project__git__prefix_release**
 
 get_installed_packages
 ==========================================
@@ -297,10 +337,42 @@ get_installed_packages
 **Class::** cumulusci.tasks.salesforce.GetInstalledPackages
 
 
+github_parent_pr_notes
+==========================================
+
+**Description:** Merges the description of a child pull request to the respective parent's pull request (if one exists).
+
+**Class::** cumulusci.tasks.release_notes.task.ParentPullRequestNotes
+
+Aggregate change notes from child pull request(s) to its corresponding
+parent's pull request.
+
+When given the branch_name option, this task will: (1) check if the base branch
+of the corresponding pull request starts with the feature branch prefix and if so (2) attempt
+to query for a pull request corresponding to this parent feature branch. (3) if a pull request
+isn't found, the task exits and no actions are taken.
+
+If the build_notes_label is present on the pull request, then all notes from the
+child pull request are aggregated into the parent pull request. if the build_notes_label
+is not detected on the parent pull request then a link to the child pull request
+is placed under the "Unaggregated Pull Requests" header.
+
+When given the parent_branch_name option, this task will query for a corresponding pull request.
+If a pull request is not found, the task exits. If a pull request is found, then all notes
+from child pull requests are re-aggregated and the body of the parent is replaced entirely.
+
+
+Options:
+------------------------------------------
+
+* **branch_name** *(required)*: Name of branch to check for parent status, and if so, reaggregate change notes from child branches.
+* **build_notes_label** *(required)*: Name of the label that indicates that change notes on parent pull requests should be reaggregated when a child branch pull request is created.
+* **force**: force rebuilding of change notes from child branches in the given branch.
+
 github_clone_tag
 ==========================================
 
-**Description:** Lists open pull requests in project Github repository
+**Description:** Clones a github tag under a new name.
 
 **Class::** cumulusci.tasks.github.CloneTag
 
@@ -377,6 +449,7 @@ Options:
 * **last_tag**: Override the last release tag. This is useful to generate release notes if you skipped one or more releases.
 * **link_pr**: If True, insert link to source pull request at end of each line.
 * **publish**: Publish to GitHub release if True (default=False)
+* **include_empty**: If True, include links to PRs that have no release notes (default=False)
 
 github_release_report
 ==========================================
@@ -431,6 +504,28 @@ Options:
 * **retry_interval**: Number of seconds to wait before the next retry (default=5),
 * **retry_interval_add**: Number of seconds to add before each retry (default=30),
 
+list_communities
+==========================================
+
+**Description:** Lists Communities for the current org using the Connect API.
+
+**Class::** cumulusci.tasks.salesforce.ListCommunities
+
+Lists Communities for the current org via the Connect API.
+
+
+
+list_community_templates
+==========================================
+
+**Description:** Prints the Community Templates available to the current org
+
+**Class::** cumulusci.tasks.salesforce.ListCommunityTemplates
+
+Lists Salesforce Community templates available for the current org via the Connect API.
+
+
+
 list_metadata_types
 ==========================================
 
@@ -468,18 +563,6 @@ Options:
 
 * **dir**: Base directory to search for ``*-meta.xml`` files
 
-mrbelvedere_publish
-==========================================
-
-**Description:** Publishes a release to the mrbelvedere web installer
-
-**Class::** cumulusci.tasks.mrbelvedere.MrbelvederePublish
-
-Options:
-------------------------------------------
-
-* **tag** *(required)*: The tag to publish to mrbelvedere
-
 metadeploy_publish
 ==========================================
 
@@ -490,9 +573,40 @@ metadeploy_publish
 Options:
 ------------------------------------------
 
-* **tag** *(required)*: Name of the git tag to publish
+* **tag**: Name of the git tag to publish
+* **commit**: Commit hash to publish
 * **plan**: Name of the plan(s) to publish. This refers to the `plans` section of cumulusci.yml. By default, all plans will be published.
 * **dry_run**: If True, print steps without publishing.
+* **publish**: If True, set is_listed to True on the version. Default: False
+
+org_settings
+==========================================
+
+**Description:** Apply org settings from a scratch org definition file
+
+**Class::** cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
+
+Options:
+------------------------------------------
+
+* **definition_file**: sfdx scratch org definition file
+* **api_version**: API version used to deploy the settings
+
+publish_community
+==========================================
+
+**Description:** Publishes a Community in the target org using the Connect API
+
+**Class::** cumulusci.tasks.salesforce.PublishCommunity
+
+Publish a Salesforce Community via the Connect API. Warning: This does not work with the Community Template 'VF Template' due to an existing bug in the API.
+
+
+Options:
+------------------------------------------
+
+* **name**: The name of the Community to publish.
+* **community_id**: The id of the Community to publish.
 
 push_all
 ==========================================
@@ -669,7 +783,8 @@ list_changes
 Options:
 ------------------------------------------
 
-* **include**: Include changed components matching this string.
+* **include**: A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
+* **types**: A comma-separated list of metadata types to include.
 * **exclude**: Exclude changed components matching this string.
 * **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
 
@@ -683,10 +798,11 @@ retrieve_changes
 Options:
 ------------------------------------------
 
-* **include**: Include changed components matching this string.
+* **include**: A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
+* **types**: A comma-separated list of metadata types to include.
 * **exclude**: Exclude changed components matching this string.
 * **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
-* **path** *(required)*: The path to write the retrieved metadata **Default: src**
+* **path**: The path to write the retrieved metadata
 * **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
@@ -700,10 +816,11 @@ retrieve_qa_config
 Options:
 ------------------------------------------
 
-* **include**: Include changed components matching this string.
+* **include**: A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
+* **types**: A comma-separated list of metadata types to include.
 * **exclude**: Exclude changed components matching this string.
 * **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
-* **path** *(required)*: The path to write the retrieved metadata **Default: unpackaged/config/qa**
+* **path**: The path to write the retrieved metadata **Default: unpackaged/config/qa**
 * **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject **Default: $project_config.project__package__namespace**
 
@@ -751,7 +868,7 @@ robot
 Options:
 ------------------------------------------
 
-* **suites** *(required)*: Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory **Default: cumulusci/robotframework/tests**
+* **suites** *(required)*: Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory **Default: tests**
 * **test**: Run only tests matching name patterns.  Can be comma separated and use robot wildcards like *
 * **include**: Includes tests with a given tag
 * **exclude**: Excludes tests with a given tag
@@ -761,20 +878,21 @@ Options:
 * **name**: Sets the name of the top level test suite
 * **pdb**: If true, run the Python debugger when tests fail.
 * **verbose**: If true, log each keyword as it runs.
+* **debug**: If true, enable the `breakpoint` keyword to enable the robot debugger
 
 robot_libdoc
 ==========================================
 
-**Description:** Generates html documentation for the Salesorce and CumulusCI libraries and resource files
+**Description:** Generates documentation for project keyword files
 
 **Class::** cumulusci.tasks.robotframework.RobotLibDoc
 
 Options:
 ------------------------------------------
 
-* **path** *(required)*: The path to the robot library to be documented.  Can be single a python file or a .robot file, or a comma separated list of those files. The order of the files will be preserved in the generated documentation. **Default: ['cumulusci.robotframework.CumulusCI', 'cumulusci.robotframework.PageObjects', 'cumulusci.robotframework.Salesforce', 'cumulusci/robotframework/Salesforce.robot']**
-* **output** *(required)*: The output file where the documentation will be written **Default: docs/robot/Keywords.html**
-* **title**: A string to use as the title of the generated output **Default: CumulusCI Robot Framework Keywords**
+* **path** *(required)*: The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: robot/SAL/doc/*PageObject.py). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted
+* **output** *(required)*: The output file where the documentation will be written **Default: Keywords.html**
+* **title**: A string to use as the title of the generated output **Default: $project_config.project__package__name**
 
 robot_lint
 ==========================================
@@ -812,7 +930,7 @@ LineTooLong:80'. If a rule is configurable, it will show the
 configuration options in the documentation for that rule
 
 The filename will be printed once before any errors or warnings
-for that file. The filename is preceeded by `+ `
+for that file. The filename is preceeded by `+`
 
 Example Output::
 
@@ -834,7 +952,7 @@ Options:
 * **error**: List of rules to treat as errors. Use 'all' to affect all rules.
 * **warning**: List of rules to treat as warnings. Use 'all' to affect all rules.
 * **list**: If option is True, print a list of known rules instead of processing files.
-* **path**: The path to one or more files or folders. If the path includes wildcard characters, they will be expanded. If not provided, the default will be to process all files under robot/<project name> **Default: ['cumulusci/robotframework']**
+* **path**: The path to one or more files or folders. If the path includes wildcard characters, they will be expanded. If not provided, the default will be to process all files under robot/<project name>
 
 robot_testdoc
 ==========================================
@@ -846,8 +964,8 @@ robot_testdoc
 Options:
 ------------------------------------------
 
-* **path** *(required)*: The path containing .robot test files **Default: cumulusci/robotframework/tests**
-* **output** *(required)*: The output html file where the documentation will be written **Default: docs/robot/Test_Suite.html**
+* **path** *(required)*: The path containing .robot test files **Default: tests**
+* **output** *(required)*: The output html file where the documentation will be written **Default: tests/test_suites.html**
 
 run_tests
 ==========================================
@@ -863,12 +981,11 @@ Options:
 * **test_name_exclude**: Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude
 * **namespace**: Salesforce project namespace.  Defaults to project__package__namespace
 * **managed**: If True, search for tests in the namespace only.  Defaults to False
-* **poll_interval**: Seconds to wait between polling for Apex test results.  Defaults to 3
-* **retries**: Number of retries (default=10)
-* **retry_interval**: Number of seconds to wait before the next retry (default=5),
-* **retry_interval_add**: Number of seconds to add before each retry (default=5),
+* **poll_interval**: Seconds to wait between polling for Apex test results.
 * **junit_output**: File name for JUnit output.  Defaults to test_results.xml
 * **json_output**: File name for json output.  Defaults to test_results.json
+* **retry_failures**: A list of regular expression patterns to match against test failures. If failures match, the failing tests are retried in serial mode.
+* **retry_always**: By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
 
 uninstall_managed
 ==========================================
@@ -926,6 +1043,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -946,6 +1066,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -1109,22 +1232,23 @@ This task will examine the schema in the specified org and attempt to infer a
 mapping suitable for extracting data in packaged and custom objects as well as
 customized standard objects.
 
-Mappings cannot include reference cycles - situations where Object A refers to B,
-and B also refers to A. Mapping generation will fail for such data models; to
-resolve the issue, specify the `ignore` option with the name of one of the
-involved lookup fields to suppress it. `ignore` can be specified as a list in
+Mappings must be serializable, and hence must resolve reference cycles - situations
+where Object A refers to B, and B also refers to A. Mapping generation will stop
+and request user input to resolve such cycles by identifying the correct load order.
+Alternately, specify the `ignore` option with the name of one of the
+lookup fields to suppress it and break the cycle. `ignore` can be specified as a list in
 `cumulusci.yml` or as a comma-separated string at the command line.
 
 In most cases, the mapping generated will need minor tweaking by the user. Note
 that the mapping omits features that are not currently well supported by the
-`extract_dataset` and `load_dataset` tasks, including self-lookups and references to
+`extract_dataset` and `load_dataset` tasks, such as references to
 the `User` object.
 
 
 Options:
 ------------------------------------------
 
-* **path** *(required)*: Location to write the mapping file **Default: datasets/generated_mapping.yml**
+* **path** *(required)*: Location to write the mapping file **Default: datasets/mapping.yml**
 * **namespace_prefix**: The namespace prefix to use **Default: $project_config.project__package__namespace**
 * **ignore**: Object API names, or fields in Object.Field format, to ignore
 
@@ -1138,9 +1262,9 @@ extract_dataset
 Options:
 ------------------------------------------
 
-* **database_url** *(required)*: A DATABASE_URL where the query output should be written **Default: sqlite:///datasets/sample.db**
+* **database_url**: A DATABASE_URL where the query output should be written
 * **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields **Default: datasets/mapping.yml**
-* **sql_path**: If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs.
+* **sql_path**: If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs. **Default: datasets/sample.sql**
 
 load_dataset
 ==========================================
@@ -1152,9 +1276,69 @@ load_dataset
 Options:
 ------------------------------------------
 
-* **database_url** *(required)*: The database url to a database containing the test data to load **Default: sqlite:///datasets/sample.db**
+* **database_url**: The database url to a database containing the test data to load
 * **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields **Default: datasets/mapping.yml**
 * **start_step**: If specified, skip steps before this one in the mapping
-* **sql_path**: If specified, a database will be created from an SQL script at the provided path
+* **sql_path**: If specified, a database will be created from an SQL script at the provided path **Default: datasets/sample.sql**
 * **ignore_row_errors**: If True, allow the load to continue even if individual rows fail to load.
+* **reset_oids**: If True (the default), and the _sf_ids tables exist, reset them before continuing.
+* **bulk_mode**: Set to Serial to force serial mode on all jobs. Parallel is the default.
 
+load_custom_settings
+==========================================
+
+**Description:** Load Custom Settings specified in a YAML file to the target org
+
+**Class::** cumulusci.tasks.salesforce.LoadCustomSettings
+
+Options:
+------------------------------------------
+
+* **settings_path** *(required)*: The path to a YAML settings file
+
+remove_metadata_xml_elements
+==========================================
+
+**Description:** Remove specified XML elements from one or more metadata files
+
+**Class::** cumulusci.tasks.metadata.modify.RemoveElementsXPath
+
+Options:
+------------------------------------------
+
+* **xpath**: An XPath specification of elements to remove. Supports the re: regexp function namespace. As in re:match(text(), '.*__c')Use ns: to refer to the Salesforce namespace for metadata elements.for example: ./ns:Layout/ns:relatedLists (one-level) or //ns:relatedLists (recursive)Many advanced examples are available here: https://github.com/SalesforceFoundation/NPSP/blob/26b585409720e2004f5b7785a56e57498796619f/cumulusci.yml#L342
+* **path**: A path to the files to change. Supports wildcards including ** for directory recursion. More info on the details: https://www.poftut.com/python-glob-function-to-match-path-directory-file-names-with-examples/ https://www.tutorialspoint.com/How-to-use-Glob-function-to-find-files-recursively-in-Python 
+* **elements**: A list of dictionaries containing path and xpath keys. Multiple dictionaries can be passed in the list to run multiple removal queries in the same task. This parameter is intended for usages invoked as part of a cumulusci.yml .
+* **chdir**: Change the current directory before running the replace
+
+disable_tdtm_trigger_handlers
+==========================================
+
+**Description:** Disable specified TDTM trigger handlers
+
+**Class::** cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+
+Options:
+------------------------------------------
+
+* **handlers**: List of Trigger Handlers (by Class, Object, or 'Class:Object') to affect (defaults to all handlers).
+* **namespace**: The namespace of the Trigger Handler object ('eda' or 'npsp'). The task will apply the namespace if needed.
+* **active**: True or False to activate or deactivate trigger handlers.
+* **restore_file**: Path to the state file to store the current trigger handler state. **Default: trigger_status.yml**
+* **restore**: If True, restore the state of Trigger Handlers to that stored in the restore file.
+
+restore_tdtm_trigger_handlers
+==========================================
+
+**Description:** Restore status of TDTM trigger handlers
+
+**Class::** cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+
+Options:
+------------------------------------------
+
+* **handlers**: List of Trigger Handlers (by Class, Object, or 'Class:Object') to affect (defaults to all handlers).
+* **namespace**: The namespace of the Trigger Handler object ('eda' or 'npsp'). The task will apply the namespace if needed.
+* **active**: True or False to activate or deactivate trigger handlers.
+* **restore_file**: Path to the state file to store the current trigger handler state. **Default: trigger_status.yml**
+* **restore**: If True, restore the state of Trigger Handlers to that stored in the restore file. **Default: True**

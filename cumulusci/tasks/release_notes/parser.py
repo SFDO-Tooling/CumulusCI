@@ -1,4 +1,3 @@
-from builtins import str
 import re
 
 import github3.exceptions
@@ -33,8 +32,15 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
 
     def parse(self, change_note):
         """Returns True if a line was added to self._add_line was called, False otherwise"""
+        if not self.title:
+            self._in_section = True
+
         line_added = False
         change_note = self._process_change_note(change_note)
+
+        if not change_note:
+            return False
+
         for line in change_note.splitlines():
             line = self._process_line(line)
 
@@ -62,7 +68,8 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
                     continue
 
                 self._add_line(line)
-                line_added = True
+                if self.title:
+                    line_added = True
 
         self._in_section = False
         return line_added
@@ -246,7 +253,11 @@ class GithubIssuesParser(IssuesParser):
         # Ensure all issues have a comment on which release they were fixed
         prefix_beta = self.release_notes_generator.github_info["prefix_beta"]
         prefix_prod = self.release_notes_generator.github_info["prefix_prod"]
-        if self.release_notes_generator.current_tag.startswith(prefix_beta):
+
+        # ParentPullRequestNotesGenerator doesn't utilize a current_tag
+        if not hasattr(self.release_notes_generator, "current_tag"):
+            return
+        elif self.release_notes_generator.current_tag.startswith(prefix_beta):
             is_beta = True
         elif self.release_notes_generator.current_tag.startswith(prefix_prod):
             is_beta = False

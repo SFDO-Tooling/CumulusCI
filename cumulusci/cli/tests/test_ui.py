@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 
-import mock
+from unittest import mock
 import pytest
 from cumulusci.cli.ui import CHECKMARK, CliTable
 
@@ -47,8 +47,7 @@ def pretty_output_win():
 ├───────────┼──────────────────────────────────────────────────────┼────────────┤
 │ saucelabs │ Configure connection for saucelabs tasks.            │ False      │
 │ sentry    │ Configure connection to sentry.io for error tracking │ False      │
-└───────────┴──────────────────────────────────────────────────────┴────────────┘
-""",
+└───────────┴──────────────────────────────────────────────────────┴────────────┘""",
         "org_list": u"""
 ┌─────────┬─────────┬─────────┬──────┬─────────┬─────────┬───────────────────────────────┐
 │ Org     │ Default │ Scratch │ Days │ Expired │ Config  │ Username                      │
@@ -106,7 +105,10 @@ def plain_output():
 @pytest.mark.parametrize("fixture_key", ["service_list", "org_list", "task_list_util"])
 def test_table_pretty_output(sample_data, pretty_output, fixture_key):
     instance = CliTable(sample_data[fixture_key])
-    assert pretty_output[fixture_key] == instance.table.table
+    instance.INNER_BORDER = False
+    table = instance.pretty_table()
+    expected = pretty_output[fixture_key] + "\n"
+    assert expected == table
 
 
 @pytest.mark.skipif(
@@ -116,16 +118,18 @@ def test_table_pretty_output(sample_data, pretty_output, fixture_key):
 @pytest.mark.parametrize("fixture_key", ["service_list"])
 def test_table_pretty_output_windows(sample_data, pretty_output_win, fixture_key):
     instance = CliTable(sample_data[fixture_key])
-    assert pretty_output_win[fixture_key].strip() == instance.table.table
+    instance.INNER_BORDER = False
+    table = instance.pretty_table().strip()
+    expected = pretty_output_win[fixture_key].strip()
+    assert expected == table
 
 
 @pytest.mark.parametrize("fixture_key", ["service_list", "org_list", "task_list_util"])
 def test_table_plain_output(sample_data, plain_output, fixture_key, capsys):
     instance = CliTable(sample_data[fixture_key])
-    instance.ascii_table()
-    captured = capsys.readouterr()
-    expected = plain_output[fixture_key] + "\n\n"
-    assert expected == captured.out
+    table = instance.ascii_table()
+    expected = plain_output[fixture_key].strip()
+    assert expected == table
 
 
 @pytest.mark.skipif(
@@ -139,7 +143,7 @@ def test_table_pretty_echo(sample_data, pretty_output, fixture_key, capsys):
     instance.echo(plain=False)
 
     captured = capsys.readouterr()
-    expected = pretty_output[fixture_key] + "\n\n\n"
+    expected = pretty_output[fixture_key] + "\n\n"
     assert expected == captured.out
 
 
@@ -148,7 +152,7 @@ def test_table_plain_echo(sample_data, plain_output, fixture_key, capsys):
     instance = CliTable(sample_data[fixture_key])
     instance.echo(plain=True)
     captured = capsys.readouterr()
-    expected = plain_output[fixture_key] + "\n\n"
+    expected = plain_output[fixture_key]
     assert expected == captured.out
 
 
@@ -161,7 +165,7 @@ def test_table_plain_fallback(sample_data, plain_output, capsys):
         instance.echo(plain=False)
         captured = capsys.readouterr()
         # append newlines because echo adds them to account for task tables
-        assert plain_output["service_list"] + "\n\n" == captured.out
+        assert plain_output["service_list"] == captured.out
 
 
 @pytest.mark.skipif(
@@ -174,7 +178,7 @@ def test_table_dim_rows(sample_data):
     assert all(
         (
             cell.startswith("\x1b[2m") and cell.endswith("\x1b[0m")
-            for cell in instance.table.table_data[1]
+            for cell in instance._table.table_data[1]
         )
     )
 
@@ -183,8 +187,8 @@ def test_table_stringify_booleans(sample_data):
     data = sample_data["service_list"]
     data[1][2] = True
     instance = CliTable(data, bool_cols=["Configured"])
-    assert CHECKMARK in instance.table.table_data[1]
-    assert CliTable.PICTOGRAM_FALSE in instance.table.table_data[2]
+    assert CHECKMARK in instance._table.table_data[1]
+    assert CliTable.PICTOGRAM_FALSE in instance._table.table_data[2]
 
 
 @mock.patch("terminaltables.SingleTable.column_max_width")
@@ -194,4 +198,4 @@ def test_table_wrap_cols(max_width, sample_data):
     data = sample_data["service_list"]
     data[1][1] = data[1][1] + "a" * 256
     instance = CliTable(data, wrap_cols=["Description"])
-    assert all((len(line) for line in instance.table.table_data[1][1].split("\n")))
+    assert all((len(line) for line in instance._table.table_data[1][1].split("\n")))

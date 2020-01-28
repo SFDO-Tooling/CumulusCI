@@ -1,5 +1,6 @@
+from random import randint, choice
+from string import digits, ascii_lowercase
 from datetime import datetime
-
 from cumulusci.tests.util import random_sha
 
 date_format = "%Y-%m-%dT%H:%M:%SZ"
@@ -190,6 +191,14 @@ class GithubApiTestMixin(object):
             "url": "",
         }
 
+    def _get_expected_ref(self, ref, sha, type="commit"):
+        return {
+            "ref": f"refs/{ref}",
+            "object": {"type": "commit", "sha": sha, "url": ""},
+            "name": ref,
+            "url": "",
+        }
+
     def _get_expected_repo_tag(self, tag, sha):
         return {
             "name": tag,
@@ -197,11 +206,6 @@ class GithubApiTestMixin(object):
             "tarball_url": "",
             "zipball_url": "",
         }
-
-    def _get_expected_pulls(self, pulls=None):
-        if not pulls:
-            pulls = []
-        return pulls
 
     def _get_expected_branches(self, branches=None):
         if not branches:
@@ -361,7 +365,10 @@ class GithubApiTestMixin(object):
         pr.update(kw)
         return pr
 
-    def _get_expected_issue(self, issue_number, owner=None, repo=None):
+    def _get_expected_pull_requests(self, num_pull_requests):
+        return [self._get_expected_pull_request(i, i) for i in range(num_pull_requests)]
+
+    def _get_expected_issue(self, issue_number, owner=None, repo=None, labels=None):
         if owner is None:
             owner = "TestOwner"
         if repo is None:
@@ -383,7 +390,7 @@ class GithubApiTestMixin(object):
                 owner, repo, issue_number
             ),
             "id": issue_number,
-            "labels": [],
+            "labels": labels or [],
             "labels_url": "",
             "locked": False,
             "milestone": None,
@@ -446,3 +453,107 @@ class GithubApiTestMixin(object):
             "message": "Not Found",
             "documentation_url": "https://developer.github.com/v3",
         }
+
+    def _get_expected_label(self, name=None, desc=None):
+        return {
+            "id": randint(100000000, 999999999),
+            "node_id": "MDU6TGFiZWwyMDgwNDU5NDY=",
+            "url": "https://api.github.com/repos/octocat/Hello-World/labels/bug",
+            "name": name or "Test Label",
+            "description": desc or "Test label description.",
+            "color": "f29513",
+            "default": False,
+        }
+
+    def _get_expected_labels(self, labels):
+        return [self._get_expected_label(name=label) for label in labels]
+
+    def _get_expected_gist(self, description, files, public=False):
+        """Gist creationg returns 201 on success"""
+        gh_id = self.create_id(20)
+
+        gist_files = {}
+        for filename, content in files.items():
+            gist_files[filename] = {
+                "filename": filename,
+                "type": "text/plain",
+                "language": "text",
+                "raw_url": f"https://gist.githubusercontent.com/octocat/{gh_id}/raw/99c1bf3a345505c2e6195198d5f8c36267de570b/hello_world.py",
+                "size": 199,
+                "truncated": False,
+                "content": content,
+            }
+
+        expected_gist = {
+            "url": f"https://api.github.com/gists/{gh_id}",
+            "forks_url": f"https://api.github.com/gists/{gh_id}/forks",
+            "commits_url": f"https://api.github.com/gists/{gh_id}/commits",
+            "id": gh_id,
+            "node_id": "MDQ6R2lzdGFhNWEzMTVkNjFhZTk0MzhiMThk",
+            "git_pull_url": f"https://gist.github.com/{gh_id}.git",
+            "git_push_url": f"https://gist.github.com/{gh_id}.git",
+            "html_url": f"https://gist.github.com/{gh_id}",
+            "files": gist_files,
+            "public": public,
+            "created_at": "2010-04-14T02:15:15Z",
+            "updated_at": "2011-06-20T11:34:15Z",
+            "description": "Hello World Examples",
+            "comments": 0,
+            "user": None,
+            "comments_url": f"https://api.github.com/gists/{gh_id}/comments/",
+            "owner": {
+                "login": "octocat",
+                "id": 1,
+                "node_id": "MDQ6VXNlcjE=",
+                "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+                "gravatar_id": "",
+                "url": "https://api.github.com/users/octocat",
+                "html_url": "https://github.com/octocat",
+                "followers_url": "https://api.github.com/users/octocat/followers",
+                "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+                "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+                "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+                "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+                "organizations_url": "https://api.github.com/users/octocat/orgs",
+                "repos_url": "https://api.github.com/users/octocat/repos",
+                "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+                "received_events_url": "https://api.github.com/users/octocat/received_events",
+                "type": "User",
+                "site_admin": False,
+            },
+            "truncated": False,
+            "forks": [],
+            "history": [
+                {
+                    "url": "https://api.github.com/gists/aa5a315d61ae9438b18d/57a7f021a713b1c5a6a199b54cc514735d2d462f",
+                    "version": "57a7f021a713b1c5a6a199b54cc514735d2d462f",
+                    "user": {
+                        "login": "octocat",
+                        "id": 1,
+                        "node_id": "MDQ6VXNlcjE=",
+                        "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+                        "gravatar_id": "",
+                        "url": "https://api.github.com/users/octocat",
+                        "html_url": "https://github.com/octocat",
+                        "followers_url": "https://api.github.com/users/octocat/followers",
+                        "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+                        "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+                        "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+                        "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+                        "organizations_url": "https://api.github.com/users/octocat/orgs",
+                        "repos_url": "https://api.github.com/users/octocat/repos",
+                        "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+                        "received_events_url": "https://api.github.com/users/octocat/received_events",
+                        "type": "User",
+                        "site_admin": False,
+                    },
+                    "change_status": {"deletions": 0, "additions": 180, "total": 180},
+                    "committed_at": "2010-04-14T02:15:15Z",
+                }
+            ],
+        }
+        return expected_gist
+
+    def create_id(self, length):
+        characters = [*digits, *ascii_lowercase]
+        return "".join([choice(characters) for i in range(length)])

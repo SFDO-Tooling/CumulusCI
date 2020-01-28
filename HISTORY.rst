@@ -2,6 +2,352 @@
 History
 =======
 
+3.5.3 (2020-01-23)
+------------------
+* Added new features for running Python code (in a file or string) without brining up an interactive shell. You can now use `--python` and `--script` arguments for the `cci shell` and `cci org shell` commands.
+* Added support for up to two optional parameters in Apex anonymous via token substitution.
+* The `EnsureRecordTypes` class is now exposed as `ensure_record_types` and correctly supports the Case, Lead, and Solution sObjects (in addition to other standard objects).
+* Fixed a bug where the github_parent_pr_notes was attempting to post comments on issues related to child pull request change notes.
+* Fixed various Robot keyword issues that have been reported for Spring '20.
+
+
+3.5.2 (2020-01-21)
+------------------
+
+Issues closed:
+
+* Fixed an issue where errors running the `cci gist` command prompt the user to use the `cci gist` command.
+
+* Removed reference to `os.uname()` so that `cci gist` works on Windows.
+
+* Fixed an issue where the `dx_pull` task causes an infinite loop to occur on Windows.
+
+3.5.1 (2020-01-15)
+------------------
+
+Issues closed:
+
+* Fixed an issue that was preventing newlines in output.
+
+* Don't show the prompt to create a gist if the user aborts the process.
+
+* Avoid errors that can happen when trying to store the CumulusCI encryption key in the system keychain using Python's keyring library, which can fail on some systems such as CI systems:
+
+  * We fixed a regression that caused CumulusCI to try to load the keychain even for commands where it's not used.
+  * We fixed a bug that caused CumulusCI to try to load the keychain key even when using an unencrypted keychain such as the EnvironmentProjectKeychain.
+
+* Adjusted some keywords in the Salesforce library for Robot Framework to handle changes in the Spring '20 release.
+
+3.5.0 (2020-01-15)
+------------------
+
+Changes:
+
+* The ``load_dataset`` task now accepts a ``bulk_mode`` option which can be set to ``Serial`` to load batches serially instead of in parallel.
+
+* CumulusCI now stores the logs from the last five executions under ``~/.cumulusci/logs``
+
+* CumulusCI has a new top-level command: ``cci gist``. This command creates a secret GitHub gist which includes: The user's current CumulusCI version, current Python version, path to python binary, sysname (e.g. Darwin), machine (e.g. x86_64), and the most recent CumulusCI logfile (``~/.cumulusci/logs/cci.log``). The command outputs a link to the created gist and opens a browser tab with the new GitHub gist. This can be helpful for sharing information regarding errors and issues encountered when working with cci. This feature uses a users GitHub access token for creation of gists. If your access token does not have the 'gist (Create gists)' scope this command will result in a 404 error. For more info see: https://cumulusci.readthedocs.io/en/latest/features.html#reporting-error-logs
+
+*  Changed ``UpdateAdminProfile`` so that it only deploys the modified Admin profile. While it is necessary to retrieve profiles along their associated metadata objects, we don't need to do that for deployments.
+
+* Added options to the `deploy` task: ``check_only``, ``test_level``, and ``specified_tests``. Run ``cci task info deploy`` for details. (#1066)
+
+3.4.0 (2020-01-09)
+------------------
+
+Changes:
+
+* Added ``activate_flow`` task which can be used to activate Flows and Process Builder processes.
+
+* Added two tasks, ``disable_tdtm_trigger_handlers`` and ``restore_tdtm_trigger_handlers``, which can be used to disable trigger handlers for the table-driven trigger management feature of NPSP and EDA.
+
+* In the ``load_dataset`` task, added a way to avoid resetting the Salesforce Id mapping tables by setting the ``reset_oids`` option to False. This can be useful when running the task multiple times with the same org.
+
+* Added support for a few new metadata types from API versions 47 and 48 in the ``update_package_xml`` task.
+
+* Added a way for Robot Framework libraries to register custom locators for use by the selenium library.
+
+Issues closed:
+
+* Fixed a bug with freezing the ``load_data`` task for MetaDeploy where it would use an invalid option for ``database_url``.
+
+* Fixed a bug in the ``github_release_notes`` task when processing a pull request with no description. (#1444)
+
+* Fixed inaccurate instructions shown at the end of ``cci project init``.
+
+3.3.0 (2019-12-27)
+------------------
+
+Breaking changes:
+
+* Removed tasks which are no longer in use: ``mrbelvedere_publish``, ``generate_apex_docs``, and ``commit_apex_docs``.
+
+Changes:
+
+* Updated Robot Framework Salesforce library to support the Spring '20 release.
+
+* Added ``remove_metadata_xml_elements`` task which can be used to remove specified XML elements from metadata files.
+
+* Updated references to the NPSP repository to use its new name instead of Cumulus.
+
+Issues closed:
+
+* Fixed the error message shown when a task config has a bad ``class_path``.
+
+* Fixed a warning when running the command task in Python 3.8.
+
+* When the CumulusCI Robot Framework library calls Salesforce APIs, it will now automatically retry when it is safe to do so. It will also avoid reusing old connections that might have been closed.
+
+* Fixed the ``-o debug True`` option for the ``robot`` task.
+
+3.2.0 (2019-12-11)
+------------------
+
+Breaking changes:
+
+* We upgraded the SeleniumLibrary for Robot Framework from version 3.3.1 to version 4.1.0. This includes the removal of some deprecated keywords. See the `SeleniumLibrary releases <https://github.com/robotframework/SeleniumLibrary/releases>`_ for links to detailed release notes.
+
+Changes:
+
+* The ``Persistent Orgs`` table shown by ``cci org list`` has been renamed to ``Connected Orgs`` since scratch orgs will be shown here if they were connected using ``cci org connect`` instead of created via the Salesforce CLI. This table now shows the org's expiration date, if known.
+
+* Improvements to the ``retrieve_changes`` task:
+
+  * The task now retrieves only the components that actually changed, not all components listed in ``package.xml`` in the target directory.
+
+  * Changes can now be retrieved into folders in DX source format.  The target directory defaults to ``src`` if the project is using ``mdapi`` format or the default entry in ``packageDirectories`` in ``sfdx-project.json`` if the project is using ``sfdx`` format. (Namespace tokenization is not supported in DX format, since there isn't currently a way to deploy DX format source including namespace tokens.)
+
+* Added a task, ``load_custom_settings``, to upload Custom Settings defined in YAML into a target org. See https://cumulusci.readthedocs.io/en/latest/bulk_data.html#custom-settings for more info.
+
+Issues closed:
+
+* Fixed an issue with how the package upload task logs Apex test failures to make sure they show up in MetaCI.
+
+* Fixed ``KeyError: createdDate`` error when trying to get scratch org info.
+
+* A rare issue where CumulusCI could fail to load the symbol table for a failed Apex test class is now caught and reported.
+
+* CumulusCI now displays the underlying error if it encounters a problem with storing its encryption key in the system keychain.
+
+
+3.1.2 (2019-11-20)
+------------------
+
+Breaking changes:
+
+* We changed the default path for the mapping file created by the ``generate_dataset_mapping`` task to ``datasets/mapping.yml`` so that it matches the defaults for ``extract_dataset`` and ``load_dataset``
+
+* We changed the ``extract_dataset`` and ``load_dataset`` tasks to default to storing data in an SQL file, ``datasets/sample.sql``, instead of a binary SQLite database file.
+
+Changes:
+
+* ``run_tests`` can now detect and optionally retry two classes of concurrency issues with Apex unit tests. ``run_tests`` should always report an accurate total of test methods run, in parallel or serial mode.
+
+* Added the task ``generate_data_dictionary``. This task indexes the fields and objects created in each GitHub release for the project and generates a data dictionary in CSV format.
+
+* Added a ``devhub`` service. This can be used to switch a project to a non-default sfdx Dev Hub using ``cci service connect devhub --project``
+
+* Added a predefined ``qa`` scratch org. It uses the same scratch org definition file as the ``dev`` org, but makes it easier to spin up a second org for QA purposes without needing to first create it using ``cci org scratch``.
+
+* The ``database_url`` option for the ``extract_dataset`` and ``load_dataset`` tasks is no longer required. Either ``database_url`` or ``sql_path`` must be specified. If both are specified, the ``sql_path`` will be ignored.
+
+* Developers can now directly execute CumulusCI from the Python command line using ``python -m cumulusci`` or ``python cumulusci/__main__.py``
+
+Issues closed:
+
+* A problem with how ``run_tests`` performed Apex test retries when ``retry_always`` is set to True has been corrected.
+
+
+3.1.1 (2019-11-13)
+------------------
+
+New features:
+
+* After connecting an org with ``cci org connect``, the browser now shows the message
+  "Congratulations! Your authentication succeeded." instead of "OK"
+* External GitHub sources can now specify ``release: latest``, ``release: latest_beta``,
+  or ``release: previous`` instead of a commit, branch, or tag.
+* The ``execute_anon`` task has been revised to detect when a gack occurred during execution.
+
+Issues closed:
+
+* When importing a scratch org from sfdx using ``cci org import``, the org's ``days``
+  is now set correctly from the org's actual expiration date. (#1101)
+* The package API version from ``cumulusci.yml`` is now validated to make sure
+  it's in the "XX.0" format expected by the API. (#1134)
+* Fixed an error deploying new setting objects using the ``org_settings`` task in Winter '20.
+* Fixed a bug in processing preflight check tasks for MetaDeploy.
+* Fixed path handling in the ``update_admin_profile`` task when run in a cross-project flow.
+
+
+3.1.0 (2019-11-01)
+------------------
+
+Breaking changes:
+
+* The ``metadeploy_publish`` task now requires setting ``-o publish True``
+  in order to automatically set the Version's is_listed flag to True.
+  (This is backwards incompatible in order to provide a safer default.)
+
+New features:
+
+* Python 3.8 is now officially supported.
+
+* Flows can now include tasks or flows from a different project.
+  See `Using Tasks and Flows from a Different Project
+  <https://cumulusci.readthedocs.io/en/latest/features.html>`_ for details.
+
+* In the ``metadeploy_publish`` task it is now possible to specify a
+  commit hash with ``-o commit [sha]``, instead of a tag. This is useful
+  while MetaDeploy plans are in development.
+
+* Bulk data:
+
+  * Added support for mapping Record Types between orgs (by Developer Name)
+    during bulk data extract and load.
+  * Added support for Record Type mapping in the ``generate_dataset_mapping`` task.
+  * Added `new documentation <https://cumulusci.readthedocs.io/en/latest/bulk_data.html>`_
+    for bulk data tasks.
+
+* Robot Framework:
+
+  * The sample ``create_contact.robot`` test that is created when initializing
+    a new project with ``cci project init`` now makes use of page objects.
+  * The page objects library has two new keywords, ``wait for modal`` and
+    ``wait for page object``, which wait for a new page object to appear.
+  * ``cumulusci.robotframework.utils`` now has a decorator named
+    ``capture_screenshot_on_error`` which can be used to automatically capture
+    a screenshot when a keyword fails.
+  * Prior to this change, ``Go to page  Detail  Contact`` required you to use
+    a keyword argument for the object id
+    (eg: ``Go to page  Detail  Contact  object_id=${object_id}``).
+    You can now specify the object id as a positional parameter
+    (eg: ``Go to page  Detail  Contact  ${object_id}``).
+
+* ``OrgConfig`` objects now have a ``latest_api_version`` property which
+  can be used to check what Salesforce API version is available.
+
+Issues closed:
+
+* Updated the scratch org definition files generated by ``cci project init``
+  to the new recommended format for org settings. Thanks to @umeditor for the fix.
+
+* The ``create_unmanaged_ee_src`` task (part of the ``unmanaged_ee`` flow)
+  has been revised to remove the Protected setting on Custom Objects,
+  to ensure that projects using this setting can be deployed to an Enterprise Edition org.
+
+* The Salesforce REST API client used by many tasks will now automatically
+  retry requests on certain connection and HTTP errors.
+
+* Fixed an issue where posts to the Metadata API could reuse an existing connection
+  and get a connection reset error if Salesforce had closed the connection.
+
+* Disabled use of PyOpenSSL by the Python requests library, since it is no longer
+  needed in the versions of Python we support.
+
+3.0.2 (2019-10-17)
+------------------
+
+Issues closed:
+
+* Fixed a bug in deploying email templates and dashboards that was introduced
+  in 3.0.1.
+* Removed broken ``config_qa`` flow from the ``cci project init`` template.
+
+3.0.1 (2019-10-16)
+------------------
+
+New features:
+
+* Added support for new metadata types when generating ``package.xml``
+  from a directory of metadata using the ``update_package_xml`` task.
+
+* The ``ci_feature`` flow now supports generating change notes for a
+  parent feature branch's pull request from the notes on child pull requests.
+  The parent pull request description will be overwritten with the new notes
+  after a child branch is merged to the parent if the parent pull request has
+  a special label, ``Build Change Notes``.
+
+* When running Apex tests with the ``run_tasks`` task, if there is a single
+  remaining class being run, its name will be logged.
+
+* Apex test failures that happen while uploading a package are now logged.
+
+* In the ``robot_libdoc`` task, wildcards can now be used in the ``path`` option.
+
+* Added an ``org_settings`` task which can deploy scratch org settings
+  from a scratch org definition file.
+
+Issues closed:
+
+* Added a workaround for an issue where refreshing the access token for a sandbox
+  or scratch org could fail if the user's credentials were new and not fully propagated.
+
+3.0.0 (2019-09-30)
+------------------
+
+Breaking change:
+
+* CumulusCI 3.0.0 removes support for Python 2 (which will reach end of life at the end of 2019).
+  If you're still running Python 2 you can use an older version of CumulusCI,
+  but we recommend upgrading to Python 3. See our
+  `installation instructions <https://cumulusci.readthedocs.io/en/latest/install.html>`_
+  for your platform.
+
+2.5.9 (2019-09-26)
+------------------
+
+New features:
+
+* Added a Domain column to the list of scratch orgs in ``cci org list``. (thanks @bethbrains)
+
+* Tasks related to Salesforce Communities (thanks @MatthewBlanski)
+    * New ``list_community_templates`` task
+    * New ``list_communities`` task
+    * New ``publish_community`` task
+    * The ``create_community`` task can now be used to create a community with no URL prefix,
+      as long as one does not already exist.
+
+* Robot Framework:
+    * Added keywords for generating a collection of sObjects according to a template:
+        * ``Generate Test Data``
+        * ``Salesforce Collection Insert``
+        * ``Salesforce Collection Update``
+    * Changes to Page Objects:
+        * More than one page object can be loaded at once.
+          Once loaded, the keywords of a page object remain visible in the suite.
+          Robot will give priority to keywords in the reverse order in which they were imported.
+        * There is a new keyword, ``Log Current Page Object``,
+          which can be useful to see information about the most recently loaded page object.
+        * There is a new keyword, ``Get Page Object``,
+          which will return the robot library for a given page object.
+          This can be used in other keywords to access keywords from another page object if necessary.
+        * The ``Go To Page`` keyword will now automatically load the page object for the given page.
+    * Added a basic debugger for Robot tests. It can be enabled
+      using the ``-o debug True`` option to the robot task.
+
+* Added support for deploying new metadata types ``ProfilePasswordPolicy`` and ``ProfileSessionSetting``.
+
+Issues closed:
+
+* Fixed a bug where the ``batch_apex_wait`` task would sometimes fail to conclude that the batch was complete.
+* Fixed a bug in rendering tables in Python 2.
+
+2.5.8 (2019-09-13)
+------------------
+
+New features:
+
+* ``LoadData`` now supports the key ``action: update`` to perform a Bulk API update job
+* ``LoadData`` now supports an ``after: <step name>`` on a lookup entry to defer updating that lookup until a dependent sObject step is completed.
+* ``GenerateMapping`` now handles self-lookups and reference cycles by generating ``after:`` markers wherever needed. 
+
+Issues closed:
+
+* Patch selenium to convert ``executeScript`` to ``executeAsyncScript``. This is a workaround for the ``executeScript`` issue in chromedriver 77.
+* A small issue in ``QueryData`` affecting mappings using ``oid_as_pk: False`` has been fixed.
+
 2.5.7 (2019-09-03)
 ------------------
 

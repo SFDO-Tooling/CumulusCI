@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 class CumulusCIException(Exception):
     """ Base class for all CumulusCI Exceptions """
 
@@ -80,7 +77,7 @@ class ConfigError(CumulusCIException):
         self.config_name = config_name
 
     def __str__(self):
-        return "{} for config {}".format(self.message, self.config_name)
+        return f"{self.message} for config {self.config_name}"
 
 
 class ConfigMergeError(ConfigError):
@@ -125,6 +122,10 @@ class TaskOptionsError(CumulusCIUsageError):
     pass
 
 
+class NamespaceNotFoundError(CumulusCIUsageError):
+    """Raise when namespace is not found in project includes"""
+
+
 class TaskNotFoundError(CumulusCIUsageError):
     """ Raise when task is not found in project config """
 
@@ -151,12 +152,6 @@ class FlowNotFoundError(CumulusCIUsageError):
 
 class FlowNotReadyError(CumulusCIException):
     """ Raise when flow is called before it has been prepared """
-
-    pass
-
-
-class MrbelvedereError(CumulusCIException):
-    """ Raise for errors from mrbelvedere installer """
 
     pass
 
@@ -224,7 +219,7 @@ class ApexCompilationException(CumulusCIFailure):
 
     def __str__(self):
         line, problem = self.args
-        return "Apex compilation failed on line {}: {}".format(line, problem)
+        return f"Apex compilation failed on line {line}: {problem}"
 
 
 class ApexException(CumulusCIFailure):
@@ -233,7 +228,7 @@ class ApexException(CumulusCIFailure):
     def __str__(self):
         message, stacktrace = self.args
         stacktrace = "\n  ".join(stacktrace.splitlines())
-        return "Apex error: {}\n  Stacktrace:\n  {}".format(message, stacktrace)
+        return f"Apex error: {message}\n  Stacktrace:\n  {stacktrace}"
 
 
 class PushApiObjectNotFound(CumulusCIException):

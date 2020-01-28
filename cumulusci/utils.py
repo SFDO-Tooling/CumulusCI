@@ -1,8 +1,4 @@
-from __future__ import unicode_literals
-from future import standard_library
-from future.utils import text_to_native_str
-
-standard_library.install_aliases()
+import contextlib
 import fnmatch
 import io
 import math
@@ -13,8 +9,6 @@ import sys
 import tempfile
 import textwrap
 import zipfile
-from builtins import str
-from contextlib import contextmanager
 from datetime import datetime
 
 import requests
@@ -27,7 +21,7 @@ CUMULUSCI_PATH = os.path.realpath(
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
-UTF8 = text_to_native_str("UTF-8")
+UTF8 = "UTF-8"
 
 BREW_UPDATE_CMD = "brew upgrade cumulusci"
 PIP_UPDATE_CMD = "pip install --upgrade cumulusci"
@@ -156,7 +150,12 @@ def download_extract_zip(url, target=None, subfolder=None, headers=None):
 def download_extract_github(
     github_api, repo_owner, repo_name, subfolder=None, ref=None
 ):
-    github_repo = github_api.repository(repo_owner, repo_name)
+    return download_extract_github_from_repo(
+        github_api.repository(repo_owner, repo_name), subfolder, ref
+    )
+
+
+def download_extract_github_from_repo(github_repo, subfolder=None, ref=None):
     if not ref:
         ref = github_repo.default_branch
     zip_content = io.BytesIO()
@@ -187,8 +186,63 @@ def zip_subfolder(zip_src, path):
     return zip_dest
 
 
-def zip_inject_namespace(
-    zip_src,
+def process_text_in_directory(path, process_file):
+    """Process each file in a directory using the `process_file` function.
+
+    `process_file` should be a function which accepts a filename and content as text
+    and returns a (possibly modified) filename and content.  The file will be
+    updated with the new content, and renamed if necessary.
+
+    Files with content that cannot be decoded as UTF-8 will be skipped.
+    """
+
+    for path, dirs, files in os.walk(path):
+        for orig_name in files:
+            orig_path = os.path.join(path, orig_name)
+            try:
+                with open(orig_path, "r", encoding="utf-8") as f:
+                    orig_content = f.read()
+            except UnicodeDecodeError:
+                # Probably a binary file; skip it
+                continue
+            new_name, new_content = process_file(orig_name, orig_content)
+            new_path = os.path.join(path, new_name)
+            if new_name != orig_name:
+                os.rename(orig_path, new_path)
+            with open(new_path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+
+
+def process_text_in_zipfile(zf, process_file):
+    """Process each file in a zip file using the `process_file` function.
+
+    Returns a new zip file.
+
+    `process_file` should be a function which accepts a filename and content as text
+    and returns a (possibly modified) filename and content.  The file will be
+    replaced with the new content, and renamed if necessary.
+
+    Files with content that cannot be decoded as UTF-8 will be skipped.
+    """
+
+    new_zf = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+    for name in zf.namelist():
+        content = zf.read(name)
+        try:
+            content = content.decode("utf-8")
+        except UnicodeDecodeError:
+            # Probably a binary file; don't change it
+            pass
+        else:
+            name, content = process_file(name, content)
+        # writestr handles either bytes or text, and will implicitly encode text as utf-8
+        new_zf.writestr(name, content)
+    return new_zf
+
+
+def inject_namespace(
+    name,
+    content,
     namespace=None,
     managed=None,
     filename_token=None,
@@ -196,9 +250,8 @@ def zip_inject_namespace(
     namespaced_org=None,
     logger=None,
 ):
-    """ Replaces %%%NAMESPACE%%% for all files and ___NAMESPACE___ in all
-        filenames in the zip with the either '' if no namespace is provided
-        or 'namespace__' if provided.
+    """ Replaces %%%NAMESPACE%%% in file content and ___NAMESPACE___ in file name
+        with either '' if no namespace is provided or 'namespace__' if provided.
     """
 
     # Handle namespace and filename tokens
@@ -224,117 +277,76 @@ def zip_inject_namespace(
     namespaced_org_or_c_token = "%%%NAMESPACED_ORG_OR_C%%%"
     namespaced_org_or_c = namespace if namespaced_org else "c"
 
-    zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+    orig_name = name
+    prev_content = content
+    content = content.replace(namespace_token, namespace_prefix)
+    if logger and content != prev_content:
+        logger.info(f'  {name}: Replaced {namespace_token} with "{namespace_prefix}"')
 
-    for name in zip_src.namelist():
-        orig_name = str(name)
-        content = zip_src.read(name)
-        try:
-            content = content.decode("utf-8")
-        except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
-            pass
-        else:
-            prev_content = content
-            content = content.replace(namespace_token, namespace_prefix)
-            if logger and content != prev_content:
-                logger.info(
-                    '  {}: Replaced %%%NAMESPACE%%% with "{}"'.format(name, namespace)
-                )
+    prev_content = content
+    content = content.replace(namespace_or_c_token, namespace_or_c)
+    if logger and content != prev_content:
+        logger.info(
+            f'  {name}: Replaced {namespace_or_c_token} with "{namespace_or_c}"'
+        )
 
-            prev_content = content
-            content = content.replace(namespace_or_c_token, namespace_or_c)
-            if logger and content != prev_content:
-                logger.info(
-                    '  {}: Replaced %%%NAMESPACE_OR_C%%% with "{}"'.format(
-                        name, namespace_or_c
-                    )
-                )
+    prev_content = content
+    content = content.replace(namespaced_org_token, namespaced_org)
+    if logger and content != prev_content:
+        logger.info(
+            f'  {name}: Replaced {namespaced_org_token} with "{namespaced_org}"'
+        )
 
-            prev_content = content
-            content = content.replace(namespaced_org_token, namespaced_org)
-            if logger and content != prev_content:
-                logger.info(
-                    '  {}: Replaced %%%NAMESPACED_ORG%%% with "{}"'.format(
-                        name, namespaced_org
-                    )
-                )
+    prev_content = content
+    content = content.replace(namespaced_org_or_c_token, namespaced_org_or_c)
+    if logger and content != prev_content:
+        logger.info(
+            f'  {name}: Replaced {namespaced_org_or_c_token} with "{namespaced_org_or_c}"'
+        )
 
-            prev_content = content
-            content = content.replace(namespaced_org_or_c_token, namespaced_org_or_c)
-            if logger and content != prev_content:
-                logger.info(
-                    '  {}: Replaced %%%NAMESPACED_ORG_OR_C%%% with "{}"'.format(
-                        name, namespaced_org_or_c
-                    )
-                )
+    # Replace namespace token in file name
+    name = name.replace(filename_token, namespace_prefix)
+    name = name.replace(namespaced_org_file_token, namespaced_org)
+    if logger and name != orig_name:
+        logger.info(f"  {orig_name}: renamed to {name}")
 
-            content = content.encode("utf-8")
-
-        # Replace namespace token in file name
-        name = name.replace(filename_token, namespace_prefix)
-        name = name.replace(namespaced_org_file_token, namespaced_org)
-        if logger and name != orig_name:
-            logger.info("  {}: renamed to {}".format(orig_name, name))
-        zip_dest.writestr(name, content)
-
-    return zip_dest
+    return name, content
 
 
-def zip_strip_namespace(zip_src, namespace, logger=None):
-    """ Given a namespace, strips 'namespace__' from all files and filenames
-        in the zip
+def strip_namespace(name, content, namespace, logger=None):
+    """ Given a namespace, strips 'namespace__' from file name and content
     """
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
-    zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-    for name in zip_src.namelist():
-        orig_content = zip_src.read(name)
-        try:
-            orig_content = orig_content.decode("utf-8")
-        except UnicodeDecodeError:
-            # if we cannot decode the content, don't try and replace it.
-            new_content = orig_content
-        else:
-            new_content = orig_content.replace(namespace_prefix, "")
-            new_content = new_content.replace(lightning_namespace, "c:")
-            name = name.replace(namespace_prefix, "")  # not...sure...this..gets...used
-            if orig_content != new_content and logger:
-                logger.info(
-                    "  {file_name}: removed {namespace}".format(
-                        file_name=name, namespace=namespace_prefix
-                    )
-                )
-            new_content = new_content.encode("utf-8")
 
-        zip_dest.writestr(name, new_content)
-    return zip_dest
+    orig_content = content
+    new_content = orig_content.replace(namespace_prefix, "")
+    new_content = new_content.replace(lightning_namespace, "c:")
+    name = name.replace(namespace_prefix, "")
+    if orig_content != new_content and logger:
+        logger.info(
+            "  {file_name}: removed {namespace}".format(
+                file_name=name, namespace=namespace_prefix
+            )
+        )
+    return name, new_content
 
 
-def zip_tokenize_namespace(zip_src, namespace, logger=None):
-    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%% for all
-        files and ___NAMESPACE___ in all filenames in the zip
+def tokenize_namespace(name, content, namespace, logger=None):
+    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%%
+    in file content and ___NAMESPACE___ in file name
     """
     if not namespace:
-        return zip_src
+        return name, content
 
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
-    zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-    for name in zip_src.namelist():
-        content = zip_src.read(name)
-        try:
-            content = content.decode("utf-8")
-        except UnicodeDecodeError:
-            # Probably a binary file; leave it untouched
-            pass
-        else:
-            content = content.replace(namespace_prefix, "%%%NAMESPACE%%%")
-            content = content.replace(lightning_namespace, "%%%NAMESPACE_OR_C%%%")
-            content = content.encode("utf-8")
-            name = name.replace(namespace_prefix, "___NAMESPACE___")
-        zip_dest.writestr(name, content)
-    return zip_dest
+
+    content = content.replace(namespace_prefix, "%%%NAMESPACE%%%")
+    content = content.replace(lightning_namespace, "%%%NAMESPACE_OR_C%%%")
+    name = name.replace(namespace_prefix, "___NAMESPACE___")
+
+    return name, content
 
 
 def zip_clean_metaxml(zip_src, logger=None):
@@ -375,8 +387,8 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     doc.append("**Class::** {}\n".format(task_config.class_path))
 
     task_class = import_global(task_config.class_path)
-    task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
-    if task_docs:
+    if "task_docs" in task_class.__dict__:
+        task_docs = textwrap.dedent(task_class.task_docs.strip("\n"))
         doc.append(task_docs + "\n")
     if task_class.task_options:
         doc.append("Options:\n------------------------------------------\n")
@@ -428,7 +440,7 @@ def package_xml_from_dict(items, api_version, package_name=None):
     return "\n".join(lines)
 
 
-@contextmanager
+@contextlib.contextmanager
 def cd(path):
     """Context manager that changes to another directory
     """
@@ -443,8 +455,8 @@ def cd(path):
         os.chdir(cwd)
 
 
-@contextmanager
-def temporary_dir():
+@contextlib.contextmanager
+def temporary_dir(chdir=True):
     """Context manager that creates a temporary directory and chdirs to it.
 
     When the context manager exits it returns to the previous cwd
@@ -452,7 +464,9 @@ def temporary_dir():
     """
     d = tempfile.mkdtemp()
     try:
-        with cd(d):
+        with contextlib.ExitStack() as stack:
+            if chdir:
+                stack.enter_context(cd(d))
             yield d
     finally:
         if os.path.exists(d):
@@ -496,22 +510,11 @@ def log_progress(
 
 
 def random_alphanumeric_underscore(length):
-    if sys.version_info[0] >= 3:
-        import secrets
+    import secrets
 
-        # Ensure the string is the right length
-        byte_length = math.ceil((length * 3) / 4)
-        return secrets.token_urlsafe(byte_length).replace("-", "_")[:length]
-    else:
-        import random
-        import string
-
-        return "".join(
-            random.SystemRandom().choice(
-                "_" + string.ascii_uppercase + string.ascii_lowercase + string.digits
-            )
-            for _ in range(length)
-        )
+    # Ensure the string is the right length
+    byte_length = math.ceil((length * 3) / 4)
+    return secrets.token_urlsafe(byte_length).replace("-", "_")[:length]
 
 
 def get_cci_upgrade_command():
@@ -550,3 +553,39 @@ def get_git_config(config_key):
     )
 
     return config_value if config_value and not p.returncode else None
+
+
+@contextlib.contextmanager
+def tee_stdout_stderr(args, logger):
+    """Tee stdout and stderr so that they're also routed to
+    a log file. Add the current command arguments
+    as the first item in the log."""
+    real_stdout_write = sys.stdout.write
+    real_stderr_write = sys.stderr.write
+
+    # Add current command args as first line in logfile
+    logger.debug(" ".join(args) + "\n")
+
+    def stdout_write(s):
+        output = strip_ansi_sequences(s)
+        logger.debug(output)
+        real_stdout_write(s)
+
+    def stderr_write(s):
+        output = strip_ansi_sequences(s)
+        logger.debug(output)
+        real_stderr_write(s)
+
+    sys.stdout.write = stdout_write
+    sys.stderr.write = stderr_write
+    try:
+        yield
+    finally:
+        sys.stdout.write = real_stdout_write
+        sys.stderr.write = real_stderr_write
+
+
+def strip_ansi_sequences(input):
+    """Strip ANSI sequences from what's in buffer"""
+    ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
+    return ansi_escape.sub("", input)

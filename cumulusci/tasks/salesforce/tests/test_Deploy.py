@@ -4,12 +4,12 @@ import os
 import unittest
 import zipfile
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import Deploy
 from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
 from .util import create_task
-from future.utils import bytes_to_native_str
 
 
 class TestDeploy(unittest.TestCase):
@@ -40,6 +40,23 @@ class TestDeploy(unittest.TestCase):
             api = task._get_api()
             zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(api.package_zip)), "r")
             self.assertIn("package.xml", zf.namelist())
+
+    def test_get_api__additional_options(self):
+        with temporary_dir() as path:
+            touch("package.xml")
+            task = create_task(
+                Deploy,
+                {
+                    "path": path,
+                    "test_level": "RunSpecifiedTests",
+                    "specified_tests": "TestA,TestB",
+                    "unmanaged": False,
+                },
+            )
+
+            api = task._get_api()
+            assert api.run_tests == ["TestA", "TestB"]
+            assert api.test_level == "RunSpecifiedTests"
 
     def test_get_api__skip_clean_meta_xml(self):
         with temporary_dir() as path:
@@ -87,6 +104,33 @@ class TestDeploy(unittest.TestCase):
                 package_xml = zf.read("package.xml").decode()
                 self.assertIn("<name>StaticResource</name>", package_xml)
                 self.assertIn("<members>TestBundle</members>", package_xml)
+
+    def test_init_options(self):
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                Deploy,
+                {
+                    "path": "empty",
+                    "test_level": "RunSpecifiedTests",
+                    "unmanaged": False,
+                },
+            )
+
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                Deploy, {"path": "empty", "test_level": "Test", "unmanaged": False}
+            )
+
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                Deploy,
+                {
+                    "path": "empty",
+                    "test_level": "RunLocalTests",
+                    "specified_tests": ["TestA"],
+                    "unmanaged": False,
+                },
+            )
 
     def test_include_directory(self):
         # create task
@@ -429,7 +473,7 @@ class TestDeploy(unittest.TestCase):
             zipf_processed = task._process_zip_file(zipfile.ZipFile(zip_bytes))
             fp = zipf_processed.fp
             zipf_processed.close()
-            expected = bytes_to_native_str(base64.b64encode(fp.getvalue()))
+            expected = base64.b64encode(fp.getvalue()).decode("utf-8")
 
             actual = task._get_package_zip(path)
 

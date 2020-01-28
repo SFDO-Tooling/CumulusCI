@@ -1,8 +1,8 @@
-from __future__ import unicode_literals
-
 import os
 
 import requests
+
+from simple_salesforce import Salesforce
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.exceptions import SalesforceCredentialsException
@@ -19,18 +19,17 @@ class OrgConfig(BaseConfig):
     def __init__(self, config, name):
         self.name = name
         self._community_info_cache = {}
+        self._client = None
+        self._latest_api_version = None
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
         SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
         SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
         if SFDX_CLIENT_ID and SFDX_HUB_KEY:
-            login_url = (
-                "https://test.salesforce.com"
-                if self.is_sandbox
-                else "https://login.salesforce.com"
+            info = jwt_session(
+                SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, self.instance_url
             )
-            info = jwt_session(SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, login_url)
         else:
             info = self._refresh_token(keychain, connected_app)
         if info != self.config:
@@ -60,13 +59,32 @@ class OrgConfig(BaseConfig):
         resp = sf_oauth.refresh_token(self.refresh_token)
         if resp.status_code != 200:
             raise SalesforceCredentialsException(
-                "Error refreshing OAuth token: {}".format(resp.text)
+                f"Error refreshing OAuth token: {resp.text}"
             )
         return resp.json()
 
     @property
     def lightning_base_url(self):
         return self.instance_url.split(".")[0] + ".lightning.force.com"
+
+    @property
+    def salesforce_client(self):
+        if not self._client:
+            self._client = Salesforce(
+                instance=self.instance_url.replace("https://", ""),
+                session_id=self.access_token,
+                version="45.0",
+            )
+        return self._client
+
+    @property
+    def latest_api_version(self):
+        if not self._latest_api_version:
+            response = self.salesforce_client._call_salesforce(
+                "GET", f"https://{self.salesforce_client.sf_instance}/services/data"
+            )
+            self._latest_api_version = str(response.json()[-1]["version"])
+        return self._latest_api_version
 
     @property
     def start_url(self):
@@ -110,7 +128,7 @@ class OrgConfig(BaseConfig):
         headers = {"Authorization": "Bearer " + self.access_token}
         self._org_sobject = requests.get(
             self.instance_url
-            + "/services/data/v45.0/sobjects/Organization/{}".format(self.org_id),
+            + f"/services/data/v45.0/sobjects/Organization/{self.org_id}",
             headers=headers,
         ).json()
         result = {
@@ -152,7 +170,7 @@ class OrgConfig(BaseConfig):
 
         if community_name not in self._community_info_cache:
             raise Exception(
-                "Unable to find community information for '{}'".format(community_name)
+                f"Unable to find community information for '{community_name}'"
             )
 
         return self._community_info_cache[community_name]

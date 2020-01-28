@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig

@@ -1,20 +1,16 @@
-from __future__ import print_function
-from future import standard_library
-
-standard_library.install_aliases()
 import http.client
-import json
 import threading
 import time
 import unittest
-import urllib.request, urllib.error, urllib.parse
+import urllib.error
+import urllib.parse
+import urllib.request
 
-import mock
+from unittest import mock
 import responses
 
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
-from cumulusci.oauth.exceptions import SalesforceOAuthError
 
 
 class TestSalesforceOAuth(unittest.TestCase):
@@ -115,7 +111,7 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
 
         # verify
         self.assertEqual(o.response.json(), expected_response)
-        self.assertEqual(response.read(), b"OK")
+        self.assertIn(b"Congratulations", response.read())
 
     @responses.activate
     def test_oauth_flow_error_from_auth(self):

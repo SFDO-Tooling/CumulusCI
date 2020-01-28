@@ -1,4 +1,3 @@
-from builtins import str
 import base64
 import hashlib
 import io
@@ -78,7 +77,7 @@ class CommitDir(object):
         self.tree = [
             self._git_hash_to_dict(git_hash)
             for git_hash in self.tree.tree
-            if git_hash.type is not "tree"
+            if git_hash.type != "tree"
         ]
 
     def _git_hash_to_dict(self, git_hash):

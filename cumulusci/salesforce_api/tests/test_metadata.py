@@ -1,11 +1,8 @@
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import str
 import http.client
 import io
 import unittest
 
+from collections import defaultdict
 from requests import Response
 from xml.dom.minidom import parseString
 import responses
@@ -251,8 +248,9 @@ class BaseTestMetadataApi(unittest.TestCase):
         self._mock_call_mdapi(api, response_result)
 
         resp = api()
+        expected_resp = self._expected_call_success_result(response_result)
 
-        self.assertEqual(resp, self._expected_call_success_result(response_result))
+        self.assertEqual(resp, expected_resp)
 
     def _expected_call_success_result(self, response_result):
         return response_result
@@ -583,7 +581,11 @@ class TestApiDeploy(BaseTestMetadataApi):
 
     def _expected_envelope_start(self):
         return self.envelope_start.format(
-            package_zip=self.package_zip, purge_on_delete="false"
+            package_zip=self.package_zip,
+            check_only="false",
+            purge_on_delete="false",
+            test_level="",
+            run_tests="",
         )
 
     def _response_call_success_result(self, response_result):
@@ -592,18 +594,72 @@ class TestApiDeploy(BaseTestMetadataApi):
     def _expected_call_success_result(self, response_result):
         return "Success"
 
-    def _create_instance(self, task, api_version=None, purge_on_delete=None):
+    def _create_instance(
+        self,
+        task,
+        api_version=None,
+        purge_on_delete=None,
+        check_only=None,
+        test_level=None,
+        run_tests=None,
+    ):
         return self.api_class(
             task,
             self.package_zip,
             api_version=api_version,
             purge_on_delete=purge_on_delete,
+            check_only=check_only,
+            test_level=test_level,
+            run_tests=run_tests,
         )
 
     def test_init_no_purge_on_delete(self):
         task = self._create_task()
         api = self._create_instance(task, purge_on_delete=False)
         self.assertEqual(api.purge_on_delete, "false")
+
+    def test_init_default_check_only(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        self.assertEqual(api.check_only, "false")
+
+    def test_init_check_only(self):
+        task = self._create_task()
+        api = self._create_instance(task, check_only=True)
+        self.assertEqual(api.check_only, "true")
+
+    def test_init_default_test_level(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        self.assertEqual(api.test_level, None)
+
+    def test_init_test_level(self):
+        task = self._create_task()
+        api = self._create_instance(task, test_level="NoTestRun")
+        self.assertEqual(api.test_level, "NoTestRun")
+
+    def test_init_default_run_tests(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        self.assertEqual(api.run_tests, [])
+
+    def test_init_run_tests(self):
+        task = self._create_task()
+        api = self._create_instance(task, run_tests=["TestA", "TestB"])
+        self.assertEqual(api.run_tests, ["TestA", "TestB"])
+
+    def test_build_envelope_status__run_specified_tests(self):
+        task = self._create_task()
+        api = self._create_instance(
+            task, run_tests=["TestA", "TestB"], test_level="RunSpecifiedTests"
+        )
+
+        api.package_zip = "Test"
+
+        envelope = api._build_envelope_start()
+        assert "<runTests>TestA</runTests>" in envelope
+        assert "<runTests>TestB</runTests>" in envelope
+        assert "RunSpecifiedTests" in envelope
 
     def test_process_response_metadata_failure(self):
         task = self._create_task()
@@ -750,24 +806,24 @@ class TestApiListMetadata(BaseTestMetadataApi):
         return list_metadata_result
 
     def _expected_call_success_result(self, response_result):
-        return {
-            "CustomObject": [
-                {
-                    u"createdById": None,
-                    u"createdByName": None,
-                    u"createdDate": datetime.datetime(2018, 8, 7, 16, 31, 57),
-                    u"fileName": None,
-                    u"fullName": u"Test__c",
-                    u"id": None,
-                    u"lastModifiedById": None,
-                    u"lastModifiedByName": None,
-                    u"lastModifiedDate": None,
-                    u"manageableState": None,
-                    u"namespacePrefix": None,
-                    u"type": "CustomObject",
-                }
-            ]
-        }
+        metadata = defaultdict(list)
+        metadata["CustomObject"] = [
+            {
+                u"createdById": None,
+                u"createdByName": None,
+                u"createdDate": datetime.datetime(2018, 8, 7, 16, 31, 57),
+                u"fileName": None,
+                u"fullName": u"Test__c",
+                u"id": None,
+                u"lastModifiedById": None,
+                u"lastModifiedByName": None,
+                u"lastModifiedDate": None,
+                u"manageableState": None,
+                u"namespacePrefix": None,
+                u"type": "CustomObject",
+            }
+        ]
+        return metadata
 
     def _create_instance(self, task, api_version=None):
         if api_version is None:
@@ -796,6 +852,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
 
 
 class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
+    maxDiff = None
     api_class = ApiRetrieveUnpackaged
     envelope_start = retrieve_unpackaged_start_envelope
 

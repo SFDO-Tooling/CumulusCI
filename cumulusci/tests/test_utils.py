@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
 import io
 import os
+import sys
 import sarge
-import unittest
+import pytest
 import zipfile
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from xml.etree import ElementTree as ET
-import mock
+from unittest import mock
 import responses
 
 from cumulusci import utils
@@ -17,7 +17,26 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.tasks import BaseTask
 
 
-class TestUtils(unittest.TestCase):
+class FunTestTask(BaseTask):
+    """For testing doc_task"""
+
+    task_options = {
+        "flavor": {"description": "What flavor", "required": True},
+        "color": {"description": "What color"},
+    }
+    task_docs = "extra docs"
+
+
+class FunTestTaskChild(FunTestTask):
+    """For testing doc_task"""
+
+    task_options = {
+        "flavor": {"description": "What flavor", "required": True},
+        "color": {"description": "What color"},
+    }
+
+
+class TestUtils:
     def test_findReplace(self):
         with utils.temporary_dir() as d:
             path = os.path.join(d, "test")
@@ -30,7 +49,7 @@ class TestUtils(unittest.TestCase):
             logger.info.assert_called_once()
             with open(path, "r") as f:
                 result = f.read()
-            self.assertEqual(result, "bar")
+            assert result == "bar"
 
     def test_findReplace_max(self):
         with utils.temporary_dir() as d:
@@ -44,7 +63,7 @@ class TestUtils(unittest.TestCase):
             logger.info.assert_called_once()
             with open(path, "r") as f:
                 result = f.read()
-            self.assertEqual(result, "ba")
+            assert result == "ba"
 
     def test_findReplaceRegex(self):
         with utils.temporary_dir() as d:
@@ -58,7 +77,7 @@ class TestUtils(unittest.TestCase):
             logger.info.assert_called_once()
             with open(path, "r") as f:
                 result = f.read()
-            self.assertEqual(result, "xx")
+            assert result == "xx"
 
     def test_findRename(self):
         with utils.temporary_dir() as d:
@@ -70,13 +89,13 @@ class TestUtils(unittest.TestCase):
             utils.findRename("foo", "bar", d, logger)
 
             logger.info.assert_called_once()
-            self.assertEqual(os.listdir(d), ["bar"])
+            assert os.listdir(d) == ["bar"]
 
     @mock.patch("xml.etree.ElementTree.parse")
     def test_elementtree_parse_file(self, mock_parse):
         _marker = object()
         mock_parse.return_value = _marker
-        self.assertIs(utils.elementtree_parse_file("test_file"), _marker)
+        assert utils.elementtree_parse_file("test_file") == _marker
 
     @mock.patch("xml.etree.ElementTree.parse")
     def test_elementtree_parse_file_error(self, mock_parse):
@@ -87,9 +106,9 @@ class TestUtils(unittest.TestCase):
         try:
             utils.elementtree_parse_file("test_file")
         except ET.ParseError as err:
-            self.assertEqual(str(err), "it broke (test_file, line 1)")
+            assert str(err) == "it broke (test_file, line 1)"
         else:
-            self.fail("Expected ParseError")
+            assert False  # Expected ParseError
 
     def test_removeXmlElement(self):
         with utils.temporary_dir() as d:
@@ -107,7 +126,7 @@ class TestUtils(unittest.TestCase):
                 result = f.read()
             expected = """<?xml version='1.0' encoding='UTF-8'?>
 <root xmlns="http://soap.sforce.com/2006/04/metadata" />"""
-            self.assertEqual(expected, result)
+            assert expected == result
 
     @mock.patch("xml.etree.ElementTree.parse")
     def test_remove_xml_element_parse_error(self, mock_parse):
@@ -126,14 +145,14 @@ class TestUtils(unittest.TestCase):
             try:
                 utils.removeXmlElement("tag", d, "*")
             except ET.ParseError as err:
-                self.assertEqual(str(err), "it broke (test.xml, line 1)")
+                assert str(err) == "it broke (test.xml, line 1)"
             else:
-                self.fail("Expected ParseError")
+                assert False  # Expected ParseError
 
     def test_remove_xml_element_not_found(self):
         tree = ET.fromstring("<root />")
         result = utils.remove_xml_element("tag", tree)
-        self.assertIs(result, tree)
+        assert result is tree
 
     @responses.activate
     def test_download_extract_zip(self):
@@ -152,7 +171,7 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.download_extract_zip("http://test", subfolder="folder")
         result = zf.read("test")
-        self.assertEqual(b"test", result)
+        assert b"test" == result
 
     @responses.activate
     def test_download_extract_zip_to_target(self):
@@ -170,7 +189,7 @@ class TestUtils(unittest.TestCase):
             )
 
             utils.download_extract_zip("http://test", target=d)
-            self.assertIn("test", os.listdir(d))
+            assert "test" in os.listdir(d)
 
     def test_download_extract_github(self):
         f = io.BytesIO()
@@ -191,102 +210,100 @@ class TestUtils(unittest.TestCase):
         mock_repo.archive = mock_archive
         zf = utils.download_extract_github(mock_github, "TestOwner", "TestRepo", "src")
         result = zf.read("test")
-        self.assertEqual(b"test", result)
+        assert b"test" == result
 
-    def test_zip_inject_namespace_managed(self):
-        logger = mock.Mock()
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr(
-            "___NAMESPACE___test",
-            "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
-        )
+    def test_process_text_in_directory__renamed_file(self):
+        with utils.temporary_dir():
+            with open("test1", "w") as f:
+                f.write("test")
 
-        zf = utils.zip_inject_namespace(zf, namespace="ns", managed=True, logger=logger)
-        result = zf.read("ns__test")
-        self.assertEqual(b"ns__||ns|c", result)
+            def process(name, content):
+                return "test2", "test"
 
-    def test_zip_inject_namespace_unmanaged(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr(
-            "___NAMESPACE___test",
-            "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
-        )
+            utils.process_text_in_directory(".", process)
 
-        zf = utils.zip_inject_namespace(zf, namespace="ns")
-        result = zf.read("test")
-        self.assertEqual(b"||c|c", result)
+            with open("test2", "r") as f:
+                result = f.read()
+            assert result == "test"
 
-    def test_zip_inject_namespace_namespaced_org(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr(
-            "___NAMESPACE___test",
-            "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%",
-        )
+    def test_process_text_in_directory__skips_binary(self):
+        contents = b"\x9c%%%NAMESPACE%%%"
+        with utils.temporary_dir():
+            with open("test", "wb") as f:
+                f.write(contents)
 
-        zf = utils.zip_inject_namespace(
-            zf, namespace="ns", managed=True, namespaced_org=True
-        )
-        result = zf.read("ns__test")
-        self.assertEqual(b"ns__|ns__|ns|ns", result)
+            def process(name, content):
+                return name, ""
 
-    def test_zip_inject_namespace__skips_binary(self):
+            utils.process_text_in_directory(".", process)
+
+            # assert contents were untouched
+            with open("test", "rb") as f:
+                result = f.read()
+            assert contents == result
+
+    def test_process_text_in_zipfile__skips_binary(self):
         contents = b"\x9c%%%NAMESPACE%%%"
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr("test", contents)
 
-        zf = utils.zip_inject_namespace(
-            zf, namespace="ns", managed=True, namespaced_org=True
-        )
+        def process(name, content):
+            return name, ""
+
+        zf = utils.process_text_in_zipfile(zf, process)
         result = zf.read("test")
-        self.assertEqual(contents, result)
+        # assert contents were untouched
+        assert contents == result
 
-    def test_zip_strip_namespace(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("ns__test", "ns__test ns:test")
-
-        zf = utils.zip_strip_namespace(zf, "ns")
-        result = zf.read("test")
-        self.assertEqual(b"test c:test", result)
-
-    def test_zip_strip_namespace__skips_binary(self):
-        contents = b"\x9cns__"
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("test", contents)
-
-        zf = utils.zip_strip_namespace(zf, "ns")
-        result = zf.read("test")
-        self.assertEqual(contents, result)
-
-    def test_zip_strip_namespace_logs(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("ns__test", "ns__test ns:test")
-
+    def test_inject_namespace__managed(self):
         logger = mock.Mock()
-        zf = utils.zip_strip_namespace(zf, "ns", logger=logger)
+        name = "___NAMESPACE___test"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+
+        name, content = utils.inject_namespace(
+            name, content, namespace="ns", managed=True, logger=logger
+        )
+        assert name == "ns__test"
+        assert content == "ns__||ns|c"
+
+    def test_inject_namespace__unmanaged(self):
+        name = "___NAMESPACE___test"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+
+        name, content = utils.inject_namespace(name, content, namespace="ns")
+        assert name == "test"
+        assert content == "||c|c"
+
+    def test_inject_namespace__namespaced_org(self):
+        name = "___NAMESPACE___test"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+
+        name, content = utils.inject_namespace(
+            name, content, namespace="ns", managed=True, namespaced_org=True
+        )
+        assert name == "ns__test"
+        assert content == "ns__|ns__|ns|ns"
+
+    def test_strip_namespace(self):
+        logger = mock.Mock()
+        name, content = utils.strip_namespace(
+            name="ns__test", content="ns__test ns:test", namespace="ns", logger=logger
+        )
+        assert name == "test"
+        assert content == "test c:test"
         logger.info.assert_called_once()
 
-    def test_zip_tokenize_namespace(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("ns__test", "ns__test ns:test")
+    def test_tokenize_namespace(self):
+        name, content = utils.tokenize_namespace(
+            name="ns__test", content="ns__test ns:test", namespace="ns"
+        )
+        assert name == "___NAMESPACE___test"
+        assert content == "%%%NAMESPACE%%%test %%%NAMESPACE_OR_C%%%test"
 
-        zf = utils.zip_tokenize_namespace(zf, "ns")
-        result = zf.read("___NAMESPACE___test")
-        self.assertEqual(b"%%%NAMESPACE%%%test %%%NAMESPACE_OR_C%%%test", result)
-
-    def test_zip_tokenize_namespace__skips_binary(self):
-        contents = b"\x9cns__"
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("test", contents)
-
-        zf = utils.zip_tokenize_namespace(zf, "ns")
-        result = zf.read("test")
-        self.assertEqual(contents, result)
-
-    def test_zip_tokenize_namespace_no_namespace(self):
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        zf.writestr("test", "")
-        result = utils.zip_tokenize_namespace(zf, "")
-        self.assertIs(zf, result)
+    def test_tokenize_namespace__no_namespace(self):
+        name, content = utils.tokenize_namespace(name="test", content="", namespace="")
+        assert name is name
+        assert content is content
 
     def test_zip_clean_metaxml(self):
         logger = mock.Mock()
@@ -302,8 +319,8 @@ class TestUtils(unittest.TestCase):
 
         zf = utils.zip_clean_metaxml(zf, logger=logger)
         result = zf.read("classes/test-meta.xml")
-        self.assertNotIn(b"packageVersions", result)
-        self.assertIn("other/test-meta.xml", zf.namelist())
+        assert b"packageVersions" not in result
+        assert "other/test-meta.xml" in zf.namelist()
 
     def test_zip_clean_metaxml__skips_binary(self):
         logger = mock.Mock()
@@ -313,14 +330,14 @@ class TestUtils(unittest.TestCase):
         zf.writestr("other/test-meta.xml", "")
 
         zf = utils.zip_clean_metaxml(zf, logger=logger)
-        self.assertIn("classes/test-meta.xml", zf.namelist())
+        assert "classes/test-meta.xml" in zf.namelist()
 
     def test_zip_clean_metaxml__handles_nonascii(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
         zf.writestr("classes/test-meta.xml", b"<root>\xc3\xb1</root>")
 
         zf = utils.zip_clean_metaxml(zf)
-        self.assertIn(b"<root>\xc3\xb1</root>", zf.read("classes/test-meta.xml"))
+        assert b"<root>\xc3\xb1</root>" == zf.read("classes/test-meta.xml")
 
     def test_doc_task(self):
         task_config = TaskConfig(
@@ -330,7 +347,7 @@ class TestUtils(unittest.TestCase):
             }
         )
         result = utils.doc_task("command", task_config)
-        self.assertEqual(
+        assert (
             """command
 ==========================================
 
@@ -344,16 +361,27 @@ Options:
 ------------------------------------------
 
 * **flavor** *(required)*: What flavor
-* **color**: What color **Default: black**""",
-            result,
+* **color**: What color **Default: black**"""
+            == result
         )
+
+    def test_doc_task_not_inherited(self):
+        task_config = TaskConfig(
+            {
+                "class_path": "cumulusci.tests.test_utils.FunTestTaskChild",
+                "options": {"color": "black"},
+            }
+        )
+        result = utils.doc_task("command", task_config)
+
+        assert "extra docs" not in result
 
     def test_package_xml_from_dict(self):
         items = {"ApexClass": ["TestClass"]}
         result = utils.package_xml_from_dict(
             items, api_version="43.0", package_name="TestPackage"
         )
-        self.assertEqual(
+        assert (
             """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TestPackage</fullName>
@@ -362,68 +390,66 @@ Options:
         <name>ApexClass</name>
     </types>
     <version>43.0</version>
-</Package>""",
-            result,
+</Package>"""
+            == result
         )
 
     def test_cd__no_path(self):
         cwd = os.getcwd()
         with utils.cd(None):
-            self.assertEqual(cwd, os.getcwd())
+            assert cwd == os.getcwd()
 
     def test_in_directory(self):
         cwd = os.getcwd()
-        self.assertTrue(utils.in_directory(".", cwd))
-        self.assertFalse(utils.in_directory("..", cwd))
+        assert utils.in_directory(".", cwd)
+        assert not utils.in_directory("..", cwd)
 
     def test_parse_api_datetime__good(self):
         good_str = "2018-08-07T16:00:56.000+0000"
         dt = utils.parse_api_datetime(good_str)
-        self.assertAlmostEqual(
-            dt, datetime(2018, 8, 7, 16, 0, 56), delta=timedelta(seconds=1)
-        )
+        assert dt == datetime(2018, 8, 7, 16, 0, 56)
 
     def test_parse_api_datetime__bad(self):
         bad_str = "2018-08-07T16:00:56.000-20000"
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             utils.parse_api_datetime(bad_str)
 
     def test_log_progress(self):
         logger = mock.Mock()
         for x in utils.log_progress(range(3), logger, batch_size=1):
             pass
-        self.assertEqual(4, logger.info.call_count)
+        assert 4 == logger.info.call_count
 
     def test_util__sets_homebrew_upgrade_cmd(self):
         utils.CUMULUSCI_PATH = "/usr/local/Cellar/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
-        self.assertEqual(utils.BREW_UPDATE_CMD, upgrade_cmd)
+        assert utils.BREW_UPDATE_CMD == upgrade_cmd
 
     def test_util__sets_linuxbrew_upgrade_cmd(self):
         utils.CUMULUSCI_PATH = "/home/linuxbrew/.linuxbrew/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
-        self.assertEqual(utils.BREW_UPDATE_CMD, upgrade_cmd)
+        assert utils.BREW_UPDATE_CMD == upgrade_cmd
 
     def test_util__sets_pip_upgrade_cmd(self):
         utils.CUMULUSCI_PATH = "/usr/local/pip-path/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
-        self.assertEqual(utils.PIP_UPDATE_CMD, upgrade_cmd)
+        assert utils.PIP_UPDATE_CMD == upgrade_cmd
 
     def test_util__sets_pipx_upgrade_cmd(self):
         utils.CUMULUSCI_PATH = (
             "/Users/Username/.local/pipx/venvs/cumulusci/Lib/site-packages/cumulusci"
         )
         upgrade_cmd = utils.get_cci_upgrade_command()
-        self.assertEqual(utils.PIPX_UPDATE_CMD, upgrade_cmd)
+        assert utils.PIPX_UPDATE_CMD == upgrade_cmd
 
     def test_convert_to_snake_case(self):
-        self.assertEqual("one_two", utils.convert_to_snake_case("OneTwo"))
-        self.assertEqual("one_two", utils.convert_to_snake_case("ONETwo"))
-        self.assertEqual("one_two", utils.convert_to_snake_case("One_Two"))
+        assert "one_two" == utils.convert_to_snake_case("OneTwo")
+        assert "one_two" == utils.convert_to_snake_case("ONETwo")
+        assert "one_two" == utils.convert_to_snake_case("One_Two")
 
     def test_os_friendly_path(self):
         with mock.patch("os.sep", "\\"):
-            self.assertEqual("\\", utils.os_friendly_path("/"))
+            assert "\\" == utils.os_friendly_path("/")
 
     @mock.patch("sarge.Command")
     def test_get_git_config(self, Command):
@@ -431,10 +457,10 @@ Options:
             stdout=io.BytesIO(b"test@example.com"), stderr=io.BytesIO(b""), returncode=0
         )
 
-        self.assertEqual("test@example.com", utils.get_git_config("user.email"))
-        self.assertEqual(
-            sarge.shell_format('git config --get "{0!s}"', "user.email"),
-            Command.call_args[0][0],
+        assert "test@example.com" == utils.get_git_config("user.email")
+        assert (
+            sarge.shell_format('git config --get "{0!s}"', "user.email")
+            == Command.call_args[0][0]
         )
         p.run.assert_called_once()
 
@@ -444,7 +470,7 @@ Options:
             stdout=io.BytesIO(b""), stderr=io.BytesIO(b""), returncode=0
         )
 
-        self.assertIsNone(utils.get_git_config("user.email"))
+        assert utils.get_git_config("user.email") is None
         p.run.assert_called_once()
 
     @mock.patch("sarge.Command")
@@ -453,17 +479,29 @@ Options:
             stdout=io.BytesIO(b"Text"), stderr=io.BytesIO(b""), returncode=-1
         )
 
-        self.assertIsNone(utils.get_git_config("user.email"))
+        assert utils.get_git_config("user.email") is None
         p.run.assert_called_once()
 
+    def test_strip_ansi_sequences(self):
+        ansi_str = "\033[31mGoodbye ANSI color sequences!\033[0m"
+        plain_str = "This is [just a plain old string with some] [symbols]"
 
-class FunTestTask(BaseTask):
-    """For testing doc_task"""
+        ansi_string_result = utils.strip_ansi_sequences(ansi_str)
+        plain_string_result = utils.strip_ansi_sequences(plain_str)
 
-    task_options = OrderedDict(
-        (
-            ("flavor", {"description": "What flavor", "required": True}),
-            ("color", {"description": "What color"}),
-        )
-    )
-    task_docs = "extra docs"
+        assert ansi_string_result == "Goodbye ANSI color sequences!"
+        assert plain_string_result == plain_str
+
+    def test_tee_stdout_stderr(self):
+        args = ["cci", "test"]
+        logger = mock.Mock()
+        expected_stdout_text = "This is expected stdout.\n"
+        expected_stderr_text = "This is expected stderr.\n"
+        with utils.tee_stdout_stderr(args, logger):
+            sys.stdout.write(expected_stdout_text)
+            sys.stderr.write(expected_stderr_text)
+
+        assert logger.debug.call_count == 3
+        assert logger.debug.call_args_list[0][0][0] == "cci test\n"
+        assert logger.debug.call_args_list[1][0][0] == expected_stdout_text
+        assert logger.debug.call_args_list[2][0][0] == expected_stderr_text

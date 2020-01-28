@@ -2,14 +2,14 @@ import logging
 
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
-from simple_salesforce import Salesforce
 
-from cumulusci.cli.config import CliRuntime
+from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import CURRENT_TASK
 from cumulusci.core.utils import import_global
 from cumulusci.robotframework.utils import set_pdb_trace
+from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.robotframework.robotframework import Robot
 
 
@@ -40,8 +40,6 @@ class CumulusCI(object):
         self.org_name = org_name
         self._project_config = None
         self._org = None
-        self._sf = None
-        self._tooling = None
 
         # Turn off info logging of all http requests
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
@@ -79,15 +77,11 @@ class CumulusCI(object):
 
     @property
     def sf(self):
-        if self._sf is None:
-            self._sf = self._init_api()
-        return self._sf
+        return self._init_api()
 
     @property
     def tooling(self):
-        if self._tooling is None:
-            self._tooling = self._init_api("tooling/")
-        return self._tooling
+        return self._init_api("tooling/")
 
     def set_login_url(self):
         """ Sets the LOGIN_URL variable in the suite scope which will
@@ -119,6 +113,7 @@ class CumulusCI(object):
         """This keyword uses the Salesforce API to get information about a community.
 
         This keyword requires the exact community name as its first argumment.
+
         - If no key is given, all of the information returned by the API will be
           returned by this keyword in the form of a dictionary
         - If a key is given, only the value for that key will be returned.
@@ -197,16 +192,10 @@ class CumulusCI(object):
         return self._run_task(task_class, task_config)
 
     def _init_api(self, base_url=None):
-
-        api_version = self.project_config.project__package__api_version
-        rv = Salesforce(
-            instance=self.org.instance_url.replace("https://", ""),
-            session_id=self.org.access_token,
-            version=api_version,
-        )
+        client = get_simple_salesforce_connection(self.project_config, self.org)
         if base_url is not None:
-            rv.base_url += base_url
-        return rv
+            client.base_url += base_url
+        return client
 
     def _init_task(self, class_path, options, task_config):
         task_class = import_global(class_path)

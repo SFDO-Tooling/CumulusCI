@@ -18,3 +18,9 @@ class AboutBlankPage(BasePage):
 
     def hello(self, message):
         return "About:Blank Page says Hello, {}".format(message)
+
+    def keyword_one(self):
+        return "About:Blank keyword one"
+
+    def keyword_two(self):
+        return "About:Blank keyword two"

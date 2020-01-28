@@ -1,22 +1,22 @@
-from __future__ import absolute_import
 from datetime import datetime
 from datetime import timedelta
-
+from unittest import mock
 import io
 import os
 import tempfile
 import unittest
 
-import mock
+import yaml
 
 from cumulusci.utils import temporary_dir
-from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.core.exceptions import ServiceNotConfigured
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -39,9 +39,11 @@ class TestBaseGlobalConfig(unittest.TestCase):
 
     def test_load_global_config_no_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
+        # clear cache
+        BaseGlobalConfig.config = None
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = ordered_yaml_load(f_expected_config)
+            expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
     def test_load_global_config_empty_local(self, mock_class):
@@ -50,7 +52,7 @@ class TestBaseGlobalConfig(unittest.TestCase):
 
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = ordered_yaml_load(f_expected_config)
+            expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
     def test_load_global_config_with_local(self, mock_class):
@@ -58,9 +60,12 @@ class TestBaseGlobalConfig(unittest.TestCase):
         self._create_global_config_local(local_yaml)
         mock_class.return_value = self.tempdir_home
 
+        # clear cache
+        BaseGlobalConfig.config = None
+
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
-            expected_config = ordered_yaml_load(f_expected_config)
+            expected_config = yaml.safe_load(f_expected_config)
         expected_config["tasks"]["newtesttask"] = {}
         expected_config["tasks"]["newtesttask"]["description"] = "test description"
         self.assertEqual(config.config, expected_config)
@@ -218,14 +223,14 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         # create local project config file
-        content = "project:\n" + "    package:\n" + "        api_version: 10\n"
+        content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
         self._create_project_config_local(content)
 
         os.chdir(self.tempdir_project)
         global_config = BaseGlobalConfig()
         config = BaseProjectConfig(global_config)
         self.assertNotEqual(config.config_project_local, {})
-        self.assertEqual(config.project__package__api_version, 10)
+        self.assertEqual(config.project__package__api_version, 45.0)
 
     def test_load_additional_yaml(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -236,13 +241,13 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         # create local project config file
-        content = "project:\n" + "    package:\n" + "        api_version: 10\n"
+        content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
 
         os.chdir(self.tempdir_project)
         global_config = BaseGlobalConfig()
         config = BaseProjectConfig(global_config, additional_yaml=content)
         self.assertNotEqual(config.config_additional_yaml, {})
-        self.assertEqual(config.project__package__api_version, 10)
+        self.assertEqual(config.project__package__api_version, 45.0)
 
 
 @mock.patch("sarge.Command")
@@ -253,7 +258,9 @@ class TestScratchOrgConfig(unittest.TestCase):
         "instanceUrl": "url",
         "accessToken": "access!token",
         "username": "username",
-        "password": "password"
+        "password": "password",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(
@@ -271,10 +278,13 @@ class TestScratchOrgConfig(unittest.TestCase):
                 "org_id": "access",
                 "password": "password",
                 "username": "username",
+                "created_date": "1970-01-01T00:00:00Z",
+                "expiration_date": "1970-01-08",
             },
         )
         self.assertIs(info, config._scratch_info)
-        self.assertTrue(set(info.items()).issubset(set(config.config.items())))
+        for key in ("access_token", "instance_url", "org_id", "password", "username"):
+            assert key in config.config
         self.assertTrue(config._scratch_info_date)
 
     def test_scratch_info_memoized(self, Command):
@@ -328,7 +338,9 @@ class TestScratchOrgConfig(unittest.TestCase):
     "result": {
         "instanceUrl": "url",
         "accessToken": "access!token",
-        "username": "username"
+        "username": "username",
+        "createdDate": "1970-01-01T00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(
@@ -375,14 +387,7 @@ class TestScratchOrgConfig(unittest.TestCase):
             "instance_url": "test_instance",
             "access_token": "token",
         }
-        # This is ugly...since ScratchOrgConfig is in a module
-        # with the same name that is imported in cumulusci.core.config's
-        # __init__.py, we have no way to externally grab the
-        # module without going through the function's globals.
-        with mock.patch.dict(
-            ScratchOrgConfig.user_id.fget.__globals__,
-            Salesforce=mock.Mock(return_value=sf),
-        ):
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
             self.assertEqual(config.user_id, "test")
 
     def test_username_from_scratch_info(self, Command):
@@ -457,10 +462,27 @@ class TestScratchOrgConfig(unittest.TestCase):
         config.date_created = now
         self.assertEqual(config.expires, now + timedelta(days=1))
 
+        config = ScratchOrgConfig({"days": 1}, "test")
+        config.date_created = None
+        self.assertIsNone(config.expires)
+
     def test_days_alive(self, Command):
         config = ScratchOrgConfig({}, "test")
         config.date_created = datetime.now()
         self.assertEqual(config.days_alive, 1)
+
+    def test_active(self, Command):
+        config = ScratchOrgConfig({}, "test")
+        config.date_created = None
+        self.assertFalse(config.active)
+
+        config = ScratchOrgConfig({}, "test")
+        config.date_created = datetime.now()
+        self.assertTrue(config.active)
+
+        config = ScratchOrgConfig({}, "test")
+        config.date_created = datetime.now() - timedelta(days=10)
+        self.assertFalse(config.active)
 
     def test_create_org(self, Command):
         out = b"Successfully created scratch org: ORG_ID, username: USERNAME"
@@ -632,7 +654,9 @@ class TestScratchOrgConfig(unittest.TestCase):
         "instanceUrl": "url",
         "accessToken": "access!token",
         "username": "username",
-        "password": "password"
+        "password": "password",
+        "createdDate": "1970-01-01T:00:00:00Z",
+        "expirationDate": "1970-01-08"
     }
 }"""
         Command.return_value = mock.Mock(
@@ -649,3 +673,21 @@ class TestScratchOrgConfig(unittest.TestCase):
 
         config.force_refresh_oauth_token.assert_called_once()
         self.assertTrue(config._scratch_info)
+
+    def test_choose_devhub(self, Command):
+        mock_keychain = mock.Mock()
+        mock_keychain.get_service.return_value = ServiceConfig(
+            {"username": "fake@fake.devhub"}
+        )
+        config = ScratchOrgConfig({}, "test")
+        config.keychain = mock_keychain
+
+        assert config._choose_devhub() == "fake@fake.devhub"
+
+    def test_choose_devhub__service_not_configured(self, Command):
+        mock_keychain = mock.Mock()
+        mock_keychain.get_service.side_effect = ServiceNotConfigured
+        config = ScratchOrgConfig({}, "test")
+        config.keychain = mock_keychain
+
+        assert config._choose_devhub() is None

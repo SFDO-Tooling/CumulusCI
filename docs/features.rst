@@ -40,7 +40,7 @@ The CumulusCI keychain can capture and store OAuth credentials to persistent org
 
     $ cci org connect <org_name>
 
-This command will open a browser window where you log into the org you want to connect as the org_name you specified.  Once you log in successfully, you'll get a blank browser window saying "OK".  You can close the window.  At this point, your org is specified.
+This command will open a browser window where you log into the org you want to connect as the org_name you specified.  Once you log in successfully, you'll get a blank browser window saying "Congratulations".  You can close the window.  At this point, your org is specified.
 
 Specifying a Different Login URL
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -101,12 +101,12 @@ You can define your own scratch org configs in your project's ``cumulusci.yml`` 
                 days: 3
                 namespaced: True
 
-In the example above, we've defined a new scratch org config named `test_env1` which points to a scratch org definition file located at `orgs/test_env1.json` in the project repository.  We've also overridden the default expiration days from 1 to 3 and specified that we want this org to have the project's namespace applied.
+In the example above, we've defined a new scratch org config named ``test_env1`` which points to a scratch org definition file located at ``orgs/test_env1.json`` in the project repository.  We've also overridden the default expiration days from 1 to 3 and specified that we want this org to have the project's namespace applied.
 
 Auto-Created Scratch Org
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-CumulusCI will automatically add all defined scratch org configs from your project to your project's keychain for you.  This does not cause any scratch orgs to be created, but it does make it a lot easier for you to use the scratch orgs configs defined on your project.  If you run `cci org list` in a CumulusCI project using only the default scratch configs, you'll see:
+CumulusCI will automatically add all defined scratch org configs from your project to your project's keychain for you.  This does not cause any scratch orgs to be created, but it does make it a lot easier for you to use the scratch orgs configs defined on your project.  If you run ``cci org list`` in a CumulusCI project using only the default scratch configs, you'll see:
 
 .. code-block:: console
 
@@ -120,7 +120,7 @@ CumulusCI will automatically add all defined scratch org configs from your proje
 
 Note that the scratch orgs don't have a username.  This is because they're just lazy configs that haven't been used yet and thus haven't actually created a scratch org.
 
-With the example above of defining the `test_env1` scratch config in our project's `cumulusci.yml`, we should see the following by default in the org list:
+With the example above of defining the ``test_env1`` scratch config in our project's ``cumulusci.yml``, we should see the following by default in the org list:
 
 .. code-block:: console
 
@@ -168,15 +168,15 @@ Now you can run any `cci` commands against the new `feature-123` org.  A few com
 Deleting Scratch Orgs
 ^^^^^^^^^^^^^^^^^^^^^
 
-If a scratch org in the keychain has actually created a scratch org, you can use `cci org scratch_delete` to delete the scratch org but leave the config to regenerate it in the keychain:
+If a scratch org in the keychain has actually created a scratch org, you can use ``cci org scratch_delete`` to delete the scratch org but leave the config to regenerate it in the keychain:
 
 .. code-block:: console
 
     $ cci org scratch_delete feature-123
 
-Using `scratch_delete` will not remove the feature-123 org from your org list.  This is the intended behavior allowing you to easily recreate scratch orgs from a stored config instead of searching your command history to remember how you last created the org.
+Using ``scratch_delete`` will not remove the feature-123 org from your org list.  This is the intended behavior allowing you to easily recreate scratch orgs from a stored config instead of searching your command history to remember how you last created the org.
 
-If you want to permanently remove an org from the org list, you can use `cci org remove` which will completely remove the org from the list.  If the a scratch org has already been created from the config, an attempt to delete the scratch org will be made before removing the org from the keychain:
+If you want to permanently remove an org from the org list, you can use ``cci org remove`` which will completely remove the org from the list.  If the a scratch org has already been created from the config, an attempt to delete the scratch org will be made before removing the org from the keychain:
 
 .. code-block:: console
 
@@ -194,6 +194,18 @@ If for some reason recreating the org doesn't work, you can resolve the issue wi
     $ cci org remove <org_name>
     $ cci org scratch <config_name> <org_name>
 
+Using a Different Dev Hub Org
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, CumulusCI will create scratch orgs using the Dev Hub org that is configured as the defaultdevhubusername in sfdx.
+You can switch to a different Dev Hub org within a particular project by configuring the ``devhub`` service:
+
+.. code-block: console
+
+    $ cci service connect devhub --project
+    Username: [type the Dev Hub username here]
+    devhub is now configured for this project.
+
 
 Managing Dependencies
 =====================
@@ -204,7 +216,7 @@ From the beginning, CumulusCI was built to automate the complexities of dependen
 * **Unmanaged Metadata**: Require the deployment of unmanaged metadata
 * **Github Repository**: Dynamically include the dependencies of another CumulusCI configured project
 
-The `update_dependencies` task handles deploying the dependencies to the target org and is included in all flows designed to deploy or install to an org.  The task can also be run individually with `cci task run update_dependencies`.
+The ``update_dependencies`` task handles deploying the dependencies to the target org and is included in all flows designed to deploy or install to an org.  The task can also be run individually with ``cci task run update_dependencies``.
 
 Managed Package Dependencies
 ----------------------------
@@ -221,7 +233,7 @@ Managed package dependencies are rather simple.  You need the namespace and the 
 Automatic Install, Upgrade, or Uninstall/Install
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When the `update_dependencies` task runs, it first retrieves a list of all managed packages in the target org and creates a list of the installed packages and their version numbers.  With the example cumulusci.yml shown above, the following will happen depending on what if npe01 is currently installed:
+When the ``update_dependencies`` task runs, it first retrieves a list of all managed packages in the target org and creates a list of the installed packages and their version numbers.  With the example cumulusci.yml shown above, the following will happen depending on what if npe01 is currently installed:
 
 * If npe01 is not installed, npe01 version 3.6 is installed
 * If the org already has npe01 version 3.6 installed then nothing will be done
@@ -249,13 +261,13 @@ Managed Package dependencies can handle a hierarchy of dependencies between pack
             - namespace: npe5
               version: 3.5
 
-In the example above, the project requires npo02 version 3.8 which requires npe01 version 3.6.  By specifying the dependency hierarchy, the `update_dependencies` task is able to handle an edge case:  If the target org currently has npe01 version 3.7, npe01 needs to be uninstalled to downgrade to 3.6.  However, npo02 requires npe01 so uninstalling npe01 requires also uninstalling npo02.  In this scenario npe03, npe4, and npe5 do not have to be uninstalled to uninstall npe01.
+In the example above, the project requires npo02 version 3.8 which requires npe01 version 3.6.  By specifying the dependency hierarchy, the ``update_dependencies`` task is able to handle an edge case:  If the target org currently has npe01 version 3.7, npe01 needs to be uninstalled to downgrade to 3.6.  However, npo02 requires npe01 so uninstalling npe01 requires also uninstalling npo02.  In this scenario npe03, npe4, and npe5 do not have to be uninstalled to uninstall npe01.
 
 
 Unmanaged Metadata Dependencies
 -------------------------------
 
-You can specify unmanaged metadata to be deployed by specifying a `zip_url` and optionally `subfolder`, `namespace_inject`, `namespace_strip`, and `unmanaged`:
+You can specify unmanaged metadata to be deployed by specifying a ``zip_url`` and optionally ``subfolder``, ``namespace_inject``, ``namespace_strip``, and ``unmanaged``:
 
 .. code-block:: yaml
 
@@ -263,12 +275,12 @@ You can specify unmanaged metadata to be deployed by specifying a `zip_url` and 
         dependencies:
             - zip_url: https://SOME_HOST/metadata.zip
 
-When `update_dependencies` runs, it will download the zip file and deploy it via the Metadata API's Deploy method.  The zip file must contain valid metadata for use with a deploy including a package.xml file in the root.
+When ``update_dependencies`` runs, it will download the zip file and deploy it via the Metadata API's Deploy method.  The zip file must contain valid metadata for use with a deploy including a package.xml file in the root.
 
 Specifying a Subfolder of the Zip File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can use the `subfolder` option to specify a subfolder of the zip file you want to use for the deployment.  This is particularly handy when referring to metadata stored in a Github repository:
+You can use the ``subfolder`` option to specify a subfolder of the zip file you want to use for the deployment.  This is particularly handy when referring to metadata stored in a Github repository:
 
 .. code-block:: yaml
 
@@ -277,12 +289,12 @@ You can use the `subfolder` option to specify a subfolder of the zip file you wa
             - zip_url: https://github.com/SalesforceFoundation/CumulusReports/archive/master.zip
               subfolder: CumulusReports-master/record_types
 
-When `update_dependencies` runs, it will still download the zip from `zip_url` but it will then build a new zip containing only the content of `subfolder` starting inside `subfolder` as the zip's root.
+When ``update_dependencies`` runs, it will still download the zip from ``zip_url`` but it will then build a new zip containing only the content of ``subfolder`` starting inside ``subfolder`` as the zip's root.
 
 Injecting Namespace Prefixes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-CumulusCI has support for tokenizing references to the namespace prefix in code.  When tokenized, all occurrences of the namespace prefix (i.e. ``npsp__``), will be replaced with `%%%NAMESPACE%%%` inside of files and ``___NAMESPACE___`` in file names.  If the metadata you are deploying has been tokenized, you can use the `namespace_inject` and `unmanaged` options to inject the namespace:
+CumulusCI has support for tokenizing references to the namespace prefix in code.  When tokenized, all occurrences of the namespace prefix (i.e. ``npsp__``), will be replaced with ``%%%NAMESPACE%%%`` inside of files and ``___NAMESPACE___`` in file names.  If the metadata you are deploying has been tokenized, you can use the ``namespace_inject`` and ``unmanaged`` options to inject the namespace:
 
 .. code-block:: yaml
 
@@ -294,7 +306,7 @@ CumulusCI has support for tokenizing references to the namespace prefix in code.
 
 In the above example, the metadata in the zip contains the string tokens ``%%%NAMESPACE%%%`` and ``___NAMESPACE___`` which will be replaced with ``hed__`` before the metadata is deployed.
 
-If you want to deploy tokenized metadata without any namespace references, you have to specify both `namespace_inject` and `unmanaged`:
+If you want to deploy tokenized metadata without any namespace references, you have to specify both ``namespace_inject`` and ``unmanaged``:
 
 .. code-block:: yaml
 
@@ -310,7 +322,7 @@ In the above example, the namespace tokens would be replaced with an empty strin
 Stripping Namespace Prefixes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If the metadata in the zip you want to deploy has references to a namespace prefix and you want to remove them, use the `namespace_strip` option:
+If the metadata in the zip you want to deploy has references to a namespace prefix and you want to remove them, use the ``namespace_strip`` option:
 
 .. code-block:: yaml
 
@@ -320,7 +332,7 @@ If the metadata in the zip you want to deploy has references to a namespace pref
               subfolder: CumulusReports-master/src
               namespace_strip: npsp
 
-When `update_dependencies` runs, the zip will be retrieved and the string ``npsp__`` will be stripped from all files and filenames in the zip before deployment.  This is most useful if trying to set up an unmanaged development environment for an extension package which normally uses managed dependencies.  The example above takes the NPSP Reports & Dashboards project's unmanaged metadata and strips the references to ``npsp__`` so you could deploy it against an unmanaged version of NPSP.
+When ``update_dependencies`` runs, the zip will be retrieved and the string ``npsp__`` will be stripped from all files and filenames in the zip before deployment.  This is most useful if trying to set up an unmanaged development environment for an extension package which normally uses managed dependencies.  The example above takes the NPSP Reports & Dashboards project's unmanaged metadata and strips the references to ``npsp__`` so you could deploy it against an unmanaged version of NPSP.
 
 
 Github Repository Dependencies
@@ -334,7 +346,7 @@ Github Repository dependencies create a dynamic dependency between the current p
         dependencies:
             - github: https://github.com/SalesforceFoundation/EDA
 
-When `update_dependencies` runs, the following is doing against the referenced repository:
+When ``update_dependencies`` runs, the following is doing against the referenced repository:
 
 * Look for cumulusci.yml and parse if found
 * Determine if the project has subfolders under unpackaged/pre.  If found, deploys them first.
@@ -347,7 +359,7 @@ When `update_dependencies` runs, the following is doing against the referenced r
 Referencing Unmanaged Projects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If the referenced repository does not have a namespace configured or if the dependency specifies the `unmanaged` option as true (see example below), the repository is treated as an unmanaged repository:
+If the referenced repository does not have a namespace configured or if the dependency specifies the ``unmanaged`` option as true (see example below), the repository is treated as an unmanaged repository:
 
 .. code-block:: yaml
 
@@ -356,12 +368,12 @@ If the referenced repository does not have a namespace configured or if the depe
             - github: https://github.com/SalesforceFoundation/EDA
               unmanaged: True
 
-In the above example, the EDA repository is configured for a namespace but the dependency specifies `unmanaged: True` so the dependency would deploy unmanaged EDA and its dependencies.
+In the above example, the EDA repository is configured for a namespace but the dependency specifies ``unmanaged: True`` so the dependency would deploy unmanaged EDA and its dependencies.
 
 Referencing a Specific Tag
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you want to reference a version other than HEAD and the latest production release, you can use the `tag` option to specify a particular tag from the target repository.  This is most useful for testing against beta versions of underyling packages or recreating specific org environments for debugging:
+If you want to reference a version other than HEAD and the latest production release, you can use the ``tag`` option to specify a particular tag from the target repository.  This is most useful for testing against beta versions of underyling packages or recreating specific org environments for debugging:
 
 .. code-block:: yaml
 
@@ -370,7 +382,7 @@ If you want to reference a version other than HEAD and the latest production rel
             - github: https://github.com/SalesforceFoundation/EDA
               tag: beta/1.47-Beta_2
 
-In the above example, the EDA repository's tag `beta/1.47-Beta_2` will be used instead of the latest production release of EDA (1.46 for this example).  This allows a build environment to use features in the next production release of EDA which are already merged but not yet included in a production release.
+In the above example, the EDA repository's tag ``beta/1.47-Beta_2`` will be used instead of the latest production release of EDA (1.46 for this example).  This allows a build environment to use features in the next production release of EDA which are already merged but not yet included in a production release.
 
 Skipping unpackaged/* in Reference Repositories
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -384,8 +396,8 @@ If the repository you are referring to has dependency metadata under unpackaged/
             - github: https://github.com/SalesforceFoundation/EDA
               skip: unpackaged/post/course_connection_record_types
 
-Case Study: SalesforceFoundation/Cumulus
-----------------------------------------
+Case Study: SalesforceFoundation/NPSP
+-------------------------------------
 
 The following will create a dependency against the open source repository for Salesforce.org's Nonprofit Success Pack:
 
@@ -393,21 +405,21 @@ The following will create a dependency against the open source repository for Sa
 
     project:
         dependencies:
-            - github: https://github.com/SalesforceFoundation/Cumulus
+            - github: https://github.com/SalesforceFoundation/NPSP
 
 With this one simple line in the project's dependencies, the following dependencies are included:
 
-* unpackaged/pre/account_record_types from SalesforceFoundation/Cumulus
-* unpackaged/pre/opportunity_record_types from SalesforceFoundation/Cumulus
+* unpackaged/pre/account_record_types from SalesforceFoundation/NPSP
+* unpackaged/pre/opportunity_record_types from SalesforceFoundation/NPSP
 * npe01 3.6
 * npo02 3.8
 * npe03 3.8
 * npe4 3.5
 * npe5 3.5
 * npsp 3.99
-* unpackaged/post/first from SalesforceFoundation/Cumulus with namespace tokens replaced with ``npsp__``
+* unpackaged/post/first from SalesforceFoundation/NPSP with namespace tokens replaced with ``npsp__``
 
-This happens because of the following from the cumulusci.yml in the the Cumulus (npsp) repository:
+This happens because of the following from the cumulusci.yml in the the NPSP repository:
 
 .. code-block:: yaml
 
@@ -429,9 +441,9 @@ Note that npo02 includes npe01.  This is because the dependencies for SaleforceF
         # npe01
         - github: https://github.com/SalesforceFoundation/Contacts_and_Organizations
 
-As a result, npe01 is included because the repository for npo02 refers to npe01's repository as a dependency and Cumulus refers to npo02's repository as a dependency.
+As a result, npe01 is included because the repository for npo02 refers to npe01's repository as a dependency and NPSP refers to npo02's repository as a dependency.
 
-You can see how complex a single repository dependency can be with the following command output from the single depedency reference to the Cumulus repository:
+You can see how complex a single repository dependency can be with the following command output from the single dependency reference to the NPSP repository:
 
 .. code-block:: console
 
@@ -443,7 +455,7 @@ You can see how complex a single repository dependency can be with the following
     2017-06-03 16:55:31: Pending
     2017-06-03 16:55:33: [Done]
     2017-06-03 16:55:34: Dependencies:
-    2017-06-03 16:55:34: Processing dependencies from Github repo https://github.com/SalesforceFoundation/Cumulus
+    2017-06-03 16:55:34: Processing dependencies from Github repo https://github.com/SalesforceFoundation/NPSP
     2017-06-03 16:55:36: Processing dependencies from Github repo https://github.com/SalesforceFoundation/Households
     2017-06-03 16:55:37: Processing dependencies from Github repo https://github.com/SalesforceFoundation/Contacts_and_Organizations
     2017-06-03 16:55:39:     npe01: Install version 3.6
@@ -455,12 +467,12 @@ You can see how complex a single repository dependency can be with the following
     2017-06-03 16:55:42: Processing dependencies from Github repo https://github.com/SalesforceFoundation/Affiliations
     2017-06-03 16:55:43:     npe5: Install version 3.5
     2017-06-03 16:55:43:     npsp: Install version 3.99
-    2017-06-03 16:55:43: Deploying unmanaged metadata from /Cumulus-dev/unpackaged/pre/account_record_types of https://github.com/SalesforceFoundation/Cumulus/archive/dev.zip
+    2017-06-03 16:55:43: Deploying unmanaged metadata from /NPSP-dev/unpackaged/pre/account_record_types of https://github.com/SalesforceFoundation/NPSP/archive/dev.zip
     2017-06-03 16:55:48: Pending
     2017-06-03 16:55:49: [InProgress]: Processing Type: CustomObject
     2017-06-03 16:55:50: [Done]
     2017-06-03 16:55:51: [Success]: Succeeded
-    2017-06-03 16:55:51: Deploying unmanaged metadata from /Cumulus-dev/unpackaged/pre/opportunity_record_types of https://github.com/SalesforceFoundation/Cumulus/archive/dev.zip
+    2017-06-03 16:55:51: Deploying unmanaged metadata from /NPSP-dev/unpackaged/pre/opportunity_record_types of https://github.com/SalesforceFoundation/NPSP/archive/dev.zip
     2017-06-03 16:55:56: Pending
     2017-06-03 16:55:57: [InProgress]: Processing Type: CustomObject
     2017-06-03 16:55:59: [Done]
@@ -507,7 +519,7 @@ You can see how complex a single repository dependency can be with the following
     ...
     2017-06-03 17:01:53: [Done]
     2017-06-03 17:01:54: [Success]: Succeeded
-    2017-06-03 17:01:54: Deploying unmanaged metadata from /Cumulus-dev/unpackaged/post/first of https://github.com/SalesforceFoundation/Cumulus/archive/dev.zip
+    2017-06-03 17:01:54: Deploying unmanaged metadata from /NPSP-dev/unpackaged/post/first of https://github.com/SalesforceFoundation/NPSP/archive/dev.zip
     2017-06-03 17:01:58: Replacing namespace tokens with npsp__
     2017-06-03 17:01:58: Pending
     2017-06-03 17:01:59: [Pending]: next check in 1 seconds
@@ -518,27 +530,145 @@ You can see how complex a single repository dependency can be with the following
 Automatic Cleaning of meta.xml files on Deploy
 ----------------------------------------------
 
-In order to allow CumulusCI to fully manage the project's dependencies, the `deploy` task (and other tasks based on `cumulusci.tasks.salesforce.Deploy` or subclasses of it) will automatically remove the `<packageVersion>` element and its children from all meta.xml files in the deployed metadata.  This does not affect the files on the filesystem.
+In order to allow CumulusCI to fully manage the project's dependencies, the ``deploy`` task (and other tasks based on ``cumulusci.tasks.salesforce.Deploy`` or subclasses of it) will automatically remove the ``<packageVersion>`` element and its children from all meta.xml files in the deployed metadata.  This does not affect the files on the filesystem.
 
-The reason for stripping `<packageVersion>` elements on deploy is that the target Salesforce org will automatically add them back using the installed version of the referenced namespace.  This allows CumulusCI to fully manage dependencies and avoids the need to rush a new commit of meta.xml files when a new underlying package version is available.
+The reason for stripping ``<packageVersion>`` elements on deploy is that the target Salesforce org will automatically add them back using the installed version of the referenced namespace.  This allows CumulusCI to fully manage dependencies and avoids the need to rush a new commit of meta.xml files when a new underlying package version is available.
 
 If the metadata being deployed references namespaced metadata that does not exist in the currently installed package, the deployment will still throw an error as expected.
 
-The automatic cleaning of meta.xml files can be disabled using by setting the `clean_meta_xml` task option to `False`.
+The automatic cleaning of meta.xml files can be disabled using by setting the ``clean_meta_xml`` task option to ``False``.
 
 Prior to the addition of this functionality, we often experienced unnecessary delays in our release cycle due to the need to create a new commit on master (and thus a feature branch, PR, code review, etc) just to update the meta.xml files.  CumulusCI's Github Dependency functionality already handles requiring a new production release so the only reason we needed to do this commit was the meta.xml files.  Automatically cleaning the meta.xml files on deploy eliminates the need for this commit.
 
-One drawback of this approach is that there may be diffs in the meta.xml files that developers need to handle by either ignoring them or commiting them as part of their work in a feature branch.  The diffs come from a scenario of Package B which extends Package A.  When a new production release of Package A is published, the `update_dependencies` task for Package B will install the new version.  When metadata is then retrieved from the org, the meta.xml files will reference the new version while the repository's meta.xml files reference an older version.  The main difference between this situation and the previous situation without automatically cleaning the meta.xml is that avoiding the diffs in meta.xml files is a convenience for developers rather than a requirement for builds and releases.  Developers can also use the `meta_xml_dependencies` task to update the meta.xml files locally using the versions from CumulusCI's calculated project dependencies.
+One drawback of this approach is that there may be diffs in the meta.xml files that developers need to handle by either ignoring them or commiting them as part of their work in a feature branch.  The diffs come from a scenario of Package B which extends Package A.  When a new production release of Package A is published, the ``update_dependencies`` task for Package B will install the new version.  When metadata is then retrieved from the org, the meta.xml files will reference the new version while the repository's meta.xml files reference an older version.  The main difference between this situation and the previous situation without automatically cleaning the meta.xml is that avoiding the diffs in meta.xml files is a convenience for developers rather than a requirement for builds and releases.  Developers can also use the ``meta_xml_dependencies`` task to update the meta.xml files locally using the versions from CumulusCI's calculated project dependencies.
+
+Using Tasks and Flows from a Different Project
+----------------------------------------------
+
+The dependency handling discussed above is used in a very specific context,
+to install dependency packages or metadata bundles in the ``dependencies`` flow
+which is a component of some other flows. It's also possible to use
+arbitrary tasks and flows from another project. To do this, the other project
+must be named in the ``sources`` section of cumulusci.yml:
+
+.. code-block:: yaml
+
+    sources:
+      npsp:
+        github: https://github.com/SalesforceFoundation/NPSP
+
+This says that when tasks or flows are referenced using the `npsp` namespace,
+CumulusCI should fetch the source from this GitHub repository. By default,
+it will fetch the most recent release, or the default branch if there are no releases.
+It's also possible to fetch a specific ``tag``:
+
+.. code-block:: yaml
+
+    sources:
+      npsp:
+        github: https://github.com/SalesforceFoundation/NPSP
+        tag: rel/3.163
+
+or a specific ``commit`` or ``branch``.
+
+Now it's possible to run a flow from NPSP:
+
+.. code-block:: console
+
+    $ cci flow run npsp:install_prod
+
+Or a task:
+
+.. code-block:: console
+
+    $ cci task run npsp:robot
+
+Or even to create a new flow which uses a flow from NPSP:
+
+.. code-block:: yaml
+
+    flows:
+      install_npsp:
+        steps:
+          1:
+            flow: npsp:install_prod
+          2:
+            flow: dev_org
+
+This flow will use NPSP's ``install_prod`` flow to install NPSP as a managed package,
+and then run this project's own ``dev_org`` flow.
 
 Source Tracking
 ===============
 
-The new tasks **list_changes** and **retrieve_changes** were built to interact with the source change tracking in scratch orgs.  Using these tasks, you can get a list of new changes made in the scratch org and retrieve those changes in Metadata API format.
+The ``list_changes`` and ``retrieve_changes`` tasks can be used to help find and retrieve metadata for components that have been changed in an org in Setup through clicks not code. This functionality relies on Salesforce's source tracking feature, so it is only available in scratch orgs.
 
-Creating retrieve_config_* Tasks
---------------------------------
+Setting up the Capture Scratch Org
+----------------------------------
 
-For each config directory, create a new task that wraps the retrieve_changes task using yaml like below:
+When you are ready to start making changes in an org that you want to capture, start by creating a snapshot, which will effectively set the source tracking to treat all current changes as already handled.  This will allow the ``list_changes`` and ``retrieve_changes`` tasks to detect any new metadata but ignore any prior changes.
+
+.. code-block:: console
+
+    cci task run snapshot_changes --org dev
+
+A number of the standard CumulusCI flows include the ``snapshot_changes`` as the final step. So if you have just set up a scratch org by running the ``dev_org``, ``dev_org_namespaced``, ``qa_org``, ``regression_org``, ``install_beta`` or ``install_prod`` flows, then you don't need to run ``snapshot_changes`` again.
+
+To check to make sure the snapshot was created correctly, you should see no changes listed when you run the ``list_changes`` task:
+
+.. code-block:: console
+
+    cci task run list_changes --org dev
+
+Listing Changes
+---------------
+
+Now, go make the changes in the org you want to capture as part of the dev config.
+You can check what components have changed with the ``list_changes`` command:
+
+.. code-block:: console
+
+    cci task run list_changes --org dev
+
+You can also include/exclude components from the list using the include/exclude options:
+
+.. code-block:: console
+
+    cci task run list_changes --org dev -o include "test.*,another_regex" -o exclude "something_to_exclude"
+
+The ``include`` and ``exclude`` patterns will be matched against both the metadata type and name of the component.
+
+You can also include all changed components of specific types:
+
+    cci task run list_changes --org dev -o types "CustomObject,CustomField"
+
+Retrieving Changes
+------------------
+
+When you are ready to capture the changes returned from ``list_changes``, run the ``retrieve_changes`` task::
+
+.. code-block:: console
+
+    cci task run retrieve_changes --org dev
+
+It accepts the same ``include``, ``exclude``, and ``types`` options for filtering the list of changed components, in case you don't want to retrieve everything.
+
+After the metadata has been retrieved, the snapshot will be updated so that the retrieved components will no longer be included in ``list_changes``. You can avoid this by setting the ``snapshot`` option to False.
+
+By default changes are retrieved into the ``src`` directory when using metadata source format,
+or the default sfdx package directory when using sfdx source format. You can retrieve into a different
+location using the ``path`` option:
+
+    cci task run retrieve_changes --org dev -o path unpackaged/config/qa
+
+Creating custom Retrieve Tasks
+------------------------------
+
+If you will be retrieving changes into a directory repeatedly,
+consider creating a custom task with the correct options
+so that you don't need to specify them on the command line each time.
+
+To do this, add YAML like this to your project's ``cumulusci.yml``::
 
 .. code-block:: yaml
 
@@ -550,53 +680,8 @@ For each config directory, create a new task that wraps the retrieve_changes tas
                 path: unpackaged/config/dev
                 namespace_tokenize: $project_config.project__package__namespace
 
-Setting up the Capture Scratch Org
-----------------------------------
+(If you're capturing post-install metadata that will remain unpackaged, it is best to do so starting with a managed installation of your package. This makes it possible to convert references to the package namespace into CumulusCI's namespace token strings, so that the retrieved metadata can be deployed on top of either managed installations or unmanaged deployments of the package. To set up an org with the latest managed beta release, use the ``install_beta`` flow.)
 
-When capturing post-install configuration, it is best to work with a managed version of the product.  This will ensure that namespace references are replaced by CumulusCI's namespace token strings, resulting in retrieved config metadata that works with both managed and unmanaged deployments.
-
-.. code-block:: console
-
-    cci flow run install_beta --org dev
-
-Starting a Snapshot
--------------------
-
-When you are ready to start making declarative changes you want to capture, start by creating a snapshot, which will effectively set the source tracking to treat all current changes as already handled.  This will mean the list_changes command will list any new metadata but ignore any phantom changes from before
-
-.. code-block:: console
-
-    cci task run list_changes --org dev -o snapshot True
-
-To check to make sure the snapshot was created correctly, you should see no changes listed when re-running list_changes
-
-.. code-block:: console
-
-    cci task run list_changes --org dev
-
-Retrieving Changes
-------------------
-
-Now, go make the changes in the org you want to capture as part of the dev config.  You can check what metadata has changed with the list_changes command
-
-.. code-block:: console
-
-    cci task run list_changes --org dev
-
-You can also include/exclude files from the list using the include/exclude options
-
-.. code-block:: console
-
-    cci task run list_changes --org dev -o include "test.*,another_regex" \
-                                        -o exclude "something_to_exclude"
-
-When you are ready to capture the changes returned from list_changes, run the custom retrieve task
-
-.. code-block:: console
-
-    cci task run retrieve_config_dev --org dev
-
-If you used include/exclude to narrow down the list of changes, you can pass the same -o include and -o exclude arguments to the retrieve_config_dev task
 
 Source Code Formats
 ===================
@@ -607,7 +692,7 @@ CumulusCI supports two different formats for storing the source code for a packa
 2. The `Salesforce DX source format <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_source_file_format.htm>`_. It is optimized for developer usability with tools such as the Salesforce CLI (sfdx) and Salesforce Extensions for VS Code. When deploying a DX-format package to a scratch org, CumulusCI will do so using the ``sfdx force:source:push`` command. For orgs that do not support source tracking, such as a Developer Edition packaging org, it will convert the package to metadata format and then deploy using the Metadata API.
 
 By default, CumulusCI assumes your source code is in the metadata format.
-Tell it to use DX format instead in cumulusci.yml::
+Tell it to use DX format instead in cumulusci.yml:
 
 .. code-block:: yaml
 
@@ -625,13 +710,13 @@ follow these steps to convert your project to store DX format source code in the
 .. code-block:: yaml
 
     {
-    "packageDirectories": [
-        {
-        "path": "force-app",
-        "default": true
-        }
-    ],
-    "sourceApiVersion": "46.0”
+        "packageDirectories": [
+            {
+                "path": "force-app",
+                "default": true
+            }
+        ],
+        "sourceApiVersion": "46.0”
     }
 
 2. Add ``source_format: sfdx`` to the project section of ``cumulusci.yml``.
@@ -642,5 +727,27 @@ Now when you set up a new scratch org (for example by running the dev_org flow),
 the source should get pushed successfully from the ``force-app`` directory.
 
 Caveats:
+
 * It’s possible there may be some minor errors in the automatic conversion that need special attention in order to deploy successfully.
-* See https://ntotten.com/2018/05/11/convert-metadata-to-source-format-while-maintain-git-history/ for some tips on preserving git history while converting your source format.
+* See `this link <https://ntotten.com/2018/05/11/convert-metadata-to-source-format-while-maintain-git-history/>`_ for some tips on preserving git history while converting your source format.
+
+
+Reporting Error Logs 
+====================
+Use the ``cci gist`` command to send the log of your last ``cci`` command to a GitHub gist so you can submit it for support if needed.
+
+For this feature to work you will need to ensure that your `github service is setup with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
+
+The gist command creates a gist comprised of:
+    * The current version of ``cci``
+    * The current python version
+    * The path to the python executable
+    * The ``sysname`` of the host (e.g. Darwin)
+    * The machine name of the host (e.g. x86_64)
+    * The most recent logfile (cci.log) that CumulusCI has created.
+
+The URL for the gist is displayed on the terminal of the user as output, and a web browser will automatically open a tab to the gist.
+
+**Logfiles**
+
+CumulusCI creates a logfile every time a cci command is run. The only exception to this is when the cci gist command is run. Logfiles are stored under `~/.cumulusci/logs`.

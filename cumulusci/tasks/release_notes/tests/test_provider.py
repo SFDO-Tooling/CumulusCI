@@ -1,10 +1,7 @@
-from future import standard_library
-
-standard_library.install_aliases()
 from datetime import datetime
 from datetime import timedelta
 import http.client
-import mock
+from unittest import mock
 import os
 import shutil
 import tempfile

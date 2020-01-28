@@ -2,16 +2,13 @@
 
 Subclass BaseTask or a descendant to define custom task logic
 """
-from __future__ import division
-from __future__ import unicode_literals
-
-from builtins import object
-from past.utils import old_div
 import contextlib
 import logging
+import os
 import time
 import threading
 
+from cumulusci.utils import cd
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
@@ -20,8 +17,8 @@ CURRENT_TASK.stack = []
 
 
 @contextlib.contextmanager
-def stacked_task(self):
-    CURRENT_TASK.stack.append(self)
+def stacked_task(task):
+    CURRENT_TASK.stack.append(task)
     try:
         yield
     finally:
@@ -123,9 +120,6 @@ class BaseTask(object):
         pass
 
     def __call__(self):
-        # If sentry is configured, initialize sentry for error capture
-        self.project_config.init_sentry()
-
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg(
                 "This task requires a salesforce org. "
@@ -136,28 +130,11 @@ class BaseTask(object):
         self._init_task()
 
         with stacked_task(self):
-            try:
+            self.working_path = os.getcwd()
+            with cd(self.project_config.repo_root):
                 self._log_begin()
                 self.result = self._run_task()
                 return self.return_values
-            except Exception as e:
-                self._process_exception(e)
-                raise
-
-    def _process_exception(self, e):
-        if self.project_config.use_sentry:
-            self.logger.info("Logging error to sentry.io")
-
-            tags = {"task class": self.__class__.__name__}
-            if self.org_config:
-                tags["org username"] = self.org_config.username
-                tags["scratch org"] = self.org_config.scratch is True
-            for key, value in list(self.options.items()):
-                tags["option_" + key] = value
-            self.project_config.sentry.tags_context(tags)
-
-            resp = self.project_config.sentry.captureException()
-            self.project_config.sentry_event = resp
 
     def _run_task(self):
         """ Subclasses should override to provide their implementation """
@@ -221,7 +198,7 @@ class BaseTask(object):
     def _poll_update_interval(self):
         """ update the polling interval to be used next iteration """
         # Increase by 1 second every 3 polls
-        if old_div(self.poll_count, 3) > self.poll_interval_level:
+        if self.poll_count // 3 > self.poll_interval_level:
             self.poll_interval_level += 1
             self.poll_interval_s += 1
             self.logger.info(
@@ -242,6 +219,7 @@ class BaseTask(object):
                 "step_num": str(step.step_num),
                 "task_class": self.task_config.class_path,
                 "task_config": task_config,
+                "source": step.project_config.source.frozenspec,
             }
         )
         return [ui_step]

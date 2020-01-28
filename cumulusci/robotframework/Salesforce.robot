@@ -1,5 +1,21 @@
 *** Settings ***
 
+Documentation
+...  This resource file imports the Salesforce and CumulusCI
+...  keyword libraries, along with several other commonly used
+...  libraries (Collections, OperatingSystem, String, XML). In
+...  addition, it defines several other keywords.
+...
+...  This resource file also defines several global variables,
+...  including ``${BROWSER}``, ``${ORG}``, and ``${DEFAULT_BROWSER_SIZE}``
+...
+...  This resource file should be included in every test suite,
+...  like in the following example (note: there should be two
+...  or more spaces after ``Resource``):
+...
+...  | ``*** Settings ***``
+...  | ``Resource   cumulusci/robotframework/Salesforce.robot``
+
 Library        Collections
 Library        OperatingSystem
 Library        String
@@ -67,15 +83,6 @@ Open Test Browser
     ${width}  ${height}=  split string  ${size}  separator=x  max_split=1
     Set window size  ${width}  ${height}
     Log browser capabilities
-
-Initialize Location Strategies
-    [Documentation]  Initialize the Salesforce location strategies 'text' and 'title'
-    # this sets a flag so that we don't try to do this twice in a single
-    # test. Without the flag, this will throw an error.
-    Return from keyword if  ${LOCATION STRATEGIES INITIALIZED}
-    Add Location Strategy  text   Locate Element By Text
-    Add Location Strategy  title  Locate Element By Title
-    set suite variable  ${LOCATION STRATEGIES INITIALIZED}  ${TRUE}
 
 Open Test Browser Chrome
     [Arguments]     ${login_url}  ${alias}=${NONE}

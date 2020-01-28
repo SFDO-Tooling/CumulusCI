@@ -1,4 +1,3 @@
-from builtins import str
 import json
 import functools
 
@@ -546,7 +545,7 @@ class SalesforcePushApi(object):
         push_error_objs = []
         lazy = "jobs" in self.lazy
         if not lazy:
-            push_jobs = self.get_push_jobs_by_id()
+            jobs = self.get_push_jobs_by_id()
         for push_error in self.get_push_errors(where, limit):
             if lazy:
                 jobs = self.get_push_job_objs(
@@ -637,7 +636,7 @@ class SalesforcePushApi(object):
 
         # add batch to push request
         try:
-            res = self.sf._call_salesforce(
+            self.sf._call_salesforce(
                 "POST",
                 self.sf.base_url + "composite/tree/PackagePushJob",
                 data=json.dumps(batch_data),

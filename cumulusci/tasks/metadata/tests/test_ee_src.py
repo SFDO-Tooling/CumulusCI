@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import os
 import unittest
 
@@ -26,8 +26,11 @@ class TestCreateUnmanagedEESrc(unittest.TestCase):
             )
             task = CreateUnmanagedEESrc(project_config, task_config)
             task()
-            removeXmlElement.assert_called_once_with(
-                "availableFields", path, "*.object"
+            removeXmlElement.assert_has_calls(
+                [
+                    mock.call("availableFields", path, "*.object"),
+                    mock.call("visibility[.='Protected']", path, "*.object"),
+                ]
             )
 
     def test_run_task__path_not_found(self):
@@ -53,7 +56,7 @@ class TestCreateUnmanagedEESrc(unittest.TestCase):
 class TestRevertUnmanagedEESrc(unittest.TestCase):
     def test_run_task(self):
         with temporary_dir() as revert_path:
-            with open(os.path.join(revert_path, "file"), "w") as f:
+            with open(os.path.join(revert_path, "file"), "w"):
                 pass
             path = os.path.join(
                 os.path.dirname(revert_path), os.path.basename(revert_path) + "_orig"

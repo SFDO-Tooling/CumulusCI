@@ -1,10 +1,9 @@
-from __future__ import unicode_literals
 import os
-import warnings
-from collections import OrderedDict
 
-from cumulusci.core.utils import ordered_yaml_load, merge_config
-from cumulusci.core.config.BaseProjectConfig import BaseProjectConfig
+import yaml
+
+from cumulusci.core.utils import merge_config
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -13,22 +12,14 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 class BaseGlobalConfig(BaseTaskFlowConfig):
     """ Base class for the global config which contains all configuration not specific to projects """
 
+    config = None
     config_filename = "cumulusci.yml"
     project_config_class = BaseProjectConfig
     config_local_dir = ".cumulusci"
 
     def __init__(self, config=None):
-        self.config_global_local = {}
-        self.config_global = {}
-        super(BaseGlobalConfig, self).__init__(config)
-
-    def get_project_config(self, *args, **kwargs):
-        """ Returns a ProjectConfig for the given project """
-        warnings.warn(
-            "BaseGlobalConfig.get_project_config is pending deprecation",
-            DeprecationWarning,
-        )
-        return self.project_config_class(self, *args, **kwargs)
+        self._init_logger()
+        self._load_config()
 
     @property
     def config_global_local_path(self):
@@ -50,21 +41,26 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
 
     def _load_config(self):
         """ Loads the local configuration """
+        # avoid loading multiple times
+        if BaseGlobalConfig.config is not None:
+            return
+
         # load the global config
         with open(self.config_global_path, "r") as f_config:
-            config = ordered_yaml_load(f_config)
-        self.config_global = config
+            config = yaml.safe_load(f_config)
+        BaseGlobalConfig.config_global = config
 
         # Load the local config
         if self.config_global_local_path:
-            config = ordered_yaml_load(open(self.config_global_local_path, "r"))
-            self.config_global_local = config
+            with open(self.config_global_local_path, "r") as f:
+                config = yaml.safe_load(f)
+        else:
+            config = {}
+        BaseGlobalConfig.config_global_local = config
 
-        self.config = merge_config(
-            OrderedDict(
-                [
-                    ("global_config", self.config_global),
-                    ("global_local", self.config_global_local),
-                ]
-            )
+        BaseGlobalConfig.config = merge_config(
+            {
+                "global_config": BaseGlobalConfig.config_global,
+                "global_local": BaseGlobalConfig.config_global_local,
+            }
         )

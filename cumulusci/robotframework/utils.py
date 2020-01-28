@@ -5,6 +5,7 @@ from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.remote.command import Command
 from SeleniumLibrary.errors import ElementNotFound
+from robot.libraries.BuiltIn import BuiltIn
 
 
 def set_pdb_trace(pm=False):
@@ -199,3 +200,31 @@ def selenium_retry(target=None, retry=True):
     else:
         # Decorator was used without arguments
         return decorate(target)
+
+
+def capture_screenshot_on_error(func):
+    """Decorator for capturing a screenshot if a keyword throws an error
+
+    The name is slightly misleading. While it was designed to capture a
+    screenshot on error, it actually ties in to the same feature in
+    SeleniumLibrary.
+
+    SeleniumLibrary lets you define any keyword to be run on error,
+    though I doubt we would ever use it for anything other than to
+    capture screenshots. However, if you do configure SeleniumLibrary
+    to do something other than (or in addition to) capturing a
+    screenshot, any keyword that uses this decorator will behave just
+    like a SeleniumLibrary keyword.
+
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception:
+            selib = BuiltIn().get_library_instance("SeleniumLibrary")
+            selib.failure_occurred()
+            raise
+
+    return wrapper

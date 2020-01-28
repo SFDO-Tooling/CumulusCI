@@ -1,14 +1,14 @@
-import io
-import mock
+from unittest import mock
+import json
 import os
 import unittest
-import zipfile
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.salesforce.sourcetracking import ListChanges
 from cumulusci.tasks.salesforce.sourcetracking import RetrieveChanges
 from cumulusci.tasks.salesforce.sourcetracking import SnapshotChanges
 from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 
 
@@ -87,7 +87,7 @@ class TestListChanges(unittest.TestCase):
                 ],
             }
             task._run_task()
-            self.assertIn("Ignored 1 changed components in the scratch org.", messages)
+            self.assertIn("Found no changes.", messages)
 
     def test_filter_changes__include(self):
         foo = {"MemberType": "CustomObject", "MemberName": "foo__c", "RevisionNum": 1}
@@ -98,7 +98,7 @@ class TestListChanges(unittest.TestCase):
             "RevisionNum": 1,
         }
         task = create_task(ListChanges, {"include": "foo", "exclude": "bar"})
-        filtered = task._filter_changes({"records": [foo, bar, foobar]})
+        filtered, ignored = task._filter_changes([foo, bar, foobar])
         self.assertEqual([foo], filtered)
 
     def test_filter_changes__null_revnum(self):
@@ -109,25 +109,40 @@ class TestListChanges(unittest.TestCase):
         }
         bar = {"MemberType": "CustomObject", "MemberName": "bar__c", "RevisionNum": 1}
         task = create_task(ListChanges, {})
-        filtered = task._filter_changes({"records": [foo, bar]})
+        filtered, ignored = task._filter_changes([foo, bar])
         self.assertEqual([foo, bar], filtered)
 
-        self.assertEqual(-1, task._snapshot["CustomObject"]["foo__c"])
-        filtered = task._filter_changes({"records": [foo, bar]})
-        self.assertEqual([], filtered)
-
-        foo["RevisionNum"] = 12
-        filtered = task._filter_changes({"records": [foo, bar]})
-        self.assertEqual([foo], filtered)
+    def test_load_maxrevision(self):
+        with temporary_dir():
+            task = create_task(ListChanges, {})
+            task._store_maxrevision(1)
+            assert task._load_maxrevision() == 1
 
 
+@mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
 class TestRetrieveChanges(unittest.TestCase):
     """Retrieve changed components from a scratch org"""
 
-    def test_run_task(self):
-        with temporary_dir() as path:
-            os.mkdir("src")
-            task = create_task(RetrieveChanges, {"path": "src", "include": "Test"})
+    def test_init_options__sfdx_format(self, sfdx):
+        with temporary_dir():
+            project_config = create_project_config()
+            project_config.project__source_format = "sfdx"
+            with open("sfdx-project.json", "w") as f:
+                json.dump(
+                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                )
+            task = create_task(RetrieveChanges, {}, project_config)
+            assert not task.md_format
+            assert task.options["path"] == "force-app"
+
+    def test_run_task(self, sfdx):
+        sfdx_calls = []
+        sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
+
+        with temporary_dir():
+            task = create_task(
+                RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns"}
+            )
             task._init_task()
             task.tooling = mock.Mock()
             task.tooling.query_all.return_value = {
@@ -140,61 +155,17 @@ class TestRetrieveChanges(unittest.TestCase):
                     }
                 ],
             }
-            zf = zipfile.ZipFile(io.BytesIO(), "w")
-            zf.writestr("objects/Test__c.object", "<root />")
-            task.api_class = mock.Mock(return_value=mock.Mock(return_value=zf))
-            task._run_task()
-            with open(os.path.join(path, "src", "package.xml"), "r") as f:
-                package_xml = f.read()
-        self.assertIn("<members>Test__c</members>", package_xml)
 
-    def test_run_task__merge_changes(self):
-        # If there is already an existing package,
-        # we should add to it rather than overwriting it.
-        with temporary_dir() as path:
-            with open("package.xml", "w") as f:
-                f.write(
-                    """<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <types>
-        <members>Object1</members>
-        <name>CustomObject</name>
-    </types>
-</Package>
-"""
-                )
-            task = create_task(RetrieveChanges, {"path": path})
-            task._init_task()
-            task.tooling = mock.Mock()
-            task.tooling.query_all.return_value = {
-                "totalSize": 1,
-                "records": [
-                    {
-                        "MemberType": "CustomObject",
-                        "MemberName": "Object2",
-                        "RevisionNum": 1,
-                    }
-                ],
-            }
-            task.api_class = mock.Mock()
             task._run_task()
 
-            package_xml = task.api_class.call_args[0][1]
-            self.maxDiff = None
-            self.assertEqual(
-                """<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <types>
-        <members>Object1</members>
-        <members>Object2</members>
-        <name>CustomObject</name>
-    </types>
-    <version>46.0</version>
-</Package>""",
-                package_xml,
-            )
+            assert sfdx_calls == [
+                "force:mdapi:convert",
+                "force:source:retrieve",
+                "force:source:convert",
+            ]
+            assert os.path.exists(os.path.join("src", "package.xml"))
 
-    def test_run_task__no_changes(self):
+    def test_run_task__no_changes(self, sfdx):
         with temporary_dir() as path:
             task = create_task(RetrieveChanges, {"path": path})
             task._init_task()
@@ -222,17 +193,20 @@ class TestSnapshotChanges(unittest.TestCase):
             task = create_task(SnapshotChanges, org_config=org_config)
             task._init_task()
             task.tooling.query = mock.Mock(
-                return_value={
-                    "totalSize": 1,
-                    "done": True,
-                    "records": [
-                        {
-                            "MemberType": "CustomObject",
-                            "MemberName": "Object2",
-                            "RevisionNum": 1,
-                        }
-                    ],
-                }
+                side_effect=[
+                    {"totalSize": 0, "records": [], "done": True},
+                    {
+                        "totalSize": 1,
+                        "done": True,
+                        "records": [
+                            {
+                                "MemberType": "CustomObject",
+                                "MemberName": "Object2",
+                                "RevisionNum": 1,
+                            }
+                        ],
+                    },
+                ]
             )
             task._run_task()
             self.assertTrue(

@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import os
 import unittest
 
@@ -32,7 +32,13 @@ class TestDeployBundles(unittest.TestCase):
             os.mkdir(".git")
             os.makedirs("unpackaged/test")
             task = create_task(DeployBundles, {"path": path + "/unpackaged"})
-            step = StepSpec(1, "deploy_bundles", task.task_config, None)
+            step = StepSpec(
+                step_num=1,
+                task_name="deploy_bundles",
+                task_config=task.task_config,
+                task_class=None,
+                project_config=task.project_config,
+            )
             steps = task.freeze(step)
             self.assertEqual(
                 [
@@ -41,6 +47,7 @@ class TestDeployBundles(unittest.TestCase):
                         "kind": "metadata",
                         "name": "Deploy unpackaged/test",
                         "path": "deploy_bundles.test",
+                        "source": None,
                         "step_num": "1.1",
                         "task_class": "cumulusci.tasks.salesforce.UpdateDependencies",
                         "task_config": {
@@ -63,6 +70,6 @@ class TestDeployBundles(unittest.TestCase):
 
     def test_freeze__bad_path(self):
         task = create_task(DeployBundles, {"path": "/bogus"})
-        step = StepSpec(1, "deploy_bundles", task.task_config, None)
+        step = StepSpec(1, "deploy_bundles", task.task_config, None, None)
         steps = task.freeze(step)
         self.assertEqual([], steps)

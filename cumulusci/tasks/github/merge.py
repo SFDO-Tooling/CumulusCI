@@ -1,6 +1,3 @@
-from future import standard_library
-
-standard_library.install_aliases()
 import http.client
 
 from github3 import GitHubError
@@ -93,7 +90,7 @@ class MergeBranch(BaseGithubTask):
                 # The following line isn't included in coverage
                 # due to behavior of the CPython peephole optimizer,
                 # see https://bitbucket.org/ned/coveragepy/issues/198/continue-marked-as-not-covered
-                continue  # pragma: nocover
+                continue  # pragma: no cover
             branches.append(branch)
             branches_dict[branch.name] = branch
 
@@ -190,7 +187,7 @@ class MergeBranch(BaseGithubTask):
             return
 
         try:
-            result = self.repo.merge(branch, commit)
+            self.repo.merge(branch, commit)
             self.logger.info(
                 "Merged {} commits into {} {}".format(
                     compare.behind_by, branch_type, branch

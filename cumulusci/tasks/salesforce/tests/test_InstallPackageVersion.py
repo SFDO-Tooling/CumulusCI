@@ -1,19 +1,16 @@
 import base64
 import io
-import mock
-import responses
+from unittest import mock
 import unittest
 import zipfile
 
 from cumulusci.salesforce_api.exceptions import MetadataApiError
-from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result
 from cumulusci.tasks.salesforce import InstallPackageVersion
 from cumulusci.tests.util import create_project_config
 from .util import create_task
 
 
 class TestInstallPackageVersion(unittest.TestCase):
-    @mock.patch("time.sleep", mock.Mock())
     def test_run_task_with_retry(self):
         project_config = create_project_config()
         project_config.get_latest_version = mock.Mock(return_value="1.0")

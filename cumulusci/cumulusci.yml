@@ -2,6 +2,10 @@ cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 
 tasks:
+    activate_flow:
+        group: Metadata Transformations
+        description: Activates Flows identified by a given list of Developer Names
+        class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
@@ -10,10 +14,6 @@ tasks:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
         group: Utilities
-    commit_apex_docs:
-        description: commit local ApexDocs to GitHub branch
-        class_path: cumulusci.tasks.github.CommitApexDocs
-        group: Release Management
     connected_app:
         description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
         class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
@@ -25,7 +25,7 @@ tasks:
     create_community:
         description: Creates a Community in the target org using the Connect API
         class_path: cumulusci.tasks.salesforce.CreateCommunity
-        group: Salesforce
+        group: Salesforce Communities
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
@@ -98,18 +98,30 @@ tasks:
         options:
             command: 'force:source:push'
         group: Salesforce DX
+    ensure_record_types:
+        description: Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
+        class_path: cumulusci.tasks.salesforce.EnsureRecordTypes
+        options:
+            record_type_label: Default
+            record_type_developer_name: Default
+        group: 'Salesforce Metadata'
     execute_anon:
         description: Execute anonymous apex via the tooling api.
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
         group: Salesforce
-    generate_apex_docs:
-        description: Generate documentation for local code. Configure settings in cumulusci.yml/project/apexdoc - homepage, banner, branch, repo_dir
-        class_path: cumulusci.tasks.apexdoc.GenerateApexDocs
-        group: Release Management
+    generate_data_dictionary:
+        description: Create a data dictionary for the project in CSV format.
+        class_path: cumulusci.tasks.datadictionary.GenerateDataDictionary
+        options:
+            release_prefix: $project_config.project__git__prefix_release
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.salesforce.GetInstalledPackages
         group: Salesforce Metadata
+    github_parent_pr_notes:
+        description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
+        class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
+        group: GitHub
     github_clone_tag:
         description: Clones a github tag under a new name.
         class_path: cumulusci.tasks.github.CloneTag
@@ -155,6 +167,14 @@ tasks:
             version: latest_beta
             activateRSS: True
         group: Salesforce Packages
+    list_communities:
+        description: Lists Communities for the current org using the Connect API.
+        class_path: cumulusci.tasks.salesforce.ListCommunities
+        group: Salesforce Communities
+    list_community_templates:
+        description: Prints the Community Templates available to the current org
+        class_path: cumulusci.tasks.salesforce.ListCommunityTemplates
+        group: Salesforce Communities
     list_metadata_types:
         description: Prints the metadata types in a project
         class_path: cumulusci.tasks.util.ListMetadataTypes
@@ -167,14 +187,18 @@ tasks:
         description: Set the version for dependent packages
         class_path: cumulusci.tasks.metaxml.UpdateDependencies
         group: Salesforce Metadata
-    mrbelvedere_publish:
-        description: Publishes a release to the mrbelvedere web installer
-        class_path: cumulusci.tasks.mrbelvedere.MrbelvederePublish
-        group: Release Management
     metadeploy_publish:
         description: Publish a release to the MetaDeploy web installer
         class_path: cumulusci.tasks.metadeploy.Publish
         group: Release Management
+    org_settings:
+        description: Apply org settings from a scratch org definition file
+        class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
+        group: Salesforce DX
+    publish_community:
+        description: Publishes a Community in the target org using the Connect API
+        class_path: cumulusci.tasks.salesforce.PublishCommunity
+        group: Salesforce Communities
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
@@ -235,8 +259,6 @@ tasks:
     retrieve_changes:
         description: Retrieve changed components from a scratch org
         class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
-        options:
-            path: src
         group: Salesforce Metadata
     retrieve_qa_config:
         description: Retrieves the current changes in the scratch org into unpackaged/config/qa
@@ -371,29 +393,46 @@ tasks:
         class_path: cumulusci.tasks.bulkdata.GenerateMapping
         options:
             namespace_prefix: $project_config.project__package__namespace
-            path: 'datasets/generated_mapping.yml'
+            path: 'datasets/mapping.yml'
+        group: 'Data Operations'
     extract_dataset:
         description: Extract a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.ExtractData
         options:
-            database_url: 'sqlite:///datasets/sample.db'
             mapping: 'datasets/mapping.yml'
+            sql_path: 'datasets/sample.sql'
+        group: 'Data Operations'
     load_dataset:
         description: Load a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.LoadData
         options:
-            database_url: 'sqlite:///datasets/sample.db'
             mapping: 'datasets/mapping.yml'
+            sql_path: 'datasets/sample.sql'
+        group: 'Data Operations'
+    load_custom_settings:
+        description: Load Custom Settings specified in a YAML file to the target org
+        class_path: cumulusci.tasks.salesforce.LoadCustomSettings
+        group: 'Data Operations'
+    remove_metadata_xml_elements:
+        description: Remove specified XML elements from one or more metadata files
+        class_path: cumulusci.tasks.metadata.modify.RemoveElementsXPath
+        group: Salesforce Metadata
+    disable_tdtm_trigger_handlers:
+        class_path: cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+        description: "Disable specified TDTM trigger handlers"
+        group: NPSP/EDA
+        options:
+            active: False
+            restore_file: trigger_status.yml
+    restore_tdtm_trigger_handlers:
+        class_path: cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+        description: "Restore status of TDTM trigger handlers"
+        group: NPSP/EDA
+        options:
+            restore: True
+            restore_file: trigger_status.yml
 
 flows:
-    apex_docs:
-        description: Generate and commit documentation using ApexDoc
-        steps:
-            1:
-                task: generate_apex_docs
-            2:
-                task: commit_apex_docs
-
     ci_beta:
         description: Install the latest beta version and runs apex tests from the managed package
         steps:
@@ -407,6 +446,11 @@ flows:
     ci_feature:
         description: Prepare an unmanaged metadata test org and run apex tests.  Intended for use against feature branch commits.
         steps:
+            0.5:
+                task: github_parent_pr_notes
+                options:
+                    branch_name: $project_config.repo_branch
+                    build_notes_label: "Build Change Notes"
             1:
                 flow: dependencies
             2:
@@ -421,6 +465,11 @@ flows:
     ci_feature_beta_deps:
         description: Install the latest beta version of dependencies and run apex tests.
         steps:
+            0.5:
+                task: github_parent_pr_notes
+                options:
+                    branch_name: $project_config.repo_branch
+                    build_notes_label: "Build Change Notes"
             1:
                 flow: beta_dependencies
             2:
@@ -626,6 +675,8 @@ flows:
                         namespaced_org: True
                     update_admin_profile:
                         namespaced_org: True
+            4:
+                task: snapshot_changes
 
     qa_org:
         description: Set up an org as a QA environment for unmanaged metadata
@@ -787,6 +838,12 @@ services:
       client_secret:
         description: Client Secret/Consumer Secret from the Connected App
         required: True
+  devhub:
+    description: Configure which SFDX org to use as a Dev Hub for creating scratch orgs
+    attributes:
+      username:
+        description: Username or alias of the SFDX org to use as a Dev Hub
+        required: True
   github:
     description: Configure connection for github tasks, e.g. Create Release
     attributes:
@@ -821,15 +878,6 @@ services:
       token:
         description: Your API token to the MetaDeploy site (get from SITE_URL/admin/authtoken/token)
         required: True
-  mrbelvedere:
-    description: Configure connection for mrbelvedere tasks, e.g. MrbelvederePublish
-    attributes:
-      base_url:
-        description: The base url for your mrbelvedere instance.
-        required: True
-      api_key:
-        description: The package api_key for the package in your mrbelvedere instance.
-        required: True
   apextestsdb:
     description: Configure connection for ApexTestsDB tasks, e.g. ApextestsdbUpload
     attributes:
@@ -851,21 +899,6 @@ services:
       api_key:
         description: The Saucelabs api key to use for tasks
         required: True
-  sentry:
-    description: Configure connection to sentry.io for error tracking
-    attributes:
-      dsn:
-        description: "The sentry DSN for connecting to the API, see https://docs.sentry.io/quickstart/#configure-the-dsn"
-        required: True
-      api_key:
-        description: "The sentry web api auth key for your account, see https://docs.sentry.io/api/auth/"
-        required: True
-      org_slug:
-        description: "The abbreviated organization name used in the your sentry urls"
-        required: True
-      project_slug:
-        description: "The abbreviated project slug used in sentry urls to the project"
-        required: True
 
 project:
     name:
@@ -875,7 +908,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: '46.0'
+        api_version: '47.0'
     git:
         default_branch: master
         prefix_feature: feature/
@@ -902,14 +935,14 @@ project:
                     title: Deleted Metadata
     test:
         name_match: '%_TEST%'
-    apexdoc:
-        version: 1.1.7
-        scope: global;public;private;testmethod;webService
     dependencies:
 
 orgs:
     scratch:
         dev:
+            config_file: orgs/dev.json
+            days: 7
+        qa:
             config_file: orgs/dev.json
             days: 7
         feature:

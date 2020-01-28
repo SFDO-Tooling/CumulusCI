@@ -1,23 +1,27 @@
-from __future__ import unicode_literals
-from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
+import re
 
-import raven
+API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
-import cumulusci
-from cumulusci.core.utils import ordered_yaml_load, merge_config
+import yaml
+
+from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
     DependencyResolutionError,
     KeychainNotFound,
-    ServiceNotConfigured,
-    ServiceNotValid,
+    NamespaceNotFoundError,
     NotInProject,
     ProjectConfigNotFound,
 )
 from cumulusci.core.github import get_github_api_for_repo
+from cumulusci.core.github import find_latest_release
+from cumulusci.core.github import find_previous_release
+from cumulusci.core.source import GitHubSource
+from cumulusci.core.source import LocalFolderSource
+from cumulusci.core.source import NullSource
 from github3.exceptions import NotFoundError
 
 
@@ -47,6 +51,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if "additional_yaml" in kwargs:
             self.additional_yaml = kwargs.pop("additional_yaml")
 
+        # initialize map of project configs referenced from an external source
+        self.source = NullSource()
+        self.included_sources = kwargs.pop("included_sources", {})
+
         super(BaseProjectConfig, self).__init__(config=config)
 
     @property
@@ -73,14 +81,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Verify that the project's root has a config file
         if not self.config_project_path:
             raise ProjectConfigNotFound(
-                "The file {} was not found in the repo root: {}. Are you in a CumulusCI Project directory?".format(
-                    self.config_filename, repo_root
-                )
+                f"The file {self.config_filename} was not found in the repo root: {repo_root}. Are you in a CumulusCI Project directory?"
             )
 
         # Load the project's yaml config file
         with open(self.config_project_path, "r") as f_config:
-            project_config = ordered_yaml_load(f_config)
+            project_config = yaml.safe_load(f_config)
 
         if project_config:
             self.config_project.update(project_config)
@@ -88,27 +94,40 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
             with open(self.config_project_local_path, "r") as f_local_config:
-                local_config = ordered_yaml_load(f_local_config)
+                local_config = yaml.safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
 
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
-            additional_yaml_config = ordered_yaml_load(self.additional_yaml)
+            additional_yaml_config = yaml.safe_load(self.additional_yaml)
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
         self.config = merge_config(
-            OrderedDict(
-                [
-                    ("global_config", self.config_global),
-                    ("global_local", self.config_global_local),
-                    ("project_config", self.config_project),
-                    ("project_local_config", self.config_project_local),
-                    ("additional_yaml", self.config_additional_yaml),
-                ]
-            )
+            {
+                "global_config": self.config_global,
+                "global_local": self.config_global_local,
+                "project_config": self.config_project,
+                "project_local_config": self.config_project_local,
+                "additional_yaml": self.config_additional_yaml,
+            }
         )
+
+        self._validate_config()
+
+    def _validate_config(self):
+        """Performs validation checks on the configuration"""
+        self._validate_package_api_format()
+
+    def _validate_package_api_format(self):
+        api_version = str(self.project__package__api_version)
+
+        if not API_VERSION_RE.match(api_version):
+            message = (
+                f"Package API Version must be in the form 'XX.0', found: {api_version}"
+            )
+            raise ConfigError(message)
 
     @property
     def config_global_local(self):
@@ -145,29 +164,24 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Other CI environment implementations can be implemented here...
 
-        # Apply CUMULUSCI_REPO_* environment variables last so they can
-        # override and fill in missing values from the CI environment
-        repo_branch = os.environ.get("CUMULUSCI_REPO_BRANCH")
-        if repo_branch:
-            if repo_branch != info.get("branch"):
-                self.logger.info(
-                    "CUMULUSCI_REPO_BRANCH found, using its value as the branch"
-                )
-            info["branch"] = repo_branch
-        repo_commit = os.environ.get("CUMULUSCI_REPO_COMMIT")
-        if repo_commit:
-            if repo_commit != info.get("commit"):
-                self.logger.info(
-                    "CUMULUSCI_REPO_COMMIT found, using its value as the commit"
-                )
-            info["commit"] = repo_commit
-        repo_root = os.environ.get("CUMULUSCI_REPO_ROOT")
-        if repo_root:
-            if repo_root != info.get("root"):
-                self.logger.info(
-                    "CUMULUSCI_REPO_ROOT found, using its value as the repo root"
-                )
-            info["root"] = repo_root
+        self._apply_repo_env_var_overrides(info)
+
+        if info["ci"]:
+            self._validate_required_git_info(info)
+
+        if len(info) > 1:
+            self._log_detected_overrides_as_warning(info)
+
+        self._repo_info = info
+        return self._repo_info
+
+    def _apply_repo_env_var_overrides(self, info):
+        """ Apply CUMULUSCI_REPO_* environment variables last so they can
+        override and fill in missing values from the CI environment"""
+        self._override_repo_env_var("CUMULUSCI_REPO_BRANCH", "branch", info)
+        self._override_repo_env_var("CUMULUSCI_REPO_COMMIT", "commit", info)
+        self._override_repo_env_var("CUMULUSCI_REPO_ROOT", "root", info)
+
         repo_url = os.environ.get("CUMULUSCI_REPO_URL")
         if repo_url:
             if repo_url != info.get("url"):
@@ -177,42 +191,40 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             url_info = self._split_repo_url(repo_url)
             info.update(url_info)
 
-        # If running in a CI environment, make sure we have all the needed
-        # git info or throw a ConfigError
-        if info["ci"]:
-            validate = OrderedDict(
-                (
-                    # <key>, <env var to manually override>
-                    ("branch", "CUMULUSCI_REPO_BRANCH"),
-                    ("commit", "CUMULUSCI_REPO_COMMIT"),
-                    ("name", "CUMULUSCI_REPO_URL"),
-                    ("owner", "CUMULUSCI_REPO_URL"),
-                    ("root", "CUMULUSCI_REPO_ROOT"),
-                    ("url", "CUMULUSCI_REPO_URL"),
-                )
-            )
-            for key, env_var in list(validate.items()):
-                if key not in info or not info[key]:
-                    message = "Detected CI on {} but could not determine the repo {}".format(
-                        info["ci"], key
-                    )
-                    if env_var:
-                        message += ". You can manually pass in the {} with".format(key)
-                        message += " with the {} environment variable.".format(env_var)
-                    raise ConfigError(message)
+    def _override_repo_env_var(self, repo_env_var, local_var, info):
+        repo_env_var = os.environ.get(repo_env_var)
+        if repo_env_var:
+            if repo_env_var != info.get(local_var):
+                self.logger.info("{} found, using its value for configuration.")
+            info[local_var] = repo_env_var
 
-        # Log any overrides detected through the environment as a warning
-        if len(info) > 1:
-            self.logger.info("")
-            self.logger.warning("Using environment variables to override repo info:")
-            keys = list(info.keys())
-            keys.sort()
-            for key in keys:
-                self.logger.warning("  {}: {}".format(key, info[key]))
-            self.logger.info("")
+    def _validate_required_git_info(self, info):
+        """Ensures that we have the required git info or throw a ConfigError"""
+        validate = {
+            # <key>: <env var to manually override>
+            "branch": "CUMULUSCI_REPO_BRANCH",
+            "commit": "CUMULUSCI_REPO_COMMIT",
+            "name": "CUMULUSCI_REPO_URL",
+            "owner": "CUMULUSCI_REPO_URL",
+            "root": "CUMULUSCI_REPO_ROOT",
+            "url": "CUMULUSCI_REPO_URL",
+        }
+        for key, env_var in list(validate.items()):
+            if key not in info or not info[key]:
+                message = f"Detected CI on {info['ci']} but could not determine the repo {key}"
+                if env_var:
+                    message += f". You can manually pass in the {key} "
+                    message += f" with the {env_var} environment variable."
+                raise ConfigError(message)
 
-        self._repo_info = info
-        return self._repo_info
+    def _log_detected_overrides_as_warning(self, info):
+        self.logger.info("")
+        self.logger.warning("Using environment variables to override repo info:")
+        keys = list(info.keys())
+        keys.sort()
+        for key in keys:
+            self.logger.warning(f"  {key}: {info[key]}")
+        self.logger.info("")
 
     def _split_repo_url(self, url):
         url_parts = url.split("/")
@@ -348,40 +360,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return commit_sha
 
-    @property
-    def use_sentry(self):
-        try:
-            self.keychain.get_service("sentry")
-            return True
-        except ServiceNotConfigured:
-            return False
-        except ServiceNotValid:
-            return False
-
-    def init_sentry(self,):
-        """ Initializes sentry.io error logging for this session """
-        if not self.use_sentry:
-            return
-
-        sentry_config = self.keychain.get_service("sentry")
-
-        tags = {
-            "repo": self.repo_name,
-            "branch": self.repo_branch,
-            "commit": self.repo_commit,
-            "cci version": cumulusci.__version__,
-        }
-        tags.update(self.config.get("sentry_tags", {}))
-
-        env = self.config.get("sentry_environment", "CumulusCI CLI")
-
-        self.sentry = raven.Client(
-            dsn=sentry_config.dsn,
-            environment=env,
-            tags=tags,
-            processors=("raven.processors.SanitizePasswordsProcessor",),
-        )
-
     def get_github_api(self, owner=None, repo=None):
         return get_github_api_for_repo(
             self.keychain, owner or self.repo_owner, repo or self.repo_name
@@ -417,14 +395,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """Query GitHub releases to find the previous production release"""
         gh = self.get_github_api()
         repo = gh.repository(self.repo_owner, self.repo_name)
-        most_recent = None
-        for release in repo.releases():
-            # Return the second release that matches the release prefix
-            if release.tag_name.startswith(self.project__git__prefix_release):
-                if most_recent is None:
-                    most_recent = release
-                else:
-                    return LooseVersion(self.get_version_for_tag(release.tag_name))
+        release = find_previous_release(repo, self.project__git__prefix_release)
+        if release is not None:
+            return LooseVersion(self.get_version_for_tag(release.tag_name))
 
     @property
     def config_project_path(self):
@@ -445,10 +418,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             name = self.project__name
         else:
             name = self.config_project.get("project", {}).get("name", "")
-        if name is None:
-            name = (
-                ""
-            )  # not entirely sure why this was happening in tests but this is the goal...
 
         path = os.path.join(
             os.path.expanduser("~"), self.global_config_obj.config_local_dir, name
@@ -522,7 +491,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             indent = 0
         pretty = []
         for dependency in dependencies:
-            prefix = "{}  - ".format(" " * indent)
+            prefix = f"{' ' * indent}  - "
             for key, value in sorted(dependency.items()):
                 extra = []
                 if value is None or value is False:
@@ -533,12 +502,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     )
                     if not extra:
                         continue
-                    value = "\n{}".format(" " * (indent + 4))
+                    value = f"\n{' ' * (indent + 4)}"
 
-                pretty.append("{}{}: {}".format(prefix, key, value))
+                pretty.append(f"{prefix}{key}: {value}")
                 if extra:
                     pretty.extend(extra)
-                prefix = "{}    ".format(" " * indent)
+                prefix = f"{' ' * indent}    "
         return pretty
 
     def process_github_dependency(  # noqa: C901
@@ -548,9 +517,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             indent = ""
 
         self.logger.info(
-            "{}Processing dependencies from Github repo {}".format(
-                indent, dependency["github"]
-            )
+            f"{indent}Processing dependencies from Github repo {dependency['github']}"
         )
 
         skip = dependency.get("skip")
@@ -575,27 +542,23 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     release = repo.release_from_tag(dependency["tag"])
                 except NotFoundError:
                     raise DependencyResolutionError(
-                        "{}No release found for tag {}".format(
-                            indent, dependency["tag"]
-                        )
+                        f"{indent}No release found for tag {dependency['tag']}"
                     )
             else:
-                release = self._find_latest_release(repo, include_beta)
+                release = find_latest_release(repo, include_beta)
             if release:
                 ref = repo.tag(
                     repo.ref("tags/" + release.tag_name).object.sha
                 ).object.sha
             else:
                 self.logger.info(
-                    "{}No release found; using the latest commit from the {} branch.".format(
-                        indent, repo.default_branch
-                    )
+                    f"{indent}No release found; using the latest commit from the {repo.default_branch} branch."
                 )
                 ref = repo.branch(repo.default_branch).commit.sha
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
-        cumulusci_yml = ordered_yaml_load(contents.decoded)
+        cumulusci_yml = yaml.safe_load(contents.decoded)
 
         # Get the namespace from the cumulusci.yml if set
         package_config = cumulusci_yml.get("project", {}).get("package", {})
@@ -619,10 +582,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             contents = None
         if contents:
             for dirname in list(contents.keys()):
-                subfolder = "unpackaged/pre/{}".format(dirname)
+                subfolder = f"unpackaged/pre/{dirname}"
                 if subfolder in skip:
                     continue
-                name = "Deploy {}".format(subfolder)
+                name = f"Deploy {subfolder}"
 
                 unpackaged_pre.append(
                     {
@@ -646,7 +609,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 subfolder = "src"
 
                 unmanaged_src = {
-                    "name": "Deploy {}".format(package_name or repo_name),
+                    "name": f"Deploy {package_name or repo_name}",
                     "repo_owner": repo_owner,
                     "repo_name": repo_name,
                     "ref": ref,
@@ -667,10 +630,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             contents = None
         if contents:
             for dirname in list(contents.keys()):
-                subfolder = "unpackaged/post/{}".format(dirname)
+                subfolder = f"unpackaged/post/{dirname}"
                 if subfolder in skip:
                     continue
-                name = "Deploy {}".format(subfolder)
+                name = f"Deploy {subfolder}"
 
                 dependency = {
                     "name": name,
@@ -708,13 +671,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if namespace and not unmanaged:
             if release is None:
                 raise DependencyResolutionError(
-                    "{}Could not find latest release for {}".format(indent, namespace)
+                    f"{indent}Could not find latest release for {namespace}"
                 )
             version = release.name
             # If a latest prod version was found, make the dependencies a
             # child of that install
             dependency = {
-                "name": "Install {} {}".format(package_name or namespace, version),
+                "name": f"Install {package_name or namespace} {version}",
                 "namespace": namespace,
                 "version": version,
             }
@@ -736,11 +699,82 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo_dependencies
 
-    def _find_latest_release(self, repo, include_beta=None):
-        try:
-            if include_beta:
-                return next(repo.releases())
+    def get_task(self, name):
+        """Get a TaskConfig by task name
+
+        If the name has a colon, look for it in a different project config.
+        """
+        if ":" in name:
+            ns, name = name.split(":")
+            other_config = self.get_namespace(ns)
+            task_config = other_config.get_task(name)
+            task_config.project_config = other_config
+        else:
+            task_config = super().get_task(name)
+            task_config.project_config = self
+        return task_config
+
+    def get_flow(self, name):
+        """Get a FlowConfig by flow name
+
+        If the name has a colon, look for it in a different project config.
+        """
+        if ":" in name:
+            ns, name = name.split(":")
+            other_config = self.get_namespace(ns)
+            flow_config = other_config.get_flow(name)
+            flow_config.name = name
+            flow_config.project_config = other_config
+        else:
+            flow_config = super().get_flow(name)
+            flow_config.name = name
+            flow_config.project_config = self
+        return flow_config
+
+    def get_namespace(self, ns):
+        """Look up another project config by its name in the `sources` config.
+
+        Also makes sure the project has been fetched, if it's from an external source.
+        """
+        spec = getattr(self, f"sources__{ns}")
+        if spec is None:
+            raise NamespaceNotFoundError(f"Namespace not found: {ns}")
+        return self.include_source(spec)
+
+    def include_source(self, spec):
+        """Make sure a project has been fetched from its source.
+
+        `spec` is a dict which contains different keys depending on the type of source:
+
+        - `github` indicates a GitHubSource
+        - `path` indicates a LocalFolderSource
+
+        This either fetches the project code and constructs its project config,
+        or returns a project config that was previously loaded with the same spec.
+        """
+        frozenspec = tuple(spec.items())
+        if frozenspec in self.included_sources:
+            project_config = self.included_sources[frozenspec]
+        else:
+            if "github" in spec:
+                source = GitHubSource(self, spec)
+            elif "path" in spec:
+                source = LocalFolderSource(self, spec)
             else:
-                return repo.latest_release()
-        except Exception as e:
-            self.logger.warning("{}: {}".format(e.__class__.__name__, str(e)))
+                raise Exception(f"Not sure how to load project: {spec}")
+            self.logger.info(f"Fetching from {source}")
+            project_config = source.fetch()
+            project_config.set_keychain(self.keychain)
+            project_config.source = source
+            self.included_sources[frozenspec] = project_config
+        return project_config
+
+    def construct_subproject_config(self, **kwargs):
+        """Construct another project config for an external source"""
+        return self.__class__(
+            self.global_config_obj, included_sources=self.included_sources, **kwargs
+        )
+
+    def relpath(self, path):
+        """Convert path to be relative to the project repo root."""
+        return os.path.relpath(os.path.join(self.repo_root, path))

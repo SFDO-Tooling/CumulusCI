@@ -1,16 +1,10 @@
-from __future__ import print_function
-from __future__ import unicode_literals
-from future import standard_library
-
-standard_library.install_aliases()
-from builtins import str
-from builtins import object
 from calendar import timegm
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 import http.client
 import jwt
+import re
 import requests
 from urllib.parse import quote
 from urllib.parse import parse_qs
@@ -21,17 +15,37 @@ import webbrowser
 from cumulusci.oauth.exceptions import SalesforceOAuthError
 
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
+SANDBOX_DOMAIN_RE = re.compile(
+    r"^https://([\w\d-]+\.)?(test|cs\d+)(\.my)?\.salesforce\.com/?$"
+)
 
 
 def jwt_session(client_id, private_key, username, url=None):
+    """Complete the JWT Token Oauth flow to obtain an access token for an org.
+
+    :param client_id: Client Id for the connected app
+    :param private_key: Private key used to sign the connected app's certificate
+    :param username: Username to authenticate as
+    :param url: Org's instance_url
+    """
+    aud = "https://login.salesforce.com"
     if url is None:
         url = "https://login.salesforce.com"
+    else:
+        m = SANDBOX_DOMAIN_RE.match(url)
+        if m is not None:
+            # sandbox
+            aud = "https://test.salesforce.com"
+            # There can be a delay in syncing scratch org credentials
+            # between instances, so let's use the specific one for this org.
+            instance = m.group(2)
+            url = f"https://{instance}.salesforce.com"
 
     payload = {
         "alg": "RS256",
         "iss": client_id,
         "sub": username,
-        "aud": url,  # jwt aud is NOT mydomain
+        "aud": aud,  # jwt aud is NOT mydomain
         "exp": timegm(datetime.utcnow().utctimetuple()),
     }
     encoded_jwt = jwt.encode(payload, private_key, algorithm="RS256")
@@ -68,11 +82,11 @@ class SalesforceOAuth2(object):
     def get_authorize_url(self, scope, prompt=None):
         url = self.auth_site + "/services/oauth2/authorize"
         url += "?response_type=code"
-        url += "&client_id={}".format(self.client_id)
-        url += "&redirect_uri={}".format(self.callback_url)
-        url += "&scope={}".format(quote(scope))
+        url += f"&client_id={self.client_id}"
+        url += f"&redirect_uri={self.callback_url}"
+        url += f"&scope={quote(scope)}"
         if prompt:
-            url += "&prompt={}".format(quote(prompt))
+            url += f"&prompt={quote(prompt)}"
         return url
 
     def get_token(self, code):
@@ -102,12 +116,10 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         args = parse_qs(urlparse(self.path).query, keep_blank_values=True)
         if "error" in args:
             http_status = http.client.BAD_REQUEST
-            http_body = "error: {}\nerror description: {}".format(
-                args["error"][0], args["error_description"][0]
-            )
+            http_body = f"error: {args['error'][0]}\nerror description: {args['error_description'][0]}"
         else:
             http_status = http.client.OK
-            http_body = "OK"
+            http_body = "Congratulations! Your authentication succeeded."
             code = args["code"]
             self.parent.response = self.parent.oauth_api.get_token(code)
             if self.parent.response.status_code >= http.client.BAD_REQUEST:
@@ -140,8 +152,7 @@ class CaptureSalesforceOAuth(object):
         self._launch_browser(url)
         self._create_httpd()
         print(
-            "Spawning HTTP server at {} ".format(self.callback_url)
-            + "with timeout of {} seconds.\n".format(self.httpd.timeout)
+            f"Spawning HTTP server at {self.callback_url} with timeout of {self.httpd.timeout} seconds.\n"
             + "If you are unable to log in to Salesforce you can "
             + "press ctrl+c to kill the server and return to the command line."
         )
@@ -153,7 +164,7 @@ class CaptureSalesforceOAuth(object):
         if response.status_code == http.client.OK:
             return
         raise SalesforceOAuthError(
-            "status_code: {} content: {}".format(response.status_code, response.content)
+            f"status_code: {response.status_code} content: {response.content}"
         )
 
     def _create_httpd(self):
@@ -175,5 +186,5 @@ class CaptureSalesforceOAuth(object):
         return url
 
     def _launch_browser(self, url):
-        print("Launching web browser for URL {}".format(url))
+        print(f"Launching web browser for URL {url}")
         webbrowser.open(url, new=1)

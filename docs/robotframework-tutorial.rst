@@ -262,9 +262,9 @@ Setup`` guarantees it will run before any tests in the same file are
 run.
 
 Open up ``MyObject.robot`` and add the following just before ``***
-Test Cases ***`:
+Test Cases ***``:
 
-.. code-block:: console
+.. code-block::
 
     *** Keywords ***
     Create test data
@@ -331,7 +331,7 @@ statements at the end of our test:
 
 The complete test should now look like this:
 
-.. code-block:: console
+.. code-block::
 
     *** Settings ***
     Resource  cumulusci/robotframework/Salesforce.robot

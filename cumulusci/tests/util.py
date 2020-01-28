@@ -1,13 +1,10 @@
-import os
+import copy
 import random
 
-
-from cumulusci.core.utils import ordered_yaml_load
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.config import OrgConfig
-from cumulusci import __location__
 
 
 def random_sha():
@@ -15,20 +12,13 @@ def random_sha():
     return "%032x" % hash
 
 
-def get_base_config():
-    path = os.path.abspath(os.path.join(__location__, "cumulusci.yml"))
-    with open(path, "r") as f:
-        return ordered_yaml_load(f)
-
-
 def create_project_config(repo_name="TestRepo", repo_owner="TestOwner"):
-    base_config = get_base_config()
-    global_config = BaseGlobalConfig(base_config)
+    global_config = BaseGlobalConfig()
     project_config = DummyProjectConfig(
         global_config=global_config,
         repo_name=repo_name,
         repo_owner=repo_owner,
-        config=base_config,
+        config=copy.deepcopy(global_config.config),
     )
     keychain = BaseProjectKeychain(project_config, None)
     project_config.set_keychain(keychain)

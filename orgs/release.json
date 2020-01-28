@@ -2,9 +2,11 @@
   "orgName": "CumulusCI - Release Test Org",
   "edition": "Enterprise",
   "settings": {
-    "orgPreferenceSettings": {
-      "s1DesktopEnabled": true
-      , "chatterEnabled": true
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "chatterSettings": {
+      "enableChatter": true
     }
   }
 }

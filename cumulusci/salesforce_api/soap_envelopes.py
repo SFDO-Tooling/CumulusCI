@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 DEPLOY = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
@@ -14,13 +11,15 @@ DEPLOY = """<?xml version="1.0" encoding="utf-8"?>
       <DeployOptions>
         <allowMissingFiles>false</allowMissingFiles>
         <autoUpdatePackage>false</autoUpdatePackage>
-        <checkOnly>false</checkOnly>
+        <checkOnly>{check_only}</checkOnly>
         <ignoreWarnings>true</ignoreWarnings>
         <performRetrieve>false</performRetrieve>
         <purgeOnDelete>{purge_on_delete}</purgeOnDelete>
         <rollbackOnError>true</rollbackOnError>
         <runAllTests>false</runAllTests>
         <singlePackage>true</singlePackage>
+        {test_level}
+        {run_tests}
       </DeployOptions>
     </deploy>
   </soap:Body>
@@ -93,7 +92,7 @@ RETRIEVE_UNPACKAGED = """<?xml version="1.0" encoding="utf-8"?>
       <retrieveRequest>
         <apiVersion>{api_version}</apiVersion>
         <unpackaged>
-          {package_xml} 
+          {package_xml}
         </unpackaged>
       </retrieveRequest>
     </retrieve>

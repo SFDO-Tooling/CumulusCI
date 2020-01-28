@@ -7,13 +7,7 @@ based on mrbelvedere/mpinstaller/mdapi.py
 #   - add docstrings
 #   - look at https://github.com/rholder/retrying
 
-from __future__ import unicode_literals
-from builtins import str
-from future import standard_library
-
-standard_library.install_aliases()
 import base64
-
 import http.client
 import re
 import time
@@ -34,8 +28,11 @@ from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.exceptions import MetadataParseError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 
+from urllib3.contrib import pyopenssl
+
+pyopenssl.extract_from_urllib3()
+
 retry_policy = Retry(backoff_factor=0.3)
-http_adapter = HTTPAdapter(max_retries=retry_policy)
 
 
 class BaseMetadataApiCall(object):
@@ -66,8 +63,7 @@ class BaseMetadataApiCall(object):
                 return self._process_response(response)
             except Exception as e:
                 raise MetadataParseError(
-                    "Could not process MDAPI response: {}".format(str(e)),
-                    response=response,
+                    f"Could not process MDAPI response: {str(e)}", response=response
                 )
 
     def _build_endpoint_url(self):
@@ -87,9 +83,7 @@ class BaseMetadataApiCall(object):
                 instance_url,
             )
         # Build the endpoint url from the instance_url
-        endpoint = "{}/services/Soap/m/{}/{}".format(
-            instance_url, self.api_version, org_id
-        )
+        endpoint = f"{instance_url}/services/Soap/m/{self.api_version}/{org_id}"
         return endpoint
 
     def _build_envelope_result(self):
@@ -116,6 +110,7 @@ class BaseMetadataApiCall(object):
         session_id = self.task.org_config.access_token
         auth_envelope = envelope.replace("###SESSION_ID###", session_id)
         session = requests.Session()
+        http_adapter = HTTPAdapter(max_retries=retry_policy)
         session.mount("https://", http_adapter)
         response = session.post(
             self._build_endpoint_url(),
@@ -196,7 +191,7 @@ class BaseMetadataApiCall(object):
                 )
                 return self._call_mdapi(headers, envelope, refresh=False)
         # Log the error
-        message = "{}: {}".format(faultcode, faultstring)
+        message = f"{faultcode}: {faultstring}"
         self._set_status("Failed", message)
         raise MetadataApiError(message, response)
 
@@ -206,8 +201,7 @@ class BaseMetadataApiCall(object):
     def _process_response_start(self, response):
         if response.status_code == http.client.INTERNAL_SERVER_ERROR:
             raise MetadataApiError(
-                "HTTP ERROR {}: {}".format(response.status_code, response.text),
-                response,
+                f"HTTP ERROR {response.status_code}: {response.text}", response
             )
         ids = parseString(response.content).getElementsByTagName("id")
         if ids:
@@ -235,12 +229,11 @@ class BaseMetadataApiCall(object):
                     self.check_num = 1
                     self._set_status(
                         "InProgress",
-                        "next check in {} seconds".format(self._get_check_interval()),
+                        f"next check in {self._get_check_interval()} seconds",
                     )
                 else:
                     self._set_status(
-                        "Pending",
-                        "next check in {} seconds".format(self._get_check_interval()),
+                        "Pending", f"next check in {self._get_check_interval()} seconds"
                     )
         else:
             # If no done element was in the xml, fail logging the entire SOAP
@@ -256,9 +249,9 @@ class BaseMetadataApiCall(object):
         logger = getattr(self.task.logger, level)
         self.status = status
         if log:
-            logger("[{}]: {}".format(status, log))
+            logger(f"[{status}]: {log}")
         else:
-            logger("[{}]".format(status))
+            logger(f"[{status}]")
 
 
 class ApiRetrieveUnpackaged(BaseMetadataApiCall):
@@ -369,12 +362,24 @@ class ApiDeploy(BaseMetadataApiCall):
     soap_action_start = "deploy"
     soap_action_status = "checkDeployStatus"
 
-    def __init__(self, task, package_zip, purge_on_delete=None, api_version=None):
+    def __init__(
+        self,
+        task,
+        package_zip,
+        purge_on_delete=None,
+        api_version=None,
+        check_only=False,
+        test_level=None,
+        run_tests=None,
+    ):
         super(ApiDeploy, self).__init__(task, api_version)
         if purge_on_delete is None:
             purge_on_delete = True
         self._set_purge_on_delete(purge_on_delete)
+        self.check_only = "true" if check_only else "false"
+        self.test_level = test_level
         self.package_zip = package_zip
+        self.run_tests = run_tests or []
 
     def _set_purge_on_delete(self, purge_on_delete):
         if not purge_on_delete or purge_on_delete == "false":
@@ -390,9 +395,20 @@ class ApiDeploy(BaseMetadataApiCall):
 
     def _build_envelope_start(self):
         if self.package_zip:
+            test_level = (
+                f"<testLevel>{self.test_level}</testLevel>" if self.test_level else ""
+            )
+            run_tests = (
+                "\n".join(f"<runTests>{x}</runTests>" for x in self.run_tests)
+                if self.test_level == "RunSpecifiedTests"
+                else ""
+            )
             return self.soap_envelope_start.format(
                 package_zip=self.package_zip,
+                check_only=self.check_only,
                 purge_on_delete=self.purge_on_delete,
+                test_level=test_level,
+                run_tests=run_tests,
                 api_version=self.api_version,
             )
 
@@ -502,7 +518,7 @@ class ApiDeploy(BaseMetadataApiCall):
                 stacktrace = self._get_element_value(failure, "stackTrace")
                 message = ["Apex Test Failure: "]
                 if namespace:
-                    message.append("from namespace {}: ".format(namespace))
+                    message.append(f"from namespace {namespace}: ")
                 if stacktrace:
                     message.append(stacktrace)
                 messages.append("".join(message))
@@ -549,9 +565,7 @@ class ApiListMetadata(BaseMetadataApiCall):
 
     def _build_envelope_start(self):
         folder = self.folder
-        folder = (
-            "\n      <folder>{}</folder>".format(folder) if folder is not None else ""
-        )
+        folder = f"\n      <folder>{folder}</folder>" if folder is not None else ""
         return self.soap_envelope_start.format(
             metadata_type=self.metadata_type,
             folder=folder,
@@ -588,9 +602,7 @@ class ApiListMetadata(BaseMetadataApiCall):
                         result_data[key] = parse_api_datetime(result_data[key])
                     except Exception as e:
                         raise MetadataParseError(
-                            "Could not parse a datetime in the MDAPI response: {}, {}".format(
-                                str(e), str(result)
-                            ),
+                            f"Could not parse a datetime in the MDAPI response: {str(e)}, {str(result)}",
                             response=response,
                         )
             metadata.append(result_data)

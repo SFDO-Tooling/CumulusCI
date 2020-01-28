@@ -1,5 +1,6 @@
 from cumulusci.core.exceptions import ApexCompilationException
 from cumulusci.core.exceptions import ApexException
+from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import in_directory
@@ -31,6 +32,20 @@ class AnonymousApexTask(BaseSalesforceApiTask):
             "description": (
                 "If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% "
                 "will get replaced with the namespace prefix for Record Types."
+            ),
+            "required": False,
+        },
+        "param1": {
+            "description": (
+                "Parameter to pass to the Apex. Use as %%%PARAM_1%%% in the Apex code."
+                "Defaults to an empty value."
+            ),
+            "required": False,
+        },
+        "param2": {
+            "description": (
+                "Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code."
+                "Defaults to an empty value."
             ),
             "required": False,
         },
@@ -93,12 +108,26 @@ class AnonymousApexTask(BaseSalesforceApiTask):
         apex = apex.replace("%%%NAMESPACED_ORG%%%", namespace_prefix)
         apex = apex.replace("%%%NAMESPACED_RT%%%", record_type_prefix)
 
+        # Process optional parameter token replacement
+        param1 = self.options.get("param1") or ""
+        apex = apex.replace("%%%PARAM_1%%%", param1)
+        param2 = self.options.get("param2") or ""
+        apex = apex.replace("%%%PARAM_2%%%", param2)
+
         return apex
 
     def _check_result(self, result):
         # anon_results is an ExecuteAnonymous Result
         # https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/sforce_api_calls_executeanonymous_result.htm
         anon_results = result.json()
+
+        # A result of `None` (body == "null") with a 200 status code
+        # means that a gack occurred.
+        if anon_results is None:
+            raise SalesforceException(
+                "Anonymous Apex returned the result `null`. "
+                "This often indicates a gack occurred."
+            )
         if not anon_results["compiled"]:
             raise ApexCompilationException(
                 anon_results["line"], anon_results["compileProblem"]

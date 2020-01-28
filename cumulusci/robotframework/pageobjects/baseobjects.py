@@ -1,13 +1,31 @@
 from robot.libraries.BuiltIn import BuiltIn
-import re
 
 
-class BasePage(object):
+class BasePage:
     _object_name = None
 
     def __init__(self, object_name=None):
         if object_name:
             self._object_name = object_name
+
+    def _wait_to_appear(self, timeout=None):
+        """This function is called by the keyword 'wait for page object to appear'.
+        Custom page objects can override this to verify that the object is visible.
+        """
+        raise Exception("Unable to wait for this page object")
+
+    def _remove_from_library_search_order(self):
+        """Remove the current page object from robot's library search order
+
+        Note: robot doesn't provide a way to completely unload a
+        library during execution. However, this at least makes sure that
+        all other libraries will have priority over this one.
+        """
+        order = list(self.builtin.set_library_search_order())
+        if self._libname in order:
+            order.remove(self._libname)
+            self.builtin.set_library_search_order(*order)
+            self.builtin.log("new search order: {}".format(order), "DEBUG")
 
     @property
     def object_name(self):
@@ -64,82 +82,23 @@ class BasePage(object):
         else:
             return results[0]
 
+    def log_current_page_object(self):
+        """Logs the name of the current page object
 
-class ListingPage(BasePage):
-    def _go_to_page(self, filter_name=None):
-        url_template = "{root}/lightning/o/{object_name}/list"
-        url = url_template.format(
-            root=self.cumulusci.org.lightning_base_url, object_name=self.object_name
-        )
-        if filter_name:
-            url += "?filterName={}".format(filter_name)
-        self.selenium.go_to(url)
-        self.salesforce.wait_until_loading_is_complete()
-
-    def _is_current_page(self):
-        self.selenium.location_should_contain(
-            "/lightning/o/{}/list".format(self.object_name)
-        )
-
-
-class HomePage(BasePage):
-    def _go_to_page(self, filter_name=None):
-        url_template = "{root}/lightning/o/{object_name}/home"
-        url = url_template.format(
-            root=self.cumulusci.org.lightning_base_url, object_name=self.object_name
-        )
-        self.selenium.go_to(url)
-        self.salesforce.wait_until_loading_is_complete()
-
-    def _is_current_page(self):
-        self.selenium.location_should_contain(
-            "/lightning/o/{}/home".format(self.object_name)
-        )
-
-
-class DetailPage(BasePage):
-    def _go_to_page(self, object_id=None, **kwargs):
-        """Go to the detail page for the given object.
-
-        You may pass in an object id, or you may pass in keyword arguments
-        which can be used to look up the object.
+        The current page object is also returned as an object
         """
-
-        if kwargs and object_id:
-            raise Exception("Specify an object id or keyword arguments, but not both")
-
-        if kwargs:
-            # note: this will raise an exception if no object is found,
-            # or if multiple objects are found.
-            object_id = self._get_object(**kwargs)["Id"]
-
-        url_template = "{root}/lightning/r/{object_name}/{object_id}/view"
-        url = url_template.format(
-            root=self.cumulusci.org.lightning_base_url,
-            object_name=self.object_name,
-            object_id=object_id,
+        polib = self.builtin.get_library_instance(
+            "cumulusci.robotframework.PageObjects"
         )
-        self.selenium.go_to(url)
-        self.salesforce.wait_until_loading_is_complete()
-
-    def _is_current_page(self, **kwargs):
-        """Verify we are on a detail page.
-
-        If keyword arguments are present, this function will go a query
-        on the given parameters, assert that the query returns a single
-        result, and the verify that the returned object id is part of the url.
-        """
-        if kwargs:
-            # do a lookup to get the object i
-            object_id = self._get_object(**kwargs)["Id"]
-            pattern = r"/lightning/r/{}/{}/view$".format(self.object_name, object_id)
+        if polib.current_page_object is None:
+            # this should not be possible, since this keyword is only available
+            # if you've loaded a page object. Still, better safe then sorry.
+            self.builtin.log("no page object has been loaded")
+            return None
         else:
-            # no kwargs means we should just verify we are on a detail
-            # page without regard to which object
-            pattern = r"/lightning/r/{}/.*/view$".format(self.object_name)
+            pobj = polib.current_page_object
 
-        location = self.selenium.get_location()
-        if not re.search(pattern, location):
-            raise Exception(
-                "Location '{}' didn't match pattern {}".format(location, pattern)
+            self.builtin.log(
+                "current page object: {}".format(polib.current_page_object)
             )
+            return pobj

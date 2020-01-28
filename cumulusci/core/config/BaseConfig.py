@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-from builtins import object
 import logging
 
 
@@ -27,7 +25,7 @@ class BaseConfig(object):
     def __getattr__(self, name):
         tree = name.split("__")
         if name.startswith("_"):
-            raise AttributeError("Attribute {} not found".format(name))
+            raise AttributeError(f"Attribute {name} not found")
         value = None
         value_found = False
         config = self.config

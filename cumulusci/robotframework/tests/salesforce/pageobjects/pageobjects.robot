@@ -1,18 +1,24 @@
 *** Settings ***
 Resource        cumulusci/robotframework/Salesforce.robot
+Library         Collections
 Library         cumulusci.robotframework.PageObjects
 ...  ${CURDIR}/example_page_object.py
 
-Suite Setup     Run keywords
-...  Create test data
-...  AND  Open Test Browser
+Suite Setup     Open Test Browser
 Suite Teardown  Delete Records and Close Browser
 
-*** Keywords ***
-Create Test Data
-    Salesforce Insert  Contact  FirstName=Inigo  LastName=Montoya
-
 *** Test Cases ***
+Load page object, using defined page object
+    [Documentation]
+    ...  If we can't do this, all hope is lost!
+    Load page object  About  Blank
+
+Go to page automatically loads page object
+    [Documentation]  Verify that 'go to page' automatically loads the page object
+    Go to page    About  Blank
+    ${pobj}=  log current page object
+    Should not be equal  ${pobj}  ${None}
+
 Go to page and current page should be, using defined page object
     [Documentation]  Verify we can go to an implemented page object
     Go to page              About  Blank
@@ -26,14 +32,46 @@ Go to page, using generic page object
     Go to page    Listing  Contact
     Current page should be  Listing  Contact
 
+Go to page, using multiple generic pages
+    [Documentation]
+    ...  Verify we can use multiple generic page objects in the same
+    ...  test. Earlier versions of the library had a bug that
+    ...  prevented this from working. What was happening is that we
+    ...  were giving the library a generic name like "DetailPage"
+    ...  rather than a name that included the object type such as
+    ...  "ContactDetailPage".
+
+    Go to page  Listing  Contact
+    Current page should be  Listing  Contact
+    Go to page  Listing  Task
+    Current page should be  Listing  Task
+    Go to page  Detail  Contact
+    Current page should be  Detail   Contact
+
+Get page object
+    [Documentation]
+    ...  Verify that we can call the `get page object` keyword and that
+    ...  it returns a page object
+    [Setup]  Load page object     About  Blank
+
+    ${pobj}=  Get page object  About  Blank
+    Should not be equal  ${pobj}  ${NONE}
+
+    @{keywords}=  Call method  ${pobj}  get_keyword_names
+
+    # The page object should have three keywords we defined, plus
+    # one from the base class
+    ${expected}=  Create list  hello  keyword_one  keyword_two  log_current_page_object
+    Lists should be equal  ${keywords}  ${expected}
+
 Call keyword of defined page object
-    # verify we can call the keyword in that page object
-    load page object  About  Blank
+    [Documentation]
+    ...  Verify we can call a keyword in a defined page object
+    Load page object  About  Blank
+
+    # "Hello" is a keyword in AboutBlankPage
     ${result}=  Hello  world
     should be equal  ${result}  About:Blank Page says Hello, world
-
-Load page object, using defined page object
-    Load page object  About  Blank
 
 Load page object, using generic page object
     [Documentation]
@@ -47,6 +85,7 @@ Current page should be, using generic page object
     ...  using a generic page object
     [Setup]  Go to page  Listing  Task
 
+    log current page object
     Current page should be  Listing  Task
     Location should contain  /lightning/o/Task/list
 
@@ -78,37 +117,55 @@ Log page object keywords
 
     log page object keywords
 
-Base class: HomePage
+Load multiple page objects in library search order
     [Documentation]
-    ...  Verify we can go to the generic Home page
-    ...  (assuming we don't have an explicit TaskHomePage)
-    go to page  Home  Task
-    Current page should be  Home  Task
+    ...  Loading a page object inserts it at the start of the
+    ...  library search order. Verify that that happens properly.
 
-Base class: ListingPage
-    [Documentation]
-    ...  Verify we can go to the generic Listing page
-    ...  (assuming we don't have an explicit TaskListingPage)
-    Go to page              Listing  Task
-    Current page should be  Listing  Task
+    # Note: the library search order persists for the life of a suite
+    # Therefore we need to reset it before running this test since
+    # other tests will be loading page objects
+    [Setup]  Set library search order  PageObjects
 
-Base class: DetailPage
-    [Documentation]
-    ...  Verify we can go to the generic Detail page
-    ...  (assuming we don't have an explicit TaskDetailPage)
+    Go to page   About     Blank
+    Go to page   Home      Task
+    Go to page   Listing   Contact
 
-    Go to page  Detail  Contact  firstName=Inigo  lastName=Montoya
-    Current page should be  Detail  Contact  firstName=Inigo  lastName=Montoya
+    # This should move HomeTask to the front. It should not
+    # end up in the search order twice.
+    Go to page   Home      Task
 
-Base class: DetailPage with no matches
+    # Note: the order is a list of strings, not actual libraries.
+    ${actual_order}=       Set library search order
+    ${expected_order}=     Create list  TaskHomePage  ContactListingPage  AboutBlankPage  PageObjects
+    log  actual order: ${actual_order}
+    Lists should be equal  ${actual_order}  ${expected_order}
 
-    run keyword and expect error  no Contact matches firstName=Nobody, lastName=Nobody
-    ...  Go to page  Detail  Contact  firstName=Nobody  lastName=Nobody
+Wait for page object
+    Go to page    Listing  Contact
+    Click object button  New
 
-Base class: DetailPage with more than one match
-    [Setup]  run keywords
-    ...  Salesforce Insert  Contact  FirstName=John  LastName=Smith
-    ...  AND  Salesforce Insert  Contact  FirstName=John  LastName=Jones
+    Wait for page object  New  Contact
 
-    run keyword and expect error  Query returned 2 objects
-    ...  Go to page  Detail  Contact  firstName=John
+Wait for page object exception
+    [Documentation]  Verify we throw an error if page object isn't found
+    Go to page    Listing  Contact
+    Run keyword and expect error
+    ...  Unable to find a page object for 'BogusType BogusObject'
+    ...  Wait for page object  BogusType  BogusObject
+
+Wait for modal
+    [Documentation]  Verify that the 'wait for modal' keyword works
+    Go to page    Listing  Contact
+    Click object button  New
+
+    Wait for modal  New  Contact
+
+Wait for modal exception
+    [Documentation]  Verify we throw an error if page object isn't found
+    Go to page    Listing  Contact
+    Click object button  New
+
+    Run keyword and expect error
+    ...  Unable to find a page object for 'BogusType BogusObject'
+    ...  Wait for modal  BogusType  BogusObject

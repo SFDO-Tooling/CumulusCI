@@ -1,8 +1,5 @@
-from future import standard_library
-
-standard_library.install_aliases()
 import http.client
-import mock
+from unittest import mock
 import unittest
 
 import responses
@@ -162,6 +159,13 @@ class TestGithubLinesParser(unittest.TestCase):
         self.assertEqual(1, parser.pr_number)
         self.assertEqual("http://pr", parser.pr_url)
         self.assertEqual(["foo [[PR1](http://pr)]"], parser.content)
+
+    def test_parse_empty_pull_request_body(self):
+        generator = mock.Mock(link_pr=True)
+        parser = GithubLinesParser(generator, self.title)
+        pr = mock.Mock(number=1, html_url="http://pr", body=None)
+        line_added = parser.parse(pr)
+        assert not line_added
 
 
 class TestIssuesParser(unittest.TestCase):
