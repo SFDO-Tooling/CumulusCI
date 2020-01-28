@@ -124,11 +124,10 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         total_rows = 0
         self.local_ids = []
 
-        for (
-            row
-        ) in query:  # FIXME: use .yield_per(10000) to clamp upper limit of memory use?
-            total_rows += 1
-
+        # 10,000 is the maximum Bulk API size. Clamping the yield from the query ensures we do not
+        # create more Bulk API batches than expected, regardless of batch size, while capping
+        # memory usage.
+        for row in query.yield_per(10000):
             # Add static values to row
             pkey = row[0]
             row = list(row[1:]) + statics
@@ -143,7 +142,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             yield row
 
         self.logger.info(
-            f"  Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}"
+            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}"
         )
 
     def _get_columns(self, mapping):
