@@ -14,6 +14,52 @@ Options:
 
 * **developer_names** *(required)*: List of DeveloperNames to query in SOQL
 
+add_page_layout_related_lists
+==========================================
+
+**Description:** Adds specified Related List to one or more Page Layouts.
+
+**Class::** cumulusci.tasks.salesforce.metadata_etl.AddRelatedLists
+
+Options:
+------------------------------------------
+
+* **related_list** *(required)*: Name of the Related List to include
+* **fields** *(required)*: Array of field API names to include in the related list
+* **api_names**: List of API names of entities to affect
+* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
+* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
+* **api_version**: Metadata API version to use, if not project__package__api_version.
+
+add_standard_value_set_entries
+==========================================
+
+**Description:** Adds specified picklist entries to a Standard Value Set.
+
+**Class::** cumulusci.tasks.salesforce.metadata_etl.AddValueSetEntries
+
+Options:
+------------------------------------------
+
+* **entries** *(required)*: Array of standardValues to insert. Each standardValue should contain the keys 'fullName', the API name of the entry; 'label', the user-facing label.
+
+add_permission_set_perms
+==========================================
+
+**Description:** Adds specified Apex class access and Field-Level Security to a Permission Set.
+
+**Class::** cumulusci.tasks.salesforce.metadata_etl.AddPermissions
+
+Options:
+------------------------------------------
+
+* **field_permissions** *(required)*: Array of fieldPermissions objects to upsert into permission_set.  Each fieldPermission requires the following attributes: 'field': API Name of the field including namespace; 'readable': boolean if field can be read; 'editable': boolean if field can be edited
+* **class_accesses** *(required)*: Array of classAccesses objects to upsert into permission_set.  Each classAccess requires the following attributes: 'apexClass': Name of Apex Class.  If namespaced, make sure to use the form "namespace__ApexClass"; 'enabled': boolean if the Apex Class can be accessed.
+* **api_names**: List of API names of entities to affect
+* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
+* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
+* **api_version**: Metadata API version to use, if not project__package__api_version.
+
 batch_apex_wait
 ==========================================
 
@@ -269,7 +315,7 @@ Options:
 * **command** *(required)*: The full command to run with the sfdx cli. **Default: force:source:push**
 * **extra**: Append additional options to the command
 
-ensure_record_type
+ensure_record_types
 ==========================================
 
 **Description:** Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
@@ -302,8 +348,8 @@ Options:
 * **apex**: A string of Apex to run (after the file, if specified).
 * **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
 * **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
-* **param1**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_1%%% in the Apex code.
-* **param2**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_2%%% in the Apex code.
+* **param1**: Parameter to pass to the Apex. Use as %%%PARAM_1%%% in the Apex code.Defaults to an empty value.
+* **param2**: Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code.Defaults to an empty value.
 
 generate_data_dictionary
 ==========================================
@@ -987,6 +1033,23 @@ Options:
 * **retry_failures**: A list of regular expression patterns to match against test failures. If failures match, the failing tests are retried in serial mode.
 * **retry_always**: By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
 
+set_organization_wide_defaults
+==========================================
+
+**Description:** Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing enablement to complete.
+
+**Class::** cumulusci.tasks.salesforce.metadata_etl.SetOrgWideDefaults
+
+Options:
+------------------------------------------
+
+* **org_wide_defaults** *(required)*: The target Organization-Wide Defaults, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model.
+* **timeout**: The max amount of time to wait in seconds
+* **api_names**: List of API names of entities to affect
+* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
+* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
+* **api_version**: Metadata API version to use, if not project__package__api_version.
+
 uninstall_managed
 ==========================================
 
@@ -1109,6 +1172,8 @@ Options:
 * **apex**: A string of Apex to run (after the file, if specified). **Default: for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }**
 * **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
 * **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
+* **param1**: Parameter to pass to the Apex. Use as %%%PARAM_1%%% in the Apex code.Defaults to an empty value.
+* **param2**: Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code.Defaults to an empty value.
 
 update_admin_profile
 ==========================================
