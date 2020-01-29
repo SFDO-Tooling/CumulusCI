@@ -1,6 +1,9 @@
-from pathlib import Path
+import io
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
+
+from pathlib import Path
 from unittest import mock
 
 from cumulusci.core.exceptions import CumulusCIException
@@ -10,6 +13,7 @@ from cumulusci.tasks.salesforce.metadata_etl import (
     BaseMetadataSynthesisTask,
     BaseMetadataTransformTask,
     MetadataSingleEntityTransformTask,
+    get_new_tag_index,
 )
 
 
@@ -213,3 +217,23 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
 
         with self.assertRaises(CumulusCIException):
             task._transform()
+
+
+class test_utilities(unittest.TestCase):
+    XML_SAMPLE = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <defaultLandingTab>standard-Account</defaultLandingTab>
+    <description>Application</description>
+    <label>Application</label>
+    <tabs>standard-Account</tabs>
+    <tabs>standard-Contact</tabs>
+    <formFactors>Large</formFactors>
+</CustomApplication>
+"""
+
+    def test_get_new_tag_index(self):
+        root = ET.ElementTree(file=io.StringIO(self.XML_SAMPLE))
+        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+
+        assert get_new_tag_index(root, "tabs", namespaces) == 5
+        assert get_new_tag_index(root, "relatedList", namespaces) == 0

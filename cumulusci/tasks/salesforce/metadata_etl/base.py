@@ -237,3 +237,14 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
                     xml_declaration=True,
                     default_namespace=self.namespaces["sf"],
                 )
+
+
+def get_new_tag_index(tree, tag, namespaces):
+    # All top-level tags must be grouped together in XML file
+    tags = tree.findall(f".//sf:{tag}", namespaces)
+    if 0 < len(tags):
+        # Insert new tag after the last existing tag of the same type
+        return tree.getroot().getchildren().index(tags[-1]) + 1
+    else:
+        # There are no existing tags of this type; insert new tag at the top.
+        return 0
