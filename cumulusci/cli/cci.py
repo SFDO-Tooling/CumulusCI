@@ -1411,7 +1411,7 @@ def error_info(max_lines):
 
 
 def lines_from_traceback(log_content, num_lines):
-    """Returns the the last num_lines of the logfile,
+    """Returns the the last max_lines of the logfile,
     or the whole traceback, whichever is shorter. If
     no stacktrace is found in the logfile, the user is
     notified.

@@ -734,15 +734,15 @@ Caveats:
 
 Working with Errors
 ===================
-Logfiles
+Log Files
 --------
-CumulusCI creates a logfile every time a cci command is run. The only exception to this is when the cci gist command is run. Logfiles are stored under `~/.cumulusci/logs`.
+CumulusCI creates a log file every time a cci command besides ``gist`` is run. Log files are stored under ``~/.cumulusci/logs``.
 
 Viewing Stacktraces
 -------------------
-If you encounter an error and want more information on what went wrong, you can use `cci error info` to display the last 30 lines of the stacktrace (if present) from the last command you executed in CumulusCI.
+If you encounter an error and want more information on what went wrong, you can use ``cci error info`` to display the last *n* lines (30, by default) of the stacktrace (if present) from the last command you executed in CumulusCI.
 
-You can include the option num_lines argument if you want to customize how much of the stacktrae you see.
+You can include the option num_lines argument if you want to customize how much of the stacktrace you see.
 
 Reporting Error Logs 
 --------------------
