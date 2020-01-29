@@ -229,6 +229,7 @@ def main(args=None):
 
 
 def handle_connection_error(error):
+    """Inform user that their network may be the problem"""
     click.echo(
         click.style(
             f"We encountered an error with your internet connection. Please check your connection and try the last cci command again.\nError: {error}",
@@ -238,6 +239,8 @@ def handle_connection_error(error):
 
 
 def handle_generic_error(error, is_gist_cmd):
+    """Displays the error back to the user, prompts user investigat further
+    with `cci error` commands, and writes the traceback to the latest logfile"""
     click.echo(click.style(f"Error: {error}", fg="red"))
     # Only suggest gist command if it wasn't run
     if not is_gist_cmd:
