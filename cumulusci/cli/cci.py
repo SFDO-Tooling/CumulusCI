@@ -22,6 +22,7 @@ import click
 import github3
 import pkg_resources
 import requests
+from requests import exceptions
 from rst2ansi import rst2ansi
 from jinja2 import Environment
 from jinja2 import PackageLoader
@@ -217,24 +218,39 @@ def main(args=None):
         try:
             cli(standalone_mode=False)
         except click.Abort:  # Keyboard interrupt
-            click.echo("\nAborted!")
+            show_debug_info() if debug else click.echo("\nAborted!")
+            sys.exit(1)
+        except exceptions.ConnectionError as e:
+            show_debug_info() if debug else handle_connection_error(e)
             sys.exit(1)
         except Exception as e:
-            # Display the error
-            if debug:
-                traceback.print_exc()
-                pdb.post_mortem()
-            else:
-                click.echo(click.style(f"Error: {e}", fg="red"))
-                # Only suggest gist command if it wasn't run
-                if not is_gist_command:
-                    click.echo(click.style(SUGGEST_GIT_GIST_COMMAND, fg="yellow"))
-
-                with open(CCI_LOGFILE_PATH, "a") as log_file:
-                    traceback.print_exc(file=log_file)  # log stacktrace silently
-            # TODO: errorsdb
-            # Return a non-zero exit code to indicate a problem
+            show_debug_info() if debug else handle_generic_error(e, is_gist_command)
             sys.exit(1)
+
+
+def handle_connection_error(error):
+    click.echo(
+        click.style(
+            f"We encountered an error with your internet connection. Please check your connection and try the last cci command again.\nError: {error}",
+            fg="red",
+        )
+    )
+
+
+def handle_generic_error(error, is_gist_cmd):
+    click.echo(click.style(f"Error: {error}", fg="red"))
+    # Only suggest gist command if it wasn't run
+    if not is_gist_cmd:
+        click.echo(click.style(SUGGEST_GIT_GIST_COMMAND, fg="yellow"))
+
+    with open(CCI_LOGFILE_PATH, "a") as log_file:
+        traceback.print_exc(file=log_file)  # log stacktrace silently
+
+
+def show_debug_info():
+    """Displays the traceback and opens pdb"""
+    traceback.print_exc()
+    pdb.post_mortem()
 
 
 @click.group("main", help="")
@@ -269,9 +285,7 @@ def version():
 
 @cli.command(name="shell", help="Drop into a Python shell")
 @click.option("--script", help="Path to a script to run", type=click.Path())
-@click.option(
-    "--python", help="Python code to run directly",
-)
+@click.option("--python", help="Python code to run directly")
 @pass_runtime(require_project=False, require_keychain=True)
 def shell(runtime, script=None, python=None):
     # alias for backwards-compatibility
@@ -1137,9 +1151,7 @@ def org_scratch_delete(runtime, org_name):
 )
 @click.argument("org_name", required=False)
 @click.option("--script", help="Path to a script to run", type=click.Path())
-@click.option(
-    "--python", help="Python code to run directly",
-)
+@click.option("--python", help="Python code to run directly")
 @pass_runtime(require_keychain=True)
 def org_shell(runtime, org_name, script=None, python=None):
     org_name, org_config = runtime.get_org(org_name)

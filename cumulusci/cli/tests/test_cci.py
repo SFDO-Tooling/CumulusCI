@@ -217,6 +217,24 @@ class TestCCI(unittest.TestCase):
         post_mortem.call_count == 0
         sys_exit.assert_called_once_with(1)
 
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    def test_handle_connection_exception(self, echo):
+        error = "Your internet is no good"
+        cci.handle_connection_error(error)
+        echo.assert_called_once_with(
+            "\x1b[31mWe encountered an error with your internet connection. Please check your connection and try the last cci command again.\nError: Your internet is no good\x1b[0m"
+        )
+
+    @mock.patch("cumulusci.cli.cci.traceback")
+    @mock.patch("cumulusci.cli.cci.click.style")
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    def test_handle_generic_error(self, echo, style, traceback):
+        error = "Something bad happened."
+        cci.handle_generic_error(error, is_gist_cmd=False)
+        style.call_args_list[0][0] == f"Error: {error}"
+        style.call_args_list[1][0] == cci.SUGGEST_GIT_GIST_COMMAND
+        traceback.print_exc.assert_called_once()
+
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.webbrowser")
     @mock.patch("cumulusci.cli.cci.platform")
@@ -270,7 +288,7 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.datetime")
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
-    def test_gist__gist_creation_error(
+    def test_gist__creation_error(
         self, gh_api, create_gist, date, sys, platform, click, logfile_path
     ):
 
