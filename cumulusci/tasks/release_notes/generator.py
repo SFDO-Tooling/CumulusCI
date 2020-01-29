@@ -111,6 +111,12 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
 
         self.repo = repo
         self.github = github
+        self.github_info = {
+            "github_owner": project_config.repo_owner,
+            "github_repo": project_config.repo_name,
+            "prefix_beta": project_config.project__git__prefix_beta,
+            "prefix_prod": project_config.project__git__prefix_release,
+        }
         self.link_pr = True  # create links to pr on parsed change notes
         self.has_issues = True  # need for parsers
         self.do_publish = True  # need for parsers
