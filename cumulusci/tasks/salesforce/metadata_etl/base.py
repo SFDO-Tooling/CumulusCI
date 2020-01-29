@@ -3,22 +3,61 @@ import tempfile
 from pathlib import Path
 
 from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.tasks.metadata import ApiRetrieveUnpackaged
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask, Deploy
+from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
-from cumulusci.utils import elementtree_parse_file
+from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.utils import elementtree_parse_file, inject_namespace
+from cumulusci.core.config import TaskConfig
 
 
 class BaseMetadataETLTask(BaseSalesforceApiTask):
     deploy = False
     retrieve = False
 
-    def _generate_package_xml(self):
+    namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+
+    task_options = {
+        "unmanaged": {
+            "description": "If True, changes namespace_inject to replace tokens with a blank string"
+        },
+        "namespace_inject": {
+            "description": "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix"
+        },
+        "api_version": {
+            "description": "Metadata API version to use, if not project__package__api_version."
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
+        self.options["unmanaged"] = process_bool_arg(
+            self.options.get("unmanaged", False)
+        )
+        self.api_version = (
+            self.options.get("api_version")
+            or self.project_config.project__package__api_version
+        )
+
+    @property
+    def _namespace_injector(self):
+        return lambda text: inject_namespace(
+            "",
+            text,
+            self.options.get("namespace_inject"),
+            not self.options["unmanaged"],
+        )[1]
+
+    def _get_package_xml_content(self):
         return f"""<?xml version="1.0" encoding="UTF-8"?>
-        <Package xmlns="http://soap.sforce.com/2006/04/metadata">
-            <version>{self.api_version}</version>
-        </Package>
-        """
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <version>{self.api_version}</version>
+</Package>
+"""
+
+    def _generate_package_xml(self):
+        return self._namespace_injector(self._get_package_xml_content())
 
     def _create_directories(self, tempdir):
         if self.retrieve:
@@ -29,12 +68,35 @@ class BaseMetadataETLTask(BaseSalesforceApiTask):
             self.deploy_dir.mkdir()
 
     def _retrieve(self):
-        self._package_xml_content = self._generate_package_xml()
         api_retrieve = ApiRetrieveUnpackaged(
-            self, self._package_xml_content, self.api_version
+            self, self._generate_package_xml(), self.api_version
         )
         unpackaged = api_retrieve()
         unpackaged.extractall(self.retrieve_dir)
+
+    def _transform(self):
+        pass
+
+    def _deploy(self):
+        generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
+
+        target_profile_xml = Path(self.deploy_dir, "package.xml")
+        target_profile_xml.write_text(generator())
+
+        api = Deploy(
+            self.project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "path": self.deploy_dir,
+                        "namespace_inject": self.options.get("namespace_inject"),
+                        "unmanaged": self.options.get("unmanaged"),
+                    }
+                }
+            ),
+            self.org_config,
+        )
+        return api()
 
     def _run_task(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -71,39 +133,30 @@ class BaseMetadataTransformTask(BaseMetadataETLTask):
         return {}
 
     def _get_types_package_xml(self):
-        base = """<types>
-            {members}
-            <name>{name}</name>
-        </types>
-        """
+        base = """    <types>
+{members}
+        <name>{name}</name>
+    </types>
+"""
         types = ""
         for entity, api_names in self._get_entities().items():
             members = "\n".join(
-                f"<members>{api_name}</members>" for api_name in api_names
+                f"        <members>{api_name}</members>" for api_name in api_names
             )
             types += base.format(members=members, name=entity)
 
         return types
 
-    def _generate_package_xml(self):
+    def _get_package_xml_content(self):
         return f"""<?xml version="1.0" encoding="UTF-8"?>
-        <Package xmlns="http://soap.sforce.com/2006/04/metadata">
-            {self._get_types_package_xml()}
-            <version>{self.api_version}</version>
-        </Package>
-        """
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+{self._get_types_package_xml()}
+    <version>{self.api_version}</version>
+</Package>
+"""
 
     def _transform(self):
         pass
-
-    def _deploy(self):
-        generator = PackageXmlGenerator(self.deploy_dir, self.api_version)
-
-        target_profile_xml = Path(self.deploy_dir, "package.xml")
-        target_profile_xml.write_text(generator())
-
-        api = self._get_api(path=self.deploy_dir)
-        return api()
 
 
 class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
@@ -112,13 +165,25 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
 
     entity = None
 
-    def __init__(self, api_names):
-        self.api_names = api_names
+    task_options = {
+        "api_names": {"description": "List of API names of entities to affect"},
+        **BaseMetadataETLTask.task_options,
+    }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
+        self.api_names = list(
+            map(
+                self._namespace_injector,
+                process_list_arg(self.options.get("api_names", [])),
+            )
+        )
 
     def _get_entities(self):
         return {self.entity: self.api_names or ["*"]}
 
-    def _transform_entity(self, metadata):
+    def _transform_entity(self, metadata, api_name):
         return metadata
 
     def _transform(self):
@@ -126,7 +191,9 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
         # if the entity is an XML file, provide a parsed version
         # and write the returned metadata into the deploy directory
 
-        parser = PackageXmlGenerator()  # We'll use it for its metadata_map
+        parser = PackageXmlGenerator(
+            None, self.api_version
+        )  # We'll use it for its metadata_map
         entity_configurations = list(
             filter(
                 lambda entry: any(
@@ -143,7 +210,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
                 f"Unable to locate configuration for entity {self.entity}"
             )
 
-        configuration = parser.metadata_map[entity_configurations[0]]
+        configuration = parser.metadata_map[entity_configurations[0]][0]
         if configuration["class"] != "MetadataFilenameParser":
             raise CumulusCIException(
                 f"MetadataSingleEntityTransformTask only supports manipulating complete, file-based XML entities (not {self.entity})"
@@ -157,7 +224,9 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
             if not path.exists():
                 raise CumulusCIException(f"Cannot find metadata file {path}")
 
-            transformed_xml = self._transform_entity(elementtree_parse_file(path))
+            transformed_xml = self._transform_entity(
+                elementtree_parse_file(path), api_name
+            )
             if transformed_xml:
                 parent_dir = self.deploy_dir / directory
                 parent_dir.mkdir()
