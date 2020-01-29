@@ -227,8 +227,7 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
-    @mock.patch("cumulusci.cli.cci.click.echo")
-    def test_handle_generic_error(self, echo, style, traceback):
+    def test_handle_generic_error(self, style, traceback):
         error = "Something bad happened."
         cci.handle_generic_error(error, is_gist_cmd=False)
         style.call_args_list[0][0] == f"Error: {error}"
