@@ -84,6 +84,29 @@ class test_BaseMetadataETLTask(unittest.TestCase):
             deploy_mock.return_value.assert_called_once_with()
             assert result == deploy_mock.return_value.return_value
 
+    def test_transform(self):
+        task = create_task(
+            BaseMetadataETLTask,
+            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+        )
+        task._transform()
+
+    def test_run_task(self):
+        task = create_task(
+            BaseMetadataETLTask,
+            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+        )
+
+        task._retrieve = mock.Mock()
+        task._deploy = mock.Mock()
+        task.retrieve = True
+        task.deploy = True
+
+        task()
+
+        task._retrieve.assert_called_once_with()
+        task._deploy.assert_called_once_with()
+
 
 class test_BaseMetadataSynthesisTask(unittest.TestCase):
     def test_synthesis(self):
@@ -93,6 +116,7 @@ class test_BaseMetadataSynthesisTask(unittest.TestCase):
         )
 
         task._deploy = mock.Mock()
+        task._synthesize()
         task._synthesize = mock.Mock()
 
         task()
@@ -133,6 +157,14 @@ class test_BaseMetadataTransformTask(unittest.TestCase):
 </Package>
 """
         )
+
+    def test_transform(self):
+        task = create_task(
+            BaseMetadataTransformTask,
+            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+        )
+
+        task._transform()
 
 
 class test_MetadataSingleEntityTransformTask(unittest.TestCase):
@@ -217,6 +249,23 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
 
         with self.assertRaises(CumulusCIException):
             task._transform()
+
+    def test_transform__missing_record(self):
+        task = create_task(
+            MetadataSingleEntityTransformTask,
+            {"unmanaged": False, "api_version": "47.0", "api_names": "Test"},
+        )
+
+        task.entity = "CustomApplication"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            task._create_directories(tmpdir)
+
+            test_path = task.retrieve_dir / "applications"
+            test_path.mkdir()
+
+            with self.assertRaises(CumulusCIException):
+                task._transform()
 
 
 class test_utilities(unittest.TestCase):
