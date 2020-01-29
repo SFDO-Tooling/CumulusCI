@@ -96,7 +96,13 @@ class BaseMetadataETLTask(BaseSalesforceApiTask):
             ),
             self.org_config,
         )
-        return api()
+        result = api()
+        self._post_deploy(result)
+
+        return result
+
+    def _post_deploy(self, result):
+        pass
 
     def _run_task(self):
         with tempfile.TemporaryDirectory() as tempdir:
