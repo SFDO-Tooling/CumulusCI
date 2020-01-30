@@ -3,7 +3,7 @@ History
 =======
 
 3.5.4 (2020-01-30)
------------------
+------------------
 Changes:
 
 * There is a new top level `cci error` command for interacting with errors in CumulusCI
@@ -13,8 +13,6 @@ Changes:
 * `cci error info` displays the last 30 lines of a stacktrace from the previous `cci` command run (if present).
 
 * Changed the prompt users receive when encountering errors in `cci`.
-
-* Fixed documentation relating to the `RunApexTests` task.
 
 Issues Closed:
 
