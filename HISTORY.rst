@@ -16,6 +16,8 @@ Changes:
 
 * Fixed documentation relating to the `RunApexTests` task.
 
+Issues Closed:
+
 * Reverted a change to the `select_record_type` keyword to work in both Winter '20 and Spring '20
 
 
