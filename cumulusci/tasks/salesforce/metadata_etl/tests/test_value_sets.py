@@ -223,13 +223,14 @@ class test_AddValueSetEntries(unittest.TestCase):
                 "unmanaged": False,
                 "api_version": "47.0",
                 "api_names": "OpportunityStage",
-                "entries": [{"fullName": "Value"}],
+                "entries": [{"fullName": "Value", "label": "Value"}],
             },
         )
         root = ET.ElementTree(file=io.StringIO(VALUESET_XML))
 
-        with self.assertRaises(TaskOptionsError):
+        with self.assertRaises(TaskOptionsError) as err:
             task._transform_entity(root, "OpportunityStage")
+            assert "OpportunityStage" in err
 
     def test_raises_exception_missing_values__casestatus(self):
         task = create_task(
@@ -238,10 +239,11 @@ class test_AddValueSetEntries(unittest.TestCase):
                 "unmanaged": False,
                 "api_version": "47.0",
                 "api_names": "CaseStatus",
-                "entries": [{"fullName": "Value"}],
+                "entries": [{"fullName": "Value", "label": "Value"}],
             },
         )
         root = ET.ElementTree(file=io.StringIO(VALUESET_XML))
 
-        with self.assertRaises(TaskOptionsError):
+        with self.assertRaises(TaskOptionsError) as err:
             task._transform_entity(root, "CaseStatus")
+            assert "CaseStatus" in err
