@@ -729,4 +729,34 @@ the source should get pushed successfully from the ``force-app`` directory.
 Caveats:
 
 * It’s possible there may be some minor errors in the automatic conversion that need special attention in order to deploy successfully.
-* See https://ntotten.com/2018/05/11/convert-metadata-to-source-format-while-maintain-git-history/ for some tips on preserving git history while converting your source format.
+* See `this link <https://ntotten.com/2018/05/11/convert-metadata-to-source-format-while-maintain-git-history/>`_ for some tips on preserving git history while converting your source format.
+
+
+Working with Errors
+===================
+Log Files
+--------
+CumulusCI creates a log file every time a cci command besides ``gist`` is run. Log files are stored under ``~/.cumulusci/logs``.
+
+Viewing Stacktraces
+-------------------
+If you encounter an error and want more information on what went wrong, you can use ``cci error info`` to display the last *n* lines (30, by default) of the stacktrace (if present) from the last command you executed in CumulusCI.
+
+You can include the option ``max_lines`` argument if you want to customize how much of the stacktrace you see.
+
+Reporting Error Logs 
+--------------------
+Use the ``cci gist`` command to send the log of your last ``cci`` command to a GitHub gist so you can submit it for support if needed.
+
+For this feature to work you will need to ensure that your `github service is setup with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
+
+The gist command creates a gist comprised of:
+    * The current version of ``cci``
+    * The current python version
+    * The path to the python executable
+    * The ``sysname`` of the host (e.g. Darwin)
+    * The machine name of the host (e.g. x86_64)
+    * The most recent logfile (cci.log) that CumulusCI has created.
+
+The URL for the gist is displayed on the terminal of the user as output, and a web browser will automatically open a tab to the gist.
+

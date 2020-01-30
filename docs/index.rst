@@ -21,12 +21,12 @@ Contents:
    bulk_data
    cookbook
    cumulusci_flow
-   api_reference
    tasks
    usage
    history
    authors
    contributing
+   api_reference
 
 Indices and tables
 ==================

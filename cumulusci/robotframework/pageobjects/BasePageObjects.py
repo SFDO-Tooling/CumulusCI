@@ -48,25 +48,7 @@ class ListingPage(BasePage):
         )
 
 
-@pageobject("New")
-class NewModal(BasePage):
-    """A page object representing the New Object modal
-
-    Note: You should not use this page object with 'Go to page'. Instead,
-    you can use 'Wait for modal to appear' after performing an action
-    that causes the new object modal to appear (eg: clicking the
-    "New" button). Once the modal appears, the keywords for that
-    modal will be available for use in the test.
-
-    Example:
-
-    | Go to page                 Home  Contact
-    | Click object button        New
-    | Wait for modal to appear  New  Contact
-
-
-    """
-
+class ModalMixin:
     def _wait_to_appear(self, expected_heading=None):
         """Waits until the modal is visible"""
         locator = "//div[contains(@class, 'uiModal')]"
@@ -101,7 +83,7 @@ class NewModal(BasePage):
 
         self.selenium.wait_until_page_contains_element(locator)
         self.selenium.wait_until_element_is_enabled(locator)
-        self.selenium.click_element(locator)
+        self.salesforce._jsclick(locator)
 
     @capture_screenshot_on_error
     def modal_should_contain_errors(self, *messages):
@@ -163,6 +145,42 @@ class NewModal(BasePage):
         locator = "//div[contains(@class, 'uiModal')]"
 
         self.selenium.wait_until_page_does_not_contain_element(locator)
+
+
+@pageobject("New")
+class NewModal(ModalMixin, BasePage):
+    """A page object representing the New Object modal
+
+    Note: You should not use this page object with 'Go to page'. Instead,
+    you can use 'Wait for modal to appear' after performing an action
+    that causes the new object modal to appear (eg: clicking the
+    "New" button). Once the modal appears, the keywords for that
+    modal will be available for use in the test.
+
+    Example:
+
+    | Go to page                 Home  Contact
+    | Click object button        New
+    | Wait for modal to appear   New  Contact
+    """
+
+
+@pageobject("Edit")
+class EditModal(ModalMixin, BasePage):
+    """A page object representing the Edit Object modal
+
+    Note: You should not use this page object with 'Go to page'. Instead,
+    you can use 'Wait for modal to appear' after performing an action
+    that causes the new object modal to appear (eg: clicking the
+    "Edit" button). Once the modal appears, the keywords for that
+    modal will be available for use in the test.
+
+    Example:
+
+    | Click object button        Edit
+    | Wait for modal to appear   Edit  Contact
+
+    """
 
 
 @pageobject("Home")

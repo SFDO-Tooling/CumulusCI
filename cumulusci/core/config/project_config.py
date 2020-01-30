@@ -4,18 +4,14 @@ import re
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
-import raven
 import yaml
 
-import cumulusci
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
     DependencyResolutionError,
     KeychainNotFound,
-    ServiceNotConfigured,
-    ServiceNotValid,
     NamespaceNotFoundError,
     NotInProject,
     ProjectConfigNotFound,
@@ -363,40 +359,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         break
 
         return commit_sha
-
-    @property
-    def use_sentry(self):
-        try:
-            self.keychain.get_service("sentry")
-            return True
-        except ServiceNotConfigured:
-            return False
-        except ServiceNotValid:
-            return False
-
-    def init_sentry(self,):
-        """ Initializes sentry.io error logging for this session """
-        if not self.use_sentry:
-            return
-
-        sentry_config = self.keychain.get_service("sentry")
-
-        tags = {
-            "repo": self.repo_name,
-            "branch": self.repo_branch,
-            "commit": self.repo_commit,
-            "cci version": cumulusci.__version__,
-        }
-        tags.update(self.config.get("sentry_tags", {}))
-
-        env = self.config.get("sentry_environment", "CumulusCI CLI")
-
-        self.sentry = raven.Client(
-            dsn=sentry_config.dsn,
-            environment=env,
-            tags=tags,
-            processors=("raven.processors.SanitizePasswordsProcessor",),
-        )
 
     def get_github_api(self, owner=None, repo=None):
         return get_github_api_for_repo(

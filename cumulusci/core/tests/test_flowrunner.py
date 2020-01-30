@@ -148,6 +148,38 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         )
         self.assertEqual(expected_output, actual_output)
 
+    def test_get_summary__substeps(self):
+        flow = FlowCoordinator.from_steps(
+            self.project_config,
+            [StepSpec("1", "test", {}, None, self.project_config, from_flow="test")],
+        )
+        assert flow.get_summary() == ""
+
+    def test_get_summary__multiple_sources(self):
+        other_project_config = mock.MagicMock()
+        other_project_config.source.__str__.return_value = "other source"
+        flow = FlowCoordinator.from_steps(
+            self.project_config,
+            [
+                StepSpec(
+                    "1/1",
+                    "other:test1",
+                    {},
+                    None,
+                    other_project_config,
+                    from_flow="test",
+                ),
+                StepSpec(
+                    "1/2", "test2", {}, None, self.project_config, from_flow="test"
+                ),
+            ],
+        )
+        assert (
+            "1) flow: test"
+            + "\n    1) task: other:test1 [from other source]"
+            + "\n    2) task: test2 [from current folder]"
+        ) == flow.get_summary()
+
     def test_init__options(self):
         """ A flow can accept task options and pass them to the task. """
 
@@ -303,6 +335,25 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         # the flow results for the second task should be 'name'
         self.assertEqual("supername", flow.results[1].result)
 
+    def test_run__option_backref_not_found(self):
+        # instantiate a flow with two tasks
+        flow_config = FlowConfig(
+            {
+                "description": "Run two tasks",
+                "steps": {
+                    1: {"task": "pass_name"},
+                    2: {
+                        "task": "name_response",
+                        "options": {"response": "^^bogus.name"},
+                    },
+                },
+            }
+        )
+
+        flow = FlowCoordinator(self.project_config, flow_config)
+        with self.assertRaises(NameError):
+            flow.run(self.org_config)
+
     def test_run__nested_option_backrefs(self):
         self.project_config.config["flows"]["test"] = {
             "description": "Run two tasks",
@@ -356,6 +407,12 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         # the number of results should be 1 instead of 2
         self.assertEqual(1, len(flow.results))
 
+    def test_run__skip_conditional_step(self):
+        flow_config = FlowConfig({"steps": {1: {"task": "pass_name", "when": "False"}}})
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.run(self.org_config)
+        assert len(flow.results) == 0
+
     def test_run__task_raises_exception_fail(self):
         """ A flow aborts when a task raises an exception """
 
@@ -408,15 +465,26 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
         self.assertEqual(1, len(org_id_logs))
 
+    def test_init_org_updates_keychain(self):
+        self.project_config.keychain.set_org = set_org = mock.Mock()
+
+        def change_username(keychain):
+            self.org_config.config["username"] = "sample2@example"
+
+        self.org_config.refresh_oauth_token = change_username
+
+        flow_config = FlowConfig({"steps": {1: {"task": "pass_name"}}})
+        flow = FlowCoordinator(self.project_config, flow_config)
+        flow.org_config = self.org_config
+        flow._init_org()
+
+        set_org.assert_called_once()
+
 
 class StepSpecTest(unittest.TestCase):
     def test_repr(self):
         spec = StepSpec(1, "test_task", {}, None, None, skip=True)
         assert "<!SKIP! StepSpec 1:test_task {}>" == repr(spec)
-
-    def test_for_display(self):
-        spec = StepSpec(1, "test_task", {}, None, None, skip=True)
-        assert "1: test_task [SKIP]" == spec.for_display
 
 
 class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCase):

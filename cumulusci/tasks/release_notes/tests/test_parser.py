@@ -160,6 +160,13 @@ class TestGithubLinesParser(unittest.TestCase):
         self.assertEqual("http://pr", parser.pr_url)
         self.assertEqual(["foo [[PR1](http://pr)]"], parser.content)
 
+    def test_parse_empty_pull_request_body(self):
+        generator = mock.Mock(link_pr=True)
+        parser = GithubLinesParser(generator, self.title)
+        pr = mock.Mock(number=1, html_url="http://pr", body=None)
+        line_added = parser.parse(pr)
+        assert not line_added
+
 
 class TestIssuesParser(unittest.TestCase):
     def setUp(self):

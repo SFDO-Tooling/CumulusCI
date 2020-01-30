@@ -1,9 +1,10 @@
 """ CLI logger """
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 import sys
-
 import requests
+from pathlib import Path
 
 import coloredlogs
 
@@ -25,7 +26,7 @@ def init_logger(log_requests=False):
         colorama.init()
 
     formatter = coloredlogs.ColoredFormatter(fmt="%(asctime)s: %(message)s")
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(stream=sys.stdout)
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -34,3 +35,26 @@ def init_logger(log_requests=False):
 
     if log_requests:
         requests.packages.urllib3.add_stderr_logger()
+
+
+def get_gist_logger():
+    """Determines the appropriate filepath for logfile
+    and name for the logger. Returns a logger with
+    RotatingFileHandler attached."""
+    logfile_dir = Path.home() / ".cumulusci" / "logs"
+    logfile_dir.mkdir(parents=True, exist_ok=True)
+    logfile_path = logfile_dir / "cci.log"
+
+    return get_rot_file_logger("stdout/stderr", logfile_path)
+
+
+def get_rot_file_logger(name, path):
+    """Returns a logger with a rotating file handler"""
+    logger = logging.getLogger(name)
+
+    handler = RotatingFileHandler(path, backupCount=5, encoding="utf-8")
+    handler.doRollover()  # rollover existing log files
+    handler.terminator = ""  # click.echo already adds a newline
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+    return logger

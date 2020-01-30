@@ -39,6 +39,8 @@ class TestBaseGlobalConfig(unittest.TestCase):
 
     def test_load_global_config_no_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
+        # clear cache
+        BaseGlobalConfig.config = None
         config = BaseGlobalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)

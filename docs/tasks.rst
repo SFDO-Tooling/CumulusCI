@@ -144,6 +144,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -163,6 +166,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -182,6 +188,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -201,6 +210,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -257,6 +269,20 @@ Options:
 * **command** *(required)*: The full command to run with the sfdx cli. **Default: force:source:push**
 * **extra**: Append additional options to the command
 
+ensure_record_type
+==========================================
+
+**Description:** Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
+
+**Class::** cumulusci.tasks.salesforce.EnsureRecordTypes
+
+Options:
+------------------------------------------
+
+* **record_type_developer_name** *(required)*: The Developer Name of the Record Type (unique).  Must contain only alphanumeric characters and underscores. **Default: Default**
+* **record_type_label** *(required)*: The Label of the Record Type. **Default: Default**
+* **sobject** *(required)*: The sObject on which to deploy the Record Type and optional Business Process.
+
 execute_anon
 ==========================================
 
@@ -276,6 +302,8 @@ Options:
 * **apex**: A string of Apex to run (after the file, if specified).
 * **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
 * **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
+* **param1**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_1%%% in the Apex code.
+* **param2**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_2%%% in the Apex code.
 
 generate_data_dictionary
 ==========================================
@@ -1015,6 +1043,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -1035,6 +1066,9 @@ Options:
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 * **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 * **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
+* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 * **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 * **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 * **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -1247,6 +1281,8 @@ Options:
 * **start_step**: If specified, skip steps before this one in the mapping
 * **sql_path**: If specified, a database will be created from an SQL script at the provided path **Default: datasets/sample.sql**
 * **ignore_row_errors**: If True, allow the load to continue even if individual rows fail to load.
+* **reset_oids**: If True (the default), and the _sf_ids tables exist, reset them before continuing.
+* **bulk_mode**: Set to Serial to force serial mode on all jobs. Parallel is the default.
 
 load_custom_settings
 ==========================================
@@ -1306,4 +1342,3 @@ Options:
 * **active**: True or False to activate or deactivate trigger handlers.
 * **restore_file**: Path to the state file to store the current trigger handler state. **Default: trigger_status.yml**
 * **restore**: If True, restore the state of Trigger Handlers to that stored in the restore file. **Default: True**
-

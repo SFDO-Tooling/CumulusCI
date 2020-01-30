@@ -12,7 +12,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
 from simple_salesforce import SalesforceResourceNotFound
-from cumulusci.robotframework.utils import selenium_retry
+from cumulusci.robotframework.utils import selenium_retry, capture_screenshot_on_error
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
@@ -97,6 +97,22 @@ class Salesforce(object):
         # libraries.
         locator_manager.add_location_strategies()
 
+    def _jsclick(self, locator):
+        """Use javascript to click an element on the page
+
+        See https://help.salesforce.com/articleView?id=000352057&language=en_US&mode=1&type=1
+        """
+
+        self.selenium.wait_until_page_contains_element(locator)
+        element = self.selenium.get_webelement(locator)
+        # Setting the focus first seems to be required as of Spring'20
+        # (read: without it, tests started failing in that release). I
+        # suspect it's because there is a focusOut handler on form
+        # fields which need to be triggered for data to be accepted.
+        self.selenium.driver.execute_script(
+            "arguments[0].focus(); arguments[0].click()", element
+        )
+
     def get_latest_api_version(self):
         return self.cumulusci.org.latest_api_version
 
@@ -118,12 +134,14 @@ class Salesforce(object):
     def click_modal_button(self, title):
         """Clicks a button in a Lightning modal."""
         locator = lex_locators["modal"]["button"].format(title)
-        self.selenium.click_button(locator)
+        self.selenium.wait_until_page_contains_element(locator)
+        self.selenium.wait_until_element_is_enabled(locator)
+        self._jsclick(locator)
 
     def click_object_button(self, title):
         """Clicks a button in an object's actions."""
         locator = lex_locators["object"]["button"].format(title)
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
         self.wait_until_modal_is_open()
 
     def load_related_list(self, heading):
@@ -156,14 +174,25 @@ class Salesforce(object):
         locator = lex_locators["record"]["related"]["button"].format(
             heading, button_title
         )
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
         self.wait_until_modal_is_open()
 
+    @capture_screenshot_on_error
     def click_related_item_link(self, heading, title):
-        """Clicks a link in the related list with the specified heading."""
+        """Clicks a link in the related list with the specified heading.
+
+         This keyword will automatically call `Wait until loading is complete`
+        """
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
-        self.selenium.click_link(locator)
+        try:
+            self._jsclick(locator)
+        except Exception as e:
+            self.builtin.log(f"Exception: {e}", "DEBUG")
+            raise Exception(
+                f"Unable to find related link under heading '{heading}' with the text '{title}'"
+            )
+        self.wait_until_loading_is_complete()
 
     def click_related_item_popup_link(self, heading, title, link):
         """Clicks a link in the popup menu for a related list item.
@@ -176,15 +205,17 @@ class Salesforce(object):
         locator = lex_locators["record"]["related"]["popup_trigger"].format(
             heading, title
         )
+
         self.selenium.wait_until_page_contains_element(locator)
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
         locator = lex_locators["popup"]["link"].format(link)
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
+        self.wait_until_loading_is_complete()
 
     def close_modal(self):
         """ Closes the open modal """
         locator = lex_locators["modal"]["close"]
-        self.selenium.click_button(locator)
+        self._jsclick(locator)
 
     def current_app_should_be(self, app_name):
         """ Validates the currently selected Salesforce App """
@@ -341,7 +372,7 @@ class Salesforce(object):
     def click_header_field_link(self, label):
         """Clicks a link in record header."""
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
-        self.selenium.click_link(locator)
+        self._jsclick(locator)
 
     def header_field_should_be_checked(self, label):
         """ Validates that a checkbox field in the record header is checked """
@@ -362,26 +393,51 @@ class Salesforce(object):
         self.builtin.log(output, level=loglevel)
 
     def open_app_launcher(self):
-        """ Opens the Saleforce App Launcher """
+        """Opens the Saleforce App Launcher Modal
+
+        Note: starting with Spring '20 the app launcher button opens a
+        menu rather than a modal. To maintain backwards compatibility,
+        this keyword will continue to open the modal rather than the
+        menu. If you need to interact with the app launcher menu, you
+        will need to create a custom keyword.
+        """
         locator = lex_locators["app_launcher"]["button"]
         self.builtin.log("Clicking App Launcher button")
-        self.selenium.click_button(locator)
+        self._jsclick(locator)
+
+        api_version = int(float(self.get_latest_api_version()))
+        if api_version >= 48:
+            self.selenium.wait_until_element_is_visible(
+                lex_locators["app_launcher"]["menu"],
+                error="Expected to see the app launcher menu, but didn't",
+            )
+            element = self.selenium.get_webelement(
+                lex_locators["app_launcher"]["view_all"]
+            )
+            self.builtin.log("clicking 'view all' button")
+            self.selenium.capture_page_screenshot()
+            self._jsclick(element)
         self.wait_until_modal_is_open()
 
     def populate_field(self, name, value):
-        """Enters a value into a text field.
+        """Enters a value into an input or textarea field.
+
+        'name' represents the label on the page (eg: "First Name"),
+        and 'value' is the new value.
 
         Any existing value will be replaced.
         """
-        locator = lex_locators["object"]["field"].format(name)
+        locator = self._get_input_field_locator(name)
         self._populate_field(locator, value)
 
     def populate_lookup_field(self, name, value):
         """Enters a value into a lookup field.
         """
-        input_locator = lex_locators["object"]["field"].format(name)
+        input_locator = self._get_input_field_locator(name)
         menu_locator = lex_locators["object"]["field_lookup_link"].format(value)
-        self.populate_field(name, value)
+
+        self._populate_field(input_locator, value)
+
         for x in range(3):
             self.wait_for_aura()
             try:
@@ -394,9 +450,40 @@ class Salesforce(object):
             else:
                 break
         self.selenium.set_focus_to_element(menu_locator)
-        self.selenium.get_webelement(menu_locator).click()
+        self._jsclick(menu_locator)
+
+    def _get_input_field_locator(self, name):
+        """Given an input field label, return a locator for the related input field
+
+        This looks for a <label> element with the given text, or
+        a label with a span with the given text. The value of the
+        'for' attribute is then extracted from the label and used
+        to create a new locator with that id.
+
+        For example, the locator 'abc123' will be returned
+        for the following html:
+
+        <label for='abc123'>First Name</label>
+        -or-
+        <label for='abc123'><span>First Name</span>
+        """
+        try:
+            # we need to make sure that if a modal is open, we only find
+            # the input element inside the modal. Otherwise it's possible
+            # that the xpath could pick the wrong element.
+            self.selenium.get_webelement(lex_locators["modal"]["is_open"])
+            modal_prefix = "//div[contains(@class, 'modal-container')]"
+        except ElementNotFound:
+            modal_prefix = ""
+
+        locator = modal_prefix + lex_locators["object"]["field_label"].format(
+            name, name
+        )
+        input_element_id = self.selenium.get_element_attribute(locator, "for")
+        return input_element_id
 
     def _populate_field(self, locator, value):
+        self.builtin.log(f"value: {value}' locator: '{locator}'", "DEBUG")
         field = self.selenium.get_webelement(locator)
         self._focus(field)
         if field.get_attribute("value"):
@@ -458,8 +545,7 @@ class Salesforce(object):
     def populate_form(self, **kwargs):
         """Enters multiple values from a mapping into form fields."""
         for name, value in kwargs.items():
-            locator = lex_locators["object"]["field"].format(name)
-            self._populate_field(locator, value)
+            self.populate_field(name, value)
 
     def remove_session_record(self, obj_type, obj_id):
         """Remove a record from the list of records that should be automatically removed."""
@@ -476,10 +562,10 @@ class Salesforce(object):
         """Selects a record type while adding an object."""
         self.wait_until_modal_is_open()
         locator = lex_locators["object"]["record_type_option"].format(label)
-        self.selenium.get_webelement(locator).click()
-        locator = lex_locators["modal"]["button"].format("Next")
+        self._jsclick(locator)
         self.selenium.click_button("Next")
 
+    @capture_screenshot_on_error
     def select_app_launcher_app(self, app_name):
         """Navigates to a Salesforce App via the App Launcher """
         locator = lex_locators["app_launcher"]["app_link"].format(app_name)
@@ -496,14 +582,15 @@ class Salesforce(object):
         self.builtin.log("Waiting for modal to close")
         self.wait_until_modal_is_closed()
 
+    @capture_screenshot_on_error
     def select_app_launcher_tab(self, tab_name):
         """Navigates to a tab via the App Launcher"""
         locator = lex_locators["app_launcher"]["tab_link"].format(tab_name)
         self.builtin.log("Opening the App Launcher")
         self.open_app_launcher()
         self.builtin.log("Clicking App Tab")
-        self.selenium.set_focus_to_element(locator)
-        self.selenium.get_webelement(locator).click()
+        element = self.selenium.get_webelement(locator)
+        self._jsclick(element)
         self.builtin.log("Waiting for modal to close")
         self.wait_until_modal_is_closed()
 
@@ -674,10 +761,13 @@ class Salesforce(object):
         self.builtin.log("Storing {} {} to session records".format(obj_type, obj_id))
         self._session_records.append({"type": obj_type, "id": obj_id})
 
+    @capture_screenshot_on_error
     def wait_until_modal_is_open(self):
         """ Wait for modal to open """
         self.selenium.wait_until_page_contains_element(
-            lex_locators["modal"]["is_open"], timeout=15
+            lex_locators["modal"]["is_open"],
+            timeout=15,
+            error="Expected to see a modal window, but didn't",
         )
 
     def wait_until_modal_is_closed(self):
@@ -695,6 +785,12 @@ class Salesforce(object):
         try:
             self.selenium.wait_until_page_contains_element(locator)
             self.wait_for_aura()
+            # this knowledge article recommends waiting a second. I don't
+            # like it, but it seems to help. We should do a wait instead,
+            # but I can't figure out what to wait on.
+            # https://help.salesforce.com/articleView?id=000352057&language=en_US&mode=1&type=1
+            time.sleep(1)
+
         except Exception:
             try:
                 self.selenium.capture_page_screenshot()
@@ -757,6 +853,24 @@ class Salesforce(object):
             self.builtin.log("waiting for a refresh...", "DEBUG")
             self.selenium.capture_page_screenshot()
             time.sleep(interval)
+            location = self.selenium.get_location()
+            if (
+                "//test.salesforce.com" in location
+                or "//login.salesforce.com" in location
+            ):
+                # Sometimes we get redirected to a login URL rather
+                # than being logged in, and we've yet to figure out
+                # precisely why that happens. Experimentation shows
+                # that authentication has already happened, so in
+                # this case we'll try going back to the instance url
+                # rather than the front door servlet.
+                #
+                # Admittedly, this is a bit of a hack, but it's better
+                # than never getting past this redirect.
+                login_url = self.cumulusci.org.config["instance_url"]
+                self.builtin.log(
+                    f"setting login_url temporarily to {login_url}", "DEBUG"
+                )
             self.selenium.go_to(login_url)
 
     def breakpoint(self):
