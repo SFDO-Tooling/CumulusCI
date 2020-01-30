@@ -5,8 +5,8 @@ import glob
 from xml.dom.minidom import parse
 
 from cumulusci.core.tasks import BaseTask
-from cumulusci.utils import download_extract_zip, findReplace, findReplaceRegex
 from cumulusci.core.utils import process_list_arg
+from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
 
 
 class DownloadZip(BaseTask):
@@ -131,8 +131,7 @@ class FindReplace(BaseTask):
         },
         "path": {"description": "The path to recursively search", "required": True},
         "file_pattern": {
-            "description": "A UNIX like filename pattern used for matching filenames, or a list of them. See python fnmatch docs for syntax. If passed via command line, use a comma separated string. Defaults to *",
-            "required": True,
+            "description": "A UNIX like filename pattern used for matching filenames, or a list of them. See python fnmatch docs for syntax. If passed via command line, use a comma separated string. Defaults to *"
         },
         "max": {
             "description": "The max number of matches to replace.  Defaults to replacing all matches."
@@ -143,25 +142,21 @@ class FindReplace(BaseTask):
         super(FindReplace, self)._init_options(kwargs)
         if "replace" not in self.options:
             self.options["replace"] = ""
-        if "file_pattern" not in self.options:
-            self.options["file_pattern"] = "*"
+        self.options["file_pattern"] = process_list_arg(
+            self.options.get("file_pattern") or "*"
+        )
 
     def _run_task(self):
         kwargs = {}
         if "max" in self.options:
             kwargs["max"] = self.options["max"]
 
-        # Split and trim file_pattern string into a list if not already a list
-        filePatterns = process_list_arg(self.options["file_pattern"])
-        if not len(filePatterns):
-            raise TaskOptionsError("At least one file_pattern must be specified.")
-
-        for fp in filePatterns:
-            findReplace(
+        for file_pattern in self.options["file_pattern"]:
+            find_replace(
                 find=self.options["find"],
                 replace=self.options["replace"],
                 directory=self.options["path"],
-                filePattern=fp,
+                filePattern=file_pattern,
                 logger=self.logger,
                 **kwargs
             )
@@ -175,7 +170,7 @@ class FindReplaceRegex(FindReplace):
     task_options = find_replace_regex_options
 
     def _run_task(self):
-        findReplaceRegex(
+        find_replace_regex(
             find=self.options["find"],
             replace=self.options["replace"],
             directory=self.options["path"],
