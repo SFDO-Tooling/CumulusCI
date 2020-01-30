@@ -195,8 +195,8 @@ The following is the content of the `tasks/salesforce.py` file in the NPSP repos
 
     import os
     from cumulusci.tasks.salesforce import UpdateAdminProfile as BaseUpdateAdminProfile
-    from cumulusci.utils import findReplace
-    from cumulusci.utils import findReplaceRegex
+    from cumulusci.utils import find_replace
+    from cumulusci.utils import find_replace_regex
 
     rt_visibility_template = """
     <recordTypeVisibilities>
@@ -213,7 +213,7 @@ The following is the content of the `tasks/salesforce.py` file in the NPSP repos
             super(UpdateAdminProfile, self)._process_metadata()
 
             # Strip record type visibilities
-            findReplaceRegex(
+            find_replace_regex(
                 '<recordTypeVisibilities>([^\$]+)</recordTypeVisibilities>',
                 '',
                 os.path.join(self.tempdir, 'profiles'),
@@ -227,7 +227,7 @@ The following is the content of the `tasks/salesforce.py` file in the NPSP repos
 
         def _set_record_type(self, name, default):
             rt = rt_visibility_template.format(default, name)
-            findReplace(
+            find_replace(
                 '<tabVisibilities>',
                 '{}<tabVisibilities>'.format(rt),
                 os.path.join(self.tempdir, 'profiles'),
@@ -239,7 +239,7 @@ That's a lot of code, but it is pretty simple to explain:
 
 * The standard UpdateAdminProfile class provides the `_process_metadata` method which modifies the retrieved Admin.profile before it is redeployed.  We want to add our logic after the standard logic does its thing.
 
-* First, we strip out all `<recordTypeVisibilities>*</recordTypeVisibilities>` using the findReplaceRegex util method provided by CumulusCI
+* First, we strip out all `<recordTypeVisibilities>*</recordTypeVisibilities>` using the find_replace_regex util method provided by CumulusCI
 
 * Next, we set visibility on the 3 record types needed by the project and set the proper default record type values.
 
