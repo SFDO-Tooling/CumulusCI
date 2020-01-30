@@ -742,7 +742,7 @@ Viewing Stacktraces
 -------------------
 If you encounter an error and want more information on what went wrong, you can use ``cci error info`` to display the last *n* lines (30, by default) of the stacktrace (if present) from the last command you executed in CumulusCI.
 
-You can include the option num_lines argument if you want to customize how much of the stacktrace you see.
+You can include the option ``max_lines`` argument if you want to customize how much of the stacktrace you see.
 
 Reporting Error Logs 
 --------------------
