@@ -2,6 +2,23 @@
 History
 =======
 
+3.5.4 (2020-01-30)
+-----------------
+Changes:
+
+* There is a new top level `cci error` command for interacting with errors in CumulusCI
+
+* `cci gist` is now `cci error gist`
+
+* `cci error info` displays the last 30 lines of a stacktrace from the previous `cci` command run (if present).
+
+* Changed the prompt users receive when encountering errors in `cci`.
+
+* Fixed documentation relating to the `RunApexTests` task.
+
+* Reverted a change to the `select_record_type` keyword to work in both Winter '20 and Spring '20
+
+
 3.5.3 (2020-01-23)
 ------------------
 * Added new features for running Python code (in a file or string) without brining up an interactive shell. You can now use `--python` and `--script` arguments for the `cci shell` and `cci org shell` commands.
