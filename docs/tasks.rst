@@ -41,7 +41,7 @@ add_standard_value_set_entries
 Options:
 ------------------------------------------
 
-* **entries** *(required)*: Array of standardValues to insert. Each standardValue should contain the keys 'fullName', the API name of the entry; 'label', the user-facing label.
+* **entries** *(required)*: Array of standardValues to insert. Each standardValue should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. OpportunityStage entries require the additional keys 'closed', 'won', 'forecastCategory', and 'probability'; CaseStatus entries require 'closed'.
 * **api_names**: List of API names of entities to affect
 * **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
 * **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
@@ -1411,3 +1411,4 @@ Options:
 * **active**: True or False to activate or deactivate trigger handlers.
 * **restore_file**: Path to the state file to store the current trigger handler state. **Default: trigger_status.yml**
 * **restore**: If True, restore the state of Trigger Handlers to that stored in the restore file. **Default: True**
+
