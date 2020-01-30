@@ -16,12 +16,12 @@ Changes:
 
 Issues Closed:
 
-* Reverted a change to the `select_record_type` keyword to work in both Winter '20 and Spring '20
+* Robot Framework: Reverted a change to the `select_record_type` keyword in the Salesforce library to work in both Winter '20 and Spring '20
 
 
 3.5.3 (2020-01-23)
 ------------------
-* Added new features for running Python code (in a file or string) without brining up an interactive shell. You can now use `--python` and `--script` arguments for the `cci shell` and `cci org shell` commands.
+* Added new features for running Python code (in a file or string) without bringing up an interactive shell. You can now use `--python` and `--script` arguments for the `cci shell` and `cci org shell` commands.
 * Added support for up to two optional parameters in Apex anonymous via token substitution.
 * The `EnsureRecordTypes` class is now exposed as `ensure_record_types` and correctly supports the Case, Lead, and Solution sObjects (in addition to other standard objects).
 * Fixed a bug where the github_parent_pr_notes was attempting to post comments on issues related to child pull request change notes.
