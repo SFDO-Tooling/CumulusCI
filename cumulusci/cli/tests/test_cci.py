@@ -225,11 +225,15 @@ class TestCCI(unittest.TestCase):
             "\x1b[31mWe encountered an error with your internet connection. Please check your connection and try the last cci command again.\nError: Your internet is no good\x1b[0m"
         )
 
+    @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
-    def test_handle_generic_error(self, style, traceback):
+    def test_handle_generic_error(self, style, traceback, cci_open):
         error = "Something bad happened."
+        cci_open.__enter__.return_value = mock.Mock()
+
         cci.handle_generic_error(error, is_gist_cmd=False)
+
         style.call_args_list[0][0] == f"Error: {error}"
         style.call_args_list[1][0] == cci.SUGGEST_GIT_GIST_COMMAND
         traceback.print_exc.assert_called_once()
