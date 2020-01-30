@@ -67,6 +67,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
             self.generate_mapping_file = os.path.abspath(self.generate_mapping_file)
         num_records = self.options.get("num_records")
         if num_records is not None:
+            num_records = int(num_records)
             num_records_tablename = self.options.get("num_records_tablename")
 
             if not num_records_tablename:
