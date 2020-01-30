@@ -217,7 +217,10 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
             )
 
         configuration = parser.metadata_map[entity_configurations[0]][0]
-        if configuration["class"] != "MetadataFilenameParser":
+        if configuration["class"] not in [
+            "MetadataFilenameParser",
+            "CustomObjectParser",
+        ]:
             raise CumulusCIException(
                 f"MetadataSingleEntityTransformTask only supports manipulating complete, file-based XML entities (not {self.entity})"
             )
@@ -235,7 +238,8 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
             )
             if transformed_xml:
                 parent_dir = self.deploy_dir / directory
-                parent_dir.mkdir()
+                if not parent_dir.exists():
+                    parent_dir.mkdir()
                 destination_path = parent_dir / f"{api_name}.{extension}"
                 transformed_xml.write(
                     destination_path,

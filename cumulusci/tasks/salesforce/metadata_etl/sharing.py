@@ -42,7 +42,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
                     "The object api_name and at least one of "
                     "internal_sharing_model and external_sharing_model is required."
                 )
-            self.owds[elem["api_name"]] = {
+            self.owds[self._namespace_injector(elem["api_name"])] = {
                 "internal_sharing_model": elem.get("internal_sharing_model"),
                 "external_sharing_model": elem.get("external_sharing_model"),
             }
@@ -50,6 +50,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
     def _post_deploy(self, result):
         if result == "Success":
             super()._post_deploy(result)
+            self.logger.info(f"Waiting for sharing enablement to complete.")
             self.time_start = datetime.now()
             self._poll()
             self.logger.info(f"Sharing enablement is complete.")
