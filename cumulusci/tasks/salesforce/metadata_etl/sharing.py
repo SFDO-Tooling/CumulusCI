@@ -59,12 +59,14 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
         desired_external_model = self.owds[api_name].get("external_sharing_model")
 
         if desired_external_model:
-            external_model = metadata.findall(f".//sf:sharingModel", self.namespaces)
+            external_model = metadata.findall(
+                f".//sf:externalSharingModel", self.namespaces
+            )
             if not external_model:
                 external_model = [
                     XML_ET.SubElement(
                         metadata.getroot(),
-                        "{%s}sharingModel" % (self.namespaces.get("sf")),
+                        "{%s}externalSharingModel" % (self.namespaces.get("sf")),
                     )
                 ]
             external_model[0].text = desired_external_model
@@ -75,7 +77,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
                 internal_model = [
                     XML_ET.SubElement(
                         metadata.getroot(),
-                        "{%s}externalSharingModel" % (self.namespaces.get("sf")),
+                        "{%s}sharingModel" % (self.namespaces.get("sf")),
                     )
                 ]
             internal_model[0].text = desired_internal_model
