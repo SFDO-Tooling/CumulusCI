@@ -49,15 +49,15 @@ class BaseMetadataETLTask(BaseSalesforceApiTask):
             not self.options["unmanaged"],
         )[1]
 
-    def _get_package_xml_content(self):
+    def _get_package_xml_content(self, deploy):
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <version>{self.api_version}</version>
 </Package>
 """
 
-    def _generate_package_xml(self):
-        return self._namespace_injector(self._get_package_xml_content())
+    def _generate_package_xml(self, deploy):
+        return self._namespace_injector(self._get_package_xml_content(deploy))
 
     def _create_directories(self, tempdir):
         if self.retrieve:
@@ -69,7 +69,7 @@ class BaseMetadataETLTask(BaseSalesforceApiTask):
 
     def _retrieve(self):
         api_retrieve = ApiRetrieveUnpackaged(
-            self, self._generate_package_xml(), self.api_version
+            self, self._generate_package_xml(False), self.api_version
         )
         unpackaged = api_retrieve()
         unpackaged.extractall(self.retrieve_dir)
@@ -78,10 +78,8 @@ class BaseMetadataETLTask(BaseSalesforceApiTask):
         pass
 
     def _deploy(self):
-        generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
-
         target_profile_xml = Path(self.deploy_dir, "package.xml")
-        target_profile_xml.write_text(generator())
+        target_profile_xml.write_text(self._generate_package_xml(True))
 
         api = Deploy(
             self.project_config,
@@ -120,6 +118,10 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask):
 
     deploy = True
 
+    def _generate_package_xml(self, deploy):
+        generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
+        return generator()
+
     def _transform(self):
         self._synthesize()
 
@@ -153,7 +155,7 @@ class BaseMetadataTransformTask(BaseMetadataETLTask):
 
         return types
 
-    def _get_package_xml_content(self):
+    def _get_package_xml_content(self, deploy):
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
 {self._get_types_package_xml()}

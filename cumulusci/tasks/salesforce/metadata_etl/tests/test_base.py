@@ -44,7 +44,7 @@ class test_BaseMetadataETLTask(unittest.TestCase):
             {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
         )
 
-        assert "47.0" in task._generate_package_xml()
+        assert "47.0" in task._generate_package_xml(False)
 
     @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.ApiRetrieveUnpackaged")
     def test_retrieve(self, api_mock):
@@ -55,26 +55,25 @@ class test_BaseMetadataETLTask(unittest.TestCase):
         task.retrieve_dir = mock.Mock()
 
         task._retrieve()
-        api_mock.assert_called_once_with(task, task._generate_package_xml(), "47.0")
+        api_mock.assert_called_once_with(
+            task, task._generate_package_xml(False), "47.0"
+        )
         api_mock.return_value.assert_called_once_with()
         api_mock.return_value.return_value.extractall.assert_called_once_with(
             task.retrieve_dir
         )
 
     @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.Deploy")
-    @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.PackageXmlGenerator")
-    def test_deploy(self, package_mock, deploy_mock):
+    def test_deploy(self, deploy_mock):
         with tempfile.TemporaryDirectory() as tmpdir:
             task = create_task(
                 BaseMetadataETLTask,
                 {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
             )
             task.deploy_dir = Path(tmpdir)
-
-            package_mock.return_value.return_value = "test"
+            task._generate_package_xml = mock.Mock()
+            task._generate_package_xml.return_value = "test"
             result = task._deploy()
-
-            package_mock.assert_called_once_with(str(Path(tmpdir)), "47.0")
             assert (Path(tmpdir) / "package.xml").read_text() == "test"
 
             assert len(deploy_mock.call_args_list) == 1
@@ -124,6 +123,19 @@ class test_BaseMetadataSynthesisTask(unittest.TestCase):
         task._deploy.assert_called_once_with()
         task._synthesize.assert_called_once_with()
 
+    @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.PackageXmlGenerator")
+    def test_generate_package_xml(self, package_mock):
+        task = create_task(
+            BaseMetadataSynthesisTask,
+            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+        )
+        task.deploy_dir = "test"
+
+        result = task._generate_package_xml(True)
+        package_mock.assert_called_once_with(str(task.deploy_dir), task.api_version)
+        package_mock.return_value.assert_called_once_with()
+        assert result == package_mock.return_value.return_value
+
 
 class test_BaseMetadataTransformTask(unittest.TestCase):
     def test_generate_package_xml(self):
@@ -140,7 +152,7 @@ class test_BaseMetadataTransformTask(unittest.TestCase):
         }
 
         assert (
-            task._generate_package_xml()
+            task._generate_package_xml(False)
             == """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>

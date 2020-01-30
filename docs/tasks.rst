@@ -42,6 +42,10 @@ Options:
 ------------------------------------------
 
 * **entries** *(required)*: Array of standardValues to insert. Each standardValue should contain the keys 'fullName', the API name of the entry; 'label', the user-facing label.
+* **api_names**: List of API names of entities to affect
+* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
+* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
+* **api_version**: Metadata API version to use, if not project__package__api_version.
 
 add_permission_set_perms
 ==========================================
@@ -1023,8 +1027,8 @@ run_tests
 Options:
 ------------------------------------------
 
-* **test_name_match** *(required)*: Query to find Apex test classes to run ("%" is wildcard).  Defaults to project__test__name_match
-* **test_name_exclude**: Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude
+* **test_name_match** *(required)*: Pattern to find Apex test classes to run ("%" is wildcard).  Defaults to project__test__name_match from project config. Comma-separated list for multiple patterns.
+* **test_name_exclude**: Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude from project config. Comma-separated list for multiple patterns.
 * **namespace**: Salesforce project namespace.  Defaults to project__package__namespace
 * **managed**: If True, search for tests in the namespace only.  Defaults to False
 * **poll_interval**: Seconds to wait between polling for Apex test results.

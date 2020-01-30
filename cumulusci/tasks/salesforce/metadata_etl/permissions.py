@@ -45,6 +45,10 @@ class AddPermissions(MetadataSingleEntityTransformTask):
                     "class_access entries must contain the 'apexClass' key."
                 )
 
+            class_access["apexClass"] = self._namespace_injector(
+                class_access["apexClass"]
+            )
+
             existing_permissions = metadata.findall(
                 f".//sf:classAccesses[sf:apexClass='{class_access['apexClass']}']",
                 self.namespaces,
@@ -87,6 +91,10 @@ class AddPermissions(MetadataSingleEntityTransformTask):
                 raise TaskOptionsError(
                     "field_permissions entries must include the 'field' key."
                 )
+
+            field_permission["field"] = self._namespace_injector(
+                field_permission["field"]
+            )
 
             existing_permissions = metadata.findall(
                 f".//sf:fieldPermissions[sf:field='{field_permission['field']}']",

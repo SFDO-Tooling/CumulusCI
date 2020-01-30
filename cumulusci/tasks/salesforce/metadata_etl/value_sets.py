@@ -13,7 +13,8 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
         "entries": {
             "description": "Array of standardValues to insert. Each standardValue should contain the keys 'fullName', the API name of the entry; 'label', the user-facing label.",
             "required": "False",
-        }
+        },
+        **MetadataSingleEntityTransformTask.task_options,
     }
 
     def _transform_entity(self, metadata, api_name):
