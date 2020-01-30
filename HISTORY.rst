@@ -18,7 +18,7 @@ Changes:
 
 Issues Closed:
 
-* Reverted a change to the `select_record_type` keyword to work in both Winter '20 and Spring '20
+* Robot Framework: Reverted a change to the `select_record_type` keyword in the Salesforce library to work in both Winter '20 and Spring '20
 
 
 3.5.3 (2020-01-23)
