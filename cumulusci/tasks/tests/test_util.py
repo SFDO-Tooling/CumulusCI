@@ -104,19 +104,19 @@ class TestUtilTasks(unittest.TestCase):
         task = util.Delete(self.project_config, task_config, self.org_config)
         task()
 
-    @mock.patch("cumulusci.tasks.util.findReplace")
-    def test_FindReplace(self, findReplace):
+    @mock.patch("cumulusci.tasks.util.find_replace")
+    def test_FindReplace(self, find_replace):
         task_config = TaskConfig({"options": {"find": "foo", "path": ".", "max": 1}})
         task = util.FindReplace(self.project_config, task_config, self.org_config)
         task()
-        findReplace.assert_called_once()
+        find_replace.assert_called_once()
 
-    @mock.patch("cumulusci.tasks.util.findReplaceRegex")
-    def test_FindReplaceRegex(self, findReplaceRegex):
+    @mock.patch("cumulusci.tasks.util.find_replace_regex")
+    def test_FindReplaceRegex(self, find_replace_regex):
         task_config = TaskConfig({"options": {"find": "foo", "path": "."}})
         task = util.FindReplaceRegex(self.project_config, task_config, self.org_config)
         task()
-        findReplaceRegex.assert_called_once()
+        find_replace_regex.assert_called_once()
 
     def test_CopyFile(self):
         src = os.path.join(self.tempdir, "src")
