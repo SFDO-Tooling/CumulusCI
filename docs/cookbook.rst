@@ -216,7 +216,7 @@ The following is the content of the `tasks/salesforce.py` file in the NPSP repos
             find_replace_regex(
                 '<recordTypeVisibilities>([^\$]+)</recordTypeVisibilities>',
                 '',
-                os.path.join(self.tempdir, 'profiles'),
+                os.path.join(self.retrieve_dir, 'profiles'),
                 'Admin.profile'
             )
 
@@ -230,7 +230,7 @@ The following is the content of the `tasks/salesforce.py` file in the NPSP repos
             find_replace(
                 '<tabVisibilities>',
                 '{}<tabVisibilities>'.format(rt),
-                os.path.join(self.tempdir, 'profiles'),
+                os.path.join(self.retrieve_dir, 'profiles'),
                 'Admin.profile',
                 max=1,
             )
