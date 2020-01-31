@@ -563,7 +563,7 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
         locator = lex_locators["object"]["record_type_option"].format(label)
         self._jsclick(locator)
-        self.click_modal_button("Next")
+        self.selenium.click_button("Next")
 
     @capture_screenshot_on_error
     def select_app_launcher_app(self, app_name):
