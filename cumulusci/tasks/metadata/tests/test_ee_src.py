@@ -12,8 +12,8 @@ from cumulusci.utils import temporary_dir
 
 
 class TestCreateUnmanagedEESrc(unittest.TestCase):
-    @mock.patch("cumulusci.tasks.metadata.ee_src.removeXmlElement")
-    def test_run_task(self, removeXmlElement):
+    @mock.patch("cumulusci.tasks.metadata.ee_src.remove_xml_element_directory")
+    def test_run_task(self, remove_xml_element_directory):
         with temporary_dir() as path:
             revert_path = os.path.join(
                 os.path.dirname(path), os.path.basename(path) + "_revert"
@@ -26,7 +26,7 @@ class TestCreateUnmanagedEESrc(unittest.TestCase):
             )
             task = CreateUnmanagedEESrc(project_config, task_config)
             task()
-            removeXmlElement.assert_has_calls(
+            remove_xml_element_directory.assert_has_calls(
                 [
                     mock.call("availableFields", path, "*.object"),
                     mock.call("visibility[.='Protected']", path, "*.object"),
