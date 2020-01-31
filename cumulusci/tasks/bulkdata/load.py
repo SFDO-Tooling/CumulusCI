@@ -71,10 +71,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.bulk_mode = (
             self.options.get("bulk_mode") and self.options.get("bulk_mode").title()
         )
-        if self.bulk_mode and self.bulk_mode not in [
-            "Serial",
-            "Parallel",
-        ]:
+        if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
     def _run_task(self):
@@ -99,7 +96,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 for after_name, after_step in self.after_steps[name].items():
                     self.logger.info(f"Running post-load step: {after_name}")
                     result = self._load_mapping(after_step)
-                    if not result.startswith("Completed"):
+                    if result not in ("Completed", "CompletedWithFailures"):
                         raise BulkDataException(
                             f"Job {after_name} did not complete successfully"
                         )
