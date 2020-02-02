@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-import os
 import sys
 
 from github3 import login
 
 from cumulusci import __version__ as version
-from cumulusci.cli.config import CliRuntime
+from cumulusci.cli.runtime import CliRuntime
 
 FORMULA_FILE = sys.argv[1]
 TARGET_FILE = "cumulusci.rb"
@@ -34,7 +33,7 @@ def create_branch(repo):
     head_sha = repo.ref("heads/master").object.sha
     branch_ref = f"refs/heads/{BRANCH_NAME}"
     print(f"Creating new branch from {head_sha[:8]} at {branch_ref}")
-    new_branch = repo.create_ref(branch_ref, head_sha)
+    repo.create_ref(branch_ref, head_sha)
 
 
 def read_formula():

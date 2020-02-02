@@ -40,7 +40,12 @@ def parse_api_datetime(value):
     return dt
 
 
-def findReplace(find, replace, directory, filePattern, logger=None, max=None):
+def find_replace(find, replace, directory, filePattern, logger=None, max=None):
+    """Recursive find/replace.
+
+    Walks through files matching `filePattern` within `directory`
+    and does a string substitution of `find` with `replace`.
+    """
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
@@ -57,7 +62,12 @@ def findReplace(find, replace, directory, filePattern, logger=None, max=None):
                     f.write(s_updated)
 
 
-def findReplaceRegex(find, replace, directory, filePattern, logger=None):
+def find_replace_regex(find, replace, directory, filePattern, logger=None):
+    """Recursive find/replace using a regular expression.
+
+    Walks through files matching `filePattern` within `directory`
+    and does a regex substitution of `find` with `replace`.
+    """
     pattern = re.compile(find)
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
@@ -72,7 +82,12 @@ def findReplaceRegex(find, replace, directory, filePattern, logger=None):
                     f.write(s_updated)
 
 
-def findRename(find, replace, directory, logger=None):
+def find_rename(find, replace, directory, logger=None):
+    """Recursive find/replace within filenames.
+
+    Walks through files within `directory`
+    and renames files to replace `find` with `replace`.
+    """
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in files:
             filepath = os.path.join(path, filename)
@@ -90,12 +105,19 @@ def elementtree_parse_file(path):
     return tree
 
 
-def removeXmlElement(name, directory, file_pattern, logger=None):
+def remove_xml_element_directory(name, directory, file_pattern, logger=None):
     """ Recursively walk a directory and remove XML elements """
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, file_pattern):
             filepath = os.path.join(path, filename)
             remove_xml_element_file(name, filepath)
+
+
+# backwards-compatibility aliases
+findReplace = find_replace
+findReplaceRegex = find_replace_regex
+findRename = find_rename
+removeXmlElement = remove_xml_element_directory
 
 
 def remove_xml_element_file(name, path):
@@ -510,22 +532,11 @@ def log_progress(
 
 
 def random_alphanumeric_underscore(length):
-    if sys.version_info[0] >= 3:
-        import secrets
+    import secrets
 
-        # Ensure the string is the right length
-        byte_length = math.ceil((length * 3) / 4)
-        return secrets.token_urlsafe(byte_length).replace("-", "_")[:length]
-    else:
-        import random
-        import string
-
-        return "".join(
-            random.SystemRandom().choice(
-                "_" + string.ascii_uppercase + string.ascii_lowercase + string.digits
-            )
-            for _ in range(length)
-        )
+    # Ensure the string is the right length
+    byte_length = math.ceil((length * 3) / 4)
+    return secrets.token_urlsafe(byte_length).replace("-", "_")[:length]
 
 
 def get_cci_upgrade_command():
@@ -564,3 +575,39 @@ def get_git_config(config_key):
     )
 
     return config_value if config_value and not p.returncode else None
+
+
+@contextlib.contextmanager
+def tee_stdout_stderr(args, logger):
+    """Tee stdout and stderr so that they're also routed to
+    a log file. Add the current command arguments
+    as the first item in the log."""
+    real_stdout_write = sys.stdout.write
+    real_stderr_write = sys.stderr.write
+
+    # Add current command args as first line in logfile
+    logger.debug(" ".join(args) + "\n")
+
+    def stdout_write(s):
+        output = strip_ansi_sequences(s)
+        logger.debug(output)
+        real_stdout_write(s)
+
+    def stderr_write(s):
+        output = strip_ansi_sequences(s)
+        logger.debug(output)
+        real_stderr_write(s)
+
+    sys.stdout.write = stdout_write
+    sys.stderr.write = stderr_write
+    try:
+        yield
+    finally:
+        sys.stdout.write = real_stdout_write
+        sys.stderr.write = real_stderr_write
+
+
+def strip_ansi_sequences(input):
+    """Strip ANSI sequences from what's in buffer"""
+    ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
+    return ansi_escape.sub("", input)

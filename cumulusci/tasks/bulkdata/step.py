@@ -73,6 +73,12 @@ class BulkJobTaskMixin:
         elif "Failed" in statuses:
             return "Failed", state_messages
 
+        failures = tree.find(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
+        if failures is not None:
+            num_failures = int(failures.text)
+            if num_failures:
+                return "CompletedWithFailures", [f"Failures detected: {num_failures}"]
+
         return "Completed", None
 
     def _wait_for_job(self, job_id):

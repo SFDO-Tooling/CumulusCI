@@ -39,7 +39,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             "description": "If True (the default), and the _sf_ids tables exist, reset them before continuing.",
             "required": False,
         },
-        "bulk_mode": {},
+        "bulk_mode": {
+            "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -59,6 +61,11 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 "You must set either the database_url or sql_path option."
             )
         self.reset_oids = self.options.get("reset_oids", True)
+        self.bulk_mode = (
+            self.options.get("bulk_mode") and self.options.get("bulk_mode").title()
+        )
+        if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
+            raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
     def _run_task(self):
         self._init_mapping()

@@ -166,6 +166,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
                 options = kwargs["task_config"].options
                 assert options["num_records"] == 12
                 assert options["database_url"].startswith("sqlite")
+                assert options["bulk_mode"] == "Serial"
                 assert "mapping_vanilla_sf" in options["mapping"]
 
             def __call__(self):
@@ -183,6 +184,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
                         "num_records": 12,
                         "data_generation_task": "cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData",
                         "mapping": mapping_file,
+                        "bulk_mode": "Serial",
                     }
                 },
             )

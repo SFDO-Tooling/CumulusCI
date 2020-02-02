@@ -2,7 +2,6 @@ from cumulusci.tasks.bulkdata.step import (
     Operation,
     Status,
     Result,
-    download_file,
     BulkJobTaskMixin,
     Step,
     DmlStep,
@@ -101,6 +100,13 @@ class test_BulkDataJobTaskMixin(unittest.TestCase):
                 }
             )
         ) == ("Completed", None)
+
+        assert mixin._parse_job_state(
+            '<root xmlns="http://ns">'
+            "  <batch><state>Completed</state></batch>"
+            "  <numberRecordsFailed>200</numberRecordsFailed>"
+            "</root>"
+        ) == ("CompletedWithFailures", ["Failures detected: 200"])
 
     @mock.patch("time.sleep")
     def test_wait_for_job(self, sleep_patch):

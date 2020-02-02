@@ -5,10 +5,7 @@ Library         TestLibraryA.py
 Library         TestLibraryB.py
 Library         Dialogs
 
-Suite Setup     Run Keywords
-...  Open test browser
-...  AND  Set log level  DEBUG
-
+Suite Setup     Open test browser
 Suite Teardown  Close all browsers
 
 *** Test Cases ***
@@ -19,6 +16,8 @@ Locator strategy 'text'
     ...  Unfortunately, selenium doesn't provide introspection
     ...  so we'll just try a locator that should work
 
+    [Setup]  Go to setup home
+
     Wait until page contains element     text:Mobile Publisher
 
 Locator strategy 'title'
@@ -27,6 +26,8 @@ Locator strategy 'title'
 
     ...  Unfortunately, selenium doesn't provide introspection
     ...  so we'll just try a locator that should work
+
+    [Setup]  Go to setup home
 
     Wait until page contains element     title:Object Manager
 
@@ -37,6 +38,8 @@ Keyword library locators
     ...  Both of the test libraries should have registered their own
     ...  locators. This test makes sure both of them were registered
     ...  and available for use.
+
+    [Setup]  Go to setup home
 
     Wait until page contains element  A:breadcrumb: Home
     Wait until page contains element  B:appname:Setup
