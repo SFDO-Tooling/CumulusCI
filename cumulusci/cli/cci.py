@@ -239,7 +239,7 @@ def handle_connection_error(error):
 
 
 def handle_generic_error(error, is_gist_cmd):
-    """Displays the error back to the user, prompts user investigat further
+    """Displays the error back to the user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile"""
     click.echo(click.style(f"Error: {error}", fg="red"))
     # Only suggest gist command if it wasn't run
