@@ -86,7 +86,10 @@ class TestRecordTypeUtils(unittest.TestCase):
         assert call[3].read().strip() == b"012000000000000,Organization"
 
 
-BULK_BATCH_RESPONSE = '<root xmlns="http://ns"><batch><state>{}</state></batch></root>'
+BULK_NS = "http://www.force.com/2009/06/asyncapi/dataload"
+BULK_BATCH_RESPONSE = (
+    '<root xmlns="%s"><batch><state>{}</state></batch></root>' % BULK_NS
+)
 
 
 def _make_task(task_class, task_config):
@@ -115,6 +118,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             "numberBatchesCompleted": 1,
             "numberBatchesTotal": 1,
         }
+        api.jobNS = BULK_NS
         responses.add(
             method="GET",
             url="http://api/job/1/batch",
@@ -172,14 +176,17 @@ class TestLoadDataWithSFIds(unittest.TestCase):
 
         households_batch_file = api.post_batch.call_args_list[0][0][1]
         self.assertEqual(
-            b"Name,RecordTypeId\r\nTestHousehold,1\r\n", households_batch_file.read()
+            [b"Name,RecordTypeId\r\n", b"TestHousehold,1\r\n"],
+            list(households_batch_file),
         )
         contacts_batch_file = api.post_batch.call_args_list[1][0][1]
         self.assertEqual(
-            b"FirstName,LastName,Email,AccountId\r\n"
-            b"Test,User,test@example.com,1\r\n"
-            b"Error,User,error@example.com,1\r\n",
-            contacts_batch_file.read(),
+            [
+                b"FirstName,LastName,Email,AccountId\r\n",
+                b"Test,User,test@example.com,1\r\n",
+                b"Error,User,error@example.com,1\r\n",
+            ],
+            list(contacts_batch_file),
         )
 
     def test_run_task__start_step(self):
@@ -323,6 +330,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
             "numberBatchesCompleted": 1,
             "numberBatchesTotal": 1,
         }
+        api.jobNS = BULK_NS
         responses.add(
             method="GET",
             url="http://api/job/1/batch",
@@ -372,14 +380,17 @@ class TestLoadDataWithSFIds(unittest.TestCase):
 
         households_batch_file = api.post_batch.call_args_list[0][0][1]
         self.assertEqual(
-            b"Name,RecordTypeId\r\nTestHousehold,1\r\n", households_batch_file.read()
+            [b"Name,RecordTypeId\r\n", b"TestHousehold,1\r\n"],
+            list(households_batch_file),
         )
         contacts_batch_file = api.post_batch.call_args_list[1][0][1]
         self.assertEqual(
-            b"FirstName,LastName,Email,AccountId\r\n"
-            b"Test,User,test@example.com,1\r\n"
-            b"Error,User,error@example.com,1\r\n",
-            contacts_batch_file.read(),
+            [
+                b"FirstName,LastName,Email,AccountId\r\n",
+                b"Test,User,test@example.com,1\r\n",
+                b"Error,User,error@example.com,1\r\n",
+            ],
+            list(contacts_batch_file),
         )
 
     def test_init_options__missing_input(self):
@@ -752,6 +763,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         api = mock.Mock()
         api.endpoint = "http://api"
         api.headers.return_value = {}
+        api.jobNS = BULK_NS
         task.bulk = api
 
         result_data = b"Id,Success,Created,Error\n001111111111111,true,true,"
@@ -786,6 +798,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         api = mock.Mock()
         api.endpoint = "http://api"
         api.headers.return_value = {}
+        api.jobNS = BULK_NS
         task.bulk = api
 
         result_data = b"Id,Success,Created,Error\n001111111111111,true,false,"
@@ -820,6 +833,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         api = mock.Mock()
         api.endpoint = "http://api"
         api.headers.return_value = {}
+        api.jobNS = BULK_NS
         task.bulk = api
 
         responses.add(
@@ -854,6 +868,7 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         api = mock.Mock()
         api.endpoint = "http://api"
         api.headers.return_value = {}
+        api.jobNS = BULK_NS
         task.bulk = api
 
         results_url = f"{task.bulk.endpoint}/job/1/batch/2/result"
@@ -1087,6 +1102,7 @@ class TestLoadDataWithoutSFIds(unittest.TestCase):
     def test_run(self):
         api = mock.Mock()
         api.endpoint = "http://api"
+        api.jobNS = BULK_NS
         api.headers.return_value = {}
         api.create_insert_job.side_effect = ["1", "3"]
         api.post_batch.side_effect = ["2", "4"]
@@ -1094,6 +1110,7 @@ class TestLoadDataWithoutSFIds(unittest.TestCase):
             "numberBatchesCompleted": 1,
             "numberBatchesTotal": 1,
         }
+        api.jobNS = BULK_NS
         responses.add(
             method="GET",
             url="http://api/job/1/batch",
@@ -1151,14 +1168,17 @@ class TestLoadDataWithoutSFIds(unittest.TestCase):
 
         households_batch_file = api.post_batch.call_args_list[0][0][1]
         self.assertEqual(
-            b"Name,RecordTypeId\r\nTestHousehold,1\r\n", households_batch_file.read()
+            [b"Name,RecordTypeId\r\n", b"TestHousehold,1\r\n"],
+            list(households_batch_file),
         )
         contacts_batch_file = api.post_batch.call_args_list[1][0][1]
         self.assertEqual(
-            b"FirstName,LastName,Email,AccountId\r\n"
-            b"Test,User,test@example.com,1\r\n"
-            b"Error,User,error@example.com,1\r\n",
-            contacts_batch_file.read(),
+            [
+                b"FirstName,LastName,Email,AccountId\r\n",
+                b"Test,User,test@example.com,1\r\n",
+                b"Error,User,error@example.com,1\r\n",
+            ],
+            list(contacts_batch_file),
         )
 
 
@@ -1173,6 +1193,8 @@ class TestExtractDataWithSFIds(unittest.TestCase):
         api = mock.Mock()
         api.endpoint = "http://api"
         api.headers.return_value = {}
+        api.jobNS = BULK_NS
+
         api.create_query_job.side_effect = ["1", "2"]
         api.query.side_effect = ["3", "4"]
         api.get_query_batch_result_ids.side_effect = [["5"], ["6"]]
@@ -1348,6 +1370,8 @@ class TestExtractDataWithSFIds(unittest.TestCase):
         api.create_query_job.side_effect = ["1", "2"]
         api.query.side_effect = ["3", "4"]
         api.get_query_batch_result_ids.side_effect = [["5"], ["6"]]
+        api.jobNS = BULK_NS
+
         responses.add(
             responses.GET,
             "http://api/job/1/batch/3/result/5",
@@ -1395,6 +1419,8 @@ class TestExtractDataWithoutSFIds(unittest.TestCase):
         api.create_query_job.side_effect = ["1", "2"]
         api.query.side_effect = ["3", "4"]
         api.get_query_batch_result_ids.side_effect = [["5"], ["6"]]
+        api.jobNS = BULK_NS
+
         responses.add(
             responses.GET,
             "http://api/job/1/batch/3/result/5",

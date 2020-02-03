@@ -49,6 +49,9 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         "bulk_mode": {
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
+        "on_connection_failure": {
+            "description": "What to do after several connection retries fail: 'keep_trying' forever or 'quit' (the default)"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -76,6 +79,16 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "Parallel",
         ]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
+        self.on_connection_failure = str(
+            self.options.get("on_connection_failure", "quit")
+        ).lower()
+        if self.on_connection_failure not in [
+            "retry",
+            "quit",
+        ]:
+            raise TaskOptionsError(
+                "on_connection_failure must be either 'retry' or 'quit'"
+            )
 
     def _run_task(self):
         self._init_mapping()
@@ -126,12 +139,16 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         mode = step_mode or task_mode or "Parallel"
 
         if action == "insert":
-            job_id = self.bulk.create_insert_job(
-                mapping["sf_object"], contentType="CSV", concurrency=mode
+            job_id = self._retry_http(
+                lambda: self.bulk.create_insert_job(
+                    mapping["sf_object"], contentType="CSV", concurrency=mode
+                )
             )
         else:
-            job_id = self.bulk.create_update_job(
-                mapping["sf_object"], contentType="CSV", concurrency=mode
+            job_id = self._retry_http(
+                lambda: self.bulk.create_update_job(
+                    mapping["sf_object"], contentType="CSV", concurrency=mode
+                )
             )
 
         self.logger.info(f"  Created bulk job {job_id}")
@@ -139,11 +156,15 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # Upload batches
         local_ids_for_batch = {}
         for batch_file, local_ids in self._get_batches(mapping):
-            batch_id = self.bulk.post_batch(job_id, batch_file)
+            batch_data = list(batch_file)
+            batch_id = self._retry_http(
+                lambda: self.bulk.post_batch(job_id, iter(batch_data))
+            )
+
             local_ids_for_batch[batch_id] = local_ids
             self.logger.info(f"    Uploaded batch {batch_id}")
 
-        self.bulk.close_job(job_id)
+        self._retry_http(lambda: self.bulk.close_job(job_id))
         return job_id, local_ids_for_batch
 
     def _get_batches(self, mapping, batch_size=10000):
@@ -335,7 +356,9 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 )
                 # Download entire result file to a temporary file first
                 # to avoid the server dropping connections
-                with download_file(results_url, self.bulk) as f:
+                with self._retry_http(
+                    lambda: download_file(results_url, self.bulk)
+                ) as f:
                     self.logger.info(f"  Downloaded results for batch {batch_id}")
                     results_generator = self._generate_results_id_map(f, local_ids)
                     if mapping["action"] == "insert":

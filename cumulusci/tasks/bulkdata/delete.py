@@ -22,6 +22,9 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
         "hardDelete": {
             "description": "If True, perform a hard delete, bypassing the recycle bin. Default: False"
         },
+        "on_connection_failure": {
+            "description": "What to do after several connection retries fail: 'keep_trying' forever or 'quit' (the default)"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -39,6 +42,17 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             )
         self.options["hardDelete"] = process_bool_arg(self.options.get("hardDelete"))
 
+        self.on_connection_failure = str(
+            self.options.get("on_connection_failure", "quit")
+        ).lower()
+        if self.on_connection_failure not in [
+            "retry",
+            "quit",
+        ]:
+            raise TaskOptionsError(
+                "on_connection_failure must be either 'retry' or 'quit'"
+            )
+
     def _run_task(self):
         for obj in self.options["objects"]:
             self.logger.info(f"Deleting {self._object_description(obj)} ")
@@ -55,13 +69,13 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
 
         # Upload all the batches
         operation = "hardDelete" if self.options["hardDelete"] else "delete"
-        delete_job = self.bulk.create_job(obj, operation)
+        delete_job = self._retry_http(lambda: self.bulk.create_job(obj, operation))
         self.logger.info(f"  Deleting {len(delete_rows)} {obj} records")
         batch_num = 1
         for batch in self._upload_batches(delete_job, delete_rows):
             self.logger.info(f"    Uploaded batch {batch}")
             batch_num += 1
-        self.bulk.close_job(delete_job)
+        self._retry_http(lambda: self.bulk.close_job(delete_job))
         return delete_job
 
     def compose_query(self, obj, where):
@@ -80,13 +94,19 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
     def _query_salesforce_for_records_to_delete(self, obj, where):
         # Query for all record ids
         self.logger.info(f"  Querying for {self._object_description(obj)}")
-        query_job = self.bulk.create_query_job(obj, contentType="CSV")
-        batch = self.bulk.query(query_job, self.compose_query(obj, where))
-        while not self.bulk.is_batch_done(batch, query_job):
+        query_job = self._retry_http(
+            lambda: self.bulk.create_query_job(obj, contentType="CSV")
+        )
+        batch = self._retry_http(
+            lambda: self.bulk.query(query_job, self.compose_query(obj, where))
+        )
+        while not self._retry_http(lambda: self.bulk.is_batch_done(batch, query_job)):
             time.sleep(10)
-        self.bulk.close_job(query_job)
+        self._retry_http(lambda: self.bulk.close_job(query_job))
         delete_rows = []
-        for result in self.bulk.get_all_results_for_query_batch(batch, query_job):
+        for result in self._retry_http(
+            lambda: self.bulk.get_all_results_for_query_batch(batch, query_job)
+        ):
             reader = unicodecsv.DictReader(result, encoding="utf-8")
             for row in reader:
                 delete_rows.append(row)

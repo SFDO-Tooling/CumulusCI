@@ -6,6 +6,8 @@ import time
 import unicodecsv
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
+from urllib3.exceptions import HTTPError
+from typing import Callable
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -17,6 +19,7 @@ from sqlalchemy.orm import mapper
 
 from cumulusci.utils import convert_to_snake_case
 from cumulusci.core.exceptions import BulkDataException
+from salesforce_bulk import BulkApiError
 
 
 @contextmanager
@@ -67,6 +70,8 @@ def setup_epoch(inspector, table, column_info):
 
 
 class BulkJobTaskMixin(object):
+    on_connection_failure = "quit"  # override in derived classes
+
     def _job_state_from_batches(self, job_id):
         uri = f"{self.bulk.endpoint}/job/{job_id}/batch"
         response = requests.get(uri, headers=self.bulk.headers())
@@ -86,16 +91,50 @@ class BulkJobTaskMixin(object):
             return "InProgress", None
         elif "Failed" in statuses:
             return "Failed", state_messages
+        elif not statuses:
+            self.logger.info("No statuses: %s", xml)
+            raise BulkApiError(message=f"No statuses in {xml}", status_code=200)
+        elif any(status for status in statuses if status != "Completed"):
+            weird_statuses = [status for status in statuses if status != "Completed"]
+            self.logger.info("Unknown statuses: %s", weird_statuses)
+            raise BulkApiError(
+                message="Unknown statuses: {weird_statuses}", status_code=200
+            )
 
         return "Completed", None
 
+    def _retry_http(self, action: Callable):
+        if self.on_connection_failure == "quit":
+            return action()
+
+        # otherwise, be ready for ezceptions:
+        while True:
+            try:
+                return action()
+            except (OSError, HTTPError, BulkApiError) as e:
+                self.logger.warn(f"Connection Exception: {e}")
+                if isinstance(e, BulkApiError):
+                    if "Invalid session id" in str(e):
+                        self.logger.warn(f"Refreshing session")
+                        self._update_credentials()
+                        self.sf = self._init_api()
+                        self.bulk.sessionId = (
+                            self.org_config.access_token
+                        )  # reuse bulk object because it has state
+                        self.tooling = self._init_api("tooling/")
+                    else:
+                        raise
+                time.sleep(10)
+
     def _wait_for_job(self, job_id):
         while True:
-            job_status = self.bulk.job_status(job_id)
+            job_status = self._retry_http(lambda: self.bulk.job_status(job_id))
             self.logger.info(
                 f"    Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']})"
             )
-            result, messages = self._job_state_from_batches(job_id)
+            result, messages = self._retry_http(
+                lambda: self._job_state_from_batches(job_id)
+            )
             if result != "InProgress":
                 break
             time.sleep(10)

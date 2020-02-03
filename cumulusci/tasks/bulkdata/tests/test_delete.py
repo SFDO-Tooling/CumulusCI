@@ -3,9 +3,12 @@ import unittest
 from unittest import mock
 import responses
 
+from salesforce_bulk import BulkApiError
+
 from cumulusci.tasks import bulkdata
 from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task
 from cumulusci.core.exceptions import TaskOptionsError
+
 
 BULK_DELETE_QUERY_RESULT = b"Id\n003000000000001".splitlines()
 BULK_DELETE_RESPONSE = b'<root xmlns="http://ns"><id>4</id></root>'
@@ -113,6 +116,11 @@ class TestDeleteData(unittest.TestCase):
         api = mock.Mock()
         api.jobNS = "http://ns"
         task.bulk = api
+        with self.assertRaises(BulkApiError) as e:
+            task._parse_job_state('<root xmlns="http://ns"></root>')
+
+        assert "statuses" in str(e.exception)
+
         self.assertEqual(
             ("InProgress", None),
             task._parse_job_state(
