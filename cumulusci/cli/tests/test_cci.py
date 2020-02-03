@@ -217,13 +217,18 @@ class TestCCI(unittest.TestCase):
         post_mortem.call_count == 0
         sys_exit.assert_called_once_with(1)
 
+    @mock.patch("cumulusci.cli.cci.traceback.print_exc")
     @mock.patch("cumulusci.cli.cci.click.echo")
-    def test_handle_connection_exception(self, echo):
+    def test_handle_connection_exception(self, echo, print_exc):
         error = "Your internet is no good"
+        traceback = "this is the execution stack."
+        print_exc.return_value = traceback
+
         cci.handle_connection_error(error)
         echo.assert_called_once_with(
-            "\x1b[31mWe encountered an error with your internet connection. Please check your connection and try the last cci command again.\nError: Your internet is no good\x1b[0m"
+            f"\x1b[31mWe encountered an error with your internet connection. Please check your connection and try the last cci command again.\nError: {error}\n{traceback}\x1b[0m"
         )
+        print_exc.assert_called_once()
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
