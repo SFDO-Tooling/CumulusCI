@@ -1,10 +1,6 @@
 import os
 import unittest
 
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import Unicode
-
 from unittest import mock
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
@@ -245,7 +241,82 @@ class test_ExtractData(unittest.TestCase):
         )
 
     def test_convert_lookups_to_id(self):
-        raise NotImplementedError
+        task = _make_task(
+            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
+        )
+
+        task.session = mock.Mock()
+        task.models = {
+            "Account": mock.Mock(),
+            "Account_sf_ids": mock.Mock(),
+            "Opportunity": mock.Mock(),
+            "Opportunity_sf_ids": mock.Mock(),
+        }
+        task.mappings = {
+            "Account": {"table": "Account", "sf_id_table": "Account_sf_ids"},
+            "Opportunity": {
+                "table": "Opportunity",
+                "sf_id_table": "Opportunity_sf_ids",
+            },
+        }
+
+        task._convert_lookups_to_id(
+            {
+                "sf_object": "Opportunity",
+                "table": "Opportunity",
+                "sf_id_table": "Opportunity_sf_ids",
+                "lookups": {"AccountId": {"table": "Account"}},
+            },
+            ["AccountId"],
+        )
+
+        task.session.query.return_value.filter.return_value.update.assert_called_once_with(
+            {task.models["Opportunity"].account_id: task.models["Account_sf_ids"].id},
+            synchronize_session=False,
+        )
+        task.session.commit.assert_called_once_with()
+
+    def test_convert_lookups_to_id__sqlite(self):
+        task = _make_task(
+            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
+        )
+
+        task.session = mock.Mock()
+        task.models = {
+            "Account": mock.Mock(),
+            "Account_sf_ids": mock.Mock(),
+            "Opportunity": mock.Mock(),
+            "Opportunity_sf_ids": mock.Mock(),
+        }
+        task.mappings = {
+            "Account": {"table": "Account", "sf_id_table": "Account_sf_ids"},
+            "Opportunity": {
+                "table": "Opportunity",
+                "sf_id_table": "Opportunity_sf_ids",
+            },
+        }
+        task.session.query.return_value.filter.return_value.update.side_effect = (
+            NotImplementedError
+        )
+
+        item = mock.Mock()
+
+        task.session.query.return_value.join.return_value = [(item, "1")]
+
+        task._convert_lookups_to_id(
+            {
+                "sf_object": "Opportunity",
+                "table": "Opportunity",
+                "sf_id_table": "Opportunity_sf_ids",
+                "lookups": {"AccountId": {"table": "Account"}},
+            },
+            ["AccountId"],
+        )
+
+        task.session.bulk_update_mappings.assert_called_once_with(
+            task.models["Opportunity"], [{"id": item.id, "account_id": "1"}]
+        )
+        task.session.commit.assert_called_once_with()
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.create_table")
     @mock.patch("cumulusci.tasks.bulkdata.extract.mapper")
@@ -335,14 +406,10 @@ class test_ExtractData(unittest.TestCase):
 
         assert mapping["sf_id_table"] == "accounts_sf_id"
         create_mock.assert_called_once_with(mapping, task.metadata)
-        table_mock.assert_any_call(
-            "accounts_sf_id",
-            task.metadata,
-            Column("id", Integer(), primary_key=True, autoincrement=True),
-            Column("sf_id", Unicode(24)),
-        )
+        assert len(table_mock.mock_calls) == 1
 
         assert "accounts" in task.models
+        assert "accounts_sf_id" in task.models
 
     def test_create_tables(self):
         task = _make_task(
