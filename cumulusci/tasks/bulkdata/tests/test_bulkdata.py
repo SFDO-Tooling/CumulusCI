@@ -965,9 +965,53 @@ class TestLoadDataWithSFIds(unittest.TestCase):
         )
         task.logger = mock.Mock()
 
-        task._wait_for_job("750000000000000")
+        with self.assertRaises(BulkDataException):
+            task._wait_for_job("750000000000000")
         task.logger.error.assert_any_call("Batch failure message: Test1")
         task.logger.error.assert_any_call("Batch failure message: Test2")
+
+    def test_wait_for_job__throws_exceptions(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task.bulk = mock.Mock()
+        task.bulk.job_status.return_value = {
+            "numberBatchesCompleted": 1,
+            "numberRecordsFailed": 1,
+            "numberBatchesTotal": 2,
+        }
+        task._job_state_from_batches = mock.Mock(
+            return_value=("Failed", ["Test1", "Test2"])
+        )
+
+        with self.assertRaises(BulkDataException):
+            task._wait_for_job("750000000000000")
+
+    def test_wait_for_job__returns_error(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            bulkdata.LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task.bulk = mock.Mock()
+        task.bulk.job_status.return_value = {
+            "numberBatchesCompleted": 1,
+            "numberRecordsFailed": 1,
+            "numberBatchesTotal": 2,
+        }
+        task._job_state_from_batches = mock.Mock(
+            return_value=("Failed", ["Test1", "Test2"])
+        )
+
+        task._wait_for_job("750000000000000", error_behaviour="return")
+
+        assert task.error_messages == ["Test1", "Test2"]
 
     def test_load_mapping__record_type_mapping(self):
         base_path = os.path.dirname(__file__)
