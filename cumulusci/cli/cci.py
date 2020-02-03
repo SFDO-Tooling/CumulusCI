@@ -235,7 +235,7 @@ def handle_connection_error(error):
             (
                 "We encountered an error with your internet connection. ",
                 "Please check your connection and try the last cci command again.",
-                f"\nError: {error}\n{traceback.print_stack}",
+                f"\nError: {error}\n{traceback.print_exc()}",
             ),
             fg="red",
         )
