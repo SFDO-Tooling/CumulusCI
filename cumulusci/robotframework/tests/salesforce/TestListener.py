@@ -15,6 +15,7 @@ import re
 
 
 class TestListener(object):
+    __test__ = False  # this class should be ignored by pytest
     ROBOT_LIBRARY_SCOPE = "TEST SUITE"
     ROBOT_LISTENER_API_VERSION = 2
 
