@@ -106,3 +106,17 @@ Open Test Browser calls Log Browser Capabilities
     Open test browser  alias=firefox
     Assert robot log   selenium browser capabilities:  INFO
     Assert robot log   browserName.*firefox
+
+
+Initializing selenium speed via global variable
+    [Documentation]
+    ...  Verify that the `Set Selenium Speed` is called when Open Test browser is called
+    [Setup]     Close all browsers
+    [Teardown]  Close all browsers
+
+    # First, verify that this variable has been initialized
+    # The default value is set in Salesforce.robot.
+    Variable should exist  ${SELENIUM_SPEED}
+
+    Open test browser
+    Assert keyword status  PASS  SeleniumLibrary.Set Selenium Speed  \${SELENIUM_SPEED}
