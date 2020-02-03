@@ -232,7 +232,11 @@ def handle_connection_error(error):
     """Inform user that their network may be the problem"""
     click.echo(
         click.style(
-            f"We encountered an error with your internet connection. Please check your connection and try the last cci command again.\nError: {error}",
+            (
+                "We encountered an error with your internet connection. ",
+                "Please check your connection and try the last cci command again.",
+                f"\nError: {error}\n{traceback.print_stack}",
+            ),
             fg="red",
         )
     )
