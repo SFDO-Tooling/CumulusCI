@@ -3,7 +3,7 @@ from distutils.dir_util import copy_tree
 from distutils.dir_util import remove_tree
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
-from cumulusci.utils import removeXmlElement
+from cumulusci.utils import remove_xml_element_directory
 
 
 class CreateUnmanagedEESrc(BaseTask):
@@ -49,7 +49,7 @@ class CreateUnmanagedEESrc(BaseTask):
 
         for element in self.elements:
             fname_match, element_name = element.split(":")
-            removeXmlElement(
+            remove_xml_element_directory(
                 element_name, os.path.join(self.options["path"]), fname_match
             )
 

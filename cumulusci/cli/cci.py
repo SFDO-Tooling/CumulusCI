@@ -173,9 +173,9 @@ def pass_runtime(func=None, require_project=True, require_keychain=False):
         return decorate(func)
 
 
-SUGGEST_GIT_GIST_COMMAND = """\nIt looks like you may have run into an error. Did you know cci has a command for sending this error to a GitHub gist?
-Just run `$ cci gist` and make sure that your GitHub access token has the 'create gist' scope.
-For more info see: https://cumulusci.readthedocs.io/en/latest/features.html#reporting-error-logs"""
+SUGGEST_ERROR_COMMAND = (
+    """Type `cci error --help` for more information about debugging errors."""
+)
 
 
 #
@@ -208,7 +208,7 @@ def main(args=None):
 
         # Only create logfiles for commands
         # that are not `cci gist`
-        is_gist_command = len(args) > 1 and args[1] == "gist"
+        is_gist_command = len(args) > 2 and args[2] == "gist"
         if not is_gist_command:
             logger = get_gist_logger()
             stack.enter_context(tee_stdout_stderr(args, logger))
@@ -313,42 +313,6 @@ GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your g
 Please ensure that your GitHub personal access token has the 'Create gists' scope."""
 
 
-@cli.command(name="gist", help="Create a GitHub gist from the latest logfile")
-@pass_runtime(require_project=False, require_keychain=True)
-def gist(runtime):
-    if CCI_LOGFILE_PATH.is_file():
-        log_content = CCI_LOGFILE_PATH.read_text()
-    else:
-        log_not_found_msg = """No logfile to open at path: {}
-        Please ensure you're running this command from the same directory you were experiencing an issue."""
-        error_msg = log_not_found_msg.format(CCI_LOGFILE_PATH)
-        click.echo(error_msg)
-        raise CumulusCIException(error_msg)
-
-    last_cmd_header = "\n\n\nLast Command Run\n================================\n"
-    filename = f"cci_output_{datetime.utcnow()}.txt"
-    files = {
-        filename: {"content": f"{get_context_info()}{last_cmd_header}{log_content}"}
-    }
-
-    try:
-        gh = RUNTIME.keychain.get_service("github")
-        gist = create_gist(
-            get_github_api(gh.config["username"], gh.config["password"]),
-            "CumulusCI Error Output",
-            files,
-        )
-    except github3.exceptions.NotFoundError:
-        raise CumulusCIException(GIST_404_ERR_MSG)
-    except Exception as e:
-        raise CumulusCIException(
-            f"An error occurred attempting to create your gist:\n{e}"
-        )
-    else:
-        click.echo(f"Gist created: {gist.html_url}")
-        webbrowser.open(gist.html_url)
-
-
 def get_context_info():
     host_info = platform.uname()
 
@@ -387,6 +351,22 @@ def flow():
 @cli.group("service", help="Commands for connecting services to the keychain")
 def service():
     pass
+
+
+@cli.group("error")
+def error():
+    """
+    If you'd like to dig into an error more yourself,
+    you can get the last few lines of context about it
+    from `cci error info`.
+
+    If you'd like to submit it to a developer for conversation,
+    you can use the `cci error gist` command. Just make sure
+    that your GitHub access token has the 'create gist' scope.
+
+    For more information on working with errors in CumulusCI visit:
+    https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors
+    """
 
 
 # Commands for group: project
@@ -1438,3 +1418,74 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(str(e))
+
+
+@error.command(
+    name="info",
+    help="Outputs the last part of the most recent traceback (if one exists in the most recent log)",
+)
+@click.option("--max-lines", "-m", default=30, show_default=True, type=int)
+def error_info(max_lines):
+    if not CCI_LOGFILE_PATH.is_file():
+        click.echo(f"No logfile found at: {CCI_LOGFILE_PATH}")
+    else:
+        output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), max_lines)
+        click.echo(output)
+
+
+def lines_from_traceback(log_content, num_lines):
+    """Returns the the last max_lines of the logfile,
+    or the whole traceback, whichever is shorter. If
+    no stacktrace is found in the logfile, the user is
+    notified.
+    """
+    stacktrace_start = "Traceback (most recent call last):"
+    if stacktrace_start not in log_content:
+        return f"\nNo stacktrace found in: {CCI_LOGFILE_PATH}\n"
+
+    stacktrace = ""
+    for line in reversed(log_content.split("\n")):
+        stacktrace = "\n" + line + stacktrace
+        if stacktrace_start in line:
+            break
+        num_lines -= 1
+        if num_lines == -1:
+            break
+
+    return stacktrace
+
+
+@error.command(name="gist", help="Creates a GitHub gist from the latest logfile")
+@pass_runtime(require_project=False, require_keychain=True)
+def gist(runtime):
+    if CCI_LOGFILE_PATH.is_file():
+        log_content = CCI_LOGFILE_PATH.read_text()
+    else:
+        log_not_found_msg = """No logfile to open at path: {}
+        Please ensure you're running this command from the same directory you were experiencing an issue."""
+        error_msg = log_not_found_msg.format(CCI_LOGFILE_PATH)
+        click.echo(error_msg)
+        raise CumulusCIException(error_msg)
+
+    last_cmd_header = "\n\n\nLast Command Run\n================================\n"
+    filename = f"cci_output_{datetime.utcnow()}.txt"
+    files = {
+        filename: {"content": f"{get_context_info()}{last_cmd_header}{log_content}"}
+    }
+
+    try:
+        gh = RUNTIME.keychain.get_service("github")
+        gist = create_gist(
+            get_github_api(gh.config["username"], gh.config["password"]),
+            "CumulusCI Error Output",
+            files,
+        )
+    except github3.exceptions.NotFoundError:
+        raise CumulusCIException(GIST_404_ERR_MSG)
+    except Exception as e:
+        raise CumulusCIException(
+            f"An error occurred attempting to create your gist:\n{e}"
+        )
+    else:
+        click.echo(f"Gist created: {gist.html_url}")
+        webbrowser.open(gist.html_url)

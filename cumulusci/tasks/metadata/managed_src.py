@@ -3,7 +3,7 @@ from distutils.dir_util import copy_tree
 from distutils.dir_util import remove_tree
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
-from cumulusci.utils import findReplace
+from cumulusci.utils import find_replace
 
 
 class CreateManagedSrc(BaseTask):
@@ -46,14 +46,14 @@ class CreateManagedSrc(BaseTask):
                 self.managed_token, self.options["path"]
             )
         )
-        findReplace(
+        find_replace(
             self.managed_token,
             "",
             os.path.join(self.options["path"], "classes"),
             "*.cls",
             self.logger,
         )
-        findReplace(
+        find_replace(
             self.managed_token,
             "",
             os.path.join(self.options["path"], "triggers"),
