@@ -12,14 +12,7 @@ from unittest import mock
 from cumulusci.utils import temporary_dir
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import LoadData
-from cumulusci.tasks.bulkdata.step import (
-    Result,
-    Operation,
-    Status,
-    DmlStep,
-    BulkApiDmlStep,
-    BulkApiQueryStep,
-)
+from cumulusci.tasks.bulkdata.step import Result, Operation, Status, DmlStep
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
 

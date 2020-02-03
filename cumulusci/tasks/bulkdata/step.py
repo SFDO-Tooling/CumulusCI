@@ -66,6 +66,7 @@ class BulkJobTaskMixin:
             el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
         ]
 
+        # FIXME: "Not Processed" to be expected for original batch with PK Chunking Query
         if "Not Processed" in statuses:
             return "Aborted", None
         elif "InProgress" in statuses or "Queued" in statuses:
@@ -135,17 +136,22 @@ class QueryStep(Step):
         pass
 
 
-class BulkApiQueryStep(QueryStep):
+class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
     def query(self):
         self.job_id = self.bulk.create_query_job(self.sobject, contentType="CSV")
         self.batch_id = self.bulk.query(self.job_id, self.soql)
-        self.bulk.wait_for_batch(self.job_id, self.batch_id)
+
+        result, errors = self._wait_for_job(self.job_id)
+        if result == "Completed":
+            self.status = Status.SUCCESS
+        else:
+            self.status = Status.FAILURE
+
         self.bulk.close_job(self.job_id)
 
-        # FIXME: set the status
-        self.status = Status.SUCCESS
-
     def get_results(self):
+        # FIXME: For PK Chunking, need to get new batch Ids
+        # and retrieve their results. Original batch will not be processed.
         result_ids = self.bulk.get_query_batch_result_ids(
             self.batch_id, job_id=self.job_id
         )

@@ -197,6 +197,8 @@ class test_BulkApiQueryStep(unittest.TestCase):
     def test_query(self):
         context = mock.Mock()
         query = BulkApiQueryStep("Contact", {}, context, "SELECT Id FROM Contact")
+        query._wait_for_job = mock.Mock()
+        query._wait_for_job.return_value = ("Completed", None)
 
         query.query()
 
@@ -208,15 +210,22 @@ class test_BulkApiQueryStep(unittest.TestCase):
         context.bulk.query.assert_called_once_with(
             context.bulk.create_query_job.return_value, "SELECT Id FROM Contact"
         )
-        context.bulk.wait_for_batch.assert_called_once_with(
-            context.bulk.create_query_job.return_value, context.bulk.query.return_value
+        query._wait_for_job.assert_called_once_with(
+            context.bulk.create_query_job.return_value
         )
         context.bulk.close_job.assert_called_once_with(
             context.bulk.create_query_job.return_value
         )
 
     def test_query__failure(self):
-        raise NotImplementedError
+        context = mock.Mock()
+        query = BulkApiQueryStep("Contact", {}, context, "SELECT Id FROM Contact")
+        query._wait_for_job = mock.Mock()
+        query._wait_for_job.return_value = ("Failed", None)
+
+        query.query()
+
+        assert query.status is Status.FAILURE
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_get_results(self, download_mock):
@@ -233,6 +242,8 @@ class test_BulkApiQueryStep(unittest.TestCase):
 003000000000003"""
         )
         query = BulkApiQueryStep("Contact", {}, context, "SELECT Id FROM Contact")
+        query._wait_for_job = mock.Mock()
+        query._wait_for_job.return_value = ("Completed", None)
         query.query()
 
         results = list(query.get_results())
@@ -260,6 +271,8 @@ class test_BulkApiQueryStep(unittest.TestCase):
 
         download_mock.return_value = io.StringIO("Records not found for this query")
         query = BulkApiQueryStep("Contact", {}, context, "SELECT Id FROM Contact")
+        query._wait_for_job = mock.Mock()
+        query._wait_for_job.return_value = ("Completed", None)
         query.query()
 
         results = list(query.get_results())
