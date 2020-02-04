@@ -1094,6 +1094,7 @@ Options:
 * **package** *(required)*: The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name
 * **purge_on_delete** *(required)*: Sets the purgeOnDelete option for the deployment.  Defaults to True
 * **ignore**: Components to ignore in the org and not try to delete. Mapping of component type to a list of member names.
+* **ignore_types**: List of component types to ignore in the org and not try to delete. Defaults to ['RecordType']
 
 uninstall_src
 ==========================================
