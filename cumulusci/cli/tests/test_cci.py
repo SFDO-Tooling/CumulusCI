@@ -17,6 +17,7 @@ import pkg_resources
 import requests
 import responses
 import github3
+from requests.exceptions import ConnectionError
 
 import cumulusci
 from cumulusci.core.config import BaseProjectConfig
@@ -217,31 +218,35 @@ class TestCCI(unittest.TestCase):
         post_mortem.call_count == 0
         sys_exit.assert_called_once_with(1)
 
-    @mock.patch("cumulusci.cli.cci.traceback.print_exc")
-    @mock.patch("cumulusci.cli.cci.click.echo")
-    def test_handle_connection_exception(self, echo, print_exc):
-        error = "Your internet is no good"
-        traceback = "this is the execution stack."
-        print_exc.return_value = traceback
-
-        cci.handle_connection_error(error)
-        echo.assert_called_once_with(
-            f"\x1b[31mWe encountered an error with your internet connection. Please check your connection and try the last cci command again.\nError: {error}\n{traceback}\x1b[0m"
-        )
-        print_exc.assert_called_once()
-
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
-    def test_handle_generic_error(self, style, traceback, cci_open):
+    def test_handle_exception(self, style, traceback, cci_open):
         error = "Something bad happened."
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_generic_error(error, is_gist_cmd=False)
+        cci.handle_exception(error, is_gist_cmd=False)
 
         style.call_args_list[0][0] == f"Error: {error}"
         style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
         traceback.print_exc.assert_called_once()
+
+    @mock.patch("cumulusci.cli.cci.open")
+    @mock.patch("cumulusci.cli.cci.connection_error_message")
+    def test_handle_connection_exception(self, connection_msg, cci_open):
+        cci.handle_exception(ConnectionError(), False)
+        connection_msg.assert_called_once()
+
+    @mock.patch("cumulusci.cli.cci.click.style")
+    def test_connection_exception_message(self, style):
+        cci.connection_error_message()
+        style.assert_called_once_with(
+            (
+                f"We encountered an error with your internet connection. "
+                "Please check your connection and try the last cci command again."
+            ),
+            fg="red",
+        )
 
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.webbrowser")

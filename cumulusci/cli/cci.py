@@ -220,34 +220,33 @@ def main(args=None):
         except click.Abort:  # Keyboard interrupt
             show_debug_info() if debug else click.echo("\nAborted!")
             sys.exit(1)
-        except exceptions.ConnectionError as e:
-            show_debug_info() if debug else handle_connection_error(e)
-            sys.exit(1)
         except Exception as e:
-            show_debug_info() if debug else handle_generic_error(e, is_gist_command)
+            show_debug_info() if debug else handle_exception(e, is_gist_command)
             sys.exit(1)
 
 
-def handle_connection_error(error):
-    """Inform user that their network may be the problem"""
-    click.echo(
-        click.style(
-            f"We encountered an error with your internet connection. Please check your connection and try the last cci command again.\nError: {error}\n{traceback.print_exc()}",
-            fg="red",
-        )
-    )
-
-
-def handle_generic_error(error, is_gist_cmd):
-    """Displays the error back to the user, prompts user to investigate further
-    with `cci error` commands, and writes the traceback to the latest logfile"""
-    click.echo(click.style(f"Error: {error}", fg="red"))
+def handle_exception(error, is_gist_cmd):
+    """Displays error of appropriate message back to user, prompts user to investigate further
+    with `cci error` commands, and writes the traceback to the latest logfile.
+    """
+    if isinstance(error, exceptions.ConnectionError):
+        connection_error_message()
+    else:
+        click.echo(click.style(f"Error: {error}", fg="red"))
     # Only suggest gist command if it wasn't run
     if not is_gist_cmd:
         click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
 
     with open(CCI_LOGFILE_PATH, "a") as log_file:
         traceback.print_exc(file=log_file)  # log stacktrace silently
+
+
+def connection_error_message():
+    message = (
+        "We encountered an error with your internet connection. "
+        "Please check your connection and try the last cci command again."
+    )
+    click.echo(click.style(message, fg="red"))
 
 
 def show_debug_info():
