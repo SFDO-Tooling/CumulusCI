@@ -109,13 +109,16 @@ class test_LoadData(unittest.TestCase):
 
             task()
 
-        assert step.records == [
-            ["TestHousehold", "1"],
-            ["Test", "User", "test@example.com", "001000000000000"],
-            ["Error", "User", "error@example.com", "001000000000000"],
-        ]
+            assert step.records == [
+                ["TestHousehold", "1"],
+                ["Test", "User", "test@example.com", "001000000000000"],
+                ["Error", "User", "error@example.com", "001000000000000"],
+            ]
 
-        # FIXME: how do we assert that the Ids were updated in the DB?
+            hh_ids = task.session.query(
+                *task.metadata.tables["households_sf_ids"].columns
+            ).one()
+            assert hh_ids == ("1", "001000000000000")
 
     def test_run_task__start_step(self):
         task = _make_task(
@@ -218,7 +221,10 @@ class test_LoadData(unittest.TestCase):
             ["Error", "User", "error@example.com", "001000000000000"],
         ]
 
-        # FIXME: how do we assert that the Ids were updated in the DB?
+        hh_ids = task.session.query(
+            *task.metadata.tables["households_sf_ids"].columns
+        ).one()
+        assert hh_ids == ("1", "001000000000000")
 
     def test_init_options__missing_input(self):
         with self.assertRaises(TaskOptionsError):
@@ -316,7 +322,6 @@ class test_LoadData(unittest.TestCase):
             ],
         )
 
-    # FIXME: rebuild
     def test_stream_queried_data__skips_empty_rows(self):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
@@ -732,7 +737,6 @@ class test_LoadData(unittest.TestCase):
             task.metadata.tables["Account_rt_target_mapping"], False
         )
 
-    # FIXME: break file link
     @mock.patch("cumulusci.tasks.bulkdata.load.automap_base")
     def test_init_db__record_type_mapping(self, base):
         base_path = os.path.dirname(__file__)
@@ -811,12 +815,16 @@ class test_LoadData(unittest.TestCase):
             ]
 
             task()
+
+            assert step.records == [
+                ["TestHousehold", "1"],
+                ["Test", "User", "test@example.com", "001000000000000"],
+                ["Error", "User", "error@example.com", "001000000000000"],
+            ]
+
+            hh_ids = task.session.query(
+                *task.metadata.tables["households_sf_ids"].columns
+            ).one()
+            assert hh_ids == ("1", "001000000000000")
+
             task.session.close()
-
-        assert step.records == [
-            ["TestHousehold", "1"],
-            ["Test", "User", "test@example.com", "001000000000000"],
-            ["Error", "User", "error@example.com", "001000000000000"],
-        ]
-
-        # FIXME: how do we assert that the Ids were updated in the DB?

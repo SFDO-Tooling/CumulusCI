@@ -53,10 +53,6 @@ class DeleteData(BaseSalesforceApiTask):
             if self.options["where"]:
                 query += f" WHERE {self.options['where']}"
 
-            if not self.options["where"]:
-                # FIXME: Perform a count() query to determine whether we have work to do.
-                pass
-
             qs = BulkApiQueryStep(obj, {}, self, query)
             qs.query()
             if qs.status is not Status.SUCCESS:

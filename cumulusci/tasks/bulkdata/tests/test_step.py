@@ -1,4 +1,5 @@
 from cumulusci.tasks.bulkdata.step import (
+    download_file,
     Operation,
     Status,
     Result,
@@ -29,7 +30,15 @@ BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
 
 
 class test_download_file(unittest.TestCase):
-    pass  # FIXME: implement
+    @responses.activate
+    def test_download_file(self):
+        url = "https://example.com"
+        bulk_mock = mock.Mock()
+        bulk_mock.headers.return_value = {}
+
+        responses.add(method="GET", url=url, body="TEST")
+        with download_file(url, bulk_mock) as f:
+            assert f.read() == "TEST"
 
 
 class test_BulkDataJobTaskMixin(unittest.TestCase):
@@ -357,8 +366,8 @@ class test_BulkApiDmlStep(unittest.TestCase):
 
         results = list(step._batch(iter([["Test"], ["Test2"], ["Test3"]])))
         assert len(results) == 2
-        assert results[0].read() == "LastName\r\nTest\r\nTest2\r\n"
-        assert results[1].read() == """LastName\r\nTest3\r\n"""
+        assert list(results[0]) == ["LastName\r\n", "Test\r\n", "Test2\r\n"]
+        assert list(results[1]) == ["LastName\r\n", "Test3\r\n"]
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_get_results(self, download_mock):

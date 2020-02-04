@@ -50,7 +50,7 @@ def setup_epoch(inspector, table, column_info):
 class SqlAlchemyMixin:
     def _sql_bulk_insert_from_records(self, conn, table, columns, records):
         table = self.metadata.tables[table]
-        # FIXME: we no longer handle the empty case.
+
         for batch in BatchIterator(records, n=100):
             conn.execute(table.insert(), [dict(zip(columns, row)) for row in batch])
 

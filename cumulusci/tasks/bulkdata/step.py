@@ -42,6 +42,7 @@ def download_file(uri, bulk_api):
     """Download the bulk API result file for a single batch"""
     (handle, path) = tempfile.mkstemp(text=False)
     resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
+    resp.raise_for_status()
     f = os.fdopen(handle, "wb")
     for chunk in resp.iter_content(chunk_size=None):
         f.write(chunk)
@@ -57,6 +58,7 @@ class BulkJobTaskMixin:
     def _job_state_from_batches(self, job_id):
         uri = f"{self.bulk.endpoint}/job/{job_id}/batch"
         response = requests.get(uri, headers=self.bulk.headers())
+        response.raise_for_status()
         return self._parse_job_state(response.content)
 
     def _parse_job_state(self, xml):
@@ -67,6 +69,7 @@ class BulkJobTaskMixin:
         ]
 
         # FIXME: "Not Processed" to be expected for original batch with PK Chunking Query
+        # PK Chunking is not currently supported.
         if "Not Processed" in statuses:
             return "Aborted", None
         elif "InProgress" in statuses or "Queued" in statuses:
@@ -152,6 +155,7 @@ class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
     def get_results(self):
         # FIXME: For PK Chunking, need to get new batch Ids
         # and retrieve their results. Original batch will not be processed.
+
         result_ids = self.bulk.get_query_batch_result_ids(
             self.batch_id, job_id=self.job_id
         )
@@ -214,20 +218,26 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
 
         for count, batch_file in enumerate(self._batch(records)):
             self.context.logger.info(f"Uploading batch {count + 1}")
-            self.batch_ids.append(
-                self.bulk.post_batch(self.job_id, batch_file)
-            )  # FIXME: does accept a generator.
+            self.batch_ids.append(self.bulk.post_batch(self.job_id, batch_file))
 
     def _batch(self, records):
         for batch in BatchIterator(records, self.api_options.get("batch_size", 10000)):
-            batch_file = io.StringIO()  # FIXME: memory-expensive
-            writer = csv.writer(batch_file)
+            yield self._csv_generator(batch)
 
-            writer.writerow(self.fields)
-            writer.writerows(batch)
+    def _csv_generator(self, records):
+        content = io.StringIO()
+        writer = csv.writer(content)
+        writer.writerow(self.fields)
 
-            batch_file.seek(0)
-            yield batch_file
+        content.seek(0)
+        yield content.read()
+        for rec in records:
+            content = io.StringIO()
+            writer = csv.writer(content)
+            writer.writerow(rec)
+            content.seek(0)
+
+            yield content.read()
 
     def get_results(self):
         for batch_id in self.batch_ids:
