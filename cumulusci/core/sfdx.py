@@ -1,5 +1,6 @@
 import io
 import logging
+import platform
 import sarge
 import sys
 
@@ -18,21 +19,21 @@ def sfdx(
 ):
     """Call an sfdx command and capture its output.
 
-    Be sure to quote user input that is part of the command using `sarge.shell_format`.
+    Be sure to quote user input that is part of the command using `shell_quote`.
 
     Returns a `sarge` Command instance with returncode, stdout, stderr
     """
     command = "sfdx {}".format(command)
     if args is not None:
         for arg in args:
-            command += " " + sarge.shell_quote(arg)
+            command += " " + shell_quote(arg)
     if username:
-        command += sarge.shell_format(" -u {0}", username)
+        command += f" -u {shell_quote(username)}"
     if log_note:
         logger.info("{} with command: {}".format(log_note, command))
     # Avoid logging access token
     if access_token:
-        command += sarge.shell_format(" -u {0}", access_token)
+        command += f" -u {shell_quote(username)}"
     p = sarge.Command(
         command,
         stdout=sarge.Capture(buffer_size=-1) if capture_output else None,
@@ -47,3 +48,18 @@ def sfdx(
     if check_return and p.returncode:
         raise Exception(f"Command exited with return code {p.returncode}")
     return p
+
+
+def shell_quote(s):
+    if platform.system() == "Windows":
+        assert isinstance(s, str)
+        if not s:
+            result = '""'
+        elif '"' not in s:
+            result = s
+        else:
+            escaped = s.replace('"', r"\"")
+            result = f'"{escaped}"'
+        return result
+    else:
+        return sarge.shell_quote(s)
