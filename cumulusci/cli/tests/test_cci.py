@@ -359,6 +359,27 @@ Environment Info: Rossian / x68_46
         self.assertIn("config", interact.call_args[1]["local"])
         self.assertIn("runtime", interact.call_args[1]["local"])
 
+    @mock.patch("runpy.run_path")
+    def test_shell_script(self, runpy):
+        run_click_command(cci.shell, script="foo.py")
+        runpy.assert_called_once()
+        self.assertIn("config", runpy.call_args[1]["init_globals"])
+        self.assertIn("runtime", runpy.call_args[1]["init_globals"])
+        assert runpy.call_args[0][0] == "foo.py", runpy.call_args[0]
+
+    @mock.patch("cumulusci.cli.cci.print")
+    def test_shell_code(self, print):
+        run_click_command(cci.shell, python="print(config, runtime)")
+        print.assert_called_once()
+
+    @mock.patch("cumulusci.cli.cci.print")
+    def test_shell_mutually_exclusive_args(self, print):
+        with self.assertRaises(Exception) as e:
+            run_click_command(
+                cci.shell, script="foo.py", python="print(config, runtime)"
+            )
+        self.assertIn("Cannot specify both", str(e.exception))
+
     @mock.patch("code.interact")
     def test_shell__no_project(self, interact):
         with temporary_dir():
@@ -1188,6 +1209,50 @@ Environment Info: Rossian / x68_46
         mock_code.assert_called_once()
         self.assertIn("sf", mock_code.call_args[1]["local"])
 
+    @mock.patch("runpy.run_path")
+    def test_org_shell_script(self, runpy):
+        org_config = mock.Mock()
+        org_config.instance_url = "https://salesforce.com"
+        org_config.access_token = "TEST"
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
+        run_click_command(
+            cci.org_shell, runtime=runtime, org_name="test", script="foo.py"
+        )
+        runpy.assert_called_once()
+        self.assertIn("sf", runpy.call_args[1]["init_globals"])
+        assert runpy.call_args[0][0] == "foo.py", runpy.call_args[0]
+
+    @mock.patch("cumulusci.cli.cci.print")
+    def test_org_shell_code(self, print):
+        org_config = mock.Mock()
+        org_config.instance_url = "https://salesforce.com"
+        org_config.access_token = "TEST"
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
+        run_click_command(
+            cci.org_shell, runtime=runtime, org_name="test", python="print(sf)"
+        )
+        print.assert_called_once()
+        assert "Salesforce" in str(type(print.call_args[0][0]))
+
+    @mock.patch("cumulusci.cli.cci.print")
+    def test_org_shell_mutually_exclusive_args(self, print):
+        org_config = mock.Mock()
+        org_config.instance_url = "https://salesforce.com"
+        org_config.access_token = "TEST"
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
+        with self.assertRaises(Exception) as e:
+            run_click_command(
+                cci.org_shell,
+                runtime=runtime,
+                org_name="foo",
+                script="foo.py",
+                python="print(config, runtime)",
+            )
+        self.assertIn("Cannot specify both", str(e.exception))
+
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_task_list(self, cli_tbl):
         runtime = mock.Mock()
@@ -1467,6 +1532,46 @@ Environment Info: Rossian / x68_46
         echo.assert_any_call(
             "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
         )
+
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
+    def test_error_info_no_logfile_present(self, log_path, echo):
+        log_path.is_file.return_value = False
+        run_click_command(cci.error_info, max_lines=30)
+
+        echo.assert_called_once_with(f"No logfile found at: {cci.CCI_LOGFILE_PATH}")
+
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
+    def test_error_info(self, log_path, echo):
+        log_path.is_file.return_value = True
+        log_path.read_text.return_value = (
+            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
+        )
+
+        run_click_command(cci.error_info, max_lines=30)
+        echo.assert_called_once_with("\nTraceback (most recent call last):\n1\n2\n3\n4")
+
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
+    def test_error_info_output_less(self, log_path, echo):
+        log_path.is_file.return_value = True
+        log_path.read_text.return_value = (
+            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
+        )
+
+        run_click_command(cci.error_info, max_lines=3)
+        echo.assert_called_once_with("\n1\n2\n3\n4")
+
+    def test_lines_from_traceback_no_traceback(self):
+        output = cci.lines_from_traceback("test_content", 10)
+        assert "\nNo stacktrace found in:" in output
+
+    def test_lines_from_traceback(self):
+        traceback = "\nTraceback (most recent call last):\n1\n2\n3\n4"
+        content = "This\nis\na" + traceback
+        output = cci.lines_from_traceback(content, 10)
+        assert output == traceback
 
 
 class SetTrace(Exception):

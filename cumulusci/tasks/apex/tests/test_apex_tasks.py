@@ -560,6 +560,7 @@ class TestAnonymousApexTask(unittest.TestCase):
             "path": apex_path,
             "apex": 'system.debug("Hello World!")',
             "namespaced": True,
+            "param1": "StringValue",
         }
         self.project_config = BaseProjectConfig(
             self.global_config, config={"noyaml": True}
@@ -612,6 +613,18 @@ class TestAnonymousApexTask(unittest.TestCase):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
         before = "String %%%NAMESPACE%%%str = 'foo';"
         expected = "String abc__str = 'foo';"
+        self.assertEqual(expected, task._prepare_apex(before))
+
+    def test_optional_parameter_1_replacement(self):
+        task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
+        before = "String str = '%%%PARAM_1%%%';"
+        expected = "String str = 'StringValue';"
+        self.assertEqual(expected, task._prepare_apex(before))
+
+    def test_optional_parameter_2_replacement(self):
+        task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
+        before = "String str = '%%%PARAM_2%%%';"
+        expected = "String str = '';"
         self.assertEqual(expected, task._prepare_apex(before))
 
     @responses.activate

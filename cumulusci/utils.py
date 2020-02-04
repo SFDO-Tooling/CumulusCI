@@ -40,7 +40,12 @@ def parse_api_datetime(value):
     return dt
 
 
-def findReplace(find, replace, directory, filePattern, logger=None, max=None):
+def find_replace(find, replace, directory, filePattern, logger=None, max=None):
+    """Recursive find/replace.
+
+    Walks through files matching `filePattern` within `directory`
+    and does a string substitution of `find` with `replace`.
+    """
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
             filepath = os.path.join(path, filename)
@@ -57,7 +62,12 @@ def findReplace(find, replace, directory, filePattern, logger=None, max=None):
                     f.write(s_updated)
 
 
-def findReplaceRegex(find, replace, directory, filePattern, logger=None):
+def find_replace_regex(find, replace, directory, filePattern, logger=None):
+    """Recursive find/replace using a regular expression.
+
+    Walks through files matching `filePattern` within `directory`
+    and does a regex substitution of `find` with `replace`.
+    """
     pattern = re.compile(find)
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, filePattern):
@@ -72,7 +82,12 @@ def findReplaceRegex(find, replace, directory, filePattern, logger=None):
                     f.write(s_updated)
 
 
-def findRename(find, replace, directory, logger=None):
+def find_rename(find, replace, directory, logger=None):
+    """Recursive find/replace within filenames.
+
+    Walks through files within `directory`
+    and renames files to replace `find` with `replace`.
+    """
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in files:
             filepath = os.path.join(path, filename)
@@ -90,12 +105,19 @@ def elementtree_parse_file(path):
     return tree
 
 
-def removeXmlElement(name, directory, file_pattern, logger=None):
+def remove_xml_element_directory(name, directory, file_pattern, logger=None):
     """ Recursively walk a directory and remove XML elements """
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, file_pattern):
             filepath = os.path.join(path, filename)
             remove_xml_element_file(name, filepath)
+
+
+# backwards-compatibility aliases
+findReplace = find_replace
+findReplaceRegex = find_replace_regex
+findRename = find_rename
+removeXmlElement = remove_xml_element_directory
 
 
 def remove_xml_element_file(name, path):

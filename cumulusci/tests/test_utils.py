@@ -73,56 +73,56 @@ def option_info():
 
 
 class TestUtils:
-    def test_findReplace(self):
+    def test_find_replace(self):
         with utils.temporary_dir() as d:
             path = os.path.join(d, "test")
             with open(path, "w") as f:
                 f.write("foo")
 
             logger = mock.Mock()
-            utils.findReplace("foo", "bar", d, "*", logger)
+            utils.find_replace("foo", "bar", d, "*", logger)
 
             logger.info.assert_called_once()
             with open(path, "r") as f:
                 result = f.read()
             assert result == "bar"
 
-    def test_findReplace_max(self):
+    def test_find_replace_max(self):
         with utils.temporary_dir() as d:
             path = os.path.join(d, "test")
             with open(path, "w") as f:
                 f.write("aa")
 
             logger = mock.Mock()
-            utils.findReplace("a", "b", d, "*", logger, max=1)
+            utils.find_replace("a", "b", d, "*", logger, max=1)
 
             logger.info.assert_called_once()
             with open(path, "r") as f:
                 result = f.read()
             assert result == "ba"
 
-    def test_findReplaceRegex(self):
+    def test_find_replace_regex(self):
         with utils.temporary_dir() as d:
             path = os.path.join(d, "test")
             with open(path, "w") as f:
                 f.write("aa")
 
             logger = mock.Mock()
-            utils.findReplaceRegex(r"\w", "x", d, "*", logger)
+            utils.find_replace_regex(r"\w", "x", d, "*", logger)
 
             logger.info.assert_called_once()
             with open(path, "r") as f:
                 result = f.read()
             assert result == "xx"
 
-    def test_findRename(self):
+    def test_find_rename(self):
         with utils.temporary_dir() as d:
             path = os.path.join(d, "foo")
             with open(path, "w") as f:
                 f.write("aa")
 
             logger = mock.Mock()
-            utils.findRename("foo", "bar", d, logger)
+            utils.find_rename("foo", "bar", d, logger)
 
             logger.info.assert_called_once()
             assert os.listdir(d) == ["bar"]
@@ -146,7 +146,7 @@ class TestUtils:
         else:
             assert False  # Expected ParseError
 
-    def test_removeXmlElement(self):
+    def test_remove_xml_element_directory(self):
         with utils.temporary_dir() as d:
             path = os.path.join(d, "test.xml")
             with open(path, "w") as f:
@@ -156,7 +156,7 @@ class TestUtils:
                     "<tag>text</tag></root>"
                 )
 
-            utils.removeXmlElement("tag", d, "*")
+            utils.remove_xml_element_directory("tag", d, "*")
 
             with open(path, "r") as f:
                 result = f.read()
@@ -179,7 +179,7 @@ class TestUtils:
                     "<tag>text</tag></root>"
                 )
             try:
-                utils.removeXmlElement("tag", d, "*")
+                utils.remove_xml_element_directory("tag", d, "*")
             except ET.ParseError as err:
                 assert str(err) == "it broke (test.xml, line 1)"
             else:
