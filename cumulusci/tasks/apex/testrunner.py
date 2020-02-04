@@ -115,17 +115,19 @@ class RunApexTests(BaseSalesforceApiTask):
     task_options = {
         "test_name_match": {
             "description": (
-                "Query to find Apex test classes to run "
-                + '("%" is wildcard).  Defaults to '
-                + "project__test__name_match"
+                "Pattern to find Apex test classes to run "
+                '("%" is wildcard).  Defaults to '
+                "project__test__name_match from project config. "
+                "Comma-separated list for multiple patterns."
             ),
             "required": True,
         },
         "test_name_exclude": {
             "description": (
                 "Query to find Apex test classes to exclude "
-                + '("%" is wildcard).  Defaults to '
-                + "project__test__name_exclude"
+                '("%" is wildcard).  Defaults to '
+                "project__test__name_exclude from project config. "
+                "Comma-separated list for multiple patterns."
             )
         },
         "namespace": {
