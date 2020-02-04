@@ -33,7 +33,7 @@ def sfdx(
         logger.info("{} with command: {}".format(log_note, command))
     # Avoid logging access token
     if access_token:
-        command += f" -u {shell_quote(username)}"
+        command += f" -u {shell_quote(access_token)}"
     p = sarge.Command(
         command,
         stdout=sarge.Capture(buffer_size=-1) if capture_output else None,
