@@ -47,17 +47,17 @@ class DeleteData(BaseSalesforceApiTask):
 
     def _run_task(self):
         for obj in self.options["objects"]:
-            self.logger.info(f"Deleting {self._object_description(obj)} ")
-
             query = f"SELECT Id FROM {obj}"
             if self.options["where"]:
                 query += f" WHERE {self.options['where']}"
 
+            self.logger.info(f"Querying for {obj} objects")
             qs = BulkApiQueryStep(obj, {}, self, query)
             qs.query()
             if qs.status is not Status.SUCCESS:
                 raise BulkDataException(f"Unable to query records for {obj}")
 
+            self.logger.info(f"Deleting {self._object_description(obj)} ")
             ds = BulkApiDmlStep(
                 obj,
                 Operation.HARD_DELETE

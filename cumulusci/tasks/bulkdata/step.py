@@ -131,7 +131,7 @@ class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
         self.job_id = self.bulk.create_query_job(self.sobject, contentType="CSV")
         self.batch_id = self.bulk.query(self.job_id, self.soql)
 
-        result, errors = self._wait_for_job(self.job_id)
+        result = self._wait_for_job(self.job_id)
         if result == "Completed":
             self.status = Status.SUCCESS
         else:
