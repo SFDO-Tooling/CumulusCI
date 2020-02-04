@@ -1202,10 +1202,8 @@ def task_doc(runtime):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def task_info(runtime, task_name):
-    if runtime.project_config is not None:
-        runtime._load_keychain()
     task_config = (
         runtime.project_config.get_task(task_name)
         if runtime.project_config is not None
