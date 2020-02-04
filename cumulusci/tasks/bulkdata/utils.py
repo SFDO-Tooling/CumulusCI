@@ -79,11 +79,10 @@ class BulkJobTaskMixin(object):
         return self._parse_job_state(response.content)
 
     def _parse_job_state(self, xml):
+        ns = self.bulk.jobNS
         tree = ET.fromstring(xml)
-        statuses = [el.text for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS)]
-        state_messages = [
-            el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
-        ]
+        statuses = [el.text for el in tree.iterfind(f".//{{{ns}}}state")]
+        state_messages = [el.text for el in tree.iterfind(f".//{{{ns}}}stateMessage")]
 
         if "Not Processed" in statuses:
             return "Aborted", None
@@ -100,6 +99,12 @@ class BulkJobTaskMixin(object):
             raise BulkApiError(
                 message="Unknown statuses: {weird_statuses}", status_code=200
             )
+
+        failures = tree.find(f".//{{{ns}}}numberRecordsFailed")
+        if failures is not None:
+            num_failures = int(failures.text)
+            if num_failures:
+                return "CompletedWithFailures", [f"Failures detected: {num_failures}"]
 
         return "Completed", None
 
@@ -126,7 +131,16 @@ class BulkJobTaskMixin(object):
                         raise
                 time.sleep(10)
 
-    def _wait_for_job(self, job_id):
+    def _wait_for_job(self, job_id, error_behaviour: str = "raise") -> str:
+        """With for job_id to finish.
+
+        If there are any row errors, error_behaviour says what happens.
+
+        If its "raise" (the default), then throw an exception.
+
+        If its "return" then return "fail" and set an instance variable: self.error_messages
+        """
+        assert error_behaviour in ("raise", "return")
         while True:
             job_status = self._retry_http(lambda: self.bulk.job_status(job_id))
             self.logger.info(
@@ -139,9 +153,13 @@ class BulkJobTaskMixin(object):
                 break
             time.sleep(10)
         self.logger.info(f"Job {job_id} finished with result: {result}")
-        if result == "Failed":
+        if "Fail" in result:
             for state_message in messages:
                 self.logger.error(f"Batch failure message: {state_message}")
+            if error_behaviour == "raise":
+                raise BulkDataException("Job Error", messages)
+            else:
+                self.error_messages = messages
 
         return result
 

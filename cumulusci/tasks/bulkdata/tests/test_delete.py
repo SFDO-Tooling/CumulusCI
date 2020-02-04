@@ -158,6 +158,15 @@ class TestDeleteData(unittest.TestCase):
                 "</root>"
             ),
         )
+        self.assertEqual(
+            ("CompletedWithFailures", ["Failures detected: 200"]),
+            task._parse_job_state(
+                '<root xmlns="http://ns">'
+                "  <batch><state>Completed</state></batch>"
+                "  <numberRecordsFailed>200</numberRecordsFailed>"
+                "</root>"
+            ),
+        )
 
     @responses.activate
     def test_upload_batches__error(self):

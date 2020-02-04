@@ -58,7 +58,7 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             self.logger.info(f"Deleting {self._object_description(obj)} ")
             delete_job = self._create_job(obj, self.options["where"])
             if delete_job is not None:
-                self._wait_for_job(delete_job)
+                self._wait_for_job(delete_job, error_behaviour="raise")
 
     def _create_job(self, obj, where=None):
         # Query for rows to delete
