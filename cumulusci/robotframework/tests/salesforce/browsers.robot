@@ -93,7 +93,7 @@ Open Test Browser calls Log Browser Capabilities
     ...  Open Test Browser
     [Teardown]  Close all browsers
 
-    Reset robot log cache
+    Reset test listener message log
     Set test variable  ${BROWSER}  headlesschrome
     Open test browser  alias=chrome
     Assert robot log   selenium browser capabilities:  INFO
@@ -101,7 +101,7 @@ Open Test Browser calls Log Browser Capabilities
 
     # Make sure we don't just log the capabilities of the
     # first browser that was opened
-    Reset robot log cache
+    Reset test listener message log
     Set test variable  ${BROWSER}  headlessfirefox
     Open test browser  alias=firefox
     Assert robot log   selenium browser capabilities:  INFO

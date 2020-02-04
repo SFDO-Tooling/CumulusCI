@@ -21,23 +21,23 @@ class TestListener(object):
 
     def __init__(self):
         self.ROBOT_LIBRARY_LISTENER = self
-        self.log_messages = []
-        self.keyword_cache = []
-        self.capture_log = True
+        self.message_log = []
+        self.keyword_log = []
+        self.message_logging_enabled = True
 
     def _log_message(self, message):
         """Called whenever a message is added to the log"""
-        if self.capture_log:
-            self.log_messages.append(message)
+        if self.message_logging_enabled:
+            self.message_log.append(message)
 
     def _start_test(self, name, attrs):
-        self.reset_test_listener_keyword_cache()
+        self.reset_test_listener_keyword_log()
 
     def _end_keyword(self, name, attrs):
         attrs_subset = {name: attrs[name] for name in ("status", "args")}
-        self.keyword_cache.append((name, attrs_subset))
+        self.keyword_log.append((name, attrs_subset))
 
-    def reset_test_listener_keyword_cache(self):
+    def reset_test_listener_keyword_log(self):
         """Reset the keyword cache
 
         This can be used to reset the cache in the middle of a
@@ -45,10 +45,10 @@ class TestListener(object):
         apply to keywords called from this point onwards.
 
         """
-        self.keyword_cache.clear()
+        self.keyword_log.clear()
 
-    def reset_robot_log_cache(self):
-        self.log_messages = []
+    def reset_test_listener_message_log(self):
+        self.message_log = []
 
     def assert_keyword_status(self, expected_status, keyword_name, *args):
         """Assert that all keyword with the given name and args have the given status
@@ -65,7 +65,7 @@ class TestListener(object):
         """
 
         keyword_was_found = False
-        for name, attrs in self.keyword_cache:
+        for name, attrs in self.keyword_log:
             if name == keyword_name and args == tuple(attrs["args"]):
                 keyword_was_found = True
                 if attrs["status"] != expected_status:
@@ -73,22 +73,22 @@ class TestListener(object):
                         f"Status of keyword {keyword_name} with args {args} "
                         f"expected to be {expected_status} but was {attrs['status']}"
                     )
-                    raise Exception(message)
+                    raise AssertionError(message)
         if not keyword_was_found:
-            raise Exception(
+            raise AssertionError(
                 f"No keyword with name '{keyword_name}' with args '{args}' was found"
             )
 
     def assert_robot_log(self, message_pattern, log_level=None):
         """Assert that a message matching the pattern was emitted"""
         BuiltIn().log_to_console("\n")
-        for message in self.log_messages:
+        for message in self.message_log:
             # note: message is a dictionary with the following keys:
             # 'timestamp', 'message', 'level', 'html'
             if re.search(message_pattern, message["message"], re.MULTILINE):
                 if log_level is None or message["level"] == log_level:
                     return True
-        raise Exception(
+        raise AssertionError(
             "Could not find a robot log message matching the pattern '{}'".format(
                 message_pattern
             )

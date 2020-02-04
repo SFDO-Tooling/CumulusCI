@@ -8,22 +8,22 @@ class TestTestListener(unittest.TestCase):
     def setUpClass(cls):
         cls.listener = TestListener()
 
-    def test_reset_test_listener_keyword_cache(self):
+    def test_reset_test_listener_keyword_log(self):
         """Verify the internal cache is reset by the reset keyword"""
 
         # simulate what robot does when a keyword finishes executing
         self.listener._end_keyword("log", {"status": "PASS", "args": tuple()})
 
-        self.listener.reset_test_listener_keyword_cache()
-        assert len(self.listener.keyword_cache) == 0
+        self.listener.reset_test_listener_keyword_log()
+        assert len(self.listener.keyword_log) == 0
 
-    def test_reset_robot_log_cache(self):
-        self.listener.log_messages.append("Danger Will Robinson!")
-        self.listener.reset_robot_log_cache()
-        assert len(self.listener.log_messages) == 0
+    def test_reset_test_listener_message_log(self):
+        self.listener.message_log.append("Danger Will Robinson!")
+        self.listener.reset_test_listener_message_log()
+        assert len(self.listener.message_log) == 0
 
     def test_assert_keyword_failure(self):
-        self.listener.reset_test_listener_keyword_cache()
+        self.listener.reset_test_listener_keyword_log()
         with pytest.raises(
             Exception,
             match=r"No keyword with name 'bogus' with args '\('arg1', 'arg2'\)' was found",
