@@ -23,6 +23,7 @@ from cumulusci.core.exceptions import BulkDataException
 def download_file(uri, bulk_api):
     """Download the bulk API result file for a single batch"""
     resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
+    resp.raise_for_status()
     with tempfile.TemporaryFile("w+b") as f:
         for chunk in resp.iter_content(chunk_size=None):
             f.write(chunk)
@@ -69,6 +70,7 @@ class BulkJobTaskMixin(object):
     def _job_state_from_batches(self, job_id):
         uri = f"{self.bulk.endpoint}/job/{job_id}/batch"
         response = requests.get(uri, headers=self.bulk.headers())
+        response.raise_for_status()
         return self._parse_job_state(response.content)
 
     def _parse_job_state(self, xml):
