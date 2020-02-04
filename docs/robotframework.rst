@@ -217,7 +217,7 @@ The following variables defined in **Salesforce.robot** are all used by the ``Op
 
    * - ``${SELENIUM_SPEED}``
      - This defines a delay added after every selenium command. It is
-       automaticaly passed to the `Set Selenium Speed
+       automatically passed to the `Set Selenium Speed
        <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Speed>`_ keyword.
        Default: ``0 seconds``
 
