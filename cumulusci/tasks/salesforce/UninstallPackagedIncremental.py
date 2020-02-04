@@ -7,7 +7,7 @@ from cumulusci.tasks.salesforce import UninstallPackaged
 from cumulusci.utils import package_xml_from_dict
 from cumulusci.utils import temporary_dir
 
-DEFAULT_SKIP_TYPES = ["RecordType"]
+DEFAULT_IGNORE_TYPES = ["RecordType"]
 
 
 class UninstallPackagedIncremental(UninstallPackaged):
@@ -28,8 +28,8 @@ class UninstallPackagedIncremental(UninstallPackaged):
         "ignore": {
             "description": "Components to ignore in the org and not try to delete. Mapping of component type to a list of member names."
         },
-        "skip_types": {
-            "description": f"List of component types to ignore in the org and not try to delete. Defaults to {DEFAULT_SKIP_TYPES}"
+        "ignore_types": {
+            "description": f"List of component types to ignore in the org and not try to delete. Defaults to {DEFAULT_IGNORE_TYPES}"
         },
     }
 
@@ -41,7 +41,9 @@ class UninstallPackagedIncremental(UninstallPackaged):
             self.options.get("purge_on_delete", True)
         )
         self.options["ignore"] = self.options.get("ignore", {})
-        self.options["skip_types"] = self.options.get("skip_types", DEFAULT_SKIP_TYPES)
+        self.options["ignore_types"] = self.options.get(
+            "ignore_types", DEFAULT_IGNORE_TYPES
+        )
 
     def _get_destructive_changes(self, path=None):
         self.logger.info(
@@ -115,7 +117,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
 
         if delete:
             self.logger.info("Deleting metadata:")
-            for skip_type in self.options["skip_types"]:
+            for skip_type in self.options["ignore_types"]:
                 delete.pop(skip_type, None)
             for md_type, members in delete.items():
                 for member in members:
