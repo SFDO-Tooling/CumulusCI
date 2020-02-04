@@ -1204,6 +1204,8 @@ def task_doc(runtime):
 @click.argument("task_name")
 @pass_runtime(require_project=False)
 def task_info(runtime, task_name):
+    if runtime.project_config is not None:
+        runtime._load_keychain()
     task_config = (
         runtime.project_config.get_task(task_name)
         if runtime.project_config is not None
@@ -1324,7 +1326,7 @@ def flow_list(runtime, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def flow_info(runtime, flow_name):
     try:
         coordinator = runtime.get_flow(flow_name)
