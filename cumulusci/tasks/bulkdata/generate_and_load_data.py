@@ -61,17 +61,12 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             "description": "How many records to create and load at a time.",
             "required": False,
         },
-        "mapping": {"description": "A mapping YAML file to use", "required": False},
         "data_generation_task": {
             "description": "Fully qualified class path of a task to generate the data. Look at cumulusci.tasks.bulkdata.tests.dummy_data_factory to learn how to write them.",
             "required": True,
         },
         "data_generation_options": {
             "description": "Options to pass to the data generator.",
-            "required": False,
-        },
-        "database_url": {
-            "description": "A URL to store the database (defaults to a transient SQLite file)",
             "required": False,
         },
         "vars": {
@@ -83,7 +78,9 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         "debug_dir": {
             "description": "Store temporary DB files in debug_dir for easier debugging."
         },
+        **LoadData.task_options,
     }
+    task_options["mapping"]["required"] = False
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
