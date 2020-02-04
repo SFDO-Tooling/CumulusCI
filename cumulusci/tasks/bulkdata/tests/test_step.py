@@ -207,7 +207,7 @@ class test_BulkApiQueryStep(unittest.TestCase):
         context = mock.Mock()
         query = BulkApiQueryStep("Contact", {}, context, "SELECT Id FROM Contact")
         query._wait_for_job = mock.Mock()
-        query._wait_for_job.return_value = ("Completed", None)
+        query._wait_for_job.return_value = "Completed"
 
         query.query()
 
@@ -230,7 +230,7 @@ class test_BulkApiQueryStep(unittest.TestCase):
         context = mock.Mock()
         query = BulkApiQueryStep("Contact", {}, context, "SELECT Id FROM Contact")
         query._wait_for_job = mock.Mock()
-        query._wait_for_job.return_value = ("Failed", None)
+        query._wait_for_job.return_value = "Failed"
 
         query.query()
 
