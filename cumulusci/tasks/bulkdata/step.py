@@ -12,7 +12,6 @@ from contextlib import contextmanager
 from enum import Enum
 from cumulusci.tasks.bulkdata.utils import BatchIterator
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_bool_arg
 
 
@@ -104,13 +103,7 @@ class BulkJobTaskMixin:
 
 
 class Step:
-    def __init__(
-        self,
-        sobject: str,
-        operation: Operation,
-        api_options: dict,
-        context: BaseSalesforceApiTask,
-    ):
+    def __init__(self, sobject, operation, api_options, context):
         self.sobject = sobject
         self.operation = operation
         self.api_options = api_options
@@ -122,13 +115,7 @@ class Step:
 
 
 class QueryStep(Step):
-    def __init__(
-        self,
-        sobject: str,
-        api_options: dict,
-        context: BaseSalesforceApiTask,
-        query: str,
-    ):
+    def __init__(self, sobject, api_options, context, query):
         super().__init__(sobject, Operation.QUERY, api_options, context)
         self.soql = query
 
@@ -172,14 +159,7 @@ class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
 
 
 class DmlStep(Step):
-    def __init__(
-        self,
-        sobject: str,
-        operation: Operation,
-        api_options: dict,
-        context: BaseSalesforceApiTask,
-        fields,
-    ):
+    def __init__(self, sobject, operation, api_options, context, fields):
         super().__init__(sobject, operation, api_options, context)
         self.fields = fields
 
