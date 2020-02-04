@@ -366,8 +366,15 @@ class test_BulkApiDmlStep(unittest.TestCase):
 
         results = list(step._batch(iter([["Test"], ["Test2"], ["Test3"]])))
         assert len(results) == 2
-        assert list(results[0]) == ["LastName\r\n", "Test\r\n", "Test2\r\n"]
-        assert list(results[1]) == ["LastName\r\n", "Test3\r\n"]
+        assert list(results[0]) == [
+            "LastName\r\n".encode("utf-8"),
+            "Test\r\n".encode("utf-8"),
+            "Test2\r\n".encode("utf-8"),
+        ]
+        assert list(results[1]) == [
+            "LastName\r\n".encode("utf-8"),
+            "Test3\r\n".encode("utf-8"),
+        ]
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_get_results(self, download_mock):

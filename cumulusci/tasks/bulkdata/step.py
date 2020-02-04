@@ -210,14 +210,14 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
         writer.writerow(self.fields)
 
         content.seek(0)
-        yield content.read()
+        yield content.read().encode("utf-8")
         for rec in records:
             content = io.StringIO()
             writer = csv.writer(content)
             writer.writerow(rec)
             content.seek(0)
 
-            yield content.read()
+            yield content.read().encode("utf-8")
 
     def get_results(self):
         for batch_id in self.batch_ids:
