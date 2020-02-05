@@ -445,7 +445,7 @@ Options\n------------------------------------------\n\n
         zf.writestr("classes/test-meta.xml", b"<root>\xc3\xb1</root>")
 
         zf = utils.zip_clean_metaxml(zf)
-        assert b"<root>\xc3\xb1</root>" in zf.read("classes/test-meta.xml")
+        assert b"<root>\xc3\xb1</root>" == zf.read("classes/test-meta.xml")
 
     def test_doc_task_not_inherited(self):
         task_config = TaskConfig(
