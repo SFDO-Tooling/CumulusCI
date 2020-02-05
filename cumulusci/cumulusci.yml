@@ -98,6 +98,13 @@ tasks:
         options:
             command: 'force:source:push'
         group: Salesforce DX
+    ensure_record_types:
+        description: Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
+        class_path: cumulusci.tasks.salesforce.EnsureRecordTypes
+        options:
+            record_type_label: Default
+            record_type_developer_name: Default
+        group: 'Salesforce Metadata'
     execute_anon:
         description: Execute anonymous apex via the tooling api.
         class_path: cumulusci.tasks.apex.anon.AnonymousApexTask

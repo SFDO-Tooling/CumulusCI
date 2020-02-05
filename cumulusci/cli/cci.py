@@ -6,6 +6,7 @@ import functools
 import json
 import re
 import os
+import platform
 import pdb
 import shutil
 import sys
@@ -15,6 +16,7 @@ from datetime import datetime
 import webbrowser
 import contextlib
 from pathlib import Path
+import runpy
 
 import click
 import github3
@@ -170,9 +172,9 @@ def pass_runtime(func=None, require_project=True, require_keychain=False):
         return decorate(func)
 
 
-SUGGEST_GIT_GIST_COMMAND = """\nIt looks like you may have run into an error. Did you know cci has a command for sending this error to a GitHub gist?
-Just run `$ cci gist` and make sure that your GitHub access token has the 'create gist' scope.
-For more info see: https://cumulusci.readthedocs.io/en/latest/features.html#reporting-error-logs"""
+SUGGEST_ERROR_COMMAND = (
+    """Type `cci error --help` for more information about debugging errors."""
+)
 
 
 #
@@ -205,7 +207,7 @@ def main(args=None):
 
         # Only create logfiles for commands
         # that are not `cci gist`
-        is_gist_command = len(args) > 1 and args[1] == "gist"
+        is_gist_command = len(args) > 2 and args[2] == "gist"
         if not is_gist_command:
             logger = get_gist_logger()
             stack.enter_context(tee_stdout_stderr(args, logger))
@@ -224,7 +226,9 @@ def main(args=None):
                 pdb.post_mortem()
             else:
                 click.echo(click.style(f"Error: {e}", fg="red"))
-                click.echo(click.style(SUGGEST_GIT_GIST_COMMAND, fg="yellow"))
+                # Only suggest gist command if it wasn't run
+                if not is_gist_command:
+                    click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
 
                 with open(CCI_LOGFILE_PATH, "a") as log_file:
                     traceback.print_exc(file=log_file)  # log stacktrace silently
@@ -264,12 +268,21 @@ def version():
 
 
 @cli.command(name="shell", help="Drop into a Python shell")
+@click.option("--script", help="Path to a script to run", type=click.Path())
+@click.option("--python", help="Python code to run directly")
 @pass_runtime(require_project=False, require_keychain=True)
-def shell(runtime):
+def shell(runtime, script=None, python=None):
     # alias for backwards-compatibility
-    config = runtime
+    config = runtime  # noQA
 
-    code.interact(local=dict(globals(), **locals()))
+    if script:
+        if python:
+            raise click.UsageError("Cannot specify both --script and --python")
+        runpy.run_path(script, init_globals={**globals(), **locals()})
+    elif python:
+        exec(python)
+    else:
+        code.interact(local={**globals(), **locals()})
 
 
 CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
@@ -277,49 +290,13 @@ GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your g
 Please ensure that your GitHub personal access token has the 'Create gists' scope."""
 
 
-@cli.command(name="gist", help="Create a GitHub gist from the latest logfile")
-@pass_runtime(require_project=False, require_keychain=True)
-def gist(runtime):
-    if CCI_LOGFILE_PATH.is_file():
-        log_content = CCI_LOGFILE_PATH.read_text()
-    else:
-        log_not_found_msg = """No logfile to open at path: {}
-        Please ensure you're running this command from the same directory you were experiencing an issue."""
-        error_msg = log_not_found_msg.format(CCI_LOGFILE_PATH)
-        click.echo(error_msg)
-        raise CumulusCIException(error_msg)
-
-    last_cmd_header = "\n\n\nLast Command Run\n================================\n"
-    filename = f"cci_output_{datetime.utcnow()}.txt"
-    files = {
-        filename: {"content": f"{get_context_info()}{last_cmd_header}{log_content}"}
-    }
-
-    try:
-        gh = RUNTIME.keychain.get_service("github")
-        gist = create_gist(
-            get_github_api(gh.config["username"], gh.config["password"]),
-            "CumulusCI Error Output",
-            files,
-        )
-    except github3.exceptions.NotFoundError:
-        raise CumulusCIException(GIST_404_ERR_MSG)
-    except Exception as e:
-        raise CumulusCIException(
-            f"An error occurred attempting to create your gist:\n{e}"
-        )
-    else:
-        click.echo(f"Gist created: {gist.html_url}")
-        webbrowser.open(gist.html_url)
-
-
 def get_context_info():
-    host_info = os.uname()
+    host_info = platform.uname()
 
     info = []
     info.append(f"CumulusCI version: {cumulusci.__version__}")
     info.append(f"Python version: {sys.version.split()[0]} ({sys.executable})")
-    info.append(f"Environment Info: {host_info.sysname} / {host_info.machine}")
+    info.append(f"Environment Info: {host_info.system} / {host_info.machine}")
     return "\n".join(info)
 
 
@@ -351,6 +328,22 @@ def flow():
 @cli.group("service", help="Commands for connecting services to the keychain")
 def service():
     pass
+
+
+@cli.group("error")
+def error():
+    """
+    If you'd like to dig into an error more yourself,
+    you can get the last few lines of context about it
+    from `cci error info`.
+
+    If you'd like to submit it to a developer for conversation,
+    you can use the `cci error gist` command. Just make sure
+    that your GitHub access token has the 'create gist' scope.
+
+    For more information on working with errors in CumulusCI visit:
+    https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors
+    """
 
 
 # Commands for group: project
@@ -1121,21 +1114,31 @@ def org_scratch_delete(runtime, org_name):
     "as well as the `org_config` and `project_config`.",
 )
 @click.argument("org_name", required=False)
+@click.option("--script", help="Path to a script to run", type=click.Path())
+@click.option("--python", help="Python code to run directly")
 @pass_runtime(require_keychain=True)
-def org_shell(runtime, org_name):
+def org_shell(runtime, org_name, script=None, python=None):
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
+    globals = {
+        "sf": sf,
+        "org_config": org_config,
+        "project_config": runtime.project_config,
+    }
 
-    code.interact(
-        banner=f"Use `sf` to access org `{org_name}` via simple_salesforce",
-        local={
-            "sf": sf,
-            "org_config": org_config,
-            "project_config": runtime.project_config,
-        },
-    )
+    if script:
+        if python:
+            raise click.UsageError("Cannot specify both --script and --python")
+        runpy.run_path(script, init_globals=globals)
+    elif python:
+        exec(python)
+    else:
+        code.interact(
+            banner=f"Use `sf` to access org `{org_name}` via simple_salesforce",
+            local=globals,
+        )
 
     # Save the org config in case it was modified
     runtime.keychain.set_org(org_config)
@@ -1392,3 +1395,74 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(str(e))
+
+
+@error.command(
+    name="info",
+    help="Outputs the last part of the most recent traceback (if one exists in the most recent log)",
+)
+@click.option("--max-lines", "-m", default=30, show_default=True, type=int)
+def error_info(max_lines):
+    if not CCI_LOGFILE_PATH.is_file():
+        click.echo(f"No logfile found at: {CCI_LOGFILE_PATH}")
+    else:
+        output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), max_lines)
+        click.echo(output)
+
+
+def lines_from_traceback(log_content, num_lines):
+    """Returns the the last max_lines of the logfile,
+    or the whole traceback, whichever is shorter. If
+    no stacktrace is found in the logfile, the user is
+    notified.
+    """
+    stacktrace_start = "Traceback (most recent call last):"
+    if stacktrace_start not in log_content:
+        return f"\nNo stacktrace found in: {CCI_LOGFILE_PATH}\n"
+
+    stacktrace = ""
+    for line in reversed(log_content.split("\n")):
+        stacktrace = "\n" + line + stacktrace
+        if stacktrace_start in line:
+            break
+        num_lines -= 1
+        if num_lines == -1:
+            break
+
+    return stacktrace
+
+
+@error.command(name="gist", help="Creates a GitHub gist from the latest logfile")
+@pass_runtime(require_project=False, require_keychain=True)
+def gist(runtime):
+    if CCI_LOGFILE_PATH.is_file():
+        log_content = CCI_LOGFILE_PATH.read_text()
+    else:
+        log_not_found_msg = """No logfile to open at path: {}
+        Please ensure you're running this command from the same directory you were experiencing an issue."""
+        error_msg = log_not_found_msg.format(CCI_LOGFILE_PATH)
+        click.echo(error_msg)
+        raise CumulusCIException(error_msg)
+
+    last_cmd_header = "\n\n\nLast Command Run\n================================\n"
+    filename = f"cci_output_{datetime.utcnow()}.txt"
+    files = {
+        filename: {"content": f"{get_context_info()}{last_cmd_header}{log_content}"}
+    }
+
+    try:
+        gh = RUNTIME.keychain.get_service("github")
+        gist = create_gist(
+            get_github_api(gh.config["username"], gh.config["password"]),
+            "CumulusCI Error Output",
+            files,
+        )
+    except github3.exceptions.NotFoundError:
+        raise CumulusCIException(GIST_404_ERR_MSG)
+    except Exception as e:
+        raise CumulusCIException(
+            f"An error occurred attempting to create your gist:\n{e}"
+        )
+    else:
+        click.echo(f"Gist created: {gist.html_url}")
+        webbrowser.open(gist.html_url)

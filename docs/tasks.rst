@@ -269,6 +269,20 @@ Options:
 * **command** *(required)*: The full command to run with the sfdx cli. **Default: force:source:push**
 * **extra**: Append additional options to the command
 
+ensure_record_type
+==========================================
+
+**Description:** Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
+
+**Class::** cumulusci.tasks.salesforce.EnsureRecordTypes
+
+Options:
+------------------------------------------
+
+* **record_type_developer_name** *(required)*: The Developer Name of the Record Type (unique).  Must contain only alphanumeric characters and underscores. **Default: Default**
+* **record_type_label** *(required)*: The Label of the Record Type. **Default: Default**
+* **sobject** *(required)*: The sObject on which to deploy the Record Type and optional Business Process.
+
 execute_anon
 ==========================================
 
@@ -288,6 +302,8 @@ Options:
 * **apex**: A string of Apex to run (after the file, if specified).
 * **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
 * **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
+* **param1**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_1%%% in the Apex code.
+* **param2**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_2%%% in the Apex code.
 
 generate_data_dictionary
 ==========================================
@@ -1011,6 +1027,7 @@ Options:
 * **package** *(required)*: The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name
 * **purge_on_delete** *(required)*: Sets the purgeOnDelete option for the deployment.  Defaults to True
 * **ignore**: Components to ignore in the org and not try to delete. Mapping of component type to a list of member names.
+* **ignore_types**: List of component types to ignore in the org and not try to delete. Defaults to ['RecordType']
 
 uninstall_src
 ==========================================
@@ -1326,4 +1343,3 @@ Options:
 * **active**: True or False to activate or deactivate trigger handlers.
 * **restore_file**: Path to the state file to store the current trigger handler state. **Default: trigger_status.yml**
 * **restore**: If True, restore the state of Trigger Handlers to that stored in the restore file. **Default: True**
-
