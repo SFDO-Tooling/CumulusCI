@@ -17,6 +17,7 @@ import pkg_resources
 import requests
 import responses
 import github3
+from requests.exceptions import ConnectionError
 
 import cumulusci
 from cumulusci.core.config import BaseProjectConfig
@@ -217,6 +218,36 @@ class TestCCI(unittest.TestCase):
         post_mortem.call_count == 0
         sys_exit.assert_called_once_with(1)
 
+    @mock.patch("cumulusci.cli.cci.open")
+    @mock.patch("cumulusci.cli.cci.traceback")
+    @mock.patch("cumulusci.cli.cci.click.style")
+    def test_handle_exception(self, style, traceback, cci_open):
+        error = "Something bad happened."
+        cci_open.__enter__.return_value = mock.Mock()
+
+        cci.handle_exception(error, is_gist_cmd=False)
+
+        style.call_args_list[0][0] == f"Error: {error}"
+        style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
+        traceback.print_exc.assert_called_once()
+
+    @mock.patch("cumulusci.cli.cci.open")
+    @mock.patch("cumulusci.cli.cci.connection_error_message")
+    def test_handle_connection_exception(self, connection_msg, cci_open):
+        cci.handle_exception(ConnectionError(), False)
+        connection_msg.assert_called_once()
+
+    @mock.patch("cumulusci.cli.cci.click.style")
+    def test_connection_exception_message(self, style):
+        cci.connection_error_message()
+        style.assert_called_once_with(
+            (
+                f"We encountered an error with your internet connection. "
+                "Please check your connection and try the last cci command again."
+            ),
+            fg="red",
+        )
+
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.webbrowser")
     @mock.patch("cumulusci.cli.cci.platform")
@@ -270,7 +301,7 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.datetime")
     @mock.patch("cumulusci.cli.cci.create_gist")
     @mock.patch("cumulusci.cli.cci.get_github_api")
-    def test_gist__gist_creation_error(
+    def test_gist__creation_error(
         self, gh_api, create_gist, date, sys, platform, click, logfile_path
     ):
 
