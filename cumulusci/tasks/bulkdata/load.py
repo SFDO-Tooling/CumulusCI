@@ -108,7 +108,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         step = BulkApiDmlStep(
             mapping["sf_object"],
             Operation.INSERT if mapping.get("action") == "insert" else Operation.UPDATE,
-            {},
+            {"bulk_mode": self.bulk_mode or "Parallel"},
             self,
             self._get_columns(mapping),
         )

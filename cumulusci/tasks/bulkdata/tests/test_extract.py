@@ -210,6 +210,28 @@ class test_ExtractData(unittest.TestCase):
         )
         task._convert_lookups_to_id.assert_called_once_with(mapping, ["AccountId"])
 
+    def test_import_results__no_columns(self):
+        task = _make_task(
+            ExtractData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        mapping = {
+            "sf_object": "Opportunity",
+            "table": "Opportunity",
+            "oid_as_pk": False,
+            "fields": {},
+            "lookups": {},
+        }
+        step = mock.Mock()
+        task.session = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+
+        task._import_results(mapping, step)
+
+        task.session.connection.assert_called_once_with()
+        task._sql_bulk_insert_from_records.assert_not_called()
+
     def test_import_results__record_type_mapping(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "recordtypes.yml")

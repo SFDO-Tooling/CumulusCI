@@ -196,10 +196,18 @@ class test_QueryStep(unittest.TestCase):
 
 
 class test_DmlStep(unittest.TestCase):
-    context = mock.Mock()
-    step = DmlStep("Contact", Operation.UPDATE, {}, context, ["FirstName", "LastName"])
+    def test_DmlStep(self):
+        context = mock.Mock()
+        step = DmlStep(
+            "Contact", Operation.UPDATE, {}, context, ["FirstName", "LastName"]
+        )
 
-    assert step.fields == ["FirstName", "LastName"]
+        step.start()
+        step.load_records([])
+        step.end()
+        step.get_results()
+
+        assert step.fields == ["FirstName", "LastName"]
 
 
 class test_BulkApiQueryStep(unittest.TestCase):

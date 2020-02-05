@@ -230,6 +230,31 @@ class test_LoadData(unittest.TestCase):
         with self.assertRaises(TaskOptionsError):
             _make_task(LoadData, {"options": {}})
 
+    def test_init_options__bulk_mode(self):
+        t = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "file:///test.db",
+                    "mapping": "mapping.yml",
+                    "bulk_mode": "Serial",
+                }
+            },
+        )
+
+        assert t.bulk_mode == "Serial"
+
+        t = _make_task(
+            LoadData,
+            {"options": {"database_url": "file:///test.db", "mapping": "mapping.yml"}},
+        )
+
+        assert t.bulk_mode is None
+
+    def test_init_options__bulk_mode_wrong(self):
+        with self.assertRaises(TaskOptionsError):
+            _make_task(LoadData, {"options": {"bulk_mode": "Test"}})
+
     def test_init_options__database_url(self):
         t = _make_task(
             LoadData,
