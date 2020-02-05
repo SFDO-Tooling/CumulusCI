@@ -1202,7 +1202,7 @@ def task_doc(runtime):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def task_info(runtime, task_name):
     task_config = (
         runtime.project_config.get_task(task_name)
@@ -1324,7 +1324,7 @@ def flow_list(runtime, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def flow_info(runtime, flow_name):
     try:
         coordinator = runtime.get_flow(flow_name)
