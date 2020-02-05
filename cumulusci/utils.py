@@ -402,13 +402,6 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
         doc.append("Options\n------------------------------------------\n")
         doc.extend(task_option_doc)
 
-    task_help_doc = create_task_help_doc(task_config)
-    if task_help_doc:
-        doc.append(
-            f"Help for task {task_name}\n------------------------------------------\n"
-        )
-        doc.extend(task_help_doc)
-
     return "\n".join(doc)
 
 
@@ -491,11 +484,6 @@ def create_task_options_doc(task_options):
             doc.append(f"\n\t Type: {option_type}")
 
     return doc
-
-
-def create_task_help_doc(task_config):
-    """Create documentation for the 'help' section of a task doc"""
-    return []
 
 
 def package_xml_from_dict(items, api_version, package_name=None):
