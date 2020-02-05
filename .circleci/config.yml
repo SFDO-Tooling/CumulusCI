@@ -1,9 +1,7 @@
 version: 2.1
 
-
 orbs:
   win: circleci/windows@1.0.0
-
 
 defaults: &defaults
   docker:
@@ -11,7 +9,6 @@ defaults: &defaults
   environment:
     - BROWSER: headlesschrome
   working_directory: ~/repo
-
 
 jobs:
   test_windows:
@@ -26,8 +23,11 @@ jobs:
           command: pip install -r requirements_dev.txt
       - run:
           name: Run Tests
-          command: pytest
-        
+          command: coverage run pytest
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .coverage.windows
 
   lint:
     <<: *defaults
@@ -68,7 +68,7 @@ jobs:
           root: .
           paths:
             - .coverage.py36
-  
+
   test_py37:
     <<: *defaults
     steps:
@@ -90,7 +90,7 @@ jobs:
           root: .
           paths:
             - .coverage.py37
-  
+
   test_py38:
     <<: *defaults
     docker:
@@ -252,7 +252,6 @@ jobs:
             venv/bin/coverage combine .coverage.*
             venv/bin/coverage report -m
             venv/bin/coveralls
-
 
 workflows:
   version: 2
