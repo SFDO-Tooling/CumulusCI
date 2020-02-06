@@ -8,7 +8,7 @@ Changes:
 
 * `cci task info` now has Command Syntax section and improved formatting of option information.
 
-* CumulusCI now displays a more helpful error message when it detects a network connection issue.
+* CumulusCI now displays a more helpful error message when it detects a network connection issue. (#1460)
 
 * We've added the option `ignore_types` to the `uninstall_packaged_incremental` task to allow all components of the specified metadata type to be ignored without having to explicitly list each one.
 
@@ -20,9 +20,9 @@ Changes:
 
 Issues Closed:
 
-* Fixed an issue with how sfdx command options were being quoted in Windows.
+* Fixed an issue where existing scratch orgs could sometimes not be used in Windows.
 
-* Fixed a regression where the keychain was not being loaded for `flow info` and `task info` commands in cross-project flows.
+* Fixed a regression where `flow info` and `task info` commands could show an error `AttributeError: 'NoneType' object has no attribute 'get_service'` when trying to load tasks or flows from a cross-project source. (#1529)
 
 * Fixed an issue where certain HTTP errors while running the bulk data tasks were not reported.
 
