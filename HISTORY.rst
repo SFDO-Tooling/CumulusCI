@@ -2,6 +2,30 @@
 History
 =======
 
+3.6.0 (2020-02-06)
+------------------
+Changes:
+
+* `cci task info` now has Command Syntax section and improved formatting of option information.
+
+* CumulusCI now displays a more helpful error message when it detects a network connection issue. (#1460)
+
+* We've added the option `ignore_types` to the `uninstall_packaged_incremental` task to allow all components of the specified metadata type to be ignored without having to explicitly list each one.
+
+* The `FindReplace` task now accepts a list of strings for the `file_pattern` option. 
+
+* If the `DeleteData` task fails to delete some rows, this is now reported as an error.
+
+* Robot Framework: Added a new variable `${SELENIUM_SPEED}` that is used to control the speed at which selenium runs when the `Open Test Browser` keyword is called. 
+
+Issues Closed:
+
+* Fixed an issue where existing scratch orgs could sometimes not be used in Windows.
+
+* Fixed a regression where `flow info` and `task info` commands could show an error `AttributeError: 'NoneType' object has no attribute 'get_service'` when trying to load tasks or flows from a cross-project source. (#1529)
+
+* Fixed an issue where certain HTTP errors while running the bulk data tasks were not reported.
+
 3.5.4 (2020-01-30)
 ------------------
 Changes:
