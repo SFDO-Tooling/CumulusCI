@@ -26,6 +26,10 @@ class UpdateAdminProfile(Deploy):
         "namespaced_org": {
             "description": "If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False"
         },
+        "profile_name": {
+            "description": "Name of the Profile to target for updates.",
+            "default": "Admin",
+        },
     }
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
@@ -54,6 +58,8 @@ class UpdateAdminProfile(Deploy):
             else "",
         }
 
+        self.profile_name = self.options.get("profile_name") or "Admin"
+
     def _run_task(self):
         self.retrieve_dir = None
         self.deploy_dir = None
@@ -69,16 +75,20 @@ class UpdateAdminProfile(Deploy):
         self.retrieve_dir.mkdir()
         self.deploy_dir.mkdir()
 
-    def _retrieve_unpackaged(self):
+    def _get_retrieve_package_xml_content(self):
         path = self.options.get("package_xml") or os.path.join(
             CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
         )
         with open(path, "r") as f:
-            self._package_xml_content = f.read()
+            package_xml_content = f.read()
 
-        self._package_xml_content = self._package_xml_content.format(
-            **self.namespace_prefixes
+        package_xml_content = package_xml_content.format(
+            **self.namespace_prefixes, profile_name=self.profile_name
         )
+
+        return package_xml_content
+
+    def _retrieve_unpackaged(self):
         self.logger.info(
             "Retrieving metadata using {}".format(
                 self.options.get("package_xml", "default package.xml")
@@ -86,7 +96,7 @@ class UpdateAdminProfile(Deploy):
         )
         api_retrieve = ApiRetrieveUnpackaged(
             self,
-            self._package_xml_content,
+            self._get_retrieve_package_xml_content(),
             self.project_config.project__package__api_version,
         )
         unpackaged = api_retrieve()
@@ -94,7 +104,7 @@ class UpdateAdminProfile(Deploy):
 
     def _process_metadata(self):
         self.logger.info(f"Processing retrieved metadata in {self.retrieve_dir}")
-        path = self.retrieve_dir / "profiles" / "Admin.profile"
+        path = self.retrieve_dir / "profiles" / f"{self.profile_name}.profile"
         self.tree = elementtree_parse_file(path)
 
         self._set_apps_visible()
@@ -157,9 +167,7 @@ class UpdateAdminProfile(Deploy):
             elem = self.tree.find(xpath, self.namespaces)
             if elem is None:
                 raise TaskOptionsError(
-                    "Record Type {} not found in retrieved Admin.profile".format(
-                        rt["record_type"]
-                    )
+                    f"Record Type {rt['record_type']} not found in retrieved {self.profile_name}.profile"
                 )
 
             # Set visibile
@@ -182,15 +190,18 @@ class UpdateAdminProfile(Deploy):
         for elem in self.tree.findall(xpath, self.namespaces):
             elem.find("sf:visibility", self.namespaces).text = "DefaultOn"
 
+    def _get_deploy_package_xml_content(self):
+        return f"""<?xml version="1.0" encoding="UTF-8"?><Package xmlns="http://soap.sforce.com/2006/04/metadata">
+        <types><members>{self.profile_name}</members><name>Profile</name></types><version>39.0</version></Package>
+        """
+
     def _deploy_metadata(self):
-        self.logger.info(f"Deploying updated Admin.profile from {self.deploy_dir}")
+        self.logger.info(
+            f"Deploying updated {self.profile_name}.profile from {self.deploy_dir}"
+        )
 
         target_profile_xml = Path(self.deploy_dir, "package.xml")
-        target_profile_xml.write_text(
-            """<?xml version="1.0" encoding="UTF-8"?><Package xmlns="http://soap.sforce.com/2006/04/metadata">
-        <types><members>Admin</members><name>Profile</name></types><version>39.0</version></Package>
-        """
-        )
+        target_profile_xml.write_text(self._get_deploy_package_xml_content())
 
         retrieved_profile_dir = Path(self.retrieve_dir, "profiles")
         target_profile_dir = Path(self.deploy_dir, "profiles")

@@ -12,7 +12,7 @@
     </types>
     <types>
         <members>Admin</members>
-        <name>Profile</name>
+        <name>{profile_name}</name>
     </types>
     <version>39.0</version>
 </Package>

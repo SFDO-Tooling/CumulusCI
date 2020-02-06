@@ -115,6 +115,40 @@ def test_run_task():
     task()
 
 
+def test_run_task__other_profile():
+    task = create_task(
+        UpdateAdminProfile,
+        {
+            "record_types": [
+                {
+                    "record_type": "Account.HH_Account",
+                    "default": True,
+                    "person_account_default": True,
+                }
+            ],
+            "namespaced_org": True,
+            "profile_name": "Continuous Integration",
+        },
+    )
+
+    def _retrieve_unpackaged():
+        profiles_path = Path(task.retrieve_dir, "profiles")
+        admin_profile_path = Path(profiles_path, "Continuous Integration.profile")
+        profiles_path.mkdir()
+        admin_profile_path.write_text(ADMIN_PROFILE_BEFORE)
+
+    def _check_result():
+        result_path = Path(
+            task.retrieve_dir, "profiles", "Continuous Integration.profile"
+        )
+        result = result_path.read_text()
+        assert ADMIN_PROFILE_EXPECTED == result
+
+    task._retrieve_unpackaged = _retrieve_unpackaged
+    task._deploy_metadata = _check_result
+    task()
+
+
 def test_run_task__record_type_not_found():
     task = create_task(
         UpdateAdminProfile,
@@ -152,3 +186,23 @@ def test_deploy_metadata(tmpdir):
     task._get_api = mock.Mock()
     task._deploy_metadata()
     task._get_api.assert_called_once()
+
+
+def test_get_deploy_package_xml_content():
+    task = create_task(UpdateAdminProfile, {"profile_name": "Test"})
+
+    assert "Test" in task._get_deploy_package_xml_content()
+
+    task = create_task(UpdateAdminProfile)
+
+    assert "Admin" in task._get_deploy_package_xml_content()
+
+
+def test_get_retrieve_package_xml_content():
+    task = create_task(UpdateAdminProfile, {"profile_name": "Test"})
+
+    assert "Test" in task._get_retrieve_package_xml_content()
+
+    task = create_task(UpdateAdminProfile)
+
+    assert "Admin" in task._get_retrieve_package_xml_content()
