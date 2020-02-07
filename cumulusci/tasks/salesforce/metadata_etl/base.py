@@ -18,11 +18,9 @@ class MetadataOperation(enum.Enum):
     RETRIEVE = "retrieve"
 
 
-class BaseMetadataETLTask(BaseSalesforceApiTask):
+class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
     deploy = False
     retrieve = False
-
-    __metaclass__ = abc.ABCMeta
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
 
@@ -123,13 +121,11 @@ class BaseMetadataETLTask(BaseSalesforceApiTask):
                 self._post_deploy(result)
 
 
-class BaseMetadataSynthesisTask(BaseMetadataETLTask):
+class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=abc.ABCMeta):
     """Base class for Metadata ETL tasks that generate new metadata
     and deploy it into the org."""
 
     deploy = True
-
-    __metaclass__ = abc.ABCMeta
 
     def _generate_package_xml(self, deploy):
         generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
@@ -144,14 +140,12 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask):
         pass
 
 
-class BaseMetadataTransformTask(BaseMetadataETLTask):
+class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=abc.ABCMeta):
     """Base class for Metadata ETL tasks that extract metadata,
     transform it, and deploy it back into the org."""
 
     retrieve = True
     deploy = True
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def _get_entities(self):
@@ -185,13 +179,13 @@ class BaseMetadataTransformTask(BaseMetadataETLTask):
         pass
 
 
-class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
+class MetadataSingleEntityTransformTask(
+    BaseMetadataTransformTask, metaclass=abc.ABCMeta
+):
     """Base class for a Metadata ETL task that affects one or more
     instances of a specific metadata entity."""
 
     entity = None
-
-    __metaclass__ = abc.ABCMeta
 
     task_options = {
         "api_names": {"description": "List of API names of entities to affect"},
