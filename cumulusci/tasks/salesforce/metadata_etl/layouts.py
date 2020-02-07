@@ -25,7 +25,7 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
         new_related_list_index = get_new_tag_index(
             metadata, "relatedLists", self.namespaces
         )
-        related_list = self._namespace_injector(self.options["related_list"])
+        related_list = self._inject_namespace(self.options["related_list"])
         existing_related_lists = metadata.findall(
             f".//sf:relatedLists[sf:relatedList='{related_list}']", self.namespaces
         )
@@ -41,7 +41,7 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
         self.logger.info(f"Adding Related List {related_list} to {api_name}")
 
         fields = [
-            self._namespace_injector(f)
+            self._inject_namespace(f)
             for f in process_list_arg(self.options.get("fields", []))
         ]
 

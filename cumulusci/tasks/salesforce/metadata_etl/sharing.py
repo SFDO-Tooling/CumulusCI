@@ -27,7 +27,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
         self.task_config.options["api_names"] = "dummy"
         super()._init_options(kwargs)
         self.api_names = [
-            self._namespace_injector(elem["api_name"])
+            self._inject_namespace(elem["api_name"])
             for elem in self.options["org_wide_defaults"]
         ]
         self.options["timeout"] = int(self.options.get("timeout", 600))
@@ -42,7 +42,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
                     "The object api_name and at least one of "
                     "internal_sharing_model and external_sharing_model is required."
                 )
-            self.owds[self._namespace_injector(elem["api_name"])] = {
+            self.owds[self._inject_namespace(elem["api_name"])] = {
                 "internal_sharing_model": elem.get("internal_sharing_model"),
                 "external_sharing_model": elem.get("external_sharing_model"),
             }

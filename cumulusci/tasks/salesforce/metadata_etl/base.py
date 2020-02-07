@@ -1,3 +1,5 @@
+import abc
+import enum
 import tempfile
 
 from pathlib import Path
@@ -11,9 +13,16 @@ from cumulusci.utils import elementtree_parse_file, inject_namespace
 from cumulusci.core.config import TaskConfig
 
 
+class MetadataOperation(enum.Enum):
+    DEPLOY = "deploy"
+    RETRIEVE = "retrieve"
+
+
 class BaseMetadataETLTask(BaseSalesforceApiTask):
     deploy = False
     retrieve = False
+
+    __metaclass__ = abc.ABCMeta
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
 
@@ -40,24 +49,20 @@ class BaseMetadataETLTask(BaseSalesforceApiTask):
             or self.project_config.project__package__api_version
         )
 
-    @property
-    def _namespace_injector(self):
-        return lambda text: inject_namespace(
+    def _inject_namespace(self, text):
+        return inject_namespace(
             "",
             text,
             self.options.get("namespace_inject"),
             not self.options["unmanaged"],
         )[1]
 
-    def _get_package_xml_content(self, deploy):
-        return f"""<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <version>{self.api_version}</version>
-</Package>
-"""
+    @abc.abstractmethod
+    def _get_package_xml_content(self, operation):
+        pass
 
-    def _generate_package_xml(self, deploy):
-        return self._namespace_injector(self._get_package_xml_content(deploy))
+    def _generate_package_xml(self, operation):
+        return self._inject_namespace(self._get_package_xml_content(operation))
 
     def _create_directories(self, tempdir):
         if self.retrieve:
@@ -69,17 +74,22 @@ class BaseMetadataETLTask(BaseSalesforceApiTask):
 
     def _retrieve(self):
         api_retrieve = ApiRetrieveUnpackaged(
-            self, self._generate_package_xml(False), self.api_version
+            self,
+            self._generate_package_xml(MetadataOperation.RETRIEVE),
+            self.api_version,
         )
         unpackaged = api_retrieve()
         unpackaged.extractall(self.retrieve_dir)
 
+    @abc.abstractmethod
     def _transform(self):
         pass
 
     def _deploy(self):
         target_profile_xml = Path(self.deploy_dir, "package.xml")
-        target_profile_xml.write_text(self._generate_package_xml(True))
+        target_profile_xml.write_text(
+            self._generate_package_xml(MetadataOperation.DEPLOY)
+        )
 
         api = Deploy(
             self.project_config,
@@ -95,10 +105,10 @@ class BaseMetadataETLTask(BaseSalesforceApiTask):
             self.org_config,
         )
         result = api()
-        self._post_deploy(result)
 
         return result
 
+    @abc.abstractmethod
     def _post_deploy(self, result):
         pass
 
@@ -109,7 +119,8 @@ class BaseMetadataETLTask(BaseSalesforceApiTask):
                 self._retrieve()
             self._transform()
             if self.deploy:
-                self._deploy()
+                result = self._deploy()
+                self._post_deploy(result)
 
 
 class BaseMetadataSynthesisTask(BaseMetadataETLTask):
@@ -118,6 +129,8 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask):
 
     deploy = True
 
+    __metaclass__ = abc.ABCMeta
+
     def _generate_package_xml(self, deploy):
         generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
         return generator()
@@ -125,6 +138,7 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask):
     def _transform(self):
         self._synthesize()
 
+    @abc.abstractmethod
     def _synthesize(self):
         # Create metadata in self.deploy_dir
         pass
@@ -137,8 +151,11 @@ class BaseMetadataTransformTask(BaseMetadataETLTask):
     retrieve = True
     deploy = True
 
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
     def _get_entities(self):
-        return {}
+        pass
 
     def _get_types_package_xml(self):
         base = """    <types>
@@ -155,7 +172,7 @@ class BaseMetadataTransformTask(BaseMetadataETLTask):
 
         return types
 
-    def _get_package_xml_content(self, deploy):
+    def _get_package_xml_content(self, operation):
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
 {self._get_types_package_xml()}
@@ -163,6 +180,7 @@ class BaseMetadataTransformTask(BaseMetadataETLTask):
 </Package>
 """
 
+    @abc.abstractmethod
     def _transform(self):
         pass
 
@@ -172,6 +190,8 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
     instances of a specific metadata entity."""
 
     entity = None
+
+    __metaclass__ = abc.ABCMeta
 
     task_options = {
         "api_names": {"description": "List of API names of entities to affect"},
@@ -183,7 +203,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
 
         self.api_names = list(
             map(
-                self._namespace_injector,
+                self._inject_namespace,
                 process_list_arg(self.options.get("api_names", [])),
             )
         )
@@ -191,8 +211,9 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
     def _get_entities(self):
         return {self.entity: self.api_names or ["*"]}
 
+    @abc.abstractmethod
     def _transform_entity(self, metadata, api_name):
-        return metadata
+        pass
 
     def _transform(self):
         # call _transform_entity once per retrieved entity
@@ -202,17 +223,16 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
         parser = PackageXmlGenerator(
             None, self.api_version
         )  # We'll use it for its metadata_map
-        entity_configurations = list(
-            filter(
-                lambda entry: any(
-                    [
-                        subentry["type"] == self.entity
-                        for subentry in parser.metadata_map[entry]
-                    ]
-                ),
-                parser.metadata_map,
+        entity_configurations = [
+            entry
+            for entry in parser.metadata_map
+            if any(
+                [
+                    subentry["type"] == self.entity
+                    for subentry in parser.metadata_map[entry]
+                ]
             )
-        )
+        ]
         if not entity_configurations:
             raise CumulusCIException(
                 f"Unable to locate configuration for entity {self.entity}"
@@ -254,7 +274,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask):
 def get_new_tag_index(tree, tag, namespaces):
     # All top-level tags must be grouped together in XML file
     tags = tree.findall(f".//sf:{tag}", namespaces)
-    if 0 < len(tags):
+    if tags:
         # Insert new tag after the last existing tag of the same type
         return list(tree.getroot()).index(tags[-1]) + 1
     else:

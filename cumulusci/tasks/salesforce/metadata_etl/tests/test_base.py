@@ -26,25 +26,15 @@ class test_BaseMetadataETLTask(unittest.TestCase):
         assert task.options["unmanaged"]
         assert task.options["api_version"] == "47.0"
 
-    def test_namespace_injector(self):
+    def test_inject_namespace(self):
         task = create_task(
             BaseMetadataETLTask,
             {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
         )
 
-        ns = task._namespace_injector
-
-        assert ns("%%%NAMESPACE%%%Test__c") == "test__Test__c"
+        assert task._inject_namespace("%%%NAMESPACE%%%Test__c") == "test__Test__c"
         task.options["unmanaged"] = True
-        assert ns("%%%NAMESPACE%%%Test__c") == "Test__c"
-
-    def test_generate_package_xml(self):
-        task = create_task(
-            BaseMetadataETLTask,
-            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
-        )
-
-        assert "47.0" in task._generate_package_xml(False)
+        assert task._inject_namespace("%%%NAMESPACE%%%Test__c") == "Test__c"
 
     @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.ApiRetrieveUnpackaged")
     def test_retrieve(self, api_mock):
@@ -53,6 +43,8 @@ class test_BaseMetadataETLTask(unittest.TestCase):
             {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
         )
         task.retrieve_dir = mock.Mock()
+        task._get_package_xml_content = mock.Mock()
+        task._get_package_xml_content.return_value = ""
 
         task._retrieve()
         api_mock.assert_called_once_with(
@@ -82,13 +74,6 @@ class test_BaseMetadataETLTask(unittest.TestCase):
             assert deploy_mock.call_args_list[0][0][2] == task.org_config
             deploy_mock.return_value.assert_called_once_with()
             assert result == deploy_mock.return_value.return_value
-
-    def test_transform(self):
-        task = create_task(
-            BaseMetadataETLTask,
-            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
-        )
-        task._transform()
 
     def test_run_task(self):
         task = create_task(
@@ -143,7 +128,6 @@ class test_BaseMetadataTransformTask(unittest.TestCase):
             BaseMetadataTransformTask,
             {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
         )
-        assert task._get_entities() == {}
 
         task._get_entities = mock.Mock()
         task._get_entities.return_value = {
@@ -169,14 +153,6 @@ class test_BaseMetadataTransformTask(unittest.TestCase):
 </Package>
 """
         )
-
-    def test_transform(self):
-        task = create_task(
-            BaseMetadataTransformTask,
-            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
-        )
-
-        task._transform()
 
 
 class test_MetadataSingleEntityTransformTask(unittest.TestCase):
@@ -207,14 +183,6 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
 
         assert task._get_entities() == {None: ["*"]}
 
-    def test_transform_entity(self):
-        task = create_task(
-            MetadataSingleEntityTransformTask,
-            {"unmanaged": False, "api_version": "47.0", "api_names": "bar,foo"},
-        )
-
-        assert task._transform_entity("test", "test.cls") == "test"
-
     def test_transform(self):
         task = create_task(
             MetadataSingleEntityTransformTask,
@@ -222,6 +190,11 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
         )
 
         task.entity = "CustomApplication"
+        task._transform_entity = mock.Mock()
+
+        input_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+</CustomApplication>"""
 
         with tempfile.TemporaryDirectory() as tmpdir:
             task._create_directories(tmpdir)
@@ -230,15 +203,11 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
             test_path.mkdir()
             test_path = test_path / "Test.app"
 
-            test_path.write_text(
-                """<?xml version="1.0" encoding="UTF-8"?>
-<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
-</CustomApplication>"""
-            )
+            test_path.write_text(input_xml)
 
             task._transform()
 
-            assert (task.deploy_dir / "applications" / "Test.app").exists()
+            assert len(task._transform_entity.call_args_list) == 1
 
     def test_transform__bad_entity(self):
         task = create_task(
