@@ -1,9 +1,9 @@
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.bulkdata.step import (
-    BulkApiDmlStep,
-    BulkApiQueryStep,
-    Operation,
-    Status,
+    BulkApiDmlOperation,
+    BulkApiQueryOperation,
+    DataOperationType,
+    DataOperationStatus,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
@@ -52,17 +52,17 @@ class DeleteData(BaseSalesforceApiTask):
                 query += f" WHERE {self.options['where']}"
 
             self.logger.info(f"Querying for {obj} objects")
-            qs = BulkApiQueryStep(obj, {}, self, query)
+            qs = BulkApiQueryOperation(obj, {}, self, query)
             qs.query()
-            if qs.status is not Status.SUCCESS:
+            if qs.status is not DataOperationStatus.SUCCESS:
                 raise BulkDataException(f"Unable to query records for {obj}")
 
             self.logger.info(f"Deleting {self._object_description(obj)} ")
-            ds = BulkApiDmlStep(
+            ds = BulkApiDmlOperation(
                 obj,
-                Operation.HARD_DELETE
+                DataOperationType.HARD_DELETE
                 if self.options["hardDelete"]
-                else Operation.DELETE,
+                else DataOperationType.DELETE,
                 {},
                 self,
                 ["Id"],

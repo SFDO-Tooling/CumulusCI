@@ -13,7 +13,7 @@ from cumulusci.utils import convert_to_snake_case
 from cumulusci.core.exceptions import BulkDataException
 
 
-def BatchIterator(iterator, n=10000):
+def batch_iterator(iterator, n=10000):
     while True:
         batch = list(itertools.islice(iterator, n))
         if not batch:
@@ -51,7 +51,7 @@ class SqlAlchemyMixin:
     def _sql_bulk_insert_from_records(self, conn, table, columns, records):
         table = self.metadata.tables[table]
 
-        for batch in BatchIterator(records, n=100):
+        for batch in batch_iterator(records, n=100):
             conn.execute(table.insert(), [dict(zip(columns, row)) for row in batch])
 
         self.session.flush()

@@ -2,24 +2,28 @@ import unittest
 from unittest import mock
 
 from cumulusci.tasks.bulkdata import DeleteData
-from cumulusci.tasks.bulkdata.step import Status, Result, Operation
+from cumulusci.tasks.bulkdata.step import (
+    DataOperationStatus,
+    DataOperationResult,
+    DataOperationType,
+)
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 
 
 class TestDeleteData(unittest.TestCase):
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryStep")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlStep")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run(self, dml_mock, query_mock):
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
         query_mock.return_value.get_results.return_value = iter(
             ["001000000000000", "001000000000001"]
         )
-        query_mock.return_value.status = Status.SUCCESS
+        query_mock.return_value.status = DataOperationStatus.SUCCESS
         dml_mock.return_value.get_results.return_value = iter(
             [
-                Result("001000000000000", True, None),
-                Result("001000000000001", True, None),
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", True, None),
             ]
         )
         task()
@@ -30,31 +34,33 @@ class TestDeleteData(unittest.TestCase):
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
 
-        dml_mock.assert_called_once_with("Contact", Operation.DELETE, {}, task, ["Id"])
+        dml_mock.assert_called_once_with(
+            "Contact", DataOperationType.DELETE, {}, task, ["Id"]
+        )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()
         dml_mock.return_value.load_records.assert_called_once()
         dml_mock.return_value.get_results.assert_called_once()
 
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryStep")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlStep")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__error(self, dml_mock, query_mock):
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
         query_mock.return_value.get_results.return_value = iter(
             ["001000000000000", "001000000000001"]
         )
-        query_mock.return_value.status = Status.SUCCESS
+        query_mock.return_value.status = DataOperationStatus.SUCCESS
         dml_mock.return_value.get_results.return_value = iter(
             [
-                Result("001000000000000", True, None),
-                Result("001000000000001", False, None),
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", False, None),
             ]
         )
         with self.assertRaises(BulkDataException):
             task()
 
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryStep")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlStep")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__ignore_error(self, dml_mock, query_mock):
         task = _make_task(
             DeleteData,
@@ -69,11 +75,11 @@ class TestDeleteData(unittest.TestCase):
         query_mock.return_value.get_results.return_value = iter(
             ["001000000000000", "001000000000001"]
         )
-        query_mock.return_value.status = Status.SUCCESS
+        query_mock.return_value.status = DataOperationStatus.SUCCESS
         dml_mock.return_value.get_results.return_value = iter(
             [
-                Result("001000000000000", True, None),
-                Result("001000000000001", False, None),
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", False, None),
             ]
         )
         task()
@@ -84,15 +90,15 @@ class TestDeleteData(unittest.TestCase):
         query_mock.return_value.get_results.assert_called_once()
 
         dml_mock.assert_called_once_with(
-            "Contact", Operation.HARD_DELETE, {}, task, ["Id"]
+            "Contact", DataOperationType.HARD_DELETE, {}, task, ["Id"]
         )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()
         dml_mock.return_value.load_records.assert_called_once()
         dml_mock.return_value.get_results.assert_called_once()
 
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryStep")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlStep")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__where(self, dml_mock, query_mock):
         task = _make_task(
             DeleteData, {"options": {"objects": "Contact", "where": "Id != null"}}
@@ -100,11 +106,11 @@ class TestDeleteData(unittest.TestCase):
         query_mock.return_value.get_results.return_value = iter(
             ["001000000000000", "001000000000001"]
         )
-        query_mock.return_value.status = Status.SUCCESS
+        query_mock.return_value.status = DataOperationStatus.SUCCESS
         dml_mock.return_value.get_results.return_value = iter(
             [
-                Result("001000000000000", True, None),
-                Result("001000000000001", True, None),
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", True, None),
             ]
         )
         task()
@@ -114,14 +120,16 @@ class TestDeleteData(unittest.TestCase):
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
 
-        dml_mock.assert_called_once_with("Contact", Operation.DELETE, {}, task, ["Id"])
+        dml_mock.assert_called_once_with(
+            "Contact", DataOperationType.DELETE, {}, task, ["Id"]
+        )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()
         dml_mock.return_value.load_records.assert_called_once()
         dml_mock.return_value.get_results.assert_called_once()
 
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryStep")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlStep")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__query_fails(self, dml_mock, query_mock):
         task = _make_task(
             DeleteData, {"options": {"objects": "Contact", "where": "Id != null"}}
@@ -129,7 +137,7 @@ class TestDeleteData(unittest.TestCase):
         query_mock.return_value.get_results.return_value = iter(
             ["001000000000000", "001000000000001"]
         )
-        query_mock.return_value.status = Status.FAILURE
+        query_mock.return_value.status = DataOperationStatus.FAILURE
         with self.assertRaises(BulkDataException):
             task()
 

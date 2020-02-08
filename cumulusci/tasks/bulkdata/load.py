@@ -10,7 +10,11 @@ from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.utils import get_lookup_key_field, SqlAlchemyMixin
 
-from cumulusci.tasks.bulkdata.step import BulkApiDmlStep, Status, Operation
+from cumulusci.tasks.bulkdata.step import (
+    BulkApiDmlOperation,
+    DataOperationStatus,
+    DataOperationType,
+)
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils import os_friendly_path
@@ -84,14 +88,14 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
             self.logger.info(f"Running step: {name}")
             result = self._load_mapping(mapping)
-            if result is Status.FAILURE:
+            if result is DataOperationStatus.FAILURE:
                 raise BulkDataException(f"Step {name} did not complete successfully")
 
             if name in self.after_steps:
                 for after_name, after_step in self.after_steps[name].items():
                     self.logger.info(f"Running post-load step: {after_name}")
                     result = self._load_mapping(after_step)
-                    if result is Status.FAILURE:
+                    if result is DataOperationStatus.FAILURE:
                         raise BulkDataException(
                             f"Step {after_name} did not complete successfully"
                         )
@@ -105,9 +109,11 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
-        step = BulkApiDmlStep(
+        step = BulkApiDmlOperation(
             mapping["sf_object"],
-            Operation.INSERT if mapping.get("action") == "insert" else Operation.UPDATE,
+            DataOperationType.INSERT
+            if mapping.get("action") == "insert"
+            else DataOperationType.UPDATE,
             {"bulk_mode": self.bulk_mode or "Parallel"},
             self,
             self._get_columns(mapping),
@@ -117,7 +123,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         step.load_records(self._stream_queried_data(mapping))
         step.end()
 
-        if step.status is not Status.FAILURE:
+        if step.status is not DataOperationStatus.FAILURE:
             self._process_job_results(mapping, step)
 
         return step.status

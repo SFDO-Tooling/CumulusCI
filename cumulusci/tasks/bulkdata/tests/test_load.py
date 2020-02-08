@@ -12,7 +12,12 @@ from unittest import mock
 from cumulusci.utils import temporary_dir
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import LoadData
-from cumulusci.tasks.bulkdata.step import Result, Operation, Status, DmlStep
+from cumulusci.tasks.bulkdata.step import (
+    DataOperationResult,
+    DataOperationType,
+    DataOperationStatus,
+    BaseDmlOperation,
+)
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
 
@@ -43,10 +48,8 @@ Insert Contacts:
 """
 
 
-class MockBulkApiDmlStep(DmlStep):
-    def __init__(
-        self, sobject: str, operation: Operation, api_options: dict, context, fields
-    ):
+class MockBulkApiDmlOperation(BaseDmlOperation):
+    def __init__(self, sobject, operation, api_options, context, fields):
         super().__init__(sobject, operation, api_options, context, fields)
         self.results = []
         self.records = []
@@ -55,7 +58,7 @@ class MockBulkApiDmlStep(DmlStep):
         self.job_id = "JOB"
 
     def end(self):
-        self.status = Status.SUCCESS
+        self.status = DataOperationStatus.SUCCESS
 
     def load_records(self, records):
         self.records.extend(records)
@@ -64,11 +67,11 @@ class MockBulkApiDmlStep(DmlStep):
         return iter(self.results)
 
 
-class test_LoadData(unittest.TestCase):
+class TestLoadData(unittest.TestCase):
     mapping_file = "mapping_v1.yml"
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlStep")
+    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
     def test_run(self, step_mock):
         responses.add(
             method="GET",
@@ -98,13 +101,15 @@ class test_LoadData(unittest.TestCase):
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
 
-            step = MockBulkApiDmlStep("Contact", Operation.INSERT, {}, task, [])
+            step = MockBulkApiDmlOperation(
+                "Contact", DataOperationType.INSERT, {}, task, []
+            )
             step_mock.return_value = step
 
             step.results = [
-                Result("001000000000000", True, None),
-                Result("003000000000000", True, None),
-                Result("003000000000001", True, None),
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("003000000000000", True, None),
+                DataOperationResult("003000000000001", True, None),
             ]
 
             task()
@@ -183,12 +188,14 @@ class test_LoadData(unittest.TestCase):
             "Insert Contacts": {"three": 3},
             "Insert Households": households_steps,
         }
-        task._load_mapping = mock.Mock(side_effect=[Status.SUCCESS, Status.FAILURE])
+        task._load_mapping = mock.Mock(
+            side_effect=[DataOperationStatus.SUCCESS, DataOperationStatus.FAILURE]
+        )
         with self.assertRaises(BulkDataException):
             task()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlStep")
+    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
     def test_run__sql(self, step_mock):
         responses.add(
             method="GET",
@@ -206,12 +213,14 @@ class test_LoadData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        step = MockBulkApiDmlStep("Contact", Operation.INSERT, {}, task, [])
+        step = MockBulkApiDmlOperation(
+            "Contact", DataOperationType.INSERT, {}, task, []
+        )
         step_mock.return_value = step
         step.results = [
-            Result("001000000000000", True, None),
-            Result("003000000000000", True, None),
-            Result("003000000000001", True, None),
+            DataOperationResult("001000000000000", True, None),
+            DataOperationResult("003000000000000", True, None),
+            DataOperationResult("003000000000001", True, None),
         ]
         task()
 
@@ -533,7 +542,7 @@ class test_LoadData(unittest.TestCase):
         )
         task._init_db = mock.Mock()
         task._init_mapping = mock.Mock()
-        task._load_mapping = mock.Mock(return_value=Status.FAILURE)
+        task._load_mapping = mock.Mock(return_value=DataOperationStatus.FAILURE)
         task.mapping = {"Test": {"test": "test"}}
 
         with self.assertRaises(BulkDataException):
@@ -552,8 +561,10 @@ class test_LoadData(unittest.TestCase):
         task.sf = mock.Mock()
         task.local_ids = ["1"]
 
-        step = MockBulkApiDmlStep("Contact", Operation.INSERT, {}, task, [])
-        step.results = [Result("001111111111111", True, None)]
+        step = MockBulkApiDmlOperation(
+            "Contact", DataOperationType.INSERT, {}, task, []
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
 
         mapping = {"table": "Account", "action": "insert"}
         task._process_job_results(mapping, step)
@@ -576,8 +587,10 @@ class test_LoadData(unittest.TestCase):
         task.sf = mock.Mock()
         task.local_ids = ["1"]
 
-        step = MockBulkApiDmlStep("Contact", Operation.INSERT, {}, task, [])
-        step.results = [Result("001111111111111", True, None)]
+        step = MockBulkApiDmlOperation(
+            "Contact", DataOperationType.INSERT, {}, task, []
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
 
         mapping = {"table": "Account", "action": "update"}
         task._process_job_results(mapping, step)
@@ -600,8 +613,10 @@ class test_LoadData(unittest.TestCase):
         task.sf = mock.Mock()
         task.local_ids = ["1"]
 
-        step = MockBulkApiDmlStep("Contact", Operation.UPDATE, {}, task, [])
-        step.results = [Result(None, False, "message")]
+        step = MockBulkApiDmlOperation(
+            "Contact", DataOperationType.UPDATE, {}, task, []
+        )
+        step.results = [DataOperationResult(None, False, "message")]
 
         mapping = {"table": "Account", "action": "update"}
 
@@ -620,9 +635,9 @@ class test_LoadData(unittest.TestCase):
         step = mock.Mock()
         step.get_results.return_value = iter(
             [
-                Result("001000000000000", True, None),
-                Result("001000000000001", True, None),
-                Result("001000000000002", True, None),
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", True, None),
+                DataOperationResult("001000000000002", True, None),
             ]
         )
 
@@ -645,9 +660,9 @@ class test_LoadData(unittest.TestCase):
         step = mock.Mock()
         step.get_results.return_value = iter(
             [
-                Result("001000000000000", True, None),
-                Result(None, False, "error"),
-                Result("001000000000002", True, None),
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult(None, False, "error"),
+                DataOperationResult("001000000000002", True, None),
             ]
         )
 
@@ -676,9 +691,9 @@ class test_LoadData(unittest.TestCase):
         step = mock.Mock()
         step.get_results.return_value = iter(
             [
-                Result("001000000000000", True, None),
-                Result(None, False, None),
-                Result("001000000000002", True, None),
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult(None, False, None),
+                DataOperationResult("001000000000002", True, None),
             ]
         )
 
@@ -691,7 +706,7 @@ class test_LoadData(unittest.TestCase):
             ("001000000000011", "001000000000002"),
         ]
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlStep")
+    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
     def test_load_mapping__record_type_mapping(self, step_mock):
         task = _make_task(
             LoadData,
@@ -802,7 +817,7 @@ class test_LoadData(unittest.TestCase):
         )
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlStep")
+    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
     def test_run__autopk(self, step_mock):
         responses.add(
             method="GET",
@@ -830,13 +845,15 @@ class test_LoadData(unittest.TestCase):
             )
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
-            step = MockBulkApiDmlStep("Contact", Operation.INSERT, {}, task, [])
+            step = MockBulkApiDmlOperation(
+                "Contact", DataOperationType.INSERT, {}, task, []
+            )
             step_mock.return_value = step
 
             step.results = [
-                Result("001000000000000", True, None),
-                Result("003000000000000", True, None),
-                Result("003000000000001", True, None),
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("003000000000000", True, None),
+                DataOperationResult("003000000000001", True, None),
             ]
 
             task()

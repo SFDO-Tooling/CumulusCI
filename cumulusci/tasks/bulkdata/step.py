@@ -1,21 +1,23 @@
+from abc import ABCMeta, abstractmethod
+from collections import namedtuple
+from contextlib import contextmanager
 import csv
+from enum import Enum
 import io
 import os
 import pathlib
-import requests
 import tempfile
 import time
-import xml.etree.ElementTree as ET
 
-from collections import namedtuple
-from contextlib import contextmanager
-from enum import Enum
-from cumulusci.tasks.bulkdata.utils import BatchIterator
+import lxml.etree as ET
+import requests
+
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.tasks.bulkdata.utils import batch_iterator
 
 
-class Operation(Enum):
+class DataOperationType(Enum):
     INSERT = "insert"
     UPDATE = "update"
     DELETE = "delete"
@@ -23,37 +25,39 @@ class Operation(Enum):
     QUERY = "query"
 
 
-class Api(Enum):
+class DataApi(Enum):
     BULK = "bulk"
     REST = "rest"
 
 
-class Status(Enum):
+class DataOperationStatus(Enum):
     SUCCESS = "Succeeded"
     FAILURE = "Failed"
 
 
-Result = namedtuple("Result", ["id", "success", "error"])
+DataOperationResult = namedtuple("Result", ["id", "success", "error"])
 
 
 @contextmanager
 def download_file(uri, bulk_api):
-    """Download the bulk API result file for a single batch"""
-    (handle, path) = tempfile.mkstemp(text=False)
-    resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
-    resp.raise_for_status()
-    f = os.fdopen(handle, "wb")
-    for chunk in resp.iter_content(chunk_size=None):
-        f.write(chunk)
+    """Download the Bulk API result file for a single batch,
+    and remove it when the context manager exits."""
+    try:
+        (handle, path) = tempfile.mkstemp(text=False)
+        resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
+        resp.raise_for_status()
+        f = os.fdopen(handle, "wb")
+        for chunk in resp.iter_content(chunk_size=None):
+            f.write(chunk)
 
-    f.close()
-    with open(path, "r") as f:
-        yield f
+        f.close()
+        with open(path, "r") as f:
+            yield f
+    finally:
+        pathlib.Path(path).unlink()
 
-    pathlib.Path(path).unlink()
 
-
-class BulkJobTaskMixin:
+class BulkJobMixin:
     def _job_state_from_batches(self, job_id):
         uri = f"{self.bulk.endpoint}/job/{job_id}/batch"
         response = requests.get(uri, headers=self.bulk.headers())
@@ -102,7 +106,7 @@ class BulkJobTaskMixin:
         return result
 
 
-class Step:
+class BaseDataOperation(metaclass=ABCMeta):
     def __init__(self, sobject, operation, api_options, context):
         self.sobject = sobject
         self.operation = operation
@@ -114,28 +118,30 @@ class Step:
         self.status = None
 
 
-class QueryStep(Step):
+class BaseQueryOperation(BaseDataOperation, metaclass=ABCMeta):
     def __init__(self, sobject, api_options, context, query):
-        super().__init__(sobject, Operation.QUERY, api_options, context)
+        super().__init__(sobject, DataOperationType.QUERY, api_options, context)
         self.soql = query
 
+    @abstractmethod
     def query(self):
         pass
 
+    @abstractmethod
     def get_results(self):
         pass
 
 
-class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
+class BulkApiQueryOperation(BaseQueryOperation, BulkJobMixin):
     def query(self):
         self.job_id = self.bulk.create_query_job(self.sobject, contentType="CSV")
         self.batch_id = self.bulk.query(self.job_id, self.soql)
 
         result = self._wait_for_job(self.job_id)
-        if result == "Completed":
-            self.status = Status.SUCCESS
+        if result in ["Completed", "CompletedWithFailures"]:
+            self.status = DataOperationStatus.SUCCESS
         else:
-            self.status = Status.FAILURE
+            self.status = DataOperationStatus.FAILURE
 
         self.bulk.close_job(self.job_id)
 
@@ -158,25 +164,29 @@ class BulkApiQueryStep(QueryStep, BulkJobTaskMixin):
                 yield from reader
 
 
-class DmlStep(Step):
+class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
     def __init__(self, sobject, operation, api_options, context, fields):
         super().__init__(sobject, operation, api_options, context)
         self.fields = fields
 
+    @abstractmethod
     def start(self):
         pass
 
+    @abstractmethod
     def load_records(self, records):
         pass
 
+    @abstractmethod
     def end(self):
         pass
 
+    @abstractmethod
     def get_results(self):
         return []
 
 
-class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
+class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
     def start(self):
         self.job_id = self.bulk.create_job(
             self.sobject,
@@ -188,20 +198,20 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
     def end(self):
         self.bulk.close_job(self.job_id)
         result = self._wait_for_job(self.job_id)
-        if result == "Completed":
-            self.status = Status.SUCCESS
+        if result in ["Completed", "CompletedWithFailures"]:
+            self.status = DataOperationStatus.SUCCESS
         else:
-            self.status = Status.FAILURE
+            self.status = DataOperationStatus.FAILURE
 
     def load_records(self, records):
         self.batch_ids = []
 
-        for count, batch_file in enumerate(self._batch(records)):
+        for count, csv_batch in enumerate(self._batch(records)):
             self.context.logger.info(f"Uploading batch {count + 1}")
-            self.batch_ids.append(self.bulk.post_batch(self.job_id, batch_file))
+            self.batch_ids.append(self.bulk.post_batch(self.job_id, csv_batch))
 
     def _batch(self, records):
-        for batch in BatchIterator(records, self.api_options.get("batch_size", 10000)):
+        for batch in batch_iterator(records, self.api_options.get("batch_size", 10000)):
             yield self._csv_generator(batch)
 
     def _csv_generator(self, records):
@@ -235,7 +245,7 @@ class BulkApiDmlStep(DmlStep, BulkJobTaskMixin):
 
                     for row in reader:
                         success = process_bool_arg(row[1])
-                        yield Result(
+                        yield DataOperationResult(
                             row[0] if success else None,
                             success,
                             row[3] if not success else None,
