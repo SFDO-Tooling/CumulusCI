@@ -70,7 +70,7 @@ class DeleteData(BaseSalesforceApiTask):
                 ["Id"],
             )
             ds.start()
-            ds.load_records(map(lambda result: [result[0]], qs.get_results()))
+            ds.load_records(qs.get_results())
             ds.end()
 
             for result in ds.get_results():

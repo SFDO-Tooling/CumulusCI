@@ -149,7 +149,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         record_iterator = step.get_results()
         if record_type:
-            record_iterator = map(lambda rec: rec + [record_type], record_iterator)
+            record_iterator = (record + [record_type] for record in record_iterator)
 
         if mapping["oid_as_pk"]:
             self._sql_bulk_insert_from_records(

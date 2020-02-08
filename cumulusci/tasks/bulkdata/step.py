@@ -139,6 +139,13 @@ class BaseQueryOperation(BaseDataOperation, metaclass=ABCMeta):
         super().__init__(sobject, DataOperationType.QUERY, api_options, context)
         self.soql = query
 
+    def __enter__(self):
+        self.query()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
     @abstractmethod
     def query(self):
         """Execute requested query and block until results are available."""
@@ -190,6 +197,13 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
     def __init__(self, sobject, operation, api_options, context, fields):
         super().__init__(sobject, operation, api_options, context)
         self.fields = fields
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.end()
 
     @abstractmethod
     def start(self):

@@ -193,6 +193,15 @@ class TestBulkApiQueryOperation(unittest.TestCase):
             context.bulk.create_query_job.return_value
         )
 
+    def test_query__contextmanager(self):
+        context = mock.Mock()
+        query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
+        query._wait_for_job = mock.Mock()
+        query._wait_for_job.return_value = "Completed"
+
+        with query:
+            assert query.status is DataOperationStatus.SUCCESS
+
     def test_query__failure(self):
         context = mock.Mock()
         query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
@@ -312,6 +321,29 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         context.bulk.close_job.assert_called_once_with("JOB")
         step._wait_for_job.assert_called_once_with("JOB")
         assert step.status is DataOperationStatus.FAILURE
+
+    def test_contextmanager(self):
+        context = mock.Mock()
+        context.bulk.create_job.return_value = "JOB"
+
+        step = BulkApiDmlOperation(
+            "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
+        )
+        step._wait_for_job = mock.Mock()
+        step._wait_for_job.return_value = "Completed"
+        step.job_id = "JOB"
+
+        with step:
+            pass
+
+        context.bulk.create_job.assert_called_once_with(
+            "Contact", "insert", contentType="CSV", concurrency="Parallel"
+        )
+        assert step.job_id == "JOB"
+
+        context.bulk.close_job.assert_called_once_with("JOB")
+        step._wait_for_job.assert_called_once_with("JOB")
+        assert step.status is DataOperationStatus.SUCCESS
 
     def test_load_records(self):
         context = mock.Mock()

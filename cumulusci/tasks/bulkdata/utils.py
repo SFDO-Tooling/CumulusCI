@@ -79,10 +79,7 @@ class SqlAlchemyMixin:
             conn,
             table,
             ["record_type_id", "developer_name"],
-            map(
-                lambda rt: [rt["Id"], rt["DeveloperName"]],
-                self.sf.query(query)["records"],
-            ),
+            ([rt["Id"], rt["DeveloperName"]] for rt in self.sf.query(query)["records"]),
         )
 
 
