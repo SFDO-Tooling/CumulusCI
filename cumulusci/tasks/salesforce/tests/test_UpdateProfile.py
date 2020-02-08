@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.salesforce import UpdateAdminProfile
+from cumulusci.tasks.salesforce import UpdateProfile
 
 from .util import create_task
 
@@ -86,7 +86,7 @@ ADMIN_PROFILE_EXPECTED = """<?xml version='1.0' encoding='utf-8'?>
 
 def test_run_task():
     task = create_task(
-        UpdateAdminProfile,
+        UpdateProfile,
         {
             "record_types": [
                 {
@@ -117,7 +117,7 @@ def test_run_task():
 
 def test_run_task__other_profile():
     task = create_task(
-        UpdateAdminProfile,
+        UpdateProfile,
         {
             "record_types": [
                 {
@@ -151,7 +151,7 @@ def test_run_task__other_profile():
 
 def test_run_task__record_type_not_found():
     task = create_task(
-        UpdateAdminProfile,
+        UpdateProfile,
         {"record_types": [{"record_type": "DOESNT_EXIST"}], "namespaced_org": True},
     )
 
@@ -168,14 +168,14 @@ def test_run_task__record_type_not_found():
 
 @mock.patch("cumulusci.salesforce_api.metadata.ApiRetrieveUnpackaged.__call__")
 def test_retrieve_unpackaged(ApiRetrieveUnpackaged):
-    task = create_task(UpdateAdminProfile)
+    task = create_task(UpdateProfile)
     task.retrieve_dir = "/tmp"
     task._retrieve_unpackaged()
     ApiRetrieveUnpackaged.assert_called_once()
 
 
 def test_deploy_metadata(tmpdir):
-    task = create_task(UpdateAdminProfile)
+    task = create_task(UpdateProfile)
     task.retrieve_dir = Path(tmpdir, "retrieve", "profiles")
     task.deploy_dir = Path(tmpdir, "deploy")
     task.retrieve_dir.mkdir(parents=True)
@@ -189,20 +189,20 @@ def test_deploy_metadata(tmpdir):
 
 
 def test_get_deploy_package_xml_content():
-    task = create_task(UpdateAdminProfile, {"profile_name": "Test"})
+    task = create_task(UpdateProfile, {"profile_name": "Test"})
 
     assert "Test" in task._get_deploy_package_xml_content()
 
-    task = create_task(UpdateAdminProfile)
+    task = create_task(UpdateProfile)
 
     assert "Admin" in task._get_deploy_package_xml_content()
 
 
 def test_get_retrieve_package_xml_content():
-    task = create_task(UpdateAdminProfile, {"profile_name": "Test"})
+    task = create_task(UpdateProfile, {"profile_name": "Test"})
 
     assert "Test" in task._get_retrieve_package_xml_content()
 
-    task = create_task(UpdateAdminProfile)
+    task = create_task(UpdateProfile)
 
     assert "Admin" in task._get_retrieve_package_xml_content()

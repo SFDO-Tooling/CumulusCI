@@ -10,8 +10,8 @@ from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils import elementtree_parse_file
 
 
-class UpdateAdminProfile(Deploy):
-    name = "UpdateAdminProfile"
+class UpdateProfile(Deploy):
+    name = "UpdateProfile"
 
     task_options = {
         "package_xml": {
@@ -35,7 +35,7 @@ class UpdateAdminProfile(Deploy):
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
 
     def _init_options(self, kwargs):
-        super(UpdateAdminProfile, self)._init_options(kwargs)
+        super(UpdateProfile, self)._init_options(kwargs)
 
         self.options["managed"] = process_bool_arg(self.options.get("managed", False))
 
