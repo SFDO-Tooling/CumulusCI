@@ -49,6 +49,7 @@ def setup_epoch(inspector, table, column_info):
 
 class SqlAlchemyMixin:
     def _sql_bulk_insert_from_records(self, conn, table, columns, records):
+        """Persist records from the given generator into the local database."""
         table = self.metadata.tables[table]
 
         for batch in batch_iterator(records, n=100):
@@ -57,6 +58,7 @@ class SqlAlchemyMixin:
         self.session.flush()
 
     def _create_record_type_table(self, table_name):
+        """Create a table to store mapping between Record Type Ids and Developer Names."""
         rt_map_model_name = f"{table_name}Model"
         self.models[table_name] = type(rt_map_model_name, (object,), {})
         rt_map_fields = [
@@ -67,6 +69,7 @@ class SqlAlchemyMixin:
         mapper(self.models[table_name], rt_map_table)
 
     def _extract_record_types(self, sobject, table, conn):
+        """Query for Record Type information and persist it in the database."""
         self.logger.info(f"Extracting Record Types for {sobject}")
         query = (
             f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
@@ -84,8 +87,9 @@ class SqlAlchemyMixin:
 
 
 def _handle_primary_key(mapping, fields):
-    # Provide support for legacy mappings which used the OID as the pk but
-    # default to using an autoincrementing int pk and a separate sf_id column
+    """Provide support for legacy mappings which used the OID as the pk but
+    default to using an autoincrementing int pk and a separate sf_id column"""
+
     mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
     if mapping["oid_as_pk"]:
         id_column = mapping["fields"]["Id"]

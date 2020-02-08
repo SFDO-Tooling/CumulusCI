@@ -10,6 +10,8 @@ from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 
 
 class DeleteData(BaseSalesforceApiTask):
+    """Query existing data for a specific sObject and perform a Bulk API delete of all responsive records."""
+
     task_options = {
         "objects": {
             "description": "A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string",
@@ -76,6 +78,7 @@ class DeleteData(BaseSalesforceApiTask):
                     raise BulkDataException(f"Failed to delete record {result.id}")
 
     def _object_description(self, obj):
+        """Return a readable description of the object set to delete."""
         if self.options["where"]:
             return f'{obj} objects matching "{self.options["where"]}"'
         else:

@@ -24,6 +24,8 @@ from cumulusci.utils import os_friendly_path
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
+    """Perform Bulk Queries to extract data for a mapping and persist to a SQL file or database."""
+
     task_options = {
         "database_url": {
             "description": "A DATABASE_URL where the query output should be written"
@@ -66,6 +68,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._sqlite_dump()
 
     def _init_db(self):
+        """Initialize the database and automapper."""
         self.models = {}
 
         # initialize the DB engine
@@ -86,10 +89,12 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.session = create_session(bind=self.engine, autocommit=False)
 
     def _init_mapping(self):
+        """Load a YAML mapping file."""
         with open(self.options["mapping"], "r") as f:
             self.mappings = yaml.safe_load(f)
 
     def _fields_for_mapping(self, mapping):
+        """Return a flat list of fields for this mapping."""
         fields = []
         if not mapping["oid_as_pk"]:
             fields.append("Id")
@@ -98,6 +103,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         return fields
 
     def _soql_for_mapping(self, mapping):
+        """Return a SOQL query suitable for extracting data for this mapping."""
         sf_object = mapping["sf_object"]
         fields = self._fields_for_mapping(mapping)
         soql = f"SELECT {', '.join(fields)} FROM {sf_object}"
@@ -107,6 +113,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         return soql
 
     def _run_query(self, soql, mapping):
+        """Execute a Bulk API query job and store the results."""
         step = BulkApiQueryOperation(mapping["sf_object"], {}, self, soql)
 
         step.query()
@@ -117,6 +124,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             raise BulkDataException("Bulk query failed")
 
     def _import_results(self, mapping, step):
+        """Ingest results from the Bulk API query."""
         conn = self.session.connection()
 
         # Map SF field names to local db column names
@@ -177,12 +185,14 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._convert_lookups_to_id(mapping, lookup_keys)
 
     def _get_mapping_for_table(self, table):
-        """ Returns the first mapping for a table name """
+        """Return the first mapping for a table name """
         for mapping in self.mappings.values():
             if mapping["table"] == table:
                 return mapping
 
     def _split_batch_csv(self, records, f_values, f_ids):
+        """Split the record generator and return two files,
+        one containing Ids only and the other record data."""
         writer_values = csv.writer(f_values)
         writer_ids = csv.writer(f_ids)
         for row in records:
@@ -193,6 +203,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         return f_values, f_ids
 
     def _convert_lookups_to_id(self, mapping, lookup_keys):
+        """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
         for lookup_key in lookup_keys:
             lookup_dict = mapping["lookups"][lookup_key]
             model = self.models[mapping["table"]]
@@ -215,11 +226,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.session.commit()
 
     def _create_tables(self):
+        """Create a table for each mapping step."""
         for mapping in self.mappings.values():
             self._create_table(mapping)
         self.metadata.create_all()
 
     def _create_table(self, mapping):
+        """Create a table for the given mapping."""
         model_name = f"{mapping['table']}Model"
         mapper_kwargs = {}
         self.models[mapping["table"]] = type(model_name, (object,), {})
@@ -251,12 +264,14 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         mapper(self.models[mapping["table"]], t, **mapper_kwargs)
 
     def _drop_sf_id_columns(self):
+        """Drop Salesforce Id storage tables after rewriting Ids to auto-PKs."""
         for mapping in self.mappings.values():
             if mapping.get("oid_as_pk"):
                 continue
             self.metadata.tables[mapping["sf_id_table"]].drop()
 
     def _sqlite_dump(self):
+        """Write a SQLite script output file."""
         path = self.options["sql_path"]
         with open(path, "w") as f:
             for line in self.session.connection().connection.iterdump():

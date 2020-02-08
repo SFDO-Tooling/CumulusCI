@@ -18,6 +18,8 @@ from cumulusci.tasks.bulkdata.utils import batch_iterator
 
 
 class DataOperationType(Enum):
+    """Enum defining the API data operation requested."""
+
     INSERT = "insert"
     UPDATE = "update"
     DELETE = "delete"
@@ -26,11 +28,15 @@ class DataOperationType(Enum):
 
 
 class DataApi(Enum):
+    """Enum defining requested Salesforce data API for an operation."""
+
     BULK = "bulk"
     REST = "rest"
 
 
 class DataOperationStatus(Enum):
+    """Enum defining outcome values for a data operation."""
+
     SUCCESS = "Succeeded"
     FAILURE = "Failed"
 
@@ -58,13 +64,18 @@ def download_file(uri, bulk_api):
 
 
 class BulkJobMixin:
+    """Provides mixin utilities for classes that manage Bulk API jobs."""
+
     def _job_state_from_batches(self, job_id):
+        """Query for batches under job_id and return overall status
+        inferred from batch-level status values."""
         uri = f"{self.bulk.endpoint}/job/{job_id}/batch"
         response = requests.get(uri, headers=self.bulk.headers())
         response.raise_for_status()
         return self._parse_job_state(response.content)
 
     def _parse_job_state(self, xml):
+        """Parse the Bulk API return value and generate a summary status value for the job."""
         tree = ET.fromstring(xml)
         statuses = [el.text for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS)]
         state_messages = [
@@ -89,6 +100,7 @@ class BulkJobMixin:
         return "Completed", None
 
     def _wait_for_job(self, job_id):
+        """Wait for the given job to enter a completed state (success or failure)."""
         while True:
             job_status = self.bulk.job_status(job_id)
             self.logger.info(
@@ -107,6 +119,8 @@ class BulkJobMixin:
 
 
 class BaseDataOperation(metaclass=ABCMeta):
+    """Abstract base class for all data operations (queries and DML)."""
+
     def __init__(self, sobject, operation, api_options, context):
         self.sobject = sobject
         self.operation = operation
@@ -119,20 +133,26 @@ class BaseDataOperation(metaclass=ABCMeta):
 
 
 class BaseQueryOperation(BaseDataOperation, metaclass=ABCMeta):
+    """Abstract base class for query operations in all APIs."""
+
     def __init__(self, sobject, api_options, context, query):
         super().__init__(sobject, DataOperationType.QUERY, api_options, context)
         self.soql = query
 
     @abstractmethod
     def query(self):
+        """Execute requested query and block until results are available."""
         pass
 
     @abstractmethod
     def get_results(self):
+        """Return a generator of rows from the query."""
         pass
 
 
 class BulkApiQueryOperation(BaseQueryOperation, BulkJobMixin):
+    """Operation class for Bulk API query jobs."""
+
     def query(self):
         self.job_id = self.bulk.create_query_job(self.sobject, contentType="CSV")
         self.batch_id = self.bulk.query(self.job_id, self.soql)
@@ -165,28 +185,36 @@ class BulkApiQueryOperation(BaseQueryOperation, BulkJobMixin):
 
 
 class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
+    """Abstract base class for DML operations in all APIs."""
+
     def __init__(self, sobject, operation, api_options, context, fields):
         super().__init__(sobject, operation, api_options, context)
         self.fields = fields
 
     @abstractmethod
     def start(self):
+        """Perform any required setup, such as job initialization, for the operation."""
         pass
 
     @abstractmethod
     def load_records(self, records):
+        """Perform the requested DML operation on the supplied row iterator."""
         pass
 
     @abstractmethod
     def end(self):
+        """Perform any required teardown for the operation before results are returned."""
         pass
 
     @abstractmethod
     def get_results(self):
-        return []
+        """Return a generator of DataOperationResult objects."""
+        pass
 
 
 class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
+    """Operation class for all DML operations run using the Bulk API."""
+
     def start(self):
         self.job_id = self.bulk.create_job(
             self.sobject,
@@ -211,10 +239,12 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.batch_ids.append(self.bulk.post_batch(self.job_id, csv_batch))
 
     def _batch(self, records):
+        """Return a generator of generators, where each child generator is batched."""
         for batch in batch_iterator(records, self.api_options.get("batch_size", 10000)):
             yield self._csv_generator(batch)
 
     def _csv_generator(self, records):
+        """Return a generator of binary, CSV-format data for the given record iterator."""
         content = io.StringIO()
         writer = csv.writer(content)
         writer.writerow(self.fields)

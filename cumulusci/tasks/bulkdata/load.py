@@ -21,6 +21,8 @@ from cumulusci.utils import os_friendly_path
 
 
 class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
+    """Perform Bulk API operations to load data defined by a mapping from a local store into an org."""
+
     task_options = {
         "database_url": {
             "description": "The database url to a database containing the test data to load"
@@ -159,6 +161,8 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         )
 
     def _get_columns(self, mapping):
+        """Build a flat list of columns for the given mapping,
+        including fields, lookups, and statics."""
         lookups = mapping.get("lookups", {})
 
         # Build the list of fields to import
@@ -179,11 +183,14 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         return columns
 
     def _load_record_types(self, sobjects, conn):
+        """Persist record types for the given sObjects into the database."""
         for sobject in sobjects:
             table_name = sobject + "_rt_target_mapping"
             self._extract_record_types(sobject, table_name, conn)
 
     def _get_statics(self, mapping):
+        """Return the static values (not column names) to be appended to
+        records for this mapping."""
         statics = list(mapping.get("static", {}).values())
         if mapping.get("record_type"):
             query = (
@@ -275,6 +282,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         return query
 
     def _convert(self, value):
+        """If value is a date, return its ISO8601 representation, otherwise return value."""
         if value:
             if isinstance(value, datetime.datetime):
                 return value.isoformat()
@@ -349,6 +357,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         return id_table_name
 
     def _sqlite_load(self):
+        """Read a SQLite script and initialize the in-memory database."""
         conn = self.session.connection()
         cursor = conn.connection.cursor()
         with open(self.options["sql_path"], "r") as f:
@@ -359,6 +368,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         # self.session.flush()
 
     def _init_db(self):
+        """Initialize the database and automapper."""
         # initialize the DB engine
         database_url = self.options["database_url"] or "sqlite://"
         if database_url == "sqlite://":
@@ -393,10 +403,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         self.metadata.create_all()
 
     def _init_mapping(self):
+        """Load a YAML mapping file."""
         with open(self.options["mapping"], "r") as f:
             self.mapping = yaml.safe_load(f)
 
     def _expand_mapping(self):
+        """Walk the mapping and generate any required 'after' steps
+        to handle dependent and self-lookups."""
         # Expand the mapping to handle dependent lookups
         self.after_steps = defaultdict(dict)
 
