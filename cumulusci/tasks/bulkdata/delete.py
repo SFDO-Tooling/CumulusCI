@@ -56,8 +56,14 @@ class DeleteData(BaseSalesforceApiTask):
             self.logger.info(f"Querying for {obj} objects")
             qs = BulkApiQueryOperation(obj, {}, self, query)
             qs.query()
-            if qs.status is not DataOperationStatus.SUCCESS:
-                raise BulkDataException(f"Unable to query records for {obj}")
+            if qs.job_result.status is not DataOperationStatus.SUCCESS:
+                raise BulkDataException(
+                    f"Unable to query records for {obj}: {','.join(qs.job_result.job_errors)}"
+                )
+
+            if not qs.job_result.total_records:
+                self.logger.info("No records found, skipping delete operation")
+                return
 
             self.logger.info(f"Deleting {self._object_description(obj)} ")
             ds = BulkApiDmlOperation(
@@ -72,6 +78,14 @@ class DeleteData(BaseSalesforceApiTask):
             ds.start()
             ds.load_records(qs.get_results())
             ds.end()
+
+            if ds.job_result.status not in [
+                DataOperationStatus.SUCCESS,
+                DataOperationStatus.ROW_FAILURE,
+            ]:
+                raise BulkDataException(
+                    f"Unable to delete records for {obj}: {','.join(qs.job_result.job_errors)}"
+                )
 
             for result in ds.get_results():
                 if not result.success and not self.options["ignore_row_errors"]:

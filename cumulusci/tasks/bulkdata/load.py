@@ -90,16 +90,18 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
             self.logger.info(f"Running step: {name}")
             result = self._load_mapping(mapping)
-            if result is DataOperationStatus.FAILURE:
-                raise BulkDataException(f"Step {name} did not complete successfully")
+            if result.status is DataOperationStatus.JOB_FAILURE:
+                raise BulkDataException(
+                    f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
+                )
 
             if name in self.after_steps:
                 for after_name, after_step in self.after_steps[name].items():
                     self.logger.info(f"Running post-load step: {after_name}")
                     result = self._load_mapping(after_step)
-                    if result is DataOperationStatus.FAILURE:
+                    if result.status is DataOperationStatus.JOB_FAILURE:
                         raise BulkDataException(
-                            f"Step {after_name} did not complete successfully"
+                            f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                         )
 
     def _load_mapping(self, mapping):
@@ -125,10 +127,10 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         step.load_records(self._stream_queried_data(mapping))
         step.end()
 
-        if step.status is not DataOperationStatus.FAILURE:
+        if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
             self._process_job_results(mapping, step)
 
-        return step.status
+        return step.job_result
 
     def _stream_queried_data(self, mapping):
         """Get data from the local db"""

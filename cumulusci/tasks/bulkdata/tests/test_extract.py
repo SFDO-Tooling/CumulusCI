@@ -5,7 +5,11 @@ from unittest import mock
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata import ExtractData
-from cumulusci.tasks.bulkdata.step import BaseQueryOperation, DataOperationStatus
+from cumulusci.tasks.bulkdata.step import (
+    BaseQueryOperation,
+    DataOperationStatus,
+    DataOperationJobResult,
+)
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils import temporary_dir
 
@@ -17,7 +21,7 @@ class MockBulkQueryOperation(BaseQueryOperation):
 
     def query(self):
         self.job_id = "JOB"
-        self.status = DataOperationStatus.SUCCESS
+        self.job_result = DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
 
     def get_results(self):
         return iter(self.results)
@@ -526,7 +530,9 @@ class TestExtractData(unittest.TestCase):
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
         task._import_results = mock.Mock()
-        step_mock.return_value.status = DataOperationStatus.SUCCESS
+        step_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
 
         task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})
 
@@ -541,7 +547,9 @@ class TestExtractData(unittest.TestCase):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
-        step_mock.return_value.status = DataOperationStatus.FAILURE
+        step_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.JOB_FAILURE, [], 0, 0
+        )
 
         with self.assertRaises(BulkDataException):
             task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})

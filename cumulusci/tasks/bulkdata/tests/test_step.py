@@ -3,6 +3,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     DataOperationStatus,
     DataOperationResult,
+    DataOperationJobResult,
     BulkJobMixin,
     BulkApiQueryOperation,
     BulkApiDmlOperation,
@@ -72,7 +73,7 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
                     "second_message": "",
                 }
             )
-        ) == ("Aborted", None)
+        ) == DataOperationJobResult(DataOperationStatus.ABORTED, [], 0, 0)
 
         assert mixin._parse_job_state(
             BULK_BATCH_RESPONSE.format(
@@ -83,7 +84,7 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
                     "second_message": "",
                 }
             )
-        ) == ("InProgress", None)
+        ) == DataOperationJobResult(DataOperationStatus.IN_PROGRESS, [], 0, 0)
 
         assert mixin._parse_job_state(
             BULK_BATCH_RESPONSE.format(
@@ -94,7 +95,9 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
                     "second_message": "Worse",
                 }
             )
-        ) == ("Failed", ["Bad", "Worse"])
+        ) == DataOperationJobResult(
+            DataOperationStatus.JOB_FAILURE, ["Bad", "Worse"], 0, 0
+        )
 
         assert mixin._parse_job_state(
             BULK_BATCH_RESPONSE.format(
@@ -105,14 +108,14 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
                     "second_message": "",
                 }
             )
-        ) == ("Completed", None)
+        ) == DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
             "  <batch><state>Completed</state></batch>"
             "  <numberRecordsFailed>200</numberRecordsFailed>"
             "</root>"
-        ) == ("CompletedWithFailures", ["Failures detected: 200"])
+        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 200, 200)
 
     @mock.patch("time.sleep")
     def test_wait_for_job(self, sleep_patch):
@@ -124,7 +127,10 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
             "numberBatchesTotal": 1,
         }
         mixin._job_state_from_batches = mock.Mock(
-            side_effect=[("InProgress", None), ("Completed", None)]
+            side_effect=[
+                DataOperationJobResult(DataOperationStatus.IN_PROGRESS, [], 0, 0),
+                DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0),
+            ]
         )
         mixin.logger = mock.Mock()
 
@@ -132,7 +138,7 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
         mixin._job_state_from_batches.assert_has_calls(
             [mock.call("750000000000000"), mock.call("750000000000000")]
         )
-        assert result == "Completed"
+        assert result.status is DataOperationStatus.SUCCESS
 
     def test_wait_for_job__failed(self):
         mixin = BulkJobMixin()
@@ -143,13 +149,15 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
             "numberBatchesTotal": 1,
         }
         mixin._job_state_from_batches = mock.Mock(
-            return_value=("Failed", ["Test1", "Test2"])
+            return_value=DataOperationJobResult(
+                DataOperationStatus.JOB_FAILURE, ["Test1", "Test2"], 0, 0
+            )
         )
         mixin.logger = mock.Mock()
 
         result = mixin._wait_for_job("750000000000000")
         mixin._job_state_from_batches.assert_called_once_with("750000000000000")
-        assert result == "Failed"
+        assert result.status is DataOperationStatus.JOB_FAILURE
 
     def test_wait_for_job__logs_state_messages(self):
         mixin = BulkJobMixin()
@@ -160,7 +168,9 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
             "numberBatchesTotal": 1,
         }
         mixin._job_state_from_batches = mock.Mock(
-            return_value=("Failed", ["Test1", "Test2"])
+            return_value=DataOperationJobResult(
+                DataOperationStatus.JOB_FAILURE, ["Test1", "Test2"], 0, 0
+            )
         )
         mixin.logger = mock.Mock()
 
@@ -174,11 +184,13 @@ class TestBulkApiQueryOperation(unittest.TestCase):
         context = mock.Mock()
         query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
         query._wait_for_job = mock.Mock()
-        query._wait_for_job.return_value = "Completed"
+        query._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
 
         query.query()
 
-        assert query.status is DataOperationStatus.SUCCESS
+        assert query.job_result.status is DataOperationStatus.SUCCESS
 
         context.bulk.create_query_job.assert_called_once_with(
             "Contact", contentType="CSV"
@@ -197,20 +209,24 @@ class TestBulkApiQueryOperation(unittest.TestCase):
         context = mock.Mock()
         query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
         query._wait_for_job = mock.Mock()
-        query._wait_for_job.return_value = "Completed"
+        query._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
 
         with query:
-            assert query.status is DataOperationStatus.SUCCESS
+            assert query.job_result.status is DataOperationStatus.SUCCESS
 
     def test_query__failure(self):
         context = mock.Mock()
         query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
         query._wait_for_job = mock.Mock()
-        query._wait_for_job.return_value = "Failed"
+        query._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.JOB_FAILURE, [], 0, 0
+        )
 
         query.query()
 
-        assert query.status is DataOperationStatus.FAILURE
+        assert query.job_result.status is DataOperationStatus.JOB_FAILURE
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
     def test_get_results(self, download_mock):
@@ -228,7 +244,9 @@ class TestBulkApiQueryOperation(unittest.TestCase):
         )
         query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
         query._wait_for_job = mock.Mock()
-        query._wait_for_job.return_value = ("Completed", None)
+        query._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
         query.query()
 
         results = list(query.get_results())
@@ -257,7 +275,9 @@ class TestBulkApiQueryOperation(unittest.TestCase):
         download_mock.return_value = io.StringIO("Records not found for this query")
         query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
         query._wait_for_job = mock.Mock()
-        query._wait_for_job.return_value = ("Completed", None)
+        query._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
         query.query()
 
         results = list(query.get_results())
@@ -296,14 +316,16 @@ class TestBulkApiDmlOperation(unittest.TestCase):
             "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
         )
         step._wait_for_job = mock.Mock()
-        step._wait_for_job.return_value = "Completed"
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
         step.job_id = "JOB"
 
         step.end()
 
         context.bulk.close_job.assert_called_once_with("JOB")
         step._wait_for_job.assert_called_once_with("JOB")
-        assert step.status is DataOperationStatus.SUCCESS
+        assert step.job_result.status is DataOperationStatus.SUCCESS
 
     def test_end__failed(self):
         context = mock.Mock()
@@ -313,14 +335,16 @@ class TestBulkApiDmlOperation(unittest.TestCase):
             "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
         )
         step._wait_for_job = mock.Mock()
-        step._wait_for_job.return_value = "Failed"
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.JOB_FAILURE, [], 0, 0
+        )
         step.job_id = "JOB"
 
         step.end()
 
         context.bulk.close_job.assert_called_once_with("JOB")
         step._wait_for_job.assert_called_once_with("JOB")
-        assert step.status is DataOperationStatus.FAILURE
+        assert step.job_result.status is DataOperationStatus.JOB_FAILURE
 
     def test_contextmanager(self):
         context = mock.Mock()
@@ -330,7 +354,9 @@ class TestBulkApiDmlOperation(unittest.TestCase):
             "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
         )
         step._wait_for_job = mock.Mock()
-        step._wait_for_job.return_value = "Completed"
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
         step.job_id = "JOB"
 
         with step:
@@ -343,7 +369,7 @@ class TestBulkApiDmlOperation(unittest.TestCase):
 
         context.bulk.close_job.assert_called_once_with("JOB")
         step._wait_for_job.assert_called_once_with("JOB")
-        assert step.status is DataOperationStatus.SUCCESS
+        assert step.job_result.status is DataOperationStatus.SUCCESS
 
     def test_load_records(self):
         context = mock.Mock()
@@ -455,13 +481,15 @@ class TestBulkApiDmlOperation(unittest.TestCase):
             "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
         )
         step._wait_for_job = mock.Mock()
-        step._wait_for_job.return_value = "Completed"
+        step._wait_for_job.return_value = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
 
         step.start()
         step.load_records(iter([["Test"], ["Test2"], ["Test3"]]))
         step.end()
 
-        assert step.status is DataOperationStatus.SUCCESS
+        assert step.job_result.status is DataOperationStatus.SUCCESS
         results = step.get_results()
 
         assert list(results) == [

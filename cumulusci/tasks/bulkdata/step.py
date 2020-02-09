@@ -37,11 +37,18 @@ class DataApi(Enum):
 class DataOperationStatus(Enum):
     """Enum defining outcome values for a data operation."""
 
-    SUCCESS = "Succeeded"
-    FAILURE = "Failed"
+    SUCCESS = "Success"
+    ROW_FAILURE = "Row failure"
+    JOB_FAILURE = "Job failure"
+    IN_PROGRESS = "In progress"
+    ABORTED = "Aborted"
 
 
 DataOperationResult = namedtuple("Result", ["id", "success", "error"])
+DataOperationJobResult = namedtuple(
+    "DataOperationJobResult",
+    ["status", "job_errors", "total_records", "total_row_errors"],
+)
 
 
 @contextmanager
@@ -75,29 +82,45 @@ class BulkJobMixin:
         return self._parse_job_state(response.content)
 
     def _parse_job_state(self, xml):
-        """Parse the Bulk API return value and generate a summary status value for the job."""
+        """Parse the Bulk API return value and generate a summary status record for the job."""
         tree = ET.fromstring(xml)
         statuses = [el.text for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS)]
         state_messages = [
             el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
         ]
 
+        failures = tree.find(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
+        record_failure_count = int(failures.text) if failures is not None else 0
+        processed = tree.find(".//{%s}numberRecordsProcessed" % self.bulk.jobNS)
+        record_success_count = int(processed.text) if processed is not None else 0
+        total_records = record_success_count + record_failure_count
+
         # FIXME: "Not Processed" to be expected for original batch with PK Chunking Query
         # PK Chunking is not currently supported.
         if "Not Processed" in statuses:
-            return "Aborted", None
+            return DataOperationJobResult(
+                DataOperationStatus.ABORTED, [], total_records, record_failure_count
+            )
         elif "InProgress" in statuses or "Queued" in statuses:
-            return "InProgress", None
+            return DataOperationJobResult(
+                DataOperationStatus.IN_PROGRESS, [], total_records, record_failure_count
+            )
         elif "Failed" in statuses:
-            return "Failed", state_messages
+            return DataOperationJobResult(
+                DataOperationStatus.JOB_FAILURE,
+                state_messages,
+                total_records,
+                record_failure_count,
+            )
 
-        failures = tree.find(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
-        if failures is not None:
-            num_failures = int(failures.text)
-            if num_failures:
-                return "CompletedWithFailures", [f"Failures detected: {num_failures}"]
+        if record_failure_count:
+            return DataOperationJobResult(
+                DataOperationStatus.ROW_FAILURE, [], total_records, record_failure_count
+            )
 
-        return "Completed", None
+        return DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], total_records, record_failure_count
+        )
 
     def _wait_for_job(self, job_id):
         """Wait for the given job to enter a completed state (success or failure)."""
@@ -106,13 +129,14 @@ class BulkJobMixin:
             self.logger.info(
                 f"Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']})"
             )
-            result, messages = self._job_state_from_batches(job_id)
-            if result != "InProgress":
+            result = self._job_state_from_batches(job_id)
+            if result.status is not DataOperationStatus.IN_PROGRESS:
                 break
+
             time.sleep(10)
-        self.logger.info(f"Job {job_id} finished with result: {result}")
-        if result == "Failed":
-            for state_message in messages:
+        self.logger.info(f"Job {job_id} finished with result: {result.status.value}")
+        if result.status is DataOperationStatus.JOB_FAILURE:
+            for state_message in result.job_errors:
                 self.logger.error(f"Batch failure message: {state_message}")
 
         return result
@@ -129,7 +153,7 @@ class BaseDataOperation(metaclass=ABCMeta):
         self.bulk = context.bulk
         self.sf = context.sf
         self.logger = context.logger
-        self.status = None
+        self.job_result = None
 
 
 class BaseQueryOperation(BaseDataOperation, metaclass=ABCMeta):
@@ -164,12 +188,7 @@ class BulkApiQueryOperation(BaseQueryOperation, BulkJobMixin):
         self.job_id = self.bulk.create_query_job(self.sobject, contentType="CSV")
         self.batch_id = self.bulk.query(self.job_id, self.soql)
 
-        result = self._wait_for_job(self.job_id)
-        if result in ["Completed", "CompletedWithFailures"]:
-            self.status = DataOperationStatus.SUCCESS
-        else:
-            self.status = DataOperationStatus.FAILURE
-
+        self.job_result = self._wait_for_job(self.job_id)
         self.bulk.close_job(self.job_id)
 
     def get_results(self):
@@ -239,11 +258,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
     def end(self):
         self.bulk.close_job(self.job_id)
-        result = self._wait_for_job(self.job_id)
-        if result in ["Completed", "CompletedWithFailures"]:
-            self.status = DataOperationStatus.SUCCESS
-        else:
-            self.status = DataOperationStatus.FAILURE
+        self.job_result = self._wait_for_job(self.job_id)
 
     def load_records(self, records):
         self.batch_ids = []

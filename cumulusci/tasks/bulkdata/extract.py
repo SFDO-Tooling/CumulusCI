@@ -118,10 +118,12 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         step.query()
 
-        if step.status is DataOperationStatus.SUCCESS:
+        if step.job_result.status is DataOperationStatus.SUCCESS:
             self._import_results(mapping, step)
         else:
-            raise BulkDataException("Bulk query failed")
+            raise BulkDataException(
+                f"Unable to execute query: {','.join(step.job_result.job_errors)}"
+            )
 
     def _import_results(self, mapping, step):
         """Ingest results from the Bulk API query."""

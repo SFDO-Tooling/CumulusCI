@@ -14,6 +14,7 @@ from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.step import (
     DataOperationResult,
+    DataOperationJobResult,
     DataOperationType,
     DataOperationStatus,
     BaseDmlOperation,
@@ -58,7 +59,7 @@ class MockBulkApiDmlOperation(BaseDmlOperation):
         self.job_id = "JOB"
 
     def end(self):
-        self.status = DataOperationStatus.SUCCESS
+        self.job_result = DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
 
     def load_records(self, records):
         self.records.extend(records)
@@ -142,7 +143,9 @@ class TestLoadData(unittest.TestCase):
         task.mapping["Insert Households"] = {"one": 1}
         task.mapping["Insert Contacts"] = {"two": 2}
         task.after_steps = {}
-        task._load_mapping = mock.Mock(return_value="Completed")
+        task._load_mapping = mock.Mock(
+            return_value=DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
+        )
         task()
         task._load_mapping.assert_called_once_with({"two": 2, "action": "insert"})
 
@@ -164,7 +167,9 @@ class TestLoadData(unittest.TestCase):
             "Insert Contacts": {"three": 3},
             "Insert Households": households_steps,
         }
-        task._load_mapping = mock.Mock(return_value="Completed")
+        task._load_mapping = mock.Mock(
+            return_value=DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
+        )
         task()
         task._load_mapping.assert_has_calls(
             [mock.call(1), mock.call(4), mock.call(5), mock.call(2), mock.call(3)]
@@ -189,7 +194,10 @@ class TestLoadData(unittest.TestCase):
             "Insert Households": households_steps,
         }
         task._load_mapping = mock.Mock(
-            side_effect=[DataOperationStatus.SUCCESS, DataOperationStatus.FAILURE]
+            side_effect=[
+                DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0),
+                DataOperationJobResult(DataOperationStatus.JOB_FAILURE, [], 0, 0),
+            ]
         )
         with self.assertRaises(BulkDataException):
             task()
@@ -542,7 +550,11 @@ class TestLoadData(unittest.TestCase):
         )
         task._init_db = mock.Mock()
         task._init_mapping = mock.Mock()
-        task._load_mapping = mock.Mock(return_value=DataOperationStatus.FAILURE)
+        task._load_mapping = mock.Mock(
+            return_value=DataOperationJobResult(
+                DataOperationStatus.JOB_FAILURE, [], 0, 0
+            )
+        )
         task.mapping = {"Test": {"test": "test"}}
 
         with self.assertRaises(BulkDataException):
