@@ -15,8 +15,10 @@ from cumulusci.utils import temporary_dir
 
 
 class MockBulkQueryOperation(BaseQueryOperation):
-    def __init__(self, sobject, api_options, context, query):
-        super().__init__(sobject, api_options, context, query)
+    def __init__(self, *, sobject, api_options, context, query):
+        super().__init__(
+            sobject=sobject, api_options=api_options, context=context, query=query
+        )
         self.results = []
 
     def query(self):
@@ -50,13 +52,16 @@ class TestExtractData(unittest.TestCase):
         task.sf = mock.Mock()
 
         mock_query_households = MockBulkQueryOperation(
-            "Account", {}, task, "SELECT Id FROM Account"
+            sobject="Account",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Account",
         )
         mock_query_contacts = MockBulkQueryOperation(
-            "Contact",
-            {},
-            task,
-            "SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
         )
         mock_query_households.results = [["1"]]
         mock_query_contacts.results = [["2", "First", "Last", "test@example.com", "1"]]
@@ -86,13 +91,16 @@ class TestExtractData(unittest.TestCase):
             task.sf = mock.Mock()
 
             mock_query_households = MockBulkQueryOperation(
-                "Account", {}, task, "SELECT Id FROM Account"
+                sobject="Account",
+                api_options={},
+                context=task,
+                query="SELECT Id FROM Account",
             )
             mock_query_contacts = MockBulkQueryOperation(
-                "Contact",
-                {},
-                task,
-                "SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
+                sobject="Contact",
+                api_options={},
+                context=task,
+                query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
             )
             mock_query_households.results = [["1"]]
             mock_query_contacts.results = [
@@ -122,13 +130,16 @@ class TestExtractData(unittest.TestCase):
         task.sf = mock.Mock()
 
         mock_query_households = MockBulkQueryOperation(
-            "Account", {}, task, "SELECT Id, Name FROM Account"
+            sobject="Account",
+            api_options={},
+            context=task,
+            query="SELECT Id, Name FROM Account",
         )
         mock_query_contacts = MockBulkQueryOperation(
-            "Contact",
-            {},
-            task,
-            "SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
         )
         mock_query_households.results = [["1", "TestHousehold"]]
         mock_query_contacts.results = [["2", "First", "Last", "test@example.com", "1"]]
@@ -537,7 +548,12 @@ class TestExtractData(unittest.TestCase):
 
         task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})
 
-        step_mock.assert_called_once_with("Contact", {}, task, "SELECT Id FROM Contact")
+        step_mock.assert_called_once_with(
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Contact",
+        )
         step_mock.return_value.query.assert_called_once_with()
         task._import_results.assert_called_once_with(
             {"sf_object": "Contact"}, step_mock.return_value

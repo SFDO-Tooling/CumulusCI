@@ -182,7 +182,12 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
 class TestBulkApiQueryOperation(unittest.TestCase):
     def test_query(self):
         context = mock.Mock()
-        query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
+        query = BulkApiQueryOperation(
+            sobject="Contact",
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Contact",
+        )
         query._wait_for_job = mock.Mock()
         query._wait_for_job.return_value = DataOperationJobResult(
             DataOperationStatus.SUCCESS, [], 0, 0
@@ -207,7 +212,12 @@ class TestBulkApiQueryOperation(unittest.TestCase):
 
     def test_query__contextmanager(self):
         context = mock.Mock()
-        query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
+        query = BulkApiQueryOperation(
+            sobject="Contact",
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Contact",
+        )
         query._wait_for_job = mock.Mock()
         query._wait_for_job.return_value = DataOperationJobResult(
             DataOperationStatus.SUCCESS, [], 0, 0
@@ -218,7 +228,12 @@ class TestBulkApiQueryOperation(unittest.TestCase):
 
     def test_query__failure(self):
         context = mock.Mock()
-        query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
+        query = BulkApiQueryOperation(
+            sobject="Contact",
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Contact",
+        )
         query._wait_for_job = mock.Mock()
         query._wait_for_job.return_value = DataOperationJobResult(
             DataOperationStatus.JOB_FAILURE, [], 0, 0
@@ -242,7 +257,12 @@ class TestBulkApiQueryOperation(unittest.TestCase):
 003000000000002
 003000000000003"""
         )
-        query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
+        query = BulkApiQueryOperation(
+            sobject="Contact",
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Contact",
+        )
         query._wait_for_job = mock.Mock()
         query._wait_for_job.return_value = DataOperationJobResult(
             DataOperationStatus.SUCCESS, [], 0, 0
@@ -273,7 +293,12 @@ class TestBulkApiQueryOperation(unittest.TestCase):
         context.bulk.get_query_batch_result_ids.return_value = ["RESULT"]
 
         download_mock.return_value = io.StringIO("Records not found for this query")
-        query = BulkApiQueryOperation("Contact", {}, context, "SELECT Id FROM Contact")
+        query = BulkApiQueryOperation(
+            sobject="Contact",
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Contact",
+        )
         query._wait_for_job = mock.Mock()
         query._wait_for_job.return_value = DataOperationJobResult(
             DataOperationStatus.SUCCESS, [], 0, 0
@@ -298,7 +323,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         context.bulk.create_job.return_value = "JOB"
 
         step = BulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=context,
+            fields=["LastName"],
         )
 
         step.start()
@@ -313,7 +342,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         context.bulk.create_job.return_value = "JOB"
 
         step = BulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=context,
+            fields=["LastName"],
         )
         step._wait_for_job = mock.Mock()
         step._wait_for_job.return_value = DataOperationJobResult(
@@ -332,7 +365,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         context.bulk.create_job.return_value = "JOB"
 
         step = BulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=context,
+            fields=["LastName"],
         )
         step._wait_for_job = mock.Mock()
         step._wait_for_job.return_value = DataOperationJobResult(
@@ -351,7 +388,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         context.bulk.create_job.return_value = "JOB"
 
         step = BulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=context,
+            fields=["LastName"],
         )
         step._wait_for_job = mock.Mock()
         step._wait_for_job.return_value = DataOperationJobResult(
@@ -376,7 +417,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         context.bulk.post_batch.side_effect = ["BATCH1", "BATCH2"]
 
         step = BulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=context,
+            fields=["LastName"],
         )
         step._batch = mock.Mock()
         step._batch.return_value = [1, 2]
@@ -394,11 +439,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         context = mock.Mock()
 
         step = BulkApiDmlOperation(
-            "Contact",
-            DataOperationType.INSERT,
-            {"batch_size": 2},
-            context,
-            ["LastName"],
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={"batch_size": 2},
+            context=context,
+            fields=["LastName"],
         )
 
         results = list(step._batch(iter([["Test"], ["Test2"], ["Test3"]])))
@@ -430,7 +475,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         ]
 
         step = BulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=context,
+            fields=["LastName"],
         )
         step.job_id = "JOB"
         step.batch_ids = ["BATCH1", "BATCH2"]
@@ -456,7 +505,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         download_mock.return_value.side_effect = Exception
 
         step = BulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=context,
+            fields=["LastName"],
         )
         step.job_id = "JOB"
         step.batch_ids = ["BATCH1", "BATCH2"]
@@ -478,7 +531,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         )
 
         step = BulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, context, ["LastName"]
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=context,
+            fields=["LastName"],
         )
         step._wait_for_job = mock.Mock()
         step._wait_for_job.return_value = DataOperationJobResult(

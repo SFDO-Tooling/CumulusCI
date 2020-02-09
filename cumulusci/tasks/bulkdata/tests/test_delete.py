@@ -36,13 +36,20 @@ class TestDeleteData(unittest.TestCase):
         task()
 
         query_mock.assert_called_once_with(
-            "Contact", {}, task, "SELECT Id FROM Contact"
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Contact",
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
 
         dml_mock.assert_called_once_with(
-            "Contact", DataOperationType.DELETE, {}, task, ["Id"]
+            sobject="Contact",
+            operation=DataOperationType.DELETE,
+            api_options={},
+            context=task,
+            fields=["Id"],
         )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()
@@ -61,7 +68,10 @@ class TestDeleteData(unittest.TestCase):
         task()
 
         query_mock.assert_called_once_with(
-            "Contact", {}, task, "SELECT Id FROM Contact"
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Contact",
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_not_called()
@@ -149,13 +159,20 @@ class TestDeleteData(unittest.TestCase):
         )
         task()
         query_mock.assert_called_once_with(
-            "Contact", {}, task, "SELECT Id FROM Contact"
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Contact",
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
 
         dml_mock.assert_called_once_with(
-            "Contact", DataOperationType.HARD_DELETE, {}, task, ["Id"]
+            sobject="Contact",
+            operation=DataOperationType.HARD_DELETE,
+            api_options={},
+            context=task,
+            fields=["Id"],
         )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()
@@ -185,13 +202,20 @@ class TestDeleteData(unittest.TestCase):
         )
         task()
         query_mock.assert_called_once_with(
-            "Contact", {}, task, "SELECT Id FROM Contact WHERE Id != null"
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Contact WHERE Id != null",
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
 
         dml_mock.assert_called_once_with(
-            "Contact", DataOperationType.DELETE, {}, task, ["Id"]
+            sobject="Contact",
+            operation=DataOperationType.DELETE,
+            api_options={},
+            context=task,
+            fields=["Id"],
         )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()

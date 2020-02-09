@@ -145,7 +145,7 @@ class BulkJobMixin:
 class BaseDataOperation(metaclass=ABCMeta):
     """Abstract base class for all data operations (queries and DML)."""
 
-    def __init__(self, sobject, operation, api_options, context):
+    def __init__(self, *, sobject, operation, api_options, context):
         self.sobject = sobject
         self.operation = operation
         self.api_options = api_options
@@ -159,8 +159,13 @@ class BaseDataOperation(metaclass=ABCMeta):
 class BaseQueryOperation(BaseDataOperation, metaclass=ABCMeta):
     """Abstract base class for query operations in all APIs."""
 
-    def __init__(self, sobject, api_options, context, query):
-        super().__init__(sobject, DataOperationType.QUERY, api_options, context)
+    def __init__(self, *, sobject, api_options, context, query):
+        super().__init__(
+            sobject=sobject,
+            operation=DataOperationType.QUERY,
+            api_options=api_options,
+            context=context,
+        )
         self.soql = query
 
     def __enter__(self):
@@ -213,8 +218,13 @@ class BulkApiQueryOperation(BaseQueryOperation, BulkJobMixin):
 class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
     """Abstract base class for DML operations in all APIs."""
 
-    def __init__(self, sobject, operation, api_options, context, fields):
-        super().__init__(sobject, operation, api_options, context)
+    def __init__(self, *, sobject, operation, api_options, context, fields):
+        super().__init__(
+            sobject=sobject,
+            operation=operation,
+            api_options=api_options,
+            context=context,
+        )
         self.fields = fields
 
     def __enter__(self):

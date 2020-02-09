@@ -54,7 +54,9 @@ class DeleteData(BaseSalesforceApiTask):
                 query += f" WHERE {self.options['where']}"
 
             self.logger.info(f"Querying for {obj} objects")
-            qs = BulkApiQueryOperation(obj, {}, self, query)
+            qs = BulkApiQueryOperation(
+                sobject=obj, api_options={}, context=self, query=query
+            )
             qs.query()
             if qs.job_result.status is not DataOperationStatus.SUCCESS:
                 raise BulkDataException(
@@ -67,13 +69,15 @@ class DeleteData(BaseSalesforceApiTask):
 
             self.logger.info(f"Deleting {self._object_description(obj)} ")
             ds = BulkApiDmlOperation(
-                obj,
-                DataOperationType.HARD_DELETE
-                if self.options["hardDelete"]
-                else DataOperationType.DELETE,
-                {},
-                self,
-                ["Id"],
+                sobject=obj,
+                operation=(
+                    DataOperationType.HARD_DELETE
+                    if self.options["hardDelete"]
+                    else DataOperationType.DELETE
+                ),
+                api_options={},
+                context=self,
+                fields=["Id"],
             )
             ds.start()
             ds.load_records(qs.get_results())

@@ -50,8 +50,14 @@ Insert Contacts:
 
 
 class MockBulkApiDmlOperation(BaseDmlOperation):
-    def __init__(self, sobject, operation, api_options, context, fields):
-        super().__init__(sobject, operation, api_options, context, fields)
+    def __init__(self, *, sobject, operation, api_options, context, fields):
+        super().__init__(
+            sobject=sobject,
+            operation=operation,
+            api_options=api_options,
+            context=context,
+            fields=fields,
+        )
         self.results = []
         self.records = []
 
@@ -103,7 +109,11 @@ class TestLoadData(unittest.TestCase):
             task.sf = mock.Mock()
 
             step = MockBulkApiDmlOperation(
-                "Contact", DataOperationType.INSERT, {}, task, []
+                sobject="Contact",
+                operation=DataOperationType.INSERT,
+                api_options={},
+                context=task,
+                fields=[],
             )
             step_mock.return_value = step
 
@@ -222,7 +232,11 @@ class TestLoadData(unittest.TestCase):
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         step = MockBulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, task, []
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
         )
         step_mock.return_value = step
         step.results = [
@@ -576,7 +590,11 @@ class TestLoadData(unittest.TestCase):
         local_ids = ["1"]
 
         step = MockBulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, task, []
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
@@ -603,7 +621,11 @@ class TestLoadData(unittest.TestCase):
         local_ids = ["1"]
 
         step = MockBulkApiDmlOperation(
-            "Contact", DataOperationType.INSERT, {}, task, []
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
@@ -630,7 +652,11 @@ class TestLoadData(unittest.TestCase):
         local_ids = ["1"]
 
         step = MockBulkApiDmlOperation(
-            "Contact", DataOperationType.UPDATE, {}, task, []
+            sobject="Contact",
+            operation=DataOperationType.UPDATE,
+            api_options={},
+            context=task,
+            fields=[],
         )
         step.results = [DataOperationResult(None, False, "message")]
 
@@ -862,7 +888,11 @@ class TestLoadData(unittest.TestCase):
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
             step = MockBulkApiDmlOperation(
-                "Contact", DataOperationType.INSERT, {}, task, []
+                sobject="Contact",
+                operation=DataOperationType.INSERT,
+                api_options={},
+                context=task,
+                fields=[],
             )
             step_mock.return_value = step
 

@@ -114,13 +114,15 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
         step = BulkApiDmlOperation(
-            mapping["sf_object"],
-            DataOperationType.INSERT
-            if mapping.get("action") == "insert"
-            else DataOperationType.UPDATE,
-            {"bulk_mode": self.bulk_mode or "Parallel"},
-            self,
-            self._get_columns(mapping),
+            sobject=mapping["sf_object"],
+            operation=(
+                DataOperationType.INSERT
+                if mapping.get("action") == "insert"
+                else DataOperationType.UPDATE
+            ),
+            api_options={"bulk_mode": self.bulk_mode or "Parallel"},
+            context=self,
+            fields=self._get_columns(mapping),
         )
 
         local_ids = []

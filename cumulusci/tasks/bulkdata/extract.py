@@ -114,7 +114,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _run_query(self, soql, mapping):
         """Execute a Bulk API query job and store the results."""
-        step = BulkApiQueryOperation(mapping["sf_object"], {}, self, soql)
+        step = BulkApiQueryOperation(
+            sobject=mapping["sf_object"], api_options={}, context=self, query=soql
+        )
 
         step.query()
 
