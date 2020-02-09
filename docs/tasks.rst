@@ -2,37 +2,61 @@
 Tasks Reference
 ==========================================
 
-activate_flow
+**activate_flow**
 ==========================================
 
 **Description:** Activates Flows identified by a given list of Developer Names
 
-**Class::** cumulusci.tasks.salesforce.activate_flow.ActivateFlow
+**Class:** cumulusci.tasks.salesforce.activate_flow.ActivateFlow
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **developer_names** *(required)*: List of DeveloperNames to query in SOQL
+``$ cci task run activate_flow``
 
-batch_apex_wait
+
+Options
+------------------------------------------
+
+
+``-o developer_names DEVELOPERNAMES``
+	 *Required*
+
+	 List of DeveloperNames to query in SOQL
+
+**batch_apex_wait**
 ==========================================
 
 **Description:** Waits on a batch apex job to finish.
 
-**Class::** cumulusci.tasks.apex.batch.BatchApexWait
+**Class:** cumulusci.tasks.apex.batch.BatchApexWait
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **class_name** *(required)*: Name of the Apex class to wait for.
-* **poll_interval**: Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+``$ cci task run batch_apex_wait``
 
-command
+
+Options
+------------------------------------------
+
+
+``-o class_name CLASSNAME``
+	 *Required*
+
+	 Name of the Apex class to wait for.
+
+``-o poll_interval POLLINTERVAL``
+	 *Optional*
+
+	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+
+**command**
 ==========================================
 
 **Description:** Run an arbitrary command
 
-**Class::** cumulusci.tasks.command.Command
+**Class:** cumulusci.tasks.command.Command
 
 **Example Command-line Usage::** cci task run command -o command "echo 'Hello command task!'"
 
@@ -43,274 +67,735 @@ hello_world:
     options:
     command: echo 'Hello World!'
 
-
-Options:
+Command Syntax
 ------------------------------------------
 
-* **command** *(required)*: The command to execute
-* **dir**: If provided, the directory where the command should be run from.
-* **env**: Environment variables to set for command. Must be flat dict, either as python dict from YAML or as JSON string.
-* **pass_env** *(required)*: If False, the current environment variables will not be passed to the child process. Defaults to True
-* **interactive**: If True, the command will use stderr, stdout, and stdin of the main process.Defaults to False.
+``$ cci task run command``
 
-connected_app
+
+Options
+------------------------------------------
+
+
+``-o command COMMAND``
+	 *Required*
+
+	 The command to execute
+
+``-o pass_env PASSENV``
+	 *Required*
+
+	 If False, the current environment variables will not be passed to the child process. Defaults to True
+
+``-o dir DIR``
+	 *Optional*
+
+	 If provided, the directory where the command should be run from.
+
+``-o env ENV``
+	 *Optional*
+
+	 Environment variables to set for command. Must be flat dict, either as python dict from YAML or as JSON string.
+
+``-o interactive INTERACTIVE``
+	 *Optional*
+
+	 If True, the command will use stderr, stdout, and stdin of the main process.Defaults to False.
+
+**connected_app**
 ==========================================
 
 **Description:** Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
 
-**Class::** cumulusci.tasks.connectedapp.CreateConnectedApp
+**Class:** cumulusci.tasks.connectedapp.CreateConnectedApp
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **label** *(required)*: The label for the connected app.  Must contain only alphanumeric and underscores **Default: CumulusCI**
-* **email**: The email address to associate with the connected app.  Defaults to email address from the github service if configured.
-* **username**: Create the connected app in a different org.  Defaults to the defaultdevhubusername configured in sfdx.
-* **connect**: If True, the created connected app will be stored as the CumulusCI connected_app service in the keychain. **Default: True**
-* **overwrite**: If True, any existing connected_app service in the CumulusCI keychain will be overwritten.  Has no effect if the connect option is False.
+``$ cci task run connected_app``
 
-create_community
+
+Options
+------------------------------------------
+
+
+``-o label LABEL``
+	 *Required*
+
+	 The label for the connected app.  Must contain only alphanumeric and underscores
+
+	 Default: CumulusCI
+
+``-o email EMAIL``
+	 *Optional*
+
+	 The email address to associate with the connected app.  Defaults to email address from the github service if configured.
+
+``-o username USERNAME``
+	 *Optional*
+
+	 Create the connected app in a different org.  Defaults to the defaultdevhubusername configured in sfdx.
+
+``-o connect CONNECT``
+	 *Optional*
+
+	 If True, the created connected app will be stored as the CumulusCI connected_app service in the keychain.
+
+	 Default: True
+
+``-o overwrite OVERWRITE``
+	 *Optional*
+
+	 If True, any existing connected_app service in the CumulusCI keychain will be overwritten.  Has no effect if the connect option is False.
+
+**create_community**
 ==========================================
 
 **Description:** Creates a Community in the target org using the Connect API
 
-**Class::** cumulusci.tasks.salesforce.CreateCommunity
+**Class:** cumulusci.tasks.salesforce.CreateCommunity
 
 Create a Salesforce Community via the Connect API.
 Specify the `template` "VF Template" for Visualforce Tabs community,
 or the name for a specific desired template
 
-
-Options:
+Command Syntax
 ------------------------------------------
 
-* **template** *(required)*: Name of the template for the community.
-* **name** *(required)*: Name of the community.
-* **description**: Description of the community.
-* **url_path_prefix**: URL prefix for the community.
-* **timeout**: Time to wait, in seconds, for the community to be created
+``$ cci task run create_community``
 
-create_package
+
+Options
+------------------------------------------
+
+
+``-o template TEMPLATE``
+	 *Required*
+
+	 Name of the template for the community.
+
+``-o name NAME``
+	 *Required*
+
+	 Name of the community.
+
+``-o description DESCRIPTION``
+	 *Optional*
+
+	 Description of the community.
+
+``-o url_path_prefix URLPATHPREFIX``
+	 *Optional*
+
+	 URL prefix for the community.
+
+``-o timeout TIMEOUT``
+	 *Optional*
+
+	 Time to wait, in seconds, for the community to be created
+
+**create_package**
 ==========================================
 
 **Description:** Creates a package in the target org with the default package name for the project
 
-**Class::** cumulusci.tasks.salesforce.CreatePackage
+**Class:** cumulusci.tasks.salesforce.CreatePackage
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **package** *(required)*: The name of the package to create.  Defaults to project__package__name
-* **api_version** *(required)*: The api version to use when creating the package.  Defaults to project__package__api_version
+``$ cci task run create_package``
 
-create_managed_src
+
+Options
+------------------------------------------
+
+
+``-o package PACKAGE``
+	 *Required*
+
+	 The name of the package to create.  Defaults to project__package__name
+
+``-o api_version APIVERSION``
+	 *Required*
+
+	 The api version to use when creating the package.  Defaults to project__package__api_version
+
+**create_managed_src**
 ==========================================
 
 **Description:** Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
 
-**Class::** cumulusci.tasks.metadata.managed_src.CreateManagedSrc
+**Class:** cumulusci.tasks.metadata.managed_src.CreateManagedSrc
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path containing metadata to process for managed deployment **Default: src**
-* **revert_path** *(required)*: The path to copy the original metadata to for the revert call **Default: src.orig**
+``$ cci task run create_managed_src``
 
-create_unmanaged_ee_src
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path containing metadata to process for managed deployment
+
+	 Default: src
+
+``-o revert_path REVERTPATH``
+	 *Required*
+
+	 The path to copy the original metadata to for the revert call
+
+	 Default: src.orig
+
+**create_unmanaged_ee_src**
 ==========================================
 
 **Description:** Modifies the src directory for unmanaged deployment to an EE org
 
-**Class::** cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc
+**Class:** cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path containing metadata to process for managed deployment **Default: src**
-* **revert_path** *(required)*: The path to copy the original metadata to for the revert call **Default: src.orig**
+``$ cci task run create_unmanaged_ee_src``
 
-deploy
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path containing metadata to process for managed deployment
+
+	 Default: src
+
+``-o revert_path REVERTPATH``
+	 *Required*
+
+	 The path to copy the original metadata to for the revert call
+
+	 Default: src.orig
+
+**deploy**
 ==========================================
 
 **Description:** Deploys the src directory of the repository to the org
 
-**Class::** cumulusci.tasks.salesforce.Deploy
+**Class:** cumulusci.tasks.salesforce.Deploy
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: src**
-* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
-* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
-* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
-* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
-* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
-* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
-* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+``$ cci task run deploy``
 
-deploy_pre
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to the parent directory containing the metadata bundles directories
+
+	 Default: src
+
+``-o unmanaged UNMANAGED``
+	 *Optional*
+
+	 If True, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+``-o namespace_strip NAMESPACESTRIP``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+``-o check_only CHECKONLY``
+	 *Optional*
+
+	 If True, performs a test deployment (validation) of components without saving the components in the target org
+
+``-o test_level TESTLEVEL``
+	 *Optional*
+
+	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+
+``-o specified_tests SPECIFIEDTESTS``
+	 *Optional*
+
+	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
+
+``-o static_resource_path STATICRESOURCEPATH``
+	 *Optional*
+
+	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+
+``-o clean_meta_xml CLEANMETAXML``
+	 *Optional*
+
+	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+
+**deploy_pre**
 ==========================================
 
 **Description:** Deploys all metadata bundles under unpackaged/pre/
 
-**Class::** cumulusci.tasks.salesforce.DeployBundles
+**Class:** cumulusci.tasks.salesforce.DeployBundles
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: unpackaged/pre**
-* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
-* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
-* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
-* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
-* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
-* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
-* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+``$ cci task run deploy_pre``
 
-deploy_post
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to the parent directory containing the metadata bundles directories
+
+	 Default: unpackaged/pre
+
+``-o unmanaged UNMANAGED``
+	 *Optional*
+
+	 If True, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+``-o namespace_strip NAMESPACESTRIP``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+``-o check_only CHECKONLY``
+	 *Optional*
+
+	 If True, performs a test deployment (validation) of components without saving the components in the target org
+
+``-o test_level TESTLEVEL``
+	 *Optional*
+
+	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+
+``-o specified_tests SPECIFIEDTESTS``
+	 *Optional*
+
+	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
+
+``-o static_resource_path STATICRESOURCEPATH``
+	 *Optional*
+
+	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+
+``-o clean_meta_xml CLEANMETAXML``
+	 *Optional*
+
+	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+
+**deploy_post**
 ==========================================
 
 **Description:** Deploys all metadata bundles under unpackaged/post/
 
-**Class::** cumulusci.tasks.salesforce.DeployBundles
+**Class:** cumulusci.tasks.salesforce.DeployBundles
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: unpackaged/post**
-* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string **Default: True**
-* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
-* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
-* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
-* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
-* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
-* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+``$ cci task run deploy_post``
 
-deploy_qa_config
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to the parent directory containing the metadata bundles directories
+
+	 Default: unpackaged/post
+
+``-o unmanaged UNMANAGED``
+	 *Optional*
+
+	 If True, changes namespace_inject to replace tokens with a blank string
+
+	 Default: True
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o namespace_strip NAMESPACESTRIP``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+``-o check_only CHECKONLY``
+	 *Optional*
+
+	 If True, performs a test deployment (validation) of components without saving the components in the target org
+
+``-o test_level TESTLEVEL``
+	 *Optional*
+
+	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+
+``-o specified_tests SPECIFIEDTESTS``
+	 *Optional*
+
+	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
+
+``-o static_resource_path STATICRESOURCEPATH``
+	 *Optional*
+
+	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+
+``-o clean_meta_xml CLEANMETAXML``
+	 *Optional*
+
+	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+
+**deploy_qa_config**
 ==========================================
 
 **Description:** Deploys configuration for QA.
 
-**Class::** cumulusci.tasks.salesforce.Deploy
+**Class:** cumulusci.tasks.salesforce.Deploy
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: unpackaged/config/qa**
-* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string **Default: True**
-* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix **Default: $project_config.project__package__namespace**
-* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
-* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
-* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
-* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
-* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+``$ cci task run deploy_qa_config``
 
-dx_convert_to
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to the parent directory containing the metadata bundles directories
+
+	 Default: unpackaged/config/qa
+
+``-o unmanaged UNMANAGED``
+	 *Optional*
+
+	 If True, changes namespace_inject to replace tokens with a blank string
+
+	 Default: True
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o namespace_strip NAMESPACESTRIP``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+``-o check_only CHECKONLY``
+	 *Optional*
+
+	 If True, performs a test deployment (validation) of components without saving the components in the target org
+
+``-o test_level TESTLEVEL``
+	 *Optional*
+
+	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+
+``-o specified_tests SPECIFIEDTESTS``
+	 *Optional*
+
+	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
+
+``-o static_resource_path STATICRESOURCEPATH``
+	 *Optional*
+
+	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+
+``-o clean_meta_xml CLEANMETAXML``
+	 *Optional*
+
+	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+
+**dx_convert_to**
 ==========================================
 
 **Description:** Converts src directory metadata format into sfdx format under force-app
 
-**Class::** cumulusci.tasks.sfdx.SFDXBaseTask
+**Class:** cumulusci.tasks.sfdx.SFDXBaseTask
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **command** *(required)*: The full command to run with the sfdx cli. **Default: force:mdapi:convert -r src**
-* **extra**: Append additional options to the command
+``$ cci task run dx_convert_to``
 
-dx_convert_from
+
+Options
+------------------------------------------
+
+
+``-o command COMMAND``
+	 *Required*
+
+	 The full command to run with the sfdx cli.
+
+	 Default: force:mdapi:convert -r src
+
+``-o extra EXTRA``
+	 *Optional*
+
+	 Append additional options to the command
+
+**dx_convert_from**
 ==========================================
 
 **Description:** Converts force-app directory in sfdx format into metadata format under src
 
-**Class::** cumulusci.tasks.sfdx.SFDXBaseTask
+**Class:** cumulusci.tasks.sfdx.SFDXBaseTask
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **command** *(required)*: The full command to run with the sfdx cli. **Default: force:source:convert -d src**
-* **extra**: Append additional options to the command
+``$ cci task run dx_convert_from``
 
-dx_pull
+
+Options
+------------------------------------------
+
+
+``-o command COMMAND``
+	 *Required*
+
+	 The full command to run with the sfdx cli.
+
+	 Default: force:source:convert -d src
+
+``-o extra EXTRA``
+	 *Optional*
+
+	 Append additional options to the command
+
+**dx_pull**
 ==========================================
 
 **Description:** Uses sfdx to pull from a scratch org into the force-app directory
 
-**Class::** cumulusci.tasks.sfdx.SFDXOrgTask
+**Class:** cumulusci.tasks.sfdx.SFDXOrgTask
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **command** *(required)*: The full command to run with the sfdx cli. **Default: force:source:pull**
-* **extra**: Append additional options to the command
+``$ cci task run dx_pull``
 
-dx_push
+
+Options
+------------------------------------------
+
+
+``-o command COMMAND``
+	 *Required*
+
+	 The full command to run with the sfdx cli.
+
+	 Default: force:source:pull
+
+``-o extra EXTRA``
+	 *Optional*
+
+	 Append additional options to the command
+
+**dx_push**
 ==========================================
 
 **Description:** Uses sfdx to push the force-app directory metadata into a scratch org
 
-**Class::** cumulusci.tasks.sfdx.SFDXOrgTask
+**Class:** cumulusci.tasks.sfdx.SFDXOrgTask
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **command** *(required)*: The full command to run with the sfdx cli. **Default: force:source:push**
-* **extra**: Append additional options to the command
+``$ cci task run dx_push``
 
-ensure_record_type
+
+Options
+------------------------------------------
+
+
+``-o command COMMAND``
+	 *Required*
+
+	 The full command to run with the sfdx cli.
+
+	 Default: force:source:push
+
+``-o extra EXTRA``
+	 *Optional*
+
+	 Append additional options to the command
+
+**ensure_record_types**
 ==========================================
 
 **Description:** Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
 
-**Class::** cumulusci.tasks.salesforce.EnsureRecordTypes
+**Class:** cumulusci.tasks.salesforce.EnsureRecordTypes
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **record_type_developer_name** *(required)*: The Developer Name of the Record Type (unique).  Must contain only alphanumeric characters and underscores. **Default: Default**
-* **record_type_label** *(required)*: The Label of the Record Type. **Default: Default**
-* **sobject** *(required)*: The sObject on which to deploy the Record Type and optional Business Process.
+``$ cci task run ensure_record_types``
 
-execute_anon
+
+Options
+------------------------------------------
+
+
+``-o record_type_developer_name RECORDTYPEDEVELOPERNAME``
+	 *Required*
+
+	 The Developer Name of the Record Type (unique).  Must contain only alphanumeric characters and underscores.
+
+	 Default: Default
+
+``-o record_type_label RECORDTYPELABEL``
+	 *Required*
+
+	 The Label of the Record Type.
+
+	 Default: Default
+
+``-o sobject SOBJECT``
+	 *Required*
+
+	 The sObject on which to deploy the Record Type and optional Business Process.
+
+**execute_anon**
 ==========================================
 
 **Description:** Execute anonymous apex via the tooling api.
 
-**Class::** cumulusci.tasks.apex.anon.AnonymousApexTask
+**Class:** cumulusci.tasks.apex.anon.AnonymousApexTask
 
 Use the `apex` option to run a string of anonymous Apex.
 Use the `path` option to run anonymous Apex from a file.
 Or use both to concatenate the string to the file contents.
 
-
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path**: The path to an Apex file to run.
-* **apex**: A string of Apex to run (after the file, if specified).
-* **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
-* **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
-* **param1**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_1%%% in the Apex code.
-* **param2**: Optional parameter to pass to Apex. Tokenized as %%%PARAM_2%%% in the Apex code.
+``$ cci task run execute_anon``
 
-generate_data_dictionary
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Optional*
+
+	 The path to an Apex file to run.
+
+``-o apex APEX``
+	 *Optional*
+
+	 A string of Apex to run (after the file, if specified).
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
+
+``-o namespaced NAMESPACED``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
+
+``-o param1 PARAM1``
+	 *Optional*
+
+	 Parameter to pass to the Apex. Use as %%%PARAM_1%%% in the Apex code.Defaults to an empty value.
+
+``-o param2 PARAM2``
+	 *Optional*
+
+	 Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code.Defaults to an empty value.
+
+**generate_data_dictionary**
 ==========================================
 
 **Description:** Create a data dictionary for the project in CSV format.
 
-**Class::** cumulusci.tasks.datadictionary.GenerateDataDictionary
+**Class:** cumulusci.tasks.datadictionary.GenerateDataDictionary
 
 Generate a data dictionary for the project by walking all GitHub releases.
 The data dictionary is output as two CSV files.
@@ -321,28 +806,53 @@ Picklist Values (if any), Version Introduced.
 Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
 is processed for SFDX projects.
 
-
-Options:
+Command Syntax
 ------------------------------------------
 
-* **object_path**: Path to a CSV file to contain an sObject-level data dictionary.
-* **field_path**: Path to a CSV file to contain an field-level data dictionary.
-* **release_prefix** *(required)*: The tag prefix used for releases. **Default: $project_config.project__git__prefix_release**
+``$ cci task run generate_data_dictionary``
 
-get_installed_packages
+
+Options
+------------------------------------------
+
+
+``-o release_prefix RELEASEPREFIX``
+	 *Required*
+
+	 The tag prefix used for releases.
+
+	 Default: $project_config.project__git__prefix_release
+
+``-o object_path OBJECTPATH``
+	 *Optional*
+
+	 Path to a CSV file to contain an sObject-level data dictionary.
+
+``-o field_path FIELDPATH``
+	 *Optional*
+
+	 Path to a CSV file to contain an field-level data dictionary.
+
+**get_installed_packages**
 ==========================================
 
 **Description:** Retrieves a list of the currently installed managed package namespaces and their versions
 
-**Class::** cumulusci.tasks.salesforce.GetInstalledPackages
+**Class:** cumulusci.tasks.salesforce.GetInstalledPackages
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run get_installed_packages``
 
 
-github_parent_pr_notes
+
+**github_parent_pr_notes**
 ==========================================
 
 **Description:** Merges the description of a child pull request to the respective parent's pull request (if one exists).
 
-**Class::** cumulusci.tasks.release_notes.task.ParentPullRequestNotes
+**Class:** cumulusci.tasks.release_notes.task.ParentPullRequestNotes
 
 Aggregate change notes from child pull request(s) to its corresponding
 parent's pull request.
@@ -361,545 +871,1383 @@ When given the parent_branch_name option, this task will query for a correspondi
 If a pull request is not found, the task exits. If a pull request is found, then all notes
 from child pull requests are re-aggregated and the body of the parent is replaced entirely.
 
-
-Options:
+Command Syntax
 ------------------------------------------
 
-* **branch_name** *(required)*: Name of branch to check for parent status, and if so, reaggregate change notes from child branches.
-* **build_notes_label** *(required)*: Name of the label that indicates that change notes on parent pull requests should be reaggregated when a child branch pull request is created.
-* **force**: force rebuilding of change notes from child branches in the given branch.
+``$ cci task run github_parent_pr_notes``
 
-github_clone_tag
+
+Options
+------------------------------------------
+
+
+``-o branch_name BRANCHNAME``
+	 *Required*
+
+	 Name of branch to check for parent status, and if so, reaggregate change notes from child branches.
+
+``-o build_notes_label BUILDNOTESLABEL``
+	 *Required*
+
+	 Name of the label that indicates that change notes on parent pull requests should be reaggregated when a child branch pull request is created.
+
+``-o force FORCE``
+	 *Optional*
+
+	 force rebuilding of change notes from child branches in the given branch.
+
+**github_clone_tag**
 ==========================================
 
 **Description:** Clones a github tag under a new name.
 
-**Class::** cumulusci.tasks.github.CloneTag
+**Class:** cumulusci.tasks.github.CloneTag
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **src_tag** *(required)*: The source tag to clone.  Ex: beta/1.0-Beta_2
-* **tag** *(required)*: The new tag to create by cloning the src tag.  Ex: release/1.0
+``$ cci task run github_clone_tag``
 
-github_master_to_feature
+
+Options
+------------------------------------------
+
+
+``-o src_tag SRCTAG``
+	 *Required*
+
+	 The source tag to clone.  Ex: beta/1.0-Beta_2
+
+``-o tag TAG``
+	 *Required*
+
+	 The new tag to create by cloning the src tag.  Ex: release/1.0
+
+**github_master_to_feature**
 ==========================================
 
 **Description:** Merges the latest commit on the master branch into all open feature branches
 
-**Class::** cumulusci.tasks.github.MergeBranch
+**Class:** cumulusci.tasks.github.MergeBranch
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **commit**: The commit to merge into feature branches.  Defaults to the current head commit.
-* **source_branch**: The source branch to merge from.  Defaults to project__git__default_branch.
-* **branch_prefix**: The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature
-* **children_only**: If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
+``$ cci task run github_master_to_feature``
 
-github_parent_to_children
+
+Options
+------------------------------------------
+
+
+``-o commit COMMIT``
+	 *Optional*
+
+	 The commit to merge into feature branches.  Defaults to the current head commit.
+
+``-o source_branch SOURCEBRANCH``
+	 *Optional*
+
+	 The source branch to merge from.  Defaults to project__git__default_branch.
+
+``-o branch_prefix BRANCHPREFIX``
+	 *Optional*
+
+	 The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature
+
+``-o children_only CHILDRENONLY``
+	 *Optional*
+
+	 If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
+
+**github_parent_to_children**
 ==========================================
 
 **Description:** Merges the latest commit on a parent feature branch into all child feature branches
 
-**Class::** cumulusci.tasks.github.MergeBranch
+**Class:** cumulusci.tasks.github.MergeBranch
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **commit**: The commit to merge into feature branches.  Defaults to the current head commit.
-* **source_branch**: The source branch to merge from.  Defaults to project__git__default_branch. **Default: $project_config.repo_branch**
-* **branch_prefix**: The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature
-* **children_only**: If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False **Default: True**
+``$ cci task run github_parent_to_children``
 
-github_pull_requests
+
+Options
+------------------------------------------
+
+
+``-o commit COMMIT``
+	 *Optional*
+
+	 The commit to merge into feature branches.  Defaults to the current head commit.
+
+``-o source_branch SOURCEBRANCH``
+	 *Optional*
+
+	 The source branch to merge from.  Defaults to project__git__default_branch.
+
+	 Default: $project_config.repo_branch
+
+``-o branch_prefix BRANCHPREFIX``
+	 *Optional*
+
+	 The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature
+
+``-o children_only CHILDRENONLY``
+	 *Optional*
+
+	 If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
+
+	 Default: True
+
+**github_pull_requests**
 ==========================================
 
 **Description:** Lists open pull requests in project Github repository
 
-**Class::** cumulusci.tasks.github.PullRequests
+**Class:** cumulusci.tasks.github.PullRequests
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run github_pull_requests``
 
 
-github_release
+
+**github_release**
 ==========================================
 
 **Description:** Creates a Github release for a given managed package version number
 
-**Class::** cumulusci.tasks.github.CreateRelease
+**Class:** cumulusci.tasks.github.CreateRelease
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **version** *(required)*: The managed package version number.  Ex: 1.2
-* **message**: The message to attach to the created git tag
-* **dependencies**: List of dependencies to record in the tag message.
-* **commit**: Override the commit used to create the release. Defaults to the current local HEAD commit
+``$ cci task run github_release``
 
-github_release_notes
+
+Options
+------------------------------------------
+
+
+``-o version VERSION``
+	 *Required*
+
+	 The managed package version number.  Ex: 1.2
+
+``-o message MESSAGE``
+	 *Optional*
+
+	 The message to attach to the created git tag
+
+``-o dependencies DEPENDENCIES``
+	 *Optional*
+
+	 List of dependencies to record in the tag message.
+
+``-o commit COMMIT``
+	 *Optional*
+
+	 Override the commit used to create the release. Defaults to the current local HEAD commit
+
+**github_release_notes**
 ==========================================
 
 **Description:** Generates release notes by parsing pull request bodies of merged pull requests between two tags
 
-**Class::** cumulusci.tasks.release_notes.task.GithubReleaseNotes
+**Class:** cumulusci.tasks.release_notes.task.GithubReleaseNotes
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **tag** *(required)*: The tag to generate release notes for. Ex: release/1.2
-* **last_tag**: Override the last release tag. This is useful to generate release notes if you skipped one or more releases.
-* **link_pr**: If True, insert link to source pull request at end of each line.
-* **publish**: Publish to GitHub release if True (default=False)
-* **include_empty**: If True, include links to PRs that have no release notes (default=False)
+``$ cci task run github_release_notes``
 
-github_release_report
+
+Options
+------------------------------------------
+
+
+``-o tag TAG``
+	 *Required*
+
+	 The tag to generate release notes for. Ex: release/1.2
+
+``-o last_tag LASTTAG``
+	 *Optional*
+
+	 Override the last release tag. This is useful to generate release notes if you skipped one or more releases.
+
+``-o link_pr LINKPR``
+	 *Optional*
+
+	 If True, insert link to source pull request at end of each line.
+
+``-o publish PUBLISH``
+	 *Optional*
+
+	 Publish to GitHub release if True (default=False)
+
+``-o include_empty INCLUDEEMPTY``
+	 *Optional*
+
+	 If True, include links to PRs that have no release notes (default=False)
+
+**github_release_report**
 ==========================================
 
 **Description:** Parses GitHub release notes to report various info
 
-**Class::** cumulusci.tasks.github.ReleaseReport
+**Class:** cumulusci.tasks.github.ReleaseReport
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **date_start**: Filter out releases created before this date (YYYY-MM-DD)
-* **date_end**: Filter out releases created after this date (YYYY-MM-DD)
-* **include_beta**: Include beta releases in report [default=False]
-* **print**: Print info to screen as JSON [default=False]
+``$ cci task run github_release_report``
 
-install_managed
+
+Options
+------------------------------------------
+
+
+``-o date_start DATESTART``
+	 *Optional*
+
+	 Filter out releases created before this date (YYYY-MM-DD)
+
+``-o date_end DATEEND``
+	 *Optional*
+
+	 Filter out releases created after this date (YYYY-MM-DD)
+
+``-o include_beta INCLUDEBETA``
+	 *Optional*
+
+	 Include beta releases in report [default=False]
+
+``-o print PRINT``
+	 *Optional*
+
+	 Print info to screen as JSON [default=False]
+
+**install_managed**
 ==========================================
 
 **Description:** Install the latest managed production release
 
-**Class::** cumulusci.tasks.salesforce.InstallPackageVersion
+**Class:** cumulusci.tasks.salesforce.InstallPackageVersion
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **name**: The name of the package to install.  Defaults to project__package__name_managed
-* **namespace** *(required)*: The namespace of the package to install.  Defaults to project__package__namespace
-* **version** *(required)*: The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository. **Default: latest**
-* **activateRSS**: If True, preserve the isActive state of Remote Site Settings and Content Security Policy in the package. Default: False. **Default: True**
-* **password**: The package password. Optional.
-* **retries**: Number of retries (default=5)
-* **retry_interval**: Number of seconds to wait before the next retry (default=5),
-* **retry_interval_add**: Number of seconds to add before each retry (default=30),
+``$ cci task run install_managed``
 
-install_managed_beta
+
+Options
+------------------------------------------
+
+
+``-o namespace NAMESPACE``
+	 *Required*
+
+	 The namespace of the package to install.  Defaults to project__package__namespace
+
+``-o version VERSION``
+	 *Required*
+
+	 The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.
+
+	 Default: latest
+
+``-o name NAME``
+	 *Optional*
+
+	 The name of the package to install.  Defaults to project__package__name_managed
+
+``-o activateRSS ACTIVATERSS``
+	 *Optional*
+
+	 If True, preserve the isActive state of Remote Site Settings and Content Security Policy in the package. Default: False.
+
+	 Default: True
+
+``-o password PASSWORD``
+	 *Optional*
+
+	 The package password. Optional.
+
+``-o retries RETRIES``
+	 *Optional*
+
+	 Number of retries (default=5)
+
+``-o retry_interval RETRYINTERVAL``
+	 *Optional*
+
+	 Number of seconds to wait before the next retry (default=5),
+
+``-o retry_interval_add RETRYINTERVALADD``
+	 *Optional*
+
+	 Number of seconds to add before each retry (default=30),
+
+**install_managed_beta**
 ==========================================
 
 **Description:** Installs the latest managed beta release
 
-**Class::** cumulusci.tasks.salesforce.InstallPackageVersion
+**Class:** cumulusci.tasks.salesforce.InstallPackageVersion
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **name**: The name of the package to install.  Defaults to project__package__name_managed
-* **namespace** *(required)*: The namespace of the package to install.  Defaults to project__package__namespace
-* **version** *(required)*: The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository. **Default: latest_beta**
-* **activateRSS**: If True, preserve the isActive state of Remote Site Settings and Content Security Policy in the package. Default: False. **Default: True**
-* **password**: The package password. Optional.
-* **retries**: Number of retries (default=5)
-* **retry_interval**: Number of seconds to wait before the next retry (default=5),
-* **retry_interval_add**: Number of seconds to add before each retry (default=30),
+``$ cci task run install_managed_beta``
 
-list_communities
+
+Options
+------------------------------------------
+
+
+``-o namespace NAMESPACE``
+	 *Required*
+
+	 The namespace of the package to install.  Defaults to project__package__namespace
+
+``-o version VERSION``
+	 *Required*
+
+	 The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.
+
+	 Default: latest_beta
+
+``-o name NAME``
+	 *Optional*
+
+	 The name of the package to install.  Defaults to project__package__name_managed
+
+``-o activateRSS ACTIVATERSS``
+	 *Optional*
+
+	 If True, preserve the isActive state of Remote Site Settings and Content Security Policy in the package. Default: False.
+
+	 Default: True
+
+``-o password PASSWORD``
+	 *Optional*
+
+	 The package password. Optional.
+
+``-o retries RETRIES``
+	 *Optional*
+
+	 Number of retries (default=5)
+
+``-o retry_interval RETRYINTERVAL``
+	 *Optional*
+
+	 Number of seconds to wait before the next retry (default=5),
+
+``-o retry_interval_add RETRYINTERVALADD``
+	 *Optional*
+
+	 Number of seconds to add before each retry (default=30),
+
+**list_communities**
 ==========================================
 
 **Description:** Lists Communities for the current org using the Connect API.
 
-**Class::** cumulusci.tasks.salesforce.ListCommunities
+**Class:** cumulusci.tasks.salesforce.ListCommunities
 
 Lists Communities for the current org via the Connect API.
 
+Command Syntax
+------------------------------------------
+
+``$ cci task run list_communities``
 
 
-list_community_templates
+
+**list_community_templates**
 ==========================================
 
 **Description:** Prints the Community Templates available to the current org
 
-**Class::** cumulusci.tasks.salesforce.ListCommunityTemplates
+**Class:** cumulusci.tasks.salesforce.ListCommunityTemplates
 
 Lists Salesforce Community templates available for the current org via the Connect API.
 
+Command Syntax
+------------------------------------------
+
+``$ cci task run list_community_templates``
 
 
-list_metadata_types
+
+**list_metadata_types**
 ==========================================
 
 **Description:** Prints the metadata types in a project
 
-**Class::** cumulusci.tasks.util.ListMetadataTypes
+**Class:** cumulusci.tasks.util.ListMetadataTypes
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **package_xml**: The project package.xml file. Defaults to <project_root>/src/package.xml
+``$ cci task run list_metadata_types``
 
-meta_xml_apiversion
+
+Options
+------------------------------------------
+
+
+``-o package_xml PACKAGEXML``
+	 *Optional*
+
+	 The project package.xml file. Defaults to <project_root>/src/package.xml
+
+**meta_xml_apiversion**
 ==========================================
 
 **Description:** Set the API version in ``*meta.xml`` files
 
-**Class::** cumulusci.tasks.metaxml.UpdateApi
+**Class:** cumulusci.tasks.metaxml.UpdateApi
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **dir**: Base directory to search for ``*-meta.xml`` files
-* **version** *(required)*: API version number e.g. 37.0
+``$ cci task run meta_xml_apiversion``
 
-meta_xml_dependencies
+
+Options
+------------------------------------------
+
+
+``-o version VERSION``
+	 *Required*
+
+	 API version number e.g. 37.0
+
+``-o dir DIR``
+	 *Optional*
+
+	 Base directory to search for ``*-meta.xml`` files
+
+**meta_xml_dependencies**
 ==========================================
 
 **Description:** Set the version for dependent packages
 
-**Class::** cumulusci.tasks.metaxml.UpdateDependencies
+**Class:** cumulusci.tasks.metaxml.UpdateDependencies
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **dir**: Base directory to search for ``*-meta.xml`` files
+``$ cci task run meta_xml_dependencies``
 
-metadeploy_publish
+
+Options
+------------------------------------------
+
+
+``-o dir DIR``
+	 *Optional*
+
+	 Base directory to search for ``*-meta.xml`` files
+
+**metadeploy_publish**
 ==========================================
 
 **Description:** Publish a release to the MetaDeploy web installer
 
-**Class::** cumulusci.tasks.metadeploy.Publish
+**Class:** cumulusci.tasks.metadeploy.Publish
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **tag**: Name of the git tag to publish
-* **commit**: Commit hash to publish
-* **plan**: Name of the plan(s) to publish. This refers to the `plans` section of cumulusci.yml. By default, all plans will be published.
-* **dry_run**: If True, print steps without publishing.
-* **publish**: If True, set is_listed to True on the version. Default: False
+``$ cci task run metadeploy_publish``
 
-org_settings
+
+Options
+------------------------------------------
+
+
+``-o tag TAG``
+	 *Optional*
+
+	 Name of the git tag to publish
+
+``-o commit COMMIT``
+	 *Optional*
+
+	 Commit hash to publish
+
+``-o plan PLAN``
+	 *Optional*
+
+	 Name of the plan(s) to publish. This refers to the `plans` section of cumulusci.yml. By default, all plans will be published.
+
+``-o dry_run DRYRUN``
+	 *Optional*
+
+	 If True, print steps without publishing.
+
+``-o publish PUBLISH``
+	 *Optional*
+
+	 If True, set is_listed to True on the version. Default: False
+
+**org_settings**
 ==========================================
 
 **Description:** Apply org settings from a scratch org definition file
 
-**Class::** cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
+**Class:** cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **definition_file**: sfdx scratch org definition file
-* **api_version**: API version used to deploy the settings
+``$ cci task run org_settings``
 
-publish_community
+
+Options
+------------------------------------------
+
+
+``-o definition_file DEFINITIONFILE``
+	 *Optional*
+
+	 sfdx scratch org definition file
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 API version used to deploy the settings
+
+**publish_community**
 ==========================================
 
 **Description:** Publishes a Community in the target org using the Connect API
 
-**Class::** cumulusci.tasks.salesforce.PublishCommunity
+**Class:** cumulusci.tasks.salesforce.PublishCommunity
 
 Publish a Salesforce Community via the Connect API. Warning: This does not work with the Community Template 'VF Template' due to an existing bug in the API.
 
-
-Options:
+Command Syntax
 ------------------------------------------
 
-* **name**: The name of the Community to publish.
-* **community_id**: The id of the Community to publish.
+``$ cci task run publish_community``
 
-push_all
+
+Options
+------------------------------------------
+
+
+``-o name NAME``
+	 *Optional*
+
+	 The name of the Community to publish.
+
+``-o community_id COMMUNITYID``
+	 *Optional*
+
+	 The id of the Community to publish.
+
+**push_all**
 ==========================================
 
 **Description:** Schedules a push upgrade of a package version to all subscribers
 
-**Class::** cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+**Class:** cumulusci.tasks.push.tasks.SchedulePushOrgQuery
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **version** *(required)*: The managed package version to push
-* **subscriber_where**: A SOQL style WHERE clause for filtering PackageSubscriber objects. Ex: OrgType = 'Sandbox'
-* **min_version**: If set, no subscriber with a version lower than min_version will be selected for push
-* **namespace**: The managed package namespace to push. Defaults to project__package__namespace.
-* **start_time**: Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
+``$ cci task run push_all``
 
-push_list
+
+Options
+------------------------------------------
+
+
+``-o version VERSION``
+	 *Required*
+
+	 The managed package version to push
+
+``-o subscriber_where SUBSCRIBERWHERE``
+	 *Optional*
+
+	 A SOQL style WHERE clause for filtering PackageSubscriber objects. Ex: OrgType = 'Sandbox'
+
+``-o min_version MINVERSION``
+	 *Optional*
+
+	 If set, no subscriber with a version lower than min_version will be selected for push
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 The managed package namespace to push. Defaults to project__package__namespace.
+
+``-o start_time STARTTIME``
+	 *Optional*
+
+	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
+
+**push_list**
 ==========================================
 
 **Description:** Schedules a push upgrade of a package version to all orgs listed in the specified file
 
-**Class::** cumulusci.tasks.push.tasks.SchedulePushOrgList
+**Class:** cumulusci.tasks.push.tasks.SchedulePushOrgList
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **orgs** *(required)*: The path to a file containing one OrgID per line.
-* **version** *(required)*: The managed package version to push
-* **namespace**: The managed package namespace to push. Defaults to project__package__namespace.
-* **start_time**: Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
-* **batch_size**: Break pull requests into batches of this many orgs. Defaults to 200.
+``$ cci task run push_list``
 
-push_qa
+
+Options
+------------------------------------------
+
+
+``-o orgs ORGS``
+	 *Required*
+
+	 The path to a file containing one OrgID per line.
+
+``-o version VERSION``
+	 *Required*
+
+	 The managed package version to push
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 The managed package namespace to push. Defaults to project__package__namespace.
+
+``-o start_time STARTTIME``
+	 *Optional*
+
+	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
+
+``-o batch_size BATCHSIZE``
+	 *Optional*
+
+	 Break pull requests into batches of this many orgs. Defaults to 200.
+
+**push_qa**
 ==========================================
 
 **Description:** Schedules a push upgrade of a package version to all orgs listed in push/orgs_qa.txt
 
-**Class::** cumulusci.tasks.push.tasks.SchedulePushOrgList
+**Class:** cumulusci.tasks.push.tasks.SchedulePushOrgList
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **orgs** *(required)*: The path to a file containing one OrgID per line. **Default: push/orgs_qa.txt**
-* **version** *(required)*: The managed package version to push
-* **namespace**: The managed package namespace to push. Defaults to project__package__namespace.
-* **start_time**: Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
-* **batch_size**: Break pull requests into batches of this many orgs. Defaults to 200.
+``$ cci task run push_qa``
 
-push_sandbox
+
+Options
+------------------------------------------
+
+
+``-o orgs ORGS``
+	 *Required*
+
+	 The path to a file containing one OrgID per line.
+
+	 Default: push/orgs_qa.txt
+
+``-o version VERSION``
+	 *Required*
+
+	 The managed package version to push
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 The managed package namespace to push. Defaults to project__package__namespace.
+
+``-o start_time STARTTIME``
+	 *Optional*
+
+	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
+
+``-o batch_size BATCHSIZE``
+	 *Optional*
+
+	 Break pull requests into batches of this many orgs. Defaults to 200.
+
+**push_sandbox**
 ==========================================
 
 **Description:** Schedules a push upgrade of a package version to all subscribers
 
-**Class::** cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+**Class:** cumulusci.tasks.push.tasks.SchedulePushOrgQuery
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **version** *(required)*: The managed package version to push
-* **subscriber_where**: A SOQL style WHERE clause for filtering PackageSubscriber objects. Ex: OrgType = 'Sandbox' **Default: OrgType = 'Sandbox'**
-* **min_version**: If set, no subscriber with a version lower than min_version will be selected for push
-* **namespace**: The managed package namespace to push. Defaults to project__package__namespace.
-* **start_time**: Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
+``$ cci task run push_sandbox``
 
-push_trial
+
+Options
+------------------------------------------
+
+
+``-o version VERSION``
+	 *Required*
+
+	 The managed package version to push
+
+``-o subscriber_where SUBSCRIBERWHERE``
+	 *Optional*
+
+	 A SOQL style WHERE clause for filtering PackageSubscriber objects. Ex: OrgType = 'Sandbox'
+
+	 Default: OrgType = 'Sandbox'
+
+``-o min_version MINVERSION``
+	 *Optional*
+
+	 If set, no subscriber with a version lower than min_version will be selected for push
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 The managed package namespace to push. Defaults to project__package__namespace.
+
+``-o start_time STARTTIME``
+	 *Optional*
+
+	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
+
+**push_trial**
 ==========================================
 
 **Description:** Schedules a push upgrade of a package version to Trialforce Template orgs listed in push/orgs_trial.txt
 
-**Class::** cumulusci.tasks.push.tasks.SchedulePushOrgList
+**Class:** cumulusci.tasks.push.tasks.SchedulePushOrgList
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **orgs** *(required)*: The path to a file containing one OrgID per line. **Default: push/orgs_trial.txt**
-* **version** *(required)*: The managed package version to push
-* **namespace**: The managed package namespace to push. Defaults to project__package__namespace.
-* **start_time**: Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
-* **batch_size**: Break pull requests into batches of this many orgs. Defaults to 200.
+``$ cci task run push_trial``
 
-push_failure_report
+
+Options
+------------------------------------------
+
+
+``-o orgs ORGS``
+	 *Required*
+
+	 The path to a file containing one OrgID per line.
+
+	 Default: push/orgs_trial.txt
+
+``-o version VERSION``
+	 *Required*
+
+	 The managed package version to push
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 The managed package namespace to push. Defaults to project__package__namespace.
+
+``-o start_time STARTTIME``
+	 *Optional*
+
+	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
+
+``-o batch_size BATCHSIZE``
+	 *Optional*
+
+	 Break pull requests into batches of this many orgs. Defaults to 200.
+
+**push_failure_report**
 ==========================================
 
 **Description:** Produce a CSV report of the failed and otherwise anomalous push jobs.
 
-**Class::** cumulusci.tasks.push.pushfails.ReportPushFailures
+**Class:** cumulusci.tasks.push.pushfails.ReportPushFailures
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **request_id** *(required)*: PackagePushRequest ID for the request you need to report on.
-* **result_file**: Path to write a CSV file with the results. Defaults to 'push_fails.csv'.
-* **ignore_errors**: List of ErrorTitle and ErrorType values to omit from the report **Default: ['Salesforce Subscription Expired', 'Package Uninstalled']**
+``$ cci task run push_failure_report``
 
-query
+
+Options
+------------------------------------------
+
+
+``-o request_id REQUESTID``
+	 *Required*
+
+	 PackagePushRequest ID for the request you need to report on.
+
+``-o result_file RESULTFILE``
+	 *Optional*
+
+	 Path to write a CSV file with the results. Defaults to 'push_fails.csv'.
+
+``-o ignore_errors IGNOREERRORS``
+	 *Optional*
+
+	 List of ErrorTitle and ErrorType values to omit from the report
+
+	 Default: ['Salesforce Subscription Expired', 'Package Uninstalled']
+
+**query**
 ==========================================
 
 **Description:** Queries the connected org
 
-**Class::** cumulusci.tasks.salesforce.SOQLQuery
+**Class:** cumulusci.tasks.salesforce.SOQLQuery
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **object** *(required)*: The object to query
-* **query** *(required)*: A valid bulk SOQL query for the object
-* **result_file** *(required)*: The name of the csv file to write the results to
+``$ cci task run query``
 
-retrieve_packaged
+
+Options
+------------------------------------------
+
+
+``-o object OBJECT``
+	 *Required*
+
+	 The object to query
+
+``-o query QUERY``
+	 *Required*
+
+	 A valid bulk SOQL query for the object
+
+``-o result_file RESULTFILE``
+	 *Required*
+
+	 The name of the csv file to write the results to
+
+**retrieve_packaged**
 ==========================================
 
 **Description:** Retrieves the packaged metadata from the org
 
-**Class::** cumulusci.tasks.salesforce.RetrievePackaged
+**Class:** cumulusci.tasks.salesforce.RetrievePackaged
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to write the retrieved metadata **Default: packaged**
-* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
-* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
-* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **package** *(required)*: The package name to retrieve.  Defaults to project__package__name
-* **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
+``$ cci task run retrieve_packaged``
 
-retrieve_src
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to write the retrieved metadata
+
+	 Default: packaged
+
+``-o package PACKAGE``
+	 *Required*
+
+	 The package name to retrieve.  Defaults to project__package__name
+
+``-o unmanaged UNMANAGED``
+	 *Optional*
+
+	 If True, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+``-o namespace_strip NAMESPACESTRIP``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Override the default api version for the retrieve. Defaults to project__package__api_version
+
+**retrieve_src**
 ==========================================
 
 **Description:** Retrieves the packaged metadata into the src directory
 
-**Class::** cumulusci.tasks.salesforce.RetrievePackaged
+**Class:** cumulusci.tasks.salesforce.RetrievePackaged
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to write the retrieved metadata **Default: src**
-* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
-* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
-* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **package** *(required)*: The package name to retrieve.  Defaults to project__package__name
-* **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
+``$ cci task run retrieve_src``
 
-retrieve_unpackaged
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to write the retrieved metadata
+
+	 Default: src
+
+``-o package PACKAGE``
+	 *Required*
+
+	 The package name to retrieve.  Defaults to project__package__name
+
+``-o unmanaged UNMANAGED``
+	 *Optional*
+
+	 If True, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+``-o namespace_strip NAMESPACESTRIP``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Override the default api version for the retrieve. Defaults to project__package__api_version
+
+**retrieve_unpackaged**
 ==========================================
 
 **Description:** Retrieve the contents of a package.xml file.
 
-**Class::** cumulusci.tasks.salesforce.RetrieveUnpackaged
+**Class:** cumulusci.tasks.salesforce.RetrieveUnpackaged
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to write the retrieved metadata
-* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
-* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
-* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **package_xml** *(required)*: The path to a package.xml manifest to use for the retrieve.
-* **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
+``$ cci task run retrieve_unpackaged``
 
-list_changes
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to write the retrieved metadata
+
+``-o package_xml PACKAGEXML``
+	 *Required*
+
+	 The path to a package.xml manifest to use for the retrieve.
+
+``-o unmanaged UNMANAGED``
+	 *Optional*
+
+	 If True, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+``-o namespace_strip NAMESPACESTRIP``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Override the default api version for the retrieve. Defaults to project__package__api_version
+
+**list_changes**
 ==========================================
 
 **Description:** List the changes from a scratch org
 
-**Class::** cumulusci.tasks.salesforce.sourcetracking.ListChanges
+**Class:** cumulusci.tasks.salesforce.sourcetracking.ListChanges
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **include**: A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
-* **types**: A comma-separated list of metadata types to include.
-* **exclude**: Exclude changed components matching this string.
-* **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
+``$ cci task run list_changes``
 
-retrieve_changes
+
+Options
+------------------------------------------
+
+
+``-o include INCLUDE``
+	 *Optional*
+
+	 A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
+
+``-o types TYPES``
+	 *Optional*
+
+	 A comma-separated list of metadata types to include.
+
+``-o exclude EXCLUDE``
+	 *Optional*
+
+	 Exclude changed components matching this string.
+
+``-o snapshot SNAPSHOT``
+	 *Optional*
+
+	 If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
+
+**retrieve_changes**
 ==========================================
 
 **Description:** Retrieve changed components from a scratch org
 
-**Class::** cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+**Class:** cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **include**: A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
-* **types**: A comma-separated list of metadata types to include.
-* **exclude**: Exclude changed components matching this string.
-* **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
-* **path**: The path to write the retrieved metadata
-* **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+``$ cci task run retrieve_changes``
 
-retrieve_qa_config
+
+Options
+------------------------------------------
+
+
+``-o include INCLUDE``
+	 *Optional*
+
+	 A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
+
+``-o types TYPES``
+	 *Optional*
+
+	 A comma-separated list of metadata types to include.
+
+``-o exclude EXCLUDE``
+	 *Optional*
+
+	 Exclude changed components matching this string.
+
+``-o snapshot SNAPSHOT``
+	 *Optional*
+
+	 If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
+
+``-o path PATH``
+	 *Optional*
+
+	 The path to write the retrieved metadata
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Override the default api version for the retrieve. Defaults to project__package__api_version
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+**retrieve_qa_config**
 ==========================================
 
 **Description:** Retrieves the current changes in the scratch org into unpackaged/config/qa
 
-**Class::** cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+**Class:** cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **include**: A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
-* **types**: A comma-separated list of metadata types to include.
-* **exclude**: Exclude changed components matching this string.
-* **snapshot**: If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
-* **path**: The path to write the retrieved metadata **Default: unpackaged/config/qa**
-* **api_version**: Override the default api version for the retrieve. Defaults to project__package__api_version
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject **Default: $project_config.project__package__namespace**
+``$ cci task run retrieve_qa_config``
 
-snapshot_changes
+
+Options
+------------------------------------------
+
+
+``-o include INCLUDE``
+	 *Optional*
+
+	 A comma-separated list of strings. Components will be included if one of these strings is part of either the metadata type or name. Example: ``-o include CustomField,Admin`` matches both ``CustomField: Favorite_Color__c`` and ``Profile: Admin``
+
+``-o types TYPES``
+	 *Optional*
+
+	 A comma-separated list of metadata types to include.
+
+``-o exclude EXCLUDE``
+	 *Optional*
+
+	 Exclude changed components matching this string.
+
+``-o snapshot SNAPSHOT``
+	 *Optional*
+
+	 If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
+
+``-o path PATH``
+	 *Optional*
+
+	 The path to write the retrieved metadata
+
+	 Default: unpackaged/config/qa
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Override the default api version for the retrieve. Defaults to project__package__api_version
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+	 Default: $project_config.project__package__namespace
+
+**snapshot_changes**
 ==========================================
 
 **Description:** Tell SFDX source tracking to ignore previous changes in a scratch org
 
-**Class::** cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
+**Class:** cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run snapshot_changes``
 
 
-revert_managed_src
+
+**revert_managed_src**
 ==========================================
 
 **Description:** Reverts the changes from create_managed_src
 
-**Class::** cumulusci.tasks.metadata.managed_src.RevertManagedSrc
+**Class:** cumulusci.tasks.metadata.managed_src.RevertManagedSrc
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path containing metadata to process for managed deployment **Default: src**
-* **revert_path** *(required)*: The path to copy the original metadata to for the revert call **Default: src.orig**
+``$ cci task run revert_managed_src``
 
-revert_unmanaged_ee_src
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path containing metadata to process for managed deployment
+
+	 Default: src
+
+``-o revert_path REVERTPATH``
+	 *Required*
+
+	 The path to copy the original metadata to for the revert call
+
+	 Default: src.orig
+
+**revert_unmanaged_ee_src**
 ==========================================
 
 **Description:** Reverts the changes from create_unmanaged_ee_src
 
-**Class::** cumulusci.tasks.metadata.ee_src.RevertUnmanagedEESrc
+**Class:** cumulusci.tasks.metadata.ee_src.RevertUnmanagedEESrc
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path containing metadata to process for managed deployment **Default: src**
-* **revert_path** *(required)*: The path to copy the original metadata to for the revert call **Default: src.orig**
+``$ cci task run revert_unmanaged_ee_src``
 
-robot
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path containing metadata to process for managed deployment
+
+	 Default: src
+
+``-o revert_path REVERTPATH``
+	 *Required*
+
+	 The path to copy the original metadata to for the revert call
+
+	 Default: src.orig
+
+**robot**
 ==========================================
 
 **Description:** Runs a Robot Framework test from a .robot file
 
-**Class::** cumulusci.tasks.robotframework.Robot
+**Class:** cumulusci.tasks.robotframework.Robot
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **suites** *(required)*: Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory **Default: tests**
-* **test**: Run only tests matching name patterns.  Can be comma separated and use robot wildcards like *
-* **include**: Includes tests with a given tag
-* **exclude**: Excludes tests with a given tag
-* **vars**: Pass values to override variables in the format VAR1:foo,VAR2:bar
-* **xunit**: Set an XUnit format output file for test results
-* **options**: A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml.
-* **name**: Sets the name of the top level test suite
-* **pdb**: If true, run the Python debugger when tests fail.
-* **verbose**: If true, log each keyword as it runs.
-* **debug**: If true, enable the `breakpoint` keyword to enable the robot debugger
+``$ cci task run robot``
 
-robot_libdoc
+
+Options
+------------------------------------------
+
+
+``-o suites SUITES``
+	 *Required*
+
+	 Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory
+
+	 Default: tests
+
+``-o test TEST``
+	 *Optional*
+
+	 Run only tests matching name patterns.  Can be comma separated and use robot wildcards like *
+
+``-o include INCLUDE``
+	 *Optional*
+
+	 Includes tests with a given tag
+
+``-o exclude EXCLUDE``
+	 *Optional*
+
+	 Excludes tests with a given tag
+
+``-o vars VARS``
+	 *Optional*
+
+	 Pass values to override variables in the format VAR1:foo,VAR2:bar
+
+``-o xunit XUNIT``
+	 *Optional*
+
+	 Set an XUnit format output file for test results
+
+``-o options OPTIONS``
+	 *Optional*
+
+	 A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml.
+
+``-o name NAME``
+	 *Optional*
+
+	 Sets the name of the top level test suite
+
+``-o pdb PDB``
+	 *Optional*
+
+	 If true, run the Python debugger when tests fail.
+
+``-o verbose VERBOSE``
+	 *Optional*
+
+	 If true, log each keyword as it runs.
+
+``-o debug DEBUG``
+	 *Optional*
+
+	 If true, enable the `breakpoint` keyword to enable the robot debugger
+
+**robot_libdoc**
 ==========================================
 
 **Description:** Generates documentation for project keyword files
 
-**Class::** cumulusci.tasks.robotframework.RobotLibDoc
+**Class:** cumulusci.tasks.robotframework.RobotLibDoc
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: robot/SAL/doc/*PageObject.py). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted
-* **output** *(required)*: The output file where the documentation will be written **Default: Keywords.html**
-* **title**: A string to use as the title of the generated output **Default: $project_config.project__package__name**
+``$ cci task run robot_libdoc``
 
-robot_lint
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: robot/SAL/doc/*PageObject.py). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted
+
+``-o output OUTPUT``
+	 *Required*
+
+	 The output file where the documentation will be written
+
+	 Default: Keywords.html
+
+``-o title TITLE``
+	 *Optional*
+
+	 A string to use as the title of the generated output
+
+	 Default: $project_config.project__package__name
+
+**robot_lint**
 ==========================================
 
 **Description:** Static analysis tool for robot framework files
 
-**Class::** cumulusci.tasks.robotframework.RobotLint
+**Class:** cumulusci.tasks.robotframework.RobotLint
 
 The robot_lint task performs static analysis on one or more .robot
 and .resource files. Each line is parsed, and the result passed through
@@ -943,290 +2291,792 @@ To see a list of all configured options, set the 'list' option to True:
     cci task run robot_list -o list True
 
 
-
-Options:
+Command Syntax
 ------------------------------------------
 
-* **configure**: List of rule configuration values, in the form of rule:args.
-* **ignore**: List of rules to ignore. Use 'all' to ignore all rules
-* **error**: List of rules to treat as errors. Use 'all' to affect all rules.
-* **warning**: List of rules to treat as warnings. Use 'all' to affect all rules.
-* **list**: If option is True, print a list of known rules instead of processing files.
-* **path**: The path to one or more files or folders. If the path includes wildcard characters, they will be expanded. If not provided, the default will be to process all files under robot/<project name>
+``$ cci task run robot_lint``
 
-robot_testdoc
+
+Options
+------------------------------------------
+
+
+``-o configure CONFIGURE``
+	 *Optional*
+
+	 List of rule configuration values, in the form of rule:args.
+
+``-o ignore IGNORE``
+	 *Optional*
+
+	 List of rules to ignore. Use 'all' to ignore all rules
+
+``-o error ERROR``
+	 *Optional*
+
+	 List of rules to treat as errors. Use 'all' to affect all rules.
+
+``-o warning WARNING``
+	 *Optional*
+
+	 List of rules to treat as warnings. Use 'all' to affect all rules.
+
+``-o list LIST``
+	 *Optional*
+
+	 If option is True, print a list of known rules instead of processing files.
+
+``-o path PATH``
+	 *Optional*
+
+	 The path to one or more files or folders. If the path includes wildcard characters, they will be expanded. If not provided, the default will be to process all files under robot/<project name>
+
+**robot_testdoc**
 ==========================================
 
 **Description:** Generates html documentation of your Robot test suite and writes to tests/test_suite.
 
-**Class::** cumulusci.tasks.robotframework.RobotTestDoc
+**Class:** cumulusci.tasks.robotframework.RobotTestDoc
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path containing .robot test files **Default: tests**
-* **output** *(required)*: The output html file where the documentation will be written **Default: tests/test_suites.html**
+``$ cci task run robot_testdoc``
 
-run_tests
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path containing .robot test files
+
+	 Default: tests
+
+``-o output OUTPUT``
+	 *Required*
+
+	 The output html file where the documentation will be written
+
+	 Default: tests/test_suites.html
+
+**run_tests**
 ==========================================
 
 **Description:** Runs all apex tests
 
-**Class::** cumulusci.tasks.apex.testrunner.RunApexTests
+**Class:** cumulusci.tasks.apex.testrunner.RunApexTests
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **test_name_match** *(required)*: Query to find Apex test classes to run ("%" is wildcard).  Defaults to project__test__name_match
-* **test_name_exclude**: Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude
-* **namespace**: Salesforce project namespace.  Defaults to project__package__namespace
-* **managed**: If True, search for tests in the namespace only.  Defaults to False
-* **poll_interval**: Seconds to wait between polling for Apex test results.
-* **junit_output**: File name for JUnit output.  Defaults to test_results.xml
-* **json_output**: File name for json output.  Defaults to test_results.json
-* **retry_failures**: A list of regular expression patterns to match against test failures. If failures match, the failing tests are retried in serial mode.
-* **retry_always**: By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
+``$ cci task run run_tests``
 
-uninstall_managed
+
+Options
+------------------------------------------
+
+
+``-o test_name_match TESTNAMEMATCH``
+	 *Required*
+
+	 Pattern to find Apex test classes to run ("%" is wildcard).  Defaults to project__test__name_match from project config. Comma-separated list for multiple patterns.
+
+``-o test_name_exclude TESTNAMEEXCLUDE``
+	 *Optional*
+
+	 Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude from project config. Comma-separated list for multiple patterns.
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 Salesforce project namespace.  Defaults to project__package__namespace
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If True, search for tests in the namespace only.  Defaults to False
+
+``-o poll_interval POLLINTERVAL``
+	 *Optional*
+
+	 Seconds to wait between polling for Apex test results.
+
+``-o junit_output JUNITOUTPUT``
+	 *Optional*
+
+	 File name for JUnit output.  Defaults to test_results.xml
+
+``-o json_output JSONOUTPUT``
+	 *Optional*
+
+	 File name for json output.  Defaults to test_results.json
+
+``-o retry_failures RETRYFAILURES``
+	 *Optional*
+
+	 A list of regular expression patterns to match against test failures. If failures match, the failing tests are retried in serial mode.
+
+``-o retry_always RETRYALWAYS``
+	 *Optional*
+
+	 By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
+
+**uninstall_managed**
 ==========================================
 
 **Description:** Uninstalls the managed version of the package
 
-**Class::** cumulusci.tasks.salesforce.UninstallPackage
+**Class:** cumulusci.tasks.salesforce.UninstallPackage
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **namespace** *(required)*: The namespace of the package to uninstall.  Defaults to project__package__namespace
-* **purge_on_delete** *(required)*: Sets the purgeOnDelete option for the deployment.  Defaults to True
+``$ cci task run uninstall_managed``
 
-uninstall_packaged
+
+Options
+------------------------------------------
+
+
+``-o namespace NAMESPACE``
+	 *Required*
+
+	 The namespace of the package to uninstall.  Defaults to project__package__namespace
+
+``-o purge_on_delete PURGEONDELETE``
+	 *Required*
+
+	 Sets the purgeOnDelete option for the deployment.  Defaults to True
+
+**uninstall_packaged**
 ==========================================
 
 **Description:** Uninstalls all deleteable metadata in the package in the target org
 
-**Class::** cumulusci.tasks.salesforce.UninstallPackaged
+**Class:** cumulusci.tasks.salesforce.UninstallPackaged
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **package** *(required)*: The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name
-* **purge_on_delete** *(required)*: Sets the purgeOnDelete option for the deployment.  Defaults to True
+``$ cci task run uninstall_packaged``
 
-uninstall_packaged_incremental
+
+Options
+------------------------------------------
+
+
+``-o package PACKAGE``
+	 *Required*
+
+	 The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name
+
+``-o purge_on_delete PURGEONDELETE``
+	 *Required*
+
+	 Sets the purgeOnDelete option for the deployment.  Defaults to True
+
+**uninstall_packaged_incremental**
 ==========================================
 
 **Description:** Deletes any metadata from the package in the target org not in the local workspace
 
-**Class::** cumulusci.tasks.salesforce.UninstallPackagedIncremental
+**Class:** cumulusci.tasks.salesforce.UninstallPackagedIncremental
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The local path to compare to the retrieved packaged metadata from the org.  Defaults to src
-* **package** *(required)*: The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name
-* **purge_on_delete** *(required)*: Sets the purgeOnDelete option for the deployment.  Defaults to True
-* **ignore**: Components to ignore in the org and not try to delete. Mapping of component type to a list of member names.
-* **ignore_types**: List of component types to ignore in the org and not try to delete. Defaults to ['RecordType']
+``$ cci task run uninstall_packaged_incremental``
 
-uninstall_src
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The local path to compare to the retrieved packaged metadata from the org.  Defaults to src
+
+``-o package PACKAGE``
+	 *Required*
+
+	 The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name
+
+``-o purge_on_delete PURGEONDELETE``
+	 *Required*
+
+	 Sets the purgeOnDelete option for the deployment.  Defaults to True
+
+``-o ignore IGNORE``
+	 *Optional*
+
+	 Components to ignore in the org and not try to delete. Mapping of component type to a list of member names.
+
+``-o ignore_types IGNORETYPES``
+	 *Optional*
+
+	 List of component types to ignore in the org and not try to delete. Defaults to ['RecordType']
+
+**uninstall_src**
 ==========================================
 
 **Description:** Uninstalls all metadata in the local src directory
 
-**Class::** cumulusci.tasks.salesforce.UninstallLocal
+**Class:** cumulusci.tasks.salesforce.UninstallLocal
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: src**
-* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
-* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
-* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
-* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
-* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
-* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
-* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
-* **purge_on_delete**: Sets the purgeOnDelete option for the deployment. Defaults to True
+``$ cci task run uninstall_src``
 
-uninstall_pre
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to the parent directory containing the metadata bundles directories
+
+	 Default: src
+
+``-o unmanaged UNMANAGED``
+	 *Optional*
+
+	 If True, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+``-o namespace_strip NAMESPACESTRIP``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+``-o check_only CHECKONLY``
+	 *Optional*
+
+	 If True, performs a test deployment (validation) of components without saving the components in the target org
+
+``-o test_level TESTLEVEL``
+	 *Optional*
+
+	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+
+``-o specified_tests SPECIFIEDTESTS``
+	 *Optional*
+
+	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
+
+``-o static_resource_path STATICRESOURCEPATH``
+	 *Optional*
+
+	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+
+``-o clean_meta_xml CLEANMETAXML``
+	 *Optional*
+
+	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+
+``-o purge_on_delete PURGEONDELETE``
+	 *Optional*
+
+	 Sets the purgeOnDelete option for the deployment. Defaults to True
+
+**uninstall_pre**
 ==========================================
 
 **Description:** Uninstalls the unpackaged/pre bundles
 
-**Class::** cumulusci.tasks.salesforce.UninstallLocalBundles
+**Class:** cumulusci.tasks.salesforce.UninstallLocalBundles
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: unpackaged/pre**
-* **unmanaged**: If True, changes namespace_inject to replace tokens with a blank string
-* **namespace_inject**: If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
-* **namespace_strip**: If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-* **namespace_tokenize**: If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-* **check_only**: If True, performs a test deployment (validation) of components without saving the components in the target org
-* **test_level**: Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
-* **specified_tests**: Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
-* **static_resource_path**: The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
-* **namespaced_org**: If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **clean_meta_xml**: Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
-* **purge_on_delete**: Sets the purgeOnDelete option for the deployment. Defaults to True
+``$ cci task run uninstall_pre``
 
-uninstall_post
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to the parent directory containing the metadata bundles directories
+
+	 Default: unpackaged/pre
+
+``-o unmanaged UNMANAGED``
+	 *Optional*
+
+	 If True, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+``-o namespace_strip NAMESPACESTRIP``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
+
+``-o namespace_tokenize NAMESPACETOKENIZE``
+	 *Optional*
+
+	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+``-o check_only CHECKONLY``
+	 *Optional*
+
+	 If True, performs a test deployment (validation) of components without saving the components in the target org
+
+``-o test_level TESTLEVEL``
+	 *Optional*
+
+	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
+
+``-o specified_tests SPECIFIEDTESTS``
+	 *Optional*
+
+	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
+
+``-o static_resource_path STATICRESOURCEPATH``
+	 *Optional*
+
+	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+
+``-o clean_meta_xml CLEANMETAXML``
+	 *Optional*
+
+	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+
+``-o purge_on_delete PURGEONDELETE``
+	 *Optional*
+
+	 Sets the purgeOnDelete option for the deployment. Defaults to True
+
+**uninstall_post**
 ==========================================
 
 **Description:** Uninstalls the unpackaged/post bundles
 
-**Class::** cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
+**Class:** cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to a directory containing the metadata bundles (subdirectories) to uninstall **Default: unpackaged/post**
-* **managed**: If True, will insert the actual namespace prefix.  Defaults to False or no namespace
-* **namespace**: The namespace to replace the token with if in managed mode. Defaults to project__package__namespace
-* **filename_token** *(required)*: The path to the parent directory containing the metadata bundles directories **Default: ___NAMESPACE___**
-* **purge_on_delete** *(required)*: Sets the purgeOnDelete option for the deployment.  Defaults to True
+``$ cci task run uninstall_post``
 
-unschedule_apex
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to a directory containing the metadata bundles (subdirectories) to uninstall
+
+	 Default: unpackaged/post
+
+``-o filename_token FILENAMETOKEN``
+	 *Required*
+
+	 The path to the parent directory containing the metadata bundles directories
+
+	 Default: ___NAMESPACE___
+
+``-o purge_on_delete PURGEONDELETE``
+	 *Required*
+
+	 Sets the purgeOnDelete option for the deployment.  Defaults to True
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If True, will insert the actual namespace prefix.  Defaults to False or no namespace
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 The namespace to replace the token with if in managed mode. Defaults to project__package__namespace
+
+**unschedule_apex**
 ==========================================
 
 **Description:** Unschedule all scheduled apex jobs (CronTriggers).
 
-**Class::** cumulusci.tasks.apex.anon.AnonymousApexTask
+**Class:** cumulusci.tasks.apex.anon.AnonymousApexTask
 
 Use the `apex` option to run a string of anonymous Apex.
 Use the `path` option to run anonymous Apex from a file.
 Or use both to concatenate the string to the file contents.
 
-
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path**: The path to an Apex file to run.
-* **apex**: A string of Apex to run (after the file, if specified). **Default: for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }**
-* **managed**: If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
-* **namespaced**: If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
+``$ cci task run unschedule_apex``
 
-update_admin_profile
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Optional*
+
+	 The path to an Apex file to run.
+
+``-o apex APEX``
+	 *Optional*
+
+	 A string of Apex to run (after the file, if specified).
+
+	 Default: for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
+
+``-o namespaced NAMESPACED``
+	 *Optional*
+
+	 If True, the tokens %%%NAMESPACED_RT%%% and %%%namespaced%%% will get replaced with the namespace prefix for Record Types.
+
+``-o param1 PARAM1``
+	 *Optional*
+
+	 Parameter to pass to the Apex. Use as %%%PARAM_1%%% in the Apex code.Defaults to an empty value.
+
+``-o param2 PARAM2``
+	 *Optional*
+
+	 Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code.Defaults to an empty value.
+
+**update_admin_profile**
 ==========================================
 
 **Description:** Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
 
 **Class::** cumulusci.tasks.salesforce.UpdateProfile
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **package_xml**: Override the default package.xml file for retrieving the Admin.profile and all objects and classes that need to be included by providing a path to your custom package.xml
-* **record_types**: A list of dictionaries containing the required key `record_type` with a value specifying the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set to visible and not default.  Use the additional keys `visible`, `default`, and `person_account_default` set to true/false to override.  NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported.
-* **managed**: If True, uses the namespace prefix where appropriate.  Use if running against an org with the managed package installed.  Defaults to False
-* **namespaced_org**: If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False
+``$ cci task run update_admin_profile``
 
-update_dependencies
+
+Options
+------------------------------------------
+
+
+``-o package_xml PACKAGEXML``
+	 *Optional*
+
+	 Override the default package.xml file for retrieving the Admin.profile and all objects and classes that need to be included by providing a path to your custom package.xml
+
+``-o record_types RECORDTYPES``
+	 *Optional*
+
+	 A list of dictionaries containing the required key `record_type` with a value specifying the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set to visible and not default.  Use the additional keys `visible`, `default`, and `person_account_default` set to true/false to override.  NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported.
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If True, uses the namespace prefix where appropriate.  Use if running against an org with the managed package installed.  Defaults to False
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False
+
+**update_dependencies**
 ==========================================
 
 **Description:** Installs all dependencies in project__dependencies into the target org
 
-**Class::** cumulusci.tasks.salesforce.UpdateDependencies
+**Class:** cumulusci.tasks.salesforce.UpdateDependencies
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **dependencies**: List of dependencies to update. Defaults to project__dependencies. Each dependency is a dict with either 'github' set to a github repository URL or 'namespace' set to a Salesforce package namespace. Github dependencies may include 'tag' to install a particular git ref. Package dependencies may include 'version' to install a particular version.
-* **namespaced_org**: If True, the changes namespace token injection on any dependencies so tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
-* **purge_on_delete**: Sets the purgeOnDelete option for the deployment. Defaults to True
-* **include_beta**: Install the most recent release, even if beta. Defaults to False.
-* **allow_newer**: If the org already has a newer release, use it. Defaults to True.
-* **allow_uninstalls**: Allow uninstalling a beta release or newer final release in order to install the requested version. Defaults to False. Warning: Enabling this may destroy data.
+``$ cci task run update_dependencies``
 
-update_package_xml
+
+Options
+------------------------------------------
+
+
+``-o dependencies DEPENDENCIES``
+	 *Optional*
+
+	 List of dependencies to update. Defaults to project__dependencies. Each dependency is a dict with either 'github' set to a github repository URL or 'namespace' set to a Salesforce package namespace. Github dependencies may include 'tag' to install a particular git ref. Package dependencies may include 'version' to install a particular version.
+
+``-o namespaced_org NAMESPACEDORG``
+	 *Optional*
+
+	 If True, the changes namespace token injection on any dependencies so tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
+
+``-o purge_on_delete PURGEONDELETE``
+	 *Optional*
+
+	 Sets the purgeOnDelete option for the deployment. Defaults to True
+
+``-o include_beta INCLUDEBETA``
+	 *Optional*
+
+	 Install the most recent release, even if beta. Defaults to False.
+
+``-o allow_newer ALLOWNEWER``
+	 *Optional*
+
+	 If the org already has a newer release, use it. Defaults to True.
+
+``-o allow_uninstalls ALLOWUNINSTALLS``
+	 *Optional*
+
+	 Allow uninstalling a beta release or newer final release in order to install the requested version. Defaults to False. Warning: Enabling this may destroy data.
+
+**update_package_xml**
 ==========================================
 
 **Description:** Updates src/package.xml with metadata in src/
 
-**Class::** cumulusci.tasks.metadata.package.UpdatePackageXml
+**Class:** cumulusci.tasks.metadata.package.UpdatePackageXml
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: The path to a folder of metadata to build the package.xml from **Default: src**
-* **output**: The output file, defaults to <path>/package.xml
-* **package_name**: If set, overrides the package name inserted into the <fullName> element
-* **managed**: If True, generate a package.xml for deployment to the managed package packaging org
-* **delete**: If True, generate a package.xml for use as a destructiveChanges.xml file for deleting metadata
+``$ cci task run update_package_xml``
 
-upload_beta
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 The path to a folder of metadata to build the package.xml from
+
+	 Default: src
+
+``-o output OUTPUT``
+	 *Optional*
+
+	 The output file, defaults to <path>/package.xml
+
+``-o package_name PACKAGENAME``
+	 *Optional*
+
+	 If set, overrides the package name inserted into the <fullName> element
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If True, generate a package.xml for deployment to the managed package packaging org
+
+``-o delete DELETE``
+	 *Optional*
+
+	 If True, generate a package.xml for use as a destructiveChanges.xml file for deleting metadata
+
+**upload_beta**
 ==========================================
 
 **Description:** Uploads a beta release of the metadata currently in the packaging org
 
-**Class::** cumulusci.tasks.salesforce.PackageUpload
+**Class:** cumulusci.tasks.salesforce.PackageUpload
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **name** *(required)*: The name of the package version.
-* **production**: If True, uploads a production release.  Defaults to uploading a beta
-* **description**: A description of the package and what this version contains.
-* **password**: An optional password for sharing the package privately with anyone who has the password. Don't enter a password if you want to make the package available to anyone on AppExchange and share your package publicly.
-* **post_install_url**: The fully-qualified URL of the post-installation instructions. Instructions are shown as a link after installation and are available from the package detail view.
-* **release_notes_url**: The fully-qualified URL of the package release notes. Release notes are shown as a link during the installation process and are available from the package detail view after installation.
-* **namespace**: The namespace of the package.  Defaults to project__package__namespace
+``$ cci task run upload_beta``
 
-upload_production
+
+Options
+------------------------------------------
+
+
+``-o name NAME``
+	 *Required*
+
+	 The name of the package version.
+
+``-o production PRODUCTION``
+	 *Optional*
+
+	 If True, uploads a production release.  Defaults to uploading a beta
+
+``-o description DESCRIPTION``
+	 *Optional*
+
+	 A description of the package and what this version contains.
+
+``-o password PASSWORD``
+	 *Optional*
+
+	 An optional password for sharing the package privately with anyone who has the password. Don't enter a password if you want to make the package available to anyone on AppExchange and share your package publicly.
+
+``-o post_install_url POSTINSTALLURL``
+	 *Optional*
+
+	 The fully-qualified URL of the post-installation instructions. Instructions are shown as a link after installation and are available from the package detail view.
+
+``-o release_notes_url RELEASENOTESURL``
+	 *Optional*
+
+	 The fully-qualified URL of the package release notes. Release notes are shown as a link during the installation process and are available from the package detail view after installation.
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 The namespace of the package.  Defaults to project__package__namespace
+
+**upload_production**
 ==========================================
 
 **Description:** Uploads a production release of the metadata currently in the packaging org
 
-**Class::** cumulusci.tasks.salesforce.PackageUpload
+**Class:** cumulusci.tasks.salesforce.PackageUpload
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **name** *(required)*: The name of the package version. **Default: Release**
-* **production**: If True, uploads a production release.  Defaults to uploading a beta **Default: True**
-* **description**: A description of the package and what this version contains.
-* **password**: An optional password for sharing the package privately with anyone who has the password. Don't enter a password if you want to make the package available to anyone on AppExchange and share your package publicly.
-* **post_install_url**: The fully-qualified URL of the post-installation instructions. Instructions are shown as a link after installation and are available from the package detail view.
-* **release_notes_url**: The fully-qualified URL of the package release notes. Release notes are shown as a link during the installation process and are available from the package detail view after installation.
-* **namespace**: The namespace of the package.  Defaults to project__package__namespace
+``$ cci task run upload_production``
 
-util_sleep
+
+Options
+------------------------------------------
+
+
+``-o name NAME``
+	 *Required*
+
+	 The name of the package version.
+
+	 Default: Release
+
+``-o production PRODUCTION``
+	 *Optional*
+
+	 If True, uploads a production release.  Defaults to uploading a beta
+
+	 Default: True
+
+``-o description DESCRIPTION``
+	 *Optional*
+
+	 A description of the package and what this version contains.
+
+``-o password PASSWORD``
+	 *Optional*
+
+	 An optional password for sharing the package privately with anyone who has the password. Don't enter a password if you want to make the package available to anyone on AppExchange and share your package publicly.
+
+``-o post_install_url POSTINSTALLURL``
+	 *Optional*
+
+	 The fully-qualified URL of the post-installation instructions. Instructions are shown as a link after installation and are available from the package detail view.
+
+``-o release_notes_url RELEASENOTESURL``
+	 *Optional*
+
+	 The fully-qualified URL of the package release notes. Release notes are shown as a link during the installation process and are available from the package detail view after installation.
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 The namespace of the package.  Defaults to project__package__namespace
+
+**util_sleep**
 ==========================================
 
 **Description:** Sleeps for N seconds
 
-**Class::** cumulusci.tasks.util.Sleep
+**Class:** cumulusci.tasks.util.Sleep
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **seconds** *(required)*: The number of seconds to sleep **Default: 5**
+``$ cci task run util_sleep``
 
-log
+
+Options
+------------------------------------------
+
+
+``-o seconds SECONDS``
+	 *Required*
+
+	 The number of seconds to sleep
+
+	 Default: 5
+
+**log**
 ==========================================
 
 **Description:** Log a line at the info level.
 
-**Class::** cumulusci.tasks.util.LogLine
+**Class:** cumulusci.tasks.util.LogLine
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **level** *(required)*: The logger level to use **Default: info**
-* **line** *(required)*: A formatstring like line to log
-* **format_vars**: A Dict of format vars
+``$ cci task run log``
 
-generate_dataset_mapping
+
+Options
+------------------------------------------
+
+
+``-o level LEVEL``
+	 *Required*
+
+	 The logger level to use
+
+	 Default: info
+
+``-o line LINE``
+	 *Required*
+
+	 A formatstring like line to log
+
+``-o format_vars FORMATVARS``
+	 *Optional*
+
+	 A Dict of format vars
+
+**generate_dataset_mapping**
 ==========================================
 
 **Description:** Create a mapping for extracting data from an org.
 
-**Class::** cumulusci.tasks.bulkdata.GenerateMapping
+**Class:** cumulusci.tasks.bulkdata.GenerateMapping
 
 Generate a mapping file for use with the `extract_dataset` and `load_dataset` tasks.
 This task will examine the schema in the specified org and attempt to infer a
@@ -1245,101 +3095,273 @@ that the mapping omits features that are not currently well supported by the
 `extract_dataset` and `load_dataset` tasks, such as references to
 the `User` object.
 
-
-Options:
+Command Syntax
 ------------------------------------------
 
-* **path** *(required)*: Location to write the mapping file **Default: datasets/mapping.yml**
-* **namespace_prefix**: The namespace prefix to use **Default: $project_config.project__package__namespace**
-* **ignore**: Object API names, or fields in Object.Field format, to ignore
+``$ cci task run generate_dataset_mapping``
 
-extract_dataset
+
+Options
+------------------------------------------
+
+
+``-o path PATH``
+	 *Required*
+
+	 Location to write the mapping file
+
+	 Default: datasets/mapping.yml
+
+``-o namespace_prefix NAMESPACEPREFIX``
+	 *Optional*
+
+	 The namespace prefix to use
+
+	 Default: $project_config.project__package__namespace
+
+``-o ignore IGNORE``
+	 *Optional*
+
+	 Object API names, or fields in Object.Field format, to ignore
+
+**extract_dataset**
 ==========================================
 
 **Description:** Extract a sample dataset using the bulk API.
 
-**Class::** cumulusci.tasks.bulkdata.ExtractData
+**Class:** cumulusci.tasks.bulkdata.ExtractData
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **database_url**: A DATABASE_URL where the query output should be written
-* **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields **Default: datasets/mapping.yml**
-* **sql_path**: If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs. **Default: datasets/sample.sql**
+``$ cci task run extract_dataset``
 
-load_dataset
+
+Options
+------------------------------------------
+
+
+``-o mapping MAPPING``
+	 *Required*
+
+	 The path to a yaml file containing mappings of the database fields to Salesforce object fields
+
+	 Default: datasets/mapping.yml
+
+``-o database_url DATABASEURL``
+	 *Optional*
+
+	 A DATABASE_URL where the query output should be written
+
+``-o sql_path SQLPATH``
+	 *Optional*
+
+	 If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs.
+
+	 Default: datasets/sample.sql
+
+**load_dataset**
 ==========================================
 
 **Description:** Load a sample dataset using the bulk API.
 
-**Class::** cumulusci.tasks.bulkdata.LoadData
+**Class:** cumulusci.tasks.bulkdata.LoadData
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **database_url**: The database url to a database containing the test data to load
-* **mapping** *(required)*: The path to a yaml file containing mappings of the database fields to Salesforce object fields **Default: datasets/mapping.yml**
-* **start_step**: If specified, skip steps before this one in the mapping
-* **sql_path**: If specified, a database will be created from an SQL script at the provided path **Default: datasets/sample.sql**
-* **ignore_row_errors**: If True, allow the load to continue even if individual rows fail to load.
-* **reset_oids**: If True (the default), and the _sf_ids tables exist, reset them before continuing.
-* **bulk_mode**: Set to Serial to force serial mode on all jobs. Parallel is the default.
+``$ cci task run load_dataset``
 
-load_custom_settings
+
+Options
+------------------------------------------
+
+
+``-o database_url DATABASEURL``
+	 *Optional*
+
+	 The database url to a database containing the test data to load
+
+``-o mapping MAPPING``
+	 *Optional*
+
+	 The path to a yaml file containing mappings of the database fields to Salesforce object fields
+
+	 Default: datasets/mapping.yml
+
+``-o start_step STARTSTEP``
+	 *Optional*
+
+	 If specified, skip steps before this one in the mapping
+
+``-o sql_path SQLPATH``
+	 *Optional*
+
+	 If specified, a database will be created from an SQL script at the provided path
+
+	 Default: datasets/sample.sql
+
+``-o ignore_row_errors IGNOREROWERRORS``
+	 *Optional*
+
+	 If True, allow the load to continue even if individual rows fail to load.
+
+``-o reset_oids RESETOIDS``
+	 *Optional*
+
+	 If True (the default), and the _sf_ids tables exist, reset them before continuing.
+
+``-o bulk_mode BULKMODE``
+	 *Optional*
+
+	 Set to Serial to force serial mode on all jobs. Parallel is the default.
+
+**load_custom_settings**
 ==========================================
 
 **Description:** Load Custom Settings specified in a YAML file to the target org
 
-**Class::** cumulusci.tasks.salesforce.LoadCustomSettings
+**Class:** cumulusci.tasks.salesforce.LoadCustomSettings
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **settings_path** *(required)*: The path to a YAML settings file
+``$ cci task run load_custom_settings``
 
-remove_metadata_xml_elements
+
+Options
+------------------------------------------
+
+
+``-o settings_path SETTINGSPATH``
+	 *Required*
+
+	 The path to a YAML settings file
+
+**remove_metadata_xml_elements**
 ==========================================
 
 **Description:** Remove specified XML elements from one or more metadata files
 
-**Class::** cumulusci.tasks.metadata.modify.RemoveElementsXPath
+**Class:** cumulusci.tasks.metadata.modify.RemoveElementsXPath
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **xpath**: An XPath specification of elements to remove. Supports the re: regexp function namespace. As in re:match(text(), '.*__c')Use ns: to refer to the Salesforce namespace for metadata elements.for example: ./ns:Layout/ns:relatedLists (one-level) or //ns:relatedLists (recursive)Many advanced examples are available here: https://github.com/SalesforceFoundation/NPSP/blob/26b585409720e2004f5b7785a56e57498796619f/cumulusci.yml#L342
-* **path**: A path to the files to change. Supports wildcards including ** for directory recursion. More info on the details: https://www.poftut.com/python-glob-function-to-match-path-directory-file-names-with-examples/ https://www.tutorialspoint.com/How-to-use-Glob-function-to-find-files-recursively-in-Python 
-* **elements**: A list of dictionaries containing path and xpath keys. Multiple dictionaries can be passed in the list to run multiple removal queries in the same task. This parameter is intended for usages invoked as part of a cumulusci.yml .
-* **chdir**: Change the current directory before running the replace
+``$ cci task run remove_metadata_xml_elements``
 
-disable_tdtm_trigger_handlers
+
+Options
+------------------------------------------
+
+
+``-o xpath XPATH``
+	 *Optional*
+
+	 An XPath specification of elements to remove. Supports the re: regexp function namespace. As in re:match(text(), '.*__c')Use ns: to refer to the Salesforce namespace for metadata elements.for example: ./ns:Layout/ns:relatedLists (one-level) or //ns:relatedLists (recursive)Many advanced examples are available here: https://github.com/SalesforceFoundation/NPSP/blob/26b585409720e2004f5b7785a56e57498796619f/cumulusci.yml#L342
+
+``-o path PATH``
+	 *Optional*
+
+	 A path to the files to change. Supports wildcards including ** for directory recursion. More info on the details: https://www.poftut.com/python-glob-function-to-match-path-directory-file-names-with-examples/ https://www.tutorialspoint.com/How-to-use-Glob-function-to-find-files-recursively-in-Python 
+
+``-o elements ELEMENTS``
+	 *Optional*
+
+	 A list of dictionaries containing path and xpath keys. Multiple dictionaries can be passed in the list to run multiple removal queries in the same task. This parameter is intended for usages invoked as part of a cumulusci.yml .
+
+``-o chdir CHDIR``
+	 *Optional*
+
+	 Change the current directory before running the replace
+
+**disable_tdtm_trigger_handlers**
 ==========================================
 
 **Description:** Disable specified TDTM trigger handlers
 
-**Class::** cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+**Class:** cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **handlers**: List of Trigger Handlers (by Class, Object, or 'Class:Object') to affect (defaults to all handlers).
-* **namespace**: The namespace of the Trigger Handler object ('eda' or 'npsp'). The task will apply the namespace if needed.
-* **active**: True or False to activate or deactivate trigger handlers.
-* **restore_file**: Path to the state file to store the current trigger handler state. **Default: trigger_status.yml**
-* **restore**: If True, restore the state of Trigger Handlers to that stored in the restore file.
+``$ cci task run disable_tdtm_trigger_handlers``
 
-restore_tdtm_trigger_handlers
+
+Options
+------------------------------------------
+
+
+``-o handlers HANDLERS``
+	 *Optional*
+
+	 List of Trigger Handlers (by Class, Object, or 'Class:Object') to affect (defaults to all handlers).
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 The namespace of the Trigger Handler object ('eda' or 'npsp'). The task will apply the namespace if needed.
+
+``-o active ACTIVE``
+	 *Optional*
+
+	 True or False to activate or deactivate trigger handlers.
+
+``-o restore_file RESTOREFILE``
+	 *Optional*
+
+	 Path to the state file to store the current trigger handler state.
+
+	 Default: trigger_status.yml
+
+``-o restore RESTORE``
+	 *Optional*
+
+	 If True, restore the state of Trigger Handlers to that stored in the restore file.
+
+**restore_tdtm_trigger_handlers**
 ==========================================
 
 **Description:** Restore status of TDTM trigger handlers
 
-**Class::** cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+**Class:** cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
 
-Options:
+Command Syntax
 ------------------------------------------
 
-* **handlers**: List of Trigger Handlers (by Class, Object, or 'Class:Object') to affect (defaults to all handlers).
-* **namespace**: The namespace of the Trigger Handler object ('eda' or 'npsp'). The task will apply the namespace if needed.
-* **active**: True or False to activate or deactivate trigger handlers.
-* **restore_file**: Path to the state file to store the current trigger handler state. **Default: trigger_status.yml**
-* **restore**: If True, restore the state of Trigger Handlers to that stored in the restore file. **Default: True**
+``$ cci task run restore_tdtm_trigger_handlers``
+
+
+Options
+------------------------------------------
+
+
+``-o handlers HANDLERS``
+	 *Optional*
+
+	 List of Trigger Handlers (by Class, Object, or 'Class:Object') to affect (defaults to all handlers).
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 The namespace of the Trigger Handler object ('eda' or 'npsp'). The task will apply the namespace if needed.
+
+``-o active ACTIVE``
+	 *Optional*
+
+	 True or False to activate or deactivate trigger handlers.
+
+``-o restore_file RESTOREFILE``
+	 *Optional*
+
+	 Path to the state file to store the current trigger handler state.
+
+	 Default: trigger_status.yml
+
+``-o restore RESTORE``
+	 *Optional*
+
+	 If True, restore the state of Trigger Handlers to that stored in the restore file.
+
+	 Default: True
+
