@@ -123,23 +123,23 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             self._get_columns(mapping),
         )
 
+        local_ids = []
         step.start()
-        step.load_records(self._stream_queried_data(mapping))
+        step.load_records(self._stream_queried_data(mapping, local_ids))
         step.end()
 
         if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
-            self._process_job_results(mapping, step)
+            self._process_job_results(mapping, step, local_ids)
 
         return step.job_result
 
-    def _stream_queried_data(self, mapping):
+    def _stream_queried_data(self, mapping, local_ids):
         """Get data from the local db"""
 
         statics = self._get_statics(mapping)
         query = self._query_db(mapping)
 
         total_rows = 0
-        self.local_ids = []
 
         # 10,000 is the maximum Bulk API size. Clamping the yield from the query ensures we do not
         # create more Bulk API batches than expected, regardless of batch size, while capping
@@ -155,7 +155,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                     total_rows -= 1
                     continue
 
-            self.local_ids.append(pkey)
+            local_ids.append(pkey)
             yield row
 
         self.logger.info(
@@ -290,14 +290,14 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 return value.isoformat()
             return value
 
-    def _process_job_results(self, mapping, step):
+    def _process_job_results(self, mapping, step, local_ids):
         """Get the job results and process the results. If we're raising for
         row-level errors, do so; if we're inserting, store the new Ids."""
         if mapping["action"] == "insert":
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
             conn = self.session.connection()
 
-        results_generator = self._generate_results_id_map(step, self.local_ids)
+        results_generator = self._generate_results_id_map(step, local_ids)
         if mapping["action"] == "insert":
             self._sql_bulk_insert_from_records(
                 conn, id_table_name, ("id", "sf_id"), results_generator

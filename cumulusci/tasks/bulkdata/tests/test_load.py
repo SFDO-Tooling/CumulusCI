@@ -390,7 +390,8 @@ class TestLoadData(unittest.TestCase):
             ]
         )
 
-        records = list(task._stream_queried_data(mapping))
+        local_ids = []
+        records = list(task._stream_queried_data(mapping, local_ids))
         self.assertEqual(
             [["001000000005", "001000000007"], ["001000000006", "001000000008"]],
             records,
@@ -571,7 +572,8 @@ class TestLoadData(unittest.TestCase):
         task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task.local_ids = ["1"]
+
+        local_ids = ["1"]
 
         step = MockBulkApiDmlOperation(
             "Contact", DataOperationType.INSERT, {}, task, []
@@ -579,7 +581,7 @@ class TestLoadData(unittest.TestCase):
         step.results = [DataOperationResult("001111111111111", True, None)]
 
         mapping = {"table": "Account", "action": "insert"}
-        task._process_job_results(mapping, step)
+        task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
         task._initialize_id_table.assert_called_once_with(mapping, True)
@@ -597,7 +599,8 @@ class TestLoadData(unittest.TestCase):
         task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task.local_ids = ["1"]
+
+        local_ids = ["1"]
 
         step = MockBulkApiDmlOperation(
             "Contact", DataOperationType.INSERT, {}, task, []
@@ -605,7 +608,7 @@ class TestLoadData(unittest.TestCase):
         step.results = [DataOperationResult("001111111111111", True, None)]
 
         mapping = {"table": "Account", "action": "update"}
-        task._process_job_results(mapping, step)
+        task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_not_called()
         task._initialize_id_table.assert_not_called()
@@ -623,7 +626,8 @@ class TestLoadData(unittest.TestCase):
         task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task.local_ids = ["1"]
+
+        local_ids = ["1"]
 
         step = MockBulkApiDmlOperation(
             "Contact", DataOperationType.UPDATE, {}, task, []
@@ -633,7 +637,7 @@ class TestLoadData(unittest.TestCase):
         mapping = {"table": "Account", "action": "update"}
 
         with self.assertRaises(BulkDataException) as ex:
-            task._process_job_results(mapping, step)
+            task._process_job_results(mapping, step, local_ids)
 
         self.assertIn("Error on record with id", str(ex.exception))
         self.assertIn("message", str(ex.exception))

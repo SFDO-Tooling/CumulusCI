@@ -20,7 +20,7 @@ from cumulusci.tasks.bulkdata.utils import (
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata.step import BulkApiQueryOperation, DataOperationStatus
-from cumulusci.utils import os_friendly_path
+from cumulusci.utils import os_friendly_path, log_progress
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -149,7 +149,8 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if record_type:
             columns.append("record_type")
 
-        record_iterator = step.get_results()
+        # FIXME: log_progress needs to know our batch size, when made configurable.
+        record_iterator = log_progress(step.get_results(), self.logger)
         if record_type:
             record_iterator = (record + [record_type] for record in record_iterator)
 

@@ -142,7 +142,8 @@ class TestExtractData(unittest.TestCase):
         contact = task.session.query(task.models["contacts"]).one()
         assert contact.household_id == "1"
 
-    def test_import_results__oid_as_pk(self):
+    @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
+    def test_import_results__oid_as_pk(self, log_mock):
         task = _make_task(
             ExtractData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
@@ -167,7 +168,7 @@ class TestExtractData(unittest.TestCase):
             task.session.connection.return_value,
             "Opportunity",
             ["sf_id", "Name", "account_id"],
-            step.get_results.return_value,
+            log_mock.return_value,
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.csv.reader")
