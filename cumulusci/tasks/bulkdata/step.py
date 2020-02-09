@@ -287,16 +287,16 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         content = io.StringIO()
         writer = csv.writer(content)
         writer.writerow(self.fields)
-
         content.seek(0)
         yield content.read().encode("utf-8")
+        content.truncate(0)
+        content.seek(0)
         for rec in records:
-            content = io.StringIO()
-            writer = csv.writer(content)
             writer.writerow(rec)
             content.seek(0)
-
             yield content.read().encode("utf-8")
+            content.truncate(0)
+            content.seek(0)
 
     def get_results(self):
         for batch_id in self.batch_ids:
