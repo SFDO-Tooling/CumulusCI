@@ -1,22 +1,20 @@
-import datetime
-import yaml
-
 from collections import defaultdict
+import datetime
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
 from sqlalchemy.ext.automap import automap_base
 
-from cumulusci.core.exceptions import BulkDataException
-from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.bulkdata.utils import get_lookup_key_field, SqlAlchemyMixin
+import yaml
 
+from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.tasks.bulkdata.utils import get_lookup_key_field, SqlAlchemyMixin
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
     DataOperationStatus,
     DataOperationType,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils import os_friendly_path
 
 

@@ -1,15 +1,14 @@
-import os
-import json
-import responses
-import shutil
-import unittest
-
 from collections import OrderedDict
 from datetime import datetime
-from sqlalchemy import Column, Table, Unicode
+import os
+import json
+import shutil
+import unittest
 from unittest import mock
 
-from cumulusci.utils import temporary_dir
+import responses
+from sqlalchemy import Column, Table, Unicode
+
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.step import (
@@ -20,6 +19,7 @@ from cumulusci.tasks.bulkdata.step import (
     BaseDmlOperation,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.utils import temporary_dir
 
 
 MAPPING_FILE = """Insert Households:

@@ -1,6 +1,4 @@
-from cumulusci.core.config import BaseGlobalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import BaseGlobalConfig, BaseProjectConfig, TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tests.util import DummyOrgConfig
 

@@ -1,15 +1,12 @@
+from datetime import datetime
 import os
-import responses
 import unittest
+from unittest import mock
 import yaml
 
-from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy import MetaData
-from sqlalchemy import Integer
-from sqlalchemy import types
-from sqlalchemy import Unicode
-from unittest import mock
+
+import responses
+from sqlalchemy import create_engine, MetaData, Integer, types, Unicode
 
 from cumulusci.tasks import bulkdata
 from cumulusci.tasks.bulkdata.utils import create_table, generate_batches

@@ -1,3 +1,10 @@
+import io
+import unittest
+from unittest import mock
+
+import responses
+
+from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.step import (
     download_file,
     DataOperationType,
@@ -8,12 +15,7 @@ from cumulusci.tasks.bulkdata.step import (
     BulkApiQueryOperation,
     BulkApiDmlOperation,
 )
-from cumulusci.core.exceptions import BulkDataException
 
-import io
-import responses
-import unittest
-from unittest import mock
 
 BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
 <batch>

@@ -1,6 +1,7 @@
 import unittest
 from unittest import mock
 
+from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata import DeleteData
 from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
@@ -9,7 +10,6 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 
 
 class TestDeleteData(unittest.TestCase):

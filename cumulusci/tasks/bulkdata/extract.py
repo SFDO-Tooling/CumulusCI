@@ -1,7 +1,4 @@
 import csv
-import tempfile
-import yaml
-
 from sqlalchemy import create_engine
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -10,14 +7,17 @@ from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import create_session, mapper
 from sqlalchemy.ext.automap import automap_base
+import tempfile
 
+import yaml
+
+from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
     SqlAlchemyMixin,
     get_lookup_key_field,
     create_table,
     fields_for_mapping,
 )
-from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata.step import BulkApiQueryOperation, DataOperationStatus
 from cumulusci.utils import os_friendly_path, log_progress

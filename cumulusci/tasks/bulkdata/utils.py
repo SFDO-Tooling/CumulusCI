@@ -9,8 +9,8 @@ from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
 
-from cumulusci.utils import convert_to_snake_case
 from cumulusci.core.exceptions import BulkDataException
+from cumulusci.utils import convert_to_snake_case
 
 
 def batch_iterator(iterator, n=10000):
