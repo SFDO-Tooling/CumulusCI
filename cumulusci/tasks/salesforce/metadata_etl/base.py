@@ -25,8 +25,8 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
 
     task_options = {
-        "unmanaged": {
-            "description": "If True, changes namespace_inject to replace tokens with a blank string"
+        "managed": {
+            "description": "If False, changes namespace_inject to replace tokens with a blank string"
         },
         "namespace_inject": {
             "description": "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix"
@@ -39,9 +39,7 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        self.options["unmanaged"] = process_bool_arg(
-            self.options.get("unmanaged", False)
-        )
+        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
         self.api_version = (
             self.options.get("api_version")
             or self.project_config.project__package__api_version
@@ -49,10 +47,7 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
 
     def _inject_namespace(self, text):
         return inject_namespace(
-            "",
-            text,
-            self.options.get("namespace_inject"),
-            not self.options["unmanaged"],
+            "", text, self.options.get("namespace_inject"), self.options["managed"]
         )[1]
 
     @abc.abstractmethod
@@ -96,7 +91,7 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
                     "options": {
                         "path": self.deploy_dir,
                         "namespace_inject": self.options.get("namespace_inject"),
-                        "unmanaged": self.options.get("unmanaged"),
+                        "unmanaged": not self.options.get("managed"),
                     }
                 }
             ),
@@ -106,7 +101,6 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
 
         return result
 
-    @abc.abstractmethod
     def _post_deploy(self, result):
         pass
 

@@ -333,7 +333,7 @@ tasks:
         group: Salesforce
     set_organization_wide_defaults:
         group: Metadata Transformations
-        description: Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing enablement to complete.
+        description: Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
         class_path: cumulusci.tasks.salesforce.metadata_etl.SetOrgWideDefaults
         options:
             namespace_inject: $project_config.project__package__namespace

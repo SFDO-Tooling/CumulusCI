@@ -41,7 +41,7 @@ class test_SetOrgWideDefaults(unittest.TestCase):
         task = create_task(
             SetOrgWideDefaults,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "org_wide_defaults": [
@@ -78,7 +78,7 @@ class test_SetOrgWideDefaults(unittest.TestCase):
         task = create_task(
             SetOrgWideDefaults,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "org_wide_defaults": [
@@ -115,7 +115,7 @@ class test_SetOrgWideDefaults(unittest.TestCase):
         task = create_task(
             SetOrgWideDefaults,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "org_wide_defaults": [
@@ -181,7 +181,7 @@ class test_SetOrgWideDefaults(unittest.TestCase):
         task = create_task(
             SetOrgWideDefaults,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "org_wide_defaults": [
@@ -210,7 +210,7 @@ class test_SetOrgWideDefaults(unittest.TestCase):
         task = create_task(
             SetOrgWideDefaults,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "org_wide_defaults": [
@@ -232,7 +232,7 @@ class test_SetOrgWideDefaults(unittest.TestCase):
             create_task(
                 SetOrgWideDefaults,
                 {
-                    "unmanaged": False,
+                    "managed": True,
                     "api_version": "47.0",
                     "api_names": "bar,foo",
                     "org_wide_defaults": [

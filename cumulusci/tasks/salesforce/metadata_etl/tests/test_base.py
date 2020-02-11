@@ -17,30 +17,35 @@ from cumulusci.tasks.salesforce.metadata_etl import (
 )
 
 
+class ConcreteMetadataSingleEntityTransformTask(MetadataSingleEntityTransformTask):
+    def _transform_entity(self, enttiy, api_name):
+        pass
+
+
 class test_BaseMetadataETLTask(unittest.TestCase):
     def test_init_options(self):
         task = create_task(
-            BaseMetadataETLTask, {"unmanaged": True, "api_version": "47.0"}
+            BaseMetadataETLTask, {"managed": False, "api_version": "47.0"}
         )
 
-        assert task.options["unmanaged"]
+        assert not task.options["managed"]
         assert task.options["api_version"] == "47.0"
 
     def test_inject_namespace(self):
         task = create_task(
             BaseMetadataETLTask,
-            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+            {"managed": True, "namespace_inject": "test", "api_version": "47.0"},
         )
 
         assert task._inject_namespace("%%%NAMESPACE%%%Test__c") == "test__Test__c"
-        task.options["unmanaged"] = True
+        task.options["managed"] = False
         assert task._inject_namespace("%%%NAMESPACE%%%Test__c") == "Test__c"
 
     @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.ApiRetrieveUnpackaged")
     def test_retrieve(self, api_mock):
         task = create_task(
             BaseMetadataETLTask,
-            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+            {"managed": True, "namespace_inject": "test", "api_version": "47.0"},
         )
         task.retrieve_dir = mock.Mock()
         task._get_package_xml_content = mock.Mock()
@@ -60,7 +65,7 @@ class test_BaseMetadataETLTask(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             task = create_task(
                 BaseMetadataETLTask,
-                {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+                {"managed": True, "namespace_inject": "test", "api_version": "47.0"},
             )
             task.deploy_dir = Path(tmpdir)
             task._generate_package_xml = mock.Mock()
@@ -78,7 +83,7 @@ class test_BaseMetadataETLTask(unittest.TestCase):
     def test_run_task(self):
         task = create_task(
             BaseMetadataETLTask,
-            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+            {"managed": True, "namespace_inject": "test", "api_version": "47.0"},
         )
 
         task._retrieve = mock.Mock()
@@ -96,7 +101,7 @@ class test_BaseMetadataSynthesisTask(unittest.TestCase):
     def test_synthesis(self):
         task = create_task(
             BaseMetadataSynthesisTask,
-            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+            {"managed": True, "namespace_inject": "test", "api_version": "47.0"},
         )
 
         task._deploy = mock.Mock()
@@ -112,7 +117,7 @@ class test_BaseMetadataSynthesisTask(unittest.TestCase):
     def test_generate_package_xml(self, package_mock):
         task = create_task(
             BaseMetadataSynthesisTask,
-            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+            {"managed": True, "namespace_inject": "test", "api_version": "47.0"},
         )
         task.deploy_dir = "test"
 
@@ -126,7 +131,7 @@ class test_BaseMetadataTransformTask(unittest.TestCase):
     def test_generate_package_xml(self):
         task = create_task(
             BaseMetadataTransformTask,
-            {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
+            {"managed": True, "namespace_inject": "test", "api_version": "47.0"},
         )
 
         task._get_entities = mock.Mock()
@@ -160,7 +165,7 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
         task = create_task(MetadataSingleEntityTransformTask, {})
         task._init_options(
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "namespace_inject": "test",
                 "api_names": "%%%NAMESPACE%%%bar,foo",
@@ -171,14 +176,13 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
     def test_get_entities(self):
         task = create_task(
             MetadataSingleEntityTransformTask,
-            {"unmanaged": False, "api_version": "47.0", "api_names": "bar,foo"},
+            {"managed": True, "api_version": "47.0", "api_names": "bar,foo"},
         )
 
         assert task._get_entities() == {None: ["bar", "foo"]}
 
         task = create_task(
-            MetadataSingleEntityTransformTask,
-            {"unmanaged": False, "api_version": "47.0"},
+            MetadataSingleEntityTransformTask, {"managed": True, "api_version": "47.0"}
         )
 
         assert task._get_entities() == {None: ["*"]}
@@ -186,7 +190,7 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
     def test_transform(self):
         task = create_task(
             MetadataSingleEntityTransformTask,
-            {"unmanaged": False, "api_version": "47.0", "api_names": "Test"},
+            {"managed": True, "api_version": "47.0", "api_names": "Test"},
         )
 
         task.entity = "CustomApplication"
@@ -212,7 +216,7 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
     def test_transform__bad_entity(self):
         task = create_task(
             MetadataSingleEntityTransformTask,
-            {"unmanaged": False, "api_version": "47.0", "api_names": "bar,foo"},
+            {"managed": True, "api_version": "47.0", "api_names": "bar,foo"},
         )
 
         task.entity = "Battlestar"
@@ -223,7 +227,7 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
     def test_transform__non_xml_entity(self):
         task = create_task(
             MetadataSingleEntityTransformTask,
-            {"unmanaged": False, "api_version": "47.0", "api_names": "bar,foo"},
+            {"managed": True, "api_version": "47.0", "api_names": "bar,foo"},
         )
 
         task.entity = "LightningComponentBundle"
@@ -234,7 +238,7 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
     def test_transform__missing_record(self):
         task = create_task(
             MetadataSingleEntityTransformTask,
-            {"unmanaged": False, "api_version": "47.0", "api_names": "Test"},
+            {"managed": True, "api_version": "47.0", "api_names": "Test"},
         )
 
         task.entity = "CustomApplication"

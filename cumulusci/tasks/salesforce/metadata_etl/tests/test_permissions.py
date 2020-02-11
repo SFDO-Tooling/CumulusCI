@@ -53,7 +53,7 @@ class test_AddPermissions(unittest.TestCase):
         task = create_task(
             AddPermissions,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "field_permissions": [
@@ -96,7 +96,7 @@ class test_AddPermissions(unittest.TestCase):
         task = create_task(
             AddPermissions,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "field_permissions": [
@@ -134,7 +134,7 @@ class test_AddPermissions(unittest.TestCase):
         task = create_task(
             AddPermissions,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "class_accesses": [{"apexClass": "LWCController", "enabled": True}],
@@ -167,7 +167,7 @@ class test_AddPermissions(unittest.TestCase):
         task = create_task(
             AddPermissions,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "class_accesses": [{"apexClass": "ApexController", "enabled": True}],
@@ -200,7 +200,7 @@ class test_AddPermissions(unittest.TestCase):
         task = create_task(
             AddPermissions,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "class_accesses": [{"enabled": True}],
@@ -216,7 +216,7 @@ class test_AddPermissions(unittest.TestCase):
         task = create_task(
             AddPermissions,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "field_permissions": [{"readable": True}],

@@ -40,7 +40,7 @@ class test_AddRelatedLists(unittest.TestCase):
         task = create_task(
             AddRelatedLists,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "related_list": "TEST",
@@ -74,7 +74,7 @@ class test_AddRelatedLists(unittest.TestCase):
         task = create_task(
             AddRelatedLists,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "related_list": "TEST",
@@ -106,7 +106,7 @@ class test_AddRelatedLists(unittest.TestCase):
         task = create_task(
             AddRelatedLists,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "related_list": "RelatedContactList",

@@ -28,7 +28,7 @@ class test_AddValueSetEntries(unittest.TestCase):
         task = create_task(
             AddValueSetEntries,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "entries": [
@@ -74,7 +74,7 @@ class test_AddValueSetEntries(unittest.TestCase):
         task = create_task(
             AddValueSetEntries,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "OpportunityStage",
                 "entries": [
@@ -129,7 +129,7 @@ class test_AddValueSetEntries(unittest.TestCase):
         task = create_task(
             AddValueSetEntries,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "CaseStatus",
                 "entries": [{"fullName": "Test", "label": "Label", "closed": True}],
@@ -166,7 +166,7 @@ class test_AddValueSetEntries(unittest.TestCase):
         task = create_task(
             AddValueSetEntries,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "entries": [{"fullName": "Value", "label": "Label"}],
@@ -192,7 +192,7 @@ class test_AddValueSetEntries(unittest.TestCase):
         task = create_task(
             AddValueSetEntries,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "entries": [{"fullName": "Value"}],
@@ -206,7 +206,7 @@ class test_AddValueSetEntries(unittest.TestCase):
         task = create_task(
             AddValueSetEntries,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "bar,foo",
                 "entries": [{"label": "Value"}],
@@ -220,7 +220,7 @@ class test_AddValueSetEntries(unittest.TestCase):
         task = create_task(
             AddValueSetEntries,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "OpportunityStage",
                 "entries": [{"fullName": "Value", "label": "Value"}],
@@ -236,7 +236,7 @@ class test_AddValueSetEntries(unittest.TestCase):
         task = create_task(
             AddValueSetEntries,
             {
-                "unmanaged": False,
+                "managed": True,
                 "api_version": "47.0",
                 "api_names": "CaseStatus",
                 "entries": [{"fullName": "Value", "label": "Value"}],
