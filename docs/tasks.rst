@@ -2782,7 +2782,7 @@ Options
 
 **Description:** Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
 
-**Class:** cumulusci.tasks.salesforce.UpdateAdminProfile
+**Class::** cumulusci.tasks.salesforce.UpdateProfile
 
 Command Syntax
 ------------------------------------------

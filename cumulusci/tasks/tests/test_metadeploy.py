@@ -183,7 +183,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "path": "install_prod.config_managed.update_admin_profile",
                     "source": None,
                     "step_num": "1/3/2",
-                    "task_class": "cumulusci.tasks.salesforce.UpdateAdminProfile",
+                    "task_class": "cumulusci.tasks.salesforce.UpdateProfile",
                     "task_config": {
                         "options": {"managed": True, "namespaced_org": False},
                         "checks": [],
