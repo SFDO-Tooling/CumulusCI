@@ -1,3 +1,5 @@
+import sys
+
 # ORDER MATTERS!
 
 # inherit from BaseTask
@@ -41,7 +43,12 @@ from cumulusci.tasks.salesforce.CreatePackage import CreatePackage
 from cumulusci.tasks.salesforce.DeployBundles import DeployBundles
 from cumulusci.tasks.salesforce.InstallPackageVersion import InstallPackageVersion
 from cumulusci.tasks.salesforce.UninstallPackage import UninstallPackage
-from cumulusci.tasks.salesforce.UpdateProfile import UpdateProfile
+
+# Backwards-compatibility for UpdateAdminProfile
+from cumulusci.tasks.salesforce.update_profile import UpdateProfile, UpdateAdminProfile
+from cumulusci.tasks.salesforce import update_profile
+
+sys.modules["cumulusci.tasks.salesforce.UpdateAdminProfile"] = update_profile
 
 # inherit from BaseUninstallMetadata
 from cumulusci.tasks.salesforce.UninstallLocal import UninstallLocal
@@ -59,8 +66,6 @@ from cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles import (
 from cumulusci.tasks.salesforce.UninstallPackagedIncremental import (
     UninstallPackagedIncremental,
 )
-
-UpdateAdminProfile = UpdateProfile
 
 # flake 8 hacks to prevent pre commit rejection
 flake8Hack = (
@@ -87,6 +92,7 @@ flake8Hack = (
     InstallPackageVersion,
     UninstallPackage,
     UpdateProfile,
+    UpdateAdminProfile,
     UninstallLocal,
     UninstallLocalBundles,
     UninstallPackaged,

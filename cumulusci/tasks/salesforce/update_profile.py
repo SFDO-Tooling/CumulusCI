@@ -209,3 +209,6 @@ class UpdateProfile(Deploy):
 
         api = self._get_api(path=self.deploy_dir)
         return api()
+
+
+UpdateAdminProfile = UpdateProfile
