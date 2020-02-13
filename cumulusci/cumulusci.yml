@@ -6,6 +6,24 @@ tasks:
         group: Metadata Transformations
         description: Activates Flows identified by a given list of Developer Names
         class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
+    add_page_layout_related_lists:
+        group: Metadata Transformations
+        description: Adds specified Related List to one or more Page Layouts.
+        class_path: cumulusci.tasks.metadata_etl.AddRelatedLists
+        options:
+            namespace_inject: $project_config.project__package__namespace
+    add_standard_value_set_entries:
+        group: Metadata Transformations
+        description: Adds specified picklist entries to a Standard Value Set.
+        class_path: cumulusci.tasks.metadata_etl.AddValueSetEntries
+        options:
+            namespace_inject: $project_config.project__package__namespace
+    add_permission_set_perms:
+        group: Metadata Transformations
+        description: Adds specified Apex class access and Field-Level Security to a Permission Set.
+        class_path: cumulusci.tasks.metadata_etl.AddPermissionSetPermissions
+        options:
+            namespace_inject: $project_config.project__package__namespace
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
@@ -313,6 +331,12 @@ tasks:
         description: Runs all apex tests
         class_path: cumulusci.tasks.apex.testrunner.RunApexTests
         group: Salesforce
+    set_organization_wide_defaults:
+        group: Metadata Transformations
+        description: Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
+        class_path: cumulusci.tasks.metadata_etl.SetOrgWideDefaults
+        options:
+            namespace_inject: $project_config.project__package__namespace
     uninstall_managed:
         description: Uninstalls the managed version of the package
         class_path: cumulusci.tasks.salesforce.UninstallPackage
