@@ -1,8 +1,8 @@
 from lxml import etree
 
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tasks.salesforce.metadata_etl import AddRelatedLists
-from cumulusci.tasks.salesforce.metadata_etl import MD
+from cumulusci.tasks.metadata_etl import AddRelatedLists
+from cumulusci.tasks.metadata_etl import MD
 
 LAYOUT_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <Layout xmlns="http://soap.sforce.com/2006/04/metadata">

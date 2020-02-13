@@ -3,8 +3,8 @@ import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tasks.salesforce.metadata_etl import AddPermissionSetPermissions
-from cumulusci.tasks.salesforce.metadata_etl import MD
+from cumulusci.tasks.metadata_etl import AddPermissionSetPermissions
+from cumulusci.tasks.metadata_etl import MD
 
 PERMSET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">

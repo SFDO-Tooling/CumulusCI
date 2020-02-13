@@ -1,7 +1,7 @@
 from lxml import etree
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.salesforce.metadata_etl import (
+from cumulusci.tasks.metadata_etl import (
     MetadataSingleEntityTransformTask,
     get_new_tag_index,
     MD,

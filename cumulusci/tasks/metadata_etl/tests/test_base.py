@@ -7,7 +7,7 @@ import pytest
 
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tasks.salesforce.metadata_etl import (
+from cumulusci.tasks.metadata_etl import (
     BaseMetadataETLTask,
     BaseMetadataSynthesisTask,
     BaseMetadataTransformTask,
@@ -38,7 +38,7 @@ class TestBaseMetadataETLTask:
         task.options["managed"] = False
         assert task._inject_namespace("%%%NAMESPACE%%%Test__c") == "Test__c"
 
-    @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.ApiRetrieveUnpackaged")
+    @mock.patch("cumulusci.tasks.metadata_etl.base.ApiRetrieveUnpackaged")
     def test_retrieve(self, api_mock):
         task = create_task(
             MetadataETLTask,
@@ -57,7 +57,7 @@ class TestBaseMetadataETLTask:
             task.retrieve_dir
         )
 
-    @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.Deploy")
+    @mock.patch("cumulusci.tasks.metadata_etl.base.Deploy")
     def test_deploy(self, deploy_mock):
         with tempfile.TemporaryDirectory() as tmpdir:
             task = create_task(
@@ -115,7 +115,7 @@ class TestBaseMetadataSynthesisTask:
         task._deploy.assert_called_once_with()
         task._synthesize.assert_called_once_with()
 
-    @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.PackageXmlGenerator")
+    @mock.patch("cumulusci.tasks.metadata_etl.base.PackageXmlGenerator")
     def test_generate_package_xml(self, package_mock):
         task = create_task(
             MetadataSynthesisTask,

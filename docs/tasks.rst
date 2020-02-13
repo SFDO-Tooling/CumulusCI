@@ -30,7 +30,7 @@ Options
 
 **Description:** Adds specified Related List to one or more Page Layouts.
 
-**Class:** cumulusci.tasks.salesforce.metadata_etl.AddRelatedLists
+**Class:** cumulusci.tasks.metadata_etl.AddRelatedLists
 
 Command Syntax
 ------------------------------------------
@@ -79,7 +79,7 @@ Options
 
 **Description:** Adds specified picklist entries to a Standard Value Set.
 
-**Class:** cumulusci.tasks.salesforce.metadata_etl.AddValueSetEntries
+**Class:** cumulusci.tasks.metadata_etl.AddValueSetEntries
 
 Command Syntax
 ------------------------------------------
@@ -123,7 +123,7 @@ Options
 
 **Description:** Adds specified Apex class access and Field-Level Security to a Permission Set.
 
-**Class:** cumulusci.tasks.salesforce.metadata_etl.AddPermissionSetPermissions
+**Class:** cumulusci.tasks.metadata_etl.AddPermissionSetPermissions
 
 Command Syntax
 ------------------------------------------
@@ -2572,7 +2572,7 @@ Options
 
 **Description:** Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
 
-**Class:** cumulusci.tasks.salesforce.metadata_etl.SetOrgWideDefaults
+**Class:** cumulusci.tasks.metadata_etl.SetOrgWideDefaults
 
 Command Syntax
 ------------------------------------------

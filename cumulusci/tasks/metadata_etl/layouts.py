@@ -1,7 +1,7 @@
 from lxml import etree
 
 from cumulusci.core.utils import process_list_arg
-from cumulusci.tasks.salesforce.metadata_etl import (
+from cumulusci.tasks.metadata_etl import (
     MetadataSingleEntityTransformTask,
     get_new_tag_index,
     MD,
