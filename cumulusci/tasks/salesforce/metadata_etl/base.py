@@ -1,4 +1,4 @@
-import abc
+from abc import ABCMeta, abstractmethod
 import enum
 import tempfile
 
@@ -21,7 +21,7 @@ class MetadataOperation(enum.Enum):
     RETRIEVE = "retrieve"
 
 
-class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
+class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=ABCMeta):
     """Abstract base class for all Metadata ETL tasks. Concrete tasks should
     generally subclass BaseMetadataSynthesisTask, BaseMetadataTransformTask,
     or MetadataSingleEntityTransformTask."""
@@ -56,7 +56,7 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
             "", text, self.options.get("namespace_inject"), self.options["managed"]
         )[1]
 
-    @abc.abstractmethod
+    @abstractmethod
     def _get_package_xml_content(self, operation):
         """Return the textual content of a package.xml for the given operation."""
         pass
@@ -85,7 +85,7 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
         unpackaged = api_retrieve()
         unpackaged.extractall(self.retrieve_dir)
 
-    @abc.abstractmethod
+    @abstractmethod
     def _transform(self):
         """Transform the metadata in self.retrieve_dir into self.deploy_dir."""
         pass
@@ -131,7 +131,7 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
                 self._post_deploy(result)
 
 
-class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=abc.ABCMeta):
+class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=ABCMeta):
     """Base class for Metadata ETL tasks that generate new metadata
     and deploy it into the org, but do not retrieve."""
 
@@ -145,20 +145,20 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=abc.ABCMeta):
     def _transform(self):
         self._synthesize()
 
-    @abc.abstractmethod
+    @abstractmethod
     def _synthesize(self):
         """Create new metadata in self.deploy_dir."""
         pass
 
 
-class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=abc.ABCMeta):
+class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=ABCMeta):
     """Base class for Metadata ETL tasks that extract metadata,
     transform it, and deploy it back into the org."""
 
     retrieve = True
     deploy = True
 
-    @abc.abstractmethod
+    @abstractmethod
     def _get_entities(self):
         """Return a dict of Metadata API entities and API names to be transformed."""
         pass
@@ -187,14 +187,12 @@ class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=abc.ABCMeta):
 </Package>
 """
 
-    @abc.abstractmethod
+    @abstractmethod
     def _transform(self):
         pass
 
 
-class MetadataSingleEntityTransformTask(
-    BaseMetadataTransformTask, metaclass=abc.ABCMeta
-):
+class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABCMeta):
     """Base class for a Metadata ETL task that affects one or more
     instances of a specific metadata entity. Concrete subclasses must set
     `entity` to the Metadata API entity transformed, and implement _transform_entity()."""
@@ -219,7 +217,7 @@ class MetadataSingleEntityTransformTask(
     def _get_entities(self):
         return {self.entity: self.api_names or ["*"]}
 
-    @abc.abstractmethod
+    @abstractmethod
     def _transform_entity(self, metadata, api_name):
         """Accept an XML element corresponding to the metadata entity with
         the given api_name. Transform the XML and return the version which
