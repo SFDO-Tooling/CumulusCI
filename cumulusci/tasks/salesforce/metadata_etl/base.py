@@ -22,6 +22,10 @@ class MetadataOperation(enum.Enum):
 
 
 class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
+    """Abstract base class for all Metadata ETL tasks. Concrete tasks should
+    generally subclass BaseMetadataSynthesisTask, BaseMetadataTransformTask,
+    or MetadataSingleEntityTransformTask."""
+
     deploy = False
     retrieve = False
 
@@ -47,18 +51,22 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
         )
 
     def _inject_namespace(self, text):
+        """Inject the namespace into the given text if running in managed mode."""
         return inject_namespace(
             "", text, self.options.get("namespace_inject"), self.options["managed"]
         )[1]
 
     @abc.abstractmethod
     def _get_package_xml_content(self, operation):
+        """Return the textual content of a package.xml for the given operation."""
         pass
 
     def _generate_package_xml(self, operation):
+        """Call _get_package_xml_content() and perform namespace injection if needed"""
         return self._inject_namespace(self._get_package_xml_content(operation))
 
     def _create_directories(self, tempdir):
+        """Create self.retrieve_dir and self.deploy_dir, if required"""
         if self.retrieve:
             self.retrieve_dir = Path(tempdir, "retrieve")
             self.retrieve_dir.mkdir()
@@ -67,6 +75,7 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
             self.deploy_dir.mkdir()
 
     def _retrieve(self):
+        """Retrieve metadata into self.retrieve_dir"""
         self.logger.info("Extracting existing metadata...")
         api_retrieve = ApiRetrieveUnpackaged(
             self,
@@ -78,9 +87,11 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _transform(self):
+        """Transform the metadata in self.retrieve_dir into self.deploy_dir."""
         pass
 
     def _deploy(self):
+        """Deploy metadata from self.deploy_dir"""
         self.logger.info("Loading transformed metadata...")
         target_profile_xml = Path(self.deploy_dir, "package.xml")
         target_profile_xml.write_text(
@@ -105,6 +116,8 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
         return result
 
     def _post_deploy(self, result):
+        """Run any post-deploy logic required, such as waiting for asynchronous
+        operations to complete in the target org."""
         pass
 
     def _run_task(self):
@@ -120,11 +133,12 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
 
 class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=abc.ABCMeta):
     """Base class for Metadata ETL tasks that generate new metadata
-    and deploy it into the org."""
+    and deploy it into the org, but do not retrieve."""
 
     deploy = True
 
     def _generate_package_xml(self, deploy):
+        """Synthesize a package.xml for generated metadata."""
         generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
         return generator()
 
@@ -133,7 +147,7 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _synthesize(self):
-        # Create metadata in self.deploy_dir
+        """Create new metadata in self.deploy_dir."""
         pass
 
 
@@ -146,9 +160,11 @@ class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _get_entities(self):
+        """Return a dict of Metadata API entities and API names to be transformed."""
         pass
 
     def _get_types_package_xml(self):
+        """Generate package.xml content based on the return value of _get_entities()."""
         base = """    <types>
 {members}
         <name>{name}</name>
@@ -180,7 +196,8 @@ class MetadataSingleEntityTransformTask(
     BaseMetadataTransformTask, metaclass=abc.ABCMeta
 ):
     """Base class for a Metadata ETL task that affects one or more
-    instances of a specific metadata entity."""
+    instances of a specific metadata entity. Concrete subclasses must set
+    `entity` to the Metadata API entity transformed, and implement _transform_entity()."""
 
     entity = None
 
@@ -204,6 +221,9 @@ class MetadataSingleEntityTransformTask(
 
     @abc.abstractmethod
     def _transform_entity(self, metadata, api_name):
+        """Accept an XML element corresponding to the metadata entity with
+        the given api_name. Transform the XML and return the version which
+        should be deployed, or None to suppress deployment of this entity."""
         pass
 
     def _transform(self):
@@ -263,6 +283,8 @@ class MetadataSingleEntityTransformTask(
 
 
 def get_new_tag_index(tree, tag, namespace=MD):
+    """Return the appropriate insertion index for a new tag of type `tag`,
+    positioning it below all existing tags of this type."""
     # All top-level tags must be grouped together in XML file
     tags = tree.findall(f".//{namespace}{tag}")
     if tags:
