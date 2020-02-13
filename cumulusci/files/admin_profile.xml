@@ -11,7 +11,7 @@
         <name>CustomObject</name>
     </types>
     <types>
-        <members>Admin</members>
+        <members>{profile_name}</members>
         <name>Profile</name>
     </types>
     <version>39.0</version>

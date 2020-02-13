@@ -377,7 +377,7 @@ tasks:
     update_admin_profile:
         name: Update Admin Profile
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
-        class_path: cumulusci.tasks.salesforce.UpdateAdminProfile
+        class_path: cumulusci.tasks.salesforce.UpdateProfile
         group: Salesforce Metadata
     update_dependencies:
         description: Installs all dependencies in project__dependencies into the target org

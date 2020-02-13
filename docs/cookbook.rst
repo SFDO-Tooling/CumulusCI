@@ -194,7 +194,7 @@ The previous examples showed how to add a completely new task, but what if we ne
 The following is the content of the `tasks/salesforce.py` file in the NPSP repository::
 
     import os
-    from cumulusci.tasks.salesforce import UpdateAdminProfile as BaseUpdateAdminProfile
+    from cumulusci.tasks.salesforce import UpdateProfile as BaseUpdateProfile
     from cumulusci.utils import find_replace
     from cumulusci.utils import find_replace_regex
 
@@ -207,10 +207,10 @@ The following is the content of the `tasks/salesforce.py` file in the NPSP repos
     </recordTypeVisibilities>
     """
 
-    class UpdateAdminProfile(BaseUpdateAdminProfile):
+    class UpdateProfile(BaseUpdateProfile):
 
         def _process_metadata(self):
-            super(UpdateAdminProfile, self)._process_metadata()
+            super(UpdateProfile, self)._process_metadata()
 
             # Strip record type visibilities
             find_replace_regex(
@@ -237,7 +237,7 @@ The following is the content of the `tasks/salesforce.py` file in the NPSP repos
 
 That's a lot of code, but it is pretty simple to explain:
 
-* The standard UpdateAdminProfile class provides the `_process_metadata` method which modifies the retrieved Admin.profile before it is redeployed.  We want to add our logic after the standard logic does its thing.
+* The standard UpdateProfile class provides the `_process_metadata` method which modifies the retrieved Admin.profile before it is redeployed.  We want to add our logic after the standard logic does its thing.
 
 * First, we strip out all `<recordTypeVisibilities>*</recordTypeVisibilities>` using the find_replace_regex util method provided by CumulusCI
 
@@ -247,11 +247,11 @@ This then gets wired into the project's builds by the following in the cumulusci
 
     tasks:
         update_admin_profile:
-            class_path: tasks.salesforce.UpdateAdminProfile
+            class_path: tasks.salesforce.UpdateProfile
             options:
                 package_xml: lib/admin_profile.xml
 
-Note that here we're overriding the default package_xml used by UpdateAdminProfile.  The reason for this is taht we need to retrieve some managed objects that come from dependent packages so we can grant permissions on fields we added to those objects.  Here's the contents of `lib/admin_profile.xml`::
+Note that here we're overriding the default package_xml used by UpdateProfile.  The reason for this is taht we need to retrieve some managed objects that come from dependent packages so we can grant permissions on fields we added to those objects.  Here's the contents of `lib/admin_profile.xml`::
 
     <?xml version="1.0" encoding="UTF-8"?>
     <Package xmlns="http://soap.sforce.com/2006/04/metadata">
