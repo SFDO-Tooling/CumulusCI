@@ -243,3 +243,22 @@ class TestSetOrgWideDefaults:
                     ],
                 },
             )
+
+    def test_raises_exception_bad_sharing_model(self):
+        with pytest.raises(TaskOptionsError):
+            create_task(
+                SetOrgWideDefaults,
+                {
+                    "managed": True,
+                    "api_version": "47.0",
+                    "api_names": "bar,foo",
+                    "org_wide_defaults": [
+                        {
+                            "api_name": "Account",
+                            "internal_sharing_model": "Nonsense",
+                            "external_sharing_model": "Private",
+                        },
+                        {"api_name": "Test__c"},
+                    ],
+                },
+            )

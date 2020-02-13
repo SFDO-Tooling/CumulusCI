@@ -15,7 +15,8 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
         "org_wide_defaults": {
             "description": "The target Organization-Wide Defaults, "
             "organized as a list with each element containing the keys api_name, "
-            "internal_sharing_model, and external_sharing_model.",
+            "internal_sharing_model, and external_sharing_model. NOTE: you must have "
+            "External Sharing Model turned on in Sharing Settings to use the latter feature.",
             "required": True,
         },
         "timeout": {
@@ -45,6 +46,27 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
                     "The object api_name and at least one of "
                     "internal_sharing_model and external_sharing_model is required."
                 )
+
+            valid_sharing_models = [
+                "ControlledByParent",
+                "ControlledByCampaign",
+                "ControlledByLeadOrContact",
+                "FullAccess",
+                "ReadWriteTransfer",
+                "ReadWrite",
+                "Read",
+                "Private",
+                "ControlledByParent",
+                None,
+            ]
+            if (
+                elem.get("internal_sharing_model") not in valid_sharing_models
+                or elem.get("external_sharing_model") not in valid_sharing_models
+            ):
+                raise TaskOptionsError(
+                    f"The sharing model specified for {elem['api_name']} is not a valid option."
+                )
+
             self.owds[self._inject_namespace(elem["api_name"])] = {
                 "internal_sharing_model": elem.get("internal_sharing_model"),
                 "external_sharing_model": elem.get("external_sharing_model"),
