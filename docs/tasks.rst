@@ -1,3 +1,4 @@
+Checking the version!
 ==========================================
 Tasks Reference
 ==========================================
@@ -47,7 +48,7 @@ Options
 	 Name of the Related List to include
 
 ``-o fields FIELDS``
-	 *Required*
+	 *Optional*
 
 	 Array of field API names to include in the related list
 
@@ -56,10 +57,10 @@ Options
 
 	 List of API names of entities to affect
 
-``-o unmanaged UNMANAGED``
+``-o managed MANAGED``
 	 *Optional*
 
-	 If True, changes namespace_inject to replace tokens with a blank string
+	 If False, changes namespace_inject to replace tokens with a blank string
 
 ``-o namespace_inject NAMESPACEINJECT``
 	 *Optional*
@@ -91,7 +92,7 @@ Options
 
 
 ``-o entries ENTRIES``
-	 *Required*
+	 *Optional*
 
 	 Array of standardValues to insert. Each standardValue should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. OpportunityStage entries require the additional keys 'closed', 'won', 'forecastCategory', and 'probability'; CaseStatus entries require 'closed'.
 
@@ -100,10 +101,10 @@ Options
 
 	 List of API names of entities to affect
 
-``-o unmanaged UNMANAGED``
+``-o managed MANAGED``
 	 *Optional*
 
-	 If True, changes namespace_inject to replace tokens with a blank string
+	 If False, changes namespace_inject to replace tokens with a blank string
 
 ``-o namespace_inject NAMESPACEINJECT``
 	 *Optional*
@@ -135,12 +136,12 @@ Options
 
 
 ``-o field_permissions FIELDPERMISSIONS``
-	 *Required*
+	 *Optional*
 
 	 Array of fieldPermissions objects to upsert into permission_set.  Each fieldPermission requires the following attributes: 'field': API Name of the field including namespace; 'readable': boolean if field can be read; 'editable': boolean if field can be edited
 
 ``-o class_accesses CLASSACCESSES``
-	 *Required*
+	 *Optional*
 
 	 Array of classAccesses objects to upsert into permission_set.  Each classAccess requires the following attributes: 'apexClass': Name of Apex Class.  If namespaced, make sure to use the form "namespace__ApexClass"; 'enabled': boolean if the Apex Class can be accessed.
 
@@ -149,10 +150,10 @@ Options
 
 	 List of API names of entities to affect
 
-``-o unmanaged UNMANAGED``
+``-o managed MANAGED``
 	 *Optional*
 
-	 If True, changes namespace_inject to replace tokens with a blank string
+	 If False, changes namespace_inject to replace tokens with a blank string
 
 ``-o namespace_inject NAMESPACEINJECT``
 	 *Optional*
@@ -2569,7 +2570,7 @@ Options
 **set_organization_wide_defaults**
 ==========================================
 
-**Description:** Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing enablement to complete.
+**Description:** Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
 
 **Class:** cumulusci.tasks.salesforce.metadata_etl.SetOrgWideDefaults
 
@@ -2598,10 +2599,10 @@ Options
 
 	 List of API names of entities to affect
 
-``-o unmanaged UNMANAGED``
+``-o managed MANAGED``
 	 *Optional*
 
-	 If True, changes namespace_inject to replace tokens with a blank string
+	 If False, changes namespace_inject to replace tokens with a blank string
 
 ``-o namespace_inject NAMESPACEINJECT``
 	 *Optional*
@@ -2973,7 +2974,7 @@ Options
 
 **Description:** Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
 
-**Class:** cumulusci.tasks.salesforce.UpdateAdminProfile
+**Class:** cumulusci.tasks.salesforce.UpdateProfile
 
 Command Syntax
 ------------------------------------------
@@ -3004,6 +3005,11 @@ Options
 	 *Optional*
 
 	 If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False
+
+``-o profile_name PROFILENAME``
+	 *Optional*
+
+	 Name of the Profile to target for updates.
 
 **update_dependencies**
 ==========================================

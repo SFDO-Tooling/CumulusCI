@@ -2,6 +2,7 @@ import abc
 import enum
 import tempfile
 
+from lxml import etree
 from pathlib import Path
 
 from cumulusci.core.exceptions import CumulusCIException
@@ -9,8 +10,10 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask, Deploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.core.utils import process_bool_arg, process_list_arg
-from cumulusci.utils import elementtree_parse_file, inject_namespace
+from cumulusci.utils import inject_namespace
 from cumulusci.core.config import TaskConfig
+
+MD = "{http://soap.sforce.com/2006/04/metadata}"
 
 
 class MetadataOperation(enum.Enum):
@@ -21,8 +24,6 @@ class MetadataOperation(enum.Enum):
 class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
     deploy = False
     retrieve = False
-
-    namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
 
     task_options = {
         "managed": {
@@ -66,6 +67,7 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
             self.deploy_dir.mkdir()
 
     def _retrieve(self):
+        self.logger.info("Extracting existing metadata...")
         api_retrieve = ApiRetrieveUnpackaged(
             self,
             self._generate_package_xml(MetadataOperation.RETRIEVE),
@@ -79,6 +81,7 @@ class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=abc.ABCMeta):
         pass
 
     def _deploy(self):
+        self.logger.info("Loading transformed metadata...")
         target_profile_xml = Path(self.deploy_dir, "package.xml")
         target_profile_xml.write_text(
             self._generate_package_xml(MetadataOperation.DEPLOY)
@@ -243,25 +246,25 @@ class MetadataSingleEntityTransformTask(
             if not path.exists():
                 raise CumulusCIException(f"Cannot find metadata file {path}")
 
-            transformed_xml = self._transform_entity(
-                elementtree_parse_file(path), api_name
-            )
+            try:
+                tree = etree.parse(str(path))
+            except etree.ParseError as err:
+                err.filename = path
+                raise err
+            transformed_xml = self._transform_entity(tree, api_name)
             if transformed_xml:
                 parent_dir = self.deploy_dir / directory
                 if not parent_dir.exists():
                     parent_dir.mkdir()
                 destination_path = parent_dir / f"{api_name}.{extension}"
                 transformed_xml.write(
-                    destination_path,
-                    "utf-8",
-                    xml_declaration=True,
-                    default_namespace=self.namespaces["sf"],
+                    str(destination_path), encoding="utf-8", xml_declaration=True
                 )
 
 
-def get_new_tag_index(tree, tag, namespaces):
+def get_new_tag_index(tree, tag, namespace=MD):
     # All top-level tags must be grouped together in XML file
-    tags = tree.findall(f".//sf:{tag}", namespaces)
+    tags = tree.findall(f".//{namespace}{tag}")
     if tags:
         # Insert new tag after the last existing tag of the same type
         return list(tree.getroot()).index(tags[-1]) + 1

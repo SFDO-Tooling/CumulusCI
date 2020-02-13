@@ -1,12 +1,12 @@
-import io
-import unittest
-import xml.etree.ElementTree as ET
+from lxml import etree
+import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.salesforce.metadata_etl import AddValueSetEntries
+from cumulusci.tasks.salesforce.metadata_etl import MD
 
-VALUESET_XML = """<?xml version="1.0" encoding="UTF-8"?>
+VALUESET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <StandardValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <sorted>false</sorted>
     <standardValue>
@@ -23,7 +23,7 @@ VALUESET_XML = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
-class test_AddValueSetEntries(unittest.TestCase):
+class TestAddValueSetEntries:
     def test_adds_entry(self):
         task = create_task(
             AddValueSetEntries,
@@ -38,35 +38,28 @@ class test_AddValueSetEntries(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(VALUESET_XML))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(VALUESET_XML).getroottree()
 
-        assert (
-            len(root.findall(".//sf:standardValue[sf:fullName='Test']", namespaces))
-            == 0
-        )
-        assert (
-            len(root.findall(".//sf:standardValue[sf:fullName='Test_2']", namespaces))
-            == 0
-        )
+        assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
+        assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
 
-        result = task._transform_entity(root, "ValueSet")
+        result = task._transform_entity(tree, "ValueSet")
 
-        entry = result.findall(".//sf:standardValue[sf:fullName='Test']", namespaces)
+        entry = result.findall(f".//{MD}standardValue[{MD}fullName='Test']")
         assert len(entry) == 1
-        label = entry[0].findall(f".//sf:label", namespaces)
+        label = entry[0].findall(f".//{MD}label")
         assert len(label) == 1
         assert label[0].text == "Label"
-        default = entry[0].findall(f".//sf:default", namespaces)
+        default = entry[0].findall(f".//{MD}default")
         assert len(default) == 1
         assert default[0].text == "false"
 
-        entry = result.findall(".//sf:standardValue[sf:fullName='Test_2']", namespaces)
+        entry = result.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")
         assert len(entry) == 1
-        label = entry[0].findall(f".//sf:label", namespaces)
+        label = entry[0].findall(f".//{MD}label")
         assert len(label) == 1
         assert label[0].text == "Label 2"
-        default = entry[0].findall(f".//sf:default", namespaces)
+        default = entry[0].findall(f".//{MD}default")
         assert len(default) == 1
         assert default[0].text == "false"
 
@@ -90,38 +83,31 @@ class test_AddValueSetEntries(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(VALUESET_XML))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(VALUESET_XML).getroottree()
 
-        assert (
-            len(root.findall(".//sf:standardValue[sf:fullName='Test']", namespaces))
-            == 0
-        )
-        assert (
-            len(root.findall(".//sf:standardValue[sf:fullName='Test_2']", namespaces))
-            == 0
-        )
+        assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
+        assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
 
-        result = task._transform_entity(root, "OpportunityStage")
+        result = task._transform_entity(tree, "OpportunityStage")
 
-        entry = result.findall(".//sf:standardValue[sf:fullName='Test']", namespaces)
+        entry = result.findall(f".//{MD}standardValue[{MD}fullName='Test']")
         assert len(entry) == 1
-        label = entry[0].findall(f".//sf:label", namespaces)
+        label = entry[0].findall(f".//{MD}label")
         assert len(label) == 1
         assert label[0].text == "Label"
-        default = entry[0].findall(f".//sf:default", namespaces)
+        default = entry[0].findall(f".//{MD}default")
         assert len(default) == 1
         assert default[0].text == "false"
-        closed = entry[0].findall(f".//sf:closed", namespaces)
+        closed = entry[0].findall(f".//{MD}closed")
         assert len(closed) == 1
         assert closed[0].text == "true"
-        won = entry[0].findall(f".//sf:won", namespaces)
+        won = entry[0].findall(f".//{MD}won")
         assert len(won) == 1
         assert won[0].text == "true"
-        forecastCategory = entry[0].findall(f".//sf:forecastCategory", namespaces)
+        forecastCategory = entry[0].findall(f".//{MD}forecastCategory")
         assert len(forecastCategory) == 1
         assert forecastCategory[0].text == "Omitted"
-        probability = entry[0].findall(f".//sf:probability", namespaces)
+        probability = entry[0].findall(f".//{MD}probability")
         assert len(probability) == 1
         assert probability[0].text == "100"
 
@@ -136,29 +122,22 @@ class test_AddValueSetEntries(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(VALUESET_XML))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(VALUESET_XML).getroottree()
 
-        assert (
-            len(root.findall(".//sf:standardValue[sf:fullName='Test']", namespaces))
-            == 0
-        )
-        assert (
-            len(root.findall(".//sf:standardValue[sf:fullName='Test_2']", namespaces))
-            == 0
-        )
+        assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
+        assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
 
-        result = task._transform_entity(root, "CaseStatus")
+        result = task._transform_entity(tree, "CaseStatus")
 
-        entry = result.findall(".//sf:standardValue[sf:fullName='Test']", namespaces)
+        entry = result.findall(f".//{MD}standardValue[{MD}fullName='Test']")
         assert len(entry) == 1
-        label = entry[0].findall(f".//sf:label", namespaces)
+        label = entry[0].findall(f".//{MD}label")
         assert len(label) == 1
         assert label[0].text == "Label"
-        default = entry[0].findall(f".//sf:default", namespaces)
+        default = entry[0].findall(f".//{MD}default")
         assert len(default) == 1
         assert default[0].text == "false"
-        closed = entry[0].findall(f".//sf:closed", namespaces)
+        closed = entry[0].findall(f".//{MD}closed")
         assert len(closed) == 1
         assert closed[0].text == "true"
 
@@ -173,20 +152,13 @@ class test_AddValueSetEntries(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(VALUESET_XML))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(VALUESET_XML).getroottree()
 
-        assert (
-            len(root.findall(".//sf:standardValue[sf:fullName='Value']", namespaces))
-            == 1
-        )
+        assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Value']")) == 1
 
-        result = task._transform_entity(root, "ValueSet")
+        result = task._transform_entity(tree, "ValueSet")
 
-        assert (
-            len(result.findall(".//sf:standardValue[sf:fullName='Value']", namespaces))
-            == 1
-        )
+        assert len(result.findall(f".//{MD}standardValue[{MD}fullName='Value']")) == 1
 
     def test_raises_exception_missing_values(self):
         task = create_task(
@@ -198,10 +170,10 @@ class test_AddValueSetEntries(unittest.TestCase):
                 "entries": [{"fullName": "Value"}],
             },
         )
-        root = ET.ElementTree(file=io.StringIO(VALUESET_XML))
+        tree = etree.fromstring(VALUESET_XML).getroottree()
 
-        with self.assertRaises(TaskOptionsError):
-            task._transform_entity(root, "ValueSet")
+        with pytest.raises(TaskOptionsError):
+            task._transform_entity(tree, "ValueSet")
 
         task = create_task(
             AddValueSetEntries,
@@ -213,8 +185,8 @@ class test_AddValueSetEntries(unittest.TestCase):
             },
         )
 
-        with self.assertRaises(TaskOptionsError):
-            task._transform_entity(root, "ValueSet")
+        with pytest.raises(TaskOptionsError):
+            task._transform_entity(tree, "ValueSet")
 
     def test_raises_exception_missing_values__opportunitystage(self):
         task = create_task(
@@ -226,10 +198,10 @@ class test_AddValueSetEntries(unittest.TestCase):
                 "entries": [{"fullName": "Value", "label": "Value"}],
             },
         )
-        root = ET.ElementTree(file=io.StringIO(VALUESET_XML))
+        tree = etree.fromstring(VALUESET_XML).getroottree()
 
-        with self.assertRaises(TaskOptionsError) as err:
-            task._transform_entity(root, "OpportunityStage")
+        with pytest.raises(TaskOptionsError) as err:
+            task._transform_entity(tree, "OpportunityStage")
             assert "OpportunityStage" in err
 
     def test_raises_exception_missing_values__casestatus(self):
@@ -242,8 +214,8 @@ class test_AddValueSetEntries(unittest.TestCase):
                 "entries": [{"fullName": "Value", "label": "Value"}],
             },
         )
-        root = ET.ElementTree(file=io.StringIO(VALUESET_XML))
+        tree = etree.fromstring(VALUESET_XML).getroottree()
 
-        with self.assertRaises(TaskOptionsError) as err:
-            task._transform_entity(root, "CaseStatus")
+        with pytest.raises(TaskOptionsError) as err:
+            task._transform_entity(tree, "CaseStatus")
             assert "CaseStatus" in err

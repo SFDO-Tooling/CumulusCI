@@ -1,15 +1,15 @@
-import io
-import unittest
-import xml.etree.ElementTree as ET
-
 from datetime import datetime
 from unittest import mock
 
+from lxml import etree
+import pytest
+
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tasks.salesforce.metadata_etl import MD
 from cumulusci.tasks.salesforce.metadata_etl import SetOrgWideDefaults
 
-CUSTOMOBJECT_XML = """<?xml version="1.0" encoding="UTF-8"?>
+CUSTOMOBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <sharingModel>Read</sharingModel>
     <externalSharingModel>Read</externalSharingModel>
@@ -23,7 +23,7 @@ CUSTOMOBJECT_XML = """<?xml version="1.0" encoding="UTF-8"?>
     <deploymentStatus>Deployed</deploymentStatus>
 </CustomObject>"""
 
-CUSTOMOBJECT_XML_MISSING_TAGS = """<?xml version="1.0" encoding="UTF-8"?>
+CUSTOMOBJECT_XML_MISSING_TAGS = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <label>Test</label>
     <pluralLabel>Tests</pluralLabel>
@@ -36,7 +36,7 @@ CUSTOMOBJECT_XML_MISSING_TAGS = """<?xml version="1.0" encoding="UTF-8"?>
 </CustomObject>"""
 
 
-class test_SetOrgWideDefaults(unittest.TestCase):
+class TestSetOrgWideDefaults:
     def test_sets_owd(self):
         task = create_task(
             SetOrgWideDefaults,
@@ -61,16 +61,15 @@ class test_SetOrgWideDefaults(unittest.TestCase):
 
         assert task.api_names == ["Account", "Test__c"]
 
-        root = ET.ElementTree(file=io.StringIO(CUSTOMOBJECT_XML))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(CUSTOMOBJECT_XML).getroottree()
 
-        result = task._transform_entity(root, "Test__c")
+        result = task._transform_entity(tree, "Test__c")
 
-        entry = result.findall(".//sf:sharingModel", namespaces)
+        entry = result.findall(f".//{MD}sharingModel")
         assert len(entry) == 1
         assert entry[0].text == "ReadWrite"
 
-        entry = result.findall(".//sf:externalSharingModel", namespaces)
+        entry = result.findall(f".//{MD}externalSharingModel")
         assert len(entry) == 1
         assert entry[0].text == "Read"
 
@@ -98,16 +97,15 @@ class test_SetOrgWideDefaults(unittest.TestCase):
 
         assert task.api_names == ["Account", "Test__c"]
 
-        root = ET.ElementTree(file=io.StringIO(CUSTOMOBJECT_XML_MISSING_TAGS))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(CUSTOMOBJECT_XML_MISSING_TAGS).getroottree()
 
-        result = task._transform_entity(root, "Test__c")
+        result = task._transform_entity(tree, "Test__c")
 
-        entry = result.findall(".//sf:sharingModel", namespaces)
+        entry = result.findall(f".//{MD}sharingModel")
         assert len(entry) == 1
         assert entry[0].text == "ReadWrite"
 
-        entry = result.findall(".//sf:externalSharingModel", namespaces)
+        entry = result.findall(f".//{MD}externalSharingModel")
         assert len(entry) == 1
         assert entry[0].text == "Read"
 
@@ -195,7 +193,7 @@ class test_SetOrgWideDefaults(unittest.TestCase):
         )
         task.sf = mock.Mock()
         task.sf.query.return_value = {"totalSize": 0, "records": []}
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task._post_deploy("Success")
 
         query = (
@@ -224,11 +222,11 @@ class test_SetOrgWideDefaults(unittest.TestCase):
         )
 
         task.time_start = datetime.min
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task._poll_action()
 
     def test_raises_exception_missing_values(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(
                 SetOrgWideDefaults,
                 {
