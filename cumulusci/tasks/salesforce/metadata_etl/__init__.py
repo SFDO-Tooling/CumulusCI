@@ -4,6 +4,7 @@ from cumulusci.tasks.salesforce.metadata_etl.base import (
     BaseMetadataTransformTask,
     MetadataSingleEntityTransformTask,
     get_new_tag_index,
+    MD,
 )
 from cumulusci.tasks.salesforce.metadata_etl.layouts import AddRelatedLists
 from cumulusci.tasks.salesforce.metadata_etl.permissions import AddPermissions
@@ -20,4 +21,5 @@ flake8 = (
     AddValueSetEntries,
     SetOrgWideDefaults,
     get_new_tag_index,
+    MD,
 )

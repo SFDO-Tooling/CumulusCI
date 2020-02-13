@@ -1,9 +1,10 @@
-import xml.etree.ElementTree as XML_ET
-from cumulusci.core.utils import process_list_arg
+from lxml import etree
 
+from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce.metadata_etl import (
     MetadataSingleEntityTransformTask,
     get_new_tag_index,
+    MD,
 )
 
 
@@ -16,18 +17,16 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
         },
         "fields": {
             "description": "Array of field API names to include in the related list",
-            "required": "False",
+            "required": False,
         },
         **MetadataSingleEntityTransformTask.task_options,
     }
 
     def _transform_entity(self, metadata, api_name):
-        new_related_list_index = get_new_tag_index(
-            metadata, "relatedLists", self.namespaces
-        )
+        new_related_list_index = get_new_tag_index(metadata, "relatedLists")
         related_list = self._inject_namespace(self.options["related_list"])
         existing_related_lists = metadata.findall(
-            f".//sf:relatedLists[sf:relatedList='{related_list}']", self.namespaces
+            f".//{MD}relatedLists[{MD}relatedList='{related_list}']"
         )
 
         if not existing_related_lists:
@@ -45,16 +44,12 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
             for f in process_list_arg(self.options.get("fields", []))
         ]
 
-        elem = XML_ET.Element("{%s}relatedLists" % (self.namespaces.get("sf")))
+        elem = etree.Element(f"{MD}relatedLists")
         metadata.getroot().insert(index, elem)
 
         for f in fields:
-            elem_field = XML_ET.SubElement(
-                elem, "{%s}fields" % (self.namespaces.get("sf"))
-            )
+            elem_field = etree.SubElement(elem, f"{MD}fields")
             elem_field.text = f
 
-        elem_related_list = XML_ET.SubElement(
-            elem, "{%s}relatedList" % (self.namespaces.get("sf"))
-        )
+        elem_related_list = etree.SubElement(elem, f"{MD}relatedList")
         elem_related_list.text = related_list

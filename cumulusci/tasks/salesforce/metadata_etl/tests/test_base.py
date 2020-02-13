@@ -1,10 +1,9 @@
-import io
-import tempfile
-import unittest
-import xml.etree.ElementTree as ET
-
 from pathlib import Path
 from unittest import mock
+import tempfile
+
+from lxml import etree
+import pytest
 
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce.tests.util import create_task
@@ -17,7 +16,7 @@ from cumulusci.tasks.salesforce.metadata_etl import (
 )
 
 
-class test_BaseMetadataETLTask(unittest.TestCase):
+class TestBaseMetadataETLTask:
     def test_init_options(self):
         task = create_task(
             BaseMetadataETLTask, {"unmanaged": True, "api_version": "47.0"}
@@ -92,7 +91,7 @@ class test_BaseMetadataETLTask(unittest.TestCase):
         task._deploy.assert_called_once_with()
 
 
-class test_BaseMetadataSynthesisTask(unittest.TestCase):
+class TestBaseMetadataSynthesisTask:
     def test_synthesis(self):
         task = create_task(
             BaseMetadataSynthesisTask,
@@ -122,7 +121,7 @@ class test_BaseMetadataSynthesisTask(unittest.TestCase):
         assert result == package_mock.return_value.return_value
 
 
-class test_BaseMetadataTransformTask(unittest.TestCase):
+class TestBaseMetadataTransformTask:
     def test_generate_package_xml(self):
         task = create_task(
             BaseMetadataTransformTask,
@@ -155,7 +154,7 @@ class test_BaseMetadataTransformTask(unittest.TestCase):
         )
 
 
-class test_MetadataSingleEntityTransformTask(unittest.TestCase):
+class TestMetadataSingleEntityTransformTask:
     def test_init_options(self):
         task = create_task(MetadataSingleEntityTransformTask, {})
         task._init_options(
@@ -217,7 +216,7 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
 
         task.entity = "Battlestar"
 
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task._transform()
 
     def test_transform__non_xml_entity(self):
@@ -228,7 +227,7 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
 
         task.entity = "LightningComponentBundle"
 
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task._transform()
 
     def test_transform__missing_record(self):
@@ -245,12 +244,12 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
             test_path = task.retrieve_dir / "applications"
             test_path.mkdir()
 
-            with self.assertRaises(CumulusCIException):
+            with pytest.raises(CumulusCIException):
                 task._transform()
 
 
-class test_utilities(unittest.TestCase):
-    XML_SAMPLE = """<?xml version="1.0" encoding="UTF-8"?>
+class TestUtilities:
+    XML_SAMPLE = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
     <defaultLandingTab>standard-Account</defaultLandingTab>
     <description>Application</description>
@@ -262,8 +261,7 @@ class test_utilities(unittest.TestCase):
 """
 
     def test_get_new_tag_index(self):
-        root = ET.ElementTree(file=io.StringIO(self.XML_SAMPLE))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        root = etree.fromstring(self.XML_SAMPLE).getroottree()
 
-        assert get_new_tag_index(root, "tabs", namespaces) == 5
-        assert get_new_tag_index(root, "relatedList", namespaces) == 0
+        assert get_new_tag_index(root, "tabs") == 5
+        assert get_new_tag_index(root, "relatedList") == 0

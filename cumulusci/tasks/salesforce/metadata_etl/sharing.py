@@ -1,9 +1,12 @@
-import xml.etree.ElementTree as XML_ET
-
 from datetime import datetime
 
+from lxml import etree
+
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.tasks.salesforce.metadata_etl import MetadataSingleEntityTransformTask
+from cumulusci.tasks.salesforce.metadata_etl import (
+    MetadataSingleEntityTransformTask,
+    MD,
+)
 
 
 class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
@@ -60,26 +63,18 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
         desired_external_model = self.owds[api_name].get("external_sharing_model")
 
         if desired_external_model:
-            external_model = metadata.findall(
-                f".//sf:externalSharingModel", self.namespaces
-            )
+            external_model = metadata.findall(f".//{MD}externalSharingModel")
             if not external_model:
                 external_model = [
-                    XML_ET.SubElement(
-                        metadata.getroot(),
-                        "{%s}externalSharingModel" % (self.namespaces.get("sf")),
-                    )
+                    etree.SubElement(metadata.getroot(), f"{MD}externalSharingModel")
                 ]
             external_model[0].text = desired_external_model
 
         if desired_internal_model:
-            internal_model = metadata.findall(f".//sf:sharingModel", self.namespaces)
+            internal_model = metadata.findall(f".//{MD}sharingModel")
             if not internal_model:
                 internal_model = [
-                    XML_ET.SubElement(
-                        metadata.getroot(),
-                        "{%s}sharingModel" % (self.namespaces.get("sf")),
-                    )
+                    etree.SubElement(metadata.getroot(), f"{MD}sharingModel")
                 ]
             internal_model[0].text = desired_internal_model
 
