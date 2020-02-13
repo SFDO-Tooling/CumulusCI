@@ -281,4 +281,4 @@ class TestUtilities:
         root = etree.fromstring(self.XML_SAMPLE).getroottree()
 
         assert get_new_tag_index(root, "tabs") == 5
-        assert get_new_tag_index(root, "relatedList") == 0
+        assert get_new_tag_index(root, "relatedList") == 6

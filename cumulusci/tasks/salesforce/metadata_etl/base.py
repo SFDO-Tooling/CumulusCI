@@ -291,5 +291,5 @@ def get_new_tag_index(tree, tag, namespace=MD):
         # Insert new tag after the last existing tag of the same type
         return list(tree.getroot()).index(tags[-1]) + 1
     else:
-        # There are no existing tags of this type; insert new tag at the top.
-        return 0
+        # There are no existing tags of this type; insert new tag at the bottom.
+        return len(tree.getroot())
