@@ -123,7 +123,7 @@ Options
 
 **Description:** Adds specified Apex class access and Field-Level Security to a Permission Set.
 
-**Class:** cumulusci.tasks.salesforce.metadata_etl.AddPermissions
+**Class:** cumulusci.tasks.salesforce.metadata_etl.AddPermissionSetPermissions
 
 Command Syntax
 ------------------------------------------

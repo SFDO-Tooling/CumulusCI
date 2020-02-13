@@ -8,7 +8,7 @@ from cumulusci.tasks.salesforce.metadata_etl import (
 )
 
 
-class AddPermissions(MetadataSingleEntityTransformTask):
+class AddPermissionSetPermissions(MetadataSingleEntityTransformTask):
     entity = "PermissionSet"
     task_options = {
         "field_permissions": {

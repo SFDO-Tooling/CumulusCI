@@ -21,7 +21,7 @@ tasks:
     add_permission_set_perms:
         group: Metadata Transformations
         description: Adds specified Apex class access and Field-Level Security to a Permission Set.
-        class_path: cumulusci.tasks.salesforce.metadata_etl.AddPermissions
+        class_path: cumulusci.tasks.salesforce.metadata_etl.AddPermissionSetPermissions
         options:
             namespace_inject: $project_config.project__package__namespace
     batch_apex_wait:

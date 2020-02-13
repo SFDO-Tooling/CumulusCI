@@ -3,7 +3,7 @@ import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tasks.salesforce.metadata_etl import AddPermissions
+from cumulusci.tasks.salesforce.metadata_etl import AddPermissionSetPermissions
 from cumulusci.tasks.salesforce.metadata_etl import MD
 
 PERMSET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -48,10 +48,10 @@ PERMSET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
-class TestAddPermissions:
+class TestAddPermissionSetPermissions:
     def test_adds_new_field_permission(self):
         task = create_task(
-            AddPermissions,
+            AddPermissionSetPermissions,
             {
                 "managed": True,
                 "api_version": "47.0",
@@ -92,7 +92,7 @@ class TestAddPermissions:
 
     def test_updates_existing_field_permission(self):
         task = create_task(
-            AddPermissions,
+            AddPermissionSetPermissions,
             {
                 "managed": True,
                 "api_version": "47.0",
@@ -125,7 +125,7 @@ class TestAddPermissions:
 
     def test_adds_new_class_permission(self):
         task = create_task(
-            AddPermissions,
+            AddPermissionSetPermissions,
             {
                 "managed": True,
                 "api_version": "47.0",
@@ -153,7 +153,7 @@ class TestAddPermissions:
 
     def test_upserts_existing_class_permission(self):
         task = create_task(
-            AddPermissions,
+            AddPermissionSetPermissions,
             {
                 "managed": True,
                 "api_version": "47.0",
@@ -181,7 +181,7 @@ class TestAddPermissions:
 
     def test_missing_apexclass_throws_exception(self):
         task = create_task(
-            AddPermissions,
+            AddPermissionSetPermissions,
             {
                 "managed": True,
                 "api_version": "47.0",
@@ -197,7 +197,7 @@ class TestAddPermissions:
 
     def test_missing_field_throws_exception(self):
         task = create_task(
-            AddPermissions,
+            AddPermissionSetPermissions,
             {
                 "managed": True,
                 "api_version": "47.0",
