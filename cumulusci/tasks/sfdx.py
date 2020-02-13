@@ -68,7 +68,7 @@ class SFDXOrgTask(SFDXBaseTask):
         if not isinstance(self.org_config, ScratchOrgConfig):
             # For non-scratch keychain orgs, pass the access token via env var
             env["SFDX_INSTANCE_URL"] = self.org_config.instance_url
-            env["SFDX_USERNAME"] = self.org_config.access_token
+            env["SFDX_DEFAULTUSERNAME"] = self.org_config.access_token
         return env
 
 

@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.salesforce import UpdateAdminProfile
+from cumulusci.tasks.salesforce import UpdateProfile
 
 from .util import create_task
 
@@ -86,7 +86,7 @@ ADMIN_PROFILE_EXPECTED = """<?xml version='1.0' encoding='utf-8'?>
 
 def test_run_task():
     task = create_task(
-        UpdateAdminProfile,
+        UpdateProfile,
         {
             "record_types": [
                 {
@@ -115,9 +115,43 @@ def test_run_task():
     task()
 
 
+def test_run_task__other_profile():
+    task = create_task(
+        UpdateProfile,
+        {
+            "record_types": [
+                {
+                    "record_type": "Account.HH_Account",
+                    "default": True,
+                    "person_account_default": True,
+                }
+            ],
+            "namespaced_org": True,
+            "profile_name": "Continuous Integration",
+        },
+    )
+
+    def _retrieve_unpackaged():
+        profiles_path = Path(task.retrieve_dir, "profiles")
+        admin_profile_path = Path(profiles_path, "Continuous Integration.profile")
+        profiles_path.mkdir()
+        admin_profile_path.write_text(ADMIN_PROFILE_BEFORE)
+
+    def _check_result():
+        result_path = Path(
+            task.retrieve_dir, "profiles", "Continuous Integration.profile"
+        )
+        result = result_path.read_text()
+        assert ADMIN_PROFILE_EXPECTED == result
+
+    task._retrieve_unpackaged = _retrieve_unpackaged
+    task._deploy_metadata = _check_result
+    task()
+
+
 def test_run_task__record_type_not_found():
     task = create_task(
-        UpdateAdminProfile,
+        UpdateProfile,
         {"record_types": [{"record_type": "DOESNT_EXIST"}], "namespaced_org": True},
     )
 
@@ -134,14 +168,14 @@ def test_run_task__record_type_not_found():
 
 @mock.patch("cumulusci.salesforce_api.metadata.ApiRetrieveUnpackaged.__call__")
 def test_retrieve_unpackaged(ApiRetrieveUnpackaged):
-    task = create_task(UpdateAdminProfile)
+    task = create_task(UpdateProfile)
     task.retrieve_dir = "/tmp"
     task._retrieve_unpackaged()
     ApiRetrieveUnpackaged.assert_called_once()
 
 
 def test_deploy_metadata(tmpdir):
-    task = create_task(UpdateAdminProfile)
+    task = create_task(UpdateProfile)
     task.retrieve_dir = Path(tmpdir, "retrieve", "profiles")
     task.deploy_dir = Path(tmpdir, "deploy")
     task.retrieve_dir.mkdir(parents=True)
@@ -152,3 +186,23 @@ def test_deploy_metadata(tmpdir):
     task._get_api = mock.Mock()
     task._deploy_metadata()
     task._get_api.assert_called_once()
+
+
+def test_get_deploy_package_xml_content():
+    task = create_task(UpdateProfile, {"profile_name": "Test"})
+
+    assert "Test" in task._get_deploy_package_xml_content()
+
+    task = create_task(UpdateProfile)
+
+    assert "Admin" in task._get_deploy_package_xml_content()
+
+
+def test_get_retrieve_package_xml_content():
+    task = create_task(UpdateProfile, {"profile_name": "Test"})
+
+    assert "Test" in task._get_retrieve_package_xml_content()
+
+    task = create_task(UpdateProfile)
+
+    assert "Admin" in task._get_retrieve_package_xml_content()
