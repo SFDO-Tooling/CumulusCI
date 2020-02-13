@@ -264,6 +264,25 @@ class TestMetadataSingleEntityTransformTask:
             with pytest.raises(CumulusCIException):
                 task._transform()
 
+    def test_transform__xml_parse_error(self):
+        task = create_task(
+            ConcreteMetadataSingleEntityTransformTask,
+            {"managed": False, "api_version": "47.0", "api_names": "Test"},
+        )
+
+        task.entity = "CustomApplication"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            task._create_directories(tmpdir)
+
+            test_path = task.retrieve_dir / "applications"
+            test_path.mkdir()
+            test_path = test_path / "Test.app"
+
+            test_path.write_text(">>>>>NOT XML<<<<<")
+            with pytest.raises(etree.ParseError):
+                task._transform()
+
 
 class TestUtilities:
     XML_SAMPLE = b"""<?xml version="1.0" encoding="UTF-8"?>
