@@ -1,12 +1,12 @@
-import io
-import unittest
-import xml.etree.ElementTree as ET
+from lxml import etree
+import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.salesforce.metadata_etl import AddPermissions
+from cumulusci.tasks.salesforce.metadata_etl import MD
 
-PERMSET_XML = """<?xml version="1.0" encoding="UTF-8"?>
+PERMSET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <applicationVisibilities>
         <application>CustomApp</application>
@@ -48,7 +48,7 @@ PERMSET_XML = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
-class test_AddPermissions(unittest.TestCase):
+class TestAddPermissions:
     def test_adds_new_field_permission(self):
         task = create_task(
             AddPermissions,
@@ -66,29 +66,27 @@ class test_AddPermissions(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(PERMSET_XML))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(PERMSET_XML).getroottree()
 
         assert (
             len(
-                root.findall(
-                    f".//sf:fieldPermissions[sf:field='Test__c.Description__c']",
-                    namespaces,
+                tree.findall(
+                    f".//{MD}fieldPermissions[{MD}field='Test__c.Description__c']"
                 )
             )
             == 0
         )
 
-        result = task._transform_entity(root, "PermSet")
+        result = task._transform_entity(tree, "PermSet")
 
         fieldPermissions = result.findall(
-            ".//sf:fieldPermissions[sf:field='Test__c.Description__c']", namespaces
+            f".//{MD}fieldPermissions[{MD}field='Test__c.Description__c']"
         )
         assert len(fieldPermissions) == 1
-        readable = fieldPermissions[0].findall(f".//sf:readable", namespaces)
+        readable = fieldPermissions[0].findall(f".//{MD}readable")
         assert len(readable) == 1
         assert readable[0].text == "true"
-        editable = fieldPermissions[0].findall(f".//sf:editable", namespaces)
+        editable = fieldPermissions[0].findall(f".//{MD}editable")
         assert len(editable) == 1
         assert editable[0].text == "true"
 
@@ -105,28 +103,23 @@ class test_AddPermissions(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(PERMSET_XML))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(PERMSET_XML).getroottree()
 
         assert (
-            len(
-                root.findall(
-                    f".//sf:fieldPermissions[sf:field='Test__c.Lookup__c']", namespaces
-                )
-            )
+            len(tree.findall(f".//{MD}fieldPermissions[{MD}field='Test__c.Lookup__c']"))
             == 1
         )
 
-        result = task._transform_entity(root, "PermSet")
+        result = task._transform_entity(tree, "PermSet")
 
         fieldPermissions = result.findall(
-            ".//sf:fieldPermissions[sf:field='Test__c.Lookup__c']", namespaces
+            f".//{MD}fieldPermissions[{MD}field='Test__c.Lookup__c']"
         )
         assert len(fieldPermissions) == 1
-        readable = fieldPermissions[0].findall(f".//sf:readable", namespaces)
+        readable = fieldPermissions[0].findall(f".//{MD}readable")
         assert len(readable) == 1
         assert readable[0].text == "true"
-        editable = fieldPermissions[0].findall(f".//sf:editable", namespaces)
+        editable = fieldPermissions[0].findall(f".//{MD}editable")
         assert len(editable) == 1
         assert editable[0].text == "true"
 
@@ -141,25 +134,20 @@ class test_AddPermissions(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(PERMSET_XML))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(PERMSET_XML).getroottree()
 
         assert (
-            len(
-                root.findall(
-                    ".//sf:classAccesses[sf:apexClass='LWCController']", namespaces
-                )
-            )
+            len(tree.findall(f".//{MD}classAccesses[{MD}apexClass='LWCController']"))
             == 0
         )
 
-        result = task._transform_entity(root, "PermSet")
+        result = task._transform_entity(tree, "PermSet")
 
         classAccesses = result.findall(
-            ".//sf:classAccesses[sf:apexClass='LWCController']", namespaces
+            f".//{MD}classAccesses[{MD}apexClass='LWCController']"
         )
         assert len(classAccesses) == 1
-        enabled = classAccesses[0].findall(f".//sf:enabled", namespaces)
+        enabled = classAccesses[0].findall(f".//{MD}enabled")
         assert len(enabled) == 1
         assert enabled[0].text == "true"
 
@@ -174,25 +162,20 @@ class test_AddPermissions(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(PERMSET_XML))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(PERMSET_XML).getroottree()
 
         assert (
-            len(
-                root.findall(
-                    ".//sf:classAccesses[sf:apexClass='ApexController']", namespaces
-                )
-            )
+            len(tree.findall(f".//{MD}classAccesses[{MD}apexClass='ApexController']"))
             == 1
         )
 
-        result = task._transform_entity(root, "PermSet")
+        result = task._transform_entity(tree, "PermSet")
 
         classAccesses = result.findall(
-            ".//sf:classAccesses[sf:apexClass='ApexController']", namespaces
+            f".//{MD}classAccesses[{MD}apexClass='ApexController']"
         )
         assert len(classAccesses) == 1
-        enabled = classAccesses[0].findall(f".//sf:enabled", namespaces)
+        enabled = classAccesses[0].findall(f".//{MD}enabled")
         assert len(enabled) == 1
         assert enabled[0].text == "true"
 
@@ -207,10 +190,10 @@ class test_AddPermissions(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(PERMSET_XML))
+        tree = etree.fromstring(PERMSET_XML).getroottree()
 
-        with self.assertRaises(TaskOptionsError):
-            task._transform_entity(root, "PermSet")
+        with pytest.raises(TaskOptionsError):
+            task._transform_entity(tree, "PermSet")
 
     def test_missing_field_throws_exception(self):
         task = create_task(
@@ -223,7 +206,7 @@ class test_AddPermissions(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(PERMSET_XML))
+        tree = etree.fromstring(PERMSET_XML).getroottree()
 
-        with self.assertRaises(TaskOptionsError):
-            task._transform_entity(root, "PermSet")
+        with pytest.raises(TaskOptionsError):
+            task._transform_entity(tree, "PermSet")

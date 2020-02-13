@@ -1,9 +1,8 @@
-import io
-import unittest
-import xml.etree.ElementTree as ET
+from lxml import etree
 
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.salesforce.metadata_etl import AddRelatedLists
+from cumulusci.tasks.salesforce.metadata_etl import MD
 
 LAYOUT_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <Layout xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -35,7 +34,7 @@ RELATED_LIST = """    <relatedLists>
 """
 
 
-class test_AddRelatedLists(unittest.TestCase):
+class TestAddRelatedLists:
     def test_adds_related_list(self):
         task = create_task(
             AddRelatedLists,
@@ -48,24 +47,17 @@ class test_AddRelatedLists(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(
-            file=io.StringIO(LAYOUT_XML.format(relatedLists=RELATED_LIST))
-        )
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(
+            LAYOUT_XML.format(relatedLists=RELATED_LIST).encode("utf-8")
+        ).getroottree()
 
-        assert (
-            len(root.findall(f".//sf:relatedLists[sf:relatedList='TEST']", namespaces))
-            == 0
-        )
+        assert len(tree.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 0
 
-        result = task._transform_entity(root, "Layout")
+        result = task._transform_entity(tree, "Layout")
 
-        assert (
-            len(result.findall(".//sf:relatedLists[sf:relatedList='TEST']", namespaces))
-            == 1
-        )
+        assert len(result.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
         field_elements = result.findall(
-            f".//sf:relatedLists[sf:relatedList='TEST']/sf:fields", namespaces
+            f".//{MD}relatedLists[{MD}relatedList='TEST']/{MD}fields"
         )
         field_names = {elem.text for elem in field_elements}
         assert field_names == set(["foo__c", "bar__c"])
@@ -82,22 +74,17 @@ class test_AddRelatedLists(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(file=io.StringIO(LAYOUT_XML.format(relatedLists="")))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(
+            LAYOUT_XML.format(relatedLists="").encode("utf-8")
+        ).getroottree()
 
-        assert (
-            len(root.findall(f".//sf:relatedLists[sf:relatedList='TEST']", namespaces))
-            == 0
-        )
+        assert len(tree.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 0
 
-        result = task._transform_entity(root, "Layout")
+        result = task._transform_entity(tree, "Layout")
 
-        assert (
-            len(result.findall(".//sf:relatedLists[sf:relatedList='TEST']", namespaces))
-            == 1
-        )
+        assert len(result.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
         field_elements = result.findall(
-            f".//sf:relatedLists[sf:relatedList='TEST']/sf:fields", namespaces
+            f".//{MD}relatedLists[{MD}relatedList='TEST']/{MD}fields"
         )
         field_names = {elem.text for elem in field_elements}
         assert field_names == set(["foo__c", "bar__c"])
@@ -114,28 +101,25 @@ class test_AddRelatedLists(unittest.TestCase):
             },
         )
 
-        root = ET.ElementTree(
-            file=io.StringIO(LAYOUT_XML.format(relatedLists=RELATED_LIST))
-        )
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        tree = etree.fromstring(
+            LAYOUT_XML.format(relatedLists=RELATED_LIST).encode("utf-8")
+        ).getroottree()
 
         assert (
             len(
-                root.findall(
-                    f".//sf:relatedLists[sf:relatedList='RelatedContactList']",
-                    namespaces,
+                tree.findall(
+                    f".//{MD}relatedLists[{MD}relatedList='RelatedContactList']"
                 )
             )
             == 1
         )
 
-        result = task._transform_entity(root, "Layout")
+        result = task._transform_entity(tree, "Layout")
 
         assert (
             len(
                 result.findall(
-                    ".//sf:relatedLists[sf:relatedList='RelatedContactList']",
-                    namespaces,
+                    f".//{MD}relatedLists[{MD}relatedList='RelatedContactList']"
                 )
             )
             == 1

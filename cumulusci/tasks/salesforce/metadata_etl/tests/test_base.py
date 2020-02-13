@@ -1,10 +1,9 @@
-import io
-import tempfile
-import unittest
-import xml.etree.ElementTree as ET
-
 from pathlib import Path
 from unittest import mock
+import tempfile
+
+from lxml import etree
+import pytest
 
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce.tests.util import create_task
@@ -17,18 +16,21 @@ from cumulusci.tasks.salesforce.metadata_etl import (
 )
 
 
-class test_BaseMetadataETLTask(unittest.TestCase):
+class MetadataETLTask(BaseMetadataETLTask):
+    _get_package_xml_content = mock.Mock()
+    _transform = mock.Mock()
+
+
+class TestBaseMetadataETLTask:
     def test_init_options(self):
-        task = create_task(
-            BaseMetadataETLTask, {"unmanaged": True, "api_version": "47.0"}
-        )
+        task = create_task(MetadataETLTask, {"unmanaged": True, "api_version": "47.0"})
 
         assert task.options["unmanaged"]
         assert task.options["api_version"] == "47.0"
 
     def test_inject_namespace(self):
         task = create_task(
-            BaseMetadataETLTask,
+            MetadataETLTask,
             {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
         )
 
@@ -39,7 +41,7 @@ class test_BaseMetadataETLTask(unittest.TestCase):
     @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.ApiRetrieveUnpackaged")
     def test_retrieve(self, api_mock):
         task = create_task(
-            BaseMetadataETLTask,
+            MetadataETLTask,
             {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
         )
         task.retrieve_dir = mock.Mock()
@@ -59,7 +61,7 @@ class test_BaseMetadataETLTask(unittest.TestCase):
     def test_deploy(self, deploy_mock):
         with tempfile.TemporaryDirectory() as tmpdir:
             task = create_task(
-                BaseMetadataETLTask,
+                MetadataETLTask,
                 {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
             )
             task.deploy_dir = Path(tmpdir)
@@ -77,7 +79,7 @@ class test_BaseMetadataETLTask(unittest.TestCase):
 
     def test_run_task(self):
         task = create_task(
-            BaseMetadataETLTask,
+            MetadataETLTask,
             {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
         )
 
@@ -92,10 +94,15 @@ class test_BaseMetadataETLTask(unittest.TestCase):
         task._deploy.assert_called_once_with()
 
 
-class test_BaseMetadataSynthesisTask(unittest.TestCase):
+class MetadataSynthesisTask(BaseMetadataSynthesisTask):
+    _get_package_xml_content = mock.Mock()
+    _synthesize = mock.Mock()
+
+
+class TestBaseMetadataSynthesisTask:
     def test_synthesis(self):
         task = create_task(
-            BaseMetadataSynthesisTask,
+            MetadataSynthesisTask,
             {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
         )
 
@@ -111,7 +118,7 @@ class test_BaseMetadataSynthesisTask(unittest.TestCase):
     @mock.patch("cumulusci.tasks.salesforce.metadata_etl.base.PackageXmlGenerator")
     def test_generate_package_xml(self, package_mock):
         task = create_task(
-            BaseMetadataSynthesisTask,
+            MetadataSynthesisTask,
             {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
         )
         task.deploy_dir = "test"
@@ -122,10 +129,15 @@ class test_BaseMetadataSynthesisTask(unittest.TestCase):
         assert result == package_mock.return_value.return_value
 
 
-class test_BaseMetadataTransformTask(unittest.TestCase):
+class MetadataTransformTask(BaseMetadataTransformTask):
+    _get_entities = mock.Mock()
+    _transform = mock.Mock()
+
+
+class TestBaseMetadataTransformTask:
     def test_generate_package_xml(self):
         task = create_task(
-            BaseMetadataTransformTask,
+            MetadataTransformTask,
             {"unmanaged": False, "namespace_inject": "test", "api_version": "47.0"},
         )
 
@@ -155,9 +167,13 @@ class test_BaseMetadataTransformTask(unittest.TestCase):
         )
 
 
-class test_MetadataSingleEntityTransformTask(unittest.TestCase):
+class ConcreteMetadataSingleEntityTransformTask(MetadataSingleEntityTransformTask):
+    _transform_entity = mock.Mock()
+
+
+class TestMetadataSingleEntityTransformTask:
     def test_init_options(self):
-        task = create_task(MetadataSingleEntityTransformTask, {})
+        task = create_task(ConcreteMetadataSingleEntityTransformTask, {})
         task._init_options(
             {
                 "unmanaged": False,
@@ -170,14 +186,14 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
 
     def test_get_entities(self):
         task = create_task(
-            MetadataSingleEntityTransformTask,
+            ConcreteMetadataSingleEntityTransformTask,
             {"unmanaged": False, "api_version": "47.0", "api_names": "bar,foo"},
         )
 
         assert task._get_entities() == {None: ["bar", "foo"]}
 
         task = create_task(
-            MetadataSingleEntityTransformTask,
+            ConcreteMetadataSingleEntityTransformTask,
             {"unmanaged": False, "api_version": "47.0"},
         )
 
@@ -185,7 +201,7 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
 
     def test_transform(self):
         task = create_task(
-            MetadataSingleEntityTransformTask,
+            ConcreteMetadataSingleEntityTransformTask,
             {"unmanaged": False, "api_version": "47.0", "api_names": "Test"},
         )
 
@@ -211,29 +227,29 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
 
     def test_transform__bad_entity(self):
         task = create_task(
-            MetadataSingleEntityTransformTask,
+            ConcreteMetadataSingleEntityTransformTask,
             {"unmanaged": False, "api_version": "47.0", "api_names": "bar,foo"},
         )
 
         task.entity = "Battlestar"
 
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task._transform()
 
     def test_transform__non_xml_entity(self):
         task = create_task(
-            MetadataSingleEntityTransformTask,
+            ConcreteMetadataSingleEntityTransformTask,
             {"unmanaged": False, "api_version": "47.0", "api_names": "bar,foo"},
         )
 
         task.entity = "LightningComponentBundle"
 
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task._transform()
 
     def test_transform__missing_record(self):
         task = create_task(
-            MetadataSingleEntityTransformTask,
+            ConcreteMetadataSingleEntityTransformTask,
             {"unmanaged": False, "api_version": "47.0", "api_names": "Test"},
         )
 
@@ -245,12 +261,12 @@ class test_MetadataSingleEntityTransformTask(unittest.TestCase):
             test_path = task.retrieve_dir / "applications"
             test_path.mkdir()
 
-            with self.assertRaises(CumulusCIException):
+            with pytest.raises(CumulusCIException):
                 task._transform()
 
 
-class test_utilities(unittest.TestCase):
-    XML_SAMPLE = """<?xml version="1.0" encoding="UTF-8"?>
+class TestUtilities:
+    XML_SAMPLE = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
     <defaultLandingTab>standard-Account</defaultLandingTab>
     <description>Application</description>
@@ -262,8 +278,7 @@ class test_utilities(unittest.TestCase):
 """
 
     def test_get_new_tag_index(self):
-        root = ET.ElementTree(file=io.StringIO(self.XML_SAMPLE))
-        namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+        root = etree.fromstring(self.XML_SAMPLE).getroottree()
 
-        assert get_new_tag_index(root, "tabs", namespaces) == 5
-        assert get_new_tag_index(root, "relatedList", namespaces) == 0
+        assert get_new_tag_index(root, "tabs") == 5
+        assert get_new_tag_index(root, "relatedList") == 0

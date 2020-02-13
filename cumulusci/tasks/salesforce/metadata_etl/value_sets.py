@@ -1,9 +1,10 @@
-import xml.etree.ElementTree as XML_ET
+from lxml import etree
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.metadata_etl import (
     MetadataSingleEntityTransformTask,
     get_new_tag_index,
+    MD,
 )
 
 
@@ -16,7 +17,7 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
             "and 'label', the user-facing label. OpportunityStage entries require the additional "
             "keys 'closed', 'won', 'forecastCategory', and 'probability'; CaseStatus entries "
             "require 'closed'.",
-            "required": "False",
+            "required": False,
         },
         **MetadataSingleEntityTransformTask.task_options,
     }
@@ -48,53 +49,38 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                         "CaseStatus standard value set entries require the key 'closed'"
                     )
 
-            new_entry_index = get_new_tag_index(
-                metadata, "standardValue", self.namespaces
-            )
+            new_entry_index = get_new_tag_index(metadata, "standardValue")
 
             existing_entry = metadata.findall(
-                f".//sf:standardValue[sf:fullName='{entry['fullName']}']",
-                self.namespaces,
+                f".//{MD}standardValue[{MD}fullName='{entry['fullName']}']"
             )
             if not existing_entry:
                 # Entry doesn't exist. Insert it.
-                elem = XML_ET.Element("{%s}standardValue" % (self.namespaces.get("sf")))
+                elem = etree.Element(f"{MD}standardValue")
                 metadata.getroot().insert(new_entry_index, elem)
 
-                elem_fullName = XML_ET.SubElement(
-                    elem, "{%s}fullName" % (self.namespaces.get("sf"))
-                )
+                elem_fullName = etree.SubElement(elem, f"{MD}fullName")
                 elem_fullName.text = entry["fullName"]
 
-                elem_label = XML_ET.SubElement(
-                    elem, "{%s}label" % (self.namespaces.get("sf"))
-                )
+                elem_label = etree.SubElement(elem, f"{MD}label")
                 elem_label.text = entry["label"]
 
-                elem_default = XML_ET.SubElement(
-                    elem, "{%s}default" % (self.namespaces.get("sf"))
-                )
+                elem_default = etree.SubElement(elem, f"{MD}default")
                 elem_default.text = "false"
 
                 if api_name in ["OpportunityStage", "CaseStatus"]:
-                    elem_closed = XML_ET.SubElement(
-                        elem, "{%s}closed" % (self.namespaces.get("sf"))
-                    )
+                    elem_closed = etree.SubElement(elem, f"{MD}closed")
                     elem_closed.text = str(entry["closed"]).lower()
 
                 if api_name == "OpportunityStage":
-                    elem_won = XML_ET.SubElement(
-                        elem, "{%s}won" % (self.namespaces.get("sf"))
-                    )
+                    elem_won = etree.SubElement(elem, f"{MD}won")
                     elem_won.text = str(entry["won"]).lower()
 
-                    elem_probability = XML_ET.SubElement(
-                        elem, "{%s}probability" % (self.namespaces.get("sf"))
-                    )
+                    elem_probability = etree.SubElement(elem, f"{MD}probability")
                     elem_probability.text = str(entry["probability"])
 
-                    elem_forecast_category = XML_ET.SubElement(
-                        elem, "{%s}forecastCategory" % (self.namespaces.get("sf"))
+                    elem_forecast_category = etree.SubElement(
+                        elem, f"{MD}forecastCategory"
                     )
                     elem_forecast_category.text = entry["forecastCategory"]
 
