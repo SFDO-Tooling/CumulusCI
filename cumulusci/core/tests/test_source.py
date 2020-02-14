@@ -1,5 +1,7 @@
+from unittest import mock
 import io
 import os
+import pathlib
 import unittest
 import yaml
 import zipfile
@@ -352,6 +354,37 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
             assert project_config.repo_root == os.path.join(
                 os.path.realpath(d), ".cci", "projects", "TestRepo", "tag_sha"
             )
+
+    @responses.activate
+    @mock.patch("cumulusci.core.source.github.download_extract_github")
+    def test_fetch__cleans_up_after_failed_extract(self, download_extract_github):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases/latest",
+            json=self._get_expected_release("release/1.0"),
+        )
+        responses.add(
+            "GET",
+            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
+        )
+        # Set up a fake IOError while extracting the zipball
+        download_extract_github.return_value = mock.Mock(
+            extractall=mock.Mock(side_effect=IOError)
+        )
+
+        source = GitHubSource(
+            self.project_config, {"github": "https://github.com/TestOwner/TestRepo.git"}
+        )
+        with temporary_dir():
+            with pytest.raises(IOError):
+                source.fetch()
+            assert not pathlib.Path(".cci", "projects", "TestRepo", "tag_sha").exists()
 
     @responses.activate
     def test_hash(self):
