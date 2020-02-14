@@ -10,7 +10,7 @@ class InsertRecord(BaseSalesforceApiTask):
     """
 
     task_options = {
-        "object": {"description": "An SObject type to insert", "required": True},
+        "object": {"description": "An sObject type to insert", "required": True},
         "values": {
             "description": "Field names and values in the format 'aa:bb,cc:dd'",
             "required": True,
