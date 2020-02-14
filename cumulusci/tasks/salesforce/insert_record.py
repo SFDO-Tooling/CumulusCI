@@ -1,5 +1,6 @@
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
+from cumulusci.core.exceptions import SalesforceException
 
 
 class InsertRecord(BaseSalesforceApiTask):
@@ -17,8 +18,19 @@ class InsertRecord(BaseSalesforceApiTask):
         },
     }
 
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.values = process_list_of_pairs_dict_arg(self.options["values"])
+        self.object = self.options["object"]
+
     def _run_task(self):
-        object_handler = getattr(self.sf, self.options["object"])
-        values = process_list_of_pairs_dict_arg(self.options["values"])
-        rc = object_handler.create(values)
-        self.logger.info(f"Record inserted {rc['id']}")
+        object_handler = getattr(self.sf, self.object)
+        rc = object_handler.create(self.values)
+        if rc["success"]:
+            self.logger.info(f"{self.object} record inserted: {rc['id']}")
+        else:
+            # this will probably never execute, due to simple_salesforce throwing
+            # an exception, but just in case:
+            raise SalesforceException(
+                f"Could not insert {self.object} record : {rc['errors']}"
+            )
