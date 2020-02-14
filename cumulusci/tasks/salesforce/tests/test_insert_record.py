@@ -1,6 +1,7 @@
-from unittest import mock, TestCase
+from unittest import mock
 import re
 
+import pytest
 import responses
 
 from cumulusci.tasks.salesforce.insert_record import InsertRecord
@@ -9,7 +10,7 @@ from simple_salesforce.exceptions import SalesforceError
 from .util import create_task
 
 
-class TestCreateRecord(TestCase):
+class TestCreateRecord:
     def test_run_task(self):
         task = create_task(
             InsertRecord,
@@ -51,7 +52,7 @@ class TestCreateRecord(TestCase):
                 }
             ],
         }
-        with self.assertRaises(SalesforceException):
+        with pytest.raises(SalesforceException):
             task._run_task()
 
     @responses.activate
@@ -79,11 +80,11 @@ class TestCreateRecord(TestCase):
             },
         )
         task._init_task()
-        with self.assertRaises(SalesforceError):
+        with pytest.raises(SalesforceError):
             task._run_task()
 
     def test_syntax_errors(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(
                 InsertRecord,
                 {
