@@ -45,7 +45,7 @@ tasks:
         class_path: cumulusci.tasks.salesforce.CreateCommunity
         group: Salesforce Communities
     insert_record:
-        description: Inserts a record of any Object
+        description: Inserts a record of any sObject using the REST API
         class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
         group: Salesforce
     create_package:
