@@ -207,9 +207,9 @@ def main(args=None):
             args.remove("--debug")
 
         # Only create logfiles for commands
-        # that are not `cci gist`
-        is_gist_command = len(args) > 2 and args[2] == "gist"
-        if not is_gist_command:
+        # that are not `cci error`
+        is_error_command = len(args) > 2 and args[1] == "error"
+        if not is_error_command:
             logger = get_gist_logger()
             stack.enter_context(tee_stdout_stderr(args, logger))
 
@@ -221,11 +221,11 @@ def main(args=None):
             show_debug_info() if debug else click.echo("\nAborted!")
             sys.exit(1)
         except Exception as e:
-            show_debug_info() if debug else handle_exception(e, is_gist_command)
+            show_debug_info() if debug else handle_exception(e, is_error_command)
             sys.exit(1)
 
 
-def handle_exception(error, is_gist_cmd):
+def handle_exception(error, is_error_cmd):
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
@@ -234,7 +234,7 @@ def handle_exception(error, is_gist_cmd):
     else:
         click.echo(click.style(f"Error: {error}", fg="red"))
     # Only suggest gist command if it wasn't run
-    if not is_gist_cmd:
+    if not is_error_cmd:
         click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
 
     with open(CCI_LOGFILE_PATH, "a") as log_file:
