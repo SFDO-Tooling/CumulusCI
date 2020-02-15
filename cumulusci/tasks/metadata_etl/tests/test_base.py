@@ -143,8 +143,8 @@ class TestBaseMetadataTransformTask:
 
         task._get_entities = mock.Mock()
         task._get_entities.return_value = {
-            "CustomObject": ["Account", "Contact"],
-            "ApexClass": ["Test"],
+            "CustomObject": {"Account", "Contact"},
+            "ApexClass": {"Test"},
         }
 
         assert (
@@ -168,7 +168,8 @@ class TestBaseMetadataTransformTask:
 
 
 class ConcreteMetadataSingleEntityTransformTask(MetadataSingleEntityTransformTask):
-    _transform_entity = mock.Mock()
+    def _transform_entity(self, xml_tree, api_name):
+        return xml_tree
 
 
 class TestMetadataSingleEntityTransformTask:
@@ -182,7 +183,7 @@ class TestMetadataSingleEntityTransformTask:
                 "api_names": "%%%NAMESPACE%%%bar,foo",
             }
         )
-        assert task.api_names == ["test__bar", "foo"]
+        assert task.api_names == set(["test__bar", "foo"])
 
     def test_get_entities(self):
         task = create_task(
@@ -190,14 +191,14 @@ class TestMetadataSingleEntityTransformTask:
             {"managed": False, "api_version": "47.0", "api_names": "bar,foo"},
         )
 
-        assert task._get_entities() == {None: ["bar", "foo"]}
+        assert task._get_entities() == {None: {"bar", "foo"}}
 
         task = create_task(
             ConcreteMetadataSingleEntityTransformTask,
             {"managed": False, "api_version": "47.0"},
         )
 
-        assert task._get_entities() == {None: ["*"]}
+        assert task._get_entities() == {None: {"*"}}
 
     def test_transform(self):
         task = create_task(
@@ -235,6 +236,68 @@ class TestMetadataSingleEntityTransformTask:
 
         with pytest.raises(CumulusCIException):
             task._transform()
+
+    def test_transform__wildcard(self):
+        task = create_task(
+            ConcreteMetadataSingleEntityTransformTask,
+            {"managed": False, "api_version": "47.0"},
+        )
+
+        task.entity = "CustomApplication"
+        assert task.api_names == set("*")
+
+        input_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+</CustomApplication>"""
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            task._create_directories(tmpdir)
+
+            app_path = task.retrieve_dir / "applications"
+            app_path.mkdir()
+            test_path = app_path / "Test.app"
+            test_path.write_text(input_xml)
+
+            test_path = app_path / "Test_2.app"
+            test_path.write_text(input_xml)
+
+            task._transform()
+
+            assert task.api_names == set(["Test", "Test_2"])
+            assert (task.deploy_dir / "applications" / "Test.app").exists()
+            assert (task.deploy_dir / "applications" / "Test_2.app").exists()
+
+    def test_transform__remove_entity(self):
+        task = create_task(
+            ConcreteMetadataSingleEntityTransformTask,
+            {"managed": False, "api_version": "47.0", "api_names": "*"},
+        )
+
+        task.entity = "CustomApplication"
+        task._transform_entity = mock.Mock(
+            side_effect=lambda xml, api_name: None if api_name == "Test_2" else xml
+        )
+
+        input_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+</CustomApplication>"""
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            task._create_directories(tmpdir)
+
+            app_path = task.retrieve_dir / "applications"
+            app_path.mkdir()
+            test_path = app_path / "Test.app"
+            test_path.write_text(input_xml)
+
+            test_path = app_path / "Test_2.app"
+            test_path.write_text(input_xml)
+
+            task._transform()
+
+            assert task.api_names == set(["Test"])
+            assert (task.deploy_dir / "applications" / "Test.app").exists()
+            assert not (task.deploy_dir / "applications" / "Test_2.app").exists()
 
     def test_transform__non_xml_entity(self):
         task = create_task(

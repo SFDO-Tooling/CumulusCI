@@ -105,22 +105,6 @@ class TestAddRelatedLists:
             LAYOUT_XML.format(relatedLists=RELATED_LIST).encode("utf-8")
         ).getroottree()
 
-        assert (
-            len(
-                tree.findall(
-                    f".//{MD}relatedLists[{MD}relatedList='RelatedContactList']"
-                )
-            )
-            == 1
-        )
-
         result = task._transform_entity(tree, "Layout")
 
-        assert (
-            len(
-                result.findall(
-                    f".//{MD}relatedLists[{MD}relatedList='RelatedContactList']"
-                )
-            )
-            == 1
-        )
+        assert result is None

@@ -1,9 +1,10 @@
 from abc import ABCMeta, abstractmethod
 import enum
+from pathlib import Path
 import tempfile
+from urllib.parse import quote
 
 from lxml import etree
-from pathlib import Path
 
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask, Deploy
@@ -173,7 +174,8 @@ class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=ABCMeta):
         types = ""
         for entity, api_names in self._get_entities().items():
             members = "\n".join(
-                f"        <members>{api_name}</members>" for api_name in api_names
+                f"        <members>{api_name}</members>"
+                for api_name in sorted(api_names)
             )
             types += base.format(members=members, name=entity)
 
@@ -207,15 +209,13 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        self.api_names = list(
-            map(
-                self._inject_namespace,
-                process_list_arg(self.options.get("api_names", [])),
-            )
-        )
+        self.api_names = {
+            self._inject_namespace(arg)
+            for arg in process_list_arg(self.options.get("api_names", ["*"]))
+        }
 
     def _get_entities(self):
-        return {self.entity: self.api_names or ["*"]}
+        return {self.entity: self.api_names}
 
     @abstractmethod
     def _transform_entity(self, metadata, api_name):
@@ -258,9 +258,26 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
 
         extension = configuration["extension"]
         directory = entity_configurations[0]
+        source_metadata_dir = self.retrieve_dir / directory
+
+        if "*" in self.api_names:
+            # Walk the retrieved directory to get the actual suite
+            # of API names retrieved and rebuild our api_names list.
+            self.api_names.remove("*")
+            self.api_names = self.api_names.union(
+                metadata_file.stem
+                for metadata_file in source_metadata_dir.iterdir()
+                if metadata_file.suffix == f".{extension}"
+            )
+
+        removed_api_names = set()
 
         for api_name in self.api_names:
-            path = self.retrieve_dir / directory / f"{api_name}.{extension}"
+            # Page Layout names can contain spaces, but parentheses are quoted.
+            # Those files _cannot_ be deployed back into Salesforce under their
+            # quoted names - we have to rename them.
+            quoted_api_name = quote(api_name, safe=" ")
+            path = source_metadata_dir / f"{quoted_api_name}.{extension}"
             if not path.exists():
                 raise CumulusCIException(f"Cannot find metadata file {path}")
 
@@ -274,10 +291,16 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
                 parent_dir = self.deploy_dir / directory
                 if not parent_dir.exists():
                     parent_dir.mkdir()
+                # Note per above use of api_name rather than quoted_api_name is deliberate.
                 destination_path = parent_dir / f"{api_name}.{extension}"
                 transformed_xml.write(
                     str(destination_path), encoding="utf-8", xml_declaration=True
                 )
+            else:
+                # Make sure to remove from our package.xml
+                removed_api_names.add(api_name)
+
+        self.api_names = self.api_names - removed_api_names
 
 
 def get_new_tag_index(tree, tag, namespace=MD):
