@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 import enum
 from pathlib import Path
 import tempfile
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 from lxml import etree
 
@@ -265,7 +265,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
             # of API names retrieved and rebuild our api_names list.
             self.api_names.remove("*")
             self.api_names = self.api_names.union(
-                metadata_file.stem
+                unquote(metadata_file.stem)
                 for metadata_file in source_metadata_dir.iterdir()
                 if metadata_file.suffix == f".{extension}"
             )
