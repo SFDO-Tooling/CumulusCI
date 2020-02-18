@@ -891,7 +891,7 @@ class Salesforce(object):
 
         | ${result}=  SOQL Query
         | ...  SELECT Name, Id FROM Contact WHERE FirstName='Eleanor' AND LastName='Rigby'
-        | Run keyword if  len($result) == 3  Fail  No records found
+        | Run keyword if  len($result['records']) == 0  Fail  No records found
         |
         | ${contact}=  Get from list  ${result['records']}  0
         | Should be equal  ${contact['Name']}  Eleanor Rigby
