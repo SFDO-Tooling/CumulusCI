@@ -127,16 +127,18 @@ class Publish(BaseMetaDeployTask):
 
             # Create each plan
             for plan_name, plan_config in self.plan_configs.items():
+
                 self._add_labels(
                     plan_config,
-                    {
-                        "title": "title of installation plan",
-                        "preflight_message": "instructions shown before starting installation (markdown)",
-                        "preflight_message_additional": "instructions shown before starting installation (markdown)",
-                        "post_install_message": "shown after successful installation (markdown)",
-                        "post_install_message_additional": "shown after successful installation (markdown)",
-                        "error_message": "shown after an installation error (markdown)",
-                    },
+                    f"plan:{plan_name}",
+                    (
+                        "title",
+                        "preflight_message",
+                        "preflight_message_additional",
+                        "post_install_message",
+                        "post_install_message_additional",
+                        "error_message",
+                    ),
                 )
 
                 steps = self._freeze_steps(project_config, plan_config)
@@ -144,21 +146,12 @@ class Publish(BaseMetaDeployTask):
                 for step in steps:
                     # avoid separate labels for installing each package
                     if step["name"].startswith("Install "):
-                        step = {
-                            "name": "Install {product} {version}",
-                            "description": step.get("description"),
-                        }
-                    self._add_labels(
-                        step,
-                        {
-                            "name": "installation step title",
-                            "description": "installation step description",
-                        },
-                    )
+                        self._add_label("steps", "Install {product} {version}")
+                    else:
+                        self._add_label("steps", step["name"])
+                    self._add_label("steps", step.get("description"))
                     for check in step.get("checks", []):
-                        self._add_labels(
-                            check, {"message", "message shown in some conditions"}
-                        )
+                        self._add_label("checks", check.get("message"))
 
                 if not self.dry_run:
                     self._publish_plan(product, version, plan_name, plan_config, steps)
@@ -199,7 +192,7 @@ class Publish(BaseMetaDeployTask):
         if plan_config.get("checks"):
             plan_json["preflight_checks"] = plan_config["checks"]
             for check in plan_config["checks"]:
-                self._add_labels(check, {"message", "message shown in some conditions"})
+                self._add_label("checks", check.get("message"))
 
         # Create Plan
         plan = self._call_api("POST", "/plans", json=plan_json)
@@ -233,13 +226,14 @@ class Publish(BaseMetaDeployTask):
         product = result["data"][0]
         self._add_labels(
             product,
-            {
-                "title": "product title",
-                "short_description": "product short description",
-                "description": "product description (markdown)",
-                "click_through_agreement": "product legal agreement (markdown)",
-                "error_message": "shown after an installation error (markdown)",
-            },
+            "product",
+            (
+                "title",
+                "short_description",
+                "description",
+                "click_through_agreement",
+                "error_message",
+            ),
         )
         return product
 
@@ -273,6 +267,8 @@ class Publish(BaseMetaDeployTask):
         return version
 
     def _find_or_create_plan_template(self, product, plan_name, plan_config):
+        # TODO: Add preflight_message, post_install_message, and error_message here
+        # once the MetaDeploy API supports them.
         result = self._call_api(
             "GET",
             "/plantemplates",
@@ -303,13 +299,20 @@ class Publish(BaseMetaDeployTask):
             with open(self.labels_path, "r") as f:
                 self.labels = json.load(f)
 
-    def _add_labels(self, obj, fields):
-        for name, description in fields.items():
+    def _add_labels(self, obj, category, fields):
+        if category not in self.labels:
+            self.labels[category] = {}
+        for name in fields:
             text = obj.get(name)
             if text:
-                if description not in self.labels:
-                    self.labels[description] = {}
-                self.labels[description][text] = ""
+                self.labels[category][name] = text
+
+    def _add_label(self, category, text):
+        if not text:
+            return
+        if category not in self.labels:
+            self.labels[category] = {}
+        self.labels[category][text] = text
 
     def _save_labels(self):
         if self.labels_path:
