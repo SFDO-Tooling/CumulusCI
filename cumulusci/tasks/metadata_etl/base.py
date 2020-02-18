@@ -213,6 +213,9 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
             self._inject_namespace(arg)
             for arg in process_list_arg(self.options.get("api_names", ["*"]))
         }
+        self.api_names = {
+            quote(arg, safe=" ") if arg != "*" else arg for arg in self.api_names
+        }
 
     def _get_entities(self):
         return {self.entity: self.api_names}
@@ -265,7 +268,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
             # of API names retrieved and rebuild our api_names list.
             self.api_names.remove("*")
             self.api_names = self.api_names.union(
-                unquote(metadata_file.stem)
+                metadata_file.stem
                 for metadata_file in source_metadata_dir.iterdir()
                 if metadata_file.suffix == f".{extension}"
             )
@@ -273,11 +276,13 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
         removed_api_names = set()
 
         for api_name in self.api_names:
-            # Page Layout names can contain spaces, but parentheses are quoted.
-            # Those files _cannot_ be deployed back into Salesforce under their
-            # quoted names - we have to rename them.
-            quoted_api_name = quote(api_name, safe=" ")
-            path = source_metadata_dir / f"{quoted_api_name}.{extension}"
+            # Page Layout names can contain spaces, but parentheses and other
+            # characters like ' and < are quoted.
+            # We quote user-specified API names so we can locate the corresponding
+            # metadata files, but present them un-quoted in messages to the user.
+            unquoted_api_name = unquote(api_name)
+
+            path = source_metadata_dir / f"{api_name}.{extension}"
             if not path.exists():
                 raise CumulusCIException(f"Cannot find metadata file {path}")
 
@@ -286,16 +291,15 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
             except etree.ParseError as err:
                 err.filename = path
                 raise err
-            transformed_xml = self._transform_entity(tree, api_name)
+            transformed_xml = self._transform_entity(tree, unquoted_api_name)
             if transformed_xml:
                 parent_dir = self.deploy_dir / directory
                 if not parent_dir.exists():
                     parent_dir.mkdir()
-                # Note per above use of api_name rather than quoted_api_name is deliberate.
                 destination_path = parent_dir / f"{api_name}.{extension}"
-                transformed_xml.write(
-                    str(destination_path), encoding="utf-8", xml_declaration=True
-                )
+
+                with destination_path.open(mode="wb") as f:
+                    transformed_xml.write(f, encoding="utf-8", xml_declaration=True)
             else:
                 # Make sure to remove from our package.xml
                 removed_api_names.add(api_name)

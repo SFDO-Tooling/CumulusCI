@@ -299,6 +299,39 @@ class TestMetadataSingleEntityTransformTask:
             assert (task.deploy_dir / "applications" / "Test.app").exists()
             assert not (task.deploy_dir / "applications" / "Test_2.app").exists()
 
+    def test_transform__encoded_page_layout(self):
+        task = create_task(
+            ConcreteMetadataSingleEntityTransformTask,
+            {"managed": False, "api_version": "47.0", "api_names": "*"},
+        )
+
+        task.entity = "Layout"
+        task._transform_entity = mock.Mock(side_effect=lambda xml, api_name: xml)
+
+        input_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<PageLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+</PageLayout>"""
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            task._create_directories(tmpdir)
+
+            app_path = task.retrieve_dir / "layouts"
+            app_path.mkdir()
+            test_path = app_path / "Contact %28Marketing%29 Layout.layout"
+            test_path.write_text(input_xml)
+
+            task._transform()
+            assert len(task._transform_entity.call_args_list) == 1
+            assert (
+                task._transform_entity.call_args_list[0][0][1]
+                == "Contact (Marketing) Layout"
+            )
+
+            assert task.api_names == set(["Contact %28Marketing%29 Layout"])
+            assert (
+                task.deploy_dir / "layouts" / "Contact %28Marketing%29 Layout.layout"
+            ).exists()
+
     def test_transform__non_xml_entity(self):
         task = create_task(
             ConcreteMetadataSingleEntityTransformTask,
