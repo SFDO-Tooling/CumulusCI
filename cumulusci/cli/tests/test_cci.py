@@ -225,7 +225,7 @@ class TestCCI(unittest.TestCase):
         error = "Something bad happened."
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(error, is_gist_cmd=False)
+        cci.handle_exception(error, is_error_cmd=False)
 
         style.call_args_list[0][0] == f"Error: {error}"
         style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
