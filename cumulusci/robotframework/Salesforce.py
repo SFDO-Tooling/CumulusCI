@@ -86,7 +86,7 @@ class Salesforce(object):
         """Initialize the Salesforce location strategies 'text' and 'title'
         plus any strategies registered by other keyword libraries
 
-        Note: This keyword is called automatically from Open Test Browser
+        Note: This keyword is called automatically from *Open Test Browser*
         """
         locator_manager.register_locators("sf", lex_locators)
         locator_manager.register_locators("text", "Salesforce.Locate Element by Text")
@@ -181,7 +181,7 @@ class Salesforce(object):
     def click_related_item_link(self, heading, title):
         """Clicks a link in the related list with the specified heading.
 
-         This keyword will automatically call `Wait until loading is complete`
+         This keyword will automatically call *Wait until loading is complete*.
         """
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
@@ -595,20 +595,61 @@ class Salesforce(object):
         self.wait_until_modal_is_closed()
 
     def salesforce_delete(self, obj_name, obj_id):
-        """ Deletes a Saleforce object by id and returns the dict result """
+        """ Deletes a Saleforce object by object name and id.
+
+        Example:
+
+        The following example assumes that ``${contact id}`` has been
+        previously set. The example deletes the Contact with that id.
+
+        | Salesforce Delete  Contact  ${contact id}
+        """
         self.builtin.log("Deleting {} with Id {}".format(obj_name, obj_id))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         obj_class.delete(obj_id)
         self.remove_session_record(obj_name, obj_id)
 
     def salesforce_get(self, obj_name, obj_id):
-        """ Gets a Salesforce object by id and returns the dict result """
-        self.builtin.log("Getting {} with Id {}".format(obj_name, obj_id))
+        """Gets a Salesforce object by id and returns the dict result.
+
+        Example:
+
+        The following example assumes that ``${contact id}`` has been
+        previously set. The example retrieves the Contact object with
+        that id and then logs the Name field.
+
+        | &{contact}=  Salesforce Get  Contact  ${contact id}
+        | log  Contact name:  ${contact['Name']}
+
+        """
+        self.builtin.log(f"Getting {obj_name} with Id {obj_id}")
         obj_class = getattr(self.cumulusci.sf, obj_name)
         return obj_class.get(obj_id)
 
     def salesforce_insert(self, obj_name, **kwargs):
-        """ Inserts a Salesforce object setting fields using kwargs and returns the id """
+        """Creates a new Salesforce object and returns the Id.
+
+        The fields of the object may be defined with keyword arguments
+        where the keyword name is the same as the field name.
+
+        The object name and id is passed to the *Store Session
+        Record* keyword, and will be deleted when the keyword
+        *Delete Session Records* is called.
+
+        As a best practice, either *Delete Session Records* or
+        *Delete Records and Close Browser* from Salesforce.robot
+        should be called as a suite teardown.
+
+        Example:
+
+        The following example creates a new Contact with the
+        first name of "Eleanor" and the last name of "Rigby".
+
+        | ${contact id}=  Salesforce Insert  Contact
+        | ...  FirstName=Eleanor
+        | ...  LastName=Rigby
+
+        """
         self.builtin.log("Inserting {} with values {}".format(obj_name, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         res = obj_class.create(kwargs)
@@ -621,19 +662,25 @@ class Salesforce(object):
         return obj
 
     def generate_test_data(self, obj_name, number_to_create, **fields):
-        """Generate test data dictionaries. Usually used for later insertion into SF.
+        """Generate bulk test data
 
-        Returns an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
-        Use ``{{number}}`` to represent the unique index of the row in the list of rows.
-        IF the entire string consists of a number, Salesforce API will treat the value as a number.
+        This returns an array of dictionaries with template-formatted
+        arguments which can be passed to the *Salesforce Collection Insert*
+        keyword.
 
-        For example:
+        You can use ``{{number}}`` to represent the unique index of
+        the row in the list of rows.  IF the entire string consists of
+        a number, Salesforce API will treat the value as a number.
+
+        Example:
+
+        The following example creates three new Contacts:
 
             | @{objects} =  Generate Test Data  Contact  3
             | ...  Name=User {{number}}
             | ...  Age={{number}}
 
-        Which would generate Contact objects with these fields:
+        The example code will generate Contact objects with these fields:
 
             | [{'Name': 'User 0', 'Age': '0'},
             |  {'Name': 'User 1', 'Age': '1'},
@@ -662,6 +709,7 @@ class Salesforce(object):
             | ...  MailingState=NY
             | ...  MailingPostalCode=12345
             | ...  Email={{fake.email(domain="salesforce.com")}}
+
         """
         objs = []
 
@@ -675,8 +723,29 @@ class Salesforce(object):
         return objs
 
     def salesforce_collection_insert(self, objects):
-        """Inserts up to 200 records that were created with Generate Test Data.
-           The 200 record limit is enforced by the Salesforce APIs"""
+        """Inserts records that were created with *Generate Test Data*.
+
+        _objects_ is a list of data, typically generated by the
+        *Generate Test Data* keyword.
+
+        A 200 record limit is enforced by the Salesforce APIs.
+
+        The object name and id is passed to the *Store Session
+        Record* keyword, and will be deleted when the keyword *Delete
+        Session Records* is called.
+
+        As a best practice, either *Delete Session Records* or
+        **Delete Records and Close Browser* from Salesforce.robot
+        should be called as a suite teardown.
+
+        Example:
+
+        | @{objects}=  Generate Test Data  Contact  200
+        | ...  FirstName=User {{number}}
+        | ...  LastName={{fake.last_name}}
+        | Salesforce Collection Insert  ${objects}
+
+        """
         assert (
             not obj.get("id", None) for obj in objects
         ), "Insertable objects should not have IDs"
@@ -703,7 +772,29 @@ class Salesforce(object):
         return objects
 
     def salesforce_collection_update(self, objects):
-        """Updates up to 200 records described as Robot/Python dictionaries"""
+        """Updates records described as Robot/Python dictionaries.
+
+        _objects_ is a dictionary of data in the format returned
+        by the *Salesforce Collection Insert* keyword.
+
+        A 200 record limit is enforced by the Salesforce APIs.
+
+        Example:
+
+        The following example creates ten accounts and then updates
+        the Rating from "Cold" to "Hot"
+
+        | ${data}=  Generate Test Data  Account  10
+        | ...  Name=Account #{{number}}
+        | ...  Rating=Cold
+        | ${accounts}=  Salesforce Collection Insert  ${data}
+        |
+        | FOR  ${account}  IN  @{accounts}
+        |     Set to dictionary  ${account}  Rating  Hot
+        | END
+        | Salesforce Collection Update  ${accounts}
+
+        """
         for obj in objects:
             assert obj[
                 "id"
@@ -726,7 +817,25 @@ class Salesforce(object):
             obj[STATUS_KEY] = record
 
     def salesforce_query(self, obj_name, **kwargs):
-        """ Constructs and runs a simple SOQL query and returns the dict results """
+        """Constructs and runs a simple SOQL query and returns a list of dictionaries.
+
+        By default the results will only contain object Ids. You can
+        specify a SOQL SELECT clase via keyword arguments by passing
+        a comma-separated list of fields with the ``select`` keyword
+        argument.
+
+        Example:
+
+        The following example searches for all Contacts where the
+        first name is "Eleanor". It returns the "Name" and "Id"
+        fields and logs them to the robot report:
+
+        | @{records}=  Salesforce Query  Contact  select=Id,Name
+        | FOR  ${record}  IN  @{records}
+        |     log  Name: ${record['Name']} Id: ${record['Id']}
+        | END
+
+        """
         query = "SELECT "
         if "select" in kwargs:
             query += kwargs["select"]
@@ -744,7 +853,22 @@ class Salesforce(object):
         return self.cumulusci.sf.query_all(query).get("records", [])
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
-        """ Updates a Salesforce object by id and returns the dict results """
+        """ Updates a Salesforce object by id.
+
+        The keyword returns the result from the underlying
+        simplesalesforce ``insert`` method, which is an HTTP
+        status code. As with `Salesforce Insert`, field values
+        are specified as keyword arguments.
+
+        The following example assumes that ${contact id} has been
+        previously set, and adds a Description to the given
+        contact.
+
+        | &{contact}=  Salesforce Update  Contact  ${contact id}
+        | ...  Description=This Contact created during a test
+        | Should be equal as numbers ${result}  204
+
+        """
         self.builtin.log(
             "Updating {} {} with values {}".format(obj_name, obj_id, kwargs)
         )
@@ -752,12 +876,35 @@ class Salesforce(object):
         return obj_class.update(obj_id, kwargs)
 
     def soql_query(self, query):
-        """ Runs a simple SOQL query and returns the dict results """
+        """ Runs a simple SOQL query and returns the dict results
+
+        The _query_ parameter must be a properly quoted SOQL query statement. The
+        return value is a dictionary. The dictionary contains the keys
+        as documented for the raw API call. The most useful key is ``records``,
+        which contains a list of records which were matched by the query.
+
+        Example
+
+        The following example searches for all Contacts with a first
+        name of "Eleanor" and a last name of "Rigby", and then prints
+        the name of the first record found.
+
+        | ${result}=  SOQL Query
+        | ...  SELECT Name, Id FROM Contact WHERE FirstName='Eleanor' AND LastName='Rigby'
+        | Run keyword if  len($result) == 3  Fail  No records found
+        |
+        | ${contact}=  Get from list  ${result['records']}  0
+        | Should be equal  ${contact['Name']}  Eleanor Rigby
+
+        """
         self.builtin.log("Running SOQL Query: {}".format(query))
         return self.cumulusci.sf.query_all(query)
 
     def store_session_record(self, obj_type, obj_id):
-        """ Stores a Salesforce record's id for use in the Delete Session Records keyword """
+        """ Stores a Salesforce record's id for use in the *Delete Session Records* keyword.
+
+        This keyword is automatically called by *Salesforce Insert*.
+        """
         self.builtin.log("Storing {} {} to session records".format(obj_type, obj_id))
         self._session_records.append({"type": obj_type, "id": obj_id})
 
