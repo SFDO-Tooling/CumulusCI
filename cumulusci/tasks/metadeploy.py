@@ -1,4 +1,5 @@
 import json
+import os
 import requests
 
 from cumulusci.core.config import BaseProjectConfig
@@ -60,6 +61,10 @@ class Publish(BaseMetaDeployTask):
             "description": "If True, set is_listed to True on the version. Default: False",
             "required": False,
         },
+        "labels": {
+            "description": "Path to a file that will be updated with strings to be translated.",
+            "required": False,
+        },
     }
 
     def _init_task(self):
@@ -83,10 +88,12 @@ class Publish(BaseMetaDeployTask):
         else:
             self.plan_configs = self.project_config.plans
 
+        self._load_labels()
+
     def _run_task(self):
         # Find or create Version
+        product = self._find_product()
         if not self.dry_run:
-            product = self._find_product()
             version = self._find_or_create_version(product)
 
         # Check out the specified tag
@@ -120,8 +127,39 @@ class Publish(BaseMetaDeployTask):
 
             # Create each plan
             for plan_name, plan_config in self.plan_configs.items():
+                self._add_labels(
+                    plan_config,
+                    {
+                        "title": "title of installation plan",
+                        "preflight_message": "instructions shown before starting installation (markdown)",
+                        "preflight_message_additional": "instructions shown before starting installation (markdown)",
+                        "post_install_message": "shown after successful installation (markdown)",
+                        "post_install_message_additional": "shown after successful installation (markdown)",
+                        "error_message": "shown after an installation error (markdown)",
+                    },
+                )
+
                 steps = self._freeze_steps(project_config, plan_config)
                 self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
+                for step in steps:
+                    # avoid separate labels for installing each package
+                    if step["name"].startswith("Install "):
+                        step = {
+                            "name": "Install {product} {version}",
+                            "description": step.get("description"),
+                        }
+                    self._add_labels(
+                        step,
+                        {
+                            "name": "installation step title",
+                            "description": "installation step description",
+                        },
+                    )
+                    for check in step.get("checks", []):
+                        self._add_labels(
+                            check, {"message", "message shown in some conditions"}
+                        )
+
                 if not self.dry_run:
                     self._publish_plan(product, version, plan_name, plan_config, steps)
 
@@ -133,6 +171,9 @@ class Publish(BaseMetaDeployTask):
                     json={"is_listed": True},
                 )
                 self.logger.info("Published Version {}".format(version["url"]))
+
+        # Save labels
+        self._save_labels()
 
     def _publish_plan(self, product, version, plan_name, plan_config, steps):
         plan_template = self._find_or_create_plan_template(
@@ -157,6 +198,8 @@ class Publish(BaseMetaDeployTask):
         }
         if plan_config.get("checks"):
             plan_json["preflight_checks"] = plan_config["checks"]
+            for check in plan_config["checks"]:
+                self._add_labels(check, {"message", "message shown in some conditions"})
 
         # Create Plan
         plan = self._call_api("POST", "/plans", json=plan_json)
@@ -187,7 +230,18 @@ class Publish(BaseMetaDeployTask):
             raise Exception(
                 "No product found in MetaDeploy with repo URL {}".format(repo_url)
             )
-        return result["data"][0]
+        product = result["data"][0]
+        self._add_labels(
+            product,
+            {
+                "title": "product title",
+                "short_description": "product short description",
+                "description": "product description (markdown)",
+                "click_through_agreement": "product legal agreement (markdown)",
+                "error_message": "shown after an installation error (markdown)",
+            },
+        )
+        return product
 
     def _find_or_create_version(self, product):
         """Create a Version in MetaDeploy if it doesn't already exist
@@ -241,3 +295,24 @@ class Publish(BaseMetaDeployTask):
             plantemplate = result["data"][0]
             self.logger.info("Found {}".format(plantemplate["url"]))
         return plantemplate
+
+    def _load_labels(self):
+        self.labels = {}
+        self.labels_path = self.options.get("labels")
+        if self.labels_path and os.path.exists(self.labels_path):
+            with open(self.labels_path, "r") as f:
+                self.labels = json.load(f)
+
+    def _add_labels(self, obj, fields):
+        for name, description in fields.items():
+            text = obj.get(name)
+            if text:
+                if description not in self.labels:
+                    self.labels[description] = {}
+                self.labels[description][text] = ""
+
+    def _save_labels(self):
+        if self.labels_path:
+            self.logger.info(f"Updating labels in {self.labels_path}")
+            with open(self.labels_path, "w") as f:
+                json.dump(self.labels, f, indent=4)
