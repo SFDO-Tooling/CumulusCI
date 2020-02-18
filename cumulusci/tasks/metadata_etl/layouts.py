@@ -29,10 +29,12 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
             f".//{MD}relatedLists[{MD}relatedList='{related_list}']"
         )
 
-        if not existing_related_lists:
-            self._create_new_related_list(
-                metadata, api_name, related_list, new_related_list_index
-            )
+        if existing_related_lists:
+            return None
+
+        self._create_new_related_list(
+            metadata, api_name, related_list, new_related_list_index
+        )
 
         return metadata
 
