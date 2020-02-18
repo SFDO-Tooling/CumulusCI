@@ -595,12 +595,12 @@ class Salesforce(object):
         self.wait_until_modal_is_closed()
 
     def salesforce_delete(self, obj_name, obj_id):
-        """ Deletes a Saleforce object by object name and id.
+        """Deletes a Salesforce object by object name and Id.
 
         Example:
 
         The following example assumes that ``${contact id}`` has been
-        previously set. The example deletes the Contact with that id.
+        previously set. The example deletes the Contact with that Id.
 
         | Salesforce Delete  Contact  ${contact id}
         """
@@ -610,13 +610,13 @@ class Salesforce(object):
         self.remove_session_record(obj_name, obj_id)
 
     def salesforce_get(self, obj_name, obj_id):
-        """Gets a Salesforce object by id and returns the dict result.
+        """Gets a Salesforce object by Id and returns the result as a dict.
 
         Example:
 
         The following example assumes that ``${contact id}`` has been
         previously set. The example retrieves the Contact object with
-        that id and then logs the Name field.
+        that Id and then logs the Name field.
 
         | &{contact}=  Salesforce Get  Contact  ${contact id}
         | log  Contact name:  ${contact['Name']}
@@ -632,7 +632,7 @@ class Salesforce(object):
         The fields of the object may be defined with keyword arguments
         where the keyword name is the same as the field name.
 
-        The object name and id is passed to the *Store Session
+        The object name and Id is passed to the *Store Session
         Record* keyword, and will be deleted when the keyword
         *Delete Session Records* is called.
 
@@ -669,7 +669,7 @@ class Salesforce(object):
         keyword.
 
         You can use ``{{number}}`` to represent the unique index of
-        the row in the list of rows.  IF the entire string consists of
+        the row in the list of rows.  If the entire string consists of
         a number, Salesforce API will treat the value as a number.
 
         Example:
@@ -730,7 +730,7 @@ class Salesforce(object):
 
         A 200 record limit is enforced by the Salesforce APIs.
 
-        The object name and id is passed to the *Store Session
+        The object name and Id is passed to the *Store Session
         Record* keyword, and will be deleted when the keyword *Delete
         Session Records* is called.
 
@@ -853,10 +853,10 @@ class Salesforce(object):
         return self.cumulusci.sf.query_all(query).get("records", [])
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
-        """ Updates a Salesforce object by id.
+        """ Updates a Salesforce object by Id.
 
         The keyword returns the result from the underlying
-        simplesalesforce ``insert`` method, which is an HTTP
+        simple_salesforce ``insert`` method, which is an HTTP
         status code. As with `Salesforce Insert`, field values
         are specified as keyword arguments.
 
@@ -901,7 +901,7 @@ class Salesforce(object):
         return self.cumulusci.sf.query_all(query)
 
     def store_session_record(self, obj_type, obj_id):
-        """ Stores a Salesforce record's id for use in the *Delete Session Records* keyword.
+        """ Stores a Salesforce record's Id for use in the *Delete Session Records* keyword.
 
         This keyword is automatically called by *Salesforce Insert*.
         """
