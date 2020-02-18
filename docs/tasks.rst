@@ -1,4 +1,3 @@
-Checking the version!
 ==========================================
 Tasks Reference
 ==========================================
@@ -336,6 +335,37 @@ Options
 	 *Optional*
 
 	 Time to wait, in seconds, for the community to be created
+
+**insert_record**
+==========================================
+
+**Description:** Inserts a record of any sObject using the REST API
+
+**Class:** cumulusci.tasks.salesforce.insert_record.InsertRecord
+
+For example:
+
+cci task run insert_record --org dev -o object PermissionSet -o values Name:HardDelete,PermissionsBulkApiHardDelete:true
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run insert_record``
+
+
+Options
+------------------------------------------
+
+
+``-o object OBJECT``
+	 *Required*
+
+	 An sObject type to insert
+
+``-o values VALUES``
+	 *Required*
+
+	 Field names and values in the format 'aa:bb,cc:dd'
 
 **create_package**
 ==========================================
@@ -2587,7 +2617,7 @@ Options
 ``-o org_wide_defaults ORGWIDEDEFAULTS``
 	 *Required*
 
-	 The target Organization-Wide Defaults, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model.
+	 The target Organization-Wide Defaults, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature.
 
 ``-o timeout TIMEOUT``
 	 *Optional*
