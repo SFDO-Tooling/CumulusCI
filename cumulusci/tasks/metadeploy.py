@@ -140,6 +140,9 @@ class Publish(BaseMetaDeployTask):
                         "error_message",
                     ),
                 )
+                checks = plan_config.get("checks") or []
+                for check in checks:
+                    self._add_label("checks", check.get("message"))
 
                 steps = self._freeze_steps(project_config, plan_config)
                 self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
@@ -191,8 +194,6 @@ class Publish(BaseMetaDeployTask):
         }
         if plan_config.get("checks"):
             plan_json["preflight_checks"] = plan_config["checks"]
-            for check in plan_config["checks"]:
-                self._add_label("checks", check.get("message"))
 
         # Create Plan
         plan = self._call_api("POST", "/plans", json=plan_json)
