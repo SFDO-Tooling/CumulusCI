@@ -27,10 +27,10 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
     def _init_options(self, kwargs):
         self.task_config.options["api_names"] = "dummy"
         super()._init_options(kwargs)
-        self.api_names = [
+        self.api_names = {
             self._inject_namespace(elem["api_name"])
             for elem in self.options["org_wide_defaults"]
-        ]
+        }
         self.options["timeout"] = int(self.options.get("timeout", 600))
 
         self.owds = {}
