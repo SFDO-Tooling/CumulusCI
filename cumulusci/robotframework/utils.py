@@ -3,6 +3,7 @@ import time
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import NoSuchWindowException
 from selenium.webdriver.remote.command import Command
 from SeleniumLibrary.errors import ElementNotFound
 from robot.libraries.BuiltIn import BuiltIn
@@ -60,6 +61,7 @@ ALWAYS_RETRY_EXCEPTIONS = (
     ElementNotFound,
     ElementNotInteractableException,
     StaleElementReferenceException,
+    NoSuchWindowException,
 )
 
 
