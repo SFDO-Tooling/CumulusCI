@@ -17,7 +17,6 @@ PACKAGE_VERSION="$(cat setup.cfg | grep current_version | head -n 1 | cut -f 3 -
 echo " "
 echo "=> Creating a temporary virtualenv and installing CumulusCI..."
 echo " "
-source deactivate || true
 python3.7 -m venv "$ENV_DIR" || exit 1
 source "$ENV_DIR/bin/activate" || exit 1
 pip install -U pip
