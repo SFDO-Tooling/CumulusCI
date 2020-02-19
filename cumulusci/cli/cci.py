@@ -231,6 +231,8 @@ def handle_exception(error, is_error_cmd):
     """
     if isinstance(error, exceptions.ConnectionError):
         connection_error_message()
+    elif isinstance(error, click.ClickException):
+        click.echo(click.style(f"Error: {error.format_message()}", fg="red"))
     else:
         click.echo(click.style(f"Error: {error}", fg="red"))
     # Only suggest gist command if it wasn't run

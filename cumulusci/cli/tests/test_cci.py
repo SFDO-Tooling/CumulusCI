@@ -232,6 +232,16 @@ class TestCCI(unittest.TestCase):
         traceback.print_exc.assert_called_once()
 
     @mock.patch("cumulusci.cli.cci.open")
+    @mock.patch("cumulusci.cli.cci.traceback")
+    @mock.patch("cumulusci.cli.cci.click.style")
+    def test_handle_click_exception(self, style, traceback, cci_open):
+        cci_open.__enter__.return_value = mock.Mock()
+
+        cci.handle_exception(click.ClickException("oops"), False)
+
+        style.call_args_list[0][0] == f"Error: oops"
+
+    @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.connection_error_message")
     def test_handle_connection_exception(self, connection_msg, cci_open):
         cci.handle_exception(ConnectionError(), False)
