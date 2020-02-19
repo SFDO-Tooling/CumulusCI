@@ -59,7 +59,7 @@ class TestSetOrgWideDefaults:
             },
         )
 
-        assert task.api_names == ["Account", "Test__c"]
+        assert task.api_names == set(["Account", "Test__c"])
 
         tree = etree.fromstring(CUSTOMOBJECT_XML).getroottree()
 
@@ -95,7 +95,7 @@ class TestSetOrgWideDefaults:
             },
         )
 
-        assert task.api_names == ["Account", "Test__c"]
+        assert task.api_names == set(["Account", "Test__c"])
 
         tree = etree.fromstring(CUSTOMOBJECT_XML_MISSING_TAGS).getroottree()
 
