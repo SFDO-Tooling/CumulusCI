@@ -131,30 +131,44 @@ class Publish(BaseMetaDeployTask):
                 self._add_labels(
                     plan_config,
                     f"plan:{plan_name}",
-                    (
-                        "title",
-                        "preflight_message",
-                        "preflight_message_additional",
-                        "post_install_message",
-                        "post_install_message_additional",
-                        "error_message",
-                    ),
+                    {
+                        "title": "title of installation plan",
+                        "preflight_message": "shown before user starts installation (markdown)",
+                        "preflight_message_additional": "shown before user starts installation (markdown)",
+                        "post_install_message": "shown after successful installation (markdown)",
+                        "post_install_message_additional": "shown after successful installation (markdown)",
+                        "error_message": "shown after failed installation (markdown)",
+                    },
                 )
                 checks = plan_config.get("checks") or []
                 for check in checks:
-                    self._add_label("checks", check.get("message"))
+                    self._add_label(
+                        "checks", check.get("message"), "shown if validation fails"
+                    )
 
                 steps = self._freeze_steps(project_config, plan_config)
                 self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
                 for step in steps:
                     # avoid separate labels for installing each package
                     if step["name"].startswith("Install "):
-                        self._add_label("steps", "Install {product} {version}")
+                        self._add_label(
+                            "steps",
+                            "Install {product} {version}",
+                            "title of installation step",
+                        )
                     else:
-                        self._add_label("steps", step["name"])
-                    self._add_label("steps", step.get("description"))
+                        self._add_label(
+                            "steps", step["name"], "title of installation step"
+                        )
+                    self._add_label(
+                        "steps",
+                        step.get("description"),
+                        "description of installation step",
+                    )
                     for check in step.get("checks", []):
-                        self._add_label("checks", check.get("message"))
+                        self._add_label(
+                            "checks", check.get("message"), "shown if validation fails"
+                        )
 
                 if not self.dry_run:
                     self._publish_plan(product, version, plan_name, plan_config, steps)
@@ -228,13 +242,13 @@ class Publish(BaseMetaDeployTask):
         self._add_labels(
             product,
             "product",
-            (
-                "title",
-                "short_description",
-                "description",
-                "click_through_agreement",
-                "error_message",
-            ),
+            {
+                "title": "name of product",
+                "short_description": "tagline of product",
+                "description": "shown on product detail page (markdown)",
+                "click_through_agreement": "legal text shown in modal dialog",
+                "error_message": "shown after failed installation (markdown)",
+            },
         )
         return product
 
@@ -301,19 +315,23 @@ class Publish(BaseMetaDeployTask):
                 self.labels = json.load(f)
 
     def _add_labels(self, obj, category, fields):
+        """Add specified fields from obj to a label category."""
         if category not in self.labels:
             self.labels[category] = {}
-        for name in fields:
+        for name, description in fields.items():
             text = obj.get(name)
             if text:
-                self.labels[category][name] = text
+                label = {"message": text, "description": description}
+                self.labels[category][name] = label
 
-    def _add_label(self, category, text):
+    def _add_label(self, category, text, description):
+        """Add a single label to a label category."""
         if not text:
             return
         if category not in self.labels:
             self.labels[category] = {}
-        self.labels[category][text] = text
+        label = {"message": text, "description": description}
+        self.labels[category][text] = label
 
     def _save_labels(self):
         if self.labels_path:
