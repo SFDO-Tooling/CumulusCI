@@ -39,7 +39,7 @@ class TestDeployOrgSettings:
         <members>*</members>
         <name>Settings</name>
     </types>
-    <version>47.0</version>
+    <version>48.0</version>
 </Package>"""
         )
         assert (
