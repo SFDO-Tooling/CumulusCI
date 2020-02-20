@@ -1,8 +1,9 @@
-from lxml import etree
-
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl import AddRelatedLists
-from cumulusci.tasks.metadata_etl import MD
+from cumulusci.util.xml import metadata_tree
+
+MD = "{%s}" % metadata_tree.METADATA_NAMESPACE
+
 
 LAYOUT_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <Layout xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -47,16 +48,17 @@ class TestAddRelatedLists:
             },
         )
 
-        tree = etree.fromstring(
+        tree = metadata_tree.fromstring(
             LAYOUT_XML.format(relatedLists=RELATED_LIST).encode("utf-8")
-        ).getroottree()
+        )
+        element = tree._element
 
-        assert len(tree.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 0
+        assert len(element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 0
 
-        result = task._transform_entity(tree, "Layout")
+        task._transform_entity(tree, "Layout")
 
-        assert len(result.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
-        field_elements = result.findall(
+        assert len(element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
+        field_elements = element.findall(
             f".//{MD}relatedLists[{MD}relatedList='TEST']/{MD}fields"
         )
         field_names = {elem.text for elem in field_elements}
@@ -75,16 +77,22 @@ class TestAddRelatedLists:
             },
         )
 
-        tree = etree.fromstring(
+        tree = metadata_tree.fromstring(
             LAYOUT_XML.format(relatedLists=RELATED_LIST).encode("utf-8")
-        ).getroottree()
+        )
 
-        assert len(tree.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 0
+        assert (
+            len(tree._element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']"))
+            == 0
+        )
 
         result = task._transform_entity(tree, "Layout")
 
-        assert len(result.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
-        button_elements = result.findall(
+        assert (
+            len(result._element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']"))
+            == 1
+        )
+        button_elements = result._element.findall(
             f".//{MD}relatedLists[{MD}relatedList='TEST']/{MD}excludeButtons"
         )
         excluded_buttons = {elem.text for elem in button_elements}
@@ -103,16 +111,21 @@ class TestAddRelatedLists:
             },
         )
 
-        tree = etree.fromstring(
+        tree = metadata_tree.fromstring(
             LAYOUT_XML.format(relatedLists=RELATED_LIST).encode("utf-8")
-        ).getroottree()
+        )
 
-        assert len(tree.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 0
+        assert (
+            len(tree._element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']"))
+            == 0
+        )
 
         result = task._transform_entity(tree, "Layout")
+        print(result.tostring())
+        element = result._element
 
-        assert len(result.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
-        button_elements = result.findall(
+        assert len(element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
+        button_elements = element.findall(
             f".//{MD}relatedLists[{MD}relatedList='TEST']/{MD}customButtons"
         )
         custom_buttons = {elem.text for elem in button_elements}
@@ -130,16 +143,17 @@ class TestAddRelatedLists:
             },
         )
 
-        tree = etree.fromstring(
+        tree = metadata_tree.fromstring(
             LAYOUT_XML.format(relatedLists="").encode("utf-8")
-        ).getroottree()
+        )
+        element = tree._element
 
-        assert len(tree.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 0
+        assert len(element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 0
 
-        result = task._transform_entity(tree, "Layout")
+        task._transform_entity(tree, "Layout")
 
-        assert len(result.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
-        field_elements = result.findall(
+        assert len(element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
+        field_elements = element.findall(
             f".//{MD}relatedLists[{MD}relatedList='TEST']/{MD}fields"
         )
         field_names = {elem.text for elem in field_elements}
@@ -157,9 +171,9 @@ class TestAddRelatedLists:
             },
         )
 
-        tree = etree.fromstring(
+        tree = metadata_tree.fromstring(
             LAYOUT_XML.format(relatedLists=RELATED_LIST).encode("utf-8")
-        ).getroottree()
+        )
 
         result = task._transform_entity(tree, "Layout")
 

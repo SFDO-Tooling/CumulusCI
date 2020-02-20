@@ -2,7 +2,7 @@ from datetime import datetime
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
-from cumulusci.util.xml import metadata_tree
+from cumulusci.util.xml.metadata_tree import MetadataElement
 
 
 class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
@@ -76,21 +76,22 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
             self._poll()
             self.logger.info(f"Sharing enablement is complete.")
 
-    def _transform_entity(self, metadata, api_name):
-        element = metadata_tree.MetadataElement(metadata.getroot())
+    def _transform_entity(
+        self, metadata: MetadataElement, api_name: str
+    ) -> MetadataElement:
         desired_internal_model = self.owds[api_name].get("internal_sharing_model")
         desired_external_model = self.owds[api_name].get("external_sharing_model")
 
         if desired_external_model:
-            external_model = element.find("externalSharingModel")
+            external_model = metadata.find("externalSharingModel")
             if not external_model:
-                external_model = element.append("externalSharingModel")
+                external_model = metadata.append("externalSharingModel")
             external_model.text = desired_external_model
 
         if desired_internal_model:
-            internal_model = element.find("sharingModel")
+            internal_model = metadata.find("sharingModel")
             if not internal_model:
-                internal_model = element.append("sharingModel")
+                internal_model = metadata.append("sharingModel")
             internal_model.text = desired_internal_model
 
         return metadata

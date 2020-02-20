@@ -1,10 +1,11 @@
-from lxml import etree
 import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl import AddPermissionSetPermissions
-from cumulusci.tasks.metadata_etl import MD
+from cumulusci.util.xml import metadata_tree
+
+MD = "{%s}" % metadata_tree.METADATA_NAMESPACE
 
 PERMSET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -66,20 +67,21 @@ class TestAddPermissionSetPermissions:
             },
         )
 
-        tree = etree.fromstring(PERMSET_XML).getroottree()
+        tree = metadata_tree.fromstring(PERMSET_XML)
+        element = tree._element
 
         assert (
             len(
-                tree.findall(
+                element.findall(
                     f".//{MD}fieldPermissions[{MD}field='Test__c.Description__c']"
                 )
             )
             == 0
         )
 
-        result = task._transform_entity(tree, "PermSet")
+        task._transform_entity(tree, "PermSet")
 
-        fieldPermissions = result.findall(
+        fieldPermissions = element.findall(
             f".//{MD}fieldPermissions[{MD}field='Test__c.Description__c']"
         )
         assert len(fieldPermissions) == 1
@@ -103,16 +105,21 @@ class TestAddPermissionSetPermissions:
             },
         )
 
-        tree = etree.fromstring(PERMSET_XML).getroottree()
+        tree = metadata_tree.fromstring(PERMSET_XML)
+        element = tree._element
 
         assert (
-            len(tree.findall(f".//{MD}fieldPermissions[{MD}field='Test__c.Lookup__c']"))
+            len(
+                element.findall(
+                    f".//{MD}fieldPermissions[{MD}field='Test__c.Lookup__c']"
+                )
+            )
             == 1
         )
 
-        result = task._transform_entity(tree, "PermSet")
+        task._transform_entity(tree, "PermSet")._element
 
-        fieldPermissions = result.findall(
+        fieldPermissions = element.findall(
             f".//{MD}fieldPermissions[{MD}field='Test__c.Lookup__c']"
         )
         assert len(fieldPermissions) == 1
@@ -134,16 +141,17 @@ class TestAddPermissionSetPermissions:
             },
         )
 
-        tree = etree.fromstring(PERMSET_XML).getroottree()
+        tree = metadata_tree.fromstring(PERMSET_XML)
+        element = tree._element
 
         assert (
-            len(tree.findall(f".//{MD}classAccesses[{MD}apexClass='LWCController']"))
+            len(element.findall(f".//{MD}classAccesses[{MD}apexClass='LWCController']"))
             == 0
         )
 
-        result = task._transform_entity(tree, "PermSet")
+        task._transform_entity(tree, "PermSet")
 
-        classAccesses = result.findall(
+        classAccesses = element.findall(
             f".//{MD}classAccesses[{MD}apexClass='LWCController']"
         )
         assert len(classAccesses) == 1
@@ -162,16 +170,19 @@ class TestAddPermissionSetPermissions:
             },
         )
 
-        tree = etree.fromstring(PERMSET_XML).getroottree()
+        tree = metadata_tree.fromstring(PERMSET_XML)
+        element = tree._element
 
         assert (
-            len(tree.findall(f".//{MD}classAccesses[{MD}apexClass='ApexController']"))
+            len(
+                element.findall(f".//{MD}classAccesses[{MD}apexClass='ApexController']")
+            )
             == 1
         )
 
-        result = task._transform_entity(tree, "PermSet")
+        task._transform_entity(tree, "PermSet")._element
 
-        classAccesses = result.findall(
+        classAccesses = element.findall(
             f".//{MD}classAccesses[{MD}apexClass='ApexController']"
         )
         assert len(classAccesses) == 1
@@ -190,7 +201,7 @@ class TestAddPermissionSetPermissions:
             },
         )
 
-        tree = etree.fromstring(PERMSET_XML).getroottree()
+        tree = metadata_tree.fromstring(PERMSET_XML)
 
         with pytest.raises(TaskOptionsError):
             task._transform_entity(tree, "PermSet")
@@ -206,7 +217,7 @@ class TestAddPermissionSetPermissions:
             },
         )
 
-        tree = etree.fromstring(PERMSET_XML).getroottree()
+        tree = metadata_tree.fromstring(PERMSET_XML)
 
         with pytest.raises(TaskOptionsError):
             task._transform_entity(tree, "PermSet")

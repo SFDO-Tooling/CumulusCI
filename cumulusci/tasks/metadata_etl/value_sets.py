@@ -1,6 +1,6 @@
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
-from cumulusci.util.xml import metadata_tree
+from cumulusci.util.xml.metadata_tree import MetadataElement
 
 
 class AddValueSetEntries(MetadataSingleEntityTransformTask):
@@ -17,9 +17,7 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
         **MetadataSingleEntityTransformTask.task_options,
     }
 
-    def _transform_entity(self, metadata, api_name):
-        root = metadata_tree.MetadataElement(metadata.getroot())
-
+    def _transform_entity(self, metadata: MetadataElement, api_name: str):
         for entry in self.options.get("entries", []):
             if "fullName" not in entry or "label" not in entry:
                 raise TaskOptionsError(
@@ -46,17 +44,17 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                         "CaseStatus standard value set entries require the key 'closed'"
                     )
 
-            root.append(tag="standardValue")
+            metadata.append(tag="standardValue")
 
             existing_entry = [
                 el
-                for el in root.findall("standardValue")
+                for el in metadata.findall("standardValue")
                 if el.find("fullName") and el.find("fullName").text == entry["fullName"]
             ]
 
             if not existing_entry:
                 # Entry doesn't exist. Insert it.
-                elem = root.append(tag="standardValue")
+                elem = metadata.append(tag="standardValue")
                 elem.append(tag="fullName", text=entry["fullName"])
 
                 elem.append(tag="label", text=entry["label"])

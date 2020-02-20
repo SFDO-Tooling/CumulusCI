@@ -4,8 +4,6 @@ import io
 import os
 import zipfile
 
-import lxml.etree as ET
-
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
@@ -17,6 +15,7 @@ from cumulusci.utils import inject_namespace
 from cumulusci.utils import strip_namespace
 from cumulusci.utils import tokenize_namespace
 from cumulusci.utils import process_text_in_zipfile
+from cumulusci.util.xml import metadata_tree
 
 
 class Deploy(BaseSalesforceMetadataApiTask):
@@ -213,10 +212,10 @@ class Deploy(BaseSalesforceMetadataApiTask):
         # We need to build a new zip file so that we can replace package.xml
         zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
         for name in zip_src.namelist():
-            content = zip_src.read(name)
             if name == "package.xml":
-                package_xml = content
+                package_xml = zip_src.open(name)
             else:
+                content = zip_src.read(name)
                 zip_dest.writestr(name, content)
 
         # Build static resource bundles and add to package zip
@@ -250,19 +249,15 @@ class Deploy(BaseSalesforceMetadataApiTask):
                 bundles.append(name)
 
         # Update package.xml
-        tree = ET.fromstring(package_xml)
-        section = tree.find(".//sf:types[sf:name='StaticResource']", self.namespaces)
-        if section is None:
-            section = ET.Element("{{{}}}types".format(self.namespaces["sf"]))
-            name = ET.Element("{{{}}}name".format(self.namespaces["sf"]))
-            section.append(name)
-            name.text = "StaticResource"
-            tree.find(".//sf:types[last()]", self.namespaces).addnext(section)
+        Package = metadata_tree.parse(package_xml)
+        sections = [typ for typ in Package.types if typ.name.text == "StaticResource"]
+        section = sections[0] if sections else None
+        if not section:
+            section = Package.append(tag="types")
+            section.append(tag="name", text="StaticResource")
         for name in bundles:
-            member = ET.Element("{{{}}}members".format(self.namespaces["sf"]))
-            member.text = name
-            section.find(".//sf:name", self.namespaces).addprevious(member)
-        package_xml = ET.tostring(tree)
+            section.insertBefore(section.find("name"), tag="members", text=name)
+        package_xml = Package.tostring()
         zip_dest.writestr("package.xml", package_xml)
         return zip_dest
 
