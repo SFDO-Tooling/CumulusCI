@@ -175,10 +175,10 @@ class TestExtractData(unittest.TestCase):
         task.session.connection.assert_called_once_with()
         step.get_results.assert_called_once_with()
         task._sql_bulk_insert_from_records.assert_called_once_with(
-            task.session.connection.return_value,
-            "Opportunity",
-            ["sf_id", "Name", "account_id"],
-            log_mock.return_value,
+            connection=task.session.connection.return_value,
+            table="Opportunity",
+            columns=["sf_id", "Name", "account_id"],
+            record_iterable=log_mock.return_value,
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.csv.reader")
@@ -210,16 +210,18 @@ class TestExtractData(unittest.TestCase):
         task._sql_bulk_insert_from_records.assert_has_calls(
             [
                 mock.call(
-                    task.session.connection.return_value,
-                    "Opportunity",
-                    ["Name", "account_id"],
-                    csv_mock.return_value,
+                    connection=task.session.connection.return_value,
+                    table="Opportunity",
+                    columns=["Name", "account_id"],
+                    record_iterable=csv_mock.return_value,
+                    csv_file=csv_mock.call_args_list[0][0][0],
                 ),
                 mock.call(
-                    task.session.connection.return_value,
-                    "Opportunity_sf_ids",
-                    ["sf_id"],
-                    csv_mock.return_value,
+                    connection=task.session.connection.return_value,
+                    table="Opportunity_sf_ids",
+                    columns=["sf_id"],
+                    record_iterable=csv_mock.return_value,
+                    csv_file=csv_mock.call_args_list[1][0][0],
                 ),
             ]
         )

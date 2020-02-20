@@ -300,7 +300,10 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         results_generator = self._generate_results_id_map(step, local_ids)
         if mapping["action"] == "insert":
             self._sql_bulk_insert_from_records(
-                conn, id_table_name, ("id", "sf_id"), results_generator
+                connection=conn,
+                table=id_table_name,
+                columns=("id", "sf_id"),
+                record_iterable=results_generator,
             )
         else:
             for r in results_generator:

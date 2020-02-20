@@ -6,7 +6,8 @@ import yaml
 
 
 import responses
-from sqlalchemy import create_engine, MetaData, Integer, types, Unicode
+from sqlalchemy import create_engine, MetaData, Integer, types, Unicode, Column, Table
+from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
@@ -46,7 +47,7 @@ class TestEpochType(unittest.TestCase):
         self.assertIsInstance(column_info["type"], bulkdata.utils.EpochType)
 
 
-class TestRecordTypeUtils(unittest.TestCase):
+class TestSqlAlchemyMixin(unittest.TestCase):
     @mock.patch("cumulusci.tasks.bulkdata.utils.Table")
     @mock.patch("cumulusci.tasks.bulkdata.utils.mapper")
     def test_create_record_type_table(self, mapper, table):
@@ -80,6 +81,81 @@ class TestRecordTypeUtils(unittest.TestCase):
         assert call[1] == "test_table"
         assert call[2] == ["record_type_id", "developer_name"]
         assert list(call[3]) == [["012000000000000", "Organization"]]
+
+    def test_sql_bulk_insert_from_records__sqlite(self):
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "temp.db")
+
+            engine, metadata = create_db_file(tmp_db_path)
+            fields = [
+                Column("id", Integer(), primary_key=True, autoincrement=True),
+                Column("sf_id", Unicode(24)),
+            ]
+            id_t = Table("TestTable", metadata, *fields)
+            id_t.create()
+            model = type("TestModel", (object,), {})
+            mapper(model, id_t)
+
+            util = bulkdata.utils.SqlAlchemyMixin()
+            util.metadata = metadata
+            session = create_session(bind=engine, autocommit=False)
+            util.session = session
+            connection = session.connection()
+
+            util._sql_bulk_insert_from_records(
+                connection=connection,
+                table="TestTable",
+                columns=("id", "sf_id"),
+                record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
+            )
+
+            assert session.query(model).count() == 10
+
+    @mock.patch("cumulusci.tasks.bulkdata.utils.tempfile.TemporaryFile")
+    def test_sql_bulk_insert_from_records__postgres_no_csv(self, temp_mock):
+        util = bulkdata.utils.SqlAlchemyMixin()
+        util.metadata = mock.Mock(tables={"TestTable": "TestTable"})
+        util.session = mock.Mock()
+        connection = mock.Mock()
+        connection.dialect.name = "postgresql"
+        cursor = mock.MagicMock()
+        connection.connection.cursor.return_value = cursor
+
+        util._sql_bulk_insert_from_records(
+            connection=connection,
+            table="TestTable",
+            columns=("id", "sf_id"),
+            record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
+        )
+
+        connection.connection.cursor.assert_called_once()
+        cursor.__enter__.return_value.copy_expert.assert_called_once_with(
+            "COPY TestTable (id,sf_id) FROM STDIN WITH (FORMAT CSV)",
+            temp_mock.return_value.__enter__.return_value,
+        )
+
+    def test_sql_bulk_insert_from_records__postgres_with_csv(self):
+        util = bulkdata.utils.SqlAlchemyMixin()
+        util.metadata = mock.Mock(tables={"TestTable": "TestTable"})
+        util.session = mock.Mock()
+        connection = mock.Mock()
+        connection.dialect.name = "postgresql"
+        cursor = mock.MagicMock()
+        connection.connection.cursor.return_value = cursor
+        csv_file = mock.Mock()
+
+        util._sql_bulk_insert_from_records(
+            connection=connection,
+            table="TestTable",
+            columns=("id", "sf_id"),
+            record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
+            csv_file=csv_file,
+        )
+
+        connection.connection.cursor.assert_called_once()
+        cursor.__enter__.return_value.copy_expert.assert_called_once_with(
+            "COPY TestTable (id,sf_id) FROM STDIN WITH (FORMAT CSV)", csv_file
+        )
 
 
 class TestCreateTable(unittest.TestCase):
