@@ -51,6 +51,16 @@ Options
 
 	 Array of field API names to include in the related list
 
+``-o exclude_buttons EXCLUDEBUTTONS``
+	 *Optional*
+
+	 Array of button names to suppress from the related list
+
+``-o custom_buttons CUSTOMBUTTONS``
+	 *Optional*
+
+	 Array of button names to add to the related list
+
 ``-o api_names APINAMES``
 	 *Optional*
 
