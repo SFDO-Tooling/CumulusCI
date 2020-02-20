@@ -10,6 +10,7 @@ from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from robot.utils import timestr_to_secs
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import StaleElementReferenceException
 
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.utils import selenium_retry, capture_screenshot_on_error
@@ -97,6 +98,7 @@ class Salesforce(object):
         # libraries.
         locator_manager.add_location_strategies()
 
+    @selenium_retry(False)
     def _jsclick(self, locator):
         """Use javascript to click an element on the page
 
@@ -104,14 +106,23 @@ class Salesforce(object):
         """
 
         self.selenium.wait_until_page_contains_element(locator)
-        element = self.selenium.get_webelement(locator)
-        # Setting the focus first seems to be required as of Spring'20
-        # (read: without it, tests started failing in that release). I
-        # suspect it's because there is a focusOut handler on form
-        # fields which need to be triggered for data to be accepted.
-        self.selenium.driver.execute_script(
-            "arguments[0].focus(); arguments[0].click()", element
-        )
+        self.selenium.wait_until_element_is_enabled(locator)
+        for should_retry in (True, False):
+            try:
+                # Setting the focus first seems to be required as of Spring'20
+                # (read: without it, tests started failing in that release). I
+                # suspect it's because there is a focusOut handler on form
+                # fields which need to be triggered for data to be accepted.
+                element = self.selenium.get_webelement(locator)
+                self.selenium.driver.execute_script(
+                    "arguments[0].focus(); arguments[0].click()", element
+                )
+                return
+            except StaleElementReferenceException:
+                if should_retry:
+                    time.sleep(1)
+                else:
+                    raise
 
     def get_latest_api_version(self):
         return self.cumulusci.org.latest_api_version

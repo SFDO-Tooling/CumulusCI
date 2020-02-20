@@ -192,7 +192,6 @@ def selenium_retry(target=None, retry=True):
                 # Restore the previous value
                 self.retry_selenium = old_retry
 
-        set_pdb_trace()
         run_with_retry.is_selenium_retry_decorator = True
         return run_with_retry
 
