@@ -76,8 +76,8 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
             pass
 
         self.assertIn("SFDX_INSTANCE_URL", task._get_env())
-        self.assertIn("SFDX_USERNAME", task._get_env())
-        self.assertIn(access_token, task._get_env()["SFDX_USERNAME"])
+        self.assertIn("SFDX_DEFAULTUSERNAME", task._get_env())
+        self.assertIn(access_token, task._get_env()["SFDX_DEFAULTUSERNAME"])
 
     def test_scratch_org_username(self):
         """ Scratch Org credentials are passed by -u flag """

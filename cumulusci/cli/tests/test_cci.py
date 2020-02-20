@@ -225,11 +225,21 @@ class TestCCI(unittest.TestCase):
         error = "Something bad happened."
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(error, is_gist_cmd=False)
+        cci.handle_exception(error, is_error_cmd=False)
 
         style.call_args_list[0][0] == f"Error: {error}"
         style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
         traceback.print_exc.assert_called_once()
+
+    @mock.patch("cumulusci.cli.cci.open")
+    @mock.patch("cumulusci.cli.cci.traceback")
+    @mock.patch("cumulusci.cli.cci.click.style")
+    def test_handle_click_exception(self, style, traceback, cci_open):
+        cci_open.__enter__.return_value = mock.Mock()
+
+        cci.handle_exception(click.ClickException("oops"), False)
+
+        style.call_args_list[0][0] == f"Error: oops"
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.connection_error_message")

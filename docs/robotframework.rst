@@ -286,6 +286,10 @@ API Keywords
 
 In addition to browser interactions, the Salesforce Library also provides the following keywords for interacting with the Salesforce REST API:
 
+* **Salesforce Collection Insert**: used for bulk creation of objects
+  based on a template
+* **Salesforce Collection Update**: used for the bulk updating of
+  objects
 * **Salesforce Delete**: Deletes a record using its type and ID
 * **Salesforce Get**: Gets a dictionary of a record from its ID
 * **Salesforce Insert**: Inserts a record using its type and field values.  Returns the ID.
