@@ -93,7 +93,9 @@ class DeleteData(BaseSalesforceApiTask):
 
             for result in ds.get_results():
                 if not result.success and not self.options["ignore_row_errors"]:
-                    raise BulkDataException(f"Failed to delete record {result.id}")
+                    raise BulkDataException(
+                        f"Failed to delete record {result.id}: {result.error}"
+                    )
 
     def _object_description(self, obj):
         """Return a readable description of the object set to delete."""
