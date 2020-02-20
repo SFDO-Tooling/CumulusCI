@@ -1,3 +1,5 @@
+import pytest
+
 from io import StringIO, BytesIO
 from pathlib import Path
 from cumulusci.util.xml.metadata_tree import METADATA_NAMESPACE, parse
@@ -83,10 +85,16 @@ class TestMetadataTree:
             == """<?xml version="1.0" encoding="UTF-8"?>
 <Data xmlns="http://soap.sforce.com/2006/04/metadata">
     <A>AA</A>
+    <A>AB</A>
     <B>
         <C>CC</C>
     </B>
-    <A>AB</A>
 </Data>
 """
         )
+
+    def test_error_handling(self):
+        Data = parse(StringIO(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>"))
+        Data.Foo
+        with pytest.raises(AttributeError):
+            assert Data.Bar

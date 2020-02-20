@@ -72,10 +72,11 @@ class MetadataElement:
 
     def append(self, tag: str, text: str = None):
         newchild = self._create_child(tag, text)
-        same_elements = self._element.findall(self._element.tag)
+        same_elements = self._element.findall(_add_namespace(tag))
         if same_elements:
             last = same_elements[-1]
-            self._element.insert(last.index() + 1, newchild._element)
+            index = self._element.index(last)
+            self._element.insert(index + 1, newchild._element)
         else:
             self._element.append(newchild._element)
         return newchild
