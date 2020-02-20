@@ -1,9 +1,9 @@
-from typing import Sequence, Union
+from typing import Union
 
 from lxml import etree
-from xml.sax.saxutils import escape
 
-xml_encoding = '<?xml version="1.0" encoding="UTF-8"?>\n'
+from .salesforce_encoding import serialize_xml_for_salesforce
+
 METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
 
 
@@ -13,7 +13,7 @@ def _add_namespace(tag):
 
 def parse(source):
     doc = etree.parse(source)
-    return MetadataElement(doc.getroot(), doc=doc)
+    return MetadataElement(doc.getroot())
 
 
 def fromstring(source):
@@ -21,18 +21,14 @@ def fromstring(source):
 
 
 class MetadataElement:
-    __slots__ = ["_element", "_parent", "_doc", "tag"]
+    __slots__ = ["_element", "_parent", "tag"]
 
     def __init__(
-        self,
-        element: etree._Element,
-        parent: etree._Element = None,
-        doc: etree._ElementTree = None,
+        self, element: etree._Element, parent: etree._Element = None,
     ):
         assert isinstance(element, etree._Element)
         self._element = element
         self._parent = parent
-        self._doc = doc
         self.tag = element.tag.split("}")[1]
 
     @property
@@ -88,18 +84,11 @@ class MetadataElement:
 
     def insertBefore(self, oldElement: "MetadataElement", tag: str, text: str = None):
         index = self._element.index(oldElement._element)
-        newchild = self._create_child(tag, text)
-        self._element.insert(index, newchild._element)
-        return newchild
+        return self.insert(index, tag, text)
 
     def insertAfter(self, oldElement: "MetadataElement", tag: str, text: str = None):
         index = self._element.index(oldElement._element)
-        newchild = self._create_child(tag, text)
-        self._element.insert(index + 1, newchild._element)
-        return newchild
-
-    def extend(self, iterable: Sequence):
-        self._element.extend(newchild._element for newchild in iterable)
+        return self.insert(index + 1, tag, text)
 
     def remove(self, metadata_element):
         self._element.remove(metadata_element._element)
@@ -123,54 +112,13 @@ class MetadataElement:
             if matches(e)
         )
 
-    def tostring(self):
-        if self._doc:
-            etree.indent(self._doc, space="    ")
-            return salesforce_encoding(self._doc)
-        else:
-            return etree.tostring(self._element, encoding="unicode", pretty_print=True)
+    def tostring(self, xml_declaration=False):
+        doc = etree.ElementTree(self._element)
+        etree.indent(doc, space="    ")
+        return serialize_xml_for_salesforce(doc, xml_declaration=xml_declaration)
 
     def __eq__(self, other: "MetadataElement"):
         return self._element == other._element
 
     def __repr__(self):
         return f"<{self.tag}>{self.text}</{self.tag}> element"
-
-
-def has_content(element):
-    return element.text or list(element)
-
-
-def salesforce_encoding(xdoc):
-    r = xml_encoding
-    if METADATA_NAMESPACE in xdoc.getroot().tag:
-        xdoc.getroot().attrib["xmlns"] = METADATA_NAMESPACE
-    for action, elem in etree.iterwalk(
-        xdoc, events=("start", "end", "start-ns", "end-ns", "comment")
-    ):
-        if action == "start-ns":
-            pass  # handle this nicely if SF starts using multiple namespaces
-        elif action == "start":
-            tag = elem.tag
-            if "}" in tag:
-                tag = tag.split("}")[1]
-            text = (
-                escape(elem.text, {"'": "&apos;", '"': "&quot;"})
-                if elem.text is not None
-                else ""
-            )
-
-            attrs = "".join([f' {k}="{v}"' for k, v in elem.attrib.items()])
-            if not has_content(elem):
-                r += f"<{tag}{attrs}/>"
-            else:
-                r += f"<{tag}{attrs}>{text}"
-        elif action == "end" and has_content(elem):
-            tag = elem.tag
-            if "}" in tag:
-                tag = tag.split("}")[1]
-            tail = elem.tail if elem.tail else "\n"
-            r += f"</{tag}>{tail}"
-        elif action == "comment":
-            r += str(elem) + (elem.tail if elem.tail else "")
-    return r

@@ -11,7 +11,7 @@ from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.tasks.metadata.modify import RemoveElementsXPath
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.metadata.modify import salesforce_encoding
+from cumulusci.util.xml.salesforce_encoding import serialize_xml_for_salesforce
 from cumulusci.core.exceptions import TaskOptionsError
 
 
@@ -149,7 +149,7 @@ class TestRemoveElementsXPath(unittest.TestCase):
         for file in files:
             orig = open(file).read()
             tree = ET.parse(file)
-            out = salesforce_encoding(tree)
+            out = serialize_xml_for_salesforce(tree)
             assert orig == out, file
             print("PASSED", file)
 

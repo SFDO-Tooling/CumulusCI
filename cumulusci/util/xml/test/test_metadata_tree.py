@@ -1,16 +1,15 @@
 import pytest
 
-from io import StringIO, BytesIO
+from io import BytesIO
 from pathlib import Path
-from cumulusci.util.xml.metadata_tree import METADATA_NAMESPACE, parse
+from cumulusci.util.xml.metadata_tree import METADATA_NAMESPACE, parse, fromstring
 
 
 class TestMetadataTree:
     def test_insertions(self):
-        data = StringIO(
+        Data = fromstring(
             f"""<Data xmlns='{METADATA_NAMESPACE}'><Foo>foo1</Foo><Foo>foo2</Foo></Data>"""
         )
-        Data = parse(data)
 
         assert Data.Foo[0].text == "foo1"
         assert Data.Foo[1].text == "foo2"
@@ -25,7 +24,7 @@ class TestMetadataTree:
         assert Data.Foo[4].text == "foo5"
 
     def test_text(self):
-        data = StringIO(
+        Data = fromstring(
             f"""<Data xmlns='{METADATA_NAMESPACE}'>
                 <foo>Foo</foo>
                 <text>Bar</text>
@@ -34,7 +33,6 @@ class TestMetadataTree:
                 </text>
             </Data>"""
         )
-        Data = parse(data)
         assert isinstance(Data.foo.text, str)
         assert Data.foo.text == "Foo"
         assert isinstance(Data.text.text, str)
@@ -42,13 +40,12 @@ class TestMetadataTree:
         assert Data.text[1].bar.text.lower() == "bar2"
 
     def test_append_goes_in_the_middle(self):
-        data = StringIO(
+        Data = fromstring(
             f"""<Data xmlns='{METADATA_NAMESPACE}'>
                 <foo>Foo</foo>
                 <bar>Bar</bar>
             </Data>"""
         )
-        Data = parse(data)
         Data.append(tag="foo", text="Foo2")
         assert Data.foo[1].text == "Foo2"
         Data.append(tag="foo", text="Foo3")
@@ -69,19 +66,18 @@ class TestMetadataTree:
         # get rid of whitespace to see if we can replace it faithfully
         raw_flattened = raw.replace("    ", "").replace("\n", "")
         Package = parse(BytesIO(raw_flattened.encode("utf-8")))
-        x = Package.tostring().strip()
+        x = Package.tostring(xml_declaration=True).strip()
         assert x == raw
 
     def test_pretty_printing(self):
-        Data = parse(StringIO(f"<Data xmlns='{METADATA_NAMESPACE}'/>"))
+        Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'/>")
         Data.append("A", "AA")
         B = Data.append("B")
         B.append("C", "CC")
         Data.append("A", "AB")
-        print(Data.tostring())
 
         assert (
-            Data.tostring()
+            Data.tostring(xml_declaration=True)
             == """<?xml version="1.0" encoding="UTF-8"?>
 <Data xmlns="http://soap.sforce.com/2006/04/metadata">
     <A>AA</A>
@@ -93,8 +89,28 @@ class TestMetadataTree:
 """
         )
 
+    def test_remove(self):
+        Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'/>")
+        Data.append("A", "AA")
+        B = Data.append("B")
+        B.append("C", "CC")
+        Data.append("A", "AB")
+
+        assert Data.A[0].text == "AA"
+        assert Data.B.C.text == "CC"
+        assert Data.A[1].text == "AB"
+
+        Data.remove(Data.A[0])
+        Data.remove(Data.B)
+        Data.remove(Data.A)
+        assert Data.tostring() == f'<Data xmlns="{METADATA_NAMESPACE}"/>'
+
     def test_error_handling(self):
-        Data = parse(StringIO(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>"))
+        Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>")
         Data.Foo
         with pytest.raises(AttributeError):
             assert Data.Bar
+
+    def test_getxxxx___(self):
+        Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>")
+        assert Data.Foo == Data["Foo"]

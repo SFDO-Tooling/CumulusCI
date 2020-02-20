@@ -297,7 +297,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
 
                 with destination_path.open(mode="w", encoding="utf-8") as f:
                     f.write(
-                        transformed_xml.tostring()
+                        transformed_xml.tostring(xml_declaration=True)
                     )  # todo: figure out encoding declaration and general salesforce-y encoding
             else:
                 # Make sure to remove from our package.xml

@@ -5,7 +5,7 @@ import lxml.etree as ET
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import cd
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.util.xml.metadata_tree import salesforce_encoding
+from cumulusci.util.xml.salesforce_encoding import serialize_xml_for_salesforce
 
 SF_NS = "http://soap.sforce.com/2006/04/metadata"
 
@@ -92,7 +92,7 @@ class RemoveElementsXPath(BaseTask):
             for element in res:
                 element.getparent().remove(element)
 
-            processed = salesforce_encoding(root)
+            processed = serialize_xml_for_salesforce(root, xml_declaration=True)
 
             if orig != processed:
                 self.logger.info("Modified {}".format(f))
