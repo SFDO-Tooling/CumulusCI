@@ -25,7 +25,7 @@ pip install --no-cache --extra-index-url https://test.pypi.org/simple/ cumulusci
 echo " "
 echo "=> Collecting dependencies and generating resource stanzas..."
 echo " "
-poet cumulusci > "$RES_FILE"
+poet cumulusci | awk '/resource "cumulusci"/{c=5} !(c&&c--)' > "$RES_FILE"
 if [ $? -ne 0 ]; then
    exit 1
 fi
@@ -51,6 +51,8 @@ $(cat "$RES_FILE")
     xy = Language::Python.major_minor_version "python3"
     site_packages = libexec/"lib/python#{xy}/site-packages"
     ENV.prepend_create_path "PYTHONPATH", site_packages
+
+    system "python3", *Language::Python.setup_install_args(libexec)
 
     deps = resources.map(&:name).to_set
     deps.each do |r|
