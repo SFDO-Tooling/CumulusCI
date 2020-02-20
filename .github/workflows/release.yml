@@ -37,7 +37,7 @@ jobs:
           python-version: 3.7
       - name: Build formula
         run: |
-          sleep 10
+          sleep 30
           utility/build-homebrew.sh cumulusci.rb
       - name: Test formula
         run: |
