@@ -3,7 +3,7 @@ import sys
 
 __import__("pkg_resources").declare_namespace("cumulusci")
 
-__version__ = "3.6.1.dev8"
+__version__ = "3.6.1.dev9"
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
