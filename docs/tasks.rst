@@ -24,6 +24,148 @@ Options
 
 	 List of DeveloperNames to query in SOQL
 
+**add_page_layout_related_lists**
+==========================================
+
+**Description:** Adds specified Related List to one or more Page Layouts.
+
+**Class:** cumulusci.tasks.metadata_etl.AddRelatedLists
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run add_page_layout_related_lists``
+
+
+Options
+------------------------------------------
+
+
+``-o related_list RELATEDLIST``
+	 *Required*
+
+	 Name of the Related List to include
+
+``-o fields FIELDS``
+	 *Optional*
+
+	 Array of field API names to include in the related list
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
+**add_standard_value_set_entries**
+==========================================
+
+**Description:** Adds specified picklist entries to a Standard Value Set.
+
+**Class:** cumulusci.tasks.metadata_etl.AddValueSetEntries
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run add_standard_value_set_entries``
+
+
+Options
+------------------------------------------
+
+
+``-o entries ENTRIES``
+	 *Optional*
+
+	 Array of standardValues to insert. Each standardValue should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. OpportunityStage entries require the additional keys 'closed', 'won', 'forecastCategory', and 'probability'; CaseStatus entries require 'closed'.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
+**add_permission_set_perms**
+==========================================
+
+**Description:** Adds specified Apex class access and Field-Level Security to a Permission Set.
+
+**Class:** cumulusci.tasks.metadata_etl.AddPermissionSetPermissions
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run add_permission_set_perms``
+
+
+Options
+------------------------------------------
+
+
+``-o field_permissions FIELDPERMISSIONS``
+	 *Optional*
+
+	 Array of fieldPermissions objects to upsert into permission_set.  Each fieldPermission requires the following attributes: 'field': API Name of the field including namespace; 'readable': boolean if field can be read; 'editable': boolean if field can be edited
+
+``-o class_accesses CLASSACCESSES``
+	 *Optional*
+
+	 Array of classAccesses objects to upsert into permission_set.  Each classAccess requires the following attributes: 'apexClass': Name of Apex Class.  If namespaced, make sure to use the form "namespace__ApexClass"; 'enabled': boolean if the Apex Class can be accessed.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **batch_apex_wait**
 ==========================================
 
@@ -193,6 +335,37 @@ Options
 	 *Optional*
 
 	 Time to wait, in seconds, for the community to be created
+
+**insert_record**
+==========================================
+
+**Description:** Inserts a record of any sObject using the REST API
+
+**Class:** cumulusci.tasks.salesforce.insert_record.InsertRecord
+
+For example:
+
+cci task run insert_record --org dev -o object PermissionSet -o values Name:HardDelete,PermissionsBulkApiHardDelete:true
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run insert_record``
+
+
+Options
+------------------------------------------
+
+
+``-o object OBJECT``
+	 *Required*
+
+	 An sObject type to insert
+
+``-o values VALUES``
+	 *Required*
+
+	 Field names and values in the format 'aa:bb,cc:dd'
 
 **create_package**
 ==========================================
@@ -2424,6 +2597,55 @@ Options
 
 	 By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
 
+**set_organization_wide_defaults**
+==========================================
+
+**Description:** Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
+
+**Class:** cumulusci.tasks.metadata_etl.SetOrgWideDefaults
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run set_organization_wide_defaults``
+
+
+Options
+------------------------------------------
+
+
+``-o org_wide_defaults ORGWIDEDEFAULTS``
+	 *Required*
+
+	 The target Organization-Wide Defaults, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature.
+
+``-o timeout TIMEOUT``
+	 *Optional*
+
+	 The max amount of time to wait in seconds
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **uninstall_managed**
 ==========================================
 
@@ -2782,7 +3004,7 @@ Options
 
 **Description:** Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
 
-**Class:** cumulusci.tasks.salesforce.UpdateAdminProfile
+**Class:** cumulusci.tasks.salesforce.UpdateProfile
 
 Command Syntax
 ------------------------------------------
@@ -2813,6 +3035,11 @@ Options
 	 *Optional*
 
 	 If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False
+
+``-o profile_name PROFILENAME``
+	 *Optional*
+
+	 Name of the Profile to target for updates.
 
 **update_dependencies**
 ==========================================

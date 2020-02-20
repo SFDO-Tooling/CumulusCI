@@ -20,7 +20,7 @@ from cumulusci.utils import tokenize_namespace
 
 
 class ListChanges(BaseSalesforceApiTask):
-    api_version = "47.0"
+    api_version = "48.0"
 
     task_options = {
         "include": {

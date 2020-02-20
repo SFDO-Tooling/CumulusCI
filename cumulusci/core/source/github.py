@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.github import get_github_api_for_repo
@@ -99,7 +100,12 @@ class GitHubSource:
             zf = download_extract_github(
                 self.gh, self.repo_owner, self.repo_name, ref=self.commit
             )
-            zf.extractall(path)
+            try:
+                zf.extractall(path)
+            except Exception:
+                # make sure we don't leave an incomplete cache
+                shutil.rmtree(path)
+                raise
 
         project_config = self.project_config.construct_subproject_config(
             repo_info={

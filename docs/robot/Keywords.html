@@ -433,7 +433,7 @@ class CustomDetailPage(BasePage):
                 </td>
                 <td class="kwdoc"><p>Go to the page of the given page object.</p>
 <p>The URL will be computed from the page_type and object_name associated with the object, plus possibly additional arguments.</p>
-<p>Different pages support different additional arguments. For example, a Listing page supports the keyword argument `filter_name`, and a Detail page can be given an object id, or paramemters for looking up the object id.</p>
+<p>Different pages support different additional arguments. For example, a Listing page supports the keyword argument `filter_name`, and a Detail page can be given an object id, or parameters for looking up the object id.</p>
 <p>If this keyword is able to navigate to a page, the keyword `load page object` will automatically be called to load the keywords for the page.</p>
 <p>Custom page objects may define the function `_go_to_page`, which will be passed in all of the keyword arguments from this keyword. This allows each page object to define its own URL mapping using whatever algorithm it chooses.  The only requirement of the function is that it should compute an appropriate url and then call `self.selenium.go_to` with the URL.</p>
 <p>It is also recommended that the keyword wait until it knows that the page has finished rendering before returning (eg: by calling `self.salesforce.wait_until_loading_is_complete()`)</p></td>
@@ -578,12 +578,13 @@ Wait for modal to appear    New    Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>heading</i>, 
+                  <i>*args</i>, 
                   
-                  <i>title</i>
+                  <i>**kwargs</i>
                   
                 </td>
-                <td class="kwdoc"><p>Clicks a link in the related list with the specified heading.</p></td>
+                <td class="kwdoc"><p>Clicks a link in the related list with the specified heading.</p>
+<p>This keyword will automatically call <b>Wait until loading is complete</b>.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Click Related Item Popup Link">
@@ -679,15 +680,17 @@ Wait for modal to appear    New    Contact
                   <i>**fields</i>
                   
                 </td>
-                <td class="kwdoc"><p>Generate test data dictionaries. Usually used for later insertion into SF.</p>
-<p>Returns an array of dictionaries with template-formatted arguments appropriate for a Collection Insert. Use <code>{{number}}</code> to represent the unique index of the row in the list of rows. IF the entire string consists of a number, Salesforce API will treat the value as a number.</p>
-<p>For example:</p>
+                <td class="kwdoc"><p>Generate bulk test data</p>
+<p>This returns an array of dictionaries with template-formatted arguments which can be passed to the <b>Salesforce Collection Insert</b> keyword.</p>
+<p>You can use <code>{{number}}</code> to represent the unique index of the row in the list of rows.  IF the entire string consists of a number, Salesforce API will treat the value as a number.</p>
+<p>Example:</p>
+<p>The following example creates three new Contacts:</p>
 <pre>
 @{objects} =  Generate Test Data  Contact  3
 ...  Name=User {{number}}
 ...  Age={{number}}
 </pre>
-<p>Which would generate Contact objects with these fields:</p>
+<p>The example code will generate Contact objects with these fields:</p>
 <pre>
 [{'Name': 'User 0', 'Age': '0'},
  {'Name': 'User 1', 'Age': '1'},
@@ -741,6 +744,16 @@ Wait for modal to appear    New    Contact
                   
                 </td>
                 <td class="kwdoc"><p>Return the current value of a form field based on the field label</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Get Latest Api Version">
+                <td class="kwname">
+                  Get Latest Api Version
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Get Locator">
@@ -915,6 +928,17 @@ Wait for modal to appear    New    Contact
                 <td class="kwdoc"><p>Validates that a field in the record header does not have a value. NOTE: Use other keywords for non-string value types</p></td>
               </tr>
               
+              <tr class="kwrow" id="Salesforce.Initialize Location Strategies">
+                <td class="kwname">
+                  Initialize Location Strategies
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Initialize the Salesforce location strategies 'text' and 'title' plus any strategies registered by other keyword libraries</p>
+<p>Note: This keyword is called automatically from <b>Open Test Browser</b></p></td>
+              </tr>
+              
               <tr class="kwrow" id="Salesforce.Load Related List">
                 <td class="kwname">
                   Load Related List
@@ -946,7 +970,8 @@ Wait for modal to appear    New    Contact
                 <td class="kwargs">
                   
                 </td>
-                <td class="kwdoc"><p>Opens the Saleforce App Launcher</p></td>
+                <td class="kwdoc"><p>Opens the Saleforce App Launcher Modal</p>
+<p>Note: starting with Spring '20 the app launcher button opens a menu rather than a modal. To maintain backwards compatibility, this keyword will continue to open the modal rather than the menu. If you need to interact with the app launcher menu, you will need to create a custom keyword.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Populate Field">
@@ -960,7 +985,8 @@ Wait for modal to appear    New    Contact
                   <i>value</i>
                   
                 </td>
-                <td class="kwdoc"><p>Enters a value into a text field.</p>
+                <td class="kwdoc"><p>Enters a value into an input or textarea field.</p>
+<p>'name' represents the label on the page (eg: "First Name"), and 'value' is the new value.</p>
 <p>Any existing value will be replaced.</p></td>
               </tr>
               
@@ -1013,7 +1039,18 @@ Wait for modal to appear    New    Contact
                   <i>objects</i>
                   
                 </td>
-                <td class="kwdoc"><p>Inserts up to 200 records that were created with Generate Test Data. The 200 record limit is enforced by the Salesforce APIs</p></td>
+                <td class="kwdoc"><p>Inserts records that were created with <b>Generate Test Data</b>.</p>
+<p><i>objects</i> is a list of data, typically generated by the <b>Generate Test Data</b> keyword.</p>
+<p>A 200 record limit is enforced by the Salesforce APIs.</p>
+<p>The object name and id is passed to the <b>Store Session Record</b> keyword, and will be deleted when the keyword <b>Delete Session Records</b> is called.</p>
+<p>As a best practice, either <b>Delete Session Records</b> or <b>*Delete Records and Close Browser</b> from Salesforce.robot should be called as a suite teardown.</p>
+<p>Example:</p>
+<pre>
+@{objects}=  Generate Test Data  Contact  200
+...  FirstName=User {{number}}
+...  LastName={{fake.last_name}}
+Salesforce Collection Insert  ${objects}
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Salesforce Collection Update">
@@ -1025,7 +1062,22 @@ Wait for modal to appear    New    Contact
                   <i>objects</i>
                   
                 </td>
-                <td class="kwdoc"><p>Updates up to 200 records described as Robot/Python dictionaries</p></td>
+                <td class="kwdoc"><p>Updates records described as Robot/Python dictionaries.</p>
+<p><i>objects</i> is a dictionary of data in the format returned by the <b>Salesforce Collection Insert</b> keyword.</p>
+<p>A 200 record limit is enforced by the Salesforce APIs.</p>
+<p>Example:</p>
+<p>The following example creates ten accounts and then updates the Rating from "Cold" to "Hot"</p>
+<pre>
+${data}=  Generate Test Data  Account  10
+...  Name=Account #{{number}}
+...  Rating=Cold
+${accounts}=  Salesforce Collection Insert  ${data}
+
+FOR  ${account}  IN  @{accounts}
+    Set to dictionary  ${account}  Rating  Hot
+END
+Salesforce Collection Update  ${accounts}
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Salesforce Delete">
@@ -1039,7 +1091,12 @@ Wait for modal to appear    New    Contact
                   <i>obj_id</i>
                   
                 </td>
-                <td class="kwdoc"><p>Deletes a Saleforce object by id and returns the dict result</p></td>
+                <td class="kwdoc"><p>Deletes a Saleforce object by object name and id.</p>
+<p>Example:</p>
+<p>The following example assumes that <code>${contact id}</code> has been previously set. The example deletes the Contact with that id.</p>
+<pre>
+Salesforce Delete  Contact  ${contact id}
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Salesforce Get">
@@ -1053,7 +1110,13 @@ Wait for modal to appear    New    Contact
                   <i>obj_id</i>
                   
                 </td>
-                <td class="kwdoc"><p>Gets a Salesforce object by id and returns the dict result</p></td>
+                <td class="kwdoc"><p>Gets a Salesforce object by id and returns the dict result.</p>
+<p>Example:</p>
+<p>The following example assumes that <code>${contact id}</code> has been previously set. The example retrieves the Contact object with that id and then logs the Name field.</p>
+<pre>
+&amp;{contact}=  Salesforce Get  Contact  ${contact id}
+log  Contact name:  ${contact['Name']}
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Salesforce Insert">
@@ -1067,7 +1130,17 @@ Wait for modal to appear    New    Contact
                   <i>**kwargs</i>
                   
                 </td>
-                <td class="kwdoc"><p>Inserts a Salesforce object setting fields using kwargs and returns the id</p></td>
+                <td class="kwdoc"><p>Creates a new Salesforce object and returns the Id.</p>
+<p>The fields of the object may be defined with keyword arguments where the keyword name is the same as the field name.</p>
+<p>The object name and id is passed to the <b>Store Session Record</b> keyword, and will be deleted when the keyword <b>Delete Session Records</b> is called.</p>
+<p>As a best practice, either <b>Delete Session Records</b> or <b>Delete Records and Close Browser</b> from Salesforce.robot should be called as a suite teardown.</p>
+<p>Example:</p>
+<p>The following example creates a new Contact with the first name of "Eleanor" and the last name of "Rigby".</p>
+<pre>
+${contact id}=  Salesforce Insert  Contact
+...  FirstName=Eleanor
+...  LastName=Rigby
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Salesforce Query">
@@ -1081,7 +1154,16 @@ Wait for modal to appear    New    Contact
                   <i>**kwargs</i>
                   
                 </td>
-                <td class="kwdoc"><p>Constructs and runs a simple SOQL query and returns the dict results</p></td>
+                <td class="kwdoc"><p>Constructs and runs a simple SOQL query and returns a list of dictionaries.</p>
+<p>By default the results will only contain object Ids. You can specify a SOQL SELECT clase via keyword arguments by passing a comma-separated list of fields with the <code>select</code> keyword argument.</p>
+<p>Example:</p>
+<p>The following example searches for all Contacts where the first name is "Eleanor". It returns the "Name" and "Id" fields and logs them to the robot report:</p>
+<pre>
+@{records}=  Salesforce Query  Contact  select=Id,Name
+FOR  ${record}  IN  @{records}
+    log  Name: ${record['Name']} Id: ${record['Id']}
+END
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Salesforce Update">
@@ -1097,7 +1179,14 @@ Wait for modal to appear    New    Contact
                   <i>**kwargs</i>
                   
                 </td>
-                <td class="kwdoc"><p>Updates a Salesforce object by id and returns the dict results</p></td>
+                <td class="kwdoc"><p>Updates a Salesforce object by id.</p>
+<p>The keyword returns the result from the underlying simplesalesforce <code>insert</code> method, which is an HTTP status code. As with `Salesforce Insert`, field values are specified as keyword arguments.</p>
+<p>The following example assumes that ${contact id} has been previously set, and adds a Description to the given contact.</p>
+<pre>
+&amp;{contact}=  Salesforce Update  Contact  ${contact id}
+...  Description=This Contact created during a test
+Should be equal as numbers ${result}  204
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Select App Launcher App">
@@ -1106,7 +1195,9 @@ Wait for modal to appear    New    Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>app_name</i>
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
                   
                 </td>
                 <td class="kwdoc"><p>Navigates to a Salesforce App via the App Launcher</p></td>
@@ -1118,7 +1209,9 @@ Wait for modal to appear    New    Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>tab_name</i>
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
                   
                 </td>
                 <td class="kwdoc"><p>Navigates to a tab via the App Launcher</p></td>
@@ -1162,7 +1255,18 @@ Wait for modal to appear    New    Contact
                   <i>query</i>
                   
                 </td>
-                <td class="kwdoc"><p>Runs a simple SOQL query and returns the dict results</p></td>
+                <td class="kwdoc"><p>Runs a simple SOQL query and returns the dict results</p>
+<p>The <i>query</i> parameter must be a properly quoted SOQL query statement. The return value is a dictionary. The dictionary contains the keys as documented for the raw API call. The most useful key is <code>records</code>, which contains a list of records which were matched by the query.</p>
+<p>Example</p>
+<p>The following example searches for all Contacts with a first name of "Eleanor" and a last name of "Rigby", and then prints the name of the first record found.</p>
+<pre>
+${result}=  SOQL Query
+...  SELECT Name, Id FROM Contact WHERE FirstName='Eleanor' AND LastName='Rigby'
+Run keyword if  len($result) == 3  Fail  No records found
+
+${contact}=  Get from list  ${result['records']}  0
+Should be equal  ${contact['Name']}  Eleanor Rigby
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Store Session Record">
@@ -1176,7 +1280,8 @@ Wait for modal to appear    New    Contact
                   <i>obj_id</i>
                   
                 </td>
-                <td class="kwdoc"><p>Stores a Salesforce record's id for use in the Delete Session Records keyword</p></td>
+                <td class="kwdoc"><p>Stores a Salesforce record's id for use in the <b>Delete Session Records</b> keyword.</p>
+<p>This keyword is automatically called by <b>Salesforce Insert</b>.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Wait For Aura">
@@ -1218,6 +1323,10 @@ Wait for modal to appear    New    Contact
                   Wait Until Modal Is Open
                 </td>
                 <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
                   
                 </td>
                 <td class="kwdoc"><p>Wait for modal to open</p></td>
@@ -1313,16 +1422,6 @@ Wait for modal to appear    New    Contact
                   
                 </td>
                 <td class="kwdoc"></td>
-              </tr>
-              
-              <tr class="kwrow" id="Salesforce.robot.Initialize Location Strategies">
-                <td class="kwname">
-                  Initialize Location Strategies
-                </td>
-                <td class="kwargs">
-                  
-                </td>
-                <td class="kwdoc"><p>Initialize the Salesforce location strategies 'text' and 'title'</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Locate Element By Text">
@@ -1490,6 +1589,151 @@ Go to page  Detail  Contact  FirstName=${first_name}  LastName=${last_name}
           </table>
         </div> 
         
+        <div class="section" pageobject="Edit-">
+
+          
+          <div class='pageobject-header'>
+
+            <table class='pageobject-header'>
+              <tbody>
+	        <tr class='data'>
+	          <td title='Page Type'>Edit</td>
+	          
+	        </tr>
+	        <tr class='labels'>
+	          <td>Page Type</td>
+	          
+	        </tr>
+              </tbody>
+            </table>
+          </div>
+          
+
+          <div class='description' title='Description'><p>A page object representing the Edit Object modal</p>
+<p>Note: You should not use this page object with 'Go to page'. Instead, you can use 'Wait for modal to appear' after performing an action that causes the new object modal to appear (eg: clicking the "Edit" button). Once the modal appears, the keywords for that modal will be available for use in the test.</p>
+<p>Example:</p>
+<pre>
+Click object button        Edit
+Wait for modal to appear   Edit  Contact
+</pre></div>
+          <table class="kwtable" title='Table of keywords'>
+            <tbody>
+              <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Click Modal Button">
+                <td class="kwname">
+                  Click Modal Button
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Click the named modal button (Save, Save &amp; New, Cancel, etc)</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Close The Modal">
+                <td class="kwname">
+                  Close The Modal
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Closes the open modal</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Log Current Page Object">
+                <td class="kwname">
+                  Log Current Page Object
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Logs the name of the current page object</p>
+<p>The current page object is also returned as an object</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Modal Should Contain Errors">
+                <td class="kwname">
+                  Modal Should Contain Errors
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Verify that the modal contains the following errors</p>
+<p>This will look for the given message in the standard SLDS component (&lt;ul class='errorsList'&gt;)</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Populate Field">
+                <td class="kwname">
+                  Populate Field
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Populate a field on the modal form</p>
+<p>Name must the the label of a field as it appears on the modal form.</p>
+<p>Example</p>
+<pre>
+Populate field  First Name  Connor
+Populate field  Last Name   MacLeod
+</pre></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Populate Form">
+                <td class="kwname">
+                  Populate Form
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Populate the modal form</p>
+<p>Arguments are of the form key=value, where 'key' represents a field name as it appears on the form (specifically, the text of a label with the class 'uiLabel').</p>
+<p>Example:</p>
+<pre>
+Populate form
+...  First Name=Connor
+...  Last Name=MacLeod
+</pre></td>
+              </tr>
+              
+              <tr class="kwrow" id="BasePageObjects.py.Wait Until Modal Is Closed">
+                <td class="kwname">
+                  Wait Until Modal Is Closed
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Waits until the modal is no longer visible</p>
+<p>If the modal isn't open, this will not throw an error.</p></td>
+              </tr>
+              
+            </tbody>
+          </table>
+        </div> 
+        
         <div class="section" pageobject="Home-">
 
           
@@ -1607,7 +1851,7 @@ Go to page  Listing  Contact  filterName=Recent
 <pre>
 Go to page                 Home  Contact
 Click object button        New
-Wait for modal to appear  New  Contact
+Wait for modal to appear   New  Contact
 </pre></div>
           <table class="kwtable" title='Table of keywords'>
             <tbody>
@@ -1731,7 +1975,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Tuesday October 22, 03:52 PM - cumulusci v3.0.2
+      Generated on Tuesday February 18, 02:23 PM - cumulusci v3.6.1.dev0
     </div>
   </body>
 </html>
