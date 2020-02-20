@@ -1,4 +1,5 @@
-from io import StringIO
+from io import StringIO, BytesIO
+from pathlib import Path
 from cumulusci.util.xml.metadata_tree import METADATA_NAMESPACE, parse
 
 
@@ -52,3 +53,40 @@ class TestMetadataTree:
         assert Data.foo[2].text == "Foo3"
         Data.append(tag="bar", text="Bar2")
         assert Data.bar[1].text == "Bar2"
+
+    def test_whitespace(self):
+        from cumulusci.tasks.metadata import tests
+
+        path = (
+            Path(tests.__file__).parent
+            / "package_metadata/namespaced_report_folder/package.xml"
+        )
+        with open(path) as f:
+            raw = f.read()
+
+        # get rid of whitespace to see if we can replace it faithfully
+        raw_flattened = raw.replace("    ", "").replace("\n", "")
+        Package = parse(BytesIO(raw_flattened.encode("utf-8")))
+        x = Package.tostring().strip()
+        assert x == raw
+
+    def test_pretty_printing(self):
+        Data = parse(StringIO(f"<Data xmlns='{METADATA_NAMESPACE}'/>"))
+        Data.append("A", "AA")
+        B = Data.append("B")
+        B.append("C", "CC")
+        Data.append("A", "AB")
+        print(Data.tostring())
+
+        assert (
+            Data.tostring()
+            == """<?xml version="1.0" encoding="UTF-8"?>
+<Data xmlns="http://soap.sforce.com/2006/04/metadata">
+    <A>AA</A>
+    <B>
+        <C>CC</C>
+    </B>
+    <A>AB</A>
+</Data>
+"""
+        )

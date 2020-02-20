@@ -1,7 +1,9 @@
 from typing import Sequence, Union
+
 from lxml import etree
+from xml.sax.saxutils import escape
 
-
+xml_encoding = '<?xml version="1.0" encoding="UTF-8"?>\n'
 METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
 
 
@@ -10,7 +12,8 @@ def _add_namespace(tag):
 
 
 def parse(source):
-    return MetadataElement(etree.parse(source).getroot())
+    doc = etree.parse(source)
+    return MetadataElement(doc.getroot(), doc=doc)
 
 
 def fromstring(source):
@@ -18,12 +21,18 @@ def fromstring(source):
 
 
 class MetadataElement:
-    __slots__ = ["_element", "_parent", "tag"]
+    __slots__ = ["_element", "_parent", "_doc", "tag"]
 
-    def __init__(self, element: etree._Element, parent: etree._Element = None):
+    def __init__(
+        self,
+        element: etree._Element,
+        parent: etree._Element = None,
+        doc: etree._ElementTree = None,
+    ):
         assert isinstance(element, etree._Element)
         self._element = element
         self._parent = parent
+        self._doc = doc
         self.tag = element.tag.split("}")[1]
 
     @property
@@ -113,9 +122,12 @@ class MetadataElement:
             if matches(e)
         )
 
-    def tostring(self, **kwargs):
-        kwargs = dict(encoding="unicode", pretty_print=True, **kwargs)
-        return etree.tostring(self._element, pretty_print=True, encoding="unicode")
+    def tostring(self):
+        if self._doc:
+            etree.indent(self._doc, space="    ")
+            return salesforce_encoding(self._doc)
+        else:
+            return etree.tostring(self._element, encoding="unicode", pretty_print=True)
 
     def __eq__(self, other: "MetadataElement"):
         return self._element == other._element
@@ -124,17 +136,40 @@ class MetadataElement:
         return f"<{self.tag}>{self.text}</{self.tag}> element"
 
 
-def test_metadata_element():
-    filename = "/Users/pprescod/code/NPSP/src/layouts/Account-Household Layout.layout"
-    Layout = parse(filename)
-    assert Layout.tag == "Layout"
-    assert Layout["layoutSections"] == Layout.layoutSections
-    layoutItem = Layout.layoutSections[0].layoutColumns[1].layoutItems[1]
-    layoutItem2 = Layout["layoutSections"][0]["layoutColumns"][1]["layoutItems"][1]
-    assert layoutItem == layoutItem2
-    assert layoutItem.behavior.text == "Edit"
+def has_content(element):
+    return element.text or list(element)
 
-    layoutItem.field.text = "some_field"
-    assert "<field>" in layoutItem.tostring()
-    layoutColumn = Layout.layoutSections[0].layoutColumns[1]
-    assert len(layoutColumn.findall("layoutItems")) == 2
+
+def salesforce_encoding(xdoc):
+    r = xml_encoding
+    if METADATA_NAMESPACE in xdoc.getroot().tag:
+        xdoc.getroot().attrib["xmlns"] = METADATA_NAMESPACE
+    for action, elem in etree.iterwalk(
+        xdoc, events=("start", "end", "start-ns", "end-ns", "comment")
+    ):
+        if action == "start-ns":
+            pass  # handle this nicely if SF starts using multiple namespaces
+        elif action == "start":
+            tag = elem.tag
+            if "}" in tag:
+                tag = tag.split("}")[1]
+            text = (
+                escape(elem.text, {"'": "&apos;", '"': "&quot;"})
+                if elem.text is not None
+                else ""
+            )
+
+            attrs = "".join([f' {k}="{v}"' for k, v in elem.attrib.items()])
+            if not has_content(elem):
+                r += f"<{tag}{attrs}/>"
+            else:
+                r += f"<{tag}{attrs}>{text}"
+        elif action == "end" and has_content(elem):
+            tag = elem.tag
+            if "}" in tag:
+                tag = tag.split("}")[1]
+            tail = elem.tail if elem.tail else "\n"
+            r += f"</{tag}>{tail}"
+        elif action == "comment":
+            r += str(elem) + (elem.tail if elem.tail else "")
+    return r
