@@ -121,7 +121,6 @@ class TestAddRelatedLists:
         )
 
         result = task._transform_entity(tree, "Layout")
-        print(result.tostring())
         element = result._element
 
         assert len(element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1

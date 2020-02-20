@@ -57,7 +57,6 @@ class MetadataElement:
     def __getitem__(self, item: Union[int, str]):
         if isinstance(item, int):
             children = self._parent.findall(self._element.tag)
-            print(children, self._parent, self._element)
             return self._wrap_element(children[item])
         elif isinstance(item, str):
             return self._get_child(item)
