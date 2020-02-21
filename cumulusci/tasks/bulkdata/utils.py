@@ -4,7 +4,6 @@ import requests
 import tempfile
 import time
 import unicodecsv
-import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 
 from sqlalchemy import types
@@ -17,6 +16,7 @@ from sqlalchemy.orm import mapper
 
 from cumulusci.utils import convert_to_snake_case
 from cumulusci.core.exceptions import BulkDataException
+from cumulusci.util.xml import metadata_tree
 
 
 @contextmanager
@@ -74,10 +74,13 @@ class BulkJobTaskMixin(object):
         return self._parse_job_state(response.content)
 
     def _parse_job_state(self, xml):
-        ns = self.bulk.jobNS
-        tree = ET.fromstring(xml)
-        statuses = [el.text for el in tree.iterfind(f".//{{{ns}}}state")]
-        state_messages = [el.text for el in tree.iterfind(f".//{{{ns}}}stateMessage")]
+        tree = metadata_tree.fromstring(xml)
+        statuses = [batch.state.text for batch in tree.findall("batch")]
+        state_messages = [
+            batch.stateMessage.text
+            for batch in tree.findall("batch")
+            if batch.find("stateMessage")
+        ]
 
         if "Not Processed" in statuses:
             return "Aborted", None
@@ -86,7 +89,7 @@ class BulkJobTaskMixin(object):
         elif "Failed" in statuses:
             return "Failed", state_messages
 
-        failures = tree.find(f".//{{{ns}}}numberRecordsFailed")
+        failures = tree.find("numberRecordsFailed")
         if failures is not None:
             num_failures = int(failures.text)
             if num_failures:
