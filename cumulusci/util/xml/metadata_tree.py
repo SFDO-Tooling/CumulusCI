@@ -7,10 +7,6 @@ from .salesforce_encoding import serialize_xml_for_salesforce
 METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
 
 
-def _add_namespace(tag):
-    return "{%s}%s" % (METADATA_NAMESPACE, tag)
-
-
 def parse(source):
     """Parse a file by path or file object into a Metadata Tree
 
@@ -71,20 +67,22 @@ class MetadataElement:
     There are also methods for finding, appending, inserting and removing nodes, which have their own documentation.
     '''
 
-    __slots__ = ["_element", "_parent", "tag"]
+    __slots__ = ["_element", "_parent", "_ns", "tag"]
 
     def __init__(
         self, element: etree._Element, parent: etree._Element = None,
     ):
         assert isinstance(element, etree._Element)
+        assert len(element.nsmap) == 1, "Only one namespace allowed"
         self._element = element
         self._parent = parent
+        self._ns = next(iter(element.nsmap.values()))
         self.tag = element.tag.split("}")[1]
 
     @property
     def text(self):
         if len(self._element):
-            text_node = self._element.find(_add_namespace("text"))
+            text_node = self._element.find(self._add_namespace("text"))
             if len(text_node) >= 0:
                 return self._wrap_element(text_node)
         return self._element.text
@@ -96,14 +94,17 @@ class MetadataElement:
     def _wrap_element(self, child: etree._Element):
         return MetadataElement(child, self._element)
 
+    def _add_namespace(self, tag):
+        return "{%s}%s" % (self._ns, tag)
+
     def _get_child(self, childname):
-        child_element = self._element.find(_add_namespace(childname))
+        child_element = self._element.find(self._add_namespace(childname))
         if child_element is None:
             raise AttributeError(f"{childname} not found in {self.tag}")
         return self._wrap_element(child_element)
 
     def _create_child(self, tag, text=None):
-        element = etree.Element(_add_namespace(tag))
+        element = etree.Element(self._add_namespace(tag))
         element.text = text
         return self._wrap_element(element)
 
@@ -147,7 +148,7 @@ class MetadataElement:
         </types>
         '''
         newchild = self._create_child(tag, text)
-        same_elements = self._element.findall(_add_namespace(tag))
+        same_elements = self._element.findall(self._add_namespace(tag))
         if same_elements:
             last = same_elements[-1]
             index = self._element.index(last)
@@ -200,7 +201,7 @@ class MetadataElement:
 
         return (
             self._wrap_element(e)
-            for e in self._element.findall(_add_namespace(type))
+            for e in self._element.findall(self._add_namespace(type))
             if matches(e)
         )
 
