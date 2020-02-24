@@ -788,7 +788,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         task = BatchApexWait(self.project_config, self.task_config, self.org_config)
         url = (
             self.base_tooling_url
-            + "query/?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27+ORDER+BY+CreatedDate+DESC+LIMIT+1"
+            + "query/?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++++ORDER+BY+CreatedDate+DESC++LIMIT+1+"
         )
         return task, url
 
@@ -828,7 +828,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         response = self._get_query_resp()
         responses.add(responses.GET, url, json=response)
         task()
-        self.assertEqual(task.delta, 61)
+        self.assertEqual(task.delta(task.batches), 61)
 
     @responses.activate
     def test_chained_batches(self):
@@ -868,6 +868,11 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
             },
         )
         responses.add(responses.GET, url, json=response.copy())
+        url2 = (
+            url.split("?")[0]
+            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A56Z++ORDER+BY+CreatedDate+DESC++"
+        )
+        responses.add(responses.GET, url2, json=response.copy())
 
         with self.assertRaises(SalesforceException) as e:
             task()
