@@ -783,7 +783,9 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         template_result = response["records"][-1]  # use the last result as a template
         assert isinstance(template_result, dict)
         new_result = {**template_result, **result_dict}  # copy with variations
-        result_list = response["records"] + [new_result]  # append new result
+        result_list = [new_result] + response[
+            "records"
+        ]  # prepend new result because SOQL is order by DESC
         return {**response, "records": result_list}
 
     def _get_url_and_task(self):
@@ -838,40 +840,40 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         task, url = self._get_url_and_task()
         url2 = (
             url.split("?")[0]
-            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A56Z++ORDER+BY+CreatedDate+DESC++"
+            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
         )
 
+        # batch 1
         response = self._get_query_resp()
-        response["records"][0]["JobItemsProcessed"] = 1
-        response["records"][0]["TotalJobItems"] = 3
-        response["records"][0]["Status"] = "Processing"
+        batch_record = response["records"][0]
+        batch_record.update(
+            {
+                "JobItemsProcessed": 1,
+                "TotalJobItems": 3,
+                "NumberOfErrors": 0,
+                "Status": "Processing",
+                "CreatedDate": "2018-08-07T16:00:00.000+0000",
+            }
+        )
 
         responses.add(responses.GET, url, json=response)
 
+        # batch 2: 1 error
         response = self._update_job_result(response, {"Id": "Id2", "NumberOfErrors": 1})
         responses.add(responses.GET, url2, json=response)
 
-        # found another error
+        # batch 3: found another error
         response = self._update_job_result(response, {"Id": "Id2", "NumberOfErrors": 2})
         responses.add(responses.GET, url2, json=response)
 
-        # new batch: found another error
-        response = self._update_job_result(response, {"Id": "Id3", "NumberOfErrors": 1})
-        responses.add(responses.GET, url2, json=response.copy())
-        # found another error
-        response = self._update_job_result(response, {"Id": "Id3", "NumberOfErrors": 3})
-        responses.add(responses.GET, url2, json=response.copy())
-
-        # new batch. No errors
-        response = self._update_job_result(response, {"Id": "Id4", "NumberOfErrors": 0})
-        responses.add(responses.GET, url2, json=response.copy())
-        # Complete, no errors in this sub-batch
+        # batch 4: Complete, no errors in this sub-batch
         response = self._update_job_result(
             response,
             {
+                "NumberOfErrors": 0,
                 "Id": "Id4",
                 "Status": "Completed",
-                "CompletedDate": "2018-08-07T16:02:57.000+0000",
+                "CompletedDate": "2018-08-07T16:10:00.000+0000",  # 10 minutes passed
             },
         )
         responses.add(responses.GET, url2, json=response.copy())
@@ -880,12 +882,11 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
             task()
 
         assert len(task.batches) == 4
-        assert not task.success
-        assert not task.done_for_sure
-        assert task.delta == 121
-        summary = task.summarize_batches()
-        assert summary["Name"] == "ADDR_Seasonal_BATCH"
+        assert not task.done_for_sure(task.batches)
+        summary = task.summarize_batches(task.batches)
+        assert not summary["Success"]
+        assert summary["ElapsedTime"] == 10 * 60
         assert summary["JobItemsProcessed"] == 4
         assert summary["TotalJobItems"] == 12
-        assert summary["NumberOfErrors"] == 5
+        assert summary["NumberOfErrors"] == 3
         assert "import errors" in str(e.exception)

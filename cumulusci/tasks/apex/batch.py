@@ -50,10 +50,8 @@ class BatchApexWait(BaseSalesforceApiTask):
             self.logger.info(repr(summary))
 
         self.logger.info(
-            f"{self.options['class_name']} took {self.delta(self.batches)} seconds to process {summary['TotalJobItems']} batches."
+            f"{self.options['class_name']} took {summary['ElapsedTime']} seconds to process {summary['TotalJobItems']} batches."
         )
-
-        return self.success
 
     def failed_batches(self, batches: Sequence[dict]):
         failed_batches = []
@@ -106,15 +104,15 @@ class BatchApexWait(BaseSalesforceApiTask):
         def reduce_key(valname: str, summary_func):
             return summary_func(batch[valname] for batch in batches)
 
-        return {
+        rc = {
             "Jobs": reduce_key("Id", ",".join),
             "JobItemsProcessed": reduce_key("JobItemsProcessed", sum),
             "TotalJobItems": reduce_key("TotalJobItems", sum),
             "NumberOfErrors": reduce_key("NumberOfErrors", sum),
+            "ElapsedTime": self.delta(batches),
         }
-
-    def success(self, batches: Sequence[dict]):
-        return self.summarize_batches(batches)["NumberOfErrors"] == 0
+        rc["Success"] = rc["NumberOfErrors"] == 0
+        return rc
 
     def done_for_sure(self, batches: Sequence[dict]):
         """ returns True if all batches were counted and succeeded """
@@ -125,8 +123,12 @@ class BatchApexWait(BaseSalesforceApiTask):
 
     def delta(self, batches: Sequence[dict]):
         """ returns the time (in seconds) that the batches took, if complete """
-        completed_date = parse_api_datetime(batches[-1]["CompletedDate"])
-        created_date = parse_api_datetime(batches[0]["CreatedDate"])
+        completed_date = parse_api_datetime(
+            max(batch["CompletedDate"] for batch in batches)
+        )
+        created_date = parse_api_datetime(
+            min(batch["CreatedDate"] for batch in batches)
+        )
         td = completed_date - created_date
         return td.total_seconds()
 
