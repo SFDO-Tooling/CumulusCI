@@ -26,6 +26,7 @@ Library        cumulusci.robotframework.Salesforce  debug=${DEBUG}
 
 *** Variables ***
 ${BROWSER}          chrome
+${SELENIUM_SPEED}   0
 ${DEBUG}            ${false}
 ${CHROME_BINARY}    ${empty}
 ${ORG}              ${empty}
@@ -82,6 +83,7 @@ Open Test Browser
     Initialize Location Strategies
     ${width}  ${height}=  split string  ${size}  separator=x  max_split=1
     Set window size  ${width}  ${height}
+    Set selenium speed  ${SELENIUM_SPEED}
     Log browser capabilities
 
 Open Test Browser Chrome

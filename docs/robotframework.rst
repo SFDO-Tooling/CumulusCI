@@ -160,6 +160,76 @@ This simple test file can then be run via the **robot** task in CumulusCI:
 If you put all of your tests inside that **robot/<project name>/tests** folder you don't have to use the **suite** option. By default the robot task will run all tests in the folder and all subfolders. For example, to run all tests and use the default browser you just have to issue the command `cci task run robot`.
 
 
+Salesforce.robot
+================
+
+Keywords can be defined in a test suite file, but they can also be defined in libraries and resource files. Libraries are written in python, and resource files are written in the robot syntax. Resource files are almost identical to a test file, except that they have no tests and can be imported into other test files. In addition to containing keywords, resource files can also define variables and they can import other libraries.
+
+The file **cumulusci/robotframework/Salesforce.robot** was designed to be the way to import all of the keywords and variables provided by CumulusCI. It should be the first item imported in a test file. It will import the :ref:`salesforce-library-overview` and :ref:`cumulusci-library-overview`, as well as the most commonly used robot libraries
+(`Collections <http://robotframework.org/robotframework/latest/libraries/Collections.html>`_,
+`OperatingSystem <http://robotframework.org/robotframework/latest/libraries/OperatingSystem.html>`_,
+`String <http://robotframework.org/robotframework/latest/libraries/String.html>`_, and
+`XML <http://robotframework.org/robotframework/latest/libraries/XML.html>`_)
+
+Variables defined in resource files are accessible to all tests in a suite which imports the resource file. They can be set in your cumulusci.yml file, or specified with the `vars` option to the robot task. When doing so, the variables need to be referenced without the dollar sign and curly braces. Variable names are case-insensitive.
+
+For example, here is how to set the browser to firefox and the default timeout to 20 seconds in a cumulusci.yml file:
+
+.. code-block:: yaml
+
+  tasks:
+    robot:
+      options:
+        vars:
+          - BROWSER:firefox
+          - TIMEOUT:20 seconds
+
+The same variables can be set from the command line to override the config file for a single test run. This example shows that you can use the lowercase name for convenience:
+
+.. code-block:: console
+
+    $ cci task run robot -o vars browser:firefox,timeout:20
+
+
+Supported Variables
+-------------------
+
+The following variables defined in **Salesforce.robot** are all used by the ``Open Test Browser`` keyword:
+
+.. list-table::
+   :widths:  1 3
+
+   * - ``${BROWSER}``
+     - Defines the browser to be used for testing. Supported values are
+       ``chrome``, ``firefox``,`` headlesschrome``, and ``headlessfirefox``.
+       Default: ``chrome``
+
+   * - ``${DEFAULT_BROWSER_SIZE}``
+     - This sets the preferred size of the browser. It is specified in the form of widthxheight, and
+       the values are passed to the `Set window size
+       <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Window%20Size>`_ keyword.
+       Default: ``1280x1024``
+
+   * - ``${IMPLICIT_WAIT}``
+     - This is automatically passed to the `Set Selenium Implicit Wait
+       <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Implicit%20Wait>`_ keyword.
+       Default: ``7 seconds``
+
+   * - ``${SELENIUM_SPEED}``
+     - This defines a delay added after every selenium command. It is
+       automatically passed to the `Set Selenium Speed
+       <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Speed>`_ keyword.
+       Default: ``0 seconds``
+
+   * - ``${TIMEOUT}``
+     - This sets the default amount of time selenium commands will wait before timing out. It is
+       automatically passed to the `Set Selenium Timeout
+       <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Timeout>`_ keyword.
+       Default: ``30 seconds``
+
+
+.. _cumulusci-library-overview:
+
 CumulusCI Library
 =================
 
@@ -192,6 +262,8 @@ Use the following links to download generated documentation for the CumulusCI Li
 * :download:`CumulusCI Robot Library <../docs/robot/CumulusCI_Library.html>`
 * :download:`CumulusCI Robot Resource <../docs/robot/CumulusCI_Resource.html>`
 
+.. _salesforce-library-overview:
+
 Salesforce Library
 ==================
 
@@ -214,6 +286,10 @@ API Keywords
 
 In addition to browser interactions, the Salesforce Library also provides the following keywords for interacting with the Salesforce REST API:
 
+* **Salesforce Collection Insert**: used for bulk creation of objects
+  based on a template
+* **Salesforce Collection Update**: used for the bulk updating of
+  objects
 * **Salesforce Delete**: Deletes a record using its type and ID
 * **Salesforce Get**: Gets a dictionary of a record from its ID
 * **Salesforce Insert**: Inserts a record using its type and field values.  Returns the ID.

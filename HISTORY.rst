@@ -2,8 +2,73 @@
 History
 =======
 
+3.7.0 (2020-02-20)
+------------------
+
+Changes:
+
+* Added a framework for building tasks that extract, transform, and load metadata from a Salesforce org.
+  The initial set of tasks include:
+
+  * ``add_standard_value_set_entries`` to add entries to a StandardValueSet.
+  * ``add_page_layout_related_lists`` to add Related Lists to a Page Layout.
+  * ``add_permission_set_perms`` to add field permissions and Apex class accesses to a Permission Set.
+  * ``set_organization_wide_defaults`` to set the Organization-Wide Defaults for one or more objects
+    and wait for the operation to complete.
+
+* Added a new task ``insert_record`` to insert a single sObject record via the REST API.
+
+* The ``update_admin_profile`` task now accepts a ``profile_name`` option, which defaults to Admin.
+  This allows the task to be used to update other Profiles.
+  (The task class has been renamed to UpdateProfile, but can still be used with the old name.)
+
+* Updated to use Metadata API version 48.0 as the default for new projects.
+
+* Robot Framework: Improved documentation for the API keywords in the Salesforce keyword library.
+
+Issues closed:
+
+* Fixed the ``cci error info`` command. It was failing to load the log from the previous command.
+
+* Fixed a bug where some error messages were not displayed correctly.
+
+* Adjusted the Salesforce Robot Framework keyword library for better stability in Chrome 80.
+
+* Fixed a bug where using SFDXOrgTask to run an sfdx command on a non-scratch org would break
+  with "Must pass a username and/or OAuth options when creating an AuthInfo instance."
+
+* Fixed a bug where an error while extracting the repository of a cross-project source
+  could leave behind an incomplete copy of the codebase which would then be used by future commands.
+
+3.6.0 (2020-02-06)
+------------------
+
+Changes:
+
+* `cci task info` now has Command Syntax section and improved formatting of option information.
+
+* CumulusCI now displays a more helpful error message when it detects a network connection issue. (#1460)
+
+* We've added the option `ignore_types` to the `uninstall_packaged_incremental` task to allow all components of the specified metadata type to be ignored without having to explicitly list each one.
+
+* The `FindReplace` task now accepts a list of strings for the `file_pattern` option. 
+
+* If the `DeleteData` task fails to delete some rows, this is now reported as an error.
+
+* Robot Framework: Added a new variable `${SELENIUM_SPEED}` that is used to control the speed at which selenium runs when the `Open Test Browser` keyword is called. 
+
+Issues Closed:
+
+* Fixed an issue where existing scratch orgs could sometimes not be used in Windows.
+
+* Fixed a regression where `flow info` and `task info` commands could show an error `AttributeError: 'NoneType' object has no attribute 'get_service'` when trying to load tasks or flows from a cross-project source. (#1529)
+
+* Fixed an issue where certain HTTP errors while running the bulk data tasks were not reported.
+
+
 3.5.4 (2020-01-30)
 ------------------
+
 Changes:
 
 * There is a new top level `cci error` command for interacting with errors in CumulusCI

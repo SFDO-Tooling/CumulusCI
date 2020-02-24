@@ -22,6 +22,7 @@ import click
 import github3
 import pkg_resources
 import requests
+from requests import exceptions
 from rst2ansi import rst2ansi
 from jinja2 import Environment
 from jinja2 import PackageLoader
@@ -206,9 +207,9 @@ def main(args=None):
             args.remove("--debug")
 
         # Only create logfiles for commands
-        # that are not `cci gist`
-        is_gist_command = len(args) > 2 and args[2] == "gist"
-        if not is_gist_command:
+        # that are not `cci error`
+        is_error_command = len(args) > 2 and args[1] == "error"
+        if not is_error_command:
             logger = get_gist_logger()
             stack.enter_context(tee_stdout_stderr(args, logger))
 
@@ -217,24 +218,43 @@ def main(args=None):
         try:
             cli(standalone_mode=False)
         except click.Abort:  # Keyboard interrupt
-            click.echo("\nAborted!")
+            show_debug_info() if debug else click.echo("\nAborted!")
             sys.exit(1)
         except Exception as e:
-            # Display the error
-            if debug:
-                traceback.print_exc()
-                pdb.post_mortem()
-            else:
-                click.echo(click.style(f"Error: {e}", fg="red"))
-                # Only suggest gist command if it wasn't run
-                if not is_gist_command:
-                    click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
-
-                with open(CCI_LOGFILE_PATH, "a") as log_file:
-                    traceback.print_exc(file=log_file)  # log stacktrace silently
-            # TODO: errorsdb
-            # Return a non-zero exit code to indicate a problem
+            show_debug_info() if debug else handle_exception(e, is_error_command)
             sys.exit(1)
+
+
+def handle_exception(error, is_error_cmd):
+    """Displays error of appropriate message back to user, prompts user to investigate further
+    with `cci error` commands, and writes the traceback to the latest logfile.
+    """
+    if isinstance(error, exceptions.ConnectionError):
+        connection_error_message()
+    elif isinstance(error, click.ClickException):
+        click.echo(click.style(f"Error: {error.format_message()}", fg="red"))
+    else:
+        click.echo(click.style(f"Error: {error}", fg="red"))
+    # Only suggest gist command if it wasn't run
+    if not is_error_cmd:
+        click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
+
+    with open(CCI_LOGFILE_PATH, "a") as log_file:
+        traceback.print_exc(file=log_file)  # log stacktrace silently
+
+
+def connection_error_message():
+    message = (
+        "We encountered an error with your internet connection. "
+        "Please check your connection and try the last cci command again."
+    )
+    click.echo(click.style(message, fg="red"))
+
+
+def show_debug_info():
+    """Displays the traceback and opens pdb"""
+    traceback.print_exc()
+    pdb.post_mortem()
 
 
 @click.group("main", help="")
@@ -1202,7 +1222,7 @@ def task_doc(runtime):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def task_info(runtime, task_name):
     task_config = (
         runtime.project_config.get_task(task_name)
@@ -1324,7 +1344,7 @@ def flow_list(runtime, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def flow_info(runtime, flow_name):
     try:
         coordinator = runtime.get_flow(flow_name)
