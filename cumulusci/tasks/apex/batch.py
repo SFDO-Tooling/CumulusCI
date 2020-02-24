@@ -54,6 +54,13 @@ class BatchApexWait(BaseSalesforceApiTask):
         )
 
     def failed_batches(self, batches: Sequence[dict]):
+        failed_batches = []
+        for batch in batches:
+            if batch["NumberOfErrors"]:
+                failed_batches.append(
+                    {
+                        key: value
+                        for key, value in batch.items()
                         if key
                         in {
                             "Id",
