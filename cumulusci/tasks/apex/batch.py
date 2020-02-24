@@ -50,17 +50,9 @@ class BatchApexWait(BaseSalesforceApiTask):
             self.logger.info(repr(summary))
 
         self.logger.info(
-            f"{self.options['class_name']} took {summary['ElapsedTime']} seconds to process {summary['TotalJobItems']} batches."
         )
 
     def failed_batches(self, batches: Sequence[dict]):
-        failed_batches = []
-        for batch in batches:
-            if batch["NumberOfErrors"]:
-                failed_batches.append(
-                    {
-                        key: value
-                        for key, value in batch.items()
                         if key
                         in {
                             "Id",
