@@ -889,4 +889,4 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         assert summary["JobItemsProcessed"] == 4
         assert summary["TotalJobItems"] == 12
         assert summary["NumberOfErrors"] == 3
-        assert "import errors" in str(e.exception)
+        assert "batch errors" in str(e.exception)
