@@ -1,4 +1,6 @@
 """ a task for waiting on a Batch Apex job to complete """
+from datetime import datetime
+from typing import Sequence, Optional
 
 from cumulusci.utils import parse_api_datetime
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -9,9 +11,10 @@ COMPLETED_STATUSES = ["Completed"]
 
 class BatchApexWait(BaseSalesforceApiTask):
     """ BatchApexWait polls an org until the latest batch job
-        for an apex class completes or fails """
+        for an apex class completes or fails."""
 
     name = "BatchApexWait"
+    original_created_date = None
 
     task_options = {
         "class_name": {
@@ -31,8 +34,8 @@ class BatchApexWait(BaseSalesforceApiTask):
 
         self.logger.info("Job is complete.")
 
-        summary = self.summarize_batches()
-        failed_batches = self.failed_batches()
+        summary = self.summarize_batches(self.batches)
+        failed_batches = self.failed_batches(self.batches)
 
         if failed_batches:
             self.logger.info("There have been some batch failures.")
@@ -47,14 +50,14 @@ class BatchApexWait(BaseSalesforceApiTask):
             self.logger.info(repr(summary))
 
         self.logger.info(
-            f"{summary['Name']} took {self.delta(self.batches)} seconds to process {summary['TotalJobItems']} batches."
+            f"{self.options['class_name']} took {self.delta(self.batches)} seconds to process {summary['TotalJobItems']} batches."
         )
 
         return self.success
 
-    def failed_batches(self, batches):
+    def failed_batches(self, batches: Sequence[dict]):
         failed_batches = []
-        for batch in batches.values():
+        for batch in batches:
             if batch["NumberOfErrors"]:
                 failed_batches.append(
                     {
@@ -77,61 +80,65 @@ class BatchApexWait(BaseSalesforceApiTask):
         # get batch status
 
         if not self.original_created_date:
-            query_results = self.tooling.query(self._batch_query(first_time=True))
-            self.original_created_date = "FIXME"  # TODO
+            query_results = self.tooling.query(self._batch_query(date_limit=None))
+            self.original_created_date = parse_api_datetime(
+                query_results["records"][0]["CreatedDate"]
+            )
         else:
-            query_results = self.tooling.query(self._batch_query(first_time=False))
+            query_results = self.tooling.query(
+                self._batch_query(date_limit=self.original_created_date)
+            )
 
         self.batches = query_results["records"]
         current_batch = self.batches[0]
 
         summary = self.summarize_batches(self.batches)
         self.logger.info(
-            f"{summary['Name']}: "
+            f"{self.options['class_name']}: "
+            f"Job{'s' if len(summary['Jobs'])>1 else ''}: {summary['Jobs']}"
             f"{summary['JobItemsProcessed']} of {summary['TotalJobItems']} "
             f"({summary['NumberOfErrors']} failures)"
         )
 
         self.poll_complete = current_batch["Status"] in COMPLETED_STATUSES
 
-    def summarize_batches(self, batches):
-        def sum_val(valname: str):
-            return sum(batch[valname] for batch in batches.values())
+    def summarize_batches(self, batches: Sequence[dict]):
+        def reduce_key(valname: str, summary_func):
+            return summary_func(batch[valname] for batch in batches)
 
         return {
-            "JobItemsProcessed": sum_val("JobItemsProcessed"),
-            "TotalJobItems": sum_val("TotalJobItems"),
-            "NumberOfErrors": sum_val("NumberOfErrors"),
+            "Jobs": reduce_key("Id", ",".join),
+            "JobItemsProcessed": reduce_key("JobItemsProcessed", sum),
+            "TotalJobItems": reduce_key("TotalJobItems", sum),
+            "NumberOfErrors": reduce_key("NumberOfErrors", sum),
         }
 
-    def success(self, batches):
+    def success(self, batches: Sequence[dict]):
         return self.summarize_batches(batches)["NumberOfErrors"] == 0
 
-    def done_for_sure(self, batches):
+    def done_for_sure(self, batches: Sequence[dict]):
         """ returns True if all batches were counted and succeeded """
-        summary = self.summarize_batches()
+        summary = self.summarize_batches(batches)
         return (summary["JobItemsProcessed"] == summary["TotalJobItems"]) and (
             summary["NumberOfErrors"] == 0
         )
 
-    def delta(self, batches):
+    def delta(self, batches: Sequence[dict]):
         """ returns the time (in seconds) that the batches took, if complete """
-        batches = list(batches.values())
         completed_date = parse_api_datetime(batches[-1]["CompletedDate"])
         created_date = parse_api_datetime(batches[0]["CreatedDate"])
         td = completed_date - created_date
         return td.total_seconds()
 
-    def _batch_query(self, first_time=False):
-        if first_time:
+    def _batch_query(self, date_limit: Optional[datetime] = None):
+        if not date_limit:
             limit = " LIMIT 1 "
             date_clause = "  "
         else:
             limit = " "
-            assert self.original_created_data
-            date_clause = f" AND CreatedDate DESC > {self.original_created_date} "
+            date_clause = f" AND CreatedDate >= {date_limit.isoformat()}Z "
 
-        return (
+        query = (
             "SELECT Id, ApexClass.Name, Status, ExtendedStatus, TotalJobItems, "
             "JobItemsProcessed, NumberOfErrors, CreatedDate, CompletedDate "
             "FROM AsyncApexJob "
@@ -141,3 +148,4 @@ class BatchApexWait(BaseSalesforceApiTask):
             + " ORDER BY CreatedDate DESC "
             + limit
         )
+        return query

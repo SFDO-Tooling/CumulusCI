@@ -9,6 +9,7 @@ from copy import deepcopy
 from unittest.mock import MagicMock, patch
 from simple_salesforce import SalesforceGeneralError
 
+
 from cumulusci.core.config import (
     BaseGlobalConfig,
     BaseProjectConfig,
@@ -779,10 +780,11 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
 
     def _update_job_result(self, response: dict, result_dict: dict):
         "Extend the result from _get_query_resp with additional batch records"
-        template_result = response["records"][-1]
+        template_result = response["records"][-1]  # use the last result as a template
         assert isinstance(template_result, dict)
-        result = {**template_result, **result_dict}
-        return {**response, "records": [result]}  # it's 'limit 1' in the SOQL
+        new_result = {**template_result, **result_dict}  # copy with variations
+        result_list = response["records"] + [new_result]  # append new result
+        return {**response, "records": result_list}
 
     def _get_url_and_task(self):
         task = BatchApexWait(self.project_config, self.task_config, self.org_config)
@@ -834,6 +836,11 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
     def test_chained_batches(self):
         "Test batches that kick off a successor before they complete"
         task, url = self._get_url_and_task()
+        url2 = (
+            url.split("?")[0]
+            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A56Z++ORDER+BY+CreatedDate+DESC++"
+        )
+
         response = self._get_query_resp()
         response["records"][0]["JobItemsProcessed"] = 1
         response["records"][0]["TotalJobItems"] = 3
@@ -842,22 +849,22 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         responses.add(responses.GET, url, json=response)
 
         response = self._update_job_result(response, {"Id": "Id2", "NumberOfErrors": 1})
-        responses.add(responses.GET, url, json=response)
+        responses.add(responses.GET, url2, json=response)
 
         # found another error
         response = self._update_job_result(response, {"Id": "Id2", "NumberOfErrors": 2})
-        responses.add(responses.GET, url, json=response)
+        responses.add(responses.GET, url2, json=response)
 
         # new batch: found another error
         response = self._update_job_result(response, {"Id": "Id3", "NumberOfErrors": 1})
-        responses.add(responses.GET, url, json=response.copy())
+        responses.add(responses.GET, url2, json=response.copy())
         # found another error
         response = self._update_job_result(response, {"Id": "Id3", "NumberOfErrors": 3})
-        responses.add(responses.GET, url, json=response.copy())
+        responses.add(responses.GET, url2, json=response.copy())
 
         # new batch. No errors
         response = self._update_job_result(response, {"Id": "Id4", "NumberOfErrors": 0})
-        responses.add(responses.GET, url, json=response.copy())
+        responses.add(responses.GET, url2, json=response.copy())
         # Complete, no errors in this sub-batch
         response = self._update_job_result(
             response,
@@ -866,11 +873,6 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
                 "Status": "Completed",
                 "CompletedDate": "2018-08-07T16:02:57.000+0000",
             },
-        )
-        responses.add(responses.GET, url, json=response.copy())
-        url2 = (
-            url.split("?")[0]
-            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A56Z++ORDER+BY+CreatedDate+DESC++"
         )
         responses.add(responses.GET, url2, json=response.copy())
 
