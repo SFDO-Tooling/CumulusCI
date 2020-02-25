@@ -47,7 +47,7 @@ class TestSalesforceEncoding:
             out = serialize_xml_for_salesforce(tree)
             print(f"[{orig}]")
             print(f"[{out}]")
-            assert orig == out
+            assert orig == out, f"Filename did not roundtrip cleanly {file}"
             print("PASSED", file)
 
     def tests_filename_bad_xml(self):
