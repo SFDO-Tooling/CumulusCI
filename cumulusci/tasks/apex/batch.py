@@ -34,8 +34,8 @@ class BatchApexWait(BaseSalesforceApiTask):
 
         self.logger.info("Job is complete.")
 
-        summary = self.summarize_batches(self.batches)
-        failed_batches = self.failed_batches(self.batches)
+        summary = self.summarize_subjobs(self.subjobs)
+        failed_batches = self.failed_batches(self.subjobs)
 
         if failed_batches:
             self.logger.info("There have been some batch failures.")
@@ -49,18 +49,23 @@ class BatchApexWait(BaseSalesforceApiTask):
             self.logger.info("This is probably related to W-1132237")
             self.logger.info(repr(summary))
 
+        if len(self.subjobs) > 1:
+            subjob_summary = f" in {self.subjobs} sub-jobs"
+        else:
+            subjob_summary = ""
+
         self.logger.info(
-            f"{self.options['class_name']} took {summary['ElapsedTime']} seconds to process {summary['TotalJobItems']} batches."
+            f"{self.options['class_name']} took {summary['ElapsedTime']} seconds to process {summary['TotalJobItems']} batches{subjob_summary}."
         )
 
-    def failed_batches(self, batches: Sequence[dict]):
+    def failed_batches(self, subjobs: Sequence[dict]):
         failed_batches = []
-        for batch in batches:
-            if batch["NumberOfErrors"]:
+        for subjob in subjobs:
+            if subjob["NumberOfErrors"]:
                 failed_batches.append(
                     {
                         key: value
-                        for key, value in batch.items()
+                        for key, value in subjob.items()
                         if key
                         in {
                             "Id",
@@ -87,43 +92,47 @@ class BatchApexWait(BaseSalesforceApiTask):
                 self._batch_query(date_limit=self.original_created_date)
             )
 
-        self.batches = query_results["records"]
-        current_batch = self.batches[0]
+        self.subjobs = query_results["records"]
+        current_subjob = self.subjobs[0]
 
-        summary = self.summarize_batches(self.batches)
+        summary = self.summarize_subjobs(self.subjobs)
         self.logger.info(
             f"{self.options['class_name']}: "
-            f"Job{'s' if len(summary['Jobs'])>1 else ''}: {summary['Jobs']}"
+            f"Job: {current_subjob['Id']} "
             f"{summary['JobItemsProcessed']} of {summary['TotalJobItems']} "
             f"({summary['NumberOfErrors']} failures)"
         )
+        if len(self.subjobs) > 1:
+            self.logger.info(f"{len(self.subjobs)} sub-jobs so far.")
 
-        self.poll_complete = current_batch["Status"] in COMPLETED_STATUSES
+        self.poll_complete = current_subjob["Status"] in COMPLETED_STATUSES
 
-    def summarize_batches(self, batches: Sequence[dict]):
+    def summarize_subjobs(self, subjobs: Sequence[dict]):
         def reduce_key(valname: str, summary_func):
-            return summary_func(batch[valname] for batch in batches)
+            return summary_func(subjob[valname] for subjob in subjobs)
 
         rc = {
-            "Jobs": reduce_key("Id", ",".join),
             "JobItemsProcessed": reduce_key("JobItemsProcessed", sum),
             "TotalJobItems": reduce_key("TotalJobItems", sum),
             "NumberOfErrors": reduce_key("NumberOfErrors", sum),
         }
         rc["Success"] = rc["NumberOfErrors"] == 0
-        rc["ElapsedTime"] = self.elapsed_time(batches)
+        rc["ElapsedTime"] = self.elapsed_time(subjobs)
         rc["CountsAddUp"] = rc["JobItemsProcessed"] == rc["TotalJobItems"]
         return rc
 
-    def elapsed_time(self, batches: Sequence[dict]):
-        """ returns the time (in seconds) that the batches took, if complete """
-        most_recently_completed = max(batch["CompletedDate"] for batch in batches)
-        if most_recently_completed:
+    def elapsed_time(self, subjobs: Sequence[dict]):
+        """ returns the time (in seconds) that the subjobs took, if complete """
+        completed_dates = [
+            subjob["CompletedDate"] for subjob in subjobs if subjob.get("CompletedDate")
+        ]
+        if completed_dates:
+            most_recently_completed = max(completed_dates)
             completed_date = parse_api_datetime(most_recently_completed)
         else:
             completed_date = datetime.now()
         created_date = parse_api_datetime(
-            min(batch["CreatedDate"] for batch in batches)
+            min(subjob["CreatedDate"] for subjob in subjobs)
         )
         td = completed_date - created_date
         return td.total_seconds()

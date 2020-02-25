@@ -832,11 +832,11 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         response = self._get_query_resp()
         responses.add(responses.GET, url, json=response)
         task()
-        self.assertEqual(task.elapsed_time(task.batches), 61)
+        self.assertEqual(task.elapsed_time(task.subjobs), 61)
 
     @responses.activate
-    def test_chained_batches(self):
-        "Test batches that kick off a successor before they complete"
+    def test_chained_subjobs(self):
+        "Test subjobs that kick off a successor before they complete"
         task, url = self._get_url_and_task()
         url2 = (
             url.split("?")[0]
@@ -881,8 +881,8 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         with self.assertRaises(SalesforceException) as e:
             task()
 
-        assert len(task.batches) == 4
-        summary = task.summarize_batches(task.batches)
+        assert len(task.subjobs) == 4
+        summary = task.summarize_subjobs(task.subjobs)
         assert not summary["Success"]
         assert not summary["CountsAddUp"]
         assert summary["ElapsedTime"] == 10 * 60
@@ -892,8 +892,8 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         assert "batch errors" in str(e.exception)
 
     @responses.activate
-    def test_chained_batches_beginning(self):
-        "Test batches that kick off a successor before they complete"
+    def test_chained_subjobs_beginning(self):
+        "Test the first subjob that kicks off a successor before they complete"
         task, url = self._get_url_and_task()
         url2 = (
             url.split("?")[0]
@@ -937,5 +937,60 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         task()
         assert counter == 2
         assert task.poll_complete
-        summary = task.summarize_batches(task.batches)
+        summary = task.summarize_subjobs(task.subjobs)
+        assert not summary["NumberOfErrors"]
+
+    @responses.activate
+    def test_chained_subjobs_halfway(self):
+        "Test part-way through a series of subjobs that kick off a successor before they complete"
+        task, url = self._get_url_and_task()
+        url2 = (
+            url.split("?")[0]
+            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
+        )
+
+        # batch 1
+        response = self._get_query_resp()
+        responses.add(responses.GET, url2, json=response)
+
+        batch_record = response["records"][0]
+        batch_record.update(
+            {
+                "JobItemsProcessed": 1,
+                "TotalJobItems": 3,
+                "NumberOfErrors": 0,
+                "Status": "Preparing",
+                "CreatedDate": "2018-08-07T16:00:00.000+0000",
+                "CompletedDate": "2018-08-07T16:05:00.000+0000",
+            }
+        )
+
+        # batch 2: 1 error
+        response = self._update_job_result(
+            response, {"Id": "Id2", "NumberOfErrors": 1, "CompletedDate": None}
+        )
+        responses.add(responses.GET, url2, json=response)
+
+        real_poll_action = task._poll_action
+        counter = 0
+
+        def mock_poll_action():
+            nonlocal counter
+            counter += 1
+            if counter == 1:
+                task.poll_complete = False
+                return real_poll_action()
+            else:
+                rc = real_poll_action()
+                task.poll_complete = True
+                return rc
+
+        task._poll_action = mock_poll_action
+
+        responses.add(responses.GET, url, json=response)
+
+        task()
+        assert counter == 2
+        assert task.poll_complete
+        summary = task.summarize_subjobs(task.subjobs)
         assert not summary["NumberOfErrors"]
