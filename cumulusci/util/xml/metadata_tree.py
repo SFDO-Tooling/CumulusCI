@@ -19,8 +19,8 @@ def parse(source):
 
     Note that passing a filename or URL is usually faster than passing an open file or file-like object. However, the HTTP/FTP client in libxml2 is rather simple, so things like HTTP authentication require a dedicated URL request library, e.g. urllib2 or requests. These libraries usually provide a file-like object for the result that you can parse from while the response is streaming in.
     """
-    # if hasattr(source, "as_posix"):
-    #     source = source.as_posix()
+    if hasattr(source, "as_posix"):  # for pathlib.Path objects
+        source = source.as_posix()
     doc = etree.parse(source)
     return MetadataElement(doc.getroot())
 

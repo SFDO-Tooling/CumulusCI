@@ -121,3 +121,13 @@ class TestMetadataTree:
         with pytest.raises(AttributeError) as e:
             Data.text
         assert "not found in" in str(e.value)
+
+    def test_pathlib_support(self):
+        from cumulusci.tasks.metadata import tests
+
+        path = (
+            Path(tests.__file__).parent
+            / "package_metadata/namespaced_report_folder/package.xml"
+        )
+        tree = parse(path)
+        assert tree
