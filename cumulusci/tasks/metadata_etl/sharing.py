@@ -2,7 +2,7 @@ from datetime import datetime
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
-from cumulusci.util.xml.metadata_tree import MetadataElement
+from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
 class SetOrgWideDefaults(MetadataSingleEntityTransformTask):

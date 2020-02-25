@@ -2,7 +2,7 @@ from typing import Optional
 
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
-from cumulusci.util.xml.metadata_tree import MetadataElement
+from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
 class AddRelatedLists(MetadataSingleEntityTransformTask):

@@ -5,7 +5,7 @@ import lxml.etree as ET
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import cd
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.util.xml.salesforce_encoding import serialize_xml_for_salesforce
+from cumulusci.utils.xml.salesforce_encoding import serialize_xml_for_salesforce
 
 SF_NS = "http://soap.sforce.com/2006/04/metadata"
 

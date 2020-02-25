@@ -6,7 +6,7 @@ from io import StringIO
 from lxml import etree
 import pytest
 
-from cumulusci.util.xml.salesforce_encoding import serialize_xml_for_salesforce
+from cumulusci.utils.xml.salesforce_encoding import serialize_xml_for_salesforce
 
 
 class TestSalesforceEncoding:

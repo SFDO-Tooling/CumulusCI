@@ -5,7 +5,7 @@ from unittest.mock import Mock, call, patch, mock_open
 from cumulusci.tasks.datadictionary import GenerateDataDictionary
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
-from cumulusci.util.xml import metadata_tree
+from cumulusci.utils.xml import metadata_tree
 from distutils.version import LooseVersion
 
 

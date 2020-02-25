@@ -7,7 +7,7 @@ from distutils.version import LooseVersion
 
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.utils import download_extract_github_from_repo
-from cumulusci.util.xml import metadata_tree
+from cumulusci.utils.xml import metadata_tree
 
 
 class GenerateDataDictionary(BaseGithubTask):

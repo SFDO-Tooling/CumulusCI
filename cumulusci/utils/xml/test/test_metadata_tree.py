@@ -2,7 +2,7 @@ import pytest
 
 from io import BytesIO
 from pathlib import Path
-from cumulusci.util.xml.metadata_tree import METADATA_NAMESPACE, parse, fromstring
+from cumulusci.utils.xml.metadata_tree import METADATA_NAMESPACE, parse, fromstring
 
 
 class TestMetadataTree:

@@ -16,7 +16,7 @@ import sarge
 import xml.etree.ElementTree as ET
 
 CUMULUSCI_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 )
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"

@@ -36,7 +36,7 @@ class MetadataElement:
     After you parse into a MetadataElement tree, you can refer
     to child elements like this:
 
-    >>> from cumulusci.util.xml import metadata_tree
+    >>> from cumulusci.utils.xml import metadata_tree
     >>> Package.types.name.text
     'StandardValueSet'
     >>> Package = metadata_tree.fromstring(b"""<?xml version="1.0" encoding="UTF-8"?>

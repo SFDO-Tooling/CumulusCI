@@ -3,7 +3,7 @@ import pytest
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl import AddPermissionSetPermissions
-from cumulusci.util.xml import metadata_tree
+from cumulusci.utils.xml import metadata_tree
 
 MD = "{%s}" % metadata_tree.METADATA_NAMESPACE
 

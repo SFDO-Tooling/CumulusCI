@@ -1,6 +1,6 @@
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
-from cumulusci.util.xml.metadata_tree import MetadataElement
+from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
 class AddValueSetEntries(MetadataSingleEntityTransformTask):

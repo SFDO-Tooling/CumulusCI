@@ -11,7 +11,7 @@ from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import inject_namespace
 from cumulusci.core.config import TaskConfig
-from cumulusci.util.xml import metadata_tree
+from cumulusci.utils.xml import metadata_tree
 
 
 class MetadataOperation(enum.Enum):

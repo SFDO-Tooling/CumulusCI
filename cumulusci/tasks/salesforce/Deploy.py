@@ -15,7 +15,7 @@ from cumulusci.utils import inject_namespace
 from cumulusci.utils import strip_namespace
 from cumulusci.utils import tokenize_namespace
 from cumulusci.utils import process_text_in_zipfile
-from cumulusci.util.xml import metadata_tree
+from cumulusci.utils.xml import metadata_tree
 
 
 class Deploy(BaseSalesforceMetadataApiTask):
