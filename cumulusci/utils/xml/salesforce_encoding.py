@@ -14,7 +14,11 @@ def serialize_xml_for_salesforce(xdoc, xml_declaration=True):
         xdoc, events=("start", "end", "start-ns", "end-ns", "comment")
     ):
         if action == "start-ns":
-            pass  # handle this nicely if SF starts using multiple namespaces
+            prefix, ns = elem
+            if ns != METADATA_NAMESPACE:
+                raise AssertionError(
+                    f"The only namespace that is supported is {METADATA_NAMESPACE}, not {ns}"
+                )
         elif action == "start":
             tag = elem.tag
             if "}" in tag:
