@@ -14,12 +14,13 @@ def parse(source):
 
         * an open file object (make sure to open it in binary mode)
         * a file-like object that has a .read(byte_count) method returning a byte string on each call
-        * a filename string
+        * a filename string or pathlib Path
         * an HTTP or FTP URL string
 
     Note that passing a filename or URL is usually faster than passing an open file or file-like object. However, the HTTP/FTP client in libxml2 is rather simple, so things like HTTP authentication require a dedicated URL request library, e.g. urllib2 or requests. These libraries usually provide a file-like object for the result that you can parse from while the response is streaming in.
     """
-
+    # if hasattr(source, "as_posix"):
+    #     source = source.as_posix()
     doc = etree.parse(source)
     return MetadataElement(doc.getroot())
 
@@ -215,6 +216,12 @@ class MetadataElement:
         return self._element == other._element
 
     def __repr__(self):
-        return (
-            f"<{self.tag}>{self.text.strip() if self.text else ''}</{self.tag}> element"
-        )
+        children = self._element.getchildren()
+        if children:
+            contents = f"<!-- {len(children)} children -->"
+        elif self.text:
+            contents = f"{self.text.strip()}"
+        else:
+            contents = ""
+
+        return f"<{self.tag}>{contents}</{self.tag}> element"
