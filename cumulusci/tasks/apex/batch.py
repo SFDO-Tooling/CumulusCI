@@ -44,7 +44,7 @@ class BatchApexWait(BaseSalesforceApiTask):
             raise SalesforceException(
                 f"There were batch errors: {repr(failed_batches)}"
             )
-        elif not self.done_for_sure(self.batches):
+        elif not summary["CountsAddUp"]:
             self.logger.info("The final record counts do not add up.")
             self.logger.info("This is probably related to W-1132237")
             self.logger.info(repr(summary))
@@ -109,23 +109,21 @@ class BatchApexWait(BaseSalesforceApiTask):
             "JobItemsProcessed": reduce_key("JobItemsProcessed", sum),
             "TotalJobItems": reduce_key("TotalJobItems", sum),
             "NumberOfErrors": reduce_key("NumberOfErrors", sum),
-            "ElapsedTime": self.delta(batches),
         }
         rc["Success"] = rc["NumberOfErrors"] == 0
-        return rc
-
-    def done_for_sure(self, batches: Sequence[dict]):
-        """ returns True if all batches were counted and succeeded """
-        summary = self.summarize_batches(batches)
-        return (summary["JobItemsProcessed"] == summary["TotalJobItems"]) and (
-            summary["NumberOfErrors"] == 0
+        rc["ElapsedTime"] = self.delta(batches)
+        rc["CountsAddUp"] = (rc["JobItemsProcessed"] == rc["TotalJobItems"]) and (
+            rc["NumberOfErrors"] == 0
         )
+        return rc
 
     def delta(self, batches: Sequence[dict]):
         """ returns the time (in seconds) that the batches took, if complete """
-        completed_date = parse_api_datetime(
-            max(batch["CompletedDate"] for batch in batches)
-        )
+        most_recently_completed = max(batch["CompletedDate"] for batch in batches)
+        if most_recently_completed:
+            completed_date = parse_api_datetime(most_recently_completed)
+        else:
+            completed_date = datetime.now()
         created_date = parse_api_datetime(
             min(batch["CreatedDate"] for batch in batches)
         )
