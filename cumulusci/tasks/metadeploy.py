@@ -165,7 +165,7 @@ class Publish(BaseMetaDeployTask):
                         step.get("description"),
                         "description of installation step",
                     )
-                    for check in step.get("checks", []):
+                    for check in step["task_config"].get("checks", []):
                         self._add_label(
                             "checks", check.get("message"), "shown if validation fails"
                         )
@@ -316,11 +316,11 @@ class Publish(BaseMetaDeployTask):
 
     def _add_labels(self, obj, category, fields):
         """Add specified fields from obj to a label category."""
-        if category not in self.labels:
-            self.labels[category] = {}
         for name, description in fields.items():
             text = obj.get(name)
             if text:
+                if category not in self.labels:
+                    self.labels[category] = {}
                 label = {"message": text, "description": description}
                 self.labels[category][name] = label
 

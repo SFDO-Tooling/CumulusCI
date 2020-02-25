@@ -1,3 +1,4 @@
+from pathlib import Path
 import io
 import json
 import unittest
@@ -67,7 +68,13 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                 "title": "Test Install",
                 "slug": "install",
                 "tier": "primary",
-                "steps": {1: {"flow": "install_prod"}},
+                "steps": {
+                    1: {"flow": "install_prod"},
+                    2: {
+                        "task": "util_sleep",
+                        "checks": [{"when": "False", "action": "error"}],
+                    },
+                },
                 "checks": [{"when": "False", "action": "error"}],
             }
         }
@@ -149,7 +156,18 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add("PATCH", "https://metadeploy/versions/1", json={})
 
-        task_config = TaskConfig({"options": {"tag": "release/1.0", "publish": True}})
+        labels_path = Path(project_config.repo_root, "labels.json")
+        labels_path.write_text("{}")
+
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "tag": "release/1.0",
+                    "publish": True,
+                    "labels": str(labels_path),
+                }
+            }
+        )
         task = Publish(project_config, task_config)
         task()
 
@@ -189,9 +207,47 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                         "checks": [],
                     },
                 },
+                {
+                    "name": "util_sleep",
+                    "kind": "other",
+                    "is_required": True,
+                    "path": "util_sleep",
+                    "step_num": "2",
+                    "task_class": "cumulusci.tasks.util.Sleep",
+                    "task_config": {
+                        "options": {"seconds": 5},
+                        "checks": [{"when": "False", "action": "error"}],
+                    },
+                    "source": None,
+                },
             ],
             steps,
         )
+
+        labels = json.loads(labels_path.read_text())
+        assert labels == {
+            "plan:install": {
+                "title": {
+                    "message": "Test Install",
+                    "description": "title of installation plan",
+                }
+            },
+            "steps": {
+                "Install {product} {version}": {
+                    "message": "Install {product} {version}",
+                    "description": "title of installation step",
+                },
+                "Update Admin Profile": {
+                    "message": "Update Admin Profile",
+                    "description": "title of installation step",
+                },
+                "util_sleep": {
+                    "message": "util_sleep",
+                    "description": "title of installation step",
+                },
+            },
+        }
+        labels_path.unlink()
 
     @responses.activate
     def test_find_or_create_version__already_exists(self):
