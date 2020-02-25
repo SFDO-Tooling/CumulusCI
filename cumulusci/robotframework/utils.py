@@ -3,6 +3,7 @@ import time
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import NoSuchWindowException
 from selenium.webdriver.remote.command import Command
 from SeleniumLibrary.errors import ElementNotFound
 from robot.libraries.BuiltIn import BuiltIn
@@ -60,6 +61,7 @@ ALWAYS_RETRY_EXCEPTIONS = (
     ElementNotFound,
     ElementNotInteractableException,
     StaleElementReferenceException,
+    NoSuchWindowException,
 )
 
 
@@ -190,7 +192,6 @@ def selenium_retry(target=None, retry=True):
                 # Restore the previous value
                 self.retry_selenium = old_retry
 
-        set_pdb_trace()
         run_with_retry.is_selenium_retry_decorator = True
         return run_with_retry
 

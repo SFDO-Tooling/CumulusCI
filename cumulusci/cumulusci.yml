@@ -44,6 +44,10 @@ tasks:
         description: Creates a Community in the target org using the Connect API
         class_path: cumulusci.tasks.salesforce.CreateCommunity
         group: Salesforce Communities
+    insert_record:
+        description: Inserts a record of any sObject using the REST API
+        class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
+        group: Salesforce
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
@@ -932,7 +936,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: '47.0'
+        api_version: '48.0'
     git:
         default_branch: master
         prefix_feature: feature/

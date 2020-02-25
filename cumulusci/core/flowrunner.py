@@ -654,7 +654,7 @@ class PreflightFlowCoordinator(FlowCoordinator):
                 for check in step.task_config.get("checks", []):
                     result = self.evaluate_check(check, jinja2_context)
                     if result:
-                        self.preflight_results[step.path].append(result)
+                        self.preflight_results[str(step.step_num)].append(result)
         finally:
             self.callbacks.post_flow(self)
 
