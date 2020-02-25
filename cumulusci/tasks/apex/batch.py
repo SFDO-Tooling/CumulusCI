@@ -84,6 +84,8 @@ class BatchApexWait(BaseSalesforceApiTask):
 
         if not self.original_created_date:
             query_results = self.tooling.query(self._batch_query(date_limit=None))
+            if not query_results["records"]:
+                raise SalesforceException(f"No {self.options['class_name']} job found.")
             self.original_created_date = parse_api_datetime(
                 query_results["records"][0]["CreatedDate"]
             )

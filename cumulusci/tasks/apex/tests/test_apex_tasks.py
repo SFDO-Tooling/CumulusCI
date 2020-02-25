@@ -1001,3 +1001,16 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         assert task.poll_complete
         summary = task.summarize_subjobs(task.subjobs)
         assert not summary["NumberOfErrors"]
+
+    @responses.activate
+    def test_job_not_found(self):
+
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"] = []
+        responses.add(responses.GET, url, json=response)
+
+        with self.assertRaises(SalesforceException) as e:
+            task()
+
+        assert "found" in str(e.exception)
