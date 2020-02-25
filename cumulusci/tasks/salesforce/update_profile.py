@@ -1,17 +1,21 @@
 import os
-import tempfile
 
-from pathlib import Path
-from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
+from lxml import etree
+import pkg_resources
+
+from cumulusci.tasks.metadata_etl import (
+    MetadataOperation,
+    MetadataSingleEntityTransformTask,
+    MD,
+)
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.salesforce import Deploy
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import CUMULUSCI_PATH
-from cumulusci.utils import elementtree_parse_file
 
 
-class UpdateProfile(Deploy):
+class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
     name = "UpdateProfile"
+    entity = "Profile"
 
     task_options = {
         "package_xml": {
@@ -26,16 +30,21 @@ class UpdateProfile(Deploy):
         "namespaced_org": {
             "description": "If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False"
         },
+        "namespace_inject": {
+            "description": "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix. Defaults to project__package__namespace"
+        },
         "profile_name": {
-            "description": "Name of the Profile to target for updates.",
+            "description": "Name of the Profile to target for updates (legacy; use api_names to target multiple profiles).",
             "default": "Admin",
         },
+        "include_packaged_objects": {
+            "description": "Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.7.1 and greater, otherwise False."
+        },
+        "api_names": {"description": "List of API names of Profiles to affect"},
     }
 
-    namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
-
     def _init_options(self, kwargs):
-        super(UpdateProfile, self)._init_options(kwargs)
+        super(ProfileGrantAllAccess, self)._init_options(kwargs)
 
         self.options["managed"] = process_bool_arg(self.options.get("managed", False))
 
@@ -47,10 +56,12 @@ class UpdateProfile(Deploy):
         if self.options["namespaced_org"]:
             self.options["managed"] = True
 
-        # Set up namespace prefix strings
-        namespace_prefix = "{}__".format(
-            self.project_config.project__package__namespace
+        self.options["namespace_inject"] = self.options.get(
+            "namespace_inject", self.project_config.project__package__namespace
         )
+
+        # Set up namespace prefix strings
+        namespace_prefix = "{}__".format(self.options["namespace_inject"])
         self.namespace_prefixes = {
             "managed": namespace_prefix if self.options["managed"] else "",
             "namespaced_org": namespace_prefix
@@ -58,101 +69,137 @@ class UpdateProfile(Deploy):
             else "",
         }
 
-        self.profile_name = self.options.get("profile_name") or "Admin"
-
-    def _run_task(self):
-        self.retrieve_dir = None
-        self.deploy_dir = None
-        with tempfile.TemporaryDirectory() as tempdir:
-            self._create_directories(tempdir)
-            self._retrieve_unpackaged()
-            self._process_metadata()
-            self._deploy_metadata()
-
-    def _create_directories(self, tempdir):
-        self.retrieve_dir = Path(tempdir, "retrieve")
-        self.deploy_dir = Path(tempdir, "deploy")
-        self.retrieve_dir.mkdir()
-        self.deploy_dir.mkdir()
-
-    def _get_retrieve_package_xml_content(self):
-        path = self.options.get("package_xml") or os.path.join(
-            CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
-        )
-        with open(path, "r") as f:
-            package_xml_content = f.read()
-
-        package_xml_content = package_xml_content.format(
-            **self.namespace_prefixes, profile_name=self.profile_name
-        )
-
-        return package_xml_content
-
-    def _retrieve_unpackaged(self):
-        self.logger.info(
-            "Retrieving metadata using {}".format(
-                self.options.get("package_xml", "default package.xml")
+        # We enable new functionality to extend the package.xml to packaged objects
+        # by default only if we meet specific requirements: the project has to require
+        # CumulusCI >= 3.7.1 (i.e., creation date or opt-in after release), and it must
+        # not be using a custom `package.xml`
+        min_cci_version = self.project_config.minimum_cumulusci_version
+        if min_cci_version and "package_xml" not in self.options:
+            parsed_version = pkg_resources.parse_version(min_cci_version)
+            default_packages_arg = parsed_version >= pkg_resources.parse_version(
+                "3.7.1"
             )
-        )
-        api_retrieve = ApiRetrieveUnpackaged(
-            self,
-            self._get_retrieve_package_xml_content(),
-            self.project_config.project__package__api_version,
-        )
-        unpackaged = api_retrieve()
-        unpackaged.extractall(self.retrieve_dir)
+        else:
+            default_packages_arg = False
 
-    def _process_metadata(self):
-        self.logger.info(f"Processing retrieved metadata in {self.retrieve_dir}")
-        path = self.retrieve_dir / "profiles" / f"{self.profile_name}.profile"
-        self.tree = elementtree_parse_file(path)
-
-        self._set_apps_visible()
-        self._set_classes_enabled()
-        self._set_fields_editable()
-        self._set_fields_readable()
-        self._set_pages_enabled()
-        self._set_tabs_visibility()
-        self._set_record_types()
-
-        self.tree.write(
-            path, "utf-8", xml_declaration=True, default_namespace=self.namespaces["sf"]
+        self.options["include_packaged_objects"] = process_bool_arg(
+            self.options.get("include_packaged_objects", default_packages_arg)
         )
 
-    def _set_apps_visible(self):
-        xpath = ".//sf:applicationVisibilities[sf:visible='false']"
-        for elem in self.tree.findall(xpath, self.namespaces):
-            elem.find("sf:visible", self.namespaces).text = "true"
+        # Build the api_names list, taking into account legacy behavior.
+        # If we're using a custom package.xml, Profiles to alter should be
+        # specified there.
+        self.api_names = set(process_list_arg(self.options.get("api_names", [])))
+        if "package_xml" in self.options:
+            if self.api_names or "profile_name" in self.options:
+                raise TaskOptionsError(
+                    "The package_xml option is not compatible with the package_name or api_names options. "
+                    "Specify desired packages in the custom package.xml"
+                )
 
-    def _set_classes_enabled(self):
-        xpath = ".//sf:classAccess[sf:enabled='false']"
-        for elem in self.tree.findall(xpath, self.namespaces):
-            elem.find("sf:enabled", self.namespaces).text = "true"
+            # Infer items to affect from what is retrieved.
+            self.api_names = {"*"}
+            self.package_xml_path = self.options["package_xml"]
+        else:
+            if "profile_name" in self.options:
+                self.api_names.add(self.options["profile_name"])
 
-    def _set_fields_editable(self):
-        xpath = ".//sf:fieldPermissions[sf:editable='false']"
-        for elem in self.tree.findall(xpath, self.namespaces):
-            elem.find("sf:editable", self.namespaces).text = "true"
+            if not self.api_names:
+                self.api_names.add("Admin")
 
-    def _set_fields_readable(self):
-        xpath = ".//sf:fieldPermissions[sf:readable='false']"
-        for elem in self.tree.findall(xpath, self.namespaces):
-            elem.find("sf:readable", self.namespaces).text = "true"
+            self.api_names = {self._inject_namespace(x) for x in self.api_names}
+            self.package_xml_path = os.path.join(
+                CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
+            )
 
-    def _set_pages_enabled(self):
-        xpath = ".//sf:pageAccesses[sf:enabled='false']"
-        for elem in self.tree.findall(xpath, self.namespaces):
-            elem.find("sf:enabled", self.namespaces).text = "true"
+    def _generate_package_xml(self, operation):
+        if operation is MetadataOperation.RETRIEVE:
+            with open(self.package_xml_path, "r") as f:
+                package_xml_content = f.read()
 
-    def _set_record_types(self):
+            package_xml_content = package_xml_content.format(
+                **self.namespace_prefixes, profile_name=self.profile_name
+            )
+
+            if (
+                self.options["include_packaged_objects"]
+                or "package_xml" not in self.options
+            ):
+                # we need to rewrite the package.xml for one or two reasons.
+                package_xml = etree.parse(package_xml_content)
+
+                if self.options["include_packaged_objects"]:
+                    self._expand_package_xml(package_xml)
+                if "package_xml" not in self.options:
+                    self._expand_profile_members(package_xml)
+
+                package_xml_content = etree.tostring(package_xml, encoding="utf-8")
+
+            return package_xml_content
+        else:
+            return super()._generate_package_xml(operation)
+
+    def _expand_profile_members(self, package_xml):
+        profile_names = package_xml.findall(f".//{MD}types[{MD}name='Profile']")
+        for profile in self.api_names:
+            elem = etree.SubElement(profile_names[0], f"{MD}members")
+            elem.text = profile
+
+    def _expand_package_xml(self, package_xml):
+        # Query the target org for all namespaced objects
+        # Add these entities to the package.xml
+
+        results = self.tooling.query(
+            "SELECT DeveloperName, NamespacePrefix FROM CustomObject WHERE ManageableState != 'unmanaged'"
+        )
+
+        custom_objects = package_xml.findall(f".//{MD}types[{MD}name='CustomObject']")
+
+        for record in results.get("records", []):
+            elem = etree.SubElement(custom_objects[0], f"{MD}members")
+            elem.text = f"{record['NamespacePrefix']}__{record['DeveloperName']}__c"
+
+    def _transform_entity(self, tree, api_name):
+        # Custom applications
+        self._set_elements_visible(tree, "applicationVisibilities", "visible")
+        # Apex classes
+        self._set_elements_visible(tree, "classAccess", "enabled")
+        # Fields
+        self._set_elements_visible(tree, "fieldPermissions", "editable")
+        self._set_elements_visible(tree, "fieldPermissions", "readable")
+        # Visualforce pages
+        self._set_elements_visible(tree, "pageAccesses", "enabled")
+        # Custom tabs
+        self._set_elements_visible(
+            tree,
+            "tabVisibilities",
+            "visibility",
+            false_value="Hidden",
+            true_value="DefaultOn",
+        )
+        # Record Types
+        self._set_record_types(tree, api_name)
+
+        return tree
+
+    def _set_elements_visible(
+        self, tree, outer_tag, inner_tag, false_value="false", true_value="true"
+    ):
+        for elem in tree.findall(
+            f".//{MD}{outer_tag}[{MD}{inner_tag}='{false_value}']"
+        ):
+            elem.find(f"{MD}{inner_tag}").text = true_value
+
+    def _set_record_types(self, tree, api_name):
         record_types = self.options.get("record_types") or []
 
         # If defaults are specified,
         # clear any pre-existing defaults
         if any("default" in rt for rt in record_types):
-            for default in ("sf:default", "sf:personAccountDefault"):
-                xpath = ".//sf:recordTypeVisibilities/{}".format(default)
-                for elem in self.tree.findall(xpath, self.namespaces):
+            for default in ("default", f"personAccountDefault"):
+                for elem in tree.findall(
+                    f".//{MD}recordTypeVisibilities/{MD}{default}"
+                ):
                     elem.text = "false"
 
         # Set recordTypeVisibilities
@@ -161,54 +208,23 @@ class UpdateProfile(Deploy):
             rt_prefixed = rt["record_type"].format(**self.namespace_prefixes)
 
             # Look for the recordTypeVisiblities element
-            xpath = ".//sf:recordTypeVisibilities[sf:recordType='{}']".format(
-                rt_prefixed
-            )
-            elem = self.tree.find(xpath, self.namespaces)
+            xpath = f".//{MD}recordTypeVisibilities[{MD}recordType='{rt_prefixed}']"
+            elem = tree.find(xpath)
             if elem is None:
                 raise TaskOptionsError(
-                    f"Record Type {rt['record_type']} not found in retrieved {self.profile_name}.profile"
+                    f"Record Type {rt['record_type']} not found in retrieved {api_name}.profile"
                 )
 
-            # Set visibile
-            elem.find("sf:visible", self.namespaces).text = str(
-                rt.get("visible", "true")
-            ).lower()
+            # Set visible
+            elem.find(f"{MD}visible").text = str(rt.get("visible", "true")).lower()
 
             # Set default
-            elem.find("sf:default", self.namespaces).text = str(
-                rt.get("default", "false")
-            ).lower()
+            elem.find(f"{MD}default").text = str(rt.get("default", "false")).lower()
 
             # Set person account default if element exists
-            pa_default = elem.find("sf:personAccountDefault", self.namespaces)
+            pa_default = elem.find(f"{MD}personAccountDefault")
             if pa_default is not None:
                 pa_default.text = str(rt.get("person_account_default", "false")).lower()
 
-    def _set_tabs_visibility(self):
-        xpath = ".//sf:tabVisibilities[sf:visibility='Hidden']"
-        for elem in self.tree.findall(xpath, self.namespaces):
-            elem.find("sf:visibility", self.namespaces).text = "DefaultOn"
 
-    def _get_deploy_package_xml_content(self):
-        return f"""<?xml version="1.0" encoding="UTF-8"?><Package xmlns="http://soap.sforce.com/2006/04/metadata">
-        <types><members>{self.profile_name}</members><name>Profile</name></types><version>39.0</version></Package>
-        """
-
-    def _deploy_metadata(self):
-        self.logger.info(
-            f"Deploying updated {self.profile_name}.profile from {self.deploy_dir}"
-        )
-
-        target_profile_xml = Path(self.deploy_dir, "package.xml")
-        target_profile_xml.write_text(self._get_deploy_package_xml_content())
-
-        retrieved_profile_dir = Path(self.retrieve_dir, "profiles")
-        target_profile_dir = Path(self.deploy_dir, "profiles")
-        retrieved_profile_dir.replace(target_profile_dir)
-
-        api = self._get_api(path=self.deploy_dir)
-        return api()
-
-
-UpdateAdminProfile = UpdateProfile
+UpdateAdminProfile = UpdateProfile = ProfileGrantAllAccess

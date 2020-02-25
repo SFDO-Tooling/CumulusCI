@@ -5,6 +5,7 @@ from cumulusci.tasks.metadata_etl.base import (
     MetadataSingleEntityTransformTask,
     get_new_tag_index,
     MD,
+    MetadataOperation,
 )
 from cumulusci.tasks.metadata_etl.layouts import AddRelatedLists
 from cumulusci.tasks.metadata_etl.permissions import AddPermissionSetPermissions
@@ -22,4 +23,5 @@ flake8 = (
     SetOrgWideDefaults,
     get_new_tag_index,
     MD,
+    MetadataOperation,
 )
