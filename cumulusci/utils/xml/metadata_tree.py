@@ -161,7 +161,18 @@ class MetadataElement:
     def insert(self, index: int, tag: str, text: str = None):
         """Insert at a particular index.
 
-        Tag and text can be supplied. Return value is the new element."""
+        Tag and text can be supplied. Return value is the new element.
+
+        append is preferable because it ensures that nodes are inserted
+        in the right "group".
+
+        If you need to get to a particular place in a "group" then insertBefore
+        and insertAfter are preferable.
+
+        If all else fails then you can use this one to precisely insert right
+        where you want it but you're responsible for adhering to Salesforce's
+        grouping rules.
+        """
         newchild = self._create_child(tag, text)
         self._element.insert(index, newchild._element)
         return newchild
