@@ -932,7 +932,9 @@ def calculate_org_days(info):
 
 @org.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
-@click.option("print_json", "--json", is_flag=True, help="Print as JSON.  Includes access token")
+@click.option(
+    "print_json", "--json", is_flag=True, help="Print as JSON.  Includes access token"
+)
 @pass_runtime(require_project=False, require_keychain=True)
 def org_info(runtime, org_name, print_json):
     org_name, org_config = runtime.get_org(org_name)
