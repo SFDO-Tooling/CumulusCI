@@ -39,8 +39,6 @@ class BatchApexWait(BaseSalesforceApiTask):
 
         if failed_batches:
             self.logger.info("There have been some batch failures.")
-            self.logger.info("Error values:")
-            self.logger.info(repr(failed_batches))
             raise SalesforceException(
                 f"There were batch errors: {repr(failed_batches)}"
             )
