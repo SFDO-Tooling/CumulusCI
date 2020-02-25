@@ -116,6 +116,8 @@ class MetadataElement:
             return self._wrap_element(children[item])
         elif isinstance(item, str):
             return self._get_child(item)
+        else:
+            raise TypeError(type(item))
 
     def append(self, tag: str, text: str = None):
         '''Append a new element at the appropriate place.

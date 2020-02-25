@@ -131,3 +131,8 @@ class TestMetadataTree:
         )
         tree = parse(path)
         assert tree
+
+    def test_getitem_error(self):
+        Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>")
+        with pytest.raises(TypeError):
+            Data[None]
