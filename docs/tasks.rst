@@ -1581,6 +1581,11 @@ Options
 
 	 If True, set is_listed to True on the version. Default: False
 
+``-o labels LABELS``
+	 *Optional*
+
+	 Path to a file that will be updated with strings to be translated.
+
 **org_settings**
 ==========================================
 
