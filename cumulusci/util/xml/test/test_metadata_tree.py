@@ -108,9 +108,16 @@ class TestMetadataTree:
     def test_error_handling(self):
         Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>")
         Data.Foo
-        with pytest.raises(AttributeError):
+        with pytest.raises(AttributeError) as e:
             assert Data.Bar
+        assert "not found in" in str(e.value)
 
     def test_getxxxx___(self):
         Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>")
         assert Data.Foo == Data["Foo"]
+
+    def test_missing_text(self):
+        Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>")
+        with pytest.raises(AttributeError) as e:
+            Data.text
+        assert "not found in" in str(e.value)

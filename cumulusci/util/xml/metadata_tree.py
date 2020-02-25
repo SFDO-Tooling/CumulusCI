@@ -81,10 +81,8 @@ class MetadataElement:
 
     @property
     def text(self):
-        if len(self._element):
-            text_node = self._element.find(self._add_namespace("text"))
-            if len(text_node) >= 0:
-                return self._wrap_element(text_node)
+        if len(self._element):  # if self has any element children
+            return self._get_child("text")
         return self._element.text
 
     @text.setter
