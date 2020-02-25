@@ -111,13 +111,11 @@ class BatchApexWait(BaseSalesforceApiTask):
             "NumberOfErrors": reduce_key("NumberOfErrors", sum),
         }
         rc["Success"] = rc["NumberOfErrors"] == 0
-        rc["ElapsedTime"] = self.delta(batches)
-        rc["CountsAddUp"] = (rc["JobItemsProcessed"] == rc["TotalJobItems"]) and (
-            rc["NumberOfErrors"] == 0
-        )
+        rc["ElapsedTime"] = self.elapsed_time(batches)
+        rc["CountsAddUp"] = rc["JobItemsProcessed"] == rc["TotalJobItems"]
         return rc
 
-    def delta(self, batches: Sequence[dict]):
+    def elapsed_time(self, batches: Sequence[dict]):
         """ returns the time (in seconds) that the batches took, if complete """
         most_recently_completed = max(batch["CompletedDate"] for batch in batches)
         if most_recently_completed:

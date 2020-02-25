@@ -827,12 +827,12 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         task()
 
     @responses.activate
-    def test_run_batch_apex_calc_delta(self):
+    def test_run_batch_apex_calc_elapsed_time(self):
         task, url = self._get_url_and_task()
         response = self._get_query_resp()
         responses.add(responses.GET, url, json=response)
         task()
-        self.assertEqual(task.delta(task.batches), 61)
+        self.assertEqual(task.elapsed_time(task.batches), 61)
 
     @responses.activate
     def test_chained_batches(self):
@@ -921,7 +921,9 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
 
         def mock_poll_action():
             nonlocal counter
-            if counter == 0:
+            counter += 1
+            if counter == 1:
+                task.poll_complete = False
                 return real_poll_action()
             else:
                 rc = real_poll_action()
@@ -933,3 +935,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         responses.add(responses.GET, url, json=response)
 
         task()
+        assert counter == 2
+        assert task.poll_complete
+        summary = task.summarize_batches(task.batches)
+        assert not summary["NumberOfErrors"]
