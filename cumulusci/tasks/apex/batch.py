@@ -50,7 +50,7 @@ class BatchApexWait(BaseSalesforceApiTask):
             self.logger.info(repr(summary))
 
         if len(self.subjobs) > 1:
-            subjob_summary = f" in {self.subjobs} sub-jobs"
+            subjob_summary = f" in {len(self.subjobs)} sub-jobs"
         else:
             subjob_summary = ""
 
@@ -96,16 +96,20 @@ class BatchApexWait(BaseSalesforceApiTask):
         current_subjob = self.subjobs[0]
 
         summary = self.summarize_subjobs(self.subjobs)
+
+        if len(self.subjobs) > 1:
+            subjob_info = f" in {len(self.subjobs)} sub-jobs."
+        else:
+            subjob_info = ""
+
         self.logger.info(
             f"{self.options['class_name']}: "
             f"Job: {current_subjob['Id']} "
             f"{summary['JobItemsProcessed']} of {summary['TotalJobItems']} "
-            f"({summary['NumberOfErrors']} failures)"
+            f"({summary['NumberOfErrors']} failures)" + subjob_info
         )
-        if len(self.subjobs) > 1:
-            self.logger.info(f"{len(self.subjobs)} sub-jobs so far.")
 
-        self.poll_complete = current_subjob["Status"] in COMPLETED_STATUSES
+        self.poll_complete = summary["Completed"]
 
     def summarize_subjobs(self, subjobs: Sequence[dict]):
         def reduce_key(valname: str, summary_func):
@@ -115,6 +119,9 @@ class BatchApexWait(BaseSalesforceApiTask):
             "JobItemsProcessed": reduce_key("JobItemsProcessed", sum),
             "TotalJobItems": reduce_key("TotalJobItems", sum),
             "NumberOfErrors": reduce_key("NumberOfErrors", sum),
+            "Completed": all(
+                subjob["Status"] in COMPLETED_STATUSES for subjob in subjobs
+            ),
         }
         rc["Success"] = rc["NumberOfErrors"] == 0
         rc["ElapsedTime"] = self.elapsed_time(subjobs)

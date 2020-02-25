@@ -783,9 +783,12 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         template_result = response["records"][-1]  # use the last result as a template
         assert isinstance(template_result, dict)
         new_result = {**template_result, **result_dict}  # copy with variations
-        result_list = [new_result] + response[
-            "records"
-        ]  # prepend new result because SOQL is order by DESC
+        old_subjob_results = [  # set completed for all old subjob results
+            {**record, "Status": "Completed"} for record in response["records"]
+        ]
+        result_list = [
+            new_result
+        ] + old_subjob_results  # prepend new result because SOQL is order by DESC
         return {**response, "records": result_list}
 
     def _get_url_and_task(self):
@@ -859,11 +862,15 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         responses.add(responses.GET, url, json=response)
 
         # batch 2: 1 error
-        response = self._update_job_result(response, {"Id": "Id2", "NumberOfErrors": 1})
+        response = self._update_job_result(
+            response, {"Id": "Id2", "NumberOfErrors": 1, "Status": "Processing"}
+        )
         responses.add(responses.GET, url2, json=response)
 
         # batch 3: found another error
-        response = self._update_job_result(response, {"Id": "Id2", "NumberOfErrors": 2})
+        response = self._update_job_result(
+            response, {"Id": "Id2", "NumberOfErrors": 2, "Status": "Processing"}
+        )
         responses.add(responses.GET, url2, json=response)
 
         # batch 4: Complete, no errors in this sub-batch
