@@ -331,7 +331,7 @@ class RunApexTests(BaseSalesforceApiTask):
             )
 
             # In Spring '20, we cannot get symbol tables for managed classes.
-            if "__" in class_name:
+            if self.options["managed"]:
                 self.logger.error(
                     f"Cannot access symbol table for managed class {class_name}. Failure will not be retried."
                 )

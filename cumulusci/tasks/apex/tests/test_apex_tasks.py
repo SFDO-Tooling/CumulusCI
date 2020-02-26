@@ -67,12 +67,13 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             self.org_config.instance_url, self.api_version
         )
 
-    def _mock_apex_class_query(self, name="TestClass_TEST"):
+    def _mock_apex_class_query(self, name="TestClass_TEST", namespace=None):
+        namespace_param = "null" if namespace is None else f"%27{namespace}%27"
         url = (
             self.base_tooling_url
-            + "query/?q=SELECT+Id%2C+Name+"
-            + "FROM+ApexClass+WHERE+NamespacePrefix+%3D+null"
-            + "+AND+%28Name+LIKE+%27%25_TEST%27%29"
+            + f"query/?q=SELECT+Id%2C+Name+"
+            + f"FROM+ApexClass+WHERE+NamespacePrefix+%3D+{namespace_param}"
+            + f"+AND+%28Name+LIKE+%27%25_TEST%27%29"
         )
         expected_response = {
             "done": True,
@@ -350,13 +351,22 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
 
     @responses.activate
     def test_run_task__failed_class_level_no_symboltable__spring20_managed(self):
-        self._mock_apex_class_query(name="ns__Test_TEST")
+        self._mock_apex_class_query(name="ns__Test_TEST", namespace="ns")
         self._mock_run_tests()
         self._mock_get_failed_test_classes_failure()
         self._mock_tests_complete()
         self._mock_get_test_results()
         self._mock_get_symboltable_failure()
-        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "managed": True,
+            "namespace": "ns",
+        }
+
+        task = RunApexTests(self.project_config, task_config, self.org_config)
         task._get_test_methods_for_class = Mock()
 
         task()
