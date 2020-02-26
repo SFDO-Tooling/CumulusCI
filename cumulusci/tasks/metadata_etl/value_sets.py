@@ -55,7 +55,7 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                 elem = metadata.append(tag="standardValue")
                 elem.append(tag="fullName", text=entry["fullName"])
 
-                elem.append(tag="label", text=entry["label"])
+                elem.append("label", text=entry["label"])
 
                 elem.append("default", text="false")
 
