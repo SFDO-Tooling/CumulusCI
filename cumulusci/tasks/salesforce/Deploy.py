@@ -254,7 +254,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         section = sections[0] if sections else None
         if not section:
             section = Package.append(tag="types")
-            section.append(tag="name", text="StaticResource")
+            section.append("name", text="StaticResource")
         for name in bundles:
             section.insertBefore(section.find("name"), tag="members", text=name)
         package_xml = Package.tostring(xml_declaration=True)
