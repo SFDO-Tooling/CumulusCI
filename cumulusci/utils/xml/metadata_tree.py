@@ -126,7 +126,7 @@ class MetadataElement:
         """
         if isinstance(item, int):
             siblings = self._parent.findall(self._element.tag)
-            return self._wrap_element(siblings[item])
+            return MetadataElement(siblings[item], self._parent)
         elif isinstance(item, str):
             return self._get_child(item)
         else:
@@ -250,7 +250,10 @@ class MetadataElement:
         return serialize_xml_for_salesforce(doc, xml_declaration=xml_declaration)
 
     def __eq__(self, other: "MetadataElement"):
-        return self._element == other._element
+        eq = self._element == other._element
+        if eq:
+            assert self._parent == other._parent
+        return eq
 
     def __repr__(self):
         children = self._element.getchildren()
