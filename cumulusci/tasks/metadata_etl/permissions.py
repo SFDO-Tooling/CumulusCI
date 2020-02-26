@@ -55,7 +55,7 @@ class AddPermissionSetPermissions(MetadataSingleEntityTransformTask):
             else:
                 # Permission doesn't exist: insert
                 elem = metadata.append("classAccesses")
-                elem.append(tag="apexClass", text=class_access.get("apexClass"))
+                elem.append("apexClass", text=class_access.get("apexClass"))
                 elem.append(
                     tag="enabled", text=str(class_access.get("enabled", True)).lower()
                 )
