@@ -330,6 +330,13 @@ class RunApexTests(BaseSalesforceApiTask):
                 f"Class {class_name} failed to run some tests with the message {error}. Applying error to unit test results."
             )
 
+            # In Spring '20, we cannot get symbol tables for managed classes.
+            if "__" in class_name:
+                self.logger.error(
+                    f"Cannot access symbol table for managed class {class_name}. Failure will not be retried."
+                )
+                continue
+
             # Get all the method names for this class
             test_methods = self._get_test_methods_for_class(class_name)
             for test_method in test_methods:
