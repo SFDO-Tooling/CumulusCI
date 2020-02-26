@@ -4,6 +4,14 @@ from io import BytesIO
 from pathlib import Path
 from cumulusci.utils.xml.metadata_tree import METADATA_NAMESPACE, parse, fromstring
 
+standard_xml = f"""<Data xmlns='{METADATA_NAMESPACE}'>
+                <foo>Foo</foo>
+                <foo>Foo2</foo>
+                <bar><name>Bar1</name><label>Label1</label></bar>
+                <bar><name>Bar2</name><label>Label2</label></bar>
+                <text>Baz</text>
+            </Data>"""
+
 
 class TestMetadataTree:
     def test_insertions(self):
@@ -138,15 +146,7 @@ class TestMetadataTree:
             Data[None]
 
     def test_matching(self):
-        Data = fromstring(
-            f"""<Data xmlns='{METADATA_NAMESPACE}'>
-                <foo>Foo</foo>
-                <foo>Foo2</foo>
-                <bar><name>Bar1</name><label>Label1</label></bar>
-                <bar><name>Bar2</name><label>Label2</label></bar>
-                <text>Baz</text>
-            </Data>"""
-        )
+        Data = fromstring(standard_xml)
         assert Data.find("foo").text == Data.findall("foo")[0].text == "Foo"
         assert Data.find("foo", text="Foo2").text == "Foo2"
 
@@ -163,3 +163,21 @@ class TestMetadataTree:
         assert Data.find("bar", name="xyzzy") is None
         assert Data.find("text").text == "Baz"
         assert Data.find("text", text="Baz").text == "Baz"
+
+    def test_equality(self):
+        Data = fromstring(standard_xml)
+        assert Data.foo == Data.foo[0]
+
+    def test_iteration(self):
+        Data = fromstring(standard_xml)
+
+        for foo in Data.foo:
+            assert foo.tag == "foo"
+
+        for bar in Data.bar:
+            assert bar.tag == "bar"
+
+        # this one might be slightly non-intutive but its a
+        # consequence of how the system works
+        for child in Data.bar[0]:
+            assert child.tag == "bar"
