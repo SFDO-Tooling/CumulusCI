@@ -59,7 +59,7 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
         elem = metadata.append("relatedLists")
 
         for f in fields:
-            elem.append(tag="fields", text=f)
+            elem.append("fields", text=f)
 
         for button in exclude_buttons:
             elem.append("excludeButtons", button)
