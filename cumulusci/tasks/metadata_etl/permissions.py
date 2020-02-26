@@ -49,7 +49,7 @@ class AddPermissionSetPermissions(MetadataSingleEntityTransformTask):
             if len(existing_permissions):
                 # Permission exists: update
                 for elem in existing_permissions:
-                    elem.find(f"enabled").text = str(
+                    elem.find("enabled").text = str(
                         class_access.get("enabled", True)
                     ).lower()
             else:
