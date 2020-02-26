@@ -26,9 +26,9 @@ class TestMetadataTree:
         assert Data.Foo[2].text == "foo4"
         assert Data.find(tag="Foo", text="foo4") == foo4
 
-        Data.insertBefore(foo4, tag="Foo", text="foo3")
+        Data.insert_before(foo4, tag="Foo", text="foo3")
         assert Data.Foo[2].text == "foo3"
-        Data.insertAfter(foo4, tag="Foo", text="foo5")
+        Data.insert_after(foo4, tag="Foo", text="foo5")
         assert Data.Foo[4].text == "foo5"
 
     def test_text(self):

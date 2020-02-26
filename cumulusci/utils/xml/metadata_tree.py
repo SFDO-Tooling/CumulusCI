@@ -177,8 +177,8 @@ class MetadataElement:
         append is preferable because it ensures that nodes are inserted
         in the right "group".
 
-        If you need to get to a particular place in a "group" then insertBefore
-        and insertAfter are preferable.
+        If you need to get to a particular place in a "group" then insert_before
+        and insert_after are preferable.
 
         If all else fails then you can use this one to precisely insert right
         where you want it but you're responsible for adhering to Salesforce's
@@ -188,14 +188,14 @@ class MetadataElement:
         self._element.insert(index, newchild._element)
         return newchild
 
-    def insertBefore(self, oldElement: "MetadataElement", tag: str, text: str = None):
+    def insert_before(self, oldElement: "MetadataElement", tag: str, text: str = None):
         """Insert before some other element
 
         Tag and text can be supplied. Return value is the new element."""
         index = self._element.index(oldElement._element)
         return self.insert(index, tag, text)
 
-    def insertAfter(self, oldElement: "MetadataElement", tag: str, text: str = None):
+    def insert_after(self, oldElement: "MetadataElement", tag: str, text: str = None):
         """Insert after some other element
 
         Tag and text can be supplied. Return value is the new element."""

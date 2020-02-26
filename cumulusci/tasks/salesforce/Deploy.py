@@ -256,7 +256,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
             section = Package.append("types")
             section.append("name", text="StaticResource")
         for name in bundles:
-            section.insertBefore(section.find("name"), tag="members", text=name)
+            section.insert_before(section.find("name"), tag="members", text=name)
         package_xml = Package.tostring(xml_declaration=True)
         zip_dest.writestr("package.xml", package_xml)
         return zip_dest
