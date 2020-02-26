@@ -44,8 +44,6 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                         "CaseStatus standard value set entries require the key 'closed'"
                     )
 
-            metadata.append(tag="standardValue")
-
             existing_entry = metadata.findall(
                 "standardValue", fullName=entry["fullName"]
             )

@@ -225,3 +225,27 @@ class TestAddValueSetEntries:
         with pytest.raises(TaskOptionsError) as err:
             task._transform_entity(tree, "CaseStatus")
             assert "CaseStatus" in err
+
+    def test_adds_correct_number_of_values(self):
+        task = create_task(
+            AddValueSetEntries,
+            {
+                "managed": True,
+                "api_version": "47.0",
+                "api_names": "bar,foo",
+                "entries": [
+                    {"fullName": "Test", "label": "Label"},
+                    {"fullName": "Test_2", "label": "Label 2"},
+                    {"fullName": "Other", "label": "Duplicate"},
+                ],
+            },
+        )
+
+        mdtree = metadata_tree.fromstring(VALUESET_XML)
+        xml_tree = mdtree._element
+
+        assert len(xml_tree.findall(f".//{MD}standardValue")) == 2
+
+        task._transform_entity(mdtree, "ValueSet")
+
+        assert len(xml_tree.findall(f".//{MD}standardValue")) == 4
