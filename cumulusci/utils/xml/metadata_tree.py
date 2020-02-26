@@ -111,9 +111,22 @@ class MetadataElement:
         return self._get_child(childname)
 
     def __getitem__(self, item: Union[int, str]):
+        """You can get either a child-element by name or a sibling element by index.
+
+        The "sibling element" part may seem non-intuitive but it works like this:
+
+        >>> Recipe = fromstring("recipe.xml")
+        >>> Recipe.ingredients[2]
+
+        First it will evaluate `Recipe.ingredients` and generate an Element for the
+        first ingredient.
+
+        Then Python will evaluate the `[2]` and the system will look for the third *sibling*
+        of that first ingredient.
+        """
         if isinstance(item, int):
-            children = self._parent.findall(self._element.tag)
-            return self._wrap_element(children[item])
+            siblings = self._parent.findall(self._element.tag)
+            return self._wrap_element(siblings[item])
         elif isinstance(item, str):
             return self._get_child(item)
         else:
