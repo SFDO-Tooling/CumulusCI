@@ -117,23 +117,26 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
             with open(self.package_xml_path, "r") as f:
                 package_xml_content = f.read()
 
-            package_xml_content = package_xml_content.format(
-                **self.namespace_prefixes, profile_name=self.profile_name
-            )
+            package_xml_content = package_xml_content.format(**self.namespace_prefixes)
 
             if (
                 self.options["include_packaged_objects"]
                 or "package_xml" not in self.options
             ):
-                # we need to rewrite the package.xml for one or two reasons.
-                package_xml = etree.parse(package_xml_content)
+                # We need to rewrite the package.xml for one or two reasons.
+                # Either we are using packaged-object expansion, or we're using
+                # the built-in admin_profile.xml and need to substitute in
+                # profile API names.
+                package_xml = etree.fromstring(package_xml_content)
 
                 if self.options["include_packaged_objects"]:
                     self._expand_package_xml(package_xml)
                 if "package_xml" not in self.options:
                     self._expand_profile_members(package_xml)
 
-                package_xml_content = etree.tostring(package_xml, encoding="utf-8")
+                package_xml_content = etree.tostring(
+                    package_xml, encoding="utf-8", xml_declaration=True
+                )
 
             return package_xml_content
         else:

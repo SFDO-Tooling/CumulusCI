@@ -1,18 +1,21 @@
 import os
+import pathlib
+import tempfile
 from unittest import mock
 
 from lxml import etree
 import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.metadata_etl import MD
+from cumulusci.tasks.metadata_etl import MD, MetadataOperation
 from cumulusci.tasks.salesforce import UpdateProfile
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.tests.util import create_project_config
 
 from .util import create_task
 
-ADMIN_PROFILE_BEFORE = """<Profile xmlns="http://soap.sforce.com/2006/04/metadata">
+ADMIN_PROFILE_BEFORE = b"""<?xml version='1.0' encoding='utf-8'?>
+<Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <applicationVisibilities>
         <application>npsp__Nonprofit_CRM</application>
         <default>true</default>
@@ -49,7 +52,7 @@ ADMIN_PROFILE_BEFORE = """<Profile xmlns="http://soap.sforce.com/2006/04/metadat
     </tabVisibilities>
 </Profile>"""
 
-ADMIN_PROFILE_EXPECTED = """<?xml version='1.0' encoding='utf-8'?>
+ADMIN_PROFILE_EXPECTED = b"""<?xml version='1.0' encoding='utf-8'?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <applicationVisibilities>
         <application>npsp__Nonprofit_CRM</application>
@@ -105,6 +108,51 @@ PACKAGE_XML_BEFORE = """<Package xmlns="http://soap.sforce.com/2006/04/metadata"
 </Package>"""
 
 
+def test_run_task():
+    with tempfile.TemporaryDirectory() as tempdir:
+        with open(
+            os.path.join(CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"), "w"
+        ) as f:
+            f.write(PACKAGE_XML_BEFORE)
+
+        retrieve_dir = pathlib.Path(tempdir, "retrieve")
+        retrieve_dir.mkdir()
+        target_dir = retrieve_dir / "profiles"
+        target_dir.mkdir()
+
+        with open(target_dir / "Admin.profile", "wb") as f:
+            f.write(ADMIN_PROFILE_BEFORE)
+
+        task = create_task(
+            UpdateProfile,
+            {
+                "record_types": [
+                    {
+                        "record_type": "Account.HH_Account",
+                        "default": True,
+                        "person_account_default": True,
+                    }
+                ],
+                "namespaced_org": True,
+                "include_packaged_objects": False,
+            },
+        )
+
+        task._retrieve = mock.Mock()
+        task._deploy = mock.Mock()
+        task._create_directories = mock.Mock()
+        task.retrieve_dir = retrieve_dir
+        task.deploy_dir = pathlib.Path(tempdir, "deploy")
+        task.deploy_dir.mkdir()
+
+        task()
+
+        dest_path = task.deploy_dir / "profiles" / "Admin.profile"
+        assert dest_path.exists()
+        print(dest_path.read_bytes())
+        assert dest_path.read_bytes() == ADMIN_PROFILE_EXPECTED
+
+
 def test_transforms_profile():
     task = create_task(
         UpdateProfile,
@@ -124,8 +172,8 @@ def test_transforms_profile():
         task._transform_entity(etree.fromstring(ADMIN_PROFILE_BEFORE), "Admin"),
         encoding="utf-8",
         xml_declaration=True,
-    ).decode("utf-8")
-    print(result)
+    )
+
     assert result == ADMIN_PROFILE_EXPECTED
 
 
@@ -255,5 +303,49 @@ def test_init_options__include_packaged_objects():
     assert task.options["include_packaged_objects"]
 
 
-def test_generate_package_xml():
-    raise NotImplementedError
+def test_generate_package_xml__retrieve():
+    with tempfile.TemporaryDirectory():
+        with open("admin_profile.xml", "w") as f:
+            f.write(PACKAGE_XML_BEFORE)
+        with open(
+            os.path.join(CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"), "w"
+        ) as f:
+            f.write(PACKAGE_XML_BEFORE)
+
+        task = create_task(
+            UpdateProfile,
+            {"package_xml": "admin_profile.xml", "include_packaged_objects": False},
+        )
+
+        task._expand_profile_members = mock.Mock()
+        task._expand_package_xml = mock.Mock()
+        task._generate_package_xml(MetadataOperation.RETRIEVE)
+        task._expand_profile_members.assert_not_called()
+        task._expand_package_xml.assert_not_called()
+
+        task = create_task(
+            UpdateProfile,
+            {"package_xml": "admin_profile.xml", "include_packaged_objects": True},
+        )
+
+        task._expand_profile_members = mock.Mock()
+        task._expand_package_xml = mock.Mock()
+        task._generate_package_xml(MetadataOperation.RETRIEVE)
+        task._expand_profile_members.assert_not_called()
+        task._expand_package_xml.assert_called_once()
+
+        task = create_task(UpdateProfile, {"include_packaged_objects": True})
+
+        task._expand_profile_members = mock.Mock()
+        task._expand_package_xml = mock.Mock()
+        task._generate_package_xml(MetadataOperation.RETRIEVE)
+        task._expand_profile_members.assert_called_once()
+        task._expand_package_xml.assert_called_once()
+
+        task = create_task(UpdateProfile, {"include_packaged_objects": False})
+
+        task._expand_profile_members = mock.Mock()
+        task._expand_package_xml = mock.Mock()
+        task._generate_package_xml(MetadataOperation.RETRIEVE)
+        task._expand_profile_members.assert_called_once()
+        task._expand_package_xml.assert_not_called()
