@@ -136,3 +136,30 @@ class TestMetadataTree:
         Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>")
         with pytest.raises(TypeError):
             Data[None]
+
+    def test_matching(self):
+        Data = fromstring(
+            f"""<Data xmlns='{METADATA_NAMESPACE}'>
+                <foo>Foo</foo>
+                <foo>Foo2</foo>
+                <bar><name>Bar1</name><label>Label1</label></bar>
+                <bar><name>Bar2</name><label>Label2</label></bar>
+                <text>Baz</text>
+            </Data>"""
+        )
+        assert Data.find("foo").text == Data.findall("foo")[0].text == "Foo"
+        assert Data.find("foo", text="Foo2").text == "Foo2"
+
+        assert Data.findall("foo", text="Foo2") == [Data.find("foo", text="Foo2")]
+
+        assert Data.find("foo", name="xyzzy") is None
+        assert Data.findall("foo", name="xyzzy") == []
+        assert Data.find("foo", text="xyzzy") is None
+        assert Data.findall("foo", text="xyzzy") == []
+        assert Data.find("bar", name="Bar1").label.text == "Label1"
+        assert Data.findall("bar", name="Bar1") == [Data.find("bar", name="Bar1")]
+        assert Data.find("bar", name="Bar2").label.text == "Label2"
+        assert Data.findall("bar", name="Bar2") == [Data.find("bar", name="Bar2")]
+        assert Data.find("bar", name="xyzzy") is None
+        assert Data.find("text").text == "Baz"
+        assert Data.find("text", text="Baz").text == "Baz"

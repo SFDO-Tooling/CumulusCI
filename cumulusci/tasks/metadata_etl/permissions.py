@@ -42,11 +42,10 @@ class AddPermissionSetPermissions(MetadataSingleEntityTransformTask):
                 class_access["apexClass"]
             )
 
-            existing_permissions = [
-                perm
-                for perm in metadata.findall("classAccesses")
-                if perm.apexClass.text == class_access["apexClass"]
-            ]
+            existing_permissions = metadata.findall(
+                "classAccesses", apexClass=class_access["apexClass"]
+            )
+
             if len(existing_permissions):
                 # Permission exists: update
                 for elem in existing_permissions:
@@ -79,11 +78,10 @@ class AddPermissionSetPermissions(MetadataSingleEntityTransformTask):
                 field_permission["field"]
             )
 
-            existing_permissions = [
-                perm
-                for perm in metadata.findall("fieldPermissions")
-                if perm.field.text == field_permission["field"]
-            ]
+            existing_permissions = metadata.findall(
+                "fieldPermissions", field=field_permission["field"]
+            )
+
             if len(existing_permissions):
                 # Permission exists: update
                 for elem in existing_permissions:

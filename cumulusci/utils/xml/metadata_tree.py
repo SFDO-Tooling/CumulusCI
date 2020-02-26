@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Generator
 
 from lxml import etree
 
@@ -196,20 +196,31 @@ class MetadataElement:
         """Remove an element from its parent (self)"""
         self._element.remove(metadata_element._element)
 
-    def find(self, tag, text=None):
+    def find(self, tag, **kwargs):
         """Find a single direct child-elements with name `tag`"""
-        return next(self._findall(tag, text), None)
+        return next(self._findall(tag, kwargs), None)
 
-    def findall(self, tag, text=None):
+    def findall(self, tag, **kwargs):
         """Find all direct child-elements with name `tag`"""
-        return list(self._findall(tag, text))
+        return list(self._findall(tag, kwargs))
 
-    def _findall(self, type, text=None):
+    def _sub_element_matches_spec(self, e: etree._Element, name: str, value):
+        matching_subelement = e.find(self._add_namespace(name))
+        if matching_subelement is None and name != "text":
+            return value is None
+        elif matching_subelement is not None:
+            return matching_subelement.text == value
+        elif name == "text":
+            return e.text == value
+        else:
+            raise AssertionError("Unreachable code!")
+
+    def _findall(self, type, kwargs: dict) -> Generator:
         def matches(e):
-            if text:
-                return e.text == text
-            else:
-                return True
+            return all(
+                self._sub_element_matches_spec(e, name, value)
+                for name, value in kwargs.items()
+            )
 
         return (
             self._wrap_element(e)

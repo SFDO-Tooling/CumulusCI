@@ -46,11 +46,9 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
 
             metadata.append(tag="standardValue")
 
-            existing_entry = [
-                el
-                for el in metadata.findall("standardValue")
-                if el.find("fullName") and el.find("fullName").text == entry["fullName"]
-            ]
+            existing_entry = metadata.findall(
+                "standardValue", fullName=entry["fullName"]
+            )
 
             if not existing_entry:
                 # Entry doesn't exist. Insert it.

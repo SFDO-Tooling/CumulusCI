@@ -29,11 +29,9 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
         self, metadata: MetadataElement, api_name
     ) -> Optional[MetadataElement]:
         related_list = self._inject_namespace(self.options["related_list"])
-        existing_related_lists = [
-            rl
-            for rl in metadata.findall("relatedLists")
-            if rl.relatedList.text == related_list
-        ]
+        existing_related_lists = metadata.findall(
+            "relatedLists", relatedList=related_list
+        )
 
         if existing_related_lists:
             return None

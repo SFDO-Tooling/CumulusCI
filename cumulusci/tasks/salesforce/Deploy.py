@@ -250,7 +250,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
         # Update package.xml
         Package = metadata_tree.parse(package_xml)
-        sections = [typ for typ in Package.types if typ.name.text == "StaticResource"]
+        sections = Package.findall("types", name="StaticResource")
         section = sections[0] if sections else None
         if not section:
             section = Package.append(tag="types")
