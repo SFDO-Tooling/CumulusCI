@@ -130,7 +130,7 @@ class MetadataElement:
         elif isinstance(item, str):
             return self._get_child(item)
         else:
-            raise TypeError(type(item))
+            raise TypeError(f"Indices must be integers or strings, not {type(item)}")
 
     def append(self, tag: str, text: str = None):
         '''Append a new element at the appropriate place.
