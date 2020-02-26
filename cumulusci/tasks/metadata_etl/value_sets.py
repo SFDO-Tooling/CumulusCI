@@ -57,7 +57,7 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
 
                 elem.append(tag="label", text=entry["label"])
 
-                elem.append(tag="default", text="false")
+                elem.append("default", text="false")
 
                 if api_name in ["OpportunityStage", "CaseStatus"]:
                     elem.append("closed", str(entry["closed"]).lower())
