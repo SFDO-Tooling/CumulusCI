@@ -181,3 +181,11 @@ class TestMetadataTree:
         # consequence of how the system works
         for child in Data.bar[0]:
             assert child.tag == "bar"
+
+    def test_repr(self):
+        Data = fromstring(standard_xml)
+        for foo in Data.foo:
+            assert repr(foo)
+
+        for bar in Data.bar:
+            assert repr(bar)
