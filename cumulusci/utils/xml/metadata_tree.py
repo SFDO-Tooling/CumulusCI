@@ -37,8 +37,6 @@ class MetadataElement:
     to child elements like this:
 
     >>> from cumulusci.utils.xml import metadata_tree
-    >>> Package.types.name.text
-    'StandardValueSet'
     >>> Package = metadata_tree.fromstring(b"""<?xml version="1.0" encoding="UTF-8"?>
     ... <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     ...     <types>
