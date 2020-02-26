@@ -66,3 +66,8 @@ class TestSalesforceEncoding:
             )
         )
         assert "just in case! -->" in serialize_xml_for_salesforce(tree)
+
+    def test_namespaces(self):
+        tree = etree.parse(StringIO("<Foo xmlns:foo='https://html5zombo.com/'></Foo>"))
+        with pytest.raises(AssertionError):
+            serialize_xml_for_salesforce(tree)
