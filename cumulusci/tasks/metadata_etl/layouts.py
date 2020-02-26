@@ -26,7 +26,7 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
     }
 
     def _transform_entity(
-        self, metadata: MetadataElement, api_name
+        self, metadata: MetadataElement, api_name: str
     ) -> Optional[MetadataElement]:
         related_list = self._inject_namespace(self.options["related_list"])
         existing_related_lists = metadata.findall(
