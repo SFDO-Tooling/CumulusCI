@@ -67,4 +67,4 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
         for button in custom_buttons:
             elem.append("customButtons", button)
 
-        elem.append(tag="relatedList", text=related_list)
+        elem.append("relatedList", text=related_list)
