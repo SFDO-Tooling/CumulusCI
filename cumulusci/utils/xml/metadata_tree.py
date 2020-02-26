@@ -132,7 +132,7 @@ class MetadataElement:
         else:
             raise TypeError(
                 f"Indices must be integers or strings, not {type(item)}"
-            )  # nocover
+            )  # # pragma: no cover
 
     def append(self, tag: str, text: str = None):
         '''Append a new element at the appropriate place.
@@ -228,7 +228,7 @@ class MetadataElement:
         elif name == "text":
             return e.text == value
         else:
-            raise AssertionError("Unreachable code!")  # nocover
+            raise AssertionError("Unreachable code!")  # # pragma: no cover
 
     def _findall(self, type, kwargs: dict) -> Generator:
         def matches(e):
