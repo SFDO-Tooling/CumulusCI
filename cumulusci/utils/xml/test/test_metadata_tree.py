@@ -112,7 +112,7 @@ class TestMetadataTree:
             assert Data.Bar
         assert "not found in" in str(e.value)
 
-    def test_getxxxx___(self):
+    def test_getattr_getitem(self):
         Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>")
         assert Data.Foo == Data["Foo"]
 
