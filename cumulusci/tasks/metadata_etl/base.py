@@ -296,9 +296,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
                 destination_path = parent_dir / f"{api_name}.{extension}"
 
                 with destination_path.open(mode="w", encoding="utf-8") as f:
-                    f.write(
-                        transformed_xml.tostring(xml_declaration=True)
-                    )  # todo: figure out encoding declaration and general salesforce-y encoding
+                    f.write(transformed_xml.tostring(xml_declaration=True))
             else:
                 # Make sure to remove from our package.xml
                 removed_api_names.add(api_name)
