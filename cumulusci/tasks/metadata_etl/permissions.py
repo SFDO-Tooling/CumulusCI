@@ -85,10 +85,10 @@ class AddPermissionSetPermissions(MetadataSingleEntityTransformTask):
             if len(existing_permissions):
                 # Permission exists: update
                 for elem in existing_permissions:
-                    elem.find(f"readable").text = str(
+                    elem.find("readable").text = str(
                         field_permission.get("readable", True)
                     ).lower()
-                    elem.find(f"editable").text = str(
+                    elem.find("editable").text = str(
                         field_permission.get("editable", True)
                     ).lower()
             else:
