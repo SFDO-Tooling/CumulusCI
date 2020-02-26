@@ -57,7 +57,7 @@ class AddPermissionSetPermissions(MetadataSingleEntityTransformTask):
                 elem = metadata.append("classAccesses")
                 elem.append("apexClass", text=class_access.get("apexClass"))
                 elem.append(
-                    tag="enabled", text=str(class_access.get("enabled", True)).lower()
+                    "enabled", text=str(class_access.get("enabled", True)).lower()
                 )
 
     def _upsert_field_permissions(self, metadata, api_name):
