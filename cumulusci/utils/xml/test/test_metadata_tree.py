@@ -189,3 +189,9 @@ class TestMetadataTree:
 
         for bar in Data.bar:
             assert repr(bar)
+
+    # you'll need to temporarily disable Typeguard to test this properly
+    def test_getitem_type_checking(self):
+        Data = fromstring(standard_xml)
+        with pytest.raises(TypeError):
+            Data.foo[None]
