@@ -51,7 +51,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
     }
-    error_count = 0
     row_warning_limit = 10
 
     def _init_options(self, kwargs):
