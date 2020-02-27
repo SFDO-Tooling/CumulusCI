@@ -57,7 +57,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"CumulusCI"
-copyright = u"2017, Salesforce.org"
+copyright = u"2020, Salesforce.org"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -112,24 +112,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-
-# Allowing for building docs locally with the RTD theme as documented here:
-# https://github.com/snide/sphinx_rtd_theme#using-this-theme-locally-then-building-on-read-the-docs
-# on_rtd is whether we are on readthedocs.org, this line of code grabbed from docs.readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-
-if not on_rtd:  # only import and set the theme if we're building docs locally
-    try:
-        import sphinx_rtd_theme
-
-        html_theme = "sphinx_rtd_theme"
-        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-    except ImportError:
-        print("sphinx_rtd_theme not found, using default")
-        html_theme = "default"
-
-# otherwise, readthedocs.org uses their theme by default, so no need to specify it
-# html_theme = 'default'
+html_theme = "alabaster"
 
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
@@ -172,6 +155,15 @@ html_static_path = []
 
 # Custom sidebar templates, maps document names to template names.
 # html_sidebars = {}
+html_sidebars = {
+    "**": [
+        "about.html",
+        "navigation.html",
+        "relations.html",
+        "searchbox.html",
+        "donate.html",
+    ]
+}
 
 # Additional templates that should be rendered to pages, maps page names
 # to template names.
@@ -297,7 +289,17 @@ def run_apidoc(_):
     sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     module = os.path.join(cur_dir, "..", "cumulusci")
-    main(["-E", "-P", "-o", os.path.join(cur_dir, "api"), module, "--force"])
+    main(
+        [
+            "-T",
+            "-M",
+            "-o",
+            os.path.join(cur_dir, "api"),
+            module,
+            os.path.join(cur_dir, "..", "**", "tests", "*"),
+            "--force",
+        ]
+    )
 
 
 def setup(app):
