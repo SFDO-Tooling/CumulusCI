@@ -163,3 +163,18 @@ def generate_batches(num_records, batch_size):
             batch_size = num_records - (batch_size * i)  # leftovers
         if batch_size > 0:
             yield batch_size, i
+
+
+def check_for_row_error(task, result, row_id, ignore_row_errors, row_warning_limit):
+    if not hasattr(task, "_check_for_row_error_error_count"):
+        task._check_for_row_error_error_count = 0
+    if not result.success:
+        msg = f"Error on record with id {row_id}: {result.error}"
+        if ignore_row_errors:
+            if task._check_for_row_error_error_count < row_warning_limit:
+                task.logger.warning(msg)
+            elif task._check_for_row_error_error_count == row_warning_limit:
+                task.logger.warning("Further warnings suppressed")
+            task._check_for_row_error_error_count += 1
+        else:
+            raise BulkDataException(msg)

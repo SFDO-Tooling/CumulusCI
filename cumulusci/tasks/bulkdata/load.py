@@ -8,7 +8,11 @@ import yaml
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import get_lookup_key_field, SqlAlchemyMixin
+from cumulusci.tasks.bulkdata.utils import (
+    get_lookup_key_field,
+    SqlAlchemyMixin,
+    check_for_row_error,
+)
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
     DataOperationStatus,
@@ -322,19 +326,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             if result.success:
                 yield (local_id, result.id)
             else:
-                if self.options["ignore_row_errors"]:
-                    if self.error_count < self.row_warning_limit:
-                        self.logger.warning(
-                            f"Error on record with id {local_id}: {result.error}"
-                        )
-                    elif self.error_count == self.row_warning_limit:
-                        self.logger.warning("Further warnings suppressed")
-                    self.error_count += 1
-
-                else:
-                    raise BulkDataException(
-                        f"Error on record with id {local_id}: {result.error}"
-                    )
+                check_for_row_error(
+                    self,
+                    result,
+                    local_id,
+                    self.options["ignore_row_errors"],
+                    self.row_warning_limit,
+                )
 
     def _initialize_id_table(self, mapping, should_reset_table):
         """initalize or find table to hold the inserted SF Ids

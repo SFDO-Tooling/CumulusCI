@@ -739,7 +739,7 @@ class TestLoadData(unittest.TestCase):
             generator = task._generate_results_id_map(
                 step, ["001000000000009", "001000000000010", "001000000000011"] * 15
             )
-            _ = list(generator)  # clear the errors out
+            _ = list(generator)  # generate the errors
 
         assert len(warning.mock_calls) == task.row_warning_limit + 1 == 11
         assert "warnings suppressed" in str(warning.mock_calls[-1])

@@ -157,7 +157,9 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.job_result = DataOperationJobResult(
             DataOperationStatus.SUCCESS, [], 2, 0
         )
-        task()
+        with mock.patch.object(task.logger, "warning") as warning:
+            task()
+        assert len(warning.mock_calls) == 1
         query_mock.assert_called_once_with(
             sobject="Contact",
             api_options={},
@@ -178,6 +180,40 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.end.assert_called_once()
         dml_mock.return_value.load_records.assert_called_once()
         dml_mock.return_value.get_results.assert_called_once()
+
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    def test_run__ignore_error_throttling(self, dml_mock, query_mock):
+        task = _make_task(
+            DeleteData,
+            {
+                "options": {
+                    "objects": "Contact",
+                    "ignore_row_errors": "true",
+                    "hardDelete": "true",
+                }
+            },
+        )
+        query_mock.return_value.get_results.return_value = iter(
+            ["001000000000000", "001000000000001"] * 15
+        )
+        query_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        dml_mock.return_value.get_results.return_value = iter(
+            [
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", False, None),
+            ]
+            * 15
+        )
+        dml_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        with mock.patch.object(task.logger, "warning") as warning:
+            task()
+        assert len(warning.mock_calls) == task.row_warning_limit + 1 == 11
+        assert "warnings suppressed" in str(warning.mock_calls[-1])
 
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
