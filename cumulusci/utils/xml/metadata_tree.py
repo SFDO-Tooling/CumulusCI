@@ -70,9 +70,7 @@ class MetadataElement:
 
     __slots__ = ["_element", "_parent", "_ns", "tag"]
 
-    def __init__(
-        self, element: etree._Element, parent: etree._Element = None,
-    ):
+    def __init__(self, element: etree._Element, parent: etree._Element = None):
         assert isinstance(element, etree._Element)
         assert len(element.nsmap) == 1, "Only one namespace allowed"
         self._element = element
@@ -225,10 +223,8 @@ class MetadataElement:
             return value is None
         elif matching_subelement is not None:
             return matching_subelement.text == value
-        elif name == "text":
+        else:  # matching_subelement is None and name == "text"
             return e.text == value
-        else:
-            raise AssertionError("Unreachable code!")  # # pragma: no cover
 
     def _findall(self, type, kwargs: dict) -> Generator:
         def matches(e):

@@ -190,6 +190,9 @@ class TestMetadataTree:
         for bar in Data.bar:
             assert repr(bar)
 
+        Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'></Data>")
+        assert repr(Data) == "<Data></Data> element"
+
     # you'll need to temporarily disable Typeguard to test this properly
     def test_getitem_type_checking(self):
         Data = fromstring(standard_xml)
