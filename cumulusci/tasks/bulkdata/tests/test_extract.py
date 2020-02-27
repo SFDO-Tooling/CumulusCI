@@ -214,14 +214,12 @@ class TestExtractData(unittest.TestCase):
                     table="Opportunity",
                     columns=["Name", "account_id"],
                     record_iterable=csv_mock.return_value,
-                    csv_file=csv_mock.call_args_list[0][0][0],
                 ),
                 mock.call(
                     connection=task.session.connection.return_value,
                     table="Opportunity_sf_ids",
                     columns=["sf_id"],
                     record_iterable=csv_mock.return_value,
-                    csv_file=csv_mock.call_args_list[1][0][0],
                 ),
             ]
         )

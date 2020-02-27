@@ -1,7 +1,5 @@
-import csv
 import datetime
 import itertools
-import tempfile
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -51,32 +49,14 @@ def setup_epoch(inspector, table, column_info):
 
 class SqlAlchemyMixin:
     def _sql_bulk_insert_from_records(
-        self, *, connection, table, columns, record_iterable, csv_file=None
+        self, *, connection, table, columns, record_iterable
     ):
-        """Persist records from the given generator into the local database.
-        If csv_file is given, avoid generating an extra file to enable Postgres optimization."""
+        """Persist records from the given generator into the local database."""
         table = self.metadata.tables[table]
 
-        if connection.dialect.name in ("postgresql", "psycopg2"):
-            with tempfile.TemporaryFile("w+") as temp_csv:
-                if not csv_file:
-                    # Consume our iterable and create a CSV file for postgres.
-                    writer = csv.writer(temp_csv)
-                    for row in record_iterable:
-                        writer.writerow(row)
-                    temp_csv.seek(0)
-
-                # psycopg2 (the postgres driver) supports COPY FROM
-                # to efficiently bulk insert rows in CSV format
-                with connection.connection.cursor() as cursor:
-                    cursor.copy_expert(
-                        f"COPY {table} ({','.join(columns)}) FROM STDIN WITH (FORMAT CSV)",
-                        csv_file if csv_file else temp_csv,
-                    )
-        else:
-            connection.execute(
-                table.insert(), [dict(zip(columns, row)) for row in record_iterable]
-            )
+        connection.execute(
+            table.insert(), [dict(zip(columns, row)) for row in record_iterable]
+        )
 
         self.session.flush()
 

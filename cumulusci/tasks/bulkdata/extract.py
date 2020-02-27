@@ -177,14 +177,12 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         table=mapping["table"],
                         columns=columns,
                         record_iterable=csv.reader(data_file_values),
-                        csv_file=data_file_values,
                     )
                     self._sql_bulk_insert_from_records(
                         connection=conn,
                         table=mapping["sf_id_table"],
                         columns=["sf_id"],
                         record_iterable=csv.reader(data_file_ids),
-                        csv_file=data_file_ids,
                     )
 
         if "RecordTypeId" in mapping["fields"]:

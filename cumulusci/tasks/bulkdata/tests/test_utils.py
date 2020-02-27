@@ -111,52 +111,6 @@ class TestSqlAlchemyMixin(unittest.TestCase):
 
             assert session.query(model).count() == 10
 
-    @mock.patch("cumulusci.tasks.bulkdata.utils.tempfile.TemporaryFile")
-    def test_sql_bulk_insert_from_records__postgres_no_csv(self, temp_mock):
-        util = bulkdata.utils.SqlAlchemyMixin()
-        util.metadata = mock.Mock(tables={"TestTable": "TestTable"})
-        util.session = mock.Mock()
-        connection = mock.Mock()
-        connection.dialect.name = "postgresql"
-        cursor = mock.MagicMock()
-        connection.connection.cursor.return_value = cursor
-
-        util._sql_bulk_insert_from_records(
-            connection=connection,
-            table="TestTable",
-            columns=("id", "sf_id"),
-            record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
-        )
-
-        connection.connection.cursor.assert_called_once()
-        cursor.__enter__.return_value.copy_expert.assert_called_once_with(
-            "COPY TestTable (id,sf_id) FROM STDIN WITH (FORMAT CSV)",
-            temp_mock.return_value.__enter__.return_value,
-        )
-
-    def test_sql_bulk_insert_from_records__postgres_with_csv(self):
-        util = bulkdata.utils.SqlAlchemyMixin()
-        util.metadata = mock.Mock(tables={"TestTable": "TestTable"})
-        util.session = mock.Mock()
-        connection = mock.Mock()
-        connection.dialect.name = "postgresql"
-        cursor = mock.MagicMock()
-        connection.connection.cursor.return_value = cursor
-        csv_file = mock.Mock()
-
-        util._sql_bulk_insert_from_records(
-            connection=connection,
-            table="TestTable",
-            columns=("id", "sf_id"),
-            record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
-            csv_file=csv_file,
-        )
-
-        connection.connection.cursor.assert_called_once()
-        cursor.__enter__.return_value.copy_expert.assert_called_once_with(
-            "COPY TestTable (id,sf_id) FROM STDIN WITH (FORMAT CSV)", csv_file
-        )
-
 
 class TestCreateTable(unittest.TestCase):
     def test_create_table_legacy_oid_mapping(self):
