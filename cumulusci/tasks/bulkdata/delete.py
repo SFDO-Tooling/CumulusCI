@@ -7,7 +7,7 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
-from cumulusci.tasks.bulkdata.utils import check_for_row_error
+from cumulusci.tasks.bulkdata.utils import RowErrorChecker
 
 
 class DeleteData(BaseSalesforceApiTask):
@@ -93,13 +93,12 @@ class DeleteData(BaseSalesforceApiTask):
                     f"Unable to delete records for {obj}: {','.join(qs.job_result.job_errors)}"
                 )
 
+            error_checker = RowErrorChecker(
+                self.logger, self.options["ignore_row_errors"], self.row_warning_limit
+            )
             for result in ds.get_results():
-                check_for_row_error(
-                    self,
-                    result,
-                    result.id,
-                    self.options["ignore_row_errors"],
-                    self.row_warning_limit,
+                error_checker.check_for_row_error(
+                    result, result.id,
                 )
 
     def _object_description(self, obj):

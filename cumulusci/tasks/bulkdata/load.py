@@ -11,7 +11,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import (
     get_lookup_key_field,
     SqlAlchemyMixin,
-    check_for_row_error,
+    RowErrorChecker,
 )
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
@@ -320,17 +320,15 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
     def _generate_results_id_map(self, step, local_ids):
         """Consume results from load and prepare rows for id table.
         Raise BulkDataException on row errors if configured to do so."""
-
+        error_checker = RowErrorChecker(
+            self.logger, self.options["ignore_row_errors"], self.row_warning_limit
+        )
         for result, local_id in zip(step.get_results(), local_ids):
             if result.success:
                 yield (local_id, result.id)
             else:
-                check_for_row_error(
-                    self,
-                    result,
-                    local_id,
-                    self.options["ignore_row_errors"],
-                    self.row_warning_limit,
+                error_checker.check_for_row_error(
+                    result, local_id,
                 )
 
     def _initialize_id_table(self, mapping, should_reset_table):
