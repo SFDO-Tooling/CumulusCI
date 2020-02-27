@@ -47,6 +47,8 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
     }
+    error_count = 0
+    row_warning_limit = 10
 
     def _init_options(self, kwargs):
         super(LoadData, self)._init_options(kwargs)
@@ -321,9 +323,14 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 yield (local_id, result.id)
             else:
                 if self.options["ignore_row_errors"]:
-                    self.logger.warning(
-                        f"Error on record with id {local_id}: {result.error}"
-                    )
+                    if self.error_count < self.row_warning_limit:
+                        self.logger.warning(
+                            f"Error on record with id {local_id}: {result.error}"
+                        )
+                    elif self.error_count == self.row_warning_limit:
+                        self.logger.warning("Further warnings suppressed")
+                    self.error_count += 1
+
                 else:
                     raise BulkDataException(
                         f"Error on record with id {local_id}: {result.error}"
