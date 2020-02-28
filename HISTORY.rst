@@ -2,6 +2,31 @@
 History
 =======
 
+3.8.0 (2020-02-28)
+------------------
+
+Changes:
+
+* The ``batch_apex_wait`` task can now wait for chained batch jobs,
+  i.e. when one job starts another job of the same class.
+
+* The metadata ETL tasks that were added in cumulusci 3.7.0 have been refactored
+  to use a new library, ``cumulusci.utils.xml.metadata_tree``, which streamlines
+  building Salesforce Metadata XML in Python. If you got an early start writing
+  custom tasks using the metadata ETL task framework, you may need to adjust them
+  to work with this library instead of lxml.
+
+Issues closed:
+
+* Adjusted the ``run_tests`` task to avoid an error due to not being able
+  to access the symbol table for managed Apex classes in Spring '20.
+  Due to this limitation, CumulusCI now will not attempt to retry class-level
+  concurrency failures when running Apex unit tests in a managed package.
+  Such failures will be logged but will not cause a build failure.
+
+* Corrected an bug in storing preflight check results for MetaDeploy
+  when multiple tasks have the same path.
+
 3.7.0 (2020-02-20)
 ------------------
 
