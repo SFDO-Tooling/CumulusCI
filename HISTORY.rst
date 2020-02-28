@@ -24,7 +24,7 @@ Issues closed:
   concurrency failures when running Apex unit tests in a managed package.
   Such failures will be logged but will not cause a build failure.
 
-* Corrected an bug in storing preflight check results for MetaDeploy
+* Corrected a bug in storing preflight check results for MetaDeploy
   when multiple tasks have the same path.
 
 3.7.0 (2020-02-20)
