@@ -21,8 +21,12 @@ Contents:
    bulk_data
    cookbook
    cumulusci_flow
-   tasks
    usage
+
+.. toctree::
+   :maxdepth: 1
+
+   tasks
    history
    authors
    contributing

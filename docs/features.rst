@@ -668,7 +668,7 @@ If you will be retrieving changes into a directory repeatedly,
 consider creating a custom task with the correct options
 so that you don't need to specify them on the command line each time.
 
-To do this, add YAML like this to your project's ``cumulusci.yml``::
+To do this, add YAML like this to your project's ``cumulusci.yml``:
 
 .. code-block:: yaml
 
@@ -734,8 +734,9 @@ Caveats:
 
 Working with Errors
 ===================
+
 Log Files
---------
+---------
 CumulusCI creates a log file every time a cci command besides ``gist`` is run. Log files are stored under ``~/.cumulusci/logs``.
 
 Viewing Stacktraces
