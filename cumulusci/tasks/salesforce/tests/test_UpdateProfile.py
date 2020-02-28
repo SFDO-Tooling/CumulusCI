@@ -52,7 +52,7 @@ ADMIN_PROFILE_BEFORE = b"""<?xml version='1.0' encoding='utf-8'?>
     </tabVisibilities>
 </Profile>"""
 
-ADMIN_PROFILE_EXPECTED = b"""<?xml version='1.0' encoding='utf-8'?>
+ADMIN_PROFILE_EXPECTED = b"""<?xml version="1.0" encoding="UTF-8"?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <applicationVisibilities>
         <application>npsp__Nonprofit_CRM</application>
@@ -88,7 +88,8 @@ ADMIN_PROFILE_EXPECTED = b"""<?xml version='1.0' encoding='utf-8'?>
         <tab>NPSP_Settings</tab>
         <visibility>DefaultOn</visibility>
     </tabVisibilities>
-</Profile>"""
+</Profile>
+"""
 
 PACKAGE_XML_BEFORE = """<Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
@@ -149,8 +150,9 @@ def test_run_task():
 
         dest_path = task.deploy_dir / "profiles" / "Admin.profile"
         assert dest_path.exists()
-        print(dest_path.read_bytes())
-        assert dest_path.read_bytes() == ADMIN_PROFILE_EXPECTED
+        assert dest_path.read_bytes().decode("utf-8") == ADMIN_PROFILE_EXPECTED.decode(
+            "utf-8"
+        )
 
 
 def test_transforms_profile():
@@ -168,11 +170,12 @@ def test_transforms_profile():
         },
     )
 
-    result = task._transform_entity(
-        metadata_tree.fromstring(ADMIN_PROFILE_BEFORE), "Admin"
-    ).tostring(xml_declaration=True)
+    inbound = metadata_tree.fromstring(ADMIN_PROFILE_BEFORE)
+    outbound = task._transform_entity(inbound, "Admin")
 
-    assert result == ADMIN_PROFILE_EXPECTED
+    xml_output = outbound.tostring(xml_declaration=True)
+
+    assert xml_output == ADMIN_PROFILE_EXPECTED.decode("utf-8")
 
 
 def test_throws_exception_record_type_not_found():

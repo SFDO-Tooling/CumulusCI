@@ -198,7 +198,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
         if any("default" in rt for rt in record_types):
             for default in ("default", "personAccountDefault"):
                 for elem in tree.findall("recordTypeVisibilities"):
-                    elem.default.text = "false"
+                    elem.find(default).text = "false"
 
         # Set recordTypeVisibilities
         for rt in record_types:
