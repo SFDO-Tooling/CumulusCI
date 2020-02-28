@@ -472,6 +472,7 @@ def get_task_option_info(task_config, task_class):
 def get_option_usage_string(name, option):
     """Returns a usage string if one exists
     else creates a usage string in the form of:
+
         -o option_name OPTIONNAME
     """
     usage_str = option.get("usage")

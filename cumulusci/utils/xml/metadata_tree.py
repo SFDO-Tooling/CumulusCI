@@ -1,8 +1,26 @@
+"""Salesforce uses a very specialized subset of XML for metadata.
+This module has a parser and tree model for dealing with it in
+a very Pythonic way.
+
+For example:
+
+>>> from cumulusci.utils.xml.metadata_tree import parse
+>>> Recipe = parse("recipe.xml")
+>>> print(Recipe.ingredients[0].quantity)
+
+Or to give a more Salesforce-y example:
+
+>>> Package = parse("./cumulusci/files/admin_profile.xml")
+>>> print(Package.types[0].members[1].text)
+Account
+"""
+
 from typing import Union, Generator
 
 from lxml import etree
 
 from .salesforce_encoding import serialize_xml_for_salesforce
+
 
 METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
 
@@ -17,7 +35,6 @@ def parse(source):
         * a filename string or pathlib Path
         * an HTTP or FTP URL string
 
-    Note that passing a filename or URL is usually faster than passing an open file or file-like object. However, the HTTP/FTP client in libxml2 is rather simple, so things like HTTP authentication require a dedicated URL request library, e.g. urllib2 or requests. These libraries usually provide a file-like object for the result that you can parse from while the response is streaming in.
     """
     if hasattr(source, "open"):  # for pathlib.Path objects
         with source.open() as stream:
@@ -113,7 +130,7 @@ class MetadataElement:
 
         The "sibling element" part may seem non-intuitive but it works like this:
 
-        >>> Recipe = fromstring("recipe.xml")
+        >>> Recipe = parse("recipe.xml")
         >>> Recipe.ingredients[2]
 
         First it will evaluate `Recipe.ingredients` and generate an Element for the

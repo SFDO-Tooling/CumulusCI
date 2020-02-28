@@ -90,20 +90,20 @@ class RunApexTests(BaseSalesforceApiTask):
     may automatically be retried. Note that retries are supported whether or not
     the org has parallel Apex testing enabled.
 
-    The `retry_always` option modifies this behavior: if a test run fails and
+    The ``retry_always`` option modifies this behavior: if a test run fails and
     any (not all) of the failures match the specified regular expressions,
     all of the failed tests will be retried in serial. This is helpful when
     underlying row locking errors are masked by custom exceptions.
 
-    A useful base configuration for projects wishing to use retries is
+    A useful base configuration for projects wishing to use retries is:
 
-    ```yaml
-            retry_failures:
-                - "unable to obtain exclusive access to this record"
-                - "UNABLE_TO_LOCK_ROW"
-                - "connection was cancelled here"
-            retry_always: True
-    ```
+    .. code-block:: yaml
+
+        retry_failures:
+            - "unable to obtain exclusive access to this record"
+            - "UNABLE_TO_LOCK_ROW"
+            - "connection was cancelled here"
+        retry_always: True
 
     Some projects' unit tests produce so many concurrency errors that
     it's faster to execute the entire run in serial mode than to use retries.
