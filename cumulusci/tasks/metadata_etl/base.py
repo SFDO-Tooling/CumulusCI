@@ -4,8 +4,6 @@ from pathlib import Path
 import tempfile
 from urllib.parse import quote, unquote
 
-from lxml import etree
-
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask, Deploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
@@ -13,8 +11,7 @@ from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import inject_namespace
 from cumulusci.core.config import TaskConfig
-
-MD = "{http://soap.sforce.com/2006/04/metadata}"
+from cumulusci.utils.xml import metadata_tree
 
 
 class MetadataOperation(enum.Enum):
@@ -287,8 +284,8 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
                 raise CumulusCIException(f"Cannot find metadata file {path}")
 
             try:
-                tree = etree.parse(str(path))
-            except etree.ParseError as err:
+                tree = metadata_tree.parse(str(path))
+            except SyntaxError as err:
                 err.filename = path
                 raise err
             transformed_xml = self._transform_entity(tree, unquoted_api_name)
@@ -298,23 +295,10 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
                     parent_dir.mkdir()
                 destination_path = parent_dir / f"{api_name}.{extension}"
 
-                with destination_path.open(mode="wb") as f:
-                    transformed_xml.write(f, encoding="utf-8", xml_declaration=True)
+                with destination_path.open(mode="w", encoding="utf-8") as f:
+                    f.write(transformed_xml.tostring(xml_declaration=True))
             else:
                 # Make sure to remove from our package.xml
                 removed_api_names.add(api_name)
 
         self.api_names = self.api_names - removed_api_names
-
-
-def get_new_tag_index(tree, tag, namespace=MD):
-    """Return the appropriate insertion index for a new tag of type `tag`,
-    positioning it below all existing tags of this type."""
-    # All top-level tags must be grouped together in XML file
-    tags = tree.findall(f".//{namespace}{tag}")
-    if tags:
-        # Insert new tag after the last existing tag of the same type
-        return list(tree.getroot()).index(tags[-1]) + 1
-    else:
-        # There are no existing tags of this type; insert new tag at the bottom.
-        return len(tree.getroot())
