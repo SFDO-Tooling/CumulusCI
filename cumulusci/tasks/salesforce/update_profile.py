@@ -38,7 +38,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
             "default": "Admin",
         },
         "include_packaged_objects": {
-            "description": "Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.7.1 and greater, otherwise False."
+            "description": "Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.8.1 and greater, otherwise False."
         },
         "api_names": {"description": "List of API names of Profiles to affect"},
     }
@@ -71,13 +71,13 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
 
         # We enable new functionality to extend the package.xml to packaged objects
         # by default only if we meet specific requirements: the project has to require
-        # CumulusCI >= 3.7.1 (i.e., creation date or opt-in after release), and it must
+        # CumulusCI >= 3.8.1 (i.e., creation date or opt-in after release), and it must
         # not be using a custom `package.xml`
         min_cci_version = self.project_config.minimum_cumulusci_version
         if min_cci_version and "package_xml" not in self.options:
             parsed_version = pkg_resources.parse_version(min_cci_version)
             default_packages_arg = parsed_version >= pkg_resources.parse_version(
-                "3.7.1"
+                "3.8.1"
             )
         else:
             default_packages_arg = False
