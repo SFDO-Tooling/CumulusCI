@@ -6,6 +6,7 @@ import responses
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.github import CreateRelease
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
@@ -128,4 +129,23 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             CreateRelease(
                 self.project_config,
                 TaskConfig({"options": {"version": "1.0", "commit": None}}),
+            )
+
+    @responses.activate
+    def test_run_task__short_commit(self):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner=self.repo_owner, name=self.repo_name),
+        )
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/releases/tags/release/1.0",
+            status=404,
+        )
+        self.project_config._repo_commit = "too_short"
+
+        with self.assertRaises(TaskOptionsError):
+            CreateRelease(
+                self.project_config, TaskConfig({"options": {"version": "1.0"}})
             )
