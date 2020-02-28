@@ -732,6 +732,20 @@ class TestLoadData(unittest.TestCase):
 
         step = mock.Mock()
         step.get_results.return_value = iter(
+            [DataOperationResult(None, False, None)] * 15
+        )
+
+        with mock.patch.object(task.logger, "warning") as warning:
+            generator = task._generate_results_id_map(
+                step, ["001000000000009", "001000000000010", "001000000000011"] * 15
+            )
+            _ = list(generator)  # generate the errors
+
+        assert len(warning.mock_calls) == task.row_warning_limit + 1 == 11
+        assert "warnings suppressed" in str(warning.mock_calls[-1])
+
+        step = mock.Mock()
+        step.get_results.return_value = iter(
             [
                 DataOperationResult("001000000000000", True, None),
                 DataOperationResult(None, False, None),

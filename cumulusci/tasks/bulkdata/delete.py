@@ -7,6 +7,7 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
+from cumulusci.tasks.bulkdata.utils import RowErrorChecker
 
 
 class DeleteData(BaseSalesforceApiTask):
@@ -28,6 +29,7 @@ class DeleteData(BaseSalesforceApiTask):
             "description": "If True, allow the operation to continue even if individual rows fail to delete."
         },
     }
+    row_warning_limit = 10
 
     def _init_options(self, kwargs):
         super(DeleteData, self)._init_options(kwargs)
@@ -91,11 +93,13 @@ class DeleteData(BaseSalesforceApiTask):
                     f"Unable to delete records for {obj}: {','.join(qs.job_result.job_errors)}"
                 )
 
+            error_checker = RowErrorChecker(
+                self.logger, self.options["ignore_row_errors"], self.row_warning_limit
+            )
             for result in ds.get_results():
-                if not result.success and not self.options["ignore_row_errors"]:
-                    raise BulkDataException(
-                        f"Failed to delete record {result.id}: {result.error}"
-                    )
+                error_checker.check_for_row_error(
+                    result, result.id,
+                )
 
     def _object_description(self, obj):
         """Return a readable description of the object set to delete."""

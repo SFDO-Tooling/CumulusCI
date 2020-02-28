@@ -8,7 +8,11 @@ import yaml
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import get_lookup_key_field, SqlAlchemyMixin
+from cumulusci.tasks.bulkdata.utils import (
+    get_lookup_key_field,
+    SqlAlchemyMixin,
+    RowErrorChecker,
+)
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
     DataOperationStatus,
@@ -47,6 +51,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
     }
+    row_warning_limit = 10
 
     def _init_options(self, kwargs):
         super(LoadData, self)._init_options(kwargs)
@@ -315,19 +320,16 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
     def _generate_results_id_map(self, step, local_ids):
         """Consume results from load and prepare rows for id table.
         Raise BulkDataException on row errors if configured to do so."""
-
+        error_checker = RowErrorChecker(
+            self.logger, self.options["ignore_row_errors"], self.row_warning_limit
+        )
         for result, local_id in zip(step.get_results(), local_ids):
             if result.success:
                 yield (local_id, result.id)
             else:
-                if self.options["ignore_row_errors"]:
-                    self.logger.warning(
-                        f"Error on record with id {local_id}: {result.error}"
-                    )
-                else:
-                    raise BulkDataException(
-                        f"Error on record with id {local_id}: {result.error}"
-                    )
+                error_checker.check_for_row_error(
+                    result, local_id,
+                )
 
     def _initialize_id_table(self, mapping, should_reset_table):
         """initalize or find table to hold the inserted SF Ids

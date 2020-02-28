@@ -143,3 +143,24 @@ def generate_batches(num_records, batch_size):
             batch_size = num_records - (batch_size * i)  # leftovers
         if batch_size > 0:
             yield batch_size, i
+
+
+class RowErrorChecker:
+    def __init__(self, logger, ignore_row_errors, row_warning_limit):
+        self.logger = logger
+        self.ignore_row_errors = ignore_row_errors
+        self.row_warning_limit = row_warning_limit
+        self.row_error_count = 0
+
+    def check_for_row_error(self, result, row_id):
+        if not result.success:
+            msg = f"Error on record with id {row_id}: {result.error}"
+            if self.ignore_row_errors:
+                if self.row_error_count < self.row_warning_limit:
+                    self.logger.warning(msg)
+                elif self.row_error_count == self.row_warning_limit:
+                    self.logger.warning("Further warnings suppressed")
+                self.row_error_count += 1
+                return self.row_error_count
+            else:
+                raise BulkDataException(msg)
