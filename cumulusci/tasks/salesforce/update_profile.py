@@ -1,16 +1,16 @@
 import os
 
-from lxml import etree
 import pkg_resources
 
 from cumulusci.tasks.metadata_etl import (
     MetadataOperation,
     MetadataSingleEntityTransformTask,
-    MD,
 )
+
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import CUMULUSCI_PATH
+from cumulusci.utils.xml import metadata_tree
 
 
 class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
@@ -127,26 +127,23 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
                 # Either we are using packaged-object expansion, or we're using
                 # the built-in admin_profile.xml and need to substitute in
                 # profile API names.
-                package_xml = etree.fromstring(package_xml_content)
+                package_xml = metadata_tree.fromstring(package_xml_content)
 
                 if self.options["include_packaged_objects"]:
                     self._expand_package_xml(package_xml)
                 if "package_xml" not in self.options:
                     self._expand_profile_members(package_xml)
 
-                package_xml_content = etree.tostring(
-                    package_xml, encoding="utf-8", xml_declaration=True
-                )
+                package_xml_content = package_xml.tostring(xml_declaration=True)
 
             return package_xml_content
         else:
             return super()._generate_package_xml(operation)
 
     def _expand_profile_members(self, package_xml):
-        profile_names = package_xml.findall(f".//{MD}types[{MD}name='Profile']")
+        profile_names = package_xml.find("types", name="Profile")
         for profile in self.api_names:
-            elem = etree.SubElement(profile_names[0], f"{MD}members")
-            elem.text = profile
+            profile_names.append("members", text=profile)
 
     def _expand_package_xml(self, package_xml):
         # Query the target org for all namespaced objects
@@ -156,11 +153,13 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
             "SELECT DeveloperName, NamespacePrefix FROM CustomObject WHERE ManageableState != 'unmanaged'"
         )
 
-        custom_objects = package_xml.findall(f".//{MD}types[{MD}name='CustomObject']")
+        custom_objects = package_xml.find("types", name="CustomObject")
 
         for record in results.get("records", []):
-            elem = etree.SubElement(custom_objects[0], f"{MD}members")
-            elem.text = f"{record['NamespacePrefix']}__{record['DeveloperName']}__c"
+            custom_objects.append(
+                "members",
+                text=f"{record['NamespacePrefix']}__{record['DeveloperName']}__c",
+            )
 
     def _transform_entity(self, tree, api_name):
         # Custom applications
@@ -188,10 +187,8 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
     def _set_elements_visible(
         self, tree, outer_tag, inner_tag, false_value="false", true_value="true"
     ):
-        for elem in tree.findall(
-            f".//{MD}{outer_tag}[{MD}{inner_tag}='{false_value}']"
-        ):
-            elem.find(f"{MD}{inner_tag}").text = true_value
+        for elem in tree.findall(outer_tag, **{inner_tag: false_value}):
+            elem.find(inner_tag).text = true_value
 
     def _set_record_types(self, tree, api_name):
         record_types = self.options.get("record_types") or []
@@ -199,11 +196,9 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
         # If defaults are specified,
         # clear any pre-existing defaults
         if any("default" in rt for rt in record_types):
-            for default in ("default", f"personAccountDefault"):
-                for elem in tree.findall(
-                    f".//{MD}recordTypeVisibilities/{MD}{default}"
-                ):
-                    elem.text = "false"
+            for default in ("default", "personAccountDefault"):
+                for elem in tree.findall("recordTypeVisibilities"):
+                    elem.default.text = "false"
 
         # Set recordTypeVisibilities
         for rt in record_types:
@@ -211,21 +206,20 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
             rt_prefixed = rt["record_type"].format(**self.namespace_prefixes)
 
             # Look for the recordTypeVisiblities element
-            xpath = f".//{MD}recordTypeVisibilities[{MD}recordType='{rt_prefixed}']"
-            elem = tree.find(xpath)
+            elem = tree.find("recordTypeVisibilities", recordType=rt_prefixed)
             if elem is None:
                 raise TaskOptionsError(
                     f"Record Type {rt['record_type']} not found in retrieved {api_name}.profile"
                 )
 
             # Set visible
-            elem.find(f"{MD}visible").text = str(rt.get("visible", "true")).lower()
+            elem.visible.text = str(rt.get("visible", "true")).lower()
 
             # Set default
-            elem.find(f"{MD}default").text = str(rt.get("default", "false")).lower()
+            elem.default.text = str(rt.get("default", "false")).lower()
 
             # Set person account default if element exists
-            pa_default = elem.find(f"{MD}personAccountDefault")
+            pa_default = elem.find("personAccountDefault")
             if pa_default is not None:
                 pa_default.text = str(rt.get("person_account_default", "false")).lower()
 

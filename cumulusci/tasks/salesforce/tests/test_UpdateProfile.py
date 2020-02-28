@@ -3,13 +3,13 @@ import pathlib
 import tempfile
 from unittest import mock
 
-from lxml import etree
 import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.metadata_etl import MD, MetadataOperation
+from cumulusci.tasks.metadata_etl import MetadataOperation
 from cumulusci.tasks.salesforce import UpdateProfile
 from cumulusci.utils import CUMULUSCI_PATH
+from cumulusci.utils.xml import metadata_tree
 from cumulusci.tests.util import create_project_config
 
 from .util import create_task
@@ -168,11 +168,9 @@ def test_transforms_profile():
         },
     )
 
-    result = etree.tostring(
-        task._transform_entity(etree.fromstring(ADMIN_PROFILE_BEFORE), "Admin"),
-        encoding="utf-8",
-        xml_declaration=True,
-    )
+    result = task._transform_entity(
+        metadata_tree.fromstring(ADMIN_PROFILE_BEFORE), "Admin"
+    ).tostring(xml_declaration=True)
 
     assert result == ADMIN_PROFILE_EXPECTED
 
@@ -184,7 +182,7 @@ def test_throws_exception_record_type_not_found():
     )
 
     with pytest.raises(TaskOptionsError):
-        task._transform_entity(etree.fromstring(ADMIN_PROFILE_BEFORE), "Admin")
+        task._transform_entity(metadata_tree.fromstring(ADMIN_PROFILE_BEFORE), "Admin")
 
 
 def test_expand_package_xml():
@@ -198,11 +196,11 @@ def test_expand_package_xml():
         ],
     }
 
-    package_xml = etree.fromstring(PACKAGE_XML_BEFORE)
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
     task._expand_package_xml(package_xml)
-    types = package_xml.findall(f".//{MD}types[{MD}name='CustomObject']")[0]
-    assert "ns__Test__c" in {elem.text for elem in types.findall(f".//{MD}members")}
-    assert "fb__Foo_Bar__c" in {elem.text for elem in types.findall(f".//{MD}members")}
+    types = package_xml.find("types", name="CustomObject")
+    assert "ns__Test__c" in {elem.text for elem in types.findall("members")}
+    assert "fb__Foo_Bar__c" in {elem.text for elem in types.findall("members")}
 
 
 def test_expand_profile_members():
@@ -214,12 +212,12 @@ def test_expand_profile_members():
             "managed": True,
         },
     )
-    package_xml = etree.fromstring(PACKAGE_XML_BEFORE)
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
 
     task._expand_profile_members(package_xml)
 
-    types = package_xml.findall(f".//{MD}types[{MD}name='Profile']")[0]
-    assert {elem.text for elem in types.findall(f".//{MD}members")} == {
+    types = package_xml.find("types", name="Profile")
+    assert {elem.text for elem in types.findall("members")} == {
         "Admin",
         "ns__Continuous Integration",
     }
