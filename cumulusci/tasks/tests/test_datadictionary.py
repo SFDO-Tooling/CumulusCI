@@ -1,11 +1,11 @@
 import unittest
-import xml.etree.ElementTree as ET
 
 from unittest.mock import Mock, call, patch, mock_open
 
 from cumulusci.tasks.datadictionary import GenerateDataDictionary
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
+from cumulusci.utils.xml import metadata_tree
 from distutils.version import LooseVersion
 
 
@@ -114,7 +114,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
-        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+        task._process_field_element(
+            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+        )
 
         assert "Test__c" in task.schema
         assert "Account__c" in task.schema["Test__c"]["fields"]
@@ -144,7 +146,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
-        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+        task._process_field_element(
+            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+        )
 
         assert task.schema["Test__c"]["fields"]["Account"]["version"] is None
 
@@ -168,7 +172,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._init_schema()
         task._process_field_element(
-            "Test__c", ET.fromstring(xml_source.format("Initial")), "1.1"
+            "Test__c",
+            metadata_tree.fromstring(xml_source.format("Initial").encode("utf-8")),
+            "1.1",
         )
 
         assert task.schema["Test__c"]["fields"]["Account__c"] == {
@@ -180,7 +186,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         }
 
         task._process_field_element(
-            "Test__c", ET.fromstring(xml_source.format("New")), "1.2"
+            "Test__c",
+            metadata_tree.fromstring(xml_source.format("New").encode("utf-8")),
+            "1.2",
         )
         assert task.schema["Test__c"]["fields"]["Account__c"] == {
             "version": LooseVersion("1.1"),
@@ -220,7 +228,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
-        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+        task._process_field_element(
+            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+        )
 
         assert task.schema["Test__c"]["fields"]["Type__c"] == {
             "version": LooseVersion("1.1"),
@@ -258,7 +268,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
-        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+        task._process_field_element(
+            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+        )
 
         assert task.schema["Test__c"]["fields"]["Type__c"] == {
             "version": LooseVersion("1.1"),
@@ -289,7 +301,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
-        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+        task._process_field_element(
+            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+        )
 
         assert task.schema["Test__c"]["fields"]["Type__c"] == {
             "version": LooseVersion("1.1"),
@@ -323,7 +337,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._init_schema()
         task._process_object_element(
-            "Test__c", ET.fromstring(xml_source), LooseVersion("1.1")
+            "Test__c",
+            metadata_tree.fromstring(xml_source.encode("utf-8")),
+            LooseVersion("1.1"),
         )
 
         assert task.schema == {
@@ -361,12 +377,14 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
             task._init_schema()
             task._process_object_element(
-                "Account", ET.fromstring(xml_source), LooseVersion("1.1")
+                "Account",
+                metadata_tree.fromstring(xml_source.encode("utf-8")),
+                LooseVersion("1.1"),
             )
 
             assert task.schema["Account"]["version"] is None
 
-    @patch("cumulusci.tasks.datadictionary.ET.fromstring")
+    @patch("cumulusci.tasks.datadictionary.metadata_tree.fromstring")
     def test_process_sfdx_release(self, fromstring):
         task = create_task(
             GenerateDataDictionary,
@@ -402,15 +420,29 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._process_object_element.assert_has_calls(
             [
-                call("Child__c", ET.fromstring("<test></test>"), LooseVersion("1.1")),
-                call("Parent__c", ET.fromstring("<test></test>"), LooseVersion("1.1")),
+                call(
+                    "Child__c",
+                    metadata_tree.fromstring("<test></test>"),
+                    LooseVersion("1.1"),
+                ),
+                call(
+                    "Parent__c",
+                    metadata_tree.fromstring("<test></test>"),
+                    LooseVersion("1.1"),
+                ),
             ]
         )
         task._process_field_element.assert_has_calls(
-            [call("Child__c", ET.fromstring("<test></test>"), LooseVersion("1.1"))]
+            [
+                call(
+                    "Child__c",
+                    metadata_tree.fromstring("<test></test>"),
+                    LooseVersion("1.1"),
+                )
+            ]
         )
 
-    @patch("cumulusci.tasks.datadictionary.ET.fromstring")
+    @patch("cumulusci.tasks.datadictionary.metadata_tree.fromstring")
     def test_process_mdapi_release(self, fromstring):
         task = create_task(
             GenerateDataDictionary,
@@ -438,8 +470,16 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._process_object_element.assert_has_calls(
             [
-                call("Child__c", ET.fromstring("<test></test>"), LooseVersion("1.1")),
-                call("Parent__c", ET.fromstring("<test></test>"), LooseVersion("1.1")),
+                call(
+                    "Child__c",
+                    metadata_tree.fromstring("<test></test>"),
+                    LooseVersion("1.1"),
+                ),
+                call(
+                    "Parent__c",
+                    metadata_tree.fromstring("<test></test>"),
+                    LooseVersion("1.1"),
+                ),
             ]
         )
 
@@ -547,7 +587,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "src/objects/",
             "src/objects/Test__c.object",
         ]
-        extract_github.return_value.read.return_value = xml_source
+        extract_github.return_value.read.return_value = xml_source.encode("utf-8")
         m = mock_open()
 
         with patch("builtins.open", m):
