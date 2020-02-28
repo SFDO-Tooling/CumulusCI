@@ -14,7 +14,7 @@ from cumulusci.utils.xml import metadata_tree
 
 
 class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
-    name = "UpdateProfile"
+    name = "ProfileGrantAllAccess"
     entity = "Profile"
 
     task_options = {
@@ -111,6 +111,15 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
             self.package_xml_path = os.path.join(
                 CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
             )
+
+    def freeze(self, step):
+        # Preserve behavior from when we subclassed Deploy.
+
+        steps = super().freeze(step)
+        for step in steps:
+            if step["kind"] == "other":
+                step["kind"] = "metadata"
+        return steps
 
     def _generate_package_xml(self, operation):
         if operation is MetadataOperation.RETRIEVE:
