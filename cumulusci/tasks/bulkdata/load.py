@@ -133,7 +133,10 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         step.load_records(self._stream_queried_data(mapping, local_ids))
         step.end()
 
-        if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
+        if (
+            step.job_result.status is not DataOperationStatus.JOB_FAILURE
+            and step.job_result.total_records
+        ):
             self._process_job_results(mapping, step, local_ids)
 
         return step.job_result
