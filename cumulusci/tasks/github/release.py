@@ -5,6 +5,7 @@ from datetime import datetime
 import github3.exceptions
 
 from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.github.base import BaseGithubTask
 
 
@@ -27,6 +28,17 @@ class CreateRelease(BaseGithubTask):
         },
     }
 
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
+        self.commit = self.options.get("commit", self.project_config.repo_commit)
+        if not self.commit:
+            message = "Could not detect the current commit from the local repo"
+            self.logger.error(message)
+            raise GithubException(message)
+        if len(self.commit) != 40:
+            raise TaskOptionsError("The commit option must be exactly 40 characters.")
+
     def _run_task(self):
         repo = self.get_repo()
 
@@ -42,12 +54,6 @@ class CreateRelease(BaseGithubTask):
             message = "Release {} already exists at {}".format(
                 release.name, release.html_url
             )
-            self.logger.error(message)
-            raise GithubException(message)
-
-        commit = self.options.get("commit", self.project_config.repo_commit)
-        if not commit:
-            message = "Could not detect the current commit from the local repo"
             self.logger.error(message)
             raise GithubException(message)
 
@@ -67,7 +73,7 @@ class CreateRelease(BaseGithubTask):
             repo.create_tag(
                 tag=tag_name,
                 message=message,
-                sha=commit,
+                sha=self.commit,
                 obj_type="commit",
                 tagger={
                     "name": self.github_config.username,
