@@ -210,14 +210,18 @@ Options
 
 **Class:** cumulusci.tasks.command.Command
 
-**Example Command-line Usage::** cci task run command -o command "echo 'Hello command task!'"
+**Example Command-line Usage:**
+``cci task run command -o command "echo 'Hello command task!'"``
 
-**Example Task to Run Command::**
-hello_world:
-    description: Says hello world
-    class_path: cumulusci.tasks.command.Command
-    options:
-    command: echo 'Hello World!'
+**Example Task to Run Command:**
+
+..code-block:: yaml
+
+    hello_world:
+        description: Says hello world
+        class_path: cumulusci.tasks.command.Command
+        options:
+        command: echo 'Hello World!'
 
 Command Syntax
 ------------------------------------------
@@ -2409,7 +2413,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: robot/SAL/doc/*PageObject.py). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted
+	 The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: ``robot/SAL/doc/*PageObject.py``). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted
 
 ``-o output OUTPUT``
 	 *Required*

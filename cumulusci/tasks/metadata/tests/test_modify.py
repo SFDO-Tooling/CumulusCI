@@ -1,17 +1,10 @@
 import os
 import unittest
-from glob import glob
-from pathlib import Path
-from tempfile import TemporaryDirectory
-
-import lxml.etree as ET
-
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.tasks.metadata.modify import RemoveElementsXPath
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.metadata.modify import salesforce_encoding
 from cumulusci.core.exceptions import TaskOptionsError
 
 
@@ -134,30 +127,3 @@ class TestRemoveElementsXPath(unittest.TestCase):
         self.assertEqual(
             '<?xml version="1.0" encoding="UTF-8"?>\n<root><a/></root>\n', result
         )
-
-    def test_roundtripping(self):
-        files = glob(str(Path(__file__).parent / "/sample_package.xml"))
-
-        #   If you fiddle with the salesforce encoder, the code below may be
-        #   useful to ensure that it faithfully round-trips, but it only works
-        #   if run in a directory with a parent-directory which contains a few
-        #   CCI projects which contain translations in them. At the time of
-        #   writing it roundtripped 421 files without a byte of difference.
-        #
-        # files = glob("../*/*/*ranslations/**ranslation", recursive=True)
-
-        for file in files:
-            orig = open(file).read()
-            tree = ET.parse(file)
-            out = salesforce_encoding(tree)
-            assert orig == out, file
-            print("PASSED", file)
-
-    def tests_filename_bad_xml(self):
-        with TemporaryDirectory() as d:
-            filename = d + "/foobar.notxml"
-            with open(filename, "w") as f:
-                f.write("<<<<")
-            with self.assertRaises(SyntaxError) as e:
-                ET.parse(filename)
-            assert "foobar.notxml" in str(e.exception)

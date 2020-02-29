@@ -520,7 +520,7 @@ class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCas
         self.assertDictEqual(
             {
                 None: [{"status": "error", "message": "Failed plan check"}],
-                "log": [{"status": "error", "message": "Failed step check 2"}],
+                "1": [{"status": "error", "message": "Failed step check 2"}],
             },
             flow.preflight_results,
         )

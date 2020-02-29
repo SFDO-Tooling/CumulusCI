@@ -4,8 +4,9 @@ import pytest
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl import AddValueSetEntries
-from cumulusci.tasks.metadata_etl import MD
+from cumulusci.utils.xml import metadata_tree
 
+MD = "{%s}" % "http://soap.sforce.com/2006/04/metadata"
 VALUESET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <StandardValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <sorted>false</sorted>
@@ -43,9 +44,11 @@ class TestAddValueSetEntries:
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
 
-        result = task._transform_entity(tree, "ValueSet")
+        result = task._transform_entity(
+            metadata_tree.fromstring(VALUESET_XML), "ValueSet"
+        )
 
-        entry = result.findall(f".//{MD}standardValue[{MD}fullName='Test']")
+        entry = result._element.findall(f".//{MD}standardValue[{MD}fullName='Test']")
         assert len(entry) == 1
         label = entry[0].findall(f".//{MD}label")
         assert len(label) == 1
@@ -54,7 +57,7 @@ class TestAddValueSetEntries:
         assert len(default) == 1
         assert default[0].text == "false"
 
-        entry = result.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")
+        entry = result._element.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")
         assert len(entry) == 1
         label = entry[0].findall(f".//{MD}label")
         assert len(label) == 1
@@ -83,14 +86,14 @@ class TestAddValueSetEntries:
             },
         )
 
-        tree = etree.fromstring(VALUESET_XML).getroottree()
+        tree = metadata_tree.fromstring(VALUESET_XML)
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
 
         result = task._transform_entity(tree, "OpportunityStage")
 
-        entry = result.findall(f".//{MD}standardValue[{MD}fullName='Test']")
+        entry = result._element.findall(f".//{MD}standardValue[{MD}fullName='Test']")
         assert len(entry) == 1
         label = entry[0].findall(f".//{MD}label")
         assert len(label) == 1
@@ -127,9 +130,11 @@ class TestAddValueSetEntries:
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
 
-        result = task._transform_entity(tree, "CaseStatus")
+        result = task._transform_entity(
+            metadata_tree.fromstring(VALUESET_XML), "CaseStatus"
+        )
 
-        entry = result.findall(f".//{MD}standardValue[{MD}fullName='Test']")
+        entry = result._element.findall(f".//{MD}standardValue[{MD}fullName='Test']")
         assert len(entry) == 1
         label = entry[0].findall(f".//{MD}label")
         assert len(label) == 1
@@ -156,9 +161,10 @@ class TestAddValueSetEntries:
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Value']")) == 1
 
-        result = task._transform_entity(tree, "ValueSet")
+        metadata = metadata_tree.fromstring(VALUESET_XML)
+        task._transform_entity(metadata, "ValueSet")
 
-        assert len(result.findall(f".//{MD}standardValue[{MD}fullName='Value']")) == 1
+        assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Value']")) == 1
 
     def test_raises_exception_missing_values(self):
         task = create_task(
@@ -170,7 +176,7 @@ class TestAddValueSetEntries:
                 "entries": [{"fullName": "Value"}],
             },
         )
-        tree = etree.fromstring(VALUESET_XML).getroottree()
+        tree = metadata_tree.fromstring(VALUESET_XML)
 
         with pytest.raises(TaskOptionsError):
             task._transform_entity(tree, "ValueSet")
@@ -198,7 +204,7 @@ class TestAddValueSetEntries:
                 "entries": [{"fullName": "Value", "label": "Value"}],
             },
         )
-        tree = etree.fromstring(VALUESET_XML).getroottree()
+        tree = metadata_tree.fromstring(VALUESET_XML)
 
         with pytest.raises(TaskOptionsError) as err:
             task._transform_entity(tree, "OpportunityStage")
@@ -214,8 +220,32 @@ class TestAddValueSetEntries:
                 "entries": [{"fullName": "Value", "label": "Value"}],
             },
         )
-        tree = etree.fromstring(VALUESET_XML).getroottree()
+        tree = metadata_tree.fromstring(VALUESET_XML)
 
         with pytest.raises(TaskOptionsError) as err:
             task._transform_entity(tree, "CaseStatus")
             assert "CaseStatus" in err
+
+    def test_adds_correct_number_of_values(self):
+        task = create_task(
+            AddValueSetEntries,
+            {
+                "managed": True,
+                "api_version": "47.0",
+                "api_names": "bar,foo",
+                "entries": [
+                    {"fullName": "Test", "label": "Label"},
+                    {"fullName": "Test_2", "label": "Label 2"},
+                    {"fullName": "Other", "label": "Duplicate"},
+                ],
+            },
+        )
+
+        mdtree = metadata_tree.fromstring(VALUESET_XML)
+        xml_tree = mdtree._element
+
+        assert len(xml_tree.findall(f".//{MD}standardValue")) == 2
+
+        task._transform_entity(mdtree, "ValueSet")
+
+        assert len(xml_tree.findall(f".//{MD}standardValue")) == 4
