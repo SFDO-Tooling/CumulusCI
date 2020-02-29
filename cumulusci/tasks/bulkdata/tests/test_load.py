@@ -58,20 +58,32 @@ class MockBulkApiDmlOperation(BaseDmlOperation):
             context=context,
             fields=fields,
         )
-        self.results = []
+        self._results = []
         self.records = []
 
     def start(self):
         self.job_id = "JOB"
 
     def end(self):
-        self.job_result = DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
+        total_records = len(self.results)
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], total_records, 0
+        )
 
     def load_records(self, records):
         self.records.extend(records)
 
     def get_results(self):
         return iter(self.results)
+
+    @property
+    def results(self):
+        return self._results
+
+    @results.setter
+    def results(self, results):
+        self._results = results
+        self.end()
 
 
 class TestLoadData(unittest.TestCase):
@@ -659,6 +671,7 @@ class TestLoadData(unittest.TestCase):
             fields=[],
         )
         step.results = [DataOperationResult(None, False, "message")]
+        step.end()
 
         mapping = {"table": "Account", "action": "update"}
 

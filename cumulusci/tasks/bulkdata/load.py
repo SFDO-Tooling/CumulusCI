@@ -133,10 +133,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         step.load_records(self._stream_queried_data(mapping, local_ids))
         step.end()
 
-        if (
-            step.job_result.status is not DataOperationStatus.JOB_FAILURE
-            and step.job_result.total_records
-        ):
+        if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
             self._process_job_results(mapping, step, local_ids)
 
         return step.job_result
@@ -304,6 +301,11 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         if mapping["action"] == "insert":
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
             conn = self.session.connection()
+
+        # other code expects the table to be created even if it is empty
+        # so after we create it we can bail.
+        if not step.job_result.total_records:
+            return
 
         results_generator = self._generate_results_id_map(step, local_ids)
         if mapping["action"] == "insert":
