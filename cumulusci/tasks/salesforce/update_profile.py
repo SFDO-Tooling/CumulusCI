@@ -93,7 +93,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
         if "package_xml" in self.options:
             if self.api_names or "profile_name" in self.options:
                 raise TaskOptionsError(
-                    "The package_xml option is not compatible with the package_name or api_names options. "
+                    "The package_xml option is not compatible with the profile_name or api_names options. "
                     "Specify desired packages in the custom package.xml"
                 )
 

@@ -356,3 +356,11 @@ def test_generate_package_xml__retrieve():
         task._generate_package_xml(MetadataOperation.RETRIEVE)
         task._expand_profile_members.assert_called_once()
         task._expand_package_xml.assert_not_called()
+
+
+def test_init_options_raises_combined_options():
+    with pytest.raises(TaskOptionsError):
+        create_task(
+            ProfileGrantAllAccess,
+            {"package_xml": "admin_profile.xml", "profile_name": "test"},
+        )
