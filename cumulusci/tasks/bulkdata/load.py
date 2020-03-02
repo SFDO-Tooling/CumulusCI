@@ -459,11 +459,13 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
             self.mapping = parse_mapping_from_yaml(f)
-            # self.mapping = yaml.safe_load(f)
+            import yaml
+
+            self.mapping = yaml.safe_load(f)
 
     def _expand_mapping(self):
         # Expand the mapping to handle dependent lookups
-        print("M", self.models.keys())
+        # print("M", self.models.keys())
         self.after_steps = defaultdict(dict)
 
         for step in self.mapping.values():
