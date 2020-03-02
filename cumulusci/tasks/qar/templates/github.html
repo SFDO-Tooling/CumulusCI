@@ -1,0 +1,113 @@
+<h1>Github Access Report - {{ org.name }} - {{ now }}</h1>
+
+<h2>Contents</h2>
+<ul>
+  <li><a href="#repos">Repositories</a></li>
+  <li><a href="#members">Members</a></li>
+  <li><a href="#teams">Teams</a></li>
+</ul>
+<hr />
+<div id="repos">
+{% for repo_name, repo_info in repos.items() %}
+<h3>{{ repo_name }}</h3>
+<h4>Teams</h4>
+<table>
+  <thead>
+    <tr>Name</tr>
+    <tr>Read</tr>
+    <tr>Write</tr>
+    <tr>Admin</tr>
+  </thead>
+  <tbody>
+    {% for team_name, team_info in repo_info["teams"].items() %}
+    <tr>
+      <td>{{ team_name }}</td>
+      <td>{{ team_info.read }}</td>
+      <td>{{ team_info.write }}</td>
+      <td>{{ team_info.admin }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<h4>Direct Users</h4>
+<table>
+  <thead>
+    <tr>Name</tr>
+    <tr>Read</tr>
+    <tr>Write</tr>
+    <tr>Admin</tr>
+  </thead>
+  <tbody>
+    {% for user_name, user_info in repo_info["users_direct"].items() %}
+    <tr>
+      <td>{{ user_name }}</td>
+      <td>{{ user_info.read }}</td>
+      <td>{{ user_info.write }}</td>
+      <td>{{ user_info.admin }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endfor %}
+</div>
+
+<hr />
+<div id="members">
+  <h2>Organization Members</h2>
+  <table>
+    <thead>
+      <tr>Username</tr>
+      <tr>Role</tr>
+    </thead>
+    <tbody>
+      {% for member_name, member_info in members.items() %}
+      <tr>
+        <td>{{ member_name }}</td>
+        <td>{% if member_info.admin %}Admin{% else %}Member{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<hr />
+<div id="teams">
+  <h2>Teams</h2>
+  {% for team_name, team_info in teams.items() %}
+  <h3>{{ team_name }}</h3>
+  <h4>Team Members</h4>
+  <table>
+    <thead>
+      <tr>Name</tr>
+      <tr>Role</tr>
+    </thead>
+    <tbody>
+      {% for member_name, member_info in team_info.members.items() %}
+      <tr>
+        <td>{{ member_name }}</td>
+        <td>{% if member_info.owner %}Owner{% else %}Member{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <h4>Team Repositories</h4>
+  <table>
+    <thead>
+      <tr>Name</tr>
+      <tr>Read</tr>
+      <tr>Write</tr>
+      <tr>Admin</tr>
+    </thead>
+    <tbody>
+      {% for repo_name, repo_info in team_info.repos.items() %}
+      <tr>
+        <td>{{ repo_name }}</td>
+        <td>{{ repo_info.read }}</td>
+        <td>{{ repo_info.write }}</td>
+        <td>{{ repo_info.admin }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endfor %}
+</div>
