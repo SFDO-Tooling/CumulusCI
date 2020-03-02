@@ -7,7 +7,8 @@ from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
 from sqlalchemy.ext.automap import automap_base
 import unicodecsv
-import yaml
+
+# import yaml
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.exceptions import TaskOptionsError
@@ -20,6 +21,8 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_bool_arg
 
 from cumulusci.utils import os_friendly_path
+
+from cumulusci.tasks.bulkdata.mapping_parser import parse_mapping_from_yaml
 
 
 class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
@@ -104,6 +107,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _load_mapping(self, mapping):
         """Load data for a single step."""
 
+        print(mapping.keys())
         if "RecordTypeId" in mapping["fields"]:
             conn = self.session.connection()
             self._load_record_types([mapping["sf_object"]], conn)
@@ -238,6 +242,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         as well as joining to the id tables to get real SF ids
         for lookups.
         """
+        print(self.models)
         model = self.models[mapping.get("table")]
 
         # Use primary key instead of the field mapped to SF Id
@@ -453,16 +458,19 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
-            self.mapping = yaml.safe_load(f)
+            self.mapping = parse_mapping_from_yaml(f)
+            # self.mapping = yaml.safe_load(f)
 
     def _expand_mapping(self):
         # Expand the mapping to handle dependent lookups
+        print("M", self.models.keys())
         self.after_steps = defaultdict(dict)
 
         for step in self.mapping.values():
             step["action"] = step.get("action", "insert")
+            print("lookups in ste")
             if "lookups" in step and any(
-                ["after" in l for l in step["lookups"].values()]
+                [l["after"] for l in step["lookups"].values() if "after" in l]
             ):
                 # We have deferred/dependent lookups.
                 # Synthesize mapping steps for them.
@@ -486,6 +494,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                         "lookups": {},
                         "fields": {},
                     }
+                    print(step["table"])
                     mapping["lookups"]["Id"] = {
                         "table": step["table"],
                         "key_field": self.models[
