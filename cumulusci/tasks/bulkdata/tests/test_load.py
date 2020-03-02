@@ -298,6 +298,32 @@ class TestLoadData(unittest.TestCase):
         with self.assertRaises(TaskOptionsError):
             _make_task(LoadData, {"options": {"bulk_mode": "Test"}})
 
+    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
+    def test_bulk_mode_override(self, stepmock):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "file:///test.db",
+                    "mapping": "mapping.yml",
+                    "bulk_mode": "Serial",
+                }
+            },
+        )
+        task.session = mock.Mock()
+        task._load_record_types = mock.Mock()
+        task._process_job_results = mock.Mock()
+
+        task._load_mapping(
+            {
+                "sf_object": "Account",
+                "action": "insert",
+                "fields": {"Name": "Name"},
+                "bulk_mode": "XYZZY",
+            }
+        )
+        assert stepmock.mock_calls[0][2]["api_options"]["bulk_mode"] == "XYZZY"
+
     def test_init_options__database_url(self):
         t = _make_task(
             LoadData,
@@ -671,7 +697,6 @@ class TestLoadData(unittest.TestCase):
             fields=[],
         )
         step.results = [DataOperationResult(None, False, "message")]
-        step.end()
 
         mapping = {"table": "Account", "action": "update"}
 
