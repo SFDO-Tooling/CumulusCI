@@ -1,6 +1,4 @@
-import tempfile
-import unicodecsv
-
+import csv
 from sqlalchemy import create_engine
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -9,23 +7,25 @@ from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import create_session, mapper
 from sqlalchemy.ext.automap import automap_base
+import tempfile
+
 import yaml
 
+from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
-    BulkJobTaskMixin,
-    download_file,
-    process_incoming_rows,
+    SqlAlchemyMixin,
     get_lookup_key_field,
     create_table,
     fields_for_mapping,
 )
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils import log_progress, os_friendly_path
-from salesforce_bulk.util import IteratorBytesIO
+from cumulusci.tasks.bulkdata.step import BulkApiQueryOperation, DataOperationStatus
+from cumulusci.utils import os_friendly_path, log_progress
 
 
-class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
+class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
+    """Perform Bulk Queries to extract data for a mapping and persist to a SQL file or database."""
+
     task_options = {
         "database_url": {
             "description": "A DATABASE_URL where the query output should be written"
@@ -68,6 +68,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self._sqlite_dump()
 
     def _init_db(self):
+        """Initialize the database and automapper."""
         self.models = {}
 
         # initialize the DB engine
@@ -88,93 +89,100 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.session = create_session(bind=self.engine, autocommit=False)
 
     def _init_mapping(self):
+        """Load a YAML mapping file."""
         with open(self.options["mapping"], "r") as f:
             self.mappings = yaml.safe_load(f)
 
-    def _soql_for_mapping(self, mapping):
-        sf_object = mapping["sf_object"]
+    def _fields_for_mapping(self, mapping):
+        """Return a flat list of fields for this mapping."""
         fields = []
         if not mapping["oid_as_pk"]:
             fields.append("Id")
         fields += [field["sf"] for field in fields_for_mapping(mapping)]
-        field_list = ", ".join(fields)
-        soql = f"SELECT {field_list} FROM {sf_object}"
+
+        return fields
+
+    def _soql_for_mapping(self, mapping):
+        """Return a SOQL query suitable for extracting data for this mapping."""
+        sf_object = mapping["sf_object"]
+        fields = self._fields_for_mapping(mapping)
+        soql = f"SELECT {', '.join(fields)} FROM {sf_object}"
         if "record_type" in mapping:
             soql += f" WHERE RecordType.DeveloperName = '{mapping['record_type']}'"
+
         return soql
 
     def _run_query(self, soql, mapping):
-        self.logger.info(f"Creating bulk job for: {mapping['sf_object']}")
-        job = self.bulk.create_query_job(mapping["sf_object"], contentType="CSV")
-        self.logger.info(f"Job id: {job}")
-        self.logger.info(f"Submitting query: {soql}")
-        batch = self.bulk.query(job, soql)
-        self.logger.info(f"Batch id: {batch}")
-        self.bulk.wait_for_batch(job, batch)
-        self.logger.info(f"Batch {batch} finished")
-        self.bulk.close_job(job)
-        self.logger.info(f"Job {job} closed")
+        """Execute a Bulk API query job and store the results."""
+        step = BulkApiQueryOperation(
+            sobject=mapping["sf_object"], api_options={}, context=self, query=soql
+        )
 
-        conn = self.session.connection()
-        for result_file in self._get_results(batch, job):
-            self._import_results(mapping, result_file, conn)
+        step.query()
 
-    def _get_results(self, batch_id, job_id):
-        result_ids = self.bulk.get_query_batch_result_ids(batch_id, job_id=job_id)
-        for result_id in result_ids:
-            self.logger.info(f"Result id: {result_id}")
-            uri = (
-                f"{self.bulk.endpoint}/job/{job_id}/batch/{batch_id}/result/{result_id}"
+        if step.job_result.status is DataOperationStatus.SUCCESS:
+            self._import_results(mapping, step)
+        else:
+            raise BulkDataException(
+                f"Unable to execute query: {','.join(step.job_result.job_errors)}"
             )
-            with download_file(uri, self.bulk) as f:
-                self.logger.info(f"Result {result_id} downloaded")
-                yield f
 
-    def _import_results(self, mapping, result_file, conn):
+    def _import_results(self, mapping, step):
+        """Ingest results from the Bulk API query."""
+        conn = self.session.connection()
+
         # Map SF field names to local db column names
-        sf_header = [
-            name.strip('"')
-            for name in result_file.readline().strip().decode("utf-8").split(",")
-        ]
+        fields = self._fields_for_mapping(mapping)
         columns = []
         lookup_keys = []
-        for sf in sf_header:
-            if sf == "Records not found for this query":
-                return
-            if sf:
-                column = mapping.get("fields", {}).get(sf)
-                if not column:
-                    lookup = mapping.get("lookups", {}).get(sf, {})
-                    if lookup:
-                        lookup_keys.append(sf)
-                        column = get_lookup_key_field(lookup, sf)
-                if column:
-                    columns.append(column)
+        for sf in fields:
+            column = mapping.get("fields", {}).get(sf)
+            if not column:
+                lookup = mapping.get("lookups", {}).get(sf, {})
+                if lookup:
+                    lookup_keys.append(sf)
+                    column = get_lookup_key_field(lookup, sf)
+            if column:
+                columns.append(column)
+
         if not columns:
             return
         record_type = mapping.get("record_type")
         if record_type:
             columns.append("record_type")
 
-        processor = log_progress(
-            process_incoming_rows(result_file, record_type), self.logger
-        )
-        data_file = IteratorBytesIO(processor)
+        # FIXME: log_progress needs to know our batch size, when made configurable.
+        record_iterator = log_progress(step.get_results(), self.logger)
+        if record_type:
+            record_iterator = (record + [record_type] for record in record_iterator)
+
         if mapping["oid_as_pk"]:
-            self._sql_bulk_insert_from_csv(conn, mapping["table"], columns, data_file)
+            self._sql_bulk_insert_from_records(
+                connection=conn,
+                table=mapping["table"],
+                columns=columns,
+                record_iterable=record_iterator,
+            )
         else:
-            # If using the autogenerated id field, split out the CSV file from the Bulk API
+            # If using the autogenerated id field, split out the returned records
             # into two separate files and load into the main table and the sf_id_table
-            with tempfile.TemporaryFile("w+b") as f_values:
-                with tempfile.TemporaryFile("w+b") as f_ids:
+
+            with tempfile.TemporaryFile("w+") as f_values:
+                with tempfile.TemporaryFile("w+") as f_ids:
                     data_file_values, data_file_ids = self._split_batch_csv(
-                        data_file, f_values, f_ids
+                        record_iterator, f_values, f_ids
                     )
-                    self._sql_bulk_insert_from_csv(
-                        conn, mapping["table"], columns, data_file_values
+                    self._sql_bulk_insert_from_records(
+                        connection=conn,
+                        table=mapping["table"],
+                        columns=columns,
+                        record_iterable=csv.reader(data_file_values),
                     )
-                    self._sql_bulk_insert_from_csv(
-                        conn, mapping["sf_id_table"], ["sf_id"], data_file_ids
+                    self._sql_bulk_insert_from_records(
+                        connection=conn,
+                        table=mapping["sf_id_table"],
+                        columns=["sf_id"],
+                        record_iterable=csv.reader(data_file_ids),
                     )
 
         if "RecordTypeId" in mapping["fields"]:
@@ -188,15 +196,17 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
             self._convert_lookups_to_id(mapping, lookup_keys)
 
     def _get_mapping_for_table(self, table):
-        """ Returns the first mapping for a table name """
+        """Return the first mapping for a table name """
         for mapping in self.mappings.values():
             if mapping["table"] == table:
                 return mapping
 
-    def _split_batch_csv(self, data_file, f_values, f_ids):
-        writer_values = unicodecsv.writer(f_values)
-        writer_ids = unicodecsv.writer(f_ids)
-        for row in unicodecsv.reader(data_file):
+    def _split_batch_csv(self, records, f_values, f_ids):
+        """Split the record generator and return two files,
+        one containing Ids only and the other record data."""
+        writer_values = csv.writer(f_values)
+        writer_ids = csv.writer(f_ids)
+        for row in records:
             writer_values.writerow(row[1:])
             writer_ids.writerow(row[:1])
         f_values.seek(0)
@@ -204,6 +214,7 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
         return f_values, f_ids
 
     def _convert_lookups_to_id(self, mapping, lookup_keys):
+        """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
         for lookup_key in lookup_keys:
             lookup_dict = mapping["lookups"][lookup_key]
             model = self.models[mapping["table"]]
@@ -226,11 +237,13 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.session.commit()
 
     def _create_tables(self):
+        """Create a table for each mapping step."""
         for mapping in self.mappings.values():
             self._create_table(mapping)
         self.metadata.create_all()
 
     def _create_table(self, mapping):
+        """Create a table for the given mapping."""
         model_name = f"{mapping['table']}Model"
         mapper_kwargs = {}
         self.models[mapping["table"]] = type(model_name, (object,), {})
@@ -262,12 +275,14 @@ class ExtractData(BulkJobTaskMixin, BaseSalesforceApiTask):
         mapper(self.models[mapping["table"]], t, **mapper_kwargs)
 
     def _drop_sf_id_columns(self):
+        """Drop Salesforce Id storage tables after rewriting Ids to auto-PKs."""
         for mapping in self.mappings.values():
             if mapping.get("oid_as_pk"):
                 continue
             self.metadata.tables[mapping["sf_id_table"]].drop()
 
     def _sqlite_dump(self):
+        """Write a SQLite script output file."""
         path = self.options["sql_path"]
         with open(path, "w") as f:
             for line in self.session.connection().connection.iterdump():

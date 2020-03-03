@@ -1,31 +1,29 @@
-import datetime
-import io
-
 from collections import defaultdict
-from salesforce_bulk.util import IteratorBytesIO
+import datetime
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
 from sqlalchemy.ext.automap import automap_base
-import unicodecsv
 
-# import yaml
-
-from cumulusci.core.exceptions import BulkDataException
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import (
-    BulkJobTaskMixin,
     get_lookup_key_field,
-    download_file,
+    SqlAlchemyMixin,
+    RowErrorChecker,
+)
+from cumulusci.tasks.bulkdata.step import (
+    BulkApiDmlOperation,
+    DataOperationStatus,
+    DataOperationType,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import process_bool_arg
-
 from cumulusci.utils import os_friendly_path
 
 from cumulusci.tasks.bulkdata.mapping_parser import parse_mapping_from_yaml
 
 
-class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
+class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
+    """Perform Bulk API operations to load data defined by a mapping from a local store into an org."""
 
     task_options = {
         "database_url": {
@@ -53,6 +51,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
     }
+    row_warning_limit = 10
 
     def _init_options(self, kwargs):
         super(LoadData, self)._init_options(kwargs)
@@ -89,19 +88,23 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             if not started and start_step and name != start_step:
                 self.logger.info(f"Skipping step: {name}")
                 continue
+
             started = True
 
-            self.logger.info(f"Running Job: {name}")
+            self.logger.info(f"Running step: {name}")
             result = self._load_mapping(mapping)
-            if result not in ("Completed", "CompletedWithFailures"):
-                raise BulkDataException(f"Job {name} did not complete successfully")
+            if result.status is DataOperationStatus.JOB_FAILURE:
+                raise BulkDataException(
+                    f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
+                )
+
             if name in self.after_steps:
                 for after_name, after_step in self.after_steps[name].items():
                     self.logger.info(f"Running post-load step: {after_name}")
                     result = self._load_mapping(after_step)
-                    if result not in ("Completed", "CompletedWithFailures"):
+                    if result.status is DataOperationStatus.JOB_FAILURE:
                         raise BulkDataException(
-                            f"Job {after_name} did not complete successfully"
+                            f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                         )
 
     def _load_mapping(self, mapping):
@@ -110,56 +113,45 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         if mapping.get("fields", {}).get("RecordTypeId"):
             conn = self.session.connection()
             self._load_record_types([mapping["sf_object"]], conn)
+
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
-        job_id, local_ids_for_batch = self._create_job(mapping)
-        result = self._wait_for_job(job_id, error_behaviour="return")
 
-        self._process_job_results(mapping, job_id, local_ids_for_batch)
+        bulk_mode = mapping.get("bulk_mode") or self.bulk_mode or "Parallel"
 
-        return result
+        step = BulkApiDmlOperation(
+            sobject=mapping["sf_object"],
+            operation=(
+                DataOperationType.INSERT
+                if mapping.get("action") == "insert"
+                else DataOperationType.UPDATE
+            ),
+            api_options={"bulk_mode": bulk_mode},
+            context=self,
+            fields=self._get_columns(mapping),
+        )
 
-    def _create_job(self, mapping):
-        """Initiate a bulk insert or update and upload batches to run in parallel."""
-        action = mapping["action"]
-        step_mode = mapping.get("bulk_mode")
-        task_mode = self.bulk_mode
-        mode = step_mode or task_mode or "Parallel"
+        local_ids = []
+        step.start()
+        step.load_records(self._stream_queried_data(mapping, local_ids))
+        step.end()
 
-        if action == "insert":
-            job_id = self.bulk.create_insert_job(
-                mapping["sf_object"], contentType="CSV", concurrency=mode
-            )
-        else:
-            job_id = self.bulk.create_update_job(
-                mapping["sf_object"], contentType="CSV", concurrency=mode
-            )
+        if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
+            self._process_job_results(mapping, step, local_ids)
 
-        self.logger.info(f"  Created bulk job {job_id}")
+        return step.job_result
 
-        # Upload batches
-        local_ids_for_batch = {}
-        for batch_file, local_ids in self._get_batches(mapping):
-            batch_id = self.bulk.post_batch(job_id, batch_file)
-            local_ids_for_batch[batch_id] = local_ids
-            self.logger.info(f"    Uploaded batch {batch_id}")
-
-        self.bulk.close_job(job_id)
-        return job_id, local_ids_for_batch
-
-    def _get_batches(self, mapping, batch_size=10000):
+    def _stream_queried_data(self, mapping, local_ids):
         """Get data from the local db"""
 
-        columns = self._get_columns(mapping)
         statics = self._get_statics(mapping)
         query = self._query_db(mapping)
 
         total_rows = 0
-        batch_num = 1
 
-        batch_file, writer, batch_ids = self._start_batch(columns)
-        for row in query.yield_per(batch_size):
-            total_rows += 1
-
+        # 10,000 is the maximum Bulk API size. Clamping the yield from the query ensures we do not
+        # create more Bulk API batches than expected, regardless of batch size, while capping
+        # memory usage.
+        for row in query.yield_per(10000):
             # Add static values to row
             pkey = row[0]
             row = list(row[1:]) + statics
@@ -170,27 +162,16 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                     total_rows -= 1
                     continue
 
-            writer.writerow(row)
-            batch_ids.append(pkey)
-
-            # Yield and start a new file every [batch_size] rows
-            if not total_rows % batch_size:
-                batch_file.seek(0)
-                self.logger.info(f"    Processing batch {batch_num}")
-                yield batch_file, batch_ids
-                batch_file, writer, batch_ids = self._start_batch(columns)
-                batch_num += 1
-
-        # Yield result file for final batch
-        if batch_ids:
-            batch_file.seek(0)
-            yield batch_file, batch_ids
+            local_ids.append(pkey)
+            yield row
 
         self.logger.info(
-            f"  Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}"
+            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}"
         )
 
     def _get_columns(self, mapping):
+        """Build a flat list of columns for the given mapping,
+        including fields, lookups, and statics."""
         lookups = mapping.get("lookups", {})
 
         # Build the list of fields to import
@@ -211,11 +192,14 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         return columns
 
     def _load_record_types(self, sobjects, conn):
+        """Persist record types for the given sObjects into the database."""
         for sobject in sobjects:
             table_name = sobject + "_rt_target_mapping"
             self._extract_record_types(sobject, table_name, conn)
 
     def _get_statics(self, mapping):
+        """Return the static values (not column names) to be appended to
+        records for this mapping."""
         statics = list(mapping.get("static", {}).values())
         if mapping.get("record_type"):
             query = (
@@ -227,16 +211,6 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
 
         return statics
 
-    def _start_batch(self, columns):
-        batch_file = io.BytesIO()
-        writer = unicodecsv.writer(batch_file)
-        writer.writerow(columns)
-        batch_ids = []
-        return batch_file, writer, batch_ids
-
-    import pysnooper
-
-    @pysnooper.snoop()
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
 
@@ -316,72 +290,55 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             lookup_column = getattr(model, key_field)
             query = query.order_by(lookup_column)
 
-        self.logger.debug(str(query))
-
         return query
 
     def _convert(self, value):
+        """If value is a date, return its ISO8601 representation, otherwise return value."""
         if value:
             if isinstance(value, datetime.datetime):
                 return value.isoformat()
             return value
 
-    def _process_job_results(self, mapping, job_id, local_ids_for_batch):
+    def _process_job_results(self, mapping, step, local_ids):
         """Get the job results and process the results. If we're raising for
         row-level errors, do so; if we're inserting, store the new Ids."""
         if mapping["action"] == "insert":
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
             conn = self.session.connection()
 
-        for batch_id, local_ids in local_ids_for_batch.items():
-            try:
-                results_url = (
-                    f"{self.bulk.endpoint}/job/{job_id}/batch/{batch_id}/result"
-                )
-                # Download entire result file to a temporary file first
-                # to avoid the server dropping connections
-                with download_file(results_url, self.bulk) as f:
-                    self.logger.info(f"  Downloaded results for batch {batch_id}")
-                    results_generator = self._generate_results_id_map(f, local_ids)
-                    if mapping["action"] == "insert":
-                        self._sql_bulk_insert_from_csv(
-                            conn,
-                            id_table_name,
-                            ("id", "sf_id"),
-                            IteratorBytesIO(results_generator),
-                        )
-                        self.logger.info(
-                            f"  Updated {id_table_name} for batch {batch_id}"
-                        )
-                    else:
-                        for r in results_generator:
-                            pass  # Drain generator to validate results
+        # other code expects the table to be created even if it is empty
+        # so after we create it we can bail.
+        if not step.job_result.total_records:
+            return
 
-            except BulkDataException:
-                raise
-            except Exception as e:
-                raise BulkDataException(
-                    f"Failed to download results for batch {batch_id} ({str(e)})"
-                )
+        results_generator = self._generate_results_id_map(step, local_ids)
+        if mapping["action"] == "insert":
+            self._sql_bulk_insert_from_records(
+                connection=conn,
+                table=id_table_name,
+                columns=("id", "sf_id"),
+                record_iterable=results_generator,
+            )
+        else:
+            for r in results_generator:
+                pass  # Drain generator to validate results
 
         if mapping["action"] == "insert":
             self.session.commit()
 
-    def _generate_results_id_map(self, result_file, local_ids):
-        """Iterate over job results and prepare rows for id table"""
-        reader = unicodecsv.reader(result_file)
-        next(reader)  # skip header
-        i = 0
-        for row, local_id in zip(reader, local_ids):
-            if row[1] == "true":  # Success
-                sf_id = row[0]
-                yield f"{local_id},{sf_id}\n".encode("utf-8")
+    def _generate_results_id_map(self, step, local_ids):
+        """Consume results from load and prepare rows for id table.
+        Raise BulkDataException on row errors if configured to do so."""
+        error_checker = RowErrorChecker(
+            self.logger, self.options["ignore_row_errors"], self.row_warning_limit
+        )
+        for result, local_id in zip(step.get_results(), local_ids):
+            if result.success:
+                yield (local_id, result.id)
             else:
-                if self.options["ignore_row_errors"]:
-                    self.logger.warning(f"      Error on row {i}: {row[3]}")
-                else:
-                    raise BulkDataException(f"Error on row {i}: {row[3]}")
-            i += 1
+                error_checker.check_for_row_error(
+                    result, local_id,
+                )
 
     def _initialize_id_table(self, mapping, should_reset_table):
         """initalize or find table to hold the inserted SF Ids
@@ -416,6 +373,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         return id_table_name
 
     def _sqlite_load(self):
+        """Read a SQLite script and initialize the in-memory database."""
         conn = self.session.connection()
         cursor = conn.connection.cursor()
         with open(self.options["sql_path"], "r") as f:
@@ -426,6 +384,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         # self.session.flush()
 
     def _init_db(self):
+        """Initialize the database and automapper."""
         # initialize the DB engine
         database_url = self.options["database_url"] or "sqlite://"
         if database_url == "sqlite://":
@@ -460,6 +419,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         self.metadata.create_all()
 
     def _init_mapping(self):
+        """Load a YAML mapping file."""
         with open(self.options["mapping"], "r") as f:
             self.mapping = parse_mapping_from_yaml(f)
             # parse_mapping_from_yaml
@@ -468,6 +428,8 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             # self.mapping = yaml.safe_load(f)
 
     def _expand_mapping(self):
+        """Walk the mapping and generate any required 'after' steps
+        to handle dependent and self-lookups."""
         # Expand the mapping to handle dependent lookups
         self.after_steps = defaultdict(dict)
 

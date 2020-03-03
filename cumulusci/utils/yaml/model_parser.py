@@ -32,9 +32,7 @@ class MappingBaseModel(BaseModel):
             return self.field_rename() in self.__dict__
 
     def get(self, name, default=None):
-        print("YYY", name)
         if name != "fields":
-            print("YYY", name, self.__dict__.get(name, default))
             return self.__dict__.get(name, default)
         else:
             field_rename = self.field_rename()

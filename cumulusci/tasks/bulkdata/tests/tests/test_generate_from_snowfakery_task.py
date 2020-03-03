@@ -3,7 +3,8 @@ from unittest import mock
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task, TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
 import yaml
 from sqlalchemy import create_engine
