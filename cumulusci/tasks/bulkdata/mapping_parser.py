@@ -12,11 +12,12 @@ class Lookup(MappingBaseModel):
     value_field: str = None
     join_field: str = None
     after: str = None
+    aliased_table: str = None
 
 
 class Step(MappingBaseModel):
     sf_object: str
-    table: str
+    table: str = None
     fields_: Dict[str, str] = Field(..., alias="fields")
     lookups: Dict[str, Lookup] = {}
     static: Dict[str, str] = {}

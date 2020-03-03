@@ -108,7 +108,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         """Load data for a single step."""
 
         print(mapping.keys())
-        if "RecordTypeId" in mapping["fields"]:
+        if mapping["fields"].get("RecordType"):
             conn = self.session.connection()
             self._load_record_types([mapping["sf_object"]], conn)
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
@@ -198,7 +198,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         columns = []
         columns.extend(mapping.get("fields", {}).keys())
         # Don't include lookups with an `after:` spec (dependent lookups)
-        columns.extend([f for f in lookups if "after" not in lookups[f]])
+        columns.extend([f for f in lookups if not lookups[f].get("after")])
         columns.extend(mapping.get("static", {}).keys())
         # If we're using Record Type mapping, `RecordTypeId` goes at the end.
         if "RecordTypeId" in columns:
@@ -235,6 +235,9 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         batch_ids = []
         return batch_file, writer, batch_ids
 
+    import pysnooper
+
+    @pysnooper.snoop()
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
 
@@ -257,33 +260,39 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             if name != "RecordTypeId":
                 columns.append(model.__table__.columns[f])
 
+        print("QQQQ", mapping.get("lookups"))
+
         lookups = {
             lookup_field: lookup
             for lookup_field, lookup in mapping.get("lookups", {}).items()
-            if "after" not in lookup
+            if not lookup.get("after")
+            # if "after" not in lookup or not lookup.get("after")
         }
+        print("ZZZZ", lookups)
         for lookup in lookups.values():
             lookup["aliased_table"] = aliased(
                 self.metadata.tables[f"{lookup['table']}_sf_ids"]
             )
             columns.append(lookup["aliased_table"].columns.sf_id)
 
-        if "RecordTypeId" in mapping["fields"]:
+        # if mapping["fields"].get("RecordTypeId"):
+        if mapping["fields"].get("RecordTypeId"):
             rt_dest_table = self.metadata.tables[
                 mapping["sf_object"] + "_rt_target_mapping"
             ]
             columns.append(rt_dest_table.columns.record_type_id)
 
         query = self.session.query(*columns)
-        if "record_type" in mapping and hasattr(model, "record_type"):
+        if mapping.get("record_type") and hasattr(model, "record_type"):
             query = query.filter(model.record_type == mapping["record_type"])
-        if "filters" in mapping:
+        if mapping.get("filters"):
             filter_args = []
             for f in mapping["filters"]:
                 filter_args.append(text(f))
             query = query.filter(*filter_args)
 
-        if "RecordTypeId" in mapping["fields"]:
+        if mapping["fields"].get("RecordTypeId"):
+            # if "RecordTypeId" in mapping["fields"]:
             rt_source_table = self.metadata.tables[mapping["sf_object"] + "_rt_mapping"]
             rt_dest_table = self.metadata.tables[
                 mapping["sf_object"] + "_rt_target_mapping"
@@ -450,7 +459,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                 self.models[mapping["table"]] = self.base.classes[mapping["table"]]
 
             # create any Record Type tables we need
-            if "fields" in mapping and "RecordTypeId" in mapping["fields"]:
+            if mapping.get("fields", {}).get("RecordTypeId"):
                 self._create_record_type_table(
                     mapping["sf_object"] + "_rt_target_mapping"
                 )
@@ -459,27 +468,26 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _init_mapping(self):
         with open(self.options["mapping"], "r") as f:
             self.mapping = parse_mapping_from_yaml(f)
-            import yaml
+            # parse_mapping_from_yaml
+            # import yaml
 
-            self.mapping = yaml.safe_load(f)
+            # self.mapping = yaml.safe_load(f)
 
     def _expand_mapping(self):
         # Expand the mapping to handle dependent lookups
-        # print("M", self.models.keys())
         self.after_steps = defaultdict(dict)
 
         for step in self.mapping.values():
             step["action"] = step.get("action", "insert")
-            print("lookups in ste")
-            if "lookups" in step and any(
-                [l["after"] for l in step["lookups"].values() if "after" in l]
+            if step.get("lookups") and any(
+                [l["after"] for l in step["lookups"].values() if l.get("after")]
             ):
                 # We have deferred/dependent lookups.
                 # Synthesize mapping steps for them.
 
                 sobject = step["sf_object"]
                 after_list = {
-                    l["after"] for l in step["lookups"].values() if "after" in l
+                    l["after"] for l in step["lookups"].values() if l.get("after")
                 }
 
                 for after in after_list:
