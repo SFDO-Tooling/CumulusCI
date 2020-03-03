@@ -1,14 +1,12 @@
 import glob
-from xml.sax.saxutils import escape
 
 import lxml.etree as ET
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import cd
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.utils.xml.salesforce_encoding import serialize_xml_for_salesforce
 
-
-xml_encoding = '<?xml version="1.0" encoding="UTF-8"?>\n'
 SF_NS = "http://soap.sforce.com/2006/04/metadata"
 
 
@@ -94,48 +92,9 @@ class RemoveElementsXPath(BaseTask):
             for element in res:
                 element.getparent().remove(element)
 
-            processed = salesforce_encoding(root)
+            processed = serialize_xml_for_salesforce(root, xml_declaration=True)
 
             if orig != processed:
                 self.logger.info("Modified {}".format(f))
                 with open(f, "w", encoding="utf-8") as fp:
                     fp.write(processed)
-
-
-def has_content(element):
-    return element.text or list(element)
-
-
-def salesforce_encoding(xdoc):
-    r = xml_encoding
-    if SF_NS in xdoc.getroot().tag:
-        xdoc.getroot().attrib["xmlns"] = SF_NS
-    for action, elem in ET.iterwalk(
-        xdoc, events=("start", "end", "start-ns", "end-ns", "comment")
-    ):
-        if action == "start-ns":
-            pass  # handle this nicely if SF starts using multiple namespaces
-        elif action == "start":
-            tag = elem.tag
-            if "}" in tag:
-                tag = tag.split("}")[1]
-            text = (
-                escape(elem.text, {"'": "&apos;", '"': "&quot;"})
-                if elem.text is not None
-                else ""
-            )
-
-            attrs = "".join([f' {k}="{v}"' for k, v in elem.attrib.items()])
-            if not has_content(elem):
-                r += f"<{tag}{attrs}/>"
-            else:
-                r += f"<{tag}{attrs}>{text}"
-        elif action == "end" and has_content(elem):
-            tag = elem.tag
-            if "}" in tag:
-                tag = tag.split("}")[1]
-            tail = elem.tail if elem.tail else "\n"
-            r += f"</{tag}>{tail}"
-        elif action == "comment":
-            r += str(elem) + (elem.tail if elem.tail else "")
-    return r

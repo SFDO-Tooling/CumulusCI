@@ -16,7 +16,7 @@ import sarge
 import xml.etree.ElementTree as ET
 
 CUMULUSCI_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 )
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
@@ -472,6 +472,7 @@ def get_task_option_info(task_config, task_class):
 def get_option_usage_string(name, option):
     """Returns a usage string if one exists
     else creates a usage string in the form of:
+
         -o option_name OPTIONNAME
     """
     usage_str = option.get("usage")

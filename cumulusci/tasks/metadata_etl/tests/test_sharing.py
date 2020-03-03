@@ -1,13 +1,14 @@
 from datetime import datetime
 from unittest import mock
 
-from lxml import etree
 import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tasks.metadata_etl import MD
 from cumulusci.tasks.metadata_etl import SetOrgWideDefaults
+from cumulusci.utils.xml import metadata_tree
+
+MD = "{%s}" % metadata_tree.METADATA_NAMESPACE
 
 CUSTOMOBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -61,15 +62,15 @@ class TestSetOrgWideDefaults:
 
         assert task.api_names == set(["Account", "Test__c"])
 
-        tree = etree.fromstring(CUSTOMOBJECT_XML).getroottree()
+        tree = metadata_tree.fromstring(CUSTOMOBJECT_XML)
 
         result = task._transform_entity(tree, "Test__c")
 
-        entry = result.findall(f".//{MD}sharingModel")
+        entry = result._element.findall(f".//{MD}sharingModel")
         assert len(entry) == 1
         assert entry[0].text == "ReadWrite"
 
-        entry = result.findall(f".//{MD}externalSharingModel")
+        entry = result._element.findall(f".//{MD}externalSharingModel")
         assert len(entry) == 1
         assert entry[0].text == "Read"
 
@@ -97,9 +98,9 @@ class TestSetOrgWideDefaults:
 
         assert task.api_names == set(["Account", "Test__c"])
 
-        tree = etree.fromstring(CUSTOMOBJECT_XML_MISSING_TAGS).getroottree()
+        tree = metadata_tree.fromstring(CUSTOMOBJECT_XML_MISSING_TAGS)
 
-        result = task._transform_entity(tree, "Test__c")
+        result = task._transform_entity(tree, "Test__c")._element
 
         entry = result.findall(f".//{MD}sharingModel")
         assert len(entry) == 1

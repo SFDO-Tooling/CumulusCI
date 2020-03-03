@@ -1,11 +1,6 @@
-from lxml import etree
-
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.metadata_etl import (
-    MetadataSingleEntityTransformTask,
-    get_new_tag_index,
-    MD,
-)
+from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
+from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
 class AddValueSetEntries(MetadataSingleEntityTransformTask):
@@ -22,7 +17,7 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
         **MetadataSingleEntityTransformTask.task_options,
     }
 
-    def _transform_entity(self, metadata, api_name):
+    def _transform_entity(self, metadata: MetadataElement, api_name: str):
         for entry in self.options.get("entries", []):
             if "fullName" not in entry or "label" not in entry:
                 raise TaskOptionsError(
@@ -49,39 +44,25 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                         "CaseStatus standard value set entries require the key 'closed'"
                     )
 
-            new_entry_index = get_new_tag_index(metadata, "standardValue")
-
             existing_entry = metadata.findall(
-                f".//{MD}standardValue[{MD}fullName='{entry['fullName']}']"
+                "standardValue", fullName=entry["fullName"]
             )
+
             if not existing_entry:
                 # Entry doesn't exist. Insert it.
-                elem = etree.Element(f"{MD}standardValue")
-                metadata.getroot().insert(new_entry_index, elem)
+                elem = metadata.append(tag="standardValue")
+                elem.append("fullName", text=entry["fullName"])
 
-                elem_fullName = etree.SubElement(elem, f"{MD}fullName")
-                elem_fullName.text = entry["fullName"]
+                elem.append("label", text=entry["label"])
 
-                elem_label = etree.SubElement(elem, f"{MD}label")
-                elem_label.text = entry["label"]
-
-                elem_default = etree.SubElement(elem, f"{MD}default")
-                elem_default.text = "false"
+                elem.append("default", text="false")
 
                 if api_name in ["OpportunityStage", "CaseStatus"]:
-                    elem_closed = etree.SubElement(elem, f"{MD}closed")
-                    elem_closed.text = str(entry["closed"]).lower()
+                    elem.append("closed", str(entry["closed"]).lower())
 
                 if api_name == "OpportunityStage":
-                    elem_won = etree.SubElement(elem, f"{MD}won")
-                    elem_won.text = str(entry["won"]).lower()
-
-                    elem_probability = etree.SubElement(elem, f"{MD}probability")
-                    elem_probability.text = str(entry["probability"])
-
-                    elem_forecast_category = etree.SubElement(
-                        elem, f"{MD}forecastCategory"
-                    )
-                    elem_forecast_category.text = entry["forecastCategory"]
+                    elem.append("won", str(entry["won"]).lower())
+                    elem.append("probability", str(entry["probability"]))
+                    elem.append("forecastCategory", entry["forecastCategory"])
 
         return metadata
