@@ -16,15 +16,6 @@
     },
     "communitiesSettings": {
       "enableNetworksEnabled": true
-    },
-    "userManagementSettings": {
-      "enableNewProfileUI": true
-    },
-    "securitySettings": {
-      "enableAdminLoginAsAnyUser": true,
-      "sessionSettings": {
-        "forceRelogin": false
-      }
     }
   }
 }
