@@ -1,12 +1,14 @@
 from typing import Union, IO
-from pathlib import Path
+from pathlib import Path, Sequence
+from urllib.request import urlopen
 
 from yaml import safe_load
 
 from pydantic import BaseModel, ValidationError
+from pydantic.error_wrappers import ErrorWrapper
 
 
-class MappingBaseModel(BaseModel):
+class CCIBaseModel(BaseModel):
     def __getitem__(self, name):
         if name != "fields":
             return getattr(self, name)
@@ -52,10 +54,16 @@ class MappingBaseModel(BaseModel):
         extra = "forbid"
 
 
+MappingBaseModel = CCIBaseModel
+
+
 def parse_from_yaml(model, source: Union[str, Path, IO]):
     if hasattr(source, "read"):
         data = safe_load(source)
         path = _get_path_from_stream(source)
+    elif "://" in source:
+        with urlopen(source) as f:
+            data = safe_load(f)
     else:
         path = source
         with open(path) as f:
@@ -76,7 +84,28 @@ def _get_path_from_stream(stream):
     return str(path)
 
 
+# THIS DOESN'T WORK! It doesn't hurt anything but it doesn't add line numbers.
 def _add_filenames(e: ValidationError, filename):
-    for lst in e.raw_errors:
-        for err in lst:
-            err._loc = (filename, *err._loc)
+    def _recursively_add_filenames(l):
+        print("Z", type(l))
+        processed = False
+        if isinstance(l, Sequence):
+            for e in l:
+                _recursively_add_filenames(e)
+            processed = True
+        elif isinstance(l, ValidationError) and l.exc:
+            _add_filenames(l.exc)
+            processed = True
+        elif isinstance(l, ErrorWrapper):
+            if isinstance(l._loc, tuple):
+                l._loc = (filename, *l._loc)
+            else:
+                l._loc = (filename, l._loc)
+
+            processed = True
+            print("QQQ", l._loc)
+        else:
+            print("ZZZ", type(l), l)
+        assert processed, f"Should have processed by now {l}"
+
+    _recursively_add_filenames(e.raw_errors)
