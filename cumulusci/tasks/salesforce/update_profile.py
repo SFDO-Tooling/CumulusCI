@@ -174,7 +174,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
         # Custom applications
         self._set_elements_visible(tree, "applicationVisibilities", "visible")
         # Apex classes
-        self._set_elements_visible(tree, "classAccess", "enabled")
+        self._set_elements_visible(tree, "classAccesses", "enabled")
         # Fields
         self._set_elements_visible(tree, "fieldPermissions", "editable")
         self._set_elements_visible(tree, "fieldPermissions", "readable")

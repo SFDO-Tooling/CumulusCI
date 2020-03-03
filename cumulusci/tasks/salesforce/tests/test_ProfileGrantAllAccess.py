@@ -21,10 +21,10 @@ ADMIN_PROFILE_BEFORE = b"""<?xml version='1.0' encoding='utf-8'?>
         <default>true</default>
         <visible>false</visible>
     </applicationVisibilities>
-    <classAccess>
+    <classAccesses>
         <apexClass>TestClass</apexClass>
         <enabled>false</enabled>
-    </classAccess>
+    </classAccesses>
     <fieldPermissions>
         <field>Account.TestField__c</field>
         <editable>false</editable>
@@ -59,10 +59,10 @@ ADMIN_PROFILE_EXPECTED = b"""<?xml version="1.0" encoding="UTF-8"?>
         <default>true</default>
         <visible>true</visible>
     </applicationVisibilities>
-    <classAccess>
+    <classAccesses>
         <apexClass>TestClass</apexClass>
         <enabled>true</enabled>
-    </classAccess>
+    </classAccesses>
     <fieldPermissions>
         <field>Account.TestField__c</field>
         <editable>true</editable>
