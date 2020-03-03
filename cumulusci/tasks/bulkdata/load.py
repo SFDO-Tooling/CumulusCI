@@ -107,8 +107,7 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
     def _load_mapping(self, mapping):
         """Load data for a single step."""
 
-        print(mapping.keys())
-        if mapping["fields"].get("RecordType"):
+        if mapping.get("fields", {}).get("RecordTypeId"):
             conn = self.session.connection()
             self._load_record_types([mapping["sf_object"]], conn)
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
@@ -245,7 +244,6 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
         as well as joining to the id tables to get real SF ids
         for lookups.
         """
-        print(self.models)
         model = self.models[mapping.get("table")]
 
         # Use primary key instead of the field mapped to SF Id
@@ -260,22 +258,18 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
             if name != "RecordTypeId":
                 columns.append(model.__table__.columns[f])
 
-        print("QQQQ", mapping.get("lookups"))
-
         lookups = {
             lookup_field: lookup
             for lookup_field, lookup in mapping.get("lookups", {}).items()
             if not lookup.get("after")
-            # if "after" not in lookup or not lookup.get("after")
         }
-        print("ZZZZ", lookups)
+
         for lookup in lookups.values():
             lookup["aliased_table"] = aliased(
                 self.metadata.tables[f"{lookup['table']}_sf_ids"]
             )
             columns.append(lookup["aliased_table"].columns.sf_id)
 
-        # if mapping["fields"].get("RecordTypeId"):
         if mapping["fields"].get("RecordTypeId"):
             rt_dest_table = self.metadata.tables[
                 mapping["sf_object"] + "_rt_target_mapping"
@@ -504,7 +498,6 @@ class LoadData(BulkJobTaskMixin, BaseSalesforceApiTask):
                         "lookups": {},
                         "fields": {},
                     }
-                    print(step["table"])
                     mapping["lookups"]["Id"] = {
                         "table": step["table"],
                         "key_field": self.models[
