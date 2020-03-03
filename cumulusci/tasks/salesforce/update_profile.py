@@ -19,26 +19,35 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
 
     task_options = {
         "package_xml": {
-            "description": "Override the default package.xml file for retrieving the Admin.profile and all objects and classes that need to be included by providing a path to your custom package.xml"
+            "description": "Override the default package.xml file for retrieving the Admin.profile and all objects and classes "
+            "that need to be included by providing a path to your custom package.xml"
         },
         "record_types": {
-            "description": "A list of dictionaries containing the required key `record_type` with a value specifying the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set to visible and not default.  Use the additional keys `visible`, `default`, and `person_account_default` set to true/false to override.  NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported."
+            "description": "A list of dictionaries containing the required key `record_type` with a value specifying "
+            "the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} "
+            "and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set "
+            "to visible and not default.  Use the additional keys `visible`, `default`, and `person_account_default` set to "
+            "true/false to override.  NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported."
         },
         "managed": {
-            "description": "If True, uses the namespace prefix where appropriate.  Use if running against an org with the managed package installed.  Defaults to False"
+            "description": "If True, uses the namespace prefix where appropriate.  Use if running against an org with the managed package "
+            "installed.  Defaults to False"
         },
         "namespaced_org": {
-            "description": "If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False"
+            "description": "If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the "
+            "packaging org or a namespaced scratch org.  Defaults to False"
         },
         "namespace_inject": {
-            "description": "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix. Defaults to project__package__namespace"
+            "description": "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix. "
+            "Defaults to project__package__namespace"
         },
         "profile_name": {
-            "description": "Name of the Profile to target for updates (legacy; use api_names to target multiple profiles).",
+            "description": "Name of the Profile to target for updates (deprecated; use api_names to target multiple profiles).",
             "default": "Admin",
         },
         "include_packaged_objects": {
-            "description": "Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.8.1 and greater, otherwise False."
+            "description": "Automatically include objects from all installed managed packages. "
+            "Defaults to True in projects that require CumulusCI 3.8.1 and greater that don't use a custom package.xml, otherwise False."
         },
         "api_names": {"description": "List of API names of Profiles to affect"},
     }
