@@ -63,6 +63,12 @@ class TestCCIModel:
             Document.validate_data({}, on_error="barn")
         assert e.value.__class__ in [ValueError, TypeError]
 
+    def test_getattr_missing(self):
+        with pytest.raises(AttributeError):
+            x = Document.parse_obj({})
+            assert x
+            x.foo
+
     def test_error_messages(self):
         class FooWithError(CCIModel):
             bar: int = None
@@ -95,6 +101,15 @@ class TestCCIModel:
             Document.parse_from_yaml(s)
         assert "some_filename" in str(e.value)
 
+    def test_fields_no_alias(self):
+        class Foo(CCIDictModel):
+            bar: str = None
+
+        x = Foo.parse_obj({})
+        assert x
+        with pytest.raises(AttributeError):
+            x.fields
+
 
 class TestCCIDictModel:
     def test_fields_items(self):
@@ -115,3 +130,46 @@ class TestCCIDictModel:
 
         foo["fields"] = ["a", "b"]
         assert foo["fields"] == ["a", "b"]
+
+    def test_getitem_missing(self):
+        class Foo(CCIDictModel):
+            bar: str = None
+            fields_ = Field([], alias="fields")
+
+        x = Foo.parse_obj({})
+        assert x
+        with pytest.raises(IndexError):
+            x["foo"]
+
+        assert "bar" in x
+        assert "fields" in x
+        assert x["fields"] == []
+
+    def test_get(self):
+        class Foo(CCIDictModel):
+            bar: str = None
+            fields_ = Field([], alias="fields")
+
+        x = Foo.parse_obj({"bar": "q"})
+        assert x.get("bar") == x.bar == x["bar"] == "q"
+        assert x.get("xyzzy", 0) == 0
+        assert x.get("xyzzy") is None
+        assert x.get("fields") == []
+
+    def test_del(self):
+        class Foo(CCIDictModel):
+            bar: str = None
+            fields_ = Field([], alias="fields")
+
+        x = Foo.parse_obj({"bar": "q"})
+        assert x["bar"] == x.bar == "q"
+        assert "bar" in x
+        del x["bar"]
+        assert "bar" not in x
+        assert x.get("bar") is None
+
+        assert x["fields"] == x.fields == []
+        assert "fields" in x
+        del x["fields"]
+        assert "fields" not in x
+        assert x.get("fields") is None
