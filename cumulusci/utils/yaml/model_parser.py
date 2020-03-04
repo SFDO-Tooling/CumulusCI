@@ -1,5 +1,6 @@
 from typing import Union, IO
 from pathlib import Path, Sequence
+from typing_extensions import Literal
 
 from yaml import safe_load
 
@@ -8,6 +9,9 @@ from pydantic.error_wrappers import ErrorWrapper
 
 from cumulusci.utils.fileutils import load_from_source
 
+_error_handling = "warn", "raise"
+ErrorHandling = Literal[list(_error_handling)]
+
 
 class CCIModel(BaseModel):
     """Base class with convenience features"""
@@ -15,8 +19,39 @@ class CCIModel(BaseModel):
     _magic_fields = ["fields"]
 
     @classmethod
-    def parse_from_yaml(cls, data):
-        return parse_from_yaml(cls, data)
+    def parse_from_yaml(cls, source: Union[str, Path, IO]):
+        path, data = load_from_source(source, safe_load)
+        return cls.parse_obj(data, path).__root__
+
+    @classmethod
+    def parse_obj(cls, data: [dict, list], path: str = None):
+        try:
+            return super().parse_obj(data)
+        except ValidationError as e:
+            _add_filenames(e, path)
+            raise e
+
+    @classmethod
+    def validate_data(
+        cls,
+        data: Union[dict, list],
+        context: str = None,
+        on_error: ErrorHandling = "raise",
+        logfunc: callable = None,
+    ):
+        if on_error not in _error_handling:
+            raise ValueError(f"`on_error` should be `{ErrorHandling}`")
+        try:
+            cls.parse_obj(data, context)
+            return True
+        except ValidationError as e:
+            if logfunc:
+                logfunc(str(e))
+
+            if on_error == "raise":
+                raise
+
+            return False
 
     def _alias_for_field(self, name):
         "Find the name that we renamed a field to, to avoid Pydantic name clash"
@@ -84,15 +119,6 @@ class CCIDictModel(CCIModel):
 
     def __delitem__(self, name):
         del self.__dict__[name]
-
-
-def parse_from_yaml(model, source: Union[str, Path, IO]):
-    path, data = load_from_source(source, safe_load)
-    try:
-        return model(__root__=data).__root__
-    except ValidationError as e:
-        _add_filenames(e, path)
-        raise e
 
 
 def _add_filenames(e: ValidationError, filename):
