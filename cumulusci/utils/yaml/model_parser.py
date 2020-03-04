@@ -10,7 +10,7 @@ from pydantic.error_wrappers import ErrorWrapper
 from cumulusci.utils.fileutils import load_from_source
 
 _error_handling = "warn", "raise"
-ErrorHandling = Literal[list(_error_handling)]
+ErrorHandling = Literal[_error_handling]
 
 
 class CCIModel(BaseModel):

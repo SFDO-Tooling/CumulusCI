@@ -59,8 +59,9 @@ class TestCCIModel:
         assert "foo" in lf.mock_calls[0][1][0]
 
     def test_validate_on_error_param(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(Exception) as e:
             Document.validate_data({}, on_error="barn")
+        assert e.value.__class__ in [ValueError, TypeError]
 
     def test_error_messages(self):
         class FooWithError(CCIModel):
