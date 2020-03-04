@@ -1,7 +1,10 @@
 from unittest.mock import Mock, patch
-from pytest import xfail
+from pytest import xfail, mark
 
-from cumulusci.utils.yaml.cumulusci_yml import parse_from_yaml, cci_safe_load
+from cumulusci.utils.yaml.cumulusci_yml import (
+    parse_from_yaml,
+    cci_safe_load,
+)
 
 
 # fill this out.
@@ -42,28 +45,33 @@ class TestCumulusciYml:
         logfunc.assert_called()
         validate_data.assert_called()
 
+    @mark.skip  # slow and Internet dependent
     def test_from_web(self):
+        urls = """
+            https://raw.githubusercontent.com/SalesforceFoundation/NPSP/master/cumulusci.yml
+            https://raw.githubusercontent.com/SalesforceFoundation/EDA/master/cumulusci.yml
+            https://raw.githubusercontent.com/SFDO-Tooling/CumulusCI-Test/master/cumulusci.yml
+            https://raw.githubusercontent.com/SalesforceFoundation/Relationships/master/cumulusci.yml
+            https://raw.githubusercontent.com/SalesforceFoundation/Volunteers-for-Salesforce/master/cumulusci.yml
+            https://raw.githubusercontent.com/SalesforceFoundation/Recurring_Donations/master/cumulusci.yml
+        """
 
-        assert parse_from_yaml(
-            "https://raw.githubusercontent.com/SalesforceFoundation/NPSP/master/cumulusci.yml"
-        )
-        assert parse_from_yaml(
-            "https://raw.githubusercontent.com/SalesforceFoundation/EDA/master/cumulusci.yml"
-        )
-        xfail("Requires Internet Access and some of these YAMLs are buggy or obsolete")
-        # buggy? obsolete?
-        assert parse_from_yaml(
-            "https://raw.githubusercontent.com/SFDO-Tooling/CumulusCI-Test/master/cumulusci.yml"
-        )
-        # buggy? obsolete?
-        assert parse_from_yaml(
-            "https://raw.githubusercontent.com/SalesforceFoundation/Relationships/master/cumulusci.yml"
-        )
-        # buggy? obsolete?
-        assert parse_from_yaml(
-            "https://raw.githubusercontent.com/SalesforceFoundation/Volunteers-for-Salesforce/master/cumulusci.yml"
-        )
-        # buggy? obsolete?
-        assert parse_from_yaml(
-            "https://raw.githubusercontent.com/SalesforceFoundation/Recurring_Donations/master/cumulusci.yml"
-        )
+        def test(url):
+            try:
+                parse_from_yaml(url)
+                return True
+            except Exception as e:
+                print(url)
+                print(str(e))
+                return False
+
+        urls = (url.strip() for url in urls.split("\n"))
+        results = [(url, test(url)) for url in urls if url]
+        assert [result for (url, result) in results] == [1, 1, 0, 0, 0, 0]
+
+    @mark.skip  # depends on specific local file structure
+    def test_from_local(self):
+        xfail("Depends on specific directory structure. To be removed.")
+        assert parse_from_yaml("../Abacus/cumulusci.yml")
+        assert parse_from_yaml("../NPSP/cumulusci.yml")
+        assert parse_from_yaml("../CaseMan/cumulusci.yml")
