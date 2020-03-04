@@ -21,7 +21,6 @@ class CCIModel(BaseModel):
     def _alias_for_field(self, name):
         "Find the name that we renamed a field to, to avoid Pydantic name clash"
         for field in self.__fields__.values():
-            print(field.alias)
             if field.alias == name:
                 return field.name
 
