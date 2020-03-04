@@ -75,7 +75,6 @@ class TestCCIDictModel:
         # JSON is YAML. Strange but true.
         foo = Document.parse_from_yaml(StringIO("{bar: 'blah'}"))
         assert type(foo) == Foo
-        print(foo)
         assert foo["fields"] == []
 
         foo = Document.parse_from_yaml(StringIO("{bar: 'blah', fields: [1,2]}"))
