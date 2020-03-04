@@ -98,10 +98,10 @@ class Git(CCIDictModel):
 
 
 class ApexDoc(CCIDictModel):
-    homepage: str
-    banner: str
-    branch: str
-    repo_dir: Path
+    homepage: str = None  # can't find these in the CCI Python code
+    banner: str = None
+    branch: str = None
+    repo_dir: Path = None
 
 
 class Check(CCIDictModel):
