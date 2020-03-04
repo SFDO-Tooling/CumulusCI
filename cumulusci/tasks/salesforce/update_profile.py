@@ -7,7 +7,7 @@ from cumulusci.tasks.metadata_etl import (
     MetadataSingleEntityTransformTask,
 )
 
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils.xml import metadata_tree
@@ -103,7 +103,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
             if self.api_names or "profile_name" in self.options:
                 raise TaskOptionsError(
                     "The package_xml option is not compatible with the profile_name or api_names options. "
-                    "Specify desired packages in the custom package.xml"
+                    "Specify desired profiles in the custom package.xml"
                 )
 
             # Infer items to affect from what is retrieved.
@@ -160,6 +160,10 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
 
     def _expand_profile_members(self, package_xml):
         profile_names = package_xml.find("types", name="Profile")
+        if not profile_names:
+            raise CumulusCIException(
+                "The package.xml does not contain a Profiles member."
+            )
         for profile in self.api_names:
             profile_names.append("members", text=profile)
 
@@ -167,11 +171,15 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
         # Query the target org for all namespaced objects
         # Add these entities to the package.xml
 
-        results = self.tooling.query(
+        results = self.tooling.query_all(
             "SELECT DeveloperName, NamespacePrefix FROM CustomObject WHERE ManageableState != 'unmanaged'"
         )
 
         custom_objects = package_xml.find("types", name="CustomObject")
+        if not custom_objects:
+            raise CumulusCIException(
+                "Unable to add packaged objects to package.xml because it does not contain a <types> tag of type CustomObject."
+            )
 
         for record in results.get("records", []):
             custom_objects.append(

@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 from cumulusci.tasks.metadata_etl import MetadataOperation
 from cumulusci.tasks.salesforce import ProfileGrantAllAccess
 from cumulusci.utils import CUMULUSCI_PATH
@@ -150,9 +150,7 @@ def test_run_task():
 
         dest_path = task.deploy_dir / "profiles" / "Admin.profile"
         assert dest_path.exists()
-        assert dest_path.read_bytes().decode("utf-8") == ADMIN_PROFILE_EXPECTED.decode(
-            "utf-8"
-        )
+        assert dest_path.read_bytes() == ADMIN_PROFILE_EXPECTED
 
 
 def test_transforms_profile():
@@ -191,7 +189,7 @@ def test_throws_exception_record_type_not_found():
 def test_expand_package_xml():
     task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
     task.tooling = mock.Mock()
-    task.tooling.query.return_value = {
+    task.tooling.query_all.return_value = {
         "totalSize": 2,
         "records": [
             {"DeveloperName": "Test", "NamespacePrefix": "ns"},
@@ -204,6 +202,24 @@ def test_expand_package_xml():
     types = package_xml.find("types", name="CustomObject")
     assert "ns__Test__c" in {elem.text for elem in types.findall("members")}
     assert "fb__Foo_Bar__c" in {elem.text for elem in types.findall("members")}
+
+
+def test_expand_package_xml__broken_package():
+    task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
+    task.tooling = mock.Mock()
+    task.tooling.query_all.return_value = {
+        "totalSize": 2,
+        "records": [
+            {"DeveloperName": "Test", "NamespacePrefix": "ns"},
+            {"DeveloperName": "Foo_Bar", "NamespacePrefix": "fb"},
+        ],
+    }
+
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+    types = package_xml.find("types", name="CustomObject")
+    types.find("name").text = "NotCustomObject"
+    with pytest.raises(CumulusCIException):
+        task._expand_package_xml(package_xml)
 
 
 def test_expand_profile_members():
@@ -224,6 +240,25 @@ def test_expand_profile_members():
         "Admin",
         "ns__Continuous Integration",
     }
+
+
+def test_expand_profile_members__broken_package():
+    task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
+    task.tooling = mock.Mock()
+    task.tooling.query.return_value = {
+        "totalSize": 2,
+        "records": [
+            {"DeveloperName": "Test", "NamespacePrefix": "ns"},
+            {"DeveloperName": "Foo_Bar", "NamespacePrefix": "fb"},
+        ],
+    }
+
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+    types = package_xml.find("types", name="Profile")
+    types.find("name").text = "NotProfile"
+
+    with pytest.raises(CumulusCIException):
+        task._expand_profile_members(package_xml)
 
 
 def test_init_options__general():
