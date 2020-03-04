@@ -1,11 +1,13 @@
 """Wraps the github3 library to configure request retries."""
 
 import os
+from urllib.parse import urlparse
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 import github3
 from github3 import GitHub
+from github3 import GitHubEnterprise
 from github3 import login
 from github3.pulls import ShortPullRequest
 
@@ -17,7 +19,6 @@ from cumulusci.core.exceptions import GithubException
 # and https://github.community/t5/GitHub-API-Development-and/Random-401-errors-after-using-freshly-generated-installation/m-p/22905 suggests retrying
 retries = Retry(status_forcelist=(401, 502, 503, 504), backoff_factor=0.3)
 adapter = HTTPAdapter(max_retries=retries)
-
 
 def get_github_api(username=None, password=None):
     """Old API that only handles logging in as a user.
@@ -33,8 +34,18 @@ def get_github_api(username=None, password=None):
 INSTALLATIONS = {}
 
 
-def get_github_api_for_repo(keychain, owner, repo):
-    gh = GitHub()
+def get_github_api_for_repo(project_config, repo_url):
+    repo_info = project_config._parse_repo_url(repo_url)
+    url = repo_info["url"]
+    owner = repo_info["owner"]
+    repo = repo_info["name"]
+
+    if url.startswith("https://github.com"):
+        gh = GitHub()
+    else:
+        parsed_url = urlparse(url)
+        base_url = url.replace("/" + parsed_url.path, '')
+        gh = GitHubEnterprise(base_url)
     # Apply retry policy
     gh.session.mount("http://", adapter)
     gh.session.mount("https://", adapter)
@@ -55,8 +66,22 @@ def get_github_api_for_repo(keychain, owner, repo):
             INSTALLATIONS[(owner, repo)] = installation
         gh.login_as_app_installation(APP_KEY, APP_ID, installation.id)
     else:
-        github_config = keychain.get_service("github")
+        github_config = None
+        sites = {
+            "github": "https://github.com",
+        }
+        if project_config.project__git__sites is not None:
+            sites.update(project_config.project__git__sites)
+        for service, service_url in sites.items():
+            if url.startswith(service_url):
+                github_config = project_config.keychain.get_service(service)
+
+        if github_config is None:
+            raise GithubException(
+                f"Could not find a service mapping for GitHub site {url}."
+            )
         gh.login(github_config.username, github_config.password)
+
     return gh
 
 

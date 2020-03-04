@@ -5,6 +5,7 @@ import re
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
 import yaml
+import giturlparse
 
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
@@ -163,8 +164,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             }
 
         # Other CI environment implementations can be implemented here...
-
-        self._apply_repo_env_var_overrides(info)
+        info = self._apply_repo_env_var_overrides(info)
 
         if info["ci"]:
             self._validate_required_git_info(info)
@@ -188,8 +188,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 self.logger.info(
                     "CUMULUSCI_REPO_URL found, using its value as the repo url, owner, and name"
                 )
-            url_info = self._split_repo_url(repo_url)
+            url_info = self._parse_repo_url(repo_url)
             info.update(url_info)
+            return info
 
     def _override_repo_env_var(self, repo_env_var, local_var, info):
         repo_env_var = os.environ.get(repo_env_var)
@@ -226,14 +227,16 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.logger.warning(f"  {key}: {info[key]}")
         self.logger.info("")
 
-    def _split_repo_url(self, url):
-        url_parts = url.split("/")
-        name = url_parts[-1]
-        owner = url_parts[-2]
-        if name.endswith(".git"):
-            name = name[:-4]
-        git_info = {"url": url, "owner": owner, "name": name}
-        return git_info
+    def _parse_repo_url(self, url):
+        parsed = giturlparse.parse(url)
+        repo_url = parsed.url2https
+        if repo_url.endswith(".git"):
+            repo_url = repo_url[:-len(".git")]
+        return {
+            "url": repo_url,
+            "owner": parsed.owner,
+            "name": parsed.repo,
+        }
 
     @property
     def repo_root(self):
@@ -260,26 +263,22 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        in_remote_origin = False
-        with open(os.path.join(self.repo_root, ".git", "config"), "r") as f:
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and line.find("url =") != -1:
-                    return self._split_repo_url(line)["name"]
+        if not self.repo_url:
+            return
+
+        return self._parse_repo_url(self.repo_url)["name"]
 
     @property
     def repo_url(self):
         url = self.repo_info.get("url")
         if url:
             return url
-
+        
         if not self.repo_root:
             return
 
         git_config_file = os.path.join(self.repo_root, ".git", "config")
+        url = None
         with open(git_config_file, "r") as f:
             in_remote_origin = False
             for line in f:
@@ -288,7 +287,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     in_remote_origin = True
                     continue
                 if in_remote_origin and "url = " in line:
-                    return line[len("url = ") :]
+                    url = line[len("url = ") :]
+
+        # Convert URL to https format for use with GitHub API
+        if url is not None:
+            return self._parse_repo_url(url)["url"]
 
     @property
     def repo_owner(self):
@@ -299,16 +302,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        in_remote_origin = False
-        with open(os.path.join(self.repo_root, ".git", "config"), "r") as f:
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and line.find("url =") != -1:
-                    line_parts = line.split("/")
-                    return line_parts[-2].split(":")[-1]
+        return self._parse_repo_url(self.repo_url)["owner"]
 
     @property
     def repo_branch(self):
@@ -360,15 +354,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return commit_sha
 
-    def get_github_api(self, owner=None, repo=None):
+    def get_github_api(self, repo_url=None):
         return get_github_api_for_repo(
-            self.keychain, owner or self.repo_owner, repo or self.repo_name
+            self, repo_url or self.repo_url
         )
 
     def get_latest_tag(self, beta=False):
         """ Query Github Releases to find the latest production or beta tag """
-        gh = self.get_github_api()
-        repo = gh.repository(self.repo_owner, self.repo_name)
+        repo = self.get_github_api()
         if not beta:
             release = repo.latest_release()
             prefix = self.project__git__prefix_release
@@ -393,8 +386,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_previous_version(self):
         """Query GitHub releases to find the previous production release"""
-        gh = self.get_github_api()
-        repo = gh.repository(self.repo_owner, self.repo_name)
+        repo = self.get_github_api()
         release = find_previous_release(repo, self.project__git__prefix_release)
         if release is not None:
             return LooseVersion(self.get_version_for_tag(release.tag_name))
@@ -525,11 +517,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             skip = [skip]
 
         # Initialize github3.py API against repo
-        repo_owner, repo_name = dependency["github"].split("/")[3:5]
-        if repo_name.endswith(".git"):
-            repo_name = repo_name[:-4]
-        gh = self.get_github_api(repo_owner, repo_name)
-        repo = gh.repository(repo_owner, repo_name)
+        repo = self.get_github_api(dependency["github"])
 
         # Determine the commit
         release = None
