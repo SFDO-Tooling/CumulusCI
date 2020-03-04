@@ -6,7 +6,7 @@ from yaml import safe_load
 from pydantic import BaseModel, ValidationError, Field
 from pydantic.error_wrappers import ErrorWrapper
 
-from cumulusci.utils.pathutils import load_from_source
+from cumulusci.utils.fileutils import load_from_source
 
 
 class CCIModel(BaseModel):
