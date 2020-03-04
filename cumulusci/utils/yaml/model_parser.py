@@ -1,9 +1,12 @@
 from typing import Union, IO
-from pathlib import Path
+from pathlib import Path, Sequence
 
 from yaml import safe_load
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, Field
+from pydantic.error_wrappers import ErrorWrapper
+
+from cumulusci.utils.pathutils import load_from_source
 
 
 class CCIModel(BaseModel):
@@ -85,30 +88,35 @@ class CCIDictModel(CCIModel):
 
 
 def parse_from_yaml(model, source: Union[str, Path, IO]):
-    if hasattr(source, "read"):
-        data = safe_load(source)
-        path = _get_path_from_stream(source)
-    else:
-        path = source
-        with open(path) as f:
-            data = safe_load(f)
+    path, data = load_from_source(source, safe_load)
     try:
         return model(__root__=data).__root__
     except ValidationError as e:
-        # _add_filenames(e, path)
+        _add_filenames(e, path)
         raise e
 
 
-def _get_path_from_stream(stream):
-    stream_name = getattr(stream, "name", None)
-    if stream_name:
-        path = Path(stream.name).absolute()
-    else:
-        path = "<stream>"
-    return str(path)
-
-
 def _add_filenames(e: ValidationError, filename):
-    for lst in e.raw_errors:
-        for err in lst:
-            err._loc = (filename, *err._loc)
+    def _recursively_add_filenames(l):
+        processed = False
+        if isinstance(l, Sequence):
+            for e in l:
+                _recursively_add_filenames(e)
+            processed = True
+        elif isinstance(l, ValidationError):
+            _add_filenames(l)
+            processed = True
+        elif isinstance(l, ErrorWrapper):
+            if isinstance(l._loc, tuple):
+                l._loc = (filename, *l._loc)
+            else:
+                l._loc = (filename, l._loc)
+
+            processed = True
+        else:
+            assert processed, f"Should have processed by now {l}"
+
+    _recursively_add_filenames(e.raw_errors)
+
+
+Field = Field  # just for export
