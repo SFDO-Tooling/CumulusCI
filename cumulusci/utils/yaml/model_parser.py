@@ -10,7 +10,7 @@ from pydantic.error_wrappers import ErrorWrapper
 from cumulusci.utils.fileutils import load_from_source
 
 _error_handling = "warn", "raise"
-ErrorHandling = Literal[list(_error_handling)]
+ErrorHandling = Literal[_error_handling]
 
 
 class CCIModel(BaseModel):
@@ -91,14 +91,10 @@ class CCIDictModel(CCIModel):
 
     def __getitem__(self, name):
         """Pretend to a do my_dict[name]"""
-        if name != "fields":
+        try:
             return getattr(self, name)
-        else:
-            _fields_alias = self._alias_for_field(name)
-            if _fields_alias:
-                return getattr(self, _fields_alias)
-            else:
-                raise IndexError(name)
+        except AttributeError:
+            raise IndexError(name)
 
     def __setitem__(self, name, value):
         """Pretend to a do my_dict[name] = X"""
@@ -113,13 +109,14 @@ class CCIDictModel(CCIModel):
 
     def get(self, name, default=None):
         "Emulate dict.get()."
-        if name not in self._magic_fields:
-            return self.__dict__.get(name, default)
-        else:
-            _fields_alias = self._alias_for_field(name)
-            return self.get(_fields_alias, default)
+        if name in self._magic_fields:
+            name = self._alias_for_field(name)
+
+        return self.__dict__.get(name, default)
 
     def __delitem__(self, name):
+        if name in self._magic_fields:
+            name = self._alias_for_field(name)
         del self.__dict__[name]
 
 
@@ -131,17 +128,18 @@ def _add_filenames(e: ValidationError, filename):
                 _recursively_add_filenames(e)
             processed = True
         elif isinstance(l, ValidationError):
+            assert 0  # FIXME: is this dead code?
             _add_filenames(l)
             processed = True
         elif isinstance(l, ErrorWrapper):
             if isinstance(l._loc, tuple):
+                assert 0  # FIXME: is this dead code?
                 l._loc = (filename, *l._loc)
             else:
                 l._loc = (filename, l._loc)
 
             processed = True
-        else:
-            assert processed, f"Should have processed by now {l}"
+        assert processed, f"Should have processed by now {l}"
 
     _recursively_add_filenames(e.raw_errors)
 
