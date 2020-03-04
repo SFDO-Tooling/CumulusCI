@@ -47,7 +47,7 @@ def sfdx(
         p.stderr_text = io.TextIOWrapper(p.stderr, encoding=sys.stdout.encoding)
     if check_return and p.returncode:
         raise Exception(
-            f"Command exited with return code {p.returncode}:\n{p.stderr_text}"
+            f"Command exited with return code {p.returncode}:\n{p.stderr_text.read()}"
         )
     return p
 
