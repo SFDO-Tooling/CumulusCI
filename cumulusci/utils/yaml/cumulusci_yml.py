@@ -2,6 +2,7 @@ from typing import Dict, List, Any, Optional, Union
 from typing_extensions import Literal
 from yaml import safe_load
 from pathlib import Path
+from pydantic import validator
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel, ErrorHandling
 
@@ -10,24 +11,22 @@ PythonClass = str
 URL = str
 
 
-class FlowOrTask(CCIDictModel):
-    def __init__(self, **kwargs):
-        assert "flow" in kwargs or "task" in kwargs
-
+class FlowReference(CCIDictModel):
     flow: str = None
-    task: str = None
     options: Dict[str, Any] = {}
-    ignore_failure: bool = None
-
-
-class TaskUIOptions(CCIDictModel):
-    name: str = None
+    ignore_failure: bool = None  # is this allowed?
+    when: str = None  # is this allowed?
+    ui_options: Dict[str, Any] = {}
+    #  description, steps allowed?
 
 
 class TaskReference(CCIDictModel):
     task: str
     options: Dict[str, Any] = {}
-    ui_options: Dict[str, Dict[int, TaskUIOptions]] = {}
+    ui_options: Dict[str, Any] = {}
+    ignore_failure: bool = None
+    when: str = None  # is this a documented feature?
+    # classpath, description allowed?
 
 
 class Task(CCIDictModel):
@@ -36,12 +35,32 @@ class Task(CCIDictModel):
     description: str = None
     options: Dict[str, Any] = None
     group: str = None
-    ui_options: TaskUIOptions = None
+    ui_options: Dict[str, Any] = None
 
 
-class Flow(CCIDictModel):
+class StepsValidatorMixin:
+    @validator("steps", pre=True, whole=True)
+    def validate_steps(cls, steps):
+        if not isinstance(steps, Dict):
+            raise TypeError("steps must be a dict")
+        return dict(cls.steps_gen(steps))
+
+    @classmethod
+    def steps_gen(cls, steps):
+        for name, value in steps.items():
+            if value.get("flow") and value.get("task"):
+                raise ValueError(f"invalid step: {name}, both a task and a flow")
+            elif value.get("flow"):
+                yield name, FlowReference(**value)
+            elif value.get("task"):
+                yield name, TaskReference(**value)
+            else:
+                raise ValueError(f"invalid step: {name}, neither a task nor a flow")
+
+
+class Flow(CCIDictModel, StepsValidatorMixin):
     description: str = None
-    steps: Dict[str, FlowOrTask]
+    steps: Dict[str, Union[FlowReference, TaskReference]]
     group: str = None
 
 
@@ -91,13 +110,13 @@ class Check(CCIDictModel):
     message: str = None
 
 
-class Plan(CCIDictModel):  # MetaDeploy plans
+class Plan(CCIDictModel, StepsValidatorMixin):  # MetaDeploy plans
     title: str
     description: str = None
     tier: str = None
     slug: str = None
     is_listed: bool = None
-    steps: Dict[str, FlowOrTask] = None
+    steps: Dict[str, Union[FlowReference, TaskReference]]
     checks: List[Check] = None
     group: str = None
 
@@ -133,27 +152,33 @@ class Service(CCIDictModel):
     validator: PythonClass = None
 
 
-class CumulusCI(CCIDictModel):
+class CumulusCIConfig(CCIDictModel):
     keychain: PythonClass
 
 
-class CumulusCI(CCIDictModel):
+class Source(CCIDictModel):
+    github: URL = None
+    release: str = None
+
+
+class CumulusCIRoot(CCIDictModel):
     tasks: Dict[str, Task] = {}
     flows: Dict[str, Flow] = {}
     project: Project = {}
     orgs: Orgs = {}
     services: Dict[str, Service] = {}
-    cumulusci: CumulusCI = None
-    plans: Dict[str, Plan] = None
+    cumulusci: CumulusCIConfig = None
+    plans: Dict[str, Plan] = []
     minimum_cumulusci_version: str = None
+    sources: Dict[str, Source] = []
 
 
-class Document(CCIDictModel):
-    __root__: CumulusCI
+class CumulusCIFile(CCIDictModel):
+    __root__: CumulusCIRoot
 
 
-def parse_mapping_from_yaml(source):
-    return Document.parse_from_yaml(source)
+def parse_from_yaml(source):
+    return CumulusCIFile.parse_from_yaml(source)
 
 
 def validate_data(
@@ -162,7 +187,7 @@ def validate_data(
     on_error: ErrorHandling = "raise",
     logfunc: callable = None,
 ):
-    return Document.validate_data(
+    return CumulusCIFile.validate_data(
         data, context=context, on_error=on_error, logfunc=logfunc
     )
 

@@ -1,12 +1,13 @@
 from unittest.mock import Mock, patch
+from pytest import xfail
 
-from cumulusci.utils.yaml.cumulusci_yml import parse_mapping_from_yaml, cci_safe_load
+from cumulusci.utils.yaml.cumulusci_yml import parse_from_yaml, cci_safe_load
 
 
 # fill this out.
 class TestCumulusciYml:
     def test_cumulusci_yaml(self):
-        cciyml = parse_mapping_from_yaml("cumulusci.yml")
+        cciyml = parse_from_yaml("cumulusci.yml")
         assert cciyml.project.package.name == "CumulusCI"
         assert cciyml["project"]["package"]["name"] == "CumulusCI"
         assert (
@@ -16,7 +17,7 @@ class TestCumulusciYml:
         )
 
     def test_cumulusci_cumulusci_yaml(self):
-        cciyml = parse_mapping_from_yaml("cumulusci/cumulusci.yml")
+        cciyml = parse_from_yaml("cumulusci/cumulusci.yml")
         assert cciyml.tasks["connected_app"].options["overwrite"] is False
 
     def test_parse_cumulusci_yaml(self):
@@ -40,3 +41,29 @@ class TestCumulusciYml:
         assert isinstance(cciyml, dict)  # should parse despite model errors
         logfunc.assert_called()
         validate_data.assert_called()
+
+    def test_from_web(self):
+
+        assert parse_from_yaml(
+            "https://raw.githubusercontent.com/SalesforceFoundation/NPSP/master/cumulusci.yml"
+        )
+        assert parse_from_yaml(
+            "https://raw.githubusercontent.com/SalesforceFoundation/EDA/master/cumulusci.yml"
+        )
+        xfail("Requires Internet Access and some of these YAMLs are buggy or obsolete")
+        # buggy? obsolete?
+        assert parse_from_yaml(
+            "https://raw.githubusercontent.com/SFDO-Tooling/CumulusCI-Test/master/cumulusci.yml"
+        )
+        # buggy? obsolete?
+        assert parse_from_yaml(
+            "https://raw.githubusercontent.com/SalesforceFoundation/Relationships/master/cumulusci.yml"
+        )
+        # buggy? obsolete?
+        assert parse_from_yaml(
+            "https://raw.githubusercontent.com/SalesforceFoundation/Volunteers-for-Salesforce/master/cumulusci.yml"
+        )
+        # buggy? obsolete?
+        assert parse_from_yaml(
+            "https://raw.githubusercontent.com/SalesforceFoundation/Recurring_Donations/master/cumulusci.yml"
+        )
