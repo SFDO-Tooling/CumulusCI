@@ -1,10 +1,9 @@
 import os
 
-import yaml
-
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -47,13 +46,13 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
 
         # load the global config
         with open(self.config_global_path, "r") as f_config:
-            config = yaml.safe_load(f_config)
+            config = cci_safe_load(f_config)
         BaseGlobalConfig.config_global = config
 
         # Load the local config
         if self.config_global_local_path:
             with open(self.config_global_local_path, "r") as f:
-                config = yaml.safe_load(f)
+                config = cci_safe_load(f)
         else:
             config = {}
         BaseGlobalConfig.config_global_local = config

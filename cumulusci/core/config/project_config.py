@@ -4,8 +4,6 @@ import re
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
-import yaml
-
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
@@ -22,6 +20,8 @@ from cumulusci.core.github import find_previous_release
 from cumulusci.core.source import GitHubSource
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+
 from github3.exceptions import NotFoundError
 
 
@@ -86,7 +86,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Load the project's yaml config file
         with open(self.config_project_path, "r") as f_config:
-            project_config = yaml.safe_load(f_config)
+            project_config = cci_safe_load(
+                f_config, self.config_project_path, "warn", self.logger.warn
+            )
 
         if project_config:
             self.config_project.update(project_config)
@@ -94,13 +96,20 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
             with open(self.config_project_local_path, "r") as f_local_config:
-                local_config = yaml.safe_load(f_local_config)
+                local_config = cci_safe_load(
+                    f_local_config,
+                    self.config_project_local_path,
+                    "warn",
+                    self.logger.warn,
+                )
             if local_config:
                 self.config_project_local.update(local_config)
 
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
-            additional_yaml_config = yaml.safe_load(self.additional_yaml)
+            additional_yaml_config = cci_safe_load(
+                self.additional_yaml, self.config_project_path, "warn", self.logger.warn
+            )
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
@@ -558,7 +567,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
-        cumulusci_yml = yaml.safe_load(contents.decoded)
+        cumulusci_yml = cci_safe_load(
+            contents.decoded, f"cumulusci.yml from {ref}", "warn", self.logger.warn
+        )
 
         # Get the namespace from the cumulusci.yml if set
         package_config = cumulusci_yml.get("project", {}).get("package", {})
