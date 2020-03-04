@@ -1,16 +1,16 @@
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from typing_extensions import Literal
-
+from yaml import safe_load
 from pathlib import Path
 
-from cumulusci.utils.yaml.model_parser import CCIBaseModel
+from cumulusci.utils.yaml.model_parser import CCIDictModel, ErrorHandling
 
 
 PythonClass = str
 URL = str
 
 
-class FlowOrTask(CCIBaseModel):
+class FlowOrTask(CCIDictModel):
     def __init__(self, **kwargs):
         assert "flow" in kwargs or "task" in kwargs
 
@@ -20,17 +20,17 @@ class FlowOrTask(CCIBaseModel):
     ignore_failure: bool = None
 
 
-class TaskUIOptions(CCIBaseModel):
+class TaskUIOptions(CCIDictModel):
     name: str = None
 
 
-class TaskReference(CCIBaseModel):
+class TaskReference(CCIDictModel):
     task: str
     options: Dict[str, Any] = {}
     ui_options: Dict[str, Dict[int, TaskUIOptions]] = {}
 
 
-class Task(CCIBaseModel):
+class Task(CCIDictModel):
     name: str = None  # is this real or a typo
     class_path: str = None
     description: str = None
@@ -39,13 +39,13 @@ class Task(CCIBaseModel):
     ui_options: TaskUIOptions = None
 
 
-class Flow(CCIBaseModel):
+class Flow(CCIDictModel):
     description: str = None
     steps: Dict[str, FlowOrTask]
     group: str = None
 
 
-class Package(CCIBaseModel):
+class Package(CCIDictModel):
     name: Optional[str] = None
     name_managed: Optional[str] = None
     namespace: Optional[str] = None
@@ -54,20 +54,20 @@ class Package(CCIBaseModel):
     api_version: str = None
 
 
-class Test(CCIBaseModel):
+class Test(CCIDictModel):
     name_match: str
 
 
-class Parser(CCIBaseModel):
+class Parser(CCIDictModel):
     class_path: PythonClass
     title: str
 
 
-class ReleaseNotes(CCIBaseModel):
+class ReleaseNotes(CCIDictModel):
     parsers: Dict[int, Parser]  # should probably be a list
 
 
-class Git(CCIBaseModel):
+class Git(CCIDictModel):
     repo_url: str = None
     default_branch: str = None
     prefix_feature: str = None
@@ -78,20 +78,20 @@ class Git(CCIBaseModel):
     release_notes: ReleaseNotes = None
 
 
-class ApexDoc(CCIBaseModel):
+class ApexDoc(CCIDictModel):
     homepage: str
     banner: str
     branch: str
     repo_dir: Path
 
 
-class Check(CCIBaseModel):
+class Check(CCIDictModel):
     when: str = None
     action: str = None
     message: str = None
 
 
-class Plan(CCIBaseModel):  # MetaDeploy plans
+class Plan(CCIDictModel):  # MetaDeploy plans
     title: str
     description: str = None
     tier: str = None
@@ -102,7 +102,7 @@ class Plan(CCIBaseModel):  # MetaDeploy plans
     group: str = None
 
 
-class Project(CCIBaseModel):
+class Project(CCIDictModel):
     name: Optional[str]
     package: Package = None
     test: Test = None
@@ -112,32 +112,32 @@ class Project(CCIBaseModel):
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
 
 
-class ScratchOrg(CCIBaseModel):
+class ScratchOrg(CCIDictModel):
     config_file: Path
     days: int = None
     namespaced: str = None
 
 
-class Orgs(CCIBaseModel):
+class Orgs(CCIDictModel):
     scratch: Dict[str, ScratchOrg]
 
 
-class Attribute(CCIBaseModel):
+class Attribute(CCIDictModel):
     description: str
     required: bool
 
 
-class Service(CCIBaseModel):
+class Service(CCIDictModel):
     description: str
     attributes: Dict[str, Attribute]
     validator: PythonClass = None
 
 
-class CumulusCI(CCIBaseModel):
+class CumulusCI(CCIDictModel):
     keychain: PythonClass
 
 
-class CumulusCIRoot(CCIBaseModel):
+class CumulusCIRoot(CCIDictModel):
     tasks: Dict[str, Task] = {}
     flows: Dict[str, Flow] = {}
     project: Project = {}
@@ -148,9 +148,38 @@ class CumulusCIRoot(CCIBaseModel):
     minimum_cumulusci_version: str = None
 
 
-class Document(CCIBaseModel):
+class Document(CCIDictModel):
     __root__: CumulusCIRoot
 
 
 def parse_mapping_from_yaml(source):
     return Document.parse_from_yaml(source)
+
+
+def validate_data(
+    data: Union[dict, list],
+    context: str = None,
+    on_error: ErrorHandling = "raise",
+    logfunc: callable = None,
+):
+    return Document.validate_data(
+        data, context=context, on_error=on_error, logfunc=logfunc
+    )
+
+
+def cci_safe_load(
+    source,
+    context: str = None,
+    on_error: ErrorHandling = "warn",
+    logfunc: callable = None,
+):
+    """Transitional function for testing validator before depending upon it."""
+    data = safe_load(source)
+    try:
+        validate_data(data, context=context, on_error=on_error, logfunc=logfunc)
+    except Exception as e:
+        print(f"Error validating cumulusci.yml {e}")
+        if logfunc:
+            logfunc(f"Error validating cumulusci.yml {e}")
+        pass
+    return data
