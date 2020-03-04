@@ -137,7 +137,7 @@ class CumulusCI(CCIDictModel):
     keychain: PythonClass
 
 
-class CumulusCIRoot(CCIDictModel):
+class CumulusCI(CCIDictModel):
     tasks: Dict[str, Task] = {}
     flows: Dict[str, Flow] = {}
     project: Project = {}
@@ -149,7 +149,7 @@ class CumulusCIRoot(CCIDictModel):
 
 
 class Document(CCIDictModel):
-    __root__: CumulusCIRoot
+    __root__: CumulusCI
 
 
 def parse_mapping_from_yaml(source):
@@ -178,6 +178,7 @@ def cci_safe_load(
     try:
         validate_data(data, context=context, on_error=on_error, logfunc=logfunc)
     except Exception as e:
+        # should never be executed
         print(f"Error validating cumulusci.yml {e}")
         if logfunc:
             logfunc(f"Error validating cumulusci.yml {e}")

@@ -47,6 +47,8 @@ class CCIModel(BaseModel):
         except ValidationError as e:
             if logfunc:
                 logfunc(str(e))
+            else:
+                print(str(e))
 
             if on_error == "raise":
                 raise
