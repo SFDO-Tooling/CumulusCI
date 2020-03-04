@@ -260,7 +260,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             query = query.filter(*filter_args)
 
         if mapping["fields"].get("RecordTypeId"):
-            # if "RecordTypeId" in mapping["fields"]:
             rt_source_table = self.metadata.tables[mapping["sf_object"] + "_rt_mapping"]
             rt_dest_table = self.metadata.tables[
                 mapping["sf_object"] + "_rt_target_mapping"
@@ -421,11 +420,8 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
     def _init_mapping(self):
         """Load a YAML mapping file."""
         with open(self.options["mapping"], "r") as f:
+            # yaml.safe_load should also work here for now.
             self.mapping = parse_mapping_from_yaml(f)
-            # parse_mapping_from_yaml
-            # import yaml
-
-            # self.mapping = yaml.safe_load(f)
 
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps
