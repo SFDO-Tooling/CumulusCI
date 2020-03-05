@@ -88,84 +88,52 @@ class MetadataPackageVersion(BasePushApiObject):
         return version_number
 
     def get_newer_released_version_objs(self, less_than_version=None):
-        where = (
-            "MetadataPackageId = '%s' AND ReleaseState = 'Released' AND "
-            % self.package.sf_id
-        )
-        version_info = {"major": self.major, "minor": self.minor, "patch": self.patch}
-        where += (
-            "(MajorVersion > %(major)s OR (MajorVersion = %(major)s AND MinorVersion > %(minor)s))"
-            % version_info
-        )
-        if self.patch:
-            patch_where = (
-                " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion > %(patch))"
-                % version_info
-            )
-            where = where[:-1] + patch_where + where[-1:]
-
-        if less_than_version:
-            version_info = {
-                "major": less_than_version.major,
-                "minor": less_than_version.minor,
-                "patch": less_than_version.patch,
-            }
-            less_than_where = (
-                " AND (MajorVersion < %(major)s OR (MajorVersion = %(major)s AND MinorVersion < %(minor)s))"
-                % version_info
-            )
-            if less_than_version.patch:
-                patch_where = (
-                    " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion < %(patch))"
-                    % version_info
-                )
-                less_than_where = (
-                    less_than_where[:-1] + patch_where + less_than_where[-1:]
-                )
-            where += less_than_where
-
+        where = self._newer_query(less_than_version)
         versions = self.package.get_package_version_objs(where)
         return versions
 
     def get_older_released_version_objs(self, greater_than_version=None):
-        where = (
-            "MetadataPackageId = '%s' AND ReleaseState = 'Released' AND "
-            % self.package.sf_id
-        )
-        version_info = {"major": self.major, "minor": self.minor, "patch": self.patch}
-        where += (
-            "(MajorVersion < %(major)s OR (MajorVersion = %(major)s AND MinorVersion < %(minor)s))"
-            % version_info
-        )
+        where = self._older_query(greater_than_version)
+        versions = self.package.get_package_version_objs(where)
+        return versions
+
+    def _newer_query(self, less_than_version=None):
+        where = self._base_query()
+        where += f"(MajorVersion > {self.major} OR (MajorVersion = {self.major} AND MinorVersion > {self.minor}))"
         if self.patch:
-            patch_where = (
-                " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion < %(patch))"
-                % version_info
+            patch_where = f" OR (MajorVersion = {self.major} AND MinorVersion = {self.minor} AND PatchVersion > {self.patch})"
+            where = where[:-1] + patch_where + where[-1:]
+
+        if less_than_version:
+            less_than_where = " AND " + (
+                less_than_version._older_query().lstrip(less_than_version._base_query())
             )
+            where += less_than_where
+
+        return where
+
+    def _older_query(self, greater_than_version=None):
+        where = self._base_query()
+        where += f"(MajorVersion < {self.major} OR (MajorVersion = {self.major} AND MinorVersion < {self.minor}))"
+        if self.patch:
+            patch_where = f" OR (MajorVersion = {self.major} AND MinorVersion = {self.minor} AND PatchVersion < {self.patch})"
             where = where[:-1] + patch_where + where[-1:]
 
         if greater_than_version:
-            version_info = {
-                "major": greater_than_version.major,
-                "minor": greater_than_version.minor,
-                "patch": greater_than_version.patch,
-            }
-            greater_than_where = (
-                " AND (MajorVersion > %(major)s OR (MajorVersion = %(major)s AND MinorVersion > %(minor)s))"
-                % version_info
+            greater_than_where = " AND " + (
+                greater_than_version._newer_query().lstrip(
+                    greater_than_version._base_query()
+                )
             )
-            if greater_than_version.patch:
-                patch_where = (
-                    " OR (MajorVersion = %(major)s AND MinorVersion = %(minor)s AND PatchVersion > %(patch))"
-                    % version_info
-                )
-                greater_than_where = (
-                    greater_than_where[:-1] + patch_where + greater_than_where[-1:]
-                )
             where += greater_than_where
 
-        versions = self.package.get_package_version_objs(where)
-        return versions
+        return where
+
+    def _base_query(self):
+        return (
+            f"MetadataPackageId = '{self.package.sf_id}' AND "
+            + "ReleaseState = 'Released' AND "
+        )
 
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where("MetadataPackageVersionId", where)
