@@ -1,8 +1,11 @@
 from typing import Dict, List
+from logging import getLogger
 
-from pydantic import Field
+from pydantic import Field, validator
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel
+
+LOGGER_NAME = "MAPPING_LOADER"
 
 
 class Lookup(CCIDictModel):
@@ -24,6 +27,20 @@ class Step(CCIDictModel):
     action: str = "insert"
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: str = None  # should be discussed and probably deprecated
+
+    @validator("record_type")
+    def record_type_is_deprecated(cls, v):
+        getLogger(LOGGER_NAME).warning(
+            "record_type is deprecated. Just supply an RecordTypeId column declaration and it will be inferred"
+        )
+        return v
+
+    @validator("oid_as_pk")
+    def oid_as_pk_is_deprecated(cls, v):
+        getLogger(LOGGER_NAME).warning(
+            "oid_as_pk is deprecated. Just supply an Id column declaration and it will be inferred."
+        )
+        return v
 
 
 class MappingSteps(CCIDictModel):
