@@ -117,7 +117,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         step = BulkApiQueryOperation(
             sobject=mapping["sf_object"], api_options={}, context=self, query=soql
         )
-
+        self.logger.info(f"Extracting data for sObject {mapping['sf_object']}")
         step.query()
 
         if step.job_result.status is DataOperationStatus.SUCCESS:

@@ -67,7 +67,7 @@ class DeleteData(BaseSalesforceApiTask):
 
             if not qs.job_result.total_records:
                 self.logger.info("No records found, skipping delete operation")
-                return
+                continue
 
             self.logger.info(f"Deleting {self._object_description(obj)} ")
             ds = BulkApiDmlOperation(
@@ -97,9 +97,7 @@ class DeleteData(BaseSalesforceApiTask):
                 self.logger, self.options["ignore_row_errors"], self.row_warning_limit
             )
             for result in ds.get_results():
-                error_checker.check_for_row_error(
-                    result, result.id,
-                )
+                error_checker.check_for_row_error(result, result.id)
 
     def _object_description(self, obj):
         """Return a readable description of the object set to delete."""

@@ -127,7 +127,7 @@ class BulkJobMixin:
         while True:
             job_status = self.bulk.job_status(job_id)
             self.logger.info(
-                f"Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']})"
+                f"Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']} batches complete)"
             )
             result = self._job_state_from_batches(job_id)
             if result.status is not DataOperationStatus.IN_PROGRESS:
@@ -191,6 +191,7 @@ class BulkApiQueryOperation(BaseQueryOperation, BulkJobMixin):
 
     def query(self):
         self.job_id = self.bulk.create_query_job(self.sobject, contentType="CSV")
+        self.logger.info(f"Created Bulk API query job {self.job_id}")
         self.batch_id = self.bulk.query(self.job_id, self.soql)
 
         self.job_result = self._wait_for_job(self.job_id)

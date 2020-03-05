@@ -152,6 +152,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         # create more Bulk API batches than expected, regardless of batch size, while capping
         # memory usage.
         for row in query.yield_per(10000):
+            total_rows += 1
             # Add static values to row
             pkey = row[0]
             row = list(row[1:]) + statics
@@ -334,9 +335,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             if result.success:
                 yield (local_id, result.id)
             else:
-                error_checker.check_for_row_error(
-                    result, local_id,
-                )
+                error_checker.check_for_row_error(result, local_id)
 
     def _initialize_id_table(self, mapping, should_reset_table):
         """initalize or find table to hold the inserted SF Ids
