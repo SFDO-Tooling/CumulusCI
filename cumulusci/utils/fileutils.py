@@ -1,31 +1,90 @@
+from typing import IO, ContextManager, Text, Tuple
+from contextlib import contextmanager
 from pathlib import Path
-from urllib.request import urlopen
+from io import TextIOWrapper
+import requests
+from io import StringIO
+
+"""Utilities for working with files"""
 
 
 def _get_path_from_stream(stream):
+    "Try to infer a name from an open stream"
     stream_name = getattr(stream, "name", None)
-    if stream_name:
-        path = Path(stream.name).absolute()
+    if isinstance(stream_name, str):
+        path = Path(stream_name).absolute()
     else:
-        path = "<stream>"
+        path = getattr(stream, "url", "<stream>")
     return str(path)
 
 
-def load_from_source(source, loader):
-    if hasattr(source, "read"):  # open file-like
-        data = loader(source)
+@contextmanager
+def load_from_source(source) -> ContextManager[Tuple[Text, IO[Text]]]:
+    """Normalize potential data sources into uniform tuple
+
+     Take as input a file-like, path-like, or URL-like
+     and convert to an file-file and a string representing
+     where it came from. Pass the open file to the loader
+     to load the data and then return the result.
+
+    For example:
+
+    >>> from yaml import safe_load
+    >>> with load_from_source("cumulusci.yml") as (path, file):
+    ...      print(path)
+    ...      print(safe_load(file).keys())
+    ...
+    cumulusci.yml
+    dict_keys(['project', 'tasks', 'flows', 'orgs'])
+
+    >>> with load_from_source('http://www.salesforce.com') as (path, file):
+    ...     print(path)
+    ...     print(file.read(10))
+    ...
+    http://www.salesforce.com
+    <!DOCTYPE
+
+    >>> from urllib.request import urlopen
+    >>> with urlopen("http://www.salesforce.com") as f:
+    ...     with load_from_source(f) as (path, file):
+    ...         print(path)
+    ...         print(file.read(10))
+    ...
+    https://www.salesforce.com/ca/?ir=1
+    <!DOCTYPE
+
+    >>> from pathlib import Path
+    >>> p = Path(".") / "cumulusci.yml"
+    >>> with load_from_source(p) as (path, file):
+    ...     print(path)
+    ...     print(file.readline().strip())
+    ...
+    cumulusci.yml
+    project:
+    """
+    if (
+        hasattr(source, "read") and hasattr(source, "readable") and source.readable()
+    ):  # open file-like
         path = _get_path_from_stream(source)
-    elif hasattr(source, "open"):  # path-like
-        with source.open() as f:
-            data = loader(f)
+        if not hasattr(source, "encoding"):  # not decoded yet
+            source = TextIOWrapper(source, "utf-8")
+        yield path, source
+    elif hasattr(source, "open"):  # pathlib.Path-like
+        with source.open("rt") as f:
             path = str(source)
+            yield path, f
     elif "://" in source:  # URL string-like
         url = source
-        with urlopen(url) as f:
-            data = loader(f)
-            path = url
-    else:  # path string-like
+        resp = requests.get(url)
+        resp.raise_for_status()
+        yield url, StringIO(resp.text)
+    else:  # path-string-like
         path = source
-        with open(path) as f:
-            data = loader(f)
-    return path, data
+        with open(path, "rt") as f:
+            yield path, f
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod(verbose=True)

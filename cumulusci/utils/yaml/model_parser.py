@@ -20,8 +20,9 @@ class CCIModel(BaseModel):
 
     @classmethod
     def parse_from_yaml(cls, source: Union[str, Path, IO]):
-        path, data = load_from_source(source, safe_load)
-        return cls.parse_obj(data, path).__root__
+        with load_from_source(source) as (path, file):
+            data = safe_load(file)
+            return cls.parse_obj(data, path).__root__
 
     @classmethod
     def parse_obj(cls, data: [dict, list], path: str = None):
