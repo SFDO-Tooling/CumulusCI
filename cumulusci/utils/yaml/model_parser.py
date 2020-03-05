@@ -10,7 +10,7 @@ from cumulusci.utils.fileutils import load_from_source
 
 
 class CCIModel(BaseModel):
-    """Base class with convenience features"""
+    """Base class for CumulusCI's Pydantic models"""
 
     _magic_fields = ["fields"]
 
