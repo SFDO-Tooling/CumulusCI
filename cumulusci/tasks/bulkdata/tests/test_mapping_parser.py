@@ -1,8 +1,11 @@
 from pathlib import Path
 import logging
-from yaml import safe_load, dump
 from io import StringIO
-from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
+import pytest
+
+from yaml import safe_load, dump, YAMLError
+
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, ValidationError
 
 
 class TestMappingParser:
@@ -36,3 +39,19 @@ class TestMappingParser:
 
         parse_from_yaml(StringIO(dump(raw_mapping)))
         assert "oid_as_pk" in caplog.text
+
+    def test_bad_mapping_syntax(self):
+        base_path = Path(__file__).parent / "mapping_v2.yml"
+        with open(base_path, "r") as f:
+            data = f.read().replace(":", ": abcd")
+            print(data)
+            with pytest.raises(YAMLError):
+                parse_from_yaml(StringIO(data))
+
+    def test_bad_mapping_grammer(self):
+        base_path = Path(__file__).parent / "mapping_v2.yml"
+        with open(base_path, "r") as f:
+            data = f.read().replace("record_type", "xyzzy")
+            print(data)
+            with pytest.raises(ValidationError):
+                parse_from_yaml(StringIO(data))

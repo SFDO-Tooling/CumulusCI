@@ -1,7 +1,7 @@
 from typing import Dict, List
 from logging import getLogger
 
-from pydantic import Field, validator
+from pydantic import Field, validator, ValidationError
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 
@@ -48,6 +48,9 @@ class Step(CCIDictModel):
 class MappingSteps(CCIDictModel):
     "Mapping of named steps"
     __root__: Dict[str, Step]
+
+
+ValidationError = ValidationError  # export Pydantic's Validation Error under an alias
 
 
 def parse_from_yaml(source):

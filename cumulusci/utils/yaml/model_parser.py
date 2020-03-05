@@ -3,7 +3,7 @@ from pathlib import Path, Sequence
 
 from yaml import safe_load
 
-from pydantic import BaseModel, ValidationError, Field
+from pydantic import BaseModel, ValidationError
 from pydantic.error_wrappers import ErrorWrapper
 
 from cumulusci.utils.fileutils import load_from_source
@@ -137,9 +137,3 @@ def _add_filenames(e: ValidationError, filename):
         assert processed, f"Should have processed by now {l}, {repr(l)}"
 
     _recursively_add_filenames(e.raw_errors)
-
-
-# just for export as a convenience to consumers
-# of this module who will usually need it but not need any more
-# of Pydantic
-Field = Field
