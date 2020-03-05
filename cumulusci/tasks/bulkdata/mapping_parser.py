@@ -9,6 +9,7 @@ LOGGER_NAME = "MAPPING_LOADER"
 
 
 class Lookup(CCIDictModel):
+    "Lookup relationship between two tables."
     table: str
     key_field: str = None
     value_field: str = None
@@ -18,6 +19,7 @@ class Lookup(CCIDictModel):
 
 
 class Step(CCIDictModel):
+    "Step in a load or extract process"
     sf_object: str
     table: str = None
     fields_: Dict[str, str] = Field(..., alias="fields")
@@ -44,8 +46,10 @@ class Step(CCIDictModel):
 
 
 class MappingSteps(CCIDictModel):
+    "Mapping of named steps"
     __root__: Dict[str, Step]
 
 
-def parse_mapping_from_yaml(source):
+def parse_from_yaml(source):
+    "Parse a mapping file from a YAML source."
     return MappingSteps.parse_from_yaml(source)

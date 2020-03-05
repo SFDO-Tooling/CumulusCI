@@ -19,7 +19,7 @@ from cumulusci.tasks.bulkdata.step import (
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
 
-from cumulusci.tasks.bulkdata.mapping_parser import parse_mapping_from_yaml
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
 class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
@@ -421,7 +421,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         """Load a YAML mapping file."""
         with open(self.options["mapping"], "r") as f:
             # yaml.safe_load should also work here for now.
-            self.mapping = parse_mapping_from_yaml(f)
+            self.mapping = parse_from_yaml(f)
 
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps
