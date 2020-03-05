@@ -9,10 +9,22 @@ from cumulusci.tasks.push.push_api import (
     memoize,
 )
 
+NAME = "Chewbacca"
+SF_ID = "033xxxxxxxxx"
+PUSH_API = "push_api"
+NAMESPACE = "namespace"
+
 
 @pytest.fixture
 def sf_push_api():
     return SalesforcePushApi(mock.Mock(), mock.Mock())  # sf  # logger
+
+
+@pytest.fixture
+def metadata_package():
+    return MetadataPackage(
+        push_api=mock.Mock(), name=NAME, sf_id=SF_ID, namespace=NAMESPACE
+    )
 
 
 def test_base_push_format_where():
@@ -30,10 +42,6 @@ def test_base_push_format_where():
 
 
 def test_metadata_package_init():
-    NAME = "Chewbacca"
-    SF_ID = "sf_id"
-    PUSH_API = "push_api"
-    NAMESPACE = "namespace"
 
     package = MetadataPackage(PUSH_API, NAME)
     assert package.push_api == PUSH_API
@@ -46,6 +54,31 @@ def test_metadata_package_init():
     assert package.sf_id == SF_ID
     assert package.name == NAME
     assert package.namespace == NAMESPACE
+
+
+def test_metadata_package_get_versions(metadata_package):
+    expected = f"MetadataPackageId = '{SF_ID}'"
+    metadata_package.get_package_versions()
+    metadata_package.push_api.get_package_versions.assert_called_once()
+    metadata_package.push_api.get_package_versions.assert_called_with(expected, None)
+
+
+def test_metadata_package_get_version_objs(metadata_package):
+    expected = f"MetadataPackageId = '{SF_ID}'"
+    metadata_package.get_package_version_objs()
+    metadata_package.push_api.get_package_version_objs.assert_called_once()
+    metadata_package.push_api.get_package_version_objs.assert_called_with(
+        expected, None
+    )
+
+
+def test_metadata_package_get_versions_by_id(metadata_package):
+    expected = f"MetadataPackageId = '{SF_ID}'"
+    metadata_package.get_package_versions_by_id()
+    metadata_package.push_api.get_package_versions_by_id.assert_called_once()
+    metadata_package.push_api.get_package_versions_by_id.assert_called_with(
+        expected, None
+    )
 
 
 def test_sf_push_return_query_records(sf_push_api):
