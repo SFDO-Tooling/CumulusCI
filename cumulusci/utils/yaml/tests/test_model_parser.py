@@ -6,8 +6,8 @@ from cumulusci.utils.yaml.model_parser import (
     CCIDictModel,
     CCIModel,
     ValidationError,
-    Field,
 )
+from pydantic import Field
 
 
 class Foo(CCIModel):
