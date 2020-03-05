@@ -55,3 +55,8 @@ class TestMappingParser:
             print(data)
             with pytest.raises(ValidationError):
                 parse_from_yaml(StringIO(data))
+
+    def test_load_from_bytes_stream(self):
+        base_path = Path(__file__).parent / "mapping_v2.yml"
+        with open(base_path, "rb") as f:
+            assert parse_from_yaml(f)
