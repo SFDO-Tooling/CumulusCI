@@ -39,7 +39,7 @@ def load_from_source(source) -> ContextManager[Tuple[Text, IO[Text]]]:
 
     >>> with load_from_source('http://www.salesforce.com') as (path, file):
     ...     print(path)
-    ...     print(file.read(10))
+    ...     print(file.read(10).strip())
     ...
     http://www.salesforce.com
     <!DOCTYPE
@@ -48,7 +48,7 @@ def load_from_source(source) -> ContextManager[Tuple[Text, IO[Text]]]:
     >>> with urlopen("http://www.salesforce.com") as f:
     ...     with load_from_source(f) as (path, file):
     ...         print(path)
-    ...         print(file.read(10))
+    ...         print(file.read(10).strip())
     ...
     https://www.salesforce.com/ca/?ir=1
     <!DOCTYPE
@@ -87,4 +87,4 @@ def load_from_source(source) -> ContextManager[Tuple[Text, IO[Text]]]:
 if __name__ == "__main__":
     import doctest
 
-    doctest.testmod(verbose=True)
+    doctest.testmod(report=True)

@@ -1,16 +1,57 @@
 import doctest
-from cumulusci.utils import fileutils
+from tempfile import TemporaryFile
+from io import BytesIO, UnsupportedOperation
+from pathlib import Path
+
+import pytest
 import responses
+
+from cumulusci.utils import fileutils
+from cumulusci.utils.fileutils import load_from_source
 
 
 class TestFileutils:
     @responses.activate
-    def test_fileutils(self):
+    def test_docstrings(self):
+        responses.add("GET", "http://www.salesforce.com", body="<!DOCTYPE HTML ...")
         try:
-            with responses.RequestsMock() as rsps:
-                rsps.add("GET", "http://www.salesforce.com", body="<!DOCTYPE HTML ...")
-                doctest.testmod(fileutils, raise_on_error=True, verbose=True)
+            doctest.testmod(fileutils, raise_on_error=True, verbose=True)
         except doctest.DocTestFailure as e:
             print("Got")
             print(str(e.got))
             raise
+
+    def test_binary_becomes_string(self):
+        with load_from_source(BytesIO(b"foo")) as (path, file):
+            data = file.read()
+            assert isinstance(data, str)
+            assert data == "foo"
+
+    def test_writable_file_throws(self):
+        with TemporaryFile("wt") as t:
+            with pytest.raises(UnsupportedOperation):
+                with load_from_source(t) as (filename, data):
+                    pass
+
+    @responses.activate
+    def test_load_from_url(self):
+        html = "<!DOCTYPE HTML ..."
+        responses.add("GET", "http://www.salesforce.com", body=html)
+        with load_from_source("http://www.salesforce.com") as (filename, data):
+            assert data.read() == html
+
+    @responses.activate
+    def test_load_from_Path(self):
+        import cumulusci
+
+        p = Path(cumulusci.__file__).parent / "cumulusci.yml"
+        with load_from_source(p) as (filename, data):
+            assert "tasks:" in data.read()
+
+    @responses.activate
+    def test_load_from_path_string(self):
+        import cumulusci
+
+        p = Path(cumulusci.__file__).parent / "cumulusci.yml"
+        with load_from_source(str(p)) as (filename, data):
+            assert "tasks:" in data.read()
