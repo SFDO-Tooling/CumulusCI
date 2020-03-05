@@ -121,7 +121,10 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         step.query()
 
         if step.job_result.status is DataOperationStatus.SUCCESS:
-            self._import_results(mapping, step)
+            if step.job_result.total_records != 0:
+                self._import_results(mapping, step)
+            else:
+                self.logger.info(f"No records found for sObject {mapping['sf_object']}")
         else:
             raise BulkDataException(
                 f"Unable to execute query: {','.join(step.job_result.job_errors)}"
