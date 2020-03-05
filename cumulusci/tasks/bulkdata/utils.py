@@ -79,10 +79,13 @@ class SqlAlchemyMixin:
         )
 
         self._sql_bulk_insert_from_records(
-            conn,
-            table,
-            ["record_type_id", "developer_name"],
-            ([rt["Id"], rt["DeveloperName"]] for rt in self.sf.query(query)["records"]),
+            connection=conn,
+            table=table,
+            columns=["record_type_id", "developer_name"],
+            record_iterable=(
+                [rt["Id"], rt["DeveloperName"]]
+                for rt in self.sf.query(query)["records"]
+            ),
         )
 
 
