@@ -37,7 +37,9 @@ class CCIModel(BaseModel):
         """Validate data which has already been loaded into a dictionary or list.
 
         context is a string that will be used to give context to error messages.
-        on_error will be called for any validation errors
+        on_error will be called for any validation errors with a dictionary in Pydantic error format
+
+        https://pydantic-docs.helpmanual.io/usage/models/#error-handling
         """
         try:
             cls.parse_obj(data, context)
