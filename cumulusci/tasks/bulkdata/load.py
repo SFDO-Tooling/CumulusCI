@@ -464,6 +464,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                     }
                     for l in lookups:
                         mapping["lookups"][l] = lookups[l].copy()
-                        del mapping["lookups"][l]["after"]
+                        mapping["lookups"][l]["after"] = None
 
                     self.after_steps[after][name] = mapping
