@@ -1,6 +1,5 @@
 from typing import Union, IO
 from pathlib import Path, Sequence
-from typing_extensions import Literal
 
 from yaml import safe_load
 
@@ -8,9 +7,6 @@ from pydantic import BaseModel, ValidationError, Field
 from pydantic.error_wrappers import ErrorWrapper
 
 from cumulusci.utils.fileutils import load_from_source
-
-_error_handling = "warn", "raise"
-ErrorHandling = Literal[_error_handling]
 
 
 class CCIModel(BaseModel):
@@ -20,12 +16,14 @@ class CCIModel(BaseModel):
 
     @classmethod
     def parse_from_yaml(cls, source: Union[str, Path, IO]):
+        "Parse from a path, url, path-like or file-like"
         with load_from_source(source) as (path, file):
             data = safe_load(file)
             return cls.parse_obj(data, path).__root__
 
     @classmethod
     def parse_obj(cls, data: [dict, list], path: str = None):
+        "Parse a structured dict or list into Model objects"
         try:
             return super().parse_obj(data)
         except ValidationError as e:
@@ -34,23 +32,20 @@ class CCIModel(BaseModel):
 
     @classmethod
     def validate_data(
-        cls,
-        data: Union[dict, list],
-        context: str = None,
-        on_error: ErrorHandling = "raise",
-        logfunc: callable = None,
+        cls, data: Union[dict, list], context: str = None, on_error: callable = None,
     ):
-        if on_error not in _error_handling:
-            raise ValueError(f"`on_error` should be `{ErrorHandling}`")
+        """Validate data which has already been loaded into a dictionary or list.
+
+        context is a string that will be used to give context to error messages.
+        on_error will be called for any validation errors
+        """
         try:
             cls.parse_obj(data, context)
             return True
         except ValidationError as e:
-            if logfunc:
-                logfunc(str(e))
-
-            if on_error == "raise":
-                raise
+            if on_error:
+                for error in e.errors():
+                    on_error(error)
 
             return False
 
@@ -78,8 +73,13 @@ class CCIModel(BaseModel):
         return super().__setattr__(name, value)
 
     class Config:
-        """If you replace this config class, make sure you replace
-           the parameter below too"""
+        """Pydantic Config
+
+        If you replace this config class in a sub-class, make sure you replace
+        the parameter below too.
+
+        https://pydantic-docs.helpmanual.io/usage/model_config/
+           """
 
         extra = "forbid"
 
@@ -131,16 +131,15 @@ def _add_filenames(e: ValidationError, filename):
             _add_filenames(l)
             processed = True
         elif isinstance(l, ErrorWrapper):
-            if isinstance(l._loc, tuple):
-                assert 0  # FIXME: is this dead code?
-                l._loc = (filename, *l._loc)
-            else:
-                l._loc = (filename, l._loc)
+            l._loc = (filename, l._loc)
 
             processed = True
-        assert processed, f"Should have processed by now {l}"
+        assert processed, f"Should have processed by now {l}, {repr(l)}"
 
     _recursively_add_filenames(e.raw_errors)
 
 
-Field = Field  # just for export
+# just for export as a convenience to consumers
+# of this module who will usually need it but not need any more
+# of Pydantic
+Field = Field

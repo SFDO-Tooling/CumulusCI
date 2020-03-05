@@ -39,28 +39,21 @@ class TestCCIModel:
     def test_validate_data__success(self):
         assert Document.validate_data({"bar": "blah"})
 
-    def test_validate_data__error(self):
-        lf = Mock()
-        with pytest.raises(ValidationError) as e:
-            Document.validate_data({"foo": "fail"}, context="pytest", logfunc=lf)
-        assert "pytest" in str(e.value)
-        assert "foo" in str(e.value)
-        lf.assert_called()
-        assert "pytest" in lf.mock_calls[0][1][0]
-        assert "foo" in lf.mock_calls[0][1][0]
+    def test_validate_data__without_error_handler(self):
+        assert not Document.validate_data({"foo": "fail"}, context="pytest")
 
-    def test_validate_data__quietly(self):
+    def test_validate_data__with_error_handler(self):
         lf = Mock()
-        Document.validate_data(
-            {"foo": "fail"}, context="pytest", logfunc=lf, on_error="warn"
+        assert not Document.validate_data(
+            {"foo": "fail"}, context="pytest", on_error=lf
         )
         lf.assert_called()
-        assert "pytest" in lf.mock_calls[0][1][0]
-        assert "foo" in lf.mock_calls[0][1][0]
+        assert "pytest" in str(lf.mock_calls[0][1][0])
+        assert "foo" in str(lf.mock_calls[0][1][0])
 
     def test_validate_on_error_param(self):
         with pytest.raises(Exception) as e:
-            Document.validate_data({}, on_error="barn")
+            assert not Document.validate_data({"qqq": "zzz"}, on_error="barn")
         assert e.value.__class__ in [ValueError, TypeError]
 
     def test_getattr_missing(self):
