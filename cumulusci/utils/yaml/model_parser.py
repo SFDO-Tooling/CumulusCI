@@ -128,10 +128,6 @@ def _add_filenames(e: ValidationError, filename):
             for e in l:
                 _recursively_add_filenames(e)
             processed = True
-        elif isinstance(l, ValidationError):
-            assert 0  # FIXME: is this dead code?
-            _add_filenames(l)
-            processed = True
         elif isinstance(l, ErrorWrapper):
             l._loc = (filename, l._loc)
 
