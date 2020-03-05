@@ -76,11 +76,11 @@ class TestSqlAlchemyMixin(unittest.TestCase):
             "SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='Account'"
         )
         util._sql_bulk_insert_from_records.assert_called_once()
-        call = util._sql_bulk_insert_from_records.call_args_list[0][0]
-        assert call[0] == conn
-        assert call[1] == "test_table"
-        assert call[2] == ["record_type_id", "developer_name"]
-        assert list(call[3]) == [["012000000000000", "Organization"]]
+        call = util._sql_bulk_insert_from_records.call_args_list[0][1]
+        assert call["connection"] == conn
+        assert call["table"] == "test_table"
+        assert call["columns"] == ["record_type_id", "developer_name"]
+        assert list(call["record_iterable"]) == [["012000000000000", "Organization"]]
 
     def test_sql_bulk_insert_from_records__sqlite(self):
         with temporary_dir() as d:
