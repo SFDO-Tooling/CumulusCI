@@ -48,10 +48,10 @@ def load_from_source(source) -> ContextManager[Tuple[Text, IO[Text]]]:
     >>> with urlopen("http://www.salesforce.com") as f:
     ...     with load_from_source(f) as (path, file):
     ...         print(path)
-    ...         print(file.read(10).strip())
+    ...         print(file.read(10).strip())  #doctest: +ELLIPSIS
     ...
-    https://www.salesforce.com/ca/?ir=1
-    <!DOCTYPE
+    https://www.salesforce.com/...
+    <!DOCTYPE...
 
     >>> from pathlib import Path
     >>> p = Path(".") / "cumulusci.yml"
