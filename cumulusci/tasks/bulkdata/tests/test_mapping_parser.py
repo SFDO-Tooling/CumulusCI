@@ -20,7 +20,6 @@ class TestMappingParser:
         step = result["Insert Accounts"]
         lookups = step["lookups"]
         assert lookups
-        print(lookups)
         assert "after" in lookups["ParentId"]
         after_list = {l["after"] for l in lookups.values() if "after" in l}
         assert after_list
@@ -34,7 +33,6 @@ class TestMappingParser:
 
         with open(base_path) as f:
             raw_mapping = safe_load(f)
-        print(raw_mapping)
         raw_mapping["Insert Households"]["oid_as_pk"] = True
 
         parse_from_yaml(StringIO(dump(raw_mapping)))
@@ -44,7 +42,6 @@ class TestMappingParser:
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
             data = f.read().replace(":", ": abcd")
-            print(data)
             with pytest.raises(YAMLError):
                 parse_from_yaml(StringIO(data))
 
@@ -52,7 +49,6 @@ class TestMappingParser:
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
             data = f.read().replace("record_type", "xyzzy")
-            print(data)
             with pytest.raises(ValidationError):
                 parse_from_yaml(StringIO(data))
 
