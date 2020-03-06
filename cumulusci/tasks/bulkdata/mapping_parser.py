@@ -10,7 +10,7 @@ LOGGER_NAME = "MAPPING_LOADER"
 logger = getLogger(LOGGER_NAME)
 
 
-class Lookup(CCIDictModel):
+class MappingLookup(CCIDictModel):
     "Lookup relationship between two tables."
     table: str
     key_field: str = None
@@ -20,12 +20,12 @@ class Lookup(CCIDictModel):
     aliased_table: str = None
 
 
-class Step(CCIDictModel):
+class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
     table: str = None
     fields_: Dict[str, str] = Field(..., alias="fields")
-    lookups: Dict[str, Lookup] = {}
+    lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
     action: str = "insert"
@@ -49,7 +49,7 @@ class Step(CCIDictModel):
 
 class MappingSteps(CCIDictModel):
     "Mapping of named steps"
-    __root__: Dict[str, Step]
+    __root__: Dict[str, MappingStep]
 
 
 ValidationError = ValidationError  # export Pydantic's Validation Error under an alias

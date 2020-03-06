@@ -20,7 +20,7 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.mapping_parser import Lookup
+from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup
 
 
 MAPPING_FILE = """Insert Households:
@@ -369,7 +369,7 @@ class TestLoadData(unittest.TestCase):
         )
         lookups = {}
         lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
-        lookups["Primary_Contact__c"] = Lookup(table="contacts")
+        lookups["Primary_Contact__c"] = MappingLookup(table="contacts")
         self.assertEqual(
             {
                 "sf_object": "Account",
@@ -384,7 +384,7 @@ class TestLoadData(unittest.TestCase):
         )
         lookups = {}
         lookups["Id"] = {"table": "contacts", "key_field": "sf_id"}
-        lookups["ReportsToId"] = Lookup(table="contacts")
+        lookups["ReportsToId"] = MappingLookup(table="contacts")
         self.assertEqual(
             {
                 "sf_object": "Contact",
@@ -403,7 +403,7 @@ class TestLoadData(unittest.TestCase):
         )
         lookups = {}
         lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
-        lookups["ParentId"] = Lookup(table="accounts")
+        lookups["ParentId"] = MappingLookup(table="accounts")
         self.assertEqual(
             {
                 "sf_object": "Account",
