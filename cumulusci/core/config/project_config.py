@@ -63,6 +63,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if os.path.isfile(path):
             return path
 
+    def _handle_yaml_error(self, error):
+        self.logger.warn("CumulusCI Parsing Error:")
+        try:
+            loc = " -> ".join(error["loc"])
+        except Exception:
+            loc = ""
+
+        self.logger.warn("%s : %s", loc, error["msg"])
+
     def _load_config(self):
         """ Loads the configuration from YAML, if no override config was passed in initially. """
 
@@ -87,7 +96,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Load the project's yaml config file
         with open(self.config_project_path, "r") as f_config:
             project_config = cci_safe_load(
-                f_config, self.config_project_path, "warn", self.logger.warn
+                f_config, self.config_project_path, self._handle_yaml_error
             )
 
         if project_config:
@@ -99,8 +108,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 local_config = cci_safe_load(
                     f_local_config,
                     self.config_project_local_path,
-                    "warn",
-                    self.logger.warn,
+                    self._handle_yaml_error,
                 )
             if local_config:
                 self.config_project_local.update(local_config)
@@ -108,7 +116,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
             additional_yaml_config = cci_safe_load(
-                self.additional_yaml, self.config_project_path, "warn", self.logger.warn
+                self.additional_yaml, self.config_project_path, self._handle_yaml_error
             )
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
@@ -568,7 +576,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
         cumulusci_yml = cci_safe_load(
-            contents.decoded, f"cumulusci.yml from {ref}", "warn", self.logger.warn
+            contents.decoded, f"cumulusci.yml from {ref}", self._handle_yaml_error
         )
 
         # Get the namespace from the cumulusci.yml if set

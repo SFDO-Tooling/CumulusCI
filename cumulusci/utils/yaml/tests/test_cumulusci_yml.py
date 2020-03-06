@@ -27,11 +27,11 @@ class TestCumulusciYml:
         yaml = """xyz:
                     y: abc"""
         lf = Mock()
-        cciyml = cci_safe_load(yaml, "foo", on_error="warn", logfunc=lf)
+        cciyml = cci_safe_load(yaml, "foo", on_error=lf)
         assert isinstance(cciyml, dict)  # should parse despite model errors
         lf.assert_called()
-        assert "foo" in lf.mock_calls[0][1][0]
-        assert "xyz" in lf.mock_calls[0][1][0]
+        assert "foo" in str(lf.mock_calls[0][1][0])
+        assert "xyz" in str(lf.mock_calls[0][1][0])
 
     @patch("cumulusci.utils.yaml.cumulusci_yml.validate_data")
     def test_unexpected_exceptions(self, validate_data):
@@ -39,7 +39,7 @@ class TestCumulusciYml:
         yaml = """xyz:
             y: abc"""
         logfunc = Mock()
-        cciyml = cci_safe_load(yaml, "foo", on_error="warn", logfunc=logfunc)
+        cciyml = cci_safe_load(yaml, "foo", on_error=logfunc)
 
         assert isinstance(cciyml, dict)  # should parse despite model errors
         logfunc.assert_called()

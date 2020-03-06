@@ -4,7 +4,7 @@ from yaml import safe_load
 from pathlib import Path
 from pydantic import validator
 
-from cumulusci.utils.yaml.model_parser import CCIDictModel, ErrorHandling
+from cumulusci.utils.yaml.model_parser import CCIDictModel
 
 
 PythonClass = str
@@ -182,30 +182,28 @@ def parse_from_yaml(source):
 
 
 def validate_data(
-    data: Union[dict, list],
-    context: str = None,
-    on_error: ErrorHandling = "raise",
-    logfunc: callable = None,
+    data: Union[dict, list], context: str = None, on_error: callable = None,
 ):
-    return CumulusCIFile.validate_data(
-        data, context=context, on_error=on_error, logfunc=logfunc
-    )
+    return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
 
 
 def cci_safe_load(
-    source,
-    context: str = None,
-    on_error: ErrorHandling = "warn",
-    logfunc: callable = None,
+    source, context: str = None, on_error: callable = None,
 ):
     """Transitional function for testing validator before depending upon it."""
     data = safe_load(source)
     try:
-        validate_data(data, context=context, on_error=on_error, logfunc=logfunc)
+        validate_data(data, context=context, on_error=on_error)
     except Exception as e:
         # should never be executed
         print(f"Error validating cumulusci.yml {e}")
-        if logfunc:
-            logfunc(f"Error validating cumulusci.yml {e}")
+        if on_error:
+            on_error(
+                {
+                    "loc": (source,),
+                    "msg": f"Error validating cumulusci.yml {e}",
+                    "type": "exception",
+                }
+            )
         pass
     return data

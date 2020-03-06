@@ -1,14 +1,17 @@
-from typing import Dict, List
+from typing import Dict, List, Union, IO
 from logging import getLogger
+from pathlib import Path
 
-from pydantic import Field, validator
+from pydantic import Field, validator, ValidationError
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 
 LOGGER_NAME = "MAPPING_LOADER"
+logger = getLogger(LOGGER_NAME)
 
 
-class Lookup(CCIDictModel):
+class MappingLookup(CCIDictModel):
+    "Lookup relationship between two tables."
     table: str
     key_field: str = None
     value_field: str = None
@@ -17,11 +20,12 @@ class Lookup(CCIDictModel):
     aliased_table: str = None
 
 
-class Step(CCIDictModel):
+class MappingStep(CCIDictModel):
+    "Step in a load or extract process"
     sf_object: str
     table: str = None
     fields_: Dict[str, str] = Field(..., alias="fields")
-    lookups: Dict[str, Lookup] = {}
+    lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
     action: str = "insert"
@@ -30,22 +34,27 @@ class Step(CCIDictModel):
 
     @validator("record_type")
     def record_type_is_deprecated(cls, v):
-        getLogger(LOGGER_NAME).warning(
-            "record_type is deprecated. Just supply an RecordTypeId column declaration and it will be inferred"
+        logger.warning(
+            "record_type is deprecated. Just supply a RecordTypeId column declaration and it will be inferred"
         )
         return v
 
     @validator("oid_as_pk")
     def oid_as_pk_is_deprecated(cls, v):
-        getLogger(LOGGER_NAME).warning(
+        logger.warning(
             "oid_as_pk is deprecated. Just supply an Id column declaration and it will be inferred."
         )
         return v
 
 
 class MappingSteps(CCIDictModel):
-    __root__: Dict[str, Step]
+    "Mapping of named steps"
+    __root__: Dict[str, MappingStep]
 
 
-def parse_mapping_from_yaml(source):
+ValidationError = ValidationError  # export Pydantic's Validation Error under an alias
+
+
+def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
+    "Parse from a path, url, path-like or file-like"
     return MappingSteps.parse_from_yaml(source)

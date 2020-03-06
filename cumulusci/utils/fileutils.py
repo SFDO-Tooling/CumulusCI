@@ -1,4 +1,4 @@
-from typing import IO, ContextManager, Text, Tuple
+from typing import IO, ContextManager, Text, Tuple, Union
 from contextlib import contextmanager
 from pathlib import Path
 from io import TextIOWrapper
@@ -19,7 +19,9 @@ def _get_path_from_stream(stream):
 
 
 @contextmanager
-def load_from_source(source) -> ContextManager[Tuple[Text, IO[Text]]]:
+def load_from_source(
+    source: Union[str, IO, Path]
+) -> ContextManager[Tuple[Text, IO[Text]]]:
     """Normalize potential data sources into uniform tuple
 
      Take as input a file-like, path-like, or URL-like
@@ -48,10 +50,10 @@ def load_from_source(source) -> ContextManager[Tuple[Text, IO[Text]]]:
     >>> with urlopen("http://www.salesforce.com") as f:
     ...     with load_from_source(f) as (path, file):
     ...         print(path)
-    ...         print(file.read(10).strip())
+    ...         print(file.read(10).strip())  #doctest: +ELLIPSIS
     ...
-    https://www.salesforce.com/ca/?ir=1
-    <!DOCTYPE
+    https://www.salesforce.com/...
+    <!DOCTYPE...
 
     >>> from pathlib import Path
     >>> p = Path(".") / "cumulusci.yml"
@@ -84,7 +86,7 @@ def load_from_source(source) -> ContextManager[Tuple[Text, IO[Text]]]:
             yield path, f
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     doctest.testmod(report=True)

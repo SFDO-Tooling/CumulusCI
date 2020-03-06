@@ -19,7 +19,7 @@ from cumulusci.tasks.bulkdata.step import (
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
 
-from cumulusci.tasks.bulkdata.mapping_parser import parse_mapping_from_yaml
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
 class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
@@ -421,7 +421,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         """Load a YAML mapping file."""
         with open(self.options["mapping"], "r") as f:
             # yaml.safe_load should also work here for now.
-            self.mapping = parse_mapping_from_yaml(f)
+            self.mapping = parse_from_yaml(f)
 
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps
@@ -432,7 +432,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         for step in self.mapping.values():
             step["action"] = step.get("action", "insert")
             if step.get("lookups") and any(
-                [l["after"] for l in step["lookups"].values() if l.get("after")]
+                [l.get("after") for l in step["lookups"].values()]
             ):
                 # We have deferred/dependent lookups.
                 # Synthesize mapping steps for them.
@@ -464,6 +464,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                     }
                     for l in lookups:
                         mapping["lookups"][l] = lookups[l].copy()
-                        del mapping["lookups"][l]["after"]
+                        mapping["lookups"][l]["after"] = None
 
                     self.after_steps[after][name] = mapping
