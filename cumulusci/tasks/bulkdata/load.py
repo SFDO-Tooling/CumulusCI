@@ -4,8 +4,6 @@ from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
 from sqlalchemy.ext.automap import automap_base
 
-import yaml
-
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import (
@@ -20,6 +18,8 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
+
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
 class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
@@ -110,7 +110,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
     def _load_mapping(self, mapping):
         """Load data for a single step."""
 
-        if "RecordTypeId" in mapping["fields"]:
+        if mapping.get("fields", {}).get("RecordTypeId"):
             conn = self.session.connection()
             self._load_record_types([mapping["sf_object"]], conn)
 
@@ -179,7 +179,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         columns = []
         columns.extend(mapping.get("fields", {}).keys())
         # Don't include lookups with an `after:` spec (dependent lookups)
-        columns.extend([f for f in lookups if "after" not in lookups[f]])
+        columns.extend([f for f in lookups if not lookups[f].get("after")])
         columns.extend(mapping.get("static", {}).keys())
         # If we're using Record Type mapping, `RecordTypeId` goes at the end.
         if "RecordTypeId" in columns:
@@ -236,30 +236,31 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         lookups = {
             lookup_field: lookup
             for lookup_field, lookup in mapping.get("lookups", {}).items()
-            if "after" not in lookup
+            if not lookup.get("after")
         }
+
         for lookup in lookups.values():
             lookup["aliased_table"] = aliased(
                 self.metadata.tables[f"{lookup['table']}_sf_ids"]
             )
             columns.append(lookup["aliased_table"].columns.sf_id)
 
-        if "RecordTypeId" in mapping["fields"]:
+        if mapping["fields"].get("RecordTypeId"):
             rt_dest_table = self.metadata.tables[
                 mapping["sf_object"] + "_rt_target_mapping"
             ]
             columns.append(rt_dest_table.columns.record_type_id)
 
         query = self.session.query(*columns)
-        if "record_type" in mapping and hasattr(model, "record_type"):
+        if mapping.get("record_type") and hasattr(model, "record_type"):
             query = query.filter(model.record_type == mapping["record_type"])
-        if "filters" in mapping:
+        if mapping.get("filters"):
             filter_args = []
             for f in mapping["filters"]:
                 filter_args.append(text(f))
             query = query.filter(*filter_args)
 
-        if "RecordTypeId" in mapping["fields"]:
+        if mapping["fields"].get("RecordTypeId"):
             rt_source_table = self.metadata.tables[mapping["sf_object"] + "_rt_mapping"]
             rt_dest_table = self.metadata.tables[
                 mapping["sf_object"] + "_rt_target_mapping"
@@ -409,7 +410,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 self.models[mapping["table"]] = self.base.classes[mapping["table"]]
 
             # create any Record Type tables we need
-            if "fields" in mapping and "RecordTypeId" in mapping["fields"]:
+            if mapping.get("fields", {}).get("RecordTypeId"):
                 self._create_record_type_table(
                     mapping["sf_object"] + "_rt_target_mapping"
                 )
@@ -418,7 +419,8 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
     def _init_mapping(self):
         """Load a YAML mapping file."""
         with open(self.options["mapping"], "r") as f:
-            self.mapping = yaml.safe_load(f)
+            # yaml.safe_load should also work here for now.
+            self.mapping = parse_from_yaml(f)
 
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps
@@ -428,15 +430,15 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         for step in self.mapping.values():
             step["action"] = step.get("action", "insert")
-            if "lookups" in step and any(
-                ["after" in l for l in step["lookups"].values()]
+            if step.get("lookups") and any(
+                [l.get("after") for l in step["lookups"].values()]
             ):
                 # We have deferred/dependent lookups.
                 # Synthesize mapping steps for them.
 
                 sobject = step["sf_object"]
                 after_list = {
-                    l["after"] for l in step["lookups"].values() if "after" in l
+                    l["after"] for l in step["lookups"].values() if l.get("after")
                 }
 
                 for after in after_list:
@@ -461,6 +463,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                     }
                     for l in lookups:
                         mapping["lookups"][l] = lookups[l].copy()
-                        del mapping["lookups"][l]["after"]
+                        mapping["lookups"][l]["after"] = None
 
                     self.after_steps[after][name] = mapping

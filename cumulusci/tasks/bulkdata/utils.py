@@ -23,7 +23,7 @@ def batch_iterator(iterator, n=10000):
 
 
 def get_lookup_key_field(lookup, sf_field):
-    return lookup.get("key_field", convert_to_snake_case(sf_field))
+    return lookup.get("key_field") or convert_to_snake_case(sf_field)
 
 
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time

@@ -20,6 +20,7 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils import temporary_dir
+from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup
 
 
 MAPPING_FILE = """Insert Households:
@@ -368,7 +369,7 @@ class TestLoadData(unittest.TestCase):
         )
         lookups = {}
         lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
-        lookups["Primary_Contact__c"] = {"table": "contacts"}
+        lookups["Primary_Contact__c"] = MappingLookup(table="contacts")
         self.assertEqual(
             {
                 "sf_object": "Account",
@@ -383,7 +384,7 @@ class TestLoadData(unittest.TestCase):
         )
         lookups = {}
         lookups["Id"] = {"table": "contacts", "key_field": "sf_id"}
-        lookups["ReportsToId"] = {"table": "contacts"}
+        lookups["ReportsToId"] = MappingLookup(table="contacts")
         self.assertEqual(
             {
                 "sf_object": "Contact",
@@ -402,7 +403,7 @@ class TestLoadData(unittest.TestCase):
         )
         lookups = {}
         lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
-        lookups["ParentId"] = {"table": "accounts"}
+        lookups["ParentId"] = MappingLookup(table="accounts")
         self.assertEqual(
             {
                 "sf_object": "Account",
@@ -745,6 +746,7 @@ class TestLoadData(unittest.TestCase):
             fields=[],
         )
         step.results = [DataOperationResult(None, False, "message")]
+        step.end()
 
         mapping = {"table": "Account", "action": "update"}
 
