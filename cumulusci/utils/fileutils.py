@@ -86,7 +86,7 @@ def load_from_source(
             yield path, f
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     doctest.testmod(report=True)
