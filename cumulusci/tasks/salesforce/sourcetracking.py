@@ -207,6 +207,7 @@ def retrieve_components(
     to a namespace prefix to replace it with a `%%%NAMESPACE%%%` token.
     """
 
+    target = os.path.realpath(target)
     with contextlib.ExitStack() as stack:
         if md_format:
             # Create target if it doesn't exist
