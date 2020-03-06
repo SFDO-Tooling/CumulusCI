@@ -432,7 +432,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         for step in self.mapping.values():
             step["action"] = step.get("action", "insert")
             if step.get("lookups") and any(
-                [l["after"] for l in step["lookups"].values() if l.get("after")]
+                [l.get("after") for l in step["lookups"].values()]
             ):
                 # We have deferred/dependent lookups.
                 # Synthesize mapping steps for them.
