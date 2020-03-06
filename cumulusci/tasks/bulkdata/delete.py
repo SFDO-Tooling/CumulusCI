@@ -65,7 +65,7 @@ class DeleteData(BaseSalesforceApiTask):
                     f"Unable to query records for {obj}: {','.join(qs.job_result.job_errors)}"
                 )
 
-            if not qs.job_result.total_records:
+            if not qs.job_result.records_processed:
                 self.logger.info("No records found, skipping delete operation")
                 continue
 

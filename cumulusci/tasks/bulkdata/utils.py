@@ -78,15 +78,17 @@ class SqlAlchemyMixin:
             f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
         )
 
-        self._sql_bulk_insert_from_records(
-            connection=conn,
-            table=table,
-            columns=["record_type_id", "developer_name"],
-            record_iterable=(
-                [rt["Id"], rt["DeveloperName"]]
-                for rt in self.sf.query(query)["records"]
-            ),
-        )
+        result = self.sf.query(query)
+
+        if result["totalSize"]:
+            self._sql_bulk_insert_from_records(
+                connection=conn,
+                table=table,
+                columns=["record_type_id", "developer_name"],
+                record_iterable=(
+                    [rt["Id"], rt["DeveloperName"]] for rt in result["records"]
+                ),
+            )
 
 
 def _handle_primary_key(mapping, fields):

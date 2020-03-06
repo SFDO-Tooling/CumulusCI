@@ -305,13 +305,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
             conn = self.session.connection()
 
-        # other code expects the table to be created even if it is empty
-        # so after we create it we can bail.
-        if not step.job_result.total_records:
-            return
-
         results_generator = self._generate_results_id_map(step, local_ids)
-        if mapping["action"] == "insert":
+
+        # If we know we have no successful inserts, don't attempt to persist Ids.
+        # Do, however, drain the generator to get error-checking behavior.
+        if mapping["action"] == "insert" and (
+            step.job_result.records_processed - step.job_result.total_row_errors
+        ):
             self._sql_bulk_insert_from_records(
                 connection=conn,
                 table=id_table_name,

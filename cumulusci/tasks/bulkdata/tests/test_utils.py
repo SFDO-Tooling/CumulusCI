@@ -65,7 +65,8 @@ class TestSqlAlchemyMixin(unittest.TestCase):
         util._sql_bulk_insert_from_records = mock.Mock()
         util.sf = mock.Mock()
         util.sf.query.return_value = {
-            "records": [{"Id": "012000000000000", "DeveloperName": "Organization"}]
+            "totalSize": 1,
+            "records": [{"Id": "012000000000000", "DeveloperName": "Organization"}],
         }
         util.logger = mock.Mock()
 
