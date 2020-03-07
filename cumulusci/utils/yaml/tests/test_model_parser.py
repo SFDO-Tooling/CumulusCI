@@ -103,6 +103,16 @@ class TestCCIModel:
         with pytest.raises(AttributeError):
             x.fields
 
+    def test_copy(self):
+        class Foo(CCIDictModel):
+            bar: str = None
+
+        x = Foo(bar="abc")
+        y = x.copy()
+        y.bar = "def"
+        assert x.bar == "abc"
+        assert y.bar == "def"
+
 
 class TestCCIDictModel:
     def test_fields_items(self):

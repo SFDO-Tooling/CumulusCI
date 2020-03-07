@@ -1018,3 +1018,27 @@ class TestLoadData(unittest.TestCase):
             assert hh_ids == ("1", "001000000000000")
 
             task.session.close()
+
+    def test_run__complex_lookups(self):
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task._init_mapping()
+        print(task.mapping)
+        assert (
+            task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
+            == "Insert Accounts"
+        )
+        task.models = {}
+        task.models["accounts"] = mock.MagicMock()
+        task.models["accounts"].__table__ = mock.MagicMock()
+        task._expand_mapping()
+        assert (
+            task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
+            == "Insert Accounts"
+        )
