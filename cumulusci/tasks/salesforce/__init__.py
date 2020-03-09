@@ -44,8 +44,12 @@ from cumulusci.tasks.salesforce.DeployBundles import DeployBundles
 from cumulusci.tasks.salesforce.InstallPackageVersion import InstallPackageVersion
 from cumulusci.tasks.salesforce.UninstallPackage import UninstallPackage
 
-# Backwards-compatibility for UpdateAdminProfile
-from cumulusci.tasks.salesforce.update_profile import UpdateProfile, UpdateAdminProfile
+# Backwards-compatibility for UpdateAdminProfile/UpdateProfile
+from cumulusci.tasks.salesforce.update_profile import (
+    ProfileGrantAllAccess,
+    UpdateProfile,
+    UpdateAdminProfile,
+)
 from cumulusci.tasks.salesforce import update_profile
 
 sys.modules["cumulusci.tasks.salesforce.UpdateAdminProfile"] = update_profile
@@ -93,6 +97,7 @@ flake8Hack = (
     UninstallPackage,
     UpdateProfile,
     UpdateAdminProfile,
+    ProfileGrantAllAccess,
     UninstallLocal,
     UninstallLocalBundles,
     UninstallPackaged,
