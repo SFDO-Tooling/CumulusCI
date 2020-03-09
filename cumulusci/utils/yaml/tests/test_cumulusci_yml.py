@@ -3,7 +3,6 @@ from io import StringIO
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load, _replace_nbsp
 
 
-# fill this out.
 class TestCumulusciYml:
     def test_simple_load(self, caplog):
         yaml = """xyz:
@@ -23,7 +22,7 @@ class TestCumulusciYml:
         assert isinstance(cciyml, dict)  # should parse despite funny character
         assert cciyml["xyz"]["y"] == "abc", cciyml
 
-    def test_converter(self, caplog):
+    def test_converter(self):
         inp = """xyz:
            \u00A0 y: abc"""
         outp = """xyz:
@@ -32,7 +31,7 @@ class TestCumulusciYml:
         rc = _replace_nbsp(inp)
         assert rc == outp
 
-    def test_converter_is_selective(self, caplog):
+    def test_converter_is_selective(self):
         inp = """xyz:
              y: abc\u00A0"""
 
