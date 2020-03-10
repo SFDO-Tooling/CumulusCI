@@ -23,6 +23,15 @@ def create_db_file(filename):
     return engine, metadata
 
 
+def create_db_memory():
+    """Create a SQLite database in memory"""
+    db_url = "sqlite:///"
+    engine = create_engine(db_url)
+    metadata = MetaData()
+    metadata.bind = engine
+    return engine, metadata
+
+
 class TestEpochType(unittest.TestCase):
     def test_process_bind_param(self):
         obj = bulkdata.utils.EpochType()
@@ -84,36 +93,30 @@ class TestSqlAlchemyMixin(unittest.TestCase):
         assert list(call["record_iterable"]) == [["012000000000000", "Organization"]]
 
     def test_sql_bulk_insert_from_records__sqlite(self):
-        with temporary_dir() as d:
-            tmp_db_path = os.path.join(d, "temp.db")
+        engine, metadata = create_db_memory()
+        fields = [
+            Column("id", Integer(), primary_key=True, autoincrement=True),
+            Column("sf_id", Unicode(24)),
+        ]
+        id_t = Table("TestTable", metadata, *fields)
+        id_t.create()
+        model = type("TestModel", (object,), {})
+        mapper(model, id_t)
 
-            try:
-                engine, metadata = create_db_file(tmp_db_path)
-                fields = [
-                    Column("id", Integer(), primary_key=True, autoincrement=True),
-                    Column("sf_id", Unicode(24)),
-                ]
-                id_t = Table("TestTable", metadata, *fields)
-                id_t.create()
-                model = type("TestModel", (object,), {})
-                mapper(model, id_t)
+        util = bulkdata.utils.SqlAlchemyMixin()
+        util.metadata = metadata
+        session = create_session(bind=engine, autocommit=False)
+        util.session = session
+        connection = session.connection()
 
-                util = bulkdata.utils.SqlAlchemyMixin()
-                util.metadata = metadata
-                session = create_session(bind=engine, autocommit=False)
-                util.session = session
-                connection = session.connection()
+        util._sql_bulk_insert_from_records(
+            connection=connection,
+            table="TestTable",
+            columns=("id", "sf_id"),
+            record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
+        )
 
-                util._sql_bulk_insert_from_records(
-                    connection=connection,
-                    table="TestTable",
-                    columns=("id", "sf_id"),
-                    record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
-                )
-
-                assert session.query(model).count() == 10
-            finally:
-                engine.dispose()
+        assert session.query(model).count() == 10
 
 
 class TestCreateTable(unittest.TestCase):
