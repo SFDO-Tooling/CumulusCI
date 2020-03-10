@@ -64,7 +64,7 @@ def download_file(uri, bulk_api):
             f.write(chunk)
 
         f.close()
-        with open(path, "r") as f:
+        with open(path, "r", newline="") as f:
             yield f
     finally:
         pathlib.Path(path).unlink()
