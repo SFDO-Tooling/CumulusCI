@@ -52,7 +52,7 @@ ADMIN_PROFILE_BEFORE = b"""<?xml version='1.0' encoding='utf-8'?>
     </tabVisibilities>
 </Profile>"""
 
-ADMIN_PROFILE_EXPECTED = b"""<?xml version="1.0" encoding="UTF-8"?>
+ADMIN_PROFILE_EXPECTED = """<?xml version="1.0" encoding="UTF-8"?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <applicationVisibilities>
         <application>npsp__Nonprofit_CRM</application>
@@ -150,7 +150,7 @@ def test_run_task():
 
         dest_path = task.deploy_dir / "profiles" / "Admin.profile"
         assert dest_path.exists()
-        assert dest_path.read_bytes() == ADMIN_PROFILE_EXPECTED
+        assert dest_path.read_text() == ADMIN_PROFILE_EXPECTED
 
 
 def test_transforms_profile():
@@ -173,7 +173,7 @@ def test_transforms_profile():
 
     xml_output = outbound.tostring(xml_declaration=True)
 
-    assert xml_output == ADMIN_PROFILE_EXPECTED.decode("utf-8")
+    assert xml_output == ADMIN_PROFILE_EXPECTED
 
 
 def test_throws_exception_record_type_not_found():
