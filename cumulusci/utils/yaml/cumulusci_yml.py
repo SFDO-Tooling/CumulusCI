@@ -1,5 +1,5 @@
 from typing import IO, Text
-from re import compile, MULTILINE
+import re
 from logging import getLogger
 from io import StringIO
 
@@ -7,7 +7,7 @@ import yaml
 
 NBSP = "\u00A0"
 
-pattern = compile(r"^\s*[\u00A0]+\s*", MULTILINE)
+pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
 
 logger = getLogger(__name__)
 
@@ -27,8 +27,8 @@ def _replace_nbsp(origdata):
     if counter:
         plural = "s were" if counter > 1 else " was"
         logger.warn(
-            f"Note: {counter} non-breaking space character{plural} detected in cumulusci.yml.\n"
-            "Perhaps you cut and pasted it from a Web page.\n"
+            f"Note: {counter} lines with non-breaking space character{plural} detected in cumulusci.yml.\n"
+            "Perhaps you cut and pasted from a Web page?\n"
             "Future versions of CumulusCI may disallow these characters.\n"
         )
     return data
