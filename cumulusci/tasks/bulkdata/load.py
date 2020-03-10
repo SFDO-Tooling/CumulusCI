@@ -113,6 +113,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         if mapping.get("fields", {}).get("RecordTypeId"):
             conn = self.session.connection()
             self._load_record_types([mapping["sf_object"]], conn)
+            self.session.commit()
 
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
