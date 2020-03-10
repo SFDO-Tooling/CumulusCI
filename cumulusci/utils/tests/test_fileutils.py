@@ -1,12 +1,11 @@
 import doctest
-from tempfile import TemporaryFile
 from io import BytesIO, UnsupportedOperation
 from pathlib import Path
 
 import pytest
 import responses
 
-from cumulusci.utils import fileutils
+from cumulusci.utils import fileutils, temporary_dir
 from cumulusci.utils.fileutils import load_from_source
 
 
@@ -28,10 +27,11 @@ class TestFileutils:
             assert data == "foo"
 
     def test_writable_file_throws(self):
-        with TemporaryFile("wt") as t:
-            with pytest.raises(UnsupportedOperation):
-                with load_from_source(t) as (filename, data):
-                    pass
+        with temporary_dir():
+            with open("writable", "wt") as t:
+                with pytest.raises(UnsupportedOperation):
+                    with load_from_source(t) as (filename, data):
+                        pass
 
     @responses.activate
     def test_load_from_url(self):

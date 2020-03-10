@@ -1,4 +1,4 @@
-from typing import IO, ContextManager, Text, Tuple, Union, Any
+from typing import IO, ContextManager, Text, Tuple, Union
 from contextlib import contextmanager
 from pathlib import Path
 from io import TextIOWrapper
@@ -20,7 +20,7 @@ def _get_path_from_stream(stream):
 
 @contextmanager
 def load_from_source(
-    source: Union[str, IO, Path, Any]  # Any is required to satisfy types on Windows
+    source: Union[str, IO, Path]
 ) -> ContextManager[Tuple[Text, IO[Text]]]:
     """Normalize potential data sources into uniform tuple
 
