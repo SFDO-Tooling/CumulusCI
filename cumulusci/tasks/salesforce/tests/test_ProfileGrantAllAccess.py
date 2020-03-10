@@ -346,8 +346,9 @@ def test_init_options__include_packaged_objects():
 
 
 def test_generate_package_xml__retrieve():
-    with tempfile.TemporaryDirectory():
-        with open("admin_profile.xml", "w") as f:
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        admin_profile = os.path.join(tmp_dir, "admin_profile.xml")
+        with open(admin_profile, "w") as f:
             f.write(PACKAGE_XML_BEFORE)
         with open(
             os.path.join(CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"), "w"
@@ -356,7 +357,7 @@ def test_generate_package_xml__retrieve():
 
         task = create_task(
             ProfileGrantAllAccess,
-            {"package_xml": "admin_profile.xml", "include_packaged_objects": False},
+            {"package_xml": admin_profile, "include_packaged_objects": False},
         )
 
         task._expand_profile_members = mock.Mock()
@@ -367,7 +368,7 @@ def test_generate_package_xml__retrieve():
 
         task = create_task(
             ProfileGrantAllAccess,
-            {"package_xml": "admin_profile.xml", "include_packaged_objects": True},
+            {"package_xml": admin_profile, "include_packaged_objects": True},
         )
 
         task._expand_profile_members = mock.Mock()
