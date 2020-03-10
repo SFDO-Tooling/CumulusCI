@@ -136,18 +136,21 @@ class TestLoadData(unittest.TestCase):
                 DataOperationResult("003000000000001", True, None),
             ]
 
-            task()
+            try:
+                task()
 
-            assert step.records == [
-                ["TestHousehold", "1"],
-                ["Test", "User", "test@example.com", "001000000000000"],
-                ["Error", "User", "error@example.com", "001000000000000"],
-            ]
+                assert step.records == [
+                    ["TestHousehold", "1"],
+                    ["Test", "User", "test@example.com", "001000000000000"],
+                    ["Error", "User", "error@example.com", "001000000000000"],
+                ]
 
-            hh_ids = task.session.query(
-                *task.metadata.tables["households_sf_ids"].columns
-            ).one()
-            assert hh_ids == ("1", "001000000000000")
+                hh_ids = task.session.query(
+                    *task.metadata.tables["households_sf_ids"].columns
+                ).one()
+                assert hh_ids == ("1", "001000000000000")
+            finally:
+                task.engine.dispose()
 
     def test_run_task__start_step(self):
         task = _make_task(
