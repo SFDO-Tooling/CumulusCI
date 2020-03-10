@@ -7,6 +7,15 @@
     },
     "chatterSettings": {
       "enableChatter": true
+    },
+    "userManagementSettings": {
+      "enableNewProfileUI": true
+    },
+    "securitySettings": {
+      "enableAdminLoginAsAnyUser": true,
+      "sessionSettings": {
+        "forceRelogin": false
+      }
     }{% if not managed %},
     "languageSettings": {
       "enableTranslationWorkbench": true
