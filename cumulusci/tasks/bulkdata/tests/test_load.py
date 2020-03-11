@@ -149,6 +149,9 @@ class TestLoadData(unittest.TestCase):
             ).one()
             assert hh_ids == ("1", "001000000000000")
 
+            task.session.close()
+            task.engine.dispose()
+
     def test_run_task__start_step(self):
         task = _make_task(
             LoadData,
