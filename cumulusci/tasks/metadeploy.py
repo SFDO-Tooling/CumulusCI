@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 import os
 import requests
@@ -282,8 +283,6 @@ class Publish(BaseMetaDeployTask):
         return version
 
     def _find_or_create_plan_template(self, product, plan_name, plan_config):
-        # TODO: Add preflight_message, post_install_message, and error_message here
-        # once the MetaDeploy API supports them.
         result = self._call_api(
             "GET",
             "/plantemplates",
@@ -293,7 +292,13 @@ class Publish(BaseMetaDeployTask):
             plantemplate = self._call_api(
                 "POST",
                 "/plantemplates",
-                json={"name": plan_name, "product": product["url"]},
+                json={
+                    "name": plan_name,
+                    "product": product["url"],
+                    "preflight_message": plan_config.get("preflight_message", ""),
+                    "post_install_message": plan_config.get("post_install_message", ""),
+                    "error_message": plan_config.get("error_message", ""),
+                },
             )
             self.logger.info("Created {}".format(plantemplate["url"]))
             planslug = self._call_api(
@@ -338,3 +343,30 @@ class Publish(BaseMetaDeployTask):
             self.logger.info(f"Updating labels in {self.labels_path}")
             with open(self.labels_path, "w") as f:
                 json.dump(self.labels, f, indent=4)
+
+
+class PublishTranslations(BaseMetaDeployTask):
+    """Publishes translated labels to MetaDeploy.
+    """
+
+    task_options = {
+        "slug": {"description": "Product slug", "required": True},
+        "labels": {
+            "description": "Path to a folder containing translated labels",
+            "required": True,
+        },
+    }
+
+    def _run_task(self):
+        slug = self.options["slug"]
+        for path in Path(self.options["labels"]).glob("*.json"):
+            lang = path.stem[-2:]
+            orig_labels = json.loads(path.read_text())
+            prefixed_labels = {}
+            for context, labels in orig_labels.items():
+                if context == "steps":
+                    prefixed_labels["steps"] = labels
+                else:
+                    prefixed_labels[f"{slug}:{context}"] = labels
+            self.logger.info(f"Updating {lang} translations")
+            self._call_api("PATCH", f"/translations/{lang}", json=prefixed_labels)
