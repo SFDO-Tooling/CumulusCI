@@ -66,7 +66,7 @@ class DeployAndWaitForSharingRecalculation(Deploy, BaseSalesforceApiTask):
             self._poll()
             self.logger.info("Sharing recalculation finished!".format(**self.options))
         else:
-            self.log_title("Skipping check for sharing recalculation")
+            self._log_title("Skipping check for sharing recalculation")
             self.logger.info(
                 "A sharing recalculation wasn't started after deploying metadata."
             )
