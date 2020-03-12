@@ -22,6 +22,8 @@ from cumulusci.core.github import find_previous_release
 from cumulusci.core.source import GitHubSource
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+
 from github3.exceptions import NotFoundError
 
 
@@ -86,7 +88,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Load the project's yaml config file
         with open(self.config_project_path, "r") as f_config:
-            project_config = yaml.safe_load(f_config)
+            project_config = cci_safe_load(f_config)
 
         if project_config:
             self.config_project.update(project_config)
@@ -94,7 +96,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
             with open(self.config_project_local_path, "r") as f_local_config:
-                local_config = yaml.safe_load(f_local_config)
+                local_config = cci_safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
 

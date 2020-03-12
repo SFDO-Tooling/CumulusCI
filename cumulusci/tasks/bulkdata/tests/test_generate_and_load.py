@@ -6,7 +6,7 @@ from unittest import mock
 from cumulusci.tasks.bulkdata import GenerateAndLoadData
 from cumulusci.core.exceptions import TaskOptionsError
 
-from .test_bulkdata import _make_task
+from .utils import _make_task
 
 
 class TestGenerateAndLoadData(unittest.TestCase):

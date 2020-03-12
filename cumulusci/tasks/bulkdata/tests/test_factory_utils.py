@@ -4,7 +4,7 @@ import os
 import factory
 
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.bulkdata.tests.dummy_data_factory import (
     GenerateDummyData,
     ContactFactory,

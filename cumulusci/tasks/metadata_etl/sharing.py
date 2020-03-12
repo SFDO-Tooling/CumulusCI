@@ -1,9 +1,8 @@
 from datetime import datetime
 
-from lxml import etree
-
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask, MD
+from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
+from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
 class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
@@ -77,25 +76,23 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
             self._poll()
             self.logger.info(f"Sharing enablement is complete.")
 
-    def _transform_entity(self, metadata, api_name):
+    def _transform_entity(
+        self, metadata: MetadataElement, api_name: str
+    ) -> MetadataElement:
         desired_internal_model = self.owds[api_name].get("internal_sharing_model")
         desired_external_model = self.owds[api_name].get("external_sharing_model")
 
         if desired_external_model:
-            external_model = metadata.findall(f".//{MD}externalSharingModel")
+            external_model = metadata.find("externalSharingModel")
             if not external_model:
-                external_model = [
-                    etree.SubElement(metadata.getroot(), f"{MD}externalSharingModel")
-                ]
-            external_model[0].text = desired_external_model
+                external_model = metadata.append("externalSharingModel")
+            external_model.text = desired_external_model
 
         if desired_internal_model:
-            internal_model = metadata.findall(f".//{MD}sharingModel")
+            internal_model = metadata.find("sharingModel")
             if not internal_model:
-                internal_model = [
-                    etree.SubElement(metadata.getroot(), f"{MD}sharingModel")
-                ]
-            internal_model[0].text = desired_internal_model
+                internal_model = metadata.append("sharingModel")
+            internal_model.text = desired_internal_model
 
         return metadata
 
