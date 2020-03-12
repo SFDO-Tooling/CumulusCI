@@ -29,7 +29,6 @@ from cumulusci.tasks.salesforce.UpdateDependencies import UpdateDependencies
 
 # inherit from BaseSalesforceApiTask and use Deploy
 from cumulusci.tasks.salesforce.EnsureRecordTypes import EnsureRecordTypes
-from cumulusci.tasks.salesforce.Deploy import DeployAndWaitForSharingRecalculation
 
 # inherit from BaseRetrieveMetadata
 from cumulusci.tasks.salesforce.RetrievePackaged import RetrievePackaged
@@ -44,6 +43,11 @@ from cumulusci.tasks.salesforce.CreatePackage import CreatePackage
 from cumulusci.tasks.salesforce.DeployBundles import DeployBundles
 from cumulusci.tasks.salesforce.InstallPackageVersion import InstallPackageVersion
 from cumulusci.tasks.salesforce.UninstallPackage import UninstallPackage
+
+# inherit from Deploy and BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.DeployAndWaitForSharingRecalculation import (
+    DeployAndWaitForSharingRecalculation,
+)
 
 # Backwards-compatibility for UpdateAdminProfile/UpdateProfile
 from cumulusci.tasks.salesforce.update_profile import (
