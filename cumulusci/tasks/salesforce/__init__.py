@@ -29,6 +29,7 @@ from cumulusci.tasks.salesforce.UpdateDependencies import UpdateDependencies
 
 # inherit from BaseSalesforceApiTask and use Deploy
 from cumulusci.tasks.salesforce.EnsureRecordTypes import EnsureRecordTypes
+from cumulusci.tasks.salesforce.Deploy import DeployAndWaitForSharingRecalculation
 
 # inherit from BaseRetrieveMetadata
 from cumulusci.tasks.salesforce.RetrievePackaged import RetrievePackaged
@@ -87,6 +88,7 @@ flake8Hack = (
     GetInstalledPackages,
     UpdateDependencies,
     EnsureRecordTypes,
+    DeployAndWaitForSharingRecalculation,
     RetrievePackaged,
     RetrieveReportsAndDashboards,
     RetrieveUnpackaged,
