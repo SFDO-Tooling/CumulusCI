@@ -35,6 +35,7 @@ ${INITIAL_TIMEOUT}  180.0
 ${TIMEOUT}          30.0
 ${LOCATION STRATEGIES INITIALIZED}  ${False}
 ${DEFAULT BROWSER SIZE}  1280x1024
+${CHROME LOG}       ${EMPTY}
 
 *** Keywords ***
 
@@ -87,9 +88,16 @@ Open Test Browser
     Log browser capabilities
 
 Open Test Browser Chrome
-    [Arguments]     ${login_url}  ${alias}=${NONE}
-    ${options} =                Get Chrome Options
-    Create Webdriver With Retry  Chrome  options=${options}  alias=${alias}
+    [Documentation]
+    ...  Opens Chrome. Setting ${CHROME LOG} to a filename will cause
+    ...  verbose chrome logs to be written to that file instead of stdout/stderr
+    [Arguments]       ${login_url}  ${alias}=${NONE}
+    ${options} =      Get Chrome Options
+    ${service_args}=  Run keyword if  '${CHROME LOG}' == ''
+    ...  Create List
+    ...  ELSE  Create list  --verbose  --log-path=${CHROME LOG}
+
+    Create Webdriver With Retry  Chrome  options=${options}  service_args=${service_args}  alias=${alias}
     Set Selenium Implicit Wait  ${IMPLICIT_WAIT}
     Set Selenium Timeout        ${TIMEOUT}
     Go To                       ${login_url}

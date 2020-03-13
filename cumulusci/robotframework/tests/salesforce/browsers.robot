@@ -120,3 +120,35 @@ Initializing selenium speed via global variable
 
     Open test browser
     Assert keyword status  PASS  SeleniumLibrary.Set Selenium Speed  \${SELENIUM_SPEED}
+
+
+CHROME LOG variable
+    [Documentation]
+    ...  Verify that setting the variable CHROME_LOG to
+    ...  a path causes the log to be saved to that path
+    [Setup]     Remove file  ${TEMPDIR}/chrome_log.txt
+    [tags]  foo
+    [Teardown]  Run keywords
+    ...  Close all browsers
+    # Note: 'Remove file' gracefully handles the case where the file doesn't exist
+    ...  AND  Remove file  ${TEMPDIR}/chrome_log.txt
+
+    File should not exist  ${TEMPDIR}/chrome_log.txt
+    Set test variable      ${BROWSER}     headlesschrome
+
+    # Verify the variable has a default value
+    Variable should exist  ${CHROME LOG}
+    ...  Expected ${CHROME LOG} to be initialized but it wasn't
+    Should be equal  ${CHROME LOG}  ${EMPTY}
+    ...  Expected \${CHROME LOG} to be initialized to NONE but it was '${CHROME LOG}'
+
+    Open test browser
+    Close browser
+    sleep  1 second        # give chrome a moment to die with dignity
+    File should not exist  ${TEMPDIR}/chrome_log.txt
+
+    Set test variable      ${CHROME LOG}  ${TEMPDIR}/chrome_log.txt
+    Open test browser
+    Close browser
+    sleep  1 second        # give chrome a moment to die with dignity
+    File should exist      ${TEMPDIR}/chrome_log.txt
