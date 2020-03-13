@@ -719,7 +719,7 @@ flows:
                 task: snapshot_changes
 
     regression_org:
-        description: Set up an org for QA regression by upgrading from the previous managed package release to the current beta release.
+        description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
         steps:
             1:
                 flow: install_regression
