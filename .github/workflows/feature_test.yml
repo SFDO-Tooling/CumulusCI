@@ -130,6 +130,8 @@ jobs:
         coverage run --append $(which cci) task run robot -o name "Salesforce UI Firefox" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o vars BROWSER:headlessfirefox -o xunit robot_results/robot/salesforce_ui_firefox.xml || true
         mv output.xml robot_results/robot/salesforce_ui_firefox-output.xml
         mv selenium-screenshot-* robot_results/robot || true
+      env:
+        BROWSER: headlesschrome
     - name: Consolidate robot outputs into a single report and log
       if: always()
       run: |
