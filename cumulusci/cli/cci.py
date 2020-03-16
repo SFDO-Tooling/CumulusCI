@@ -231,6 +231,8 @@ def handle_exception(error, is_error_cmd):
     """
     if isinstance(error, exceptions.ConnectionError):
         connection_error_message()
+    elif isinstance(error, click.ClickException):
+        click.echo(click.style(f"Error: {error.format_message()}", fg="red"))
     else:
         click.echo(click.style(f"Error: {error}", fg="red"))
     # Only suggest gist command if it wasn't run
@@ -930,7 +932,9 @@ def calculate_org_days(info):
 
 @org.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
-@click.option("print_json", "--json", is_flag=True, help="Print as JSON")
+@click.option(
+    "print_json", "--json", is_flag=True, help="Print as JSON.  Includes access token"
+)
 @pass_runtime(require_project=False, require_keychain=True)
 def org_info(runtime, org_name, print_json):
     org_name, org_config = runtime.get_org(org_name)

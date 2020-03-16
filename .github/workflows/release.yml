@@ -3,7 +3,9 @@ name: Release cumulusci
 on:
   push:
     branches:
-    - feature/release-action
+    - master
+    paths:
+    - cumulusci/version.txt
 
 jobs:
   publish-to-pypi:
@@ -11,10 +13,10 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@master
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Install build tools
         run: python -m pip install twine wheel
       - name: Build source tarball and binary wheel
@@ -25,34 +27,6 @@ jobs:
           TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
-  publish-to-homebrew:
-    name: Publish new release for Homebrew
-    needs: publish-to-pypi
-    runs-on: macos-10.15
-    steps:
-      - uses: actions/checkout@master
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
-      - name: Build formula
-        run: |
-          sleep 30
-          utility/build-homebrew.sh cumulusci.rb
-      - name: Test formula
-        run: |
-          brew audit cumulusci.rb
-          brew install cumulusci.rb
-          brew test cumulusci.rb
-      - name: Update homebrew-sfdo repository
-        run: |
-          git clone https://HOMEBREW_GITHUB_USER:HOMEBREW_GITHUB_TOKEN@github.com/SFDO-Tooling/homebrew-sfdo.git
-          cd homebrew-sfdo
-          git checkout -b auto-update
-          cp ../cumulusci.rb ./
-          git add cumulusci.rb
-          git commit -m "Update formula"
-          git push origin master
 
 # to do:
 # - add release notes in github

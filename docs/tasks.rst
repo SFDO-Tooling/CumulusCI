@@ -51,6 +51,16 @@ Options
 
 	 Array of field API names to include in the related list
 
+``-o exclude_buttons EXCLUDEBUTTONS``
+	 *Optional*
+
+	 Array of button names to suppress from the related list
+
+``-o custom_buttons CUSTOMBUTTONS``
+	 *Optional*
+
+	 Array of button names to add to the related list
+
 ``-o api_names APINAMES``
 	 *Optional*
 
@@ -200,14 +210,18 @@ Options
 
 **Class:** cumulusci.tasks.command.Command
 
-**Example Command-line Usage::** cci task run command -o command "echo 'Hello command task!'"
+**Example Command-line Usage:**
+``cci task run command -o command "echo 'Hello command task!'"``
 
-**Example Task to Run Command::**
-hello_world:
-    description: Says hello world
-    class_path: cumulusci.tasks.command.Command
-    options:
-    command: echo 'Hello World!'
+**Example Task to Run Command:**
+
+..code-block:: yaml
+
+    hello_world:
+        description: Says hello world
+        class_path: cumulusci.tasks.command.Command
+        options:
+        command: echo 'Hello World!'
 
 Command Syntax
 ------------------------------------------
@@ -2399,7 +2413,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: robot/SAL/doc/*PageObject.py). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted
+	 The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: ``robot/SAL/doc/*PageObject.py``). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted
 
 ``-o output OUTPUT``
 	 *Required*
@@ -3004,7 +3018,7 @@ Options
 
 **Description:** Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
 
-**Class:** cumulusci.tasks.salesforce.UpdateProfile
+**Class:** cumulusci.tasks.salesforce.ProfileGrantAllAccess
 
 Command Syntax
 ------------------------------------------
@@ -3036,10 +3050,25 @@ Options
 
 	 If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False
 
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix. Defaults to project__package__namespace
+
 ``-o profile_name PROFILENAME``
 	 *Optional*
 
-	 Name of the Profile to target for updates.
+	 Name of the Profile to target for updates (deprecated; use api_names to target multiple profiles).
+
+``-o include_packaged_objects INCLUDEPACKAGEDOBJECTS``
+	 *Optional*
+
+	 Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.8.1 and greater that don't use a custom package.xml, otherwise False.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of Profiles to affect
 
 **update_dependencies**
 ==========================================

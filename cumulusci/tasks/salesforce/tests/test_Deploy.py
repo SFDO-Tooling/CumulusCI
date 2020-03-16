@@ -5,6 +5,7 @@ import unittest
 import zipfile
 
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.flowrunner import StepSpec
 from cumulusci.tasks.salesforce import Deploy
 from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
@@ -478,3 +479,23 @@ class TestDeploy(unittest.TestCase):
             actual = task._get_package_zip(path)
 
             self.assertEqual(expected, actual)
+
+    def test_freeze_sets_kind(self):
+        task = create_task(
+            Deploy,
+            {
+                "path": "path",
+                "namespace_tokenize": "ns",
+                "namespace_inject": "ns",
+                "namespace_strip": "ns",
+            },
+        )
+        step = StepSpec(
+            step_num=1,
+            task_name="deploy",
+            task_config=task.task_config,
+            task_class=None,
+            project_config=task.project_config,
+        )
+
+        assert all(s["kind"] == "metadata" for s in task.freeze(step))

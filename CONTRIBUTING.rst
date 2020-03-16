@@ -96,12 +96,13 @@ It's easy to release a version of CumulusCI to GitHub and PyPI! First, create a 
 
     $ git checkout -b feature/newversion
 
-After committing any updates to HISTORY.rst and the docs, bump the version::
+Make the necessary changes to prepare the new release:
 
-    $ bump2version patch
-    $ git push -u origin HEAD
+    1. Update the version in ``cumulusci/version.txt``
+    2. Update the release notes in ``HISTORY.rst``
 
-Open a Pull Request on GitHub and request approval from another committer. Once your PR has been merged, you can create the release tag and then push the artifacts PyPI with twine::
+Commit the changes, open a Pull Request on GitHub and request approval from another committer.
+Once your PR has been merged, you can create the release tag and then push the artifacts to PyPI with twine::
 
     $ git checkout master
     $ git pull
