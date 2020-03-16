@@ -14,7 +14,7 @@ def find_packages(path=["."], prefix=""):
             yield name
 
 
-with open(os.path.join("cumulusci", "version.txt")) as version_file:
+with open(os.path.join("cumulusci", "version.txt"), "r") as version_file:
     version = version_file.read().strip()
 
 with open("README.rst", "rb") as readme_file:

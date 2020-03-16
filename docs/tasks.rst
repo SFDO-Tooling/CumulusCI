@@ -3063,7 +3063,7 @@ Options
 ``-o include_packaged_objects INCLUDEPACKAGEDOBJECTS``
 	 *Optional*
 
-	 Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.8.1 and greater that don't use a custom package.xml, otherwise False.
+	 Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.9.0 and greater that don't use a custom package.xml, otherwise False.
 
 ``-o api_names APINAMES``
 	 *Optional*
