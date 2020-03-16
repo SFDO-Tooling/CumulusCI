@@ -117,7 +117,15 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
             "  <batch><state>Completed</state></batch>"
             "  <numberRecordsFailed>200</numberRecordsFailed>"
             "</root>"
-        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 200, 200)
+        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 0, 200)
+
+        assert mixin._parse_job_state(
+            '<root xmlns="http://ns">'
+            "  <batch><state>Completed</state></batch>"
+            "  <numberRecordsFailed>200</numberRecordsFailed>"
+            "  <numberRecordsProcessed>10</numberRecordsProcessed>"
+            "</root>"
+        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 10, 200)
 
     @mock.patch("time.sleep")
     def test_wait_for_job(self, sleep_patch):

@@ -23,6 +23,15 @@ def create_db_file(filename):
     return engine, metadata
 
 
+def create_db_memory():
+    """Create a SQLite database in memory"""
+    db_url = "sqlite:///"
+    engine = create_engine(db_url)
+    metadata = MetaData()
+    metadata.bind = engine
+    return engine, metadata
+
+
 class TestEpochType(unittest.TestCase):
     def test_process_bind_param(self):
         obj = bulkdata.utils.EpochType()
@@ -65,7 +74,8 @@ class TestSqlAlchemyMixin(unittest.TestCase):
         util._sql_bulk_insert_from_records = mock.Mock()
         util.sf = mock.Mock()
         util.sf.query.return_value = {
-            "records": [{"Id": "012000000000000", "DeveloperName": "Organization"}]
+            "totalSize": 1,
+            "records": [{"Id": "012000000000000", "DeveloperName": "Organization"}],
         }
         util.logger = mock.Mock()
 
@@ -76,40 +86,37 @@ class TestSqlAlchemyMixin(unittest.TestCase):
             "SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='Account'"
         )
         util._sql_bulk_insert_from_records.assert_called_once()
-        call = util._sql_bulk_insert_from_records.call_args_list[0][0]
-        assert call[0] == conn
-        assert call[1] == "test_table"
-        assert call[2] == ["record_type_id", "developer_name"]
-        assert list(call[3]) == [["012000000000000", "Organization"]]
+        call = util._sql_bulk_insert_from_records.call_args_list[0][1]
+        assert call["connection"] == conn
+        assert call["table"] == "test_table"
+        assert call["columns"] == ["record_type_id", "developer_name"]
+        assert list(call["record_iterable"]) == [["012000000000000", "Organization"]]
 
     def test_sql_bulk_insert_from_records__sqlite(self):
-        with temporary_dir() as d:
-            tmp_db_path = os.path.join(d, "temp.db")
+        engine, metadata = create_db_memory()
+        fields = [
+            Column("id", Integer(), primary_key=True, autoincrement=True),
+            Column("sf_id", Unicode(24)),
+        ]
+        id_t = Table("TestTable", metadata, *fields)
+        id_t.create()
+        model = type("TestModel", (object,), {})
+        mapper(model, id_t)
 
-            engine, metadata = create_db_file(tmp_db_path)
-            fields = [
-                Column("id", Integer(), primary_key=True, autoincrement=True),
-                Column("sf_id", Unicode(24)),
-            ]
-            id_t = Table("TestTable", metadata, *fields)
-            id_t.create()
-            model = type("TestModel", (object,), {})
-            mapper(model, id_t)
+        util = bulkdata.utils.SqlAlchemyMixin()
+        util.metadata = metadata
+        session = create_session(bind=engine, autocommit=False)
+        util.session = session
+        connection = session.connection()
 
-            util = bulkdata.utils.SqlAlchemyMixin()
-            util.metadata = metadata
-            session = create_session(bind=engine, autocommit=False)
-            util.session = session
-            connection = session.connection()
+        util._sql_bulk_insert_from_records(
+            connection=connection,
+            table="TestTable",
+            columns=("id", "sf_id"),
+            record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
+        )
 
-            util._sql_bulk_insert_from_records(
-                connection=connection,
-                table="TestTable",
-                columns=("id", "sf_id"),
-                record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
-            )
-
-            assert session.query(model).count() == 10
+        assert session.query(model).count() == 10
 
 
 class TestCreateTable(unittest.TestCase):
