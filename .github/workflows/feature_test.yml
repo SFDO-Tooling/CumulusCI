@@ -8,6 +8,7 @@ on:
 env:
   COVERALLS_PARALLEL: true
   COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+  CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
 
 jobs:
   lint:
@@ -114,7 +115,6 @@ jobs:
         SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
         SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
         SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
-        CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
     - name: Run robot tests
       run: |
         mkdir -p robot_results/robot
