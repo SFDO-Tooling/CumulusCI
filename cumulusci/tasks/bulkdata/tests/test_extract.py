@@ -22,7 +22,9 @@ class MockBulkQueryOperation(BaseQueryOperation):
 
     def query(self):
         self.job_id = "JOB"
-        self.job_result = DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], len(self.results), 0
+        )
 
     def get_results(self):
         return iter(self.results)
@@ -542,7 +544,7 @@ class TestExtractData(unittest.TestCase):
         )
         task._import_results = mock.Mock()
         step_mock.return_value.job_result = DataOperationJobResult(
-            DataOperationStatus.SUCCESS, [], 0, 0
+            DataOperationStatus.SUCCESS, [], 1, 0
         )
 
         task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})
@@ -559,12 +561,33 @@ class TestExtractData(unittest.TestCase):
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
+    def test_run_query__no_results(self, step_mock):
+        task = _make_task(
+            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
+        )
+        task._import_results = mock.Mock()
+        step_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
+
+        task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})
+
+        step_mock.assert_called_once_with(
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Contact",
+        )
+        step_mock.return_value.query.assert_called_once_with()
+        task._import_results.assert_not_called()
+
+    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
     def test_run_query__failure(self, step_mock):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
         step_mock.return_value.job_result = DataOperationJobResult(
-            DataOperationStatus.JOB_FAILURE, [], 0, 0
+            DataOperationStatus.JOB_FAILURE, [], 1, 0
         )
 
         with self.assertRaises(BulkDataException):

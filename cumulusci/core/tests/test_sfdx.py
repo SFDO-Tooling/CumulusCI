@@ -1,4 +1,5 @@
 from unittest import mock
+import io
 import sys
 
 import pytest
@@ -29,6 +30,7 @@ class TestSfdx:
     @mock.patch("sarge.Command")
     def test_check_return(self, Command):
         Command.return_value.returncode = 1
+        Command.return_value.stderr = io.BytesIO(b"Egads!")
         with pytest.raises(Exception) as exc_info:
             sfdx("cmd", check_return=True)
-        assert str(exc_info.value) == "Command exited with return code 1"
+        assert str(exc_info.value) == "Command exited with return code 1:\nEgads!"

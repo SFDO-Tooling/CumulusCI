@@ -113,6 +113,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         if mapping.get("fields", {}).get("RecordTypeId"):
             conn = self.session.connection()
             self._load_record_types([mapping["sf_object"]], conn)
+            self.session.commit()
 
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
@@ -152,6 +153,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         # create more Bulk API batches than expected, regardless of batch size, while capping
         # memory usage.
         for row in query.yield_per(10000):
+            total_rows += 1
             # Add static values to row
             pkey = row[0]
             row = list(row[1:]) + statics
@@ -305,13 +307,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
             conn = self.session.connection()
 
-        # other code expects the table to be created even if it is empty
-        # so after we create it we can bail.
-        if not step.job_result.total_records:
-            return
-
         results_generator = self._generate_results_id_map(step, local_ids)
-        if mapping["action"] == "insert":
+
+        # If we know we have no successful inserts, don't attempt to persist Ids.
+        # Do, however, drain the generator to get error-checking behavior.
+        if mapping["action"] == "insert" and (
+            step.job_result.records_processed - step.job_result.total_row_errors
+        ):
             self._sql_bulk_insert_from_records(
                 connection=conn,
                 table=id_table_name,
@@ -335,9 +337,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             if result.success:
                 yield (local_id, result.id)
             else:
-                error_checker.check_for_row_error(
-                    result, local_id,
-                )
+                error_checker.check_for_row_error(result, local_id)
 
     def _initialize_id_table(self, mapping, should_reset_table):
         """initalize or find table to hold the inserted SF Ids

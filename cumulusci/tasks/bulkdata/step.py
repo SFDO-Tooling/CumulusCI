@@ -47,7 +47,7 @@ class DataOperationStatus(Enum):
 DataOperationResult = namedtuple("Result", ["id", "success", "error"])
 DataOperationJobResult = namedtuple(
     "DataOperationJobResult",
-    ["status", "job_errors", "total_records", "total_row_errors"],
+    ["status", "job_errors", "records_processed", "total_row_errors"],
 )
 
 
@@ -64,7 +64,7 @@ def download_file(uri, bulk_api):
             f.write(chunk)
 
         f.close()
-        with open(path, "r") as f:
+        with open(path, "r", newline="") as f:
             yield f
     finally:
         pathlib.Path(path).unlink()
@@ -92,34 +92,39 @@ class BulkJobMixin:
         failures = tree.find(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
         record_failure_count = int(failures.text) if failures is not None else 0
         processed = tree.find(".//{%s}numberRecordsProcessed" % self.bulk.jobNS)
-        record_success_count = int(processed.text) if processed is not None else 0
-        total_records = record_success_count + record_failure_count
+        records_processed = int(processed.text) if processed is not None else 0
 
         # FIXME: "Not Processed" to be expected for original batch with PK Chunking Query
         # PK Chunking is not currently supported.
         if "Not Processed" in statuses:
             return DataOperationJobResult(
-                DataOperationStatus.ABORTED, [], total_records, record_failure_count
+                DataOperationStatus.ABORTED, [], records_processed, record_failure_count
             )
         elif "InProgress" in statuses or "Queued" in statuses:
             return DataOperationJobResult(
-                DataOperationStatus.IN_PROGRESS, [], total_records, record_failure_count
+                DataOperationStatus.IN_PROGRESS,
+                [],
+                records_processed,
+                record_failure_count,
             )
         elif "Failed" in statuses:
             return DataOperationJobResult(
                 DataOperationStatus.JOB_FAILURE,
                 state_messages,
-                total_records,
+                records_processed,
                 record_failure_count,
             )
 
         if record_failure_count:
             return DataOperationJobResult(
-                DataOperationStatus.ROW_FAILURE, [], total_records, record_failure_count
+                DataOperationStatus.ROW_FAILURE,
+                [],
+                records_processed,
+                record_failure_count,
             )
 
         return DataOperationJobResult(
-            DataOperationStatus.SUCCESS, [], total_records, record_failure_count
+            DataOperationStatus.SUCCESS, [], records_processed, record_failure_count
         )
 
     def _wait_for_job(self, job_id):
@@ -127,7 +132,7 @@ class BulkJobMixin:
         while True:
             job_status = self.bulk.job_status(job_id)
             self.logger.info(
-                f"Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']})"
+                f"Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']} batches complete)"
             )
             result = self._job_state_from_batches(job_id)
             if result.status is not DataOperationStatus.IN_PROGRESS:
@@ -191,6 +196,7 @@ class BulkApiQueryOperation(BaseQueryOperation, BulkJobMixin):
 
     def query(self):
         self.job_id = self.bulk.create_query_job(self.sobject, contentType="CSV")
+        self.logger.info(f"Created Bulk API query job {self.job_id}")
         self.batch_id = self.bulk.query(self.job_id, self.soql)
 
         self.job_result = self._wait_for_job(self.job_id)

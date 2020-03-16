@@ -96,12 +96,13 @@ It's easy to release a version of CumulusCI to GitHub and PyPI! First, create a 
 
     $ git checkout -b feature/newversion
 
-After committing any updates to HISTORY.rst and the docs, bump the version::
+Make the necessary changes to prepare the new release:
 
-    $ bump2version patch
-    $ git push -u origin HEAD
+    1. Update the version in ``cumulusci/version.txt``
+    2. Update the release notes in ``HISTORY.rst``
 
-Open a Pull Request on GitHub and request approval from another committer. Once your PR has been merged, you can create the release tag and then push the artifacts PyPI with twine::
+Commit the changes, open a Pull Request on GitHub and request approval from another committer.
+Once your PR has been merged, you can create the release tag and then push the artifacts to PyPI with twine::
 
     $ git checkout master
     $ git pull
@@ -116,7 +117,7 @@ Finally, head to the Release object that was autocreated in the GitHub repositor
 Configuring Your Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To release CCI, you'll need twine and bump2version, both of which are installed with the development requirements. You'll also need to configure your `pypirc`_ file with your PyPI credentials. The ``release-homebrew`` build step depends on the `jq`_ command line utility and is available via Homebrew or your package manager.
+To release CCI, you'll need twine, which is installed with the development requirements. You'll also need to configure your `pypirc`_ file with your PyPI credentials. The ``release-homebrew`` build step depends on the `jq`_ command line utility and is available via Homebrew or your package manager.
 
 .. _pypirc: https://docs.python.org/distutils/packageindex.html#the-pypirc-file
 .. _Homebrew Tap: https://github.com/SFDO-Tooling/homebrew-sfdo

@@ -2,6 +2,48 @@
 History
 =======
 
+3.9.0 (2020-03-16)
+------------------
+
+Critical changes:
+
+* The ``update_admin_profile`` task can now add field-level permissions for all packaged objects.
+  This behavior is the default for projects with ``minimum_cumulusci_version`` >= 3.9.0 that are
+  not using the ``package_xml`` option. Other projects can opt into it using the
+  ``include_packaged_objects`` option.
+
+  The Python class used for this task has been renamed to ``ProfileGrantAllAccess`` and refactored
+  to use the Metadata ETL framework. This is a breaking change for custom tasks that subclassed
+  ``UpdateAdminProfile`` or ``UpdateProfile``.
+
+* Refactored how CumulusCI uses the Bulk API to load, extract, and delete data sets.
+  These changes should have no functional impact, but projects that subclass
+  CumulusCI's bulk data tasks should carefully review the changes.
+
+Changes:
+
+* New projects created using ``cci project init`` will now get set up with scratch org settings to:
+
+  * Use the Enhanced Profile Editor
+  * Allow logging in as another user
+  * _not_ force relogin after Login-As
+
+* If ``cumulusci.yml`` contains non-breaking spaces in indentation,
+  they will be automatically converted to normal spaces.
+
+* Bulk data tasks:
+
+  * Added improved validation that mapping files are in the expected format.
+
+  * When using the ``ignore_row_errors`` option, warnings will be suppressed after the 10th row with errors.
+
+Issues closed:
+
+* The ``github_release`` task now validates the ``commit`` option to make sure it is in the right format.
+
+* If there is an error from ``sfdx`` while using the ``retrieve_changes`` task, it will now be logged.
+
+
 3.8.0 (2020-02-28)
 ------------------
 

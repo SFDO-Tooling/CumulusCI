@@ -66,9 +66,9 @@ class MockBulkApiDmlOperation(BaseDmlOperation):
         self.job_id = "JOB"
 
     def end(self):
-        total_records = len(self.results)
+        records_processed = len(self.results)
         self.job_result = DataOperationJobResult(
-            DataOperationStatus.SUCCESS, [], total_records, 0
+            DataOperationStatus.SUCCESS, [], records_processed, 0
         )
 
     def load_records(self, records):
@@ -148,6 +148,9 @@ class TestLoadData(unittest.TestCase):
                 *task.metadata.tables["households_sf_ids"].columns
             ).one()
             assert hh_ids == ("1", "001000000000000")
+
+            task.session.close()
+            task.engine.dispose()
 
     def test_run_task__start_step(self):
         task = _make_task(
@@ -645,6 +648,54 @@ class TestLoadData(unittest.TestCase):
         task._sql_bulk_insert_from_records.assert_called_once()
         task.session.commit.assert_called_once()
 
+    def test_process_job_results__insert_rows_fail(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "ignore_row_errors": True,
+                }
+            },
+        )
+
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task.logger = mock.Mock()
+
+        local_ids = ["1", "2", "3", "4"]
+
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.job_result = DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 4, 4
+        )
+        step.end = mock.Mock()
+        step.results = [
+            DataOperationResult("001111111111111", False, None),
+            DataOperationResult("001111111111112", False, None),
+            DataOperationResult("001111111111113", False, None),
+            DataOperationResult("001111111111114", False, None),
+        ]
+
+        mapping = {"table": "Account", "action": "insert"}
+        task._process_job_results(mapping, step, local_ids)
+
+        task.session.connection.assert_called_once()
+        task._initialize_id_table.assert_called_once_with(mapping, True)
+        task._sql_bulk_insert_from_records.assert_not_called()
+        task.session.commit.assert_called_once()
+        assert len(task.logger.mock_calls) == 4
+
     def test_process_job_results__update_success(self):
         task = _make_task(
             LoadData,
@@ -970,3 +1021,27 @@ class TestLoadData(unittest.TestCase):
             assert hh_ids == ("1", "001000000000000")
 
             task.session.close()
+
+    def test_run__complex_lookups(self):
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        task._init_mapping()
+        print(task.mapping)
+        assert (
+            task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
+            == "Insert Accounts"
+        )
+        task.models = {}
+        task.models["accounts"] = mock.MagicMock()
+        task.models["accounts"].__table__ = mock.MagicMock()
+        task._expand_mapping()
+        assert (
+            task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
+            == "Insert Accounts"
+        )
