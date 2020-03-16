@@ -132,6 +132,7 @@ jobs:
         mv selenium-screenshot-* robot_results/robot || true
       env:
         BROWSER: headlesschrome
+        CHROME_NO_SANDBOX: true
     - name: Consolidate robot outputs into a single report and log
       if: always()
       run: |
