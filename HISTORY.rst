@@ -7,10 +7,14 @@ History
 
 Critical changes:
 
-* The ``UpdateAdminProfile``/``UpdateProfile`` task has been revised to use the new Metadata ETL framework
-  as ``ProfileGrantAllAccess``. This is a breaking change for custom tasks which subclassed
-  ``UpdateAdminProfile``. The new task supports updating arbitrary Profiles in addition to
-  System Administrator.
+* The ``update_admin_profile`` task can now add field-level permissions for all packaged objects.
+  This behavior is the default for projects with ``minimum_cumulusci_version`` >= 3.9.0 that are
+  not using the ``package_xml`` option. Other projects can opt into it using the
+  ``include_packaged_objects`` option.
+
+  The Python class used for this task has been renamed to ``ProfileGrantAllAccess`` and refactored
+  to use the Metadata ETL framework. This is a breaking change for custom tasks that subclassed
+  ``UpdateAdminProfile`` or ``UpdateProfile``.
 
 * Refactored how CumulusCI uses the Bulk API to load, extract, and delete data sets.
   These changes should have no functional impact, but projects that subclass
