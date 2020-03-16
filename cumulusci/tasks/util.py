@@ -5,49 +5,59 @@ import glob
 from xml.dom.minidom import parse
 
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_list_arg
 from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
+from cumulusci.utils.option_parsing import (
+    Field,
+    CCIOptions,
+    PathOption,
+    ListOfStringsOption,
+)
 
 
 class DownloadZip(BaseTask):
     name = "Download"
-    task_options = {
-        "url": {"description": "The url of the zip file to download", "required": True},
-        "dir": {
-            "description": "The directory where the zip should be extracted",
-            "required": True,
-        },
-        "subfolder": {
-            "description": (
+
+    class Options(CCIOptions):
+        url: str = Field(..., description="The url of the zip file to download")
+        dir: str = Field(
+            ..., description="The directory where the zip should be extracted"
+        )
+        subfolder: str = Field(
+            None,
+            description=(
                 "The subfolder of the target zip to extract. Defaults to"
                 + " extracting the root of the zip file to the destination."
-            )
-        },
-    }
+            ),
+        )
+
+    parsed_options: Options
 
     def _run_task(self):
-        if not os.path.exists(self.options["dir"]):
-            os.makedirs(self.options["dir"])
+        if not os.path.exists(self.parsed_options.dir):
+            os.makedirs(self.parsed_options.dir)
 
         download_extract_zip(
-            self.options["url"], self.options["dir"], self.options.get("subfolder")
+            self.parsed_options.url,
+            self.parsed_options.dir,
+            self.parsed_options.subfolder,
         )
 
 
 class ListMetadataTypes(BaseTask):
     name = "ListMetadataTypes"
-    task_options = {
-        "package_xml": {
-            "description": (
+
+    class Options(CCIOptions):
+        package_xml: str = Field(
+            None,
+            description=(
                 "The project package.xml file."
                 + " Defaults to <project_root>/src/package.xml"
-            )
-        }
-    }
+            ),
+        )
 
     def _init_options(self, kwargs):
         super(ListMetadataTypes, self)._init_options(kwargs)
-        if "package_xml" not in self.options:
+        if not self.options.get("package_xml"):
             self.options["package_xml"] = os.path.join(
                 self.project_config.repo_root, "src", "package.xml"
             )
@@ -70,36 +80,47 @@ class ListMetadataTypes(BaseTask):
 
 class Sleep(BaseTask):
     name = "Sleep"
-    task_options = {
-        "seconds": {"description": "The number of seconds to sleep", "required": True}
-    }
+
+    class Options(CCIOptions):
+        seconds: int = Field(..., description="The number of seconds to sleep")
+
+    parsed_options: Options
 
     def _run_task(self):
-        self.logger.info("Sleeping for {} seconds".format(self.options["seconds"]))
-        time.sleep(float(self.options["seconds"]))
+        self.logger.info("Sleeping for {} seconds".format(self.parsed_options.seconds))
+        time.sleep(float(self.parsed_options.seconds))
         self.logger.info("Done")
 
 
 class Delete(BaseTask):
     name = "Delete"
-    task_options = {
-        "path": {
-            "description": "The path to delete.  If path is a directory, recursively deletes the directory: BE CAREFUL!!!  If path is a list, all paths will be deleted",
-            "required": True,
-        },
-        "chdir": {
-            "description": "Change directories before deleting path(s).  This is useful if you have a common list of relative paths to delete that you want to call against different directories."
-        },
-    }
+
+    class Options(CCIOptions):
+        path: ListOfStringsOption = Field(
+            default=...,
+            description=(
+                "The path to delete. "
+                "If path is a directory, recursively deletes the directory: BE CAREFUL!!! "
+                "If path is a list, all paths will be deleted"
+            ),
+        )
+        chdir: PathOption = Field(
+            default=None,
+            description=(
+                "Change directories before deleting path(s). "
+                "This is useful if you have a common list of relative paths to "
+                "delete that you want to call against different directories."
+            ),
+        )
 
     def _run_task(self):
-        chdir = self.options.get("chdir")
+        chdir = self.parsed_options.chdir
         cwd = os.getcwd()
         if chdir:
             self.logger.info("Changing directory to {}".format(chdir))
             os.chdir(chdir)
 
-        path = self.options["path"]
+        path = self.parsed_options.path
         if not isinstance(path, list):
             path = [path]
         for path_item in path:
@@ -122,59 +143,54 @@ class Delete(BaseTask):
             os.remove(path)
 
 
-class FindReplace(BaseTask):
-    task_options = {
-        "find": {"description": "The string to search for", "required": True},
-        "replace": {
-            "description": "The string to replace matches with. Defaults to an empty string",
-            "required": True,
-        },
-        "path": {"description": "The path to recursively search", "required": True},
-        "file_pattern": {
-            "description": "A UNIX like filename pattern used for matching filenames, or a list of them. See python fnmatch docs for syntax. If passed via command line, use a comma separated string. Defaults to *"
-        },
-        "max": {
-            "description": "The max number of matches to replace.  Defaults to replacing all matches."
-        },
-    }
+class FindReplaceOptions(CCIOptions):
+    find: str = Field(..., description="The string to search for")
+    replace: str = Field(
+        "",
+        description="The string to replace matches with. Defaults to an empty string",
+    )
+    path: PathOption = Field(..., description="The path to recursively search")
+    file_pattern: ListOfStringsOption = Field(
+        "*",
+        description="A UNIX like filename pattern used for matching filenames, or a list of them. See python fnmatch docs for syntax. If passed via command line, use a comma separated string. Defaults to *",
+    )
 
-    def _init_options(self, kwargs):
-        super(FindReplace, self)._init_options(kwargs)
-        if "replace" not in self.options:
-            self.options["replace"] = ""
-        self.options["file_pattern"] = process_list_arg(
-            self.options.get("file_pattern") or "*"
+
+class FindReplace(BaseTask):
+    class Options(FindReplaceOptions):
+        max: int = Field(
+            None,
+            description="The max number of matches to replace.  Defaults to replacing all matches.",
         )
+
+    parsed_options: Options
 
     def _run_task(self):
         kwargs = {}
-        if "max" in self.options:
-            kwargs["max"] = self.options["max"]
+        if self.parsed_options.max:
+            kwargs["max"] = self.parsed_options.max
 
-        for file_pattern in self.options["file_pattern"]:
+        for file_pattern in self.parsed_options.file_pattern:
             find_replace(
-                find=self.options["find"],
-                replace=self.options["replace"],
-                directory=self.options["path"],
+                find=self.parsed_options.find,
+                replace=self.parsed_options.replace,
+                directory=self.parsed_options.path,
                 filePattern=file_pattern,
                 logger=self.logger,
                 **kwargs
             )
 
 
-find_replace_regex_options = FindReplace.task_options.copy()
-del find_replace_regex_options["max"]
-
-
 class FindReplaceRegex(FindReplace):
-    task_options = find_replace_regex_options
+    class Options(FindReplaceOptions):
+        pass
 
     def _run_task(self):
         find_replace_regex(
-            find=self.options["find"],
-            replace=self.options["replace"],
-            directory=self.options["path"],
-            filePattern=self.options["file_pattern"],
+            find=self.parsed_options.find,
+            replace=self.parsed_options.replace,
+            directory=self.parsed_options.path,
+            filePattern=self.parsed_options.file_pattern,
             logger=self.logger,
         )
 

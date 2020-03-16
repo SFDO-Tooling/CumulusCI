@@ -8,9 +8,12 @@ import os
 import time
 import threading
 
+from pydantic.error_wrappers import ValidationError
+
 from cumulusci.utils import cd
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.utils.metaprogramming import classproperty
 
 CURRENT_TASK = threading.local()
 CURRENT_TASK.stack = []
@@ -33,7 +36,7 @@ class BaseTask(object):
     """
 
     task_docs = ""
-    task_options = {}
+    Options = None
     salesforce_task = False  # Does this task require a salesforce org?
 
     def __init__(
@@ -44,7 +47,7 @@ class BaseTask(object):
         flow=None,
         name=None,
         stepnum=None,
-        **kwargs
+        **kwargs,
     ):
         self.project_config = project_config
         self.task_config = task_config
@@ -80,6 +83,14 @@ class BaseTask(object):
         else:
             self.logger = logging.getLogger(__name__)
 
+    @classproperty
+    def task_options(cls):
+        "Convert Options dict into old fashioned task_options syntax"
+        if cls.Options:
+            return cls.Options.as_task_options()
+        else:
+            return {}
+
     def _init_options(self, kwargs):
         """ Initializes self.options """
         self.options = self.task_config.options
@@ -96,6 +107,16 @@ class BaseTask(object):
                     self.options[option] = getattr(self.project_config, attr, None)
             except AttributeError:
                 pass
+
+        if self.Options:
+            try:
+                self.parsed_options = self.Options(**self.options)
+            except ValidationError as e:
+                try:
+                    message = f"Task Options Error: {e.errors()[0]['loc'][0]} {e.errors()[0]['msg']}"
+                except (AttributeError, IndexError):
+                    message = f"Task Options Error"
+                raise TaskOptionsError(message) from e
 
     def _validate_options(self):
         missing_required = []

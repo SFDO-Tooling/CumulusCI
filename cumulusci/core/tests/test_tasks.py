@@ -3,6 +3,7 @@
 import unittest
 import collections
 from unittest import mock
+from datetime import date
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.config import BaseGlobalConfig
@@ -12,6 +13,12 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.tests.utils import MockLoggerMixin
+from cumulusci.utils.option_parsing import (
+    ListOfStringsOption,
+    MappingOption,
+    CCIOptions,
+    Field,
+)
 
 ORG_ID = "00D000000000001"
 USERNAME = "sample@example"
@@ -200,3 +207,60 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
         self.assertEqual(4, task.poll_count)
         self.assertEqual(1, task.poll_interval_level)
         self.assertEqual(2, task.poll_interval_s)
+
+
+class TaskToTestTypes(BaseTask):
+    class Options(CCIOptions):
+        the_list: ListOfStringsOption = Field(
+            default=[], description="A list of strings",
+        )
+        the_mapping: MappingOption = Field(
+            default=[], description="A list of strings",
+        )
+        the_date: date = Field(default=None, description="A date")
+        the_bool: bool = Field(default=None, description="A bool")
+
+    parsed_options: Options
+
+    def _run_task(self):
+        for key, value in vars(self.parsed_options).items():
+            if value:
+                print(key, repr(getattr(self.parsed_options, key)))
+
+
+class TestTaskOptionsParsing:
+    def setup_class(self):
+        self.global_config = BaseGlobalConfig()
+        self.project_config = BaseProjectConfig(
+            self.global_config, config={"noyaml": True}
+        )
+        self.org_config = OrgConfig({"username": USERNAME, "org_id": ORG_ID}, "test")
+        self.task_config = TaskConfig(
+            {
+                "options": {
+                    "the_list": ["a"],
+                    "the_mapping": {"b": "c"},
+                    "the_date": date(2019, 1, 30),
+                    "the_bool": True,
+                }
+            }
+        )
+
+    def test_noop(self):
+        task = TaskToTestTypes(self.project_config, self.task_config, self.org_config)
+        task._init_options({})
+        assert task.options["the_list"] == ["a"]
+        assert task.options["the_mapping"] == {"b": "c"}
+        assert task.options["the_date"] == date(2019, 1, 30)
+        assert task.options["the_bool"] is True
+        assert task.parsed_options.the_list == task.options["the_list"]
+        assert task.parsed_options.the_mapping == task.options["the_mapping"]
+        assert task.parsed_options.the_date == task.options["the_date"]
+        assert task.parsed_options.the_bool == task.options["the_bool"]
+
+    # TODO: other tests here.
+    #
+    #   For example:
+    #       test conversions from string
+    #       test error messages
+    #       test generation of task_options from Options
