@@ -114,8 +114,8 @@ jobs:
           command: |
             echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
             sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-            venv/bin/cci org info prerelease > org_info.txt
-            venv/bin/cci org default prerelease
+            venv/bin/cci org info dev > org_info.txt
+            venv/bin/cci org default dev
       - run:
           name: Run robot tests
           command: |
