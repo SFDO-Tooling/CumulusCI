@@ -9,8 +9,7 @@ PYPI_JSON="$(mktemp)" || exit 1
 echo " "
 echo "=> Collecting package info from PyPI..."
 echo " "
-#curl -L "https://pypi.io/pypi/cumulusci/json" > "$PYPI_JSON" || exit 1
-curl -L "https://test.pypi.org/pypi/cumulusci/json" > "$PYPI_JSON" || exit 1
+curl -L "https://pypi.io/pypi/cumulusci/json" > "$PYPI_JSON" || exit 1
 PACKAGE_URL="$(cat "$PYPI_JSON" | jq '.urls[1].url')" || exit 1
 PACKAGE_SHA="$(cat "$PYPI_JSON" | jq '.urls[1].digests.sha256')" || exit 1
 PACKAGE_VERSION="$(cat setup.cfg | grep current_version | head -n 1 | cut -f 3 -d' ')" || exit 1
@@ -18,10 +17,11 @@ PACKAGE_VERSION="$(cat setup.cfg | grep current_version | head -n 1 | cut -f 3 -
 echo " "
 echo "=> Creating a temporary virtualenv and installing CumulusCI..."
 echo " "
+source deactivate
 python3.7 -m venv "$ENV_DIR" || exit 1
 source "$ENV_DIR/bin/activate" || exit 1
 pip install -U pip
-pip install --no-cache-dir --extra-index-url https://test.pypi.org/simple/ cumulusci==$PACKAGE_VERSION homebrew-pypi-poet || exit 1
+pip install --no-cache-dir cumulusci==$PACKAGE_VERSION homebrew-pypi-poet || exit 1
 
 echo " "
 echo "=> Collecting dependencies and generating resource stanzas..."
