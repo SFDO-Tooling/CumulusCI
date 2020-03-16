@@ -110,6 +110,10 @@ jobs:
         sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
         cci org info dev > /dev/null
         cci org default dev
+      env:
+        SFDX_HUB_KEY: ${{ secrets.SFDX_HUB_KEY }}
+        SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+        SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
     - name: Run robot tests
       run: |
         mkdir -p robot_results/robot
