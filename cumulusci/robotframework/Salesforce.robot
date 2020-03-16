@@ -29,7 +29,6 @@ ${BROWSER}          chrome
 ${SELENIUM_SPEED}   0
 ${DEBUG}            ${false}
 ${CHROME_BINARY}    ${empty}
-${CHROME_NO_SANDBOX}  ${empty}
 ${ORG}              ${empty}
 ${IMPLICIT_WAIT}    7.0
 ${INITIAL_TIMEOUT}  180.0
@@ -107,7 +106,7 @@ Get Chrome Options
     ${options} =    Evaluate  selenium.webdriver.ChromeOptions()  modules=selenium
     Run Keyword If  '${BROWSER}' == 'headlesschrome'
     ...             Chrome Set Headless  ${options}
-    Run Keyword If  '${CHROME_NO_SANDBOX}' != '${empty}'
+    Run Keyword If  '%{CHROME_NO_SANDBOX}' != '${empty}'
     ...             Call Method  ${options}  add_argument  --no-sandbox
     Run Keyword If  '${CHROME_BINARY}' != '${empty}'
     ...             Chrome Set Binary  ${options}
