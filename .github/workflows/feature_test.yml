@@ -80,6 +80,67 @@ jobs:
     - name: pytest
       run: pytest
 
+  robot:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: pip cache
+      uses: actions/cache@v1
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install Python dependencies
+      run: |
+        python -m pip install -U pip
+        pip install -r requirements_dev.txt
+    - name: Install sfdx
+      run: |
+        mkdir sfdx
+        wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+        ./sfdx/install
+    - name: Create scratch org
+      run: |
+        echo $SFDX_HUB_KEY > sfdx.key
+        sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+        cci org info dev > /dev/null
+        cci org default dev
+    - name: Run robot tests
+      run: |
+        mkdir -p robot_results/robot
+        # we need to modify our task to make it easier to save the
+        # output.xml file with a unique name. Until then, we have
+        # to manually preserve each file under a different name
+        coverage run --append cci task run robot -o name "CumulusCI" -o suites cumulusci/robotframework/tests/cumulusci  -o xunit robot_results/robot/cumulusci.xml || true
+        mv output.xml robot_results/robot/cumulusci-output.xml
+        coverage run --append cci task run robot -o name "Salesforce API" -o suites cumulusci/robotframework/tests/salesforce -o include api -o xunit robot_results/robot/salesforce_api.xml || true
+        mv output.xml robot_results/robot/salesforce_api-output.xml
+        coverage run --append cci task run robot -o name "Salesforce UI Chrome" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o xunit robot_results/robot/salesforce_ui_chrome.xml || true
+        mv output.xml robot_results/robot/salesforce_ui_chrome-output.xml
+        coverage run --append cci task run robot -o name "Salesforce UI Firefox" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o vars BROWSER:headlessfirefox -o xunit robot_results/robot/salesforce_ui_firefox.xml || true
+        mv output.xml robot_results/robot/salesforce_ui_firefox-output.xml
+        mv selenium-screenshot-* robot_results/robot || true
+    - name: Consolidate robot outputs into a single report and log
+      if: always()
+      run: |
+        rebot --outputdir robot_results/robot  robot_results/robot/*-output.xml
+    - name: Delete scratch org
+      if: always()
+      run: |
+        cci org scratch_delete prerelease
+    - name: Report coverage
+      run: coveralls
+    - name: Store robot results
+      uses: actions/upload-artifact@v1
+      with:
+        name: robot
+        path: robot_results
+
   report-coverage:
     name: Report coverage
     needs: unit-tests
