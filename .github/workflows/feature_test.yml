@@ -106,12 +106,12 @@ jobs:
         ./sfdx/install
     - name: Create scratch org
       run: |
-        echo "${SFDX_HUB_KEY}" > sfdx.key
+        echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
         sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
         cci org info dev
         cci org default dev
       env:
-        SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY }}
+        SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
         SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
         SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
     - name: Run robot tests
