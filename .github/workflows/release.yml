@@ -21,12 +21,15 @@ jobs:
         run: python -m pip install twine wheel
       - name: Build source tarball and binary wheel
         run: python setup.py sdist bdist_wheel
-      - name: Upload to TestPyPI
+      - name: Upload to PyPI
         run: twine upload dist/*
         env:
-          TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      - name: Create tag
+        run: |
+          git tag -a -m "version $(python setup.py --version)" v$(python setup.py --version)
+          git push --follow-tags
 
 # to do:
 # - add release notes in github
