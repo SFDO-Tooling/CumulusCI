@@ -3018,7 +3018,7 @@ Options
 
 **Description:** Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
 
-**Class:** cumulusci.tasks.salesforce.UpdateProfile
+**Class:** cumulusci.tasks.salesforce.ProfileGrantAllAccess
 
 Command Syntax
 ------------------------------------------
@@ -3050,10 +3050,25 @@ Options
 
 	 If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False
 
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix. Defaults to project__package__namespace
+
 ``-o profile_name PROFILENAME``
 	 *Optional*
 
-	 Name of the Profile to target for updates.
+	 Name of the Profile to target for updates (deprecated; use api_names to target multiple profiles).
+
+``-o include_packaged_objects INCLUDEPACKAGEDOBJECTS``
+	 *Optional*
+
+	 Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.9.0 and greater that don't use a custom package.xml, otherwise False.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of Profiles to affect
 
 **update_dependencies**
 ==========================================

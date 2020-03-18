@@ -1,8 +1,5 @@
 version: 2.1
 
-orbs:
-  win: circleci/windows@1.0.0
-
 defaults: &defaults
   docker:
     - image: circleci/python:3.7-browsers
@@ -11,20 +8,6 @@ defaults: &defaults
   working_directory: ~/repo
 
 jobs:
-  test_windows:
-    executor: win/vs2019
-    steps:
-      - checkout
-      - run:
-          name: Install python3
-          command: choco install python
-      - run:
-          name: pip install dependencies
-          command: pip install -r requirements_dev.txt
-      - run:
-          name: Run Tests
-          command: pytest
-
   lint:
     <<: *defaults
     docker:
@@ -131,8 +114,8 @@ jobs:
           command: |
             echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
             sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-            venv/bin/cci org info prerelease > org_info.txt
-            venv/bin/cci org default prerelease
+            venv/bin/cci org info dev > org_info.txt
+            venv/bin/cci org default dev
       - run:
           name: Run robot tests
           command: |
@@ -283,12 +266,6 @@ workflows:
             branches:
               ignore:
                 - /dependabot\/.*/
-      - test_windows:
-          filters:
-            branches:
-              only:
-                - master
-                - /.*windows.*/
       - report:
           requires:
             - test_py36

@@ -1,9 +1,11 @@
 from unittest.mock import Mock, patch
 from pytest import xfail, mark
+from io import StringIO
 
 from cumulusci.utils.yaml.cumulusci_yml import (
     parse_from_yaml,
     cci_safe_load,
+    _replace_nbsp,
 )
 
 
@@ -27,7 +29,7 @@ class TestCumulusciYml:
         yaml = """xyz:
                     y: abc"""
         lf = Mock()
-        cciyml = cci_safe_load(yaml, "foo", on_error=lf)
+        cciyml = cci_safe_load(StringIO(yaml), "foo", on_error=lf)
         assert isinstance(cciyml, dict)  # should parse despite model errors
         lf.assert_called()
         assert "foo" in str(lf.mock_calls[0][1][0])
@@ -39,7 +41,7 @@ class TestCumulusciYml:
         yaml = """xyz:
             y: abc"""
         logfunc = Mock()
-        cciyml = cci_safe_load(yaml, "foo", on_error=logfunc)
+        cciyml = cci_safe_load(StringIO(yaml), "foo", on_error=logfunc)
 
         assert isinstance(cciyml, dict)  # should parse despite model errors
         logfunc.assert_called()
@@ -75,3 +77,37 @@ class TestCumulusciYml:
         assert parse_from_yaml("../Abacus/cumulusci.yml")
         assert parse_from_yaml("../NPSP/cumulusci.yml")
         assert parse_from_yaml("../CaseMan/cumulusci.yml")
+
+    def test_simple_load(self, caplog):
+        yaml = """xyz:
+            y: abc"""
+        cciyml = cci_safe_load(StringIO(yaml))
+        assert not caplog.text
+
+        assert isinstance(cciyml, dict)  # should parse despite funny character
+        assert cciyml["xyz"]["y"] == "abc", cciyml
+
+    def test_convert_nbsp(self, caplog):
+        yaml = """xyz:
+           \u00A0 y: abc"""
+        cciyml = cci_safe_load(StringIO(yaml))
+        assert "space character" in caplog.text
+
+        assert isinstance(cciyml, dict)  # should parse despite funny character
+        assert cciyml["xyz"]["y"] == "abc", cciyml
+
+    def test_converter(self):
+        inp = """xyz:
+           \u00A0 y: abc"""
+        outp = """xyz:
+             y: abc"""
+
+        rc = _replace_nbsp(inp)
+        assert rc == outp
+
+    def test_converter_is_selective(self):
+        inp = """xyz:
+             y: abc\u00A0"""
+
+        rc = _replace_nbsp(inp)
+        assert rc == inp

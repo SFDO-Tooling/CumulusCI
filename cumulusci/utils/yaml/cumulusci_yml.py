@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, IO, Text
 from typing_extensions import Literal
 from yaml import safe_load
 from pathlib import Path
@@ -7,8 +7,18 @@ from pydantic import validator
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 
 
+import re
+from logging import getLogger
+from io import StringIO
+
+logger = getLogger(__name__)
+
+
 PythonClass = str
 URL = str
+NBSP = "\u00A0"
+
+pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
 
 
 class FlowReference(CCIDictModel):
@@ -187,7 +197,7 @@ def validate_data(
     return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
 
 
-def cci_safe_load(
+def cci_safe_load_next(
     source, context: str = None, on_error: callable = None,
 ):
     """Transitional function for testing validator before depending upon it."""
@@ -207,3 +217,33 @@ def cci_safe_load(
             )
         pass
     return data
+
+
+def _replace_nbsp(origdata):
+    counter = 0
+
+    def _replacer_func(matchobj):
+        nonlocal counter
+        counter += 1
+        string = matchobj.group(0)
+        rc = string.replace(NBSP, " ")
+        return rc
+
+    data = pattern.sub(_replacer_func, origdata)
+
+    if counter:
+        plural = "s were" if counter > 1 else " was"
+        logger.warn(
+            f"Note: {counter} lines with non-breaking space character{plural} detected in cumulusci.yml.\n"
+            "Perhaps you cut and pasted from a Web page?\n"
+            "Future versions of CumulusCI may disallow these characters.\n"
+        )
+    return data
+
+
+def cci_safe_load(
+    f_config: IO[Text], filename: str = None, on_error: callable = None, *args
+):
+    "Load a file, convert NBSP->space and parse it in YAML."
+    cleaned_up_data = _replace_nbsp(f_config.read())
+    return cci_safe_load_next(StringIO(cleaned_up_data), filename, on_error)

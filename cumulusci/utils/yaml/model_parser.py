@@ -74,6 +74,17 @@ class CCIModel(BaseModel):
             name = self._alias_for_field(name)
         return super().__setattr__(name, value)
 
+    def copy(self, *args, **kwargs):
+        """Copy with a default behaviour similar to Python's.
+
+        If you supply arguments, you get Pydantic copy behaviour.
+        https://pydantic-docs.helpmanual.io/usage/exporting_models/#modelcopy
+        """
+        if not args and not kwargs:
+            return self.__class__(**self.__dict__)
+        else:
+            return super().copy(self, *args, **kwargs)
+
     class Config:
         """Pydantic Config
 

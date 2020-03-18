@@ -1,6 +1,7 @@
 from distutils.version import LooseVersion
 import os
 import re
+from io import StringIO
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -116,7 +117,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
             additional_yaml_config = cci_safe_load(
-                self.additional_yaml, self.config_project_path, self._handle_yaml_error
+                StringIO(self.additional_yaml),
+                self.config_project_path,
+                self._handle_yaml_error,
             )
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
@@ -576,7 +579,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
         cumulusci_yml = cci_safe_load(
-            contents.decoded, f"cumulusci.yml from {ref}", self._handle_yaml_error
+            StringIO(contents.decoded.decode("utf-8")),
+            f"cumulusci.yml from {ref}",
+            self._handle_yaml_error,
         )
 
         # Get the namespace from the cumulusci.yml if set
