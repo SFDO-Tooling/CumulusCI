@@ -203,6 +203,11 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
+``-o include_stopped true``
+	 *Optional*
+
+	 Set to true to include Aborted jobs. Otherwise only looks for Completed jobs by default.
+
 **command**
 ==========================================
 

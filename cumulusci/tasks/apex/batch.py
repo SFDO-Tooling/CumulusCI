@@ -7,6 +7,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
 
 COMPLETED_STATUSES = ["Completed"]
+STOPPED_STATUSES = ["Aborted"]
 
 
 class BatchApexWait(BaseSalesforceApiTask):
@@ -25,10 +26,14 @@ class BatchApexWait(BaseSalesforceApiTask):
             "description": "Seconds to wait before polling for batch job completion. "
             "Defaults to 10 seconds."
         },
+        "include_stopped": {
+            "description": "Set to true to include Aborted jobs. Otherwise only looks for Completed jobs by default."
+        },
     }
 
     def _run_task(self):
         self.poll_interval_s = int(self.options.get("poll_interval", 10))
+        self.include_stopped = self.options.get("include_stopped") or False
 
         self._poll()  # will block until poll_complete
 
@@ -42,7 +47,7 @@ class BatchApexWait(BaseSalesforceApiTask):
             raise SalesforceException(
                 f"There were batch errors: {repr(failed_batches)}"
             )
-        elif not summary["CountsAddUp"]:
+        elif not summary["CountsAddUp"] and not self.include_stopped:
             self.logger.info("The final record counts do not add up.")
             self.logger.info("This is probably related to W-1132237")
             self.logger.info(repr(summary))
@@ -110,6 +115,8 @@ class BatchApexWait(BaseSalesforceApiTask):
         )
 
         self.poll_complete = summary["Completed"]
+        if self.include_stopped and not self.poll_complete:
+            self.poll_complete = summary["Stopped"]
 
     def summarize_subjobs(self, subjobs: Sequence[dict]):
         def reduce_key(valname: str, summary_func):
@@ -122,6 +129,7 @@ class BatchApexWait(BaseSalesforceApiTask):
             "Completed": all(
                 subjob["Status"] in COMPLETED_STATUSES for subjob in subjobs
             ),
+            "Stopped": all(subjob["Status"] in STOPPED_STATUSES for subjob in subjobs),
         }
         rc["Success"] = rc["NumberOfErrors"] == 0
         rc["ElapsedTime"] = self.elapsed_time(subjobs)
