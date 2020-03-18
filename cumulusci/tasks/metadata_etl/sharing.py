@@ -2,10 +2,11 @@ from datetime import datetime
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
-class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
+class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTask):
     entity = "CustomObject"
     task_options = {
         "org_wide_defaults": {
