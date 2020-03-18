@@ -4,6 +4,7 @@ import re
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
+import github3
 import yaml
 
 from cumulusci.core.utils import merge_config
@@ -11,6 +12,7 @@ from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
     DependencyResolutionError,
+    GithubException,
     KeychainNotFound,
     NamespaceNotFoundError,
     NotInProject,
@@ -372,7 +374,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         gh = self.get_github_api()
         repo = gh.repository(self.repo_owner, self.repo_name)
         if not beta:
-            release = repo.latest_release()
+            try:
+                release = repo.latest_release()
+            except github3.exceptions.NotFoundError:
+                raise GithubException(f"No release found for {self.repo_url}")
             prefix = self.project__git__prefix_release
             if not release.tag_name.startswith(prefix):
                 return self._get_latest_tag_for_prefix(repo, prefix)
@@ -385,6 +390,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             if not release.tag_name.startswith(prefix):
                 continue
             return release.tag_name
+        raise GithubException(
+            f"No release found for {self.repo_url} with tag prefix {prefix}"
+        )
 
     def get_latest_version(self, beta=False):
         """ Query Github Releases to find the latest production or beta release """
