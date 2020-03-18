@@ -9,7 +9,6 @@ from cumulusci.utils.yaml.cumulusci_yml import (
 )
 
 
-# fill this out.
 class TestCumulusciYml:
     def test_cumulusci_yaml(self):
         cciyml = parse_from_yaml("cumulusci.yml")
@@ -78,15 +77,6 @@ class TestCumulusciYml:
         assert parse_from_yaml("../NPSP/cumulusci.yml")
         assert parse_from_yaml("../CaseMan/cumulusci.yml")
 
-    def test_simple_load(self, caplog):
-        yaml = """xyz:
-            y: abc"""
-        cciyml = cci_safe_load(StringIO(yaml))
-        assert not caplog.text
-
-        assert isinstance(cciyml, dict)  # should parse despite funny character
-        assert cciyml["xyz"]["y"] == "abc", cciyml
-
     def test_convert_nbsp(self, caplog):
         yaml = """xyz:
            \u00A0 y: abc"""
@@ -102,12 +92,12 @@ class TestCumulusciYml:
         outp = """xyz:
              y: abc"""
 
-        rc = _replace_nbsp(inp)
+        rc = _replace_nbsp(inp, "")
         assert rc == outp
 
     def test_converter_is_selective(self):
         inp = """xyz:
              y: abc\u00A0"""
 
-        rc = _replace_nbsp(inp)
+        rc = _replace_nbsp(inp, "")
         assert rc == inp

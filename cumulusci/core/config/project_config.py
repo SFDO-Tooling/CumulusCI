@@ -95,22 +95,18 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
         # Load the project's yaml config file
-        with open(self.config_project_path, "r") as f_config:
-            project_config = cci_safe_load(
-                f_config, self.config_project_path, self._handle_yaml_error
-            )
+        project_config = cci_safe_load(
+            self.config_project_path, on_error=self._handle_yaml_error
+        )
 
         if project_config:
             self.config_project.update(project_config)
 
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
-            with open(self.config_project_local_path, "r") as f_local_config:
-                local_config = cci_safe_load(
-                    f_local_config,
-                    self.config_project_local_path,
-                    self._handle_yaml_error,
-                )
+            local_config = cci_safe_load(
+                self.config_project_local_path, on_error=self._handle_yaml_error
+            )
             if local_config:
                 self.config_project_local.update(local_config)
 
@@ -581,7 +577,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         cumulusci_yml = cci_safe_load(
             StringIO(contents.decoded.decode("utf-8")),
             f"cumulusci.yml from {ref}",
-            self._handle_yaml_error,
+            on_error=self._handle_yaml_error,
         )
 
         # Get the namespace from the cumulusci.yml if set

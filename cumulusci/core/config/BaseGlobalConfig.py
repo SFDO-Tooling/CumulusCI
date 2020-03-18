@@ -45,14 +45,11 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
             return
 
         # load the global config
-        with open(self.config_global_path, "r") as f_config:
-            config = cci_safe_load(f_config)
-        BaseGlobalConfig.config_global = config
+        BaseGlobalConfig.config_global = cci_safe_load(self.config_global_path)
 
         # Load the local config
         if self.config_global_local_path:
-            with open(self.config_global_local_path, "r") as f:
-                config = cci_safe_load(f)
+            config = cci_safe_load(self.config_global_local_path)
         else:
             config = {}
         BaseGlobalConfig.config_global_local = config

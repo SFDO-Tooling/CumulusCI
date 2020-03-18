@@ -1,24 +1,21 @@
-from typing import Dict, List, Any, Optional, Union, IO, Text
+import re
+from io import StringIO
+from logging import getLogger
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import validator
 from typing_extensions import Literal
 from yaml import safe_load
-from pathlib import Path
-from pydantic import validator
 
+from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel
-
-
-import re
-from logging import getLogger
-from io import StringIO
 
 logger = getLogger(__name__)
 
-
-PythonClass = str
+#  type aliases
+PythonClassPath = str
 URL = str
-NBSP = "\u00A0"
-
-pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
 
 
 class FlowReference(CCIDictModel):
@@ -49,7 +46,7 @@ class Task(CCIDictModel):
 
 
 class StepsValidatorMixin:
-    @validator("steps", pre=True, whole=True)
+    @validator("steps", pre=True)
     def validate_steps(cls, steps):
         if not isinstance(steps, Dict):
             raise TypeError("steps must be a dict")
@@ -88,7 +85,7 @@ class Test(CCIDictModel):
 
 
 class Parser(CCIDictModel):
-    class_path: PythonClass
+    class_path: PythonClassPath
     title: str
 
 
@@ -159,11 +156,11 @@ class Attribute(CCIDictModel):
 class Service(CCIDictModel):
     description: str
     attributes: Dict[str, Attribute]
-    validator: PythonClass = None
+    validator: PythonClassPath = None
 
 
 class CumulusCIConfig(CCIDictModel):
-    keychain: PythonClass
+    keychain: PythonClassPath
 
 
 class Source(CCIDictModel):
@@ -197,29 +194,40 @@ def validate_data(
     return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
 
 
-def cci_safe_load_next(
-    source, context: str = None, on_error: callable = None,
+def cci_safe_load(
+    source: DataInput, context: str = None, on_error: callable = None,
 ):
     """Transitional function for testing validator before depending upon it."""
-    data = safe_load(source)
-    try:
-        validate_data(data, context=context, on_error=on_error)
-    except Exception as e:
-        # should never be executed
-        print(f"Error validating cumulusci.yml {e}")
-        if on_error:
-            on_error(
-                {
-                    "loc": (source,),
-                    "msg": f"Error validating cumulusci.yml {e}",
-                    "type": "exception",
-                }
-            )
-        pass
-    return data
+    with load_from_source(source) as (filename, data_stream):
+        # this is inelegant but the _replace_nbsp code is a lot easier
+        # to write with regexps and Python regexps don't work with streams
+        cleaned_up_data = _replace_nbsp(data_stream.read(), data_stream)
+        data = safe_load(StringIO(cleaned_up_data))
+        context = context or filename
+        on_error = on_error or logger.warn
+        try:
+            validate_data(data, context=context, on_error=on_error)
+        except Exception as e:
+            # should never be executed
+            print(f"Error validating cumulusci.yml {e}")
+            if on_error:
+                on_error(
+                    {
+                        "loc": (source,),
+                        "msg": f"Error validating cumulusci.yml {e}",
+                        "type": "exception",
+                    }
+                )
+            pass
+        return data
 
 
-def _replace_nbsp(origdata):
+NBSP = "\u00A0"
+
+pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
+
+
+def _replace_nbsp(origdata, filename):
     counter = 0
 
     def _replacer_func(matchobj):
@@ -234,16 +242,8 @@ def _replace_nbsp(origdata):
     if counter:
         plural = "s were" if counter > 1 else " was"
         logger.warn(
-            f"Note: {counter} lines with non-breaking space character{plural} detected in cumulusci.yml.\n"
+            f"Note: {counter} lines with non-breaking space character{plural} detected in {filename}.\n"
             "Perhaps you cut and pasted from a Web page?\n"
             "Future versions of CumulusCI may disallow these characters.\n"
         )
     return data
-
-
-def cci_safe_load(
-    f_config: IO[Text], filename: str = None, on_error: callable = None, *args
-):
-    "Load a file, convert NBSP->space and parse it in YAML."
-    cleaned_up_data = _replace_nbsp(f_config.read())
-    return cci_safe_load_next(StringIO(cleaned_up_data), filename, on_error)

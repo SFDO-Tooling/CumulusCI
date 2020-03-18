@@ -7,6 +7,8 @@ from io import StringIO
 
 """Utilities for working with files"""
 
+DataInput = Union[str, IO, Path]
+
 
 def _get_path_from_stream(stream):
     "Try to infer a name from an open stream"
@@ -19,9 +21,7 @@ def _get_path_from_stream(stream):
 
 
 @contextmanager
-def load_from_source(
-    source: Union[str, IO, Path]
-) -> ContextManager[Tuple[Text, IO[Text]]]:
+def load_from_source(source: DataInput) -> ContextManager[Tuple[Text, IO[Text]]]:
     """Normalize potential data sources into uniform tuple
 
      Take as input a file-like, path-like, or URL-like
