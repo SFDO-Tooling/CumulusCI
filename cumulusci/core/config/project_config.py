@@ -231,7 +231,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self.logger.info("")
 
     def _split_repo_url(self, url):
-        url_parts = url.split("/")
+        url_parts = url.rstrip("/").split("/")
         name = url_parts[-1]
         owner = url_parts[-2]
         if name.endswith(".git"):
@@ -369,15 +369,23 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.keychain, owner or self.repo_owner, repo or self.repo_name
         )
 
-    def get_latest_tag(self, beta=False):
-        """ Query Github Releases to find the latest production or beta tag """
+    def _get_repo(self):
         gh = self.get_github_api()
         repo = gh.repository(self.repo_owner, self.repo_name)
+        if repo is None:
+            raise GithubException(
+                f"Github repository not found or not authorized. ({self.repo_url})"
+            )
+        return repo
+
+    def get_latest_tag(self, beta=False):
+        """ Query Github Releases to find the latest production or beta tag """
+        repo = self._get_repo()
         if not beta:
             try:
                 release = repo.latest_release()
             except github3.exceptions.NotFoundError:
-                raise GithubException(f"No release found for {self.repo_url}")
+                raise GithubException(f"No release found for repo {self.repo_url}")
             prefix = self.project__git__prefix_release
             if not release.tag_name.startswith(prefix):
                 return self._get_latest_tag_for_prefix(repo, prefix)
@@ -403,8 +411,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_previous_version(self):
         """Query GitHub releases to find the previous production release"""
-        gh = self.get_github_api()
-        repo = gh.repository(self.repo_owner, self.repo_name)
+        repo = self._get_repo()
         release = find_previous_release(repo, self.project__git__prefix_release)
         if release is not None:
             return LooseVersion(self.get_version_for_tag(release.tag_name))
@@ -540,6 +547,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_name = repo_name[:-4]
         gh = self.get_github_api(repo_owner, repo_name)
         repo = gh.repository(repo_owner, repo_name)
+        if repo is None:
+            raise DependencyResolutionError(
+                f"{indent}Github repository {dependency['github']} not found or not authorized."
+            )
 
         # Determine the commit
         release = None

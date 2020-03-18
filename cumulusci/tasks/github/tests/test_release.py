@@ -20,8 +20,11 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         self.repo_api_url = "https://api.github.com/repos/{}/{}".format(
             self.repo_owner, self.repo_name
         )
-        self.project_config = create_project_config(self.repo_name, self.repo_owner)
-        self.project_config._repo_commit = "21e04cfe480f5293e2f7103eee8a5cbdb94f7982"
+        self.project_config = create_project_config(
+            self.repo_name,
+            self.repo_owner,
+            repo_commit="21e04cfe480f5293e2f7103eee8a5cbdb94f7982",
+        )
         self.project_config.keychain.set_service(
             "github",
             ServiceConfig(
@@ -123,7 +126,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             url=self.repo_api_url + "/releases/tags/release/1.0",
             status=404,
         )
-        del self.project_config._repo_commit
+        del self.project_config._repo_info["commit"]
 
         with self.assertRaises(GithubException):
             CreateRelease(
@@ -143,7 +146,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             url=self.repo_api_url + "/releases/tags/release/1.0",
             status=404,
         )
-        self.project_config._repo_commit = "too_short"
+        self.project_config._repo_info["commit"] = "too_short"
 
         with self.assertRaises(TaskOptionsError):
             CreateRelease(
