@@ -12,12 +12,15 @@ def random_sha():
     return "%032x" % hash
 
 
-def create_project_config(repo_name="TestRepo", repo_owner="TestOwner"):
+def create_project_config(
+    repo_name="TestRepo", repo_owner="TestOwner", repo_commit=None
+):
     global_config = BaseGlobalConfig()
     project_config = DummyProjectConfig(
         global_config=global_config,
         repo_name=repo_name,
         repo_owner=repo_owner,
+        repo_commit=repo_commit,
         config=copy.deepcopy(global_config.config),
     )
     keychain = BaseProjectKeychain(project_config, None)
@@ -29,25 +32,15 @@ class DummyProjectConfig(BaseProjectConfig):
     def __init__(
         self, global_config, repo_name, repo_owner, repo_commit=None, config=None
     ):
-        self._repo_name = repo_name
-        self._repo_owner = repo_owner
-        self._repo_commit = repo_commit
-        self._init_config = config
-        super(DummyProjectConfig, self).__init__(global_config, config)
-
-    @property
-    def repo_name(self):
-        return self._repo_name
-
-    @property
-    def repo_owner(self):
-        return self._repo_owner
-
-    @property
-    def repo_commit(self):
-        if not self._repo_commit:
-            self._repo_commit = random_sha()
-        return self._repo_commit
+        repo_info = {
+            "owner": repo_owner,
+            "name": repo_name,
+            "url": f"https://github.com/{repo_owner}/{repo_name}",
+            "commit": repo_commit or random_sha(),
+        }
+        super(DummyProjectConfig, self).__init__(
+            global_config, config, repo_info=repo_info
+        )
 
 
 class DummyOrgConfig(OrgConfig):
