@@ -2,16 +2,15 @@ import re
 from io import StringIO
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Sequence
 
-from pydantic import validator
-from typing_extensions import Literal
+from typing_extensions import Literal, TypedDict
 from yaml import safe_load
 
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 
-logger = getLogger(__name__)
+default_logger = getLogger(__name__)
 
 #  type aliases
 PythonClassPath = str
@@ -45,27 +44,7 @@ class Task(CCIDictModel):
     ui_options: Dict[str, Any] = None
 
 
-class StepsValidatorMixin:
-    @validator("steps", pre=True)
-    def validate_steps(cls, steps):
-        if not isinstance(steps, Dict):
-            raise TypeError("steps must be a dict")
-        return dict(cls.steps_gen(steps))
-
-    @classmethod
-    def steps_gen(cls, steps):
-        for name, value in steps.items():
-            if value.get("flow") and value.get("task"):
-                raise ValueError(f"invalid step: {name}, both a task and a flow")
-            elif value.get("flow"):
-                yield name, FlowReference(**value)
-            elif value.get("task"):
-                yield name, TaskReference(**value)
-            else:
-                raise ValueError(f"invalid step: {name}, neither a task nor a flow")
-
-
-class Flow(CCIDictModel, StepsValidatorMixin):
+class Flow(CCIDictModel):
     description: str = None
     steps: Dict[str, Union[FlowReference, TaskReference]]
     group: str = None
@@ -117,7 +96,7 @@ class Check(CCIDictModel):
     message: str = None
 
 
-class Plan(CCIDictModel, StepsValidatorMixin):  # MetaDeploy plans
+class Plan(CCIDictModel):  # MetaDeploy plans
     title: str
     description: str = None
     tier: str = None
@@ -195,16 +174,24 @@ def validate_data(
 
 
 def cci_safe_load(
-    source: DataInput, context: str = None, on_error: callable = None,
+    source: DataInput, context: str = None, on_error: callable = None, logger=None
 ):
     """Transitional function for testing validator before depending upon it."""
+    assert not (
+        on_error and logger
+    ), "Please specify either on_error or logger but not both"
+
+    logger = logger or default_logger
+
     with load_from_source(source) as (filename, data_stream):
         # this is inelegant but the _replace_nbsp code is a lot easier
         # to write with regexps and Python regexps don't work with streams
-        cleaned_up_data = _replace_nbsp(data_stream.read(), data_stream)
+        cleaned_up_data = _replace_nbsp(data_stream.read(), data_stream, logger)
         data = safe_load(StringIO(cleaned_up_data))
         context = context or filename
-        on_error = on_error or logger.warn
+
+        on_error = on_error or (lambda error: _log_yaml_error(logger, error))
+
         try:
             validate_data(data, context=context, on_error=on_error)
         except Exception as e:
@@ -213,7 +200,7 @@ def cci_safe_load(
             if on_error:
                 on_error(
                     {
-                        "loc": (source,),
+                        "loc": (context,),
                         "msg": f"Error validating cumulusci.yml {e}",
                         "type": "exception",
                     }
@@ -227,7 +214,7 @@ NBSP = "\u00A0"
 pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
 
 
-def _replace_nbsp(origdata, filename):
+def _replace_nbsp(origdata, filename, logger=default_logger):
     counter = 0
 
     def _replacer_func(matchobj):
@@ -241,9 +228,21 @@ def _replace_nbsp(origdata, filename):
 
     if counter:
         plural = "s were" if counter > 1 else " was"
-        logger.warn(
+        logger.warning(
             f"Note: {counter} lines with non-breaking space character{plural} detected in {filename}.\n"
             "Perhaps you cut and pasted from a Web page?\n"
             "Future versions of CumulusCI may disallow these characters.\n"
         )
     return data
+
+
+class ErrorDict(TypedDict):
+    loc: Sequence[Union[str, int]]
+    msg: str
+    type: str
+
+
+def _log_yaml_error(logger, error: ErrorDict):
+    logger.warning("CumulusCI Parsing Error:")
+    loc = " -> ".join((repr(x) for x in error["loc"]))
+    logger.warning("%s : %s", loc, error["msg"])

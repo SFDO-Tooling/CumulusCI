@@ -64,15 +64,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if os.path.isfile(path):
             return path
 
-    def _handle_yaml_error(self, error):
-        self.logger.warn("CumulusCI Parsing Error:")
-        try:
-            loc = " -> ".join(error["loc"])
-        except Exception:
-            loc = ""
-
-        self.logger.warn("%s : %s", loc, error["msg"])
-
     def _load_config(self):
         """ Loads the configuration from YAML, if no override config was passed in initially. """
 
@@ -95,9 +86,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
         # Load the project's yaml config file
-        project_config = cci_safe_load(
-            self.config_project_path, on_error=self._handle_yaml_error
-        )
+        project_config = cci_safe_load(self.config_project_path, logger=self.logger)
 
         if project_config:
             self.config_project.update(project_config)
@@ -105,7 +94,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
             local_config = cci_safe_load(
-                self.config_project_local_path, on_error=self._handle_yaml_error
+                self.config_project_local_path, logger=self.logger
             )
             if local_config:
                 self.config_project_local.update(local_config)
@@ -115,7 +104,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             additional_yaml_config = cci_safe_load(
                 StringIO(self.additional_yaml),
                 self.config_project_path,
-                self._handle_yaml_error,
+                logger=self.logger,
             )
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
@@ -577,7 +566,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         cumulusci_yml = cci_safe_load(
             StringIO(contents.decoded.decode("utf-8")),
             f"cumulusci.yml from {ref}",
-            on_error=self._handle_yaml_error,
+            logger=self.logger,
         )
 
         # Get the namespace from the cumulusci.yml if set
