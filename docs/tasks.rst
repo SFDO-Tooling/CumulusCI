@@ -203,6 +203,50 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
+**custom_setting_wait**
+==========================================
+
+**Description:** Waits on for a specific custom setting field to be set to a specified value
+
+**Class:** cumulusci.tasks.apex.custom_setting.CustomSettingValueWait
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run custom_setting_wait -o object {} -o field {} -o value {}``
+``$ cci task run custom_setting_wait -o object %%%NAMESPACE%%%Customizable_Rollups_Settings__c -o field %%%NAMESPACE%%%IsCustomizableRollupsEnabled__c -o value true``
+
+
+Options
+------------------------------------------
+
+
+``-o object ObjectName``
+	 *Required*
+
+	 Name of the SObject to query.
+
+``-o object FieldName``
+	 *Required*
+
+	 Name of the Field on the SObject to query.
+
+``-o value Value``
+	 *Required*
+
+	 Value to check for
+
+``-o managed true``
+	 *Optional*
+
+	 If True, applies the project namespace to replace tokens in the object and field.
+	 Defaults to false
+
+``-o poll_interval POLLINTERVAL``
+	 *Optional*
+
+	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+
 **command**
 ==========================================
 
