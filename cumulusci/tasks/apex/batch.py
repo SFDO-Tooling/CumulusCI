@@ -3,11 +3,10 @@ from datetime import datetime
 from typing import Sequence, Optional
 
 from cumulusci.utils import parse_api_datetime
-from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
 
-COMPLETED_STATUSES = ["Completed"]
+COMPLETED_STATUSES = ["Completed", "Aborted", "Failed"]
 STOPPED_STATUSES = ["Aborted"]
 FAILED_STATUSES = ["Failed"]
 
@@ -28,24 +27,10 @@ class BatchApexWait(BaseSalesforceApiTask):
             "description": "Seconds to wait before polling for batch job completion. "
             "Defaults to 10 seconds."
         },
-        "include_stopped": {
-            "description": "Set to false to exclude Aborted jobs. " "Defaults to true"
-        },
-        "include_failed": {
-            "description": "Set to false to exclude Failed jobs. " "Defaults to true"
-        },
     }
 
     def _run_task(self):
         self.poll_interval_s = int(self.options.get("poll_interval", 10))
-
-        if "include_stopped" not in self.options:
-            self.options["include_stopped"] = True
-        if "include_failed" not in self.options:
-            self.options["include_failed"] = True
-
-        self.include_stopped = process_bool_arg(self.options["include_stopped"])
-        self.include_failed = process_bool_arg(self.options["include_failed"])
 
         self._poll()  # will block until poll_complete
 
@@ -53,14 +38,22 @@ class BatchApexWait(BaseSalesforceApiTask):
 
         summary = self.summarize_subjobs(self.subjobs)
         failed_batches = self.failed_batches(self.subjobs)
-        job_aborted = summary["Aborted"]
+        job_aborted = summary["AnyAborted"]
+        job_failed = summary[
+            "AnyFailed"
+        ]  # note that a failed sub-job is different than a failed batch
 
-        if failed_batches:
+        # per https://help.salesforce.com/articleView?id=code_apex_job.htm&type=5
+        if job_aborted:
+            raise SalesforceException("Job was aborted by a user.")
+        elif job_failed:
+            raise SalesforceException("Job experienced a system failure.")
+        elif failed_batches:
             self.logger.info("There have been some batch failures.")
             raise SalesforceException(
                 f"There were batch errors: {repr(failed_batches)}"
             )
-        elif not summary["CountsAddUp"] and not job_aborted:
+        elif not summary["CountsAddUp"] and not (job_aborted or job_failed):
             self.logger.info("The final record counts do not add up.")
             self.logger.info("This is probably related to W-1132237")
             self.logger.info(repr(summary))
@@ -129,12 +122,6 @@ class BatchApexWait(BaseSalesforceApiTask):
 
         self.poll_complete = summary["Completed"]
 
-        if self.include_stopped and not self.poll_complete:
-            self.poll_complete = summary["Aborted"]
-
-        if self.include_failed and not self.poll_complete:
-            self.poll_complete = summary["Failed"]
-
     def summarize_subjobs(self, subjobs: Sequence[dict]):
         def reduce_key(valname: str, summary_func):
             return summary_func(subjob[valname] for subjob in subjobs)
@@ -146,8 +133,10 @@ class BatchApexWait(BaseSalesforceApiTask):
             "Completed": all(
                 subjob["Status"] in COMPLETED_STATUSES for subjob in subjobs
             ),
-            "Aborted": all(subjob["Status"] in STOPPED_STATUSES for subjob in subjobs),
-            "Failed": all(subjob["Status"] in FAILED_STATUSES for subjob in subjobs),
+            "AnyAborted": any(
+                subjob["Status"] in STOPPED_STATUSES for subjob in subjobs
+            ),
+            "AnyFailed": any(subjob["Status"] in FAILED_STATUSES for subjob in subjobs),
         }
         rc["Success"] = rc["NumberOfErrors"] == 0
         rc["ElapsedTime"] = self.elapsed_time(subjobs)

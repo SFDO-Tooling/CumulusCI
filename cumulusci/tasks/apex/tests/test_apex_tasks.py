@@ -870,11 +870,9 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         response["records"][0]["JobItemsProcessed"] = 1
         response["records"][0]["TotalJobItems"] = 3
         responses.add(responses.GET, url, json=response)
-        self.task_log["info"] = []
-        task()
-        self.assertNotIn(
-            "The final record counts do not add up.", self.task_log["info"]
-        )
+        with self.assertRaises(SalesforceException) as e:
+            task()
+        assert "aborted" in str(e.exception)
 
     @responses.activate
     def test_run_batch_apex_status_failed(self):
@@ -885,8 +883,9 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         response["records"][0]["TotalJobItems"] = 3
         responses.add(responses.GET, url, json=response)
         self.task_log["info"] = []
-        task()
-        self.assertIn("The final record counts do not add up.", self.task_log["info"])
+        with self.assertRaises(SalesforceException) as e:
+            task()
+        assert "failure" in str(e.exception)
 
     @responses.activate
     def test_chained_subjobs(self):
