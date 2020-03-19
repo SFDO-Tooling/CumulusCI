@@ -1,18 +1,28 @@
 import sys
+from cumulusci.core.utils import deprecated_import
 
 # ORDER MATTERS!
 
 # inherit from BaseTask
-from cumulusci.tasks.salesforce.BaseSalesforceTask import BaseSalesforceTask
+
+BaseSalesforceTask = deprecated_import(
+    "cumulusci.tasks.salesforce.BaseSalesforceTask.BaseSalesforceTask"
+)
+
 
 # inherit from BaseSalesforceTask
-from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
-from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
-    BaseSalesforceMetadataApiTask,
+BaseSalesforceApiTask = deprecated_import(
+    "cumulusci.tasks.salesforce.BaseSalesforceApiTask.BaseSalesforceApiTask"
+)
+
+BaseSalesforceMetadataApiTask = deprecated_import(
+    "cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask.BaseSalesforceMetadataApiTask"
 )
 
 # inherit from BaseSalesforceApiTask
-from cumulusci.tasks.salesforce.package_upload import PackageUpload
+PackageUpload = deprecated_import(
+    "cumulusci.tasks.salesforce.package_upload.PackageUpload"
+)
 from cumulusci.tasks.salesforce.SOQLQuery import SOQLQuery
 from cumulusci.tasks.salesforce.CreateCommunity import CreateCommunity
 from cumulusci.tasks.salesforce.ListCommunities import ListCommunities

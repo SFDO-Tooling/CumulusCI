@@ -9,8 +9,12 @@ import copy
 import glob
 import pytz
 import time
+import logging
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
+
+
+logger = logging.getLogger(__name__)
 
 
 def import_global(path):
@@ -24,6 +28,20 @@ def import_global(path):
 
 # For backwards-compatibility
 import_class = import_global
+
+
+def deprecated_import(fully_qualified):
+    cls = import_global(fully_qualified)
+    clsname = cls.__name__
+
+    def __init__(self, *args, **kwargs):
+        logger.warning(
+            f"Instead of importing from {__name__}.{clsname}, please import from {fully_qualified}"
+        )
+        super(cls, self).__init__(*args, **kwargs)
+
+    init_dict = {"__init__": __init__}
+    return type(clsname, (cls,), init_dict)
 
 
 def parse_datetime(dt_str, format):
