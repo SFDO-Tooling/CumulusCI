@@ -863,6 +863,32 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         self.assertEqual(task.elapsed_time(task.subjobs), 61)
 
     @responses.activate
+    def test_run_batch_apex_status_aborted(self):
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"][0]["Status"] = "Aborted"
+        response["records"][0]["JobItemsProcessed"] = 1
+        response["records"][0]["TotalJobItems"] = 3
+        responses.add(responses.GET, url, json=response)
+        self.task_log["info"] = []
+        task()
+        self.assertNotIn(
+            "The final record counts do not add up.", self.task_log["info"]
+        )
+
+    @responses.activate
+    def test_run_batch_apex_status_failed(self):
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"][0]["Status"] = "Failed"
+        response["records"][0]["JobItemsProcessed"] = 1
+        response["records"][0]["TotalJobItems"] = 3
+        responses.add(responses.GET, url, json=response)
+        self.task_log["info"] = []
+        task()
+        self.assertIn("The final record counts do not add up.", self.task_log["info"])
+
+    @responses.activate
     def test_chained_subjobs(self):
         "Test subjobs that kick off a successor before they complete"
         task, url = self._get_url_and_task()
