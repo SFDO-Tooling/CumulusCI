@@ -14,6 +14,7 @@ from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import NamespaceNotFoundError
@@ -133,6 +134,7 @@ class DummyRepository(object):
         for release in self._releases:
             if release.tag_name.startswith("release/"):
                 return release
+        raise NotFoundError(DummyResponse("", 404))
 
     def release_from_tag(self, tag_name):
         for release in self._releases:
@@ -431,6 +433,30 @@ class TestBaseProjectConfig(unittest.TestCase):
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_tag(beta=True)
         self.assertEqual("beta/1.0-Beta_2", result)
+
+    def test_get_latest_tag__beta_not_found(self):
+        config = BaseProjectConfig(BaseGlobalConfig())
+        github = self._make_github()
+        github.repositories["CumulusCI"]._releases = []
+        config.get_github_api = mock.Mock(return_value=github)
+        with pytest.raises(GithubException):
+            config.get_latest_tag(beta=True)
+
+    def test_get_latest_tag__repo_not_found(self):
+        config = BaseProjectConfig(BaseGlobalConfig())
+        github = self._make_github()
+        github.repositories["CumulusCI"] = None
+        config.get_github_api = mock.Mock(return_value=github)
+        with pytest.raises(GithubException):
+            config.get_latest_tag()
+
+    def test_get_latest_tag__release_not_found(self):
+        config = BaseProjectConfig(BaseGlobalConfig())
+        github = self._make_github()
+        github.repositories["CumulusCI"]._releases = []
+        config.get_github_api = mock.Mock(return_value=github)
+        with pytest.raises(GithubException):
+            config.get_latest_tag()
 
     def test_get_latest_version(self):
         config = BaseProjectConfig(
@@ -787,6 +813,19 @@ class TestBaseProjectConfig(unittest.TestCase):
                 },
             ],
         )
+
+    def test_process_github_dependency__cannot_find_repo(self):
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        github.repositories["CumulusCI-Test-Dep"] = None
+        config.get_github_api = mock.Mock(return_value=github)
+
+        with self.assertRaises(DependencyResolutionError):
+            config.process_github_dependency(
+                {"github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep.git"}
+            )
 
     def test_process_github_dependency_cannot_find_latest(self):
         global_config = BaseGlobalConfig()
