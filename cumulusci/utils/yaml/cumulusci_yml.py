@@ -23,7 +23,6 @@ class FlowReference(CCIDictModel):
     ignore_failure: bool = None  # is this allowed?
     when: str = None  # is this allowed?
     ui_options: Dict[str, Any] = {}
-    #  description, steps allowed?
 
 
 class TaskReference(CCIDictModel):
@@ -164,19 +163,27 @@ class CumulusCIFile(CCIDictModel):
 
 
 def parse_from_yaml(source):
+    "Parse from a path, url, path-like or file-like"
     return CumulusCIFile.parse_from_yaml(source)
 
 
 def validate_data(
     data: Union[dict, list], context: str = None, on_error: callable = None,
 ):
+    """Validate data which has already been loaded into a dictionary or list.
+
+    context is a string that will be used to give context to error messages.
+    on_error will be called for any validation errors with a dictionary in Pydantic error format
+
+    https://pydantic-docs.helpmanual.io/usage/models/#error-handling
+    """
     return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
 
 
 def cci_safe_load(
     source: DataInput, context: str = None, on_error: callable = None, logger=None
 ):
-    """Transitional function for testing validator before depending upon it."""
+    """Load a CumulusCI.yml file and issue warnings for unknown structures."""
     assert not (
         on_error and logger
     ), "Please specify either on_error or logger but not both"
@@ -215,6 +222,7 @@ pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
 
 
 def _replace_nbsp(origdata, filename, logger=default_logger):
+    "Replace nbsp characters in leading whitespace in a YAML file."
     counter = 0
 
     def _replacer_func(matchobj):
@@ -237,12 +245,14 @@ def _replace_nbsp(origdata, filename, logger=default_logger):
 
 
 class ErrorDict(TypedDict):
+    "The structure of a Pydantic error dictionary. Google TypedDict if its new to you."
     loc: Sequence[Union[str, int]]
     msg: str
     type: str
 
 
 def _log_yaml_error(logger, error: ErrorDict):
+    "Format and log a Pydantic-style error dictionary"
     logger.warning("CumulusCI Parsing Error:")
     loc = " -> ".join((repr(x) for x in error["loc"]))
     logger.warning("%s : %s", loc, error["msg"])
