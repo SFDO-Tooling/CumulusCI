@@ -1,20 +1,17 @@
 """ a task for waiting on a specific custom settings value """
 
-import datetime
-from cumulusci.utils import parse_api_datetime
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import SalesforceException
+from cumulusci.core.utils import process_bool_arg
 
 
 class CustomSettingValueWait(BaseSalesforceApiTask):
     """ CustomSettingValueWait polls an org until the specific value exists in a custom settings field """
 
     name = "CustomSettingValueWait"
-    batch = object()
 
     task_options = {
         "object": {
-            "description": "Name of the SObject to query. Can include the %%%NAMESPACE%%% token. ", 
+            "description": "Name of the SObject to query. Can include the %%%NAMESPACE%%% token. ",
             "required": True,
         },
         "field": {
@@ -45,7 +42,7 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
 
         self.object_name = self.options["object"]
         self.field_name = self.options["field"]
-        self.field_value = self.options["value"]
+        self.check_value = self.options["value"]
 
         # Process namespace tokens
         managed = self.options.get("managed") or False
@@ -59,9 +56,9 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
 
         self._poll()  # will block until poll_complete
 
-        self.logger.info("Value is set.")
+        self.logger.info("Value Matched.")
 
-        return self.success
+        return True
 
     def _poll_action(self):
         query_results = self.sf.query(self._object_query)
@@ -71,11 +68,28 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
         self.poll_complete = not self._poll_again()
 
     def _poll_again(self):
-        return self.success
+        return not self.success
 
     @property
     def success(self):
-        return self.record[self.field_name] == self.field_value
+        self.field_value = self.record[self.field_name]
+
+        if isinstance(self.field_value, (bool)):
+            self.check_value = process_bool_arg(self.check_value)
+            self.field_value = process_bool_arg(self.field_value)
+        elif isinstance(self.field_value, (int, float)):
+            self.check_value = float(self.check_value)
+            self.field_value = float(self.field_value)
+        elif isinstance(field_value, (str)):
+            self.check_value = str(self.check_value).lower()
+            self.field_value = str(self.field_value).lower()
+
+        self.logger.info(
+            "{0}: Looking for {1} and found {2}".format(
+                self.field_name, self.check_value, self.field_value
+            )
+        )
+        return self.field_value == self.check_value
 
     @property
     def _object_query(self):
