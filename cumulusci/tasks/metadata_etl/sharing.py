@@ -105,10 +105,21 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
             )
 
         for sobject in self.owds:
+            # The Tooling API requires that we use fully-qualified sObject names in namespaced scratch orgs.
+            # However, the Metadata API requires no namespaces in that context.
+            # Dynamically inject the namespace if required.
+            real_api_name = (
+                f"{self.project_config.project__package__namespace}__{sobject}"
+                if hasattr(self.org_config, "namespaced")
+                and self.org_config.namespaced
+                and sobject.count("__") == 1
+                else sobject
+            )
+
             result = self.sf.query(
                 f"SELECT ExternalSharingModel, InternalSharingModel "
                 f"FROM EntityDefinition "
-                f"WHERE QualifiedApiName = '{sobject}'"
+                f"WHERE QualifiedApiName = '{real_api_name}'"
             )
             if result["totalSize"] == 1:
                 record = result["records"][0]
