@@ -53,7 +53,7 @@ class BatchApexWait(BaseSalesforceApiTask):
             raise SalesforceException(
                 f"There were batch errors: {repr(failed_batches)}"
             )
-        elif not summary["CountsAddUp"] and not (job_aborted or job_failed):
+        elif not summary["CountsAddUp"]:
             self.logger.info("The final record counts do not add up.")
             self.logger.info("This is probably related to W-1132237")
             self.logger.info(repr(summary))
