@@ -1,6 +1,7 @@
 import datetime
 import os
 import unittest
+import pytest
 
 import pytz
 
@@ -70,6 +71,17 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(u"\xfc", utils.decode_to_unicode(b"\xfc"))
         self.assertEqual(u"\u2603", utils.decode_to_unicode(u"\u2603"))
         self.assertEqual(None, utils.decode_to_unicode(None))
+
+    def test_deprecated_import_raises_under_pytest(self):
+        with pytest.raises(AssertionError):
+            from cumulusci.tasks.salesforce import Deploy
+
+            Deploy()
+
+        with pytest.raises(AssertionError):
+            from cumulusci.tasks.salesforce.Deploy import Deploy
+
+            Deploy()
 
 
 class TestMergedConfig(unittest.TestCase):

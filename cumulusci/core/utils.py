@@ -10,6 +10,8 @@ import glob
 import pytz
 import time
 import logging
+import os
+import warnings
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 
@@ -30,14 +32,20 @@ def import_global(path):
 import_class = import_global
 
 
+def conditional_deprecation_warning(message):
+    "This is a no-op unless it is turned on by pytest usage or `python -Wd`"
+    assert "PYTEST_CURRENT_TEST" not in os.environ, message
+    # hidden by default
+    warnings.warn(message, DeprecationWarning)
+
+
 def deprecated_import(fully_qualified):
     cls = import_global(fully_qualified)
     clsname = cls.__name__
+    message = f"Instead of importing from {__name__}.{clsname}, please import from {fully_qualified}"
 
     def __init__(self, *args, **kwargs):
-        logger.warning(
-            f"Instead of importing from {__name__}.{clsname}, please import from {fully_qualified}"
-        )
+        conditional_deprecation_warning(message)
         super(cls, self).__init__(*args, **kwargs)
 
     init_dict = {"__init__": __init__}
