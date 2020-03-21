@@ -3,20 +3,17 @@ from cumulusci.core.utils import deprecated_import
 
 # ORDER MATTERS!
 
+# Please do not add more tasks to this file! Refer to them in their
+# real module home. The amount of runtime it taskes to load all of these
+# tasks is measurable and their inter-dependencies can cause problems.
+
 # inherit from BaseTask
-
-BaseSalesforceTask = deprecated_import(
-    "cumulusci.tasks.salesforce.BaseSalesforceTask.BaseSalesforceTask"
-)
-
+from cumulusci.tasks.salesforce.BaseSalesforceTask import BaseSalesforceTask
 
 # inherit from BaseSalesforceTask
-BaseSalesforceApiTask = deprecated_import(
-    "cumulusci.tasks.salesforce.BaseSalesforceApiTask.BaseSalesforceApiTask"
-)
-
-BaseSalesforceMetadataApiTask = deprecated_import(
-    "cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask.BaseSalesforceMetadataApiTask"
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
+    BaseSalesforceMetadataApiTask,
 )
 
 # inherit from BaseSalesforceApiTask
