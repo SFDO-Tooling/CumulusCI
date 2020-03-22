@@ -1,5 +1,8 @@
 from collections import defaultdict
 import datetime
+from unittest.mock import MagicMock
+from typing import Union
+
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
 from sqlalchemy.ext.automap import automap_base
@@ -15,11 +18,12 @@ from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
     DataOperationStatus,
     DataOperationType,
+    DataOperationJobResult,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
 
-from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, MappingStep
 
 
 class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
@@ -92,7 +96,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             started = True
 
             self.logger.info(f"Running step: {name}")
-            result = self._load_mapping(mapping)
+            result = self._execute_step(mapping)
             if result.status is DataOperationStatus.JOB_FAILURE:
                 raise BulkDataException(
                     f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
@@ -101,13 +105,15 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             if name in self.after_steps:
                 for after_name, after_step in self.after_steps[name].items():
                     self.logger.info(f"Running post-load step: {after_name}")
-                    result = self._load_mapping(after_step)
+                    result = self._execute_step(after_step)
                     if result.status is DataOperationStatus.JOB_FAILURE:
                         raise BulkDataException(
                             f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                         )
 
-    def _load_mapping(self, mapping):
+    def _execute_step(
+        self, mapping: MappingStep
+    ) -> Union[DataOperationJobResult, MagicMock]:
         """Load data for a single step."""
 
         if mapping.get("fields", {}).get("RecordTypeId"):
