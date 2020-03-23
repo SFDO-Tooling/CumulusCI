@@ -93,4 +93,4 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
 
     @property
     def _object_query(self):
-        return "SELECT {0} FROM {1} LIMIT 1".format(self.field_name, self.object_name)
+        return f"SELECT {self.field_name} FROM {self.object_name} LIMIT 1"
