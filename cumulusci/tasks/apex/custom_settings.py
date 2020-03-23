@@ -85,9 +85,7 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
             self.field_value = str(self.field_value).lower()
 
         self.logger.info(
-            "{0}: Looking for {1} and found {2}".format(
-                self.field_name, self.check_value, self.field_value
-            )
+            f"{self.field_name}: Looking for {self.check_value} and found {self.field_value}"
         )
         return self.field_value == self.check_value
 
