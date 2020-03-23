@@ -364,7 +364,7 @@ class FlowCoordinator(object):
                     value = expr(**jinja2_context)
                     if not value:
                         self.logger.info(
-                            f"Skipping task {step.task_name} (skipped when {step.when})"
+                            f"Skipping task {step.task_name} (skipped unless {step.when})"
                         )
                         continue
 
