@@ -97,7 +97,7 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
         )
 
         # import is here to avoid an import cycle
-        from cumulusci.tasks.salesforce import Deploy
+        from cumulusci.tasks.salesforce.deploy_metadata import Deploy
 
         api = Deploy(
             self.project_config,

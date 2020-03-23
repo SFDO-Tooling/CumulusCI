@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import responses
 import unittest
-from cumulusci.tasks.salesforce import ListCommunities
+from cumulusci.tasks.salesforce.list_communities import ListCommunities
 from .util import create_task
 
 

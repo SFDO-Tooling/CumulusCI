@@ -530,7 +530,7 @@ You can see how complex a single repository dependency can be with the following
 Automatic Cleaning of meta.xml files on Deploy
 ----------------------------------------------
 
-In order to allow CumulusCI to fully manage the project's dependencies, the ``deploy`` task (and other tasks based on ``cumulusci.tasks.salesforce.Deploy`` or subclasses of it) will automatically remove the ``<packageVersion>`` element and its children from all meta.xml files in the deployed metadata.  This does not affect the files on the filesystem.
+In order to allow CumulusCI to fully manage the project's dependencies, the ``deploy`` task (and other tasks based on ``cumulusci.tasks.salesforce.deploy_metadata.Deploy`` or subclasses of it) will automatically remove the ``<packageVersion>`` element and its children from all meta.xml files in the deployed metadata.  This does not affect the files on the filesystem.
 
 The reason for stripping ``<packageVersion>`` elements on deploy is that the target Salesforce org will automatically add them back using the installed version of the referenced namespace.  This allows CumulusCI to fully manage dependencies and avoids the need to rush a new commit of meta.xml files when a new underlying package version is available.
 

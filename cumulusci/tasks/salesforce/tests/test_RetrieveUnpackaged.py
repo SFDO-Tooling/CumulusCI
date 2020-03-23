@@ -2,7 +2,7 @@ from unittest import mock
 import os
 import unittest
 
-from cumulusci.tasks.salesforce import RetrieveUnpackaged
+from cumulusci.tasks.salesforce.retrieve_unpackaged import RetrieveUnpackaged
 from cumulusci.utils import temporary_dir
 from .util import create_task
 

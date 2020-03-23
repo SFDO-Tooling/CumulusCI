@@ -20,36 +20,65 @@ from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
 PackageUpload = deprecated_import(
     "cumulusci.tasks.salesforce.package_upload.PackageUpload"
 )
-from cumulusci.tasks.salesforce.SOQLQuery import SOQLQuery
-from cumulusci.tasks.salesforce.CreateCommunity import CreateCommunity
-from cumulusci.tasks.salesforce.ListCommunities import ListCommunities
-from cumulusci.tasks.salesforce.ListCommunityTemplates import ListCommunityTemplates
-from cumulusci.tasks.salesforce.PublishCommunity import PublishCommunity
+SOQLQuery = deprecated_import("cumulusci.tasks.salesforce.soql_query.SOQLQuery")
+CreateCommunity = deprecated_import(
+    "cumulusci.tasks.salesforce.create_community.CreateCommunity"
+)
+ListCommunities = deprecated_import(
+    "cumulusci.tasks.salesforce.list_communities.ListCommunities"
+)
+ListCommunityTemplates = deprecated_import(
+    "cumulusci.tasks.salesforce.list_community_templates.ListCommunityTemplates"
+)
+PublishCommunity = deprecated_import(
+    "cumulusci.tasks.salesforce.publish_community.PublishCommunity"
+)
 from cumulusci.tasks.salesforce.custom_settings import LoadCustomSettings
 from cumulusci.tasks.salesforce.trigger_handlers import SetTDTMHandlerStatus
 
 # inherit from BaseSalesforceMetadataApiTask
 from cumulusci.tasks.salesforce.BaseRetrieveMetadata import BaseRetrieveMetadata
-from cumulusci.tasks.salesforce.Deploy import Deploy
-from cumulusci.tasks.salesforce.GetInstalledPackages import GetInstalledPackages
-from cumulusci.tasks.salesforce.UpdateDependencies import UpdateDependencies
+
+Deploy = deprecated_import("cumulusci.tasks.salesforce.deploy_metadata.Deploy")
+GetInstalledPackages = deprecated_import(
+    "cumulusci.tasks.salesforce.get_installed_packages.GetInstalledPackages"
+)
+UpdateDependencies = deprecated_import(
+    "cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies"
+)
 
 # inherit from BaseSalesforceApiTask and use Deploy
-from cumulusci.tasks.salesforce.EnsureRecordTypes import EnsureRecordTypes
+EnsureRecordTypes = deprecated_import(
+    "cumulusci.tasks.salesforce.ensure_record_types.EnsureRecordTypes"
+)
 
 # inherit from BaseRetrieveMetadata
-from cumulusci.tasks.salesforce.RetrievePackaged import RetrievePackaged
+RetrievePackaged = deprecated_import(
+    "cumulusci.tasks.salesforce.retrieve_packaged.RetrievePackaged"
+)
 from cumulusci.tasks.salesforce.RetrieveReportsAndDashboards import (
     RetrieveReportsAndDashboards,
 )
-from cumulusci.tasks.salesforce.RetrieveUnpackaged import RetrieveUnpackaged
+
+RetrieveUnpackaged = deprecated_import(
+    "cumulusci.tasks.salesforce.retrieve_unpackaged.RetrieveUnpackaged"
+)
 
 # inherit from Deploy
 from cumulusci.tasks.salesforce.BaseUninstallMetadata import BaseUninstallMetadata
-from cumulusci.tasks.salesforce.CreatePackage import CreatePackage
-from cumulusci.tasks.salesforce.DeployBundles import DeployBundles
-from cumulusci.tasks.salesforce.InstallPackageVersion import InstallPackageVersion
-from cumulusci.tasks.salesforce.UninstallPackage import UninstallPackage
+
+CreatePackage = deprecated_import(
+    "cumulusci.tasks.salesforce.create_package.CreatePackage"
+)
+DeployBundles = deprecated_import(
+    "cumulusci.tasks.salesforce.deploy_bundles.DeployBundles"
+)
+InstallPackageVersion = deprecated_import(
+    "cumulusci.tasks.salesforce.install_package_version.InstallPackageVersion"
+)
+UninstallPackage = deprecated_import(
+    "cumulusci.tasks.salesforce.uninstall_package.UninstallPackage"
+)
 
 # Backwards-compatibility for UpdateAdminProfile/UpdateProfile
 from cumulusci.tasks.salesforce.update_profile import (
@@ -62,11 +91,17 @@ from cumulusci.tasks.salesforce import update_profile
 sys.modules["cumulusci.tasks.salesforce.UpdateAdminProfile"] = update_profile
 
 # inherit from BaseUninstallMetadata
-from cumulusci.tasks.salesforce.UninstallLocal import UninstallLocal
+UninstallLocal = deprecated_import(
+    "cumulusci.tasks.salesforce.uninstall_local.UninstallLocal"
+)
 
 # inherit from UninstallLocal
-from cumulusci.tasks.salesforce.UninstallLocalBundles import UninstallLocalBundles
-from cumulusci.tasks.salesforce.UninstallPackaged import UninstallPackaged
+UninstallLocalBundles = deprecated_import(
+    "cumulusci.tasks.salesforce.uninstall_local_bundles.UninstallLocalBundles"
+)
+UninstallPackaged = deprecated_import(
+    "cumulusci.tasks.salesforce.uninstall_packaged.UninstallPackaged"
+)
 
 # inherit from UninstallLocalBundles
 from cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles import (

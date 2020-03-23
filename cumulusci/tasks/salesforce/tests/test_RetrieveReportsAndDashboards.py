@@ -4,7 +4,9 @@ import unittest
 import responses
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.salesforce import RetrieveReportsAndDashboards
+from cumulusci.tasks.salesforce.retrieve_reports_and_dashboards import (
+    RetrieveReportsAndDashboards,
+)
 from cumulusci.utils import temporary_dir
 from .util import create_task
 

@@ -1,6 +1,6 @@
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
-from cumulusci.tasks.salesforce import UninstallLocalBundles
+from cumulusci.tasks.salesforce.uninstall_local_bundles import UninstallLocalBundles
 
 
 class UninstallLocalNamespacedBundles(UninstallLocalBundles):

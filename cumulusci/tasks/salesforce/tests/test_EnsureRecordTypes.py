@@ -3,7 +3,7 @@ import unittest
 import os
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.salesforce import EnsureRecordTypes
+from cumulusci.tasks.salesforce.ensure_record_types import EnsureRecordTypes
 from cumulusci.utils import temporary_dir
 from .util import create_task
 

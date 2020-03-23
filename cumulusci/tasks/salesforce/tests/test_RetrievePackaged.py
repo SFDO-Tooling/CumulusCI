@@ -4,7 +4,7 @@ import os
 import unittest
 import zipfile
 
-from cumulusci.tasks.salesforce import RetrievePackaged
+from cumulusci.tasks.salesforce.retrieve_packaged import RetrievePackaged
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 from .util import create_task

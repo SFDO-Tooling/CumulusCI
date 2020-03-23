@@ -1417,7 +1417,7 @@ Breaking Changes
 * If you created custom tasks off of `DeployNamespaced` or `DeployNamespacedBundles`, you will need to switch to using `Deploy` and `DeployBundles`.  The recommended configuration for such custom tasks is represented below.  In flows that need to inject the actual namespace prefix, override the `unmanaged` option .. ::
 
     custom_deploy_task:
-        class_path: cumulusci.tasks.salesforce.Deploy
+        class_path: cumulusci.tasks.salesforce.deploy_metadata.Deploy
         options:
             path: your/custom/metadata
             namespace_inject: $project_config.project__package__namespace

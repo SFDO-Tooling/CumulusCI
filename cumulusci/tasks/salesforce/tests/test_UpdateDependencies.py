@@ -5,7 +5,7 @@ import zipfile
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import StepSpec
-from cumulusci.tasks.salesforce import UpdateDependencies
+from cumulusci.tasks.salesforce.update_dependencies import UpdateDependencies
 from cumulusci.tests.util import create_project_config
 from .util import create_task
 

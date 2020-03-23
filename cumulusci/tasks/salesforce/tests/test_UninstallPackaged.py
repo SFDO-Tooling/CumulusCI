@@ -3,7 +3,7 @@ from unittest import mock
 import unittest
 import zipfile
 
-from cumulusci.tasks.salesforce import UninstallPackaged
+from cumulusci.tasks.salesforce.uninstall_packaged import UninstallPackaged
 from cumulusci.tests.util import create_project_config
 from .util import create_task
 

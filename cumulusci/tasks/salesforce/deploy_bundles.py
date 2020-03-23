@@ -1,6 +1,6 @@
 import os
 
-from cumulusci.tasks.salesforce import Deploy
+from cumulusci.tasks.salesforce.deploy_metadata import Deploy
 
 
 deploy_options = Deploy.task_options.copy()

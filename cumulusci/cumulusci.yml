@@ -42,7 +42,7 @@ tasks:
             overwrite: False
     create_community:
         description: Creates a Community in the target org using the Connect API
-        class_path: cumulusci.tasks.salesforce.CreateCommunity
+        class_path: cumulusci.tasks.salesforce.create_community.CreateCommunity
         group: Salesforce Communities
     insert_record:
         description: Inserts a record of any sObject using the REST API
@@ -50,7 +50,7 @@ tasks:
         group: Salesforce
     create_package:
         description: Creates a package in the target org with the default package name for the project
-        class_path: cumulusci.tasks.salesforce.CreatePackage
+        class_path: cumulusci.tasks.salesforce.create_package.CreatePackage
         group: Salesforce Packages
     create_managed_src:
         description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
@@ -68,19 +68,19 @@ tasks:
         group: Salesforce Metadata
     deploy:
         description: Deploys the src directory of the repository to the org
-        class_path: cumulusci.tasks.salesforce.Deploy
+        class_path: cumulusci.tasks.salesforce.deploy_metadata.Deploy
         options:
             path: src
         group: Salesforce Metadata
     deploy_pre:
         description: Deploys all metadata bundles under unpackaged/pre/
-        class_path: cumulusci.tasks.salesforce.DeployBundles
+        class_path: cumulusci.tasks.salesforce.deploy_bundles.DeployBundles
         options:
             path: unpackaged/pre
         group: Salesforce Metadata
     deploy_post:
         description: Deploys all metadata bundles under unpackaged/post/
-        class_path: cumulusci.tasks.salesforce.DeployBundles
+        class_path: cumulusci.tasks.salesforce.deploy_bundles.DeployBundles
         options:
             path: unpackaged/post
             unmanaged: True
@@ -90,7 +90,7 @@ tasks:
         group: Salesforce Metadata
     deploy_qa_config:
         description: Deploys configuration for QA.
-        class_path: cumulusci.tasks.salesforce.Deploy
+        class_path: cumulusci.tasks.salesforce.deploy_metadata.Deploy
         options:
             namespace_inject: $project_config.project__package__namespace
             path: unpackaged/config/qa
@@ -122,7 +122,7 @@ tasks:
         group: Salesforce DX
     ensure_record_types:
         description: Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
-        class_path: cumulusci.tasks.salesforce.EnsureRecordTypes
+        class_path: cumulusci.tasks.salesforce.ensure_record_types.EnsureRecordTypes
         options:
             record_type_label: Default
             record_type_developer_name: Default
@@ -138,7 +138,7 @@ tasks:
             release_prefix: $project_config.project__git__prefix_release
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
-        class_path: cumulusci.tasks.salesforce.GetInstalledPackages
+        class_path: cumulusci.tasks.salesforce.get_installed_packages.GetInstalledPackages
         group: Salesforce Metadata
     github_parent_pr_notes:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
@@ -177,25 +177,25 @@ tasks:
         group: GitHub
     install_managed:
         description: Install the latest managed production release
-        class_path: cumulusci.tasks.salesforce.InstallPackageVersion
+        class_path: cumulusci.tasks.salesforce.install_package_version.InstallPackageVersion
         options:
             version: latest
             activateRSS: True
         group: Salesforce Packages
     install_managed_beta:
         description: Installs the latest managed beta release
-        class_path: cumulusci.tasks.salesforce.InstallPackageVersion
+        class_path: cumulusci.tasks.salesforce.install_package_version.InstallPackageVersion
         options:
             version: latest_beta
             activateRSS: True
         group: Salesforce Packages
     list_communities:
         description: Lists Communities for the current org using the Connect API.
-        class_path: cumulusci.tasks.salesforce.ListCommunities
+        class_path: cumulusci.tasks.salesforce.list_communities.ListCommunities
         group: Salesforce Communities
     list_community_templates:
         description: Prints the Community Templates available to the current org
-        class_path: cumulusci.tasks.salesforce.ListCommunityTemplates
+        class_path: cumulusci.tasks.salesforce.list_community_templates.ListCommunityTemplates
         group: Salesforce Communities
     list_metadata_types:
         description: Prints the metadata types in a project
@@ -219,7 +219,7 @@ tasks:
         group: Salesforce DX
     publish_community:
         description: Publishes a Community in the target org using the Connect API
-        class_path: cumulusci.tasks.salesforce.PublishCommunity
+        class_path: cumulusci.tasks.salesforce.publish_community.PublishCommunity
         group: Salesforce Communities
     push_all:
         description: Schedules a push upgrade of a package version to all subscribers
@@ -257,23 +257,23 @@ tasks:
         group: Push Upgrades
     query:
         description: Queries the connected org
-        class_path: cumulusci.tasks.salesforce.SOQLQuery
+        class_path: cumulusci.tasks.salesforce.soql_query.SOQLQuery
         group: Salesforce Bulk API
     retrieve_packaged:
         description: Retrieves the packaged metadata from the org
-        class_path: cumulusci.tasks.salesforce.RetrievePackaged
+        class_path: cumulusci.tasks.salesforce.retrieve_packaged.RetrievePackaged
         options:
             path: packaged
         group: Salesforce Metadata
     retrieve_src:
         description: Retrieves the packaged metadata into the src directory
-        class_path: cumulusci.tasks.salesforce.RetrievePackaged
+        class_path: cumulusci.tasks.salesforce.retrieve_packaged.RetrievePackaged
         options:
             path: src
         group: Salesforce Metadata
     retrieve_unpackaged:
         description: Retrieve the contents of a package.xml file.
-        class_path: cumulusci.tasks.salesforce.RetrieveUnpackaged
+        class_path: cumulusci.tasks.salesforce.retrieve_unpackaged.RetrieveUnpackaged
     list_changes:
         description: List the changes from a scratch org
         class_path: cumulusci.tasks.salesforce.sourcetracking.ListChanges
@@ -343,31 +343,31 @@ tasks:
             namespace_inject: $project_config.project__package__namespace
     uninstall_managed:
         description: Uninstalls the managed version of the package
-        class_path: cumulusci.tasks.salesforce.UninstallPackage
+        class_path: cumulusci.tasks.salesforce.uninstall_package.UninstallPackage
         group: Salesforce Packages
     uninstall_packaged:
         description: Uninstalls all deleteable metadata in the package in the target org
-        class_path: cumulusci.tasks.salesforce.UninstallPackaged
+        class_path: cumulusci.tasks.salesforce.uninstall_packaged.UninstallPackaged
         group: Salesforce Metadata
     uninstall_packaged_incremental:
         description: Deletes any metadata from the package in the target org not in the local workspace
-        class_path: cumulusci.tasks.salesforce.UninstallPackagedIncremental
+        class_path: cumulusci.tasks.salesforce.uninstall_packaged_incremental.UninstallPackagedIncremental
         group: Salesforce Metadata
     uninstall_src:
         description: Uninstalls all metadata in the local src directory
-        class_path: cumulusci.tasks.salesforce.UninstallLocal
+        class_path: cumulusci.tasks.salesforce.uninstall_local.UninstallLocal
         options:
             path: src
         group: Salesforce Metadata
     uninstall_pre:
         description: Uninstalls the unpackaged/pre bundles
-        class_path: cumulusci.tasks.salesforce.UninstallLocalBundles
+        class_path: cumulusci.tasks.salesforce.uninstall_local_bundles.UninstallLocalBundles
         options:
             path: unpackaged/pre
         group: Salesforce Metadata
     uninstall_post:
         description: Uninstalls the unpackaged/post bundles
-        class_path: cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
+        class_path: cumulusci.tasks.salesforce.uninstall_local_namespaced_bundles.UninstallLocalNamespacedBundles
         options:
             path: unpackaged/post
             filename_token: ___NAMESPACE___
@@ -385,7 +385,7 @@ tasks:
         group: Salesforce Metadata
     update_dependencies:
         description: Installs all dependencies in project__dependencies into the target org
-        class_path: cumulusci.tasks.salesforce.UpdateDependencies
+        class_path: cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies
         group: Salesforce Packages
     update_package_xml:
         description: Updates src/package.xml with metadata in src/
@@ -395,11 +395,11 @@ tasks:
         group: Salesforce Metadata
     upload_beta:
         description: Uploads a beta release of the metadata currently in the packaging org
-        class_path: cumulusci.tasks.salesforce.PackageUpload
+        class_path: cumulusci.tasks.salesforce.package_upload.PackageUpload
         group: Release Management
     upload_production:
         description: Uploads a production release of the metadata currently in the packaging org
-        class_path: cumulusci.tasks.salesforce.PackageUpload
+        class_path: cumulusci.tasks.salesforce.package_upload.PackageUpload
         options:
             name: Release
             production: True

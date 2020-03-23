@@ -3,7 +3,7 @@ from unittest import mock
 import responses
 import unittest
 from datetime import datetime
-from cumulusci.tasks.salesforce import CreateCommunity
+from cumulusci.tasks.salesforce.create_community import CreateCommunity
 from cumulusci.core.exceptions import SalesforceException
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 from .util import create_task

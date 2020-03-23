@@ -1,7 +1,7 @@
 import json
 import os
 
-from cumulusci.tasks.salesforce import Deploy
+from cumulusci.tasks.salesforce.deploy_metadata import Deploy
 from cumulusci.utils import temporary_dir
 
 

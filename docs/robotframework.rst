@@ -252,7 +252,7 @@ Run Task Class
 
 The **Run Task Class** keyword is for use cases where you want to use one of CumulusCI's Python task classes to automate part of a test scenario but don't want to have to map a custom named task at the project level.
 
-**Run Task Class** accepts a single argument, the **class_path** like would be entered into cumulusci.yml such as **cumulusci.tasks.salesforce.Deploy**.  Like **Run Task**, you can also optionally pass task options in the format **option_name=value**.
+**Run Task Class** accepts a single argument, the **class_path** like would be entered into cumulusci.yml such as **cumulusci.tasks.salesforce.deploy_metadata.Deploy**.  Like **Run Task**, you can also optionally pass task options in the format **option_name=value**.
 
 Full Documentation
 ------------------

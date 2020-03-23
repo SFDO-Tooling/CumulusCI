@@ -1,6 +1,6 @@
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
-from cumulusci.tasks.salesforce import Deploy
+from cumulusci.tasks.salesforce.deploy_metadata import Deploy
 
 
 class UninstallPackage(Deploy):

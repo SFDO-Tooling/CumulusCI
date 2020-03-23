@@ -3,7 +3,7 @@ import os
 import unittest
 
 from cumulusci.core.flowrunner import StepSpec
-from cumulusci.tasks.salesforce import DeployBundles
+from cumulusci.tasks.salesforce.deploy_bundles import DeployBundles
 from cumulusci.utils import temporary_dir
 from .util import create_task
 

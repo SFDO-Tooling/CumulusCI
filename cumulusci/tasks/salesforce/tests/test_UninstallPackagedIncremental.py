@@ -4,7 +4,9 @@ import os
 import unittest
 import zipfile
 
-from cumulusci.tasks.salesforce import UninstallPackagedIncremental
+from cumulusci.tasks.salesforce.uninstall_packaged_incremental import (
+    UninstallPackagedIncremental,
+)
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 from .util import create_task

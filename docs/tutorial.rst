@@ -492,7 +492,7 @@ The update_package_xml task works only on local files and does not require a con
     $ cci task info deploy
 
     Description: Deploys the src directory of the repository to the org
-    Class: cumulusci.tasks.salesforce.Deploy
+    Class: cumulusci.tasks.salesforce.deploy_metadata.Deploy
 
     Default Option Values
         path: src

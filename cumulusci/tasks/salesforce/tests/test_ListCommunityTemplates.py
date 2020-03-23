@@ -1,6 +1,6 @@
 import responses
 import unittest
-from cumulusci.tasks.salesforce import ListCommunityTemplates
+from cumulusci.tasks.salesforce.list_community_templates import ListCommunityTemplates
 from .util import create_task
 
 

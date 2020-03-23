@@ -83,7 +83,7 @@ For example, if you want to deploy a custom directory of metadata named **dev_co
     tasks:
         deploy_dev_config:
             description: Deploys the dev_config directory to configure a development instance
-            class_path: cumulusci.tasks.salesforce.Deploy
+            class_path: cumulusci.tasks.salesforce.deploy_metadata.Deploy
             options:
                 path: dev_config 
     flows:

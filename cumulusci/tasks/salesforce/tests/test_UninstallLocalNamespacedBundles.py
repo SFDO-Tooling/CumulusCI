@@ -1,7 +1,9 @@
 from unittest import mock
 import unittest
 
-from cumulusci.tasks.salesforce import UninstallLocalNamespacedBundles
+from cumulusci.tasks.salesforce.uninstall_local_namespaced_bundles import (
+    UninstallLocalNamespacedBundles,
+)
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 from .util import create_task

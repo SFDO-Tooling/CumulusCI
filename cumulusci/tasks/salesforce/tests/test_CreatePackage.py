@@ -3,7 +3,7 @@ import unittest
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.tasks.salesforce import CreatePackage
+from cumulusci.tasks.salesforce.create_package import CreatePackage
 from .util import create_task
 
 

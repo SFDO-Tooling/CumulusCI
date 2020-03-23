@@ -56,7 +56,7 @@ class TestBaseMetadataETLTask:
             task.retrieve_dir
         )
 
-    @mock.patch("cumulusci.tasks.salesforce.Deploy")
+    @mock.patch("cumulusci.tasks.salesforce.deploy_metadata.Deploy")
     def test_deploy(self, deploy_mock):
         with tempfile.TemporaryDirectory() as tmpdir:
             task = create_task(

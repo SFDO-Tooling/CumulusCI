@@ -5,7 +5,7 @@ import unittest
 import zipfile
 
 from cumulusci.salesforce_api.exceptions import MetadataApiError
-from cumulusci.tasks.salesforce import InstallPackageVersion
+from cumulusci.tasks.salesforce.install_package_version import InstallPackageVersion
 from cumulusci.tests.util import create_project_config
 from .util import create_task
 

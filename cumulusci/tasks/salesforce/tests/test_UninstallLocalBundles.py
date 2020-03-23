@@ -2,7 +2,7 @@ from unittest import mock
 import os
 import unittest
 
-from cumulusci.tasks.salesforce import UninstallLocalBundles
+from cumulusci.tasks.salesforce.uninstall_local_bundles import UninstallLocalBundles
 from cumulusci.utils import temporary_dir
 from .util import create_task
 

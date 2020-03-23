@@ -309,7 +309,7 @@ Options
 
 **Description:** Creates a Community in the target org using the Connect API
 
-**Class:** cumulusci.tasks.salesforce.CreateCommunity
+**Class:** cumulusci.tasks.salesforce.create_community.CreateCommunity
 
 Create a Salesforce Community via the Connect API.
 Specify the `template` "VF Template" for Visualforce Tabs community,
@@ -386,7 +386,7 @@ Options
 
 **Description:** Creates a package in the target org with the default package name for the project
 
-**Class:** cumulusci.tasks.salesforce.CreatePackage
+**Class:** cumulusci.tasks.salesforce.create_package.CreatePackage
 
 Command Syntax
 ------------------------------------------
@@ -475,7 +475,7 @@ Options
 
 **Description:** Deploys the src directory of the repository to the org
 
-**Class:** cumulusci.tasks.salesforce.Deploy
+**Class:** cumulusci.tasks.salesforce.deploy_metadata.Deploy
 
 Command Syntax
 ------------------------------------------
@@ -549,7 +549,7 @@ Options
 
 **Description:** Deploys all metadata bundles under unpackaged/pre/
 
-**Class:** cumulusci.tasks.salesforce.DeployBundles
+**Class:** cumulusci.tasks.salesforce.deploy_bundles.DeployBundles
 
 Command Syntax
 ------------------------------------------
@@ -623,7 +623,7 @@ Options
 
 **Description:** Deploys all metadata bundles under unpackaged/post/
 
-**Class:** cumulusci.tasks.salesforce.DeployBundles
+**Class:** cumulusci.tasks.salesforce.deploy_bundles.DeployBundles
 
 Command Syntax
 ------------------------------------------
@@ -701,7 +701,7 @@ Options
 
 **Description:** Deploys configuration for QA.
 
-**Class:** cumulusci.tasks.salesforce.Deploy
+**Class:** cumulusci.tasks.salesforce.deploy_metadata.Deploy
 
 Command Syntax
 ------------------------------------------
@@ -895,7 +895,7 @@ Options
 
 **Description:** Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
 
-**Class:** cumulusci.tasks.salesforce.EnsureRecordTypes
+**Class:** cumulusci.tasks.salesforce.ensure_record_types.EnsureRecordTypes
 
 Command Syntax
 ------------------------------------------
@@ -1025,7 +1025,7 @@ Options
 
 **Description:** Retrieves a list of the currently installed managed package namespaces and their versions
 
-**Class:** cumulusci.tasks.salesforce.GetInstalledPackages
+**Class:** cumulusci.tasks.salesforce.get_installed_packages.GetInstalledPackages
 
 Command Syntax
 ------------------------------------------
@@ -1323,7 +1323,7 @@ Options
 
 **Description:** Install the latest managed production release
 
-**Class:** cumulusci.tasks.salesforce.InstallPackageVersion
+**Class:** cumulusci.tasks.salesforce.install_package_version.InstallPackageVersion
 
 Command Syntax
 ------------------------------------------
@@ -1384,7 +1384,7 @@ Options
 
 **Description:** Installs the latest managed beta release
 
-**Class:** cumulusci.tasks.salesforce.InstallPackageVersion
+**Class:** cumulusci.tasks.salesforce.install_package_version.InstallPackageVersion
 
 Command Syntax
 ------------------------------------------
@@ -1445,7 +1445,7 @@ Options
 
 **Description:** Lists Communities for the current org using the Connect API.
 
-**Class:** cumulusci.tasks.salesforce.ListCommunities
+**Class:** cumulusci.tasks.salesforce.list_communities.ListCommunities
 
 Lists Communities for the current org via the Connect API.
 
@@ -1461,7 +1461,7 @@ Command Syntax
 
 **Description:** Prints the Community Templates available to the current org
 
-**Class:** cumulusci.tasks.salesforce.ListCommunityTemplates
+**Class:** cumulusci.tasks.salesforce.list_community_templates.ListCommunityTemplates
 
 Lists Salesforce Community templates available for the current org via the Connect API.
 
@@ -1617,7 +1617,7 @@ Options
 
 **Description:** Publishes a Community in the target org using the Connect API
 
-**Class:** cumulusci.tasks.salesforce.PublishCommunity
+**Class:** cumulusci.tasks.salesforce.publish_community.PublishCommunity
 
 Publish a Salesforce Community via the Connect API. Warning: This does not work with the Community Template 'VF Template' due to an existing bug in the API.
 
@@ -1896,7 +1896,7 @@ Options
 
 **Description:** Queries the connected org
 
-**Class:** cumulusci.tasks.salesforce.SOQLQuery
+**Class:** cumulusci.tasks.salesforce.soql_query.SOQLQuery
 
 Command Syntax
 ------------------------------------------
@@ -1928,7 +1928,7 @@ Options
 
 **Description:** Retrieves the packaged metadata from the org
 
-**Class:** cumulusci.tasks.salesforce.RetrievePackaged
+**Class:** cumulusci.tasks.salesforce.retrieve_packaged.RetrievePackaged
 
 Command Syntax
 ------------------------------------------
@@ -1987,7 +1987,7 @@ Options
 
 **Description:** Retrieves the packaged metadata into the src directory
 
-**Class:** cumulusci.tasks.salesforce.RetrievePackaged
+**Class:** cumulusci.tasks.salesforce.retrieve_packaged.RetrievePackaged
 
 Command Syntax
 ------------------------------------------
@@ -2046,7 +2046,7 @@ Options
 
 **Description:** Retrieve the contents of a package.xml file.
 
-**Class:** cumulusci.tasks.salesforce.RetrieveUnpackaged
+**Class:** cumulusci.tasks.salesforce.retrieve_unpackaged.RetrieveUnpackaged
 
 Command Syntax
 ------------------------------------------
@@ -2665,7 +2665,7 @@ Options
 
 **Description:** Uninstalls the managed version of the package
 
-**Class:** cumulusci.tasks.salesforce.UninstallPackage
+**Class:** cumulusci.tasks.salesforce.uninstall_package.UninstallPackage
 
 Command Syntax
 ------------------------------------------
@@ -2692,7 +2692,7 @@ Options
 
 **Description:** Uninstalls all deleteable metadata in the package in the target org
 
-**Class:** cumulusci.tasks.salesforce.UninstallPackaged
+**Class:** cumulusci.tasks.salesforce.uninstall_packaged.UninstallPackaged
 
 Command Syntax
 ------------------------------------------
@@ -2719,7 +2719,7 @@ Options
 
 **Description:** Deletes any metadata from the package in the target org not in the local workspace
 
-**Class:** cumulusci.tasks.salesforce.UninstallPackagedIncremental
+**Class:** cumulusci.tasks.salesforce.uninstall_packaged_incremental.UninstallPackagedIncremental
 
 Command Syntax
 ------------------------------------------
@@ -2761,7 +2761,7 @@ Options
 
 **Description:** Uninstalls all metadata in the local src directory
 
-**Class:** cumulusci.tasks.salesforce.UninstallLocal
+**Class:** cumulusci.tasks.salesforce.uninstall_local.UninstallLocal
 
 Command Syntax
 ------------------------------------------
@@ -2840,7 +2840,7 @@ Options
 
 **Description:** Uninstalls the unpackaged/pre bundles
 
-**Class:** cumulusci.tasks.salesforce.UninstallLocalBundles
+**Class:** cumulusci.tasks.salesforce.uninstall_local_bundles.UninstallLocalBundles
 
 Command Syntax
 ------------------------------------------
@@ -2919,7 +2919,7 @@ Options
 
 **Description:** Uninstalls the unpackaged/post bundles
 
-**Class:** cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
+**Class:** cumulusci.tasks.salesforce.uninstall_local_namespaced_bundles.UninstallLocalNamespacedBundles
 
 Command Syntax
 ------------------------------------------
@@ -3075,7 +3075,7 @@ Options
 
 **Description:** Installs all dependencies in project__dependencies into the target org
 
-**Class:** cumulusci.tasks.salesforce.UpdateDependencies
+**Class:** cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies
 
 Command Syntax
 ------------------------------------------
@@ -3166,7 +3166,7 @@ Options
 
 **Description:** Uploads a beta release of the metadata currently in the packaging org
 
-**Class:** cumulusci.tasks.salesforce.PackageUpload
+**Class:** cumulusci.tasks.salesforce.package_upload.PackageUpload
 
 Command Syntax
 ------------------------------------------
@@ -3218,7 +3218,7 @@ Options
 
 **Description:** Uploads a production release of the metadata currently in the packaging org
 
-**Class:** cumulusci.tasks.salesforce.PackageUpload
+**Class:** cumulusci.tasks.salesforce.package_upload.PackageUpload
 
 Command Syntax
 ------------------------------------------

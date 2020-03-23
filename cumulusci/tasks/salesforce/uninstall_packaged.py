@@ -1,6 +1,6 @@
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
-from cumulusci.tasks.salesforce import UninstallLocal
+from cumulusci.tasks.salesforce.uninstall_local import UninstallLocal
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import zip_subfolder
 

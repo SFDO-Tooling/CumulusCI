@@ -163,7 +163,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "path": "install_prod.install_managed",
                     "source": None,
                     "step_num": "1/2",
-                    "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
+                    "task_class": "cumulusci.tasks.salesforce.install_package_version.InstallPackageVersion",
                     "task_config": {
                         "options": {
                             "activateRSS": True,

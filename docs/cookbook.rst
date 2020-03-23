@@ -15,7 +15,7 @@ The global cumulusci.yml file that comes with cumulusci defines the `deploy` tas
     tasks:
         deploy:
             description: Deploys the src directory of the repository to the org
-            class_path: cumulusci.tasks.salesforce.Deploy
+            class_path: cumulusci.tasks.salesforce.deploy_metadata.Deploy
             options:
                 path: src
 

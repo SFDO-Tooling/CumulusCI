@@ -1,7 +1,7 @@
 import pytest
 from unittest import mock
 
-from cumulusci.tasks.salesforce import PackageUpload
+from cumulusci.tasks.salesforce.package_upload import PackageUpload
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from .util import create_task

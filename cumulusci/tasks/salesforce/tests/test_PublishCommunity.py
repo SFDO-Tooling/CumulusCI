@@ -1,6 +1,6 @@
 import responses
 import unittest
-from cumulusci.tasks.salesforce import PublishCommunity
+from cumulusci.tasks.salesforce.publish_community import PublishCommunity
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.exceptions import TaskOptionsError
 from simple_salesforce.exceptions import SalesforceResourceNotFound

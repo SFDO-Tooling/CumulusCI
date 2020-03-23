@@ -1,6 +1,6 @@
 import os
 
-from cumulusci.tasks.salesforce import UninstallLocal
+from cumulusci.tasks.salesforce.uninstall_local import UninstallLocal
 
 
 class UninstallLocalBundles(UninstallLocal):
