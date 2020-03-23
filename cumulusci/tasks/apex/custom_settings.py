@@ -69,7 +69,6 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
             if setupOwnerId.startswith("00D"):
                 self.record = row
 
-        # print(self.record)
         if not self.record:
             raise SalesforceException("Custom Settings Org Default record not found")
 
