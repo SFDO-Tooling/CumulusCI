@@ -1113,6 +1113,7 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
                         "url": "/services/data/v47.0/sobjects/Customizable_Rollup_Setings__c/707L0000014nnPHIAY",
                     },
                     "Id": "707L0000014nnPHIAY",
+                    "SetupOwnerId": "00Dxxxxxxxxxxxx",
                     "Customizable_Rollups_Enabled__c": True,
                     "Rollups_Account_Batch_Size__c": 200,
                 }
@@ -1138,7 +1139,6 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
         task, url = self._get_url_and_task()
         response = self._get_query_resp()
         response["records"][0]["Customizable_Rollups_Enabled__c"] = True
-        response = self._get_query_resp()
         responses.add(responses.GET, url, json=response)
         task()
 
@@ -1154,6 +1154,25 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
         task, url = self._get_url_and_task()
         response = self._get_query_resp()
         response["records"][0]["Rollups_Account_Batch_Size__c"] = 200
-        response = self._get_query_resp()
         responses.add(responses.GET, url, json=response)
         task()
+
+    @responses.activate
+    def test_run_custom_settings_wait_bad_object(self):
+        self.task_config.config["options"] = {
+            "object": "Customizable_Rollup_Setings__c",
+            "field": "Rollups_Account_Batch_Size__c",
+            "value": 200,
+            "poll_interval": 1,
+        }
+
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"][0]["SetupOwnerId"] = "00X"
+        responses.add(responses.GET, url, json=response)
+        # task()
+
+        with self.assertRaises(SalesforceException) as e:
+            task()
+
+        assert "found" in str(e.exception)

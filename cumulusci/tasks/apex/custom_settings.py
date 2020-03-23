@@ -1,6 +1,8 @@
 """ a task for waiting on a specific custom settings value """
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.exceptions import SalesforceException
+from simple_salesforce import SalesforceMalformedRequest
 from cumulusci.core.utils import process_bool_arg
 
 
@@ -61,9 +63,23 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
         return True
 
     def _poll_action(self):
-        query_results = self.sf.query(self._object_query)
+        try:
+            query_results = self.sf.query(self._object_query)
+        except:
+            print(
+                "Only Hierarchical Custom Settings objects can be used with this task"
+            )
+            raise
 
-        self.record = query_results["records"][0]
+        self.record = None
+        for row in query_results["records"]:
+            setupOwnerId = str(row["SetupOwnerId"])
+            if setupOwnerId.startswith("00D"):
+                self.record = row
+
+        # print(self.record)
+        if not self.record:
+            raise SalesforceException("Custom Settings Org Default record not found")
 
         self.poll_complete = not self._poll_again()
 
@@ -91,4 +107,4 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
 
     @property
     def _object_query(self):
-        return f"SELECT {self.field_name} FROM {self.object_name} LIMIT 1"
+        return f"SELECT SetupOwnerId, {self.field_name} FROM {self.object_name}"
