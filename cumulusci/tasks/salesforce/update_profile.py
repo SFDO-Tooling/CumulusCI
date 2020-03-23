@@ -9,11 +9,12 @@ from cumulusci.tasks.metadata_etl import (
 
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils.xml import metadata_tree
 
 
-class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
+class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApiTask):
     name = "ProfileGrantAllAccess"
     entity = "Profile"
 
@@ -116,7 +117,9 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
             if not self.api_names:
                 self.api_names.add("Admin")
 
-            self.api_names = {self._inject_namespace(x) for x in self.api_names}
+            if not self.options["namespaced_org"]:
+                # Namespaced orgs don't use the explicit namespace references in `package.xml`.
+                self.api_names = {self._inject_namespace(x) for x in self.api_names}
             self.package_xml_path = os.path.join(
                 CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
             )
@@ -145,7 +148,12 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask):
                 # Either we are using packaged-object expansion, or we're using
                 # the built-in admin_profile.xml and need to substitute in
                 # profile API names.
-                package_xml = metadata_tree.fromstring(package_xml_content)
+
+                # Convert to bytes because stored `package.xml`s typically have an encoding declaration,
+                # which `fromstring()` doesn't like.
+                package_xml = metadata_tree.fromstring(
+                    package_xml_content.encode("utf-8")
+                )
 
                 if self.options["include_packaged_objects"]:
                     self._expand_package_xml(package_xml)
