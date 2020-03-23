@@ -110,8 +110,7 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
             # Dynamically inject the namespace if required.
             real_api_name = (
                 f"{self.project_config.project__package__namespace}__{sobject}"
-                if hasattr(self.org_config, "namespaced")
-                and self.org_config.namespaced
+                if self.org_config.namespaced
                 and sobject.count("__") == 1
                 else sobject
             )
