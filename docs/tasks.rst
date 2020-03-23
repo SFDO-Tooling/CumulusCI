@@ -206,7 +206,7 @@ Options
 **custom_setting_wait**
 ==========================================
 
-**Description:** Waits on for a specific custom setting field to be set to a specified value
+**Description:** Waits on for a specific custom setting field to be set to a specified value. Only Hierarchical Custom Settings objects are supported.
 
 **Class:** cumulusci.tasks.apex.custom_setting.CustomSettingValueWait
 
@@ -224,23 +224,23 @@ Options
 ``-o object ObjectName``
 	 *Required*
 
-	 Name of the SObject to query.
+	 Name of the Hierarchical Custom Settings Object to query.
 
 ``-o object FieldName``
 	 *Required*
 
-	 Name of the Field on the SObject to query.
+	 Name of the Field on the Custom Settings object to query.
 
 ``-o value Value``
 	 *Required*
 
-	 Value to check for
+	 Value to check for. Supports Numeric, Boolean or String comparison.
 
 ``-o managed true``
 	 *Optional*
 
 	 If True, applies the project namespace to replace tokens in the object and field.
-	 Defaults to false
+	 Defaults to true
 
 ``-o poll_interval POLLINTERVAL``
 	 *Optional*

@@ -13,23 +13,16 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
 
     task_options = {
         "object": {
-            "description": "Name of the SObject to query. Can include the %%%NAMESPACE%%% token. ",
+            "description": "Name of the Hierarchical Custom Settings object to query. Can include the %%%NAMESPACE%%% token. ",
             "required": True,
         },
         "field": {
-            "description": "Name of the field on the Sobject to query. Can include the %%%NAMESPACE%%% token. ",
+            "description": "Name of the field on the Custom Settings to query. Can include the %%%NAMESPACE%%% token. ",
             "required": True,
         },
         "value": {
-            "description": "Value of the field to wait for (String or Boolean). ",
+            "description": "Value of the field to wait for (String, Integer or Boolean). ",
             "required": True,
-        },
-        "managed": {
-            "description": (
-                "If True, will inject the project's namespace prefix to replace %%%NAMESPACE%%% tokens in the object or field "
-                "Defaults to False or no namespace."
-            ),
-            "required": False,
         },
         "poll_interval": {
             "description": (
@@ -47,10 +40,9 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
         self.check_value = self.options["value"]
 
         # Process namespace tokens
-        managed = self.options.get("managed") or False
         namespace = self.project_config.project__package__namespace
         namespace_prefix = ""
-        if managed:
+        if namespace:
             namespace_prefix = namespace + "__"
 
         self.object_name = self.object_name.replace("%%%NAMESPACE%%%", namespace_prefix)
