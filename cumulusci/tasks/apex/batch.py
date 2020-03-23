@@ -6,7 +6,9 @@ from cumulusci.utils import parse_api_datetime
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
 
-COMPLETED_STATUSES = ["Completed"]
+COMPLETED_STATUSES = ["Completed", "Aborted", "Failed"]
+STOPPED_STATUSES = ["Aborted"]
+FAILED_STATUSES = ["Failed"]
 
 
 class BatchApexWait(BaseSalesforceApiTask):
@@ -36,8 +38,17 @@ class BatchApexWait(BaseSalesforceApiTask):
 
         summary = self.summarize_subjobs(self.subjobs)
         failed_batches = self.failed_batches(self.subjobs)
+        job_aborted = summary["AnyAborted"]
+        job_failed = summary[
+            "AnyFailed"
+        ]  # note that a failed sub-job is different than a failed batch
 
-        if failed_batches:
+        # per https://help.salesforce.com/articleView?id=code_apex_job.htm&type=5
+        if job_aborted:
+            raise SalesforceException("Job was aborted by a user.")
+        elif job_failed:
+            raise SalesforceException("Job experienced a system failure.")
+        elif failed_batches:
             self.logger.info("There have been some batch failures.")
             raise SalesforceException(
                 f"There were batch errors: {repr(failed_batches)}"
@@ -122,6 +133,10 @@ class BatchApexWait(BaseSalesforceApiTask):
             "Completed": all(
                 subjob["Status"] in COMPLETED_STATUSES for subjob in subjobs
             ),
+            "AnyAborted": any(
+                subjob["Status"] in STOPPED_STATUSES for subjob in subjobs
+            ),
+            "AnyFailed": any(subjob["Status"] in FAILED_STATUSES for subjob in subjobs),
         }
         rc["Success"] = rc["NumberOfErrors"] == 0
         rc["ElapsedTime"] = self.elapsed_time(subjobs)
