@@ -117,9 +117,16 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             if not self.api_names:
                 self.api_names.add("Admin")
 
-            if not self.options["namespaced_org"]:
+            if self.options["namespaced_org"]:
                 # Namespaced orgs don't use the explicit namespace references in `package.xml`.
-                self.api_names = {self._inject_namespace(x) for x in self.api_names}
+                # Preserving historic behavior but guarding here
+                self.options["managed"] = False
+
+            self.api_names = {self._inject_namespace(x) for x in self.api_names}
+
+            if self.options["namespaced_org"]:
+                self.options["managed"] = True
+
             self.package_xml_path = os.path.join(
                 CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
             )
