@@ -1,6 +1,8 @@
 from pathlib import Path
 import io
 import json
+import shutil
+import tempfile
 import unittest
 import zipfile
 
@@ -91,13 +93,22 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             "GET",
             "https://metadeploy/products?repo_url=EXISTING_REPO",
-            json={"data": [{"id": "abcdef", "url": "https://EXISTING_PRODUCT"}]},
+            json={
+                "data": [
+                    {
+                        "id": "abcdef",
+                        "url": "https://EXISTING_PRODUCT",
+                        "slug": "existing",
+                    }
+                ]
+            },
         )
         responses.add(
             "GET",
             "https://api.github.com/repos/TestOwner/TestRepo",
             json=self._get_expected_repo("TestOwner", "TestRepo"),
         )
+        responses.add("PATCH", "https://metadeploy/translations/es", json={})
         responses.add(
             "GET",
             "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
@@ -156,15 +167,18 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add("PATCH", "https://metadeploy/versions/1", json={})
 
-        labels_path = Path(project_config.repo_root, "labels.json")
-        labels_path.write_text("{}")
+        labels_path = tempfile.mkdtemp()
+        en_labels_path = Path(labels_path, "labels_en.json")
+        en_labels_path.write_text('{"test": {"title": {}}}')
+        es_labels_path = Path(labels_path, "labels_es.json")
+        es_labels_path.write_text('{"test": {"title": {}}}')
 
         task_config = TaskConfig(
             {
                 "options": {
                     "tag": "release/1.0",
                     "publish": True,
-                    "labels": str(labels_path),
+                    "labels_path": labels_path,
                 }
             }
         )
@@ -229,7 +243,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             steps,
         )
 
-        labels = json.loads(labels_path.read_text())
+        labels = json.loads(en_labels_path.read_text())
         assert labels == {
             "plan:install": {
                 "title": {
@@ -251,8 +265,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "description": "title of installation step",
                 },
             },
+            "test": {"title": {}},
         }
-        labels_path.unlink()
+        shutil.rmtree(labels_path)
 
     @responses.activate
     def test_find_or_create_version__already_exists(self):

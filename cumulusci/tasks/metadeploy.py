@@ -62,8 +62,8 @@ class Publish(BaseMetaDeployTask):
             "description": "If True, set is_listed to True on the version. Default: False",
             "required": False,
         },
-        "labels": {
-            "description": "Path to a file that will be updated with strings to be translated.",
+        "labels_path": {
+            "description": "Path to a folder containing translations.",
             "required": False,
         },
     }
@@ -78,6 +78,9 @@ class Publish(BaseMetaDeployTask):
         self.commit = self.options.get("commit")
         if not self.tag and not self.commit:
             raise TaskOptionsError("You must specify either the tag or commit option.")
+        self.labels_path = self.options.get("labels_path", "metadeploy")
+        if not os.path.exists(self.labels_path):  # pragma: no cover
+            os.makedirs(self.labels_path)
 
         plan_name = self.options.get("plan")
         if plan_name:
@@ -96,6 +99,8 @@ class Publish(BaseMetaDeployTask):
         product = self._find_product()
         if not self.dry_run:
             version = self._find_or_create_version(product)
+            if self.labels_path and "slug" in product:
+                self._publish_labels(product["slug"])
 
         # Check out the specified tag
         repo_owner = self.project_config.repo_owner
@@ -313,10 +318,11 @@ class Publish(BaseMetaDeployTask):
         return plantemplate
 
     def _load_labels(self):
+        """Load existing English labels."""
         self.labels = {}
-        self.labels_path = self.options.get("labels")
-        if self.labels_path and os.path.exists(self.labels_path):
-            with open(self.labels_path, "r") as f:
+        labels_path = os.path.join(self.labels_path, "labels_en.json")
+        if os.path.exists(labels_path):
+            with open(labels_path, "r") as f:
                 self.labels = json.load(f)
 
     def _add_labels(self, obj, category, fields):
@@ -339,34 +345,22 @@ class Publish(BaseMetaDeployTask):
         self.labels[category][text] = label
 
     def _save_labels(self):
+        """Save updates to English labels."""
         if self.labels_path:
-            self.logger.info(f"Updating labels in {self.labels_path}")
-            with open(self.labels_path, "w") as f:
+            labels_path = os.path.join(self.labels_path, "labels_en.json")
+            self.logger.info(f"Updating labels in {labels_path}")
+            with open(labels_path, "w") as f:
                 json.dump(self.labels, f, indent=4)
 
-
-class PublishTranslations(BaseMetaDeployTask):
-    """Publishes translated labels to MetaDeploy.
-    """
-
-    task_options = {
-        "slug": {"description": "Product slug", "required": True},
-        "labels": {
-            "description": "Path to a folder containing translated labels",
-            "required": True,
-        },
-    }
-
-    def _run_task(self):
-        slug = self.options["slug"]
-        for path in Path(self.options["labels"]).glob("*.json"):
+    def _publish_labels(self, slug):
+        """Publish labels in all languages to MetaDeploy."""
+        for path in Path(self.labels_path).glob("*.json"):
             lang = path.stem[-2:]
+            if lang == "en":
+                continue
             orig_labels = json.loads(path.read_text())
             prefixed_labels = {}
             for context, labels in orig_labels.items():
-                if context == "steps":
-                    prefixed_labels["steps"] = labels
-                else:
-                    prefixed_labels[f"{slug}:{context}"] = labels
+                prefixed_labels[f"{slug}:{context}"] = labels
             self.logger.info(f"Updating {lang} translations")
             self._call_api("PATCH", f"/translations/{lang}", json=prefixed_labels)
