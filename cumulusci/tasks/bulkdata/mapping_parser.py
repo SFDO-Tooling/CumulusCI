@@ -5,6 +5,7 @@ from pathlib import Path
 from pydantic import Field, validator, ValidationError
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel
+from typing_extensions import Literal
 
 LOGGER_NAME = "MAPPING_LOADER"
 logger = getLogger(LOGGER_NAME)
@@ -31,6 +32,7 @@ class MappingStep(CCIDictModel):
     action: str = "insert"
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: str = None  # should be discussed and probably deprecated
+    bulk_mode: Literal["Serial", "Parallel"] = "Parallel"
 
     @validator("record_type")
     def record_type_is_deprecated(cls, v):

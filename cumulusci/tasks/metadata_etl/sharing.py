@@ -2,10 +2,11 @@ from datetime import datetime
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
-class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
+class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTask):
     entity = "CustomObject"
     task_options = {
         "org_wide_defaults": {
@@ -104,10 +105,19 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
             )
 
         for sobject in self.owds:
+            # The Tooling API requires that we use fully-qualified sObject names in namespaced scratch orgs.
+            # However, the Metadata API requires no namespaces in that context.
+            # Dynamically inject the namespace if required.
+            real_api_name = (
+                f"{self.project_config.project__package__namespace}__{sobject}"
+                if self.org_config.namespaced and sobject.count("__") == 1
+                else sobject
+            )
+
             result = self.sf.query(
                 f"SELECT ExternalSharingModel, InternalSharingModel "
                 f"FROM EntityDefinition "
-                f"WHERE QualifiedApiName = '{sobject}'"
+                f"WHERE QualifiedApiName = '{real_api_name}'"
             )
             if result["totalSize"] == 1:
                 record = result["records"][0]
