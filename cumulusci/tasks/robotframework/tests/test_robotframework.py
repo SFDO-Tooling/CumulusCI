@@ -23,11 +23,30 @@ from cumulusci.tasks.robotframework.libdoc import KeywordFile
 
 class TestRobot(unittest.TestCase):
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
-    def test_run_task(self, robot_run):
+    def test_run_task_with_failure(self, robot_run):
         robot_run.return_value = 1
         task = create_task(Robot, {"suites": "tests", "pdb": True})
         with self.assertRaises(RobotTestFailure):
             task()
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    def test_run_task_error_message(self, robot_run):
+        expected = {
+            1: "1 test failed.",  # singular; pet peeve of my to see "1 tests"
+            2: "2 tests failed.",  # plural
+            249: "249 tests failed.",
+            250: "250 or more tests failed.",
+            251: "Help or version information printed.",
+            252: "Invalid test data or command line options.",
+            253: "Test execution stopped by user.",
+            255: "Unexpected internal error",
+        }
+        for error_code in expected.keys():
+            robot_run.return_value = error_code
+            task = create_task(Robot, {"suites": "tests", "pdb": True})
+            with self.assertRaises(RobotTestFailure) as error:
+                task()
+            self.assertEquals(str(error.exception), expected[error_code])
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.patch_statusreporter")
     def test_pdb_arg(self, patch_statusreporter):
