@@ -1,7 +1,6 @@
-from collections import defaultdict
 import datetime
 from unittest.mock import MagicMock
-from typing import Union
+from typing import Union, Generator
 
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
@@ -23,7 +22,7 @@ from cumulusci.tasks.bulkdata.step import (
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
 
-from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, MappingStep
+from cumulusci.tasks.bulkdata.bulkdata_mapping import parse_from_yaml, MappingStep
 
 
 class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
@@ -81,13 +80,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
     def _run_task(self):
-        self._init_mapping()
-        self._init_db()
-        self._expand_mapping()
+        mapping = self._init_mapping()
+        self._init_db(mapping)
+        mapping._expand_mapping(self.models)
 
         start_step = self.options.get("start_step")
         started = False
-        for name, mapping in self.mapping.items():
+        for name, mapping_step in mapping.items():
             # Skip steps until start_step
             if not started and start_step and name != start_step:
                 self.logger.info(f"Skipping step: {name}")
@@ -96,14 +95,14 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             started = True
 
             self.logger.info(f"Running step: {name}")
-            result = self._execute_step(mapping)
+            result = self._execute_step(mapping_step)
             if result.status is DataOperationStatus.JOB_FAILURE:
                 raise BulkDataException(
                     f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
                 )
 
-            if name in self.after_steps:
-                for after_name, after_step in self.after_steps[name].items():
+            if name in mapping.after_steps:
+                for after_name, after_step in mapping.after_steps[name].items():
                     self.logger.info(f"Running post-load step: {after_name}")
                     result = self._execute_step(after_step)
                     if result.status is DataOperationStatus.JOB_FAILURE:
@@ -147,7 +146,8 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         return step.job_result
 
-    def _stream_queried_data(self, mapping, local_ids):
+    # todo: rename mapping->mapping_step throughout the rest of this file
+    def _stream_queried_data(self, mapping: MappingStep, local_ids: list) -> Generator:
         """Get data from the local db"""
 
         statics = self._get_statics(mapping)
@@ -388,7 +388,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 cursor.close()
         # self.session.flush()
 
-    def _init_db(self):
+    def _init_db(self, mapping):
         """Initialize the database and automapper."""
         # initialize the DB engine
         database_url = self.options["database_url"] or "sqlite://"
@@ -412,7 +412,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         # Loop through mappings and reflect each referenced table
         self.models = {}
-        for name, mapping in self.mapping.items():
+        for name, mapping in mapping.items():
             if "table" in mapping and mapping["table"] not in self.models:
                 self.models[mapping["table"]] = self.base.classes[mapping["table"]]
 
@@ -427,49 +427,4 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         """Load a YAML mapping file."""
         with open(self.options["mapping"], "r") as f:
             # yaml.safe_load should also work here for now.
-            self.mapping = parse_from_yaml(f)
-
-    def _expand_mapping(self):
-        """Walk the mapping and generate any required 'after' steps
-        to handle dependent and self-lookups."""
-        # Expand the mapping to handle dependent lookups
-        self.after_steps = defaultdict(dict)
-
-        for step in self.mapping.values():
-            step["action"] = step.get("action", "insert")
-            if step.get("lookups") and any(
-                [l.get("after") for l in step["lookups"].values()]
-            ):
-                # We have deferred/dependent lookups.
-                # Synthesize mapping steps for them.
-
-                sobject = step["sf_object"]
-                after_list = {
-                    l["after"] for l in step["lookups"].values() if l.get("after")
-                }
-
-                for after in after_list:
-                    lookups = {
-                        lookup_field: lookup
-                        for lookup_field, lookup in step["lookups"].items()
-                        if lookup.get("after") == after
-                    }
-                    name = f"Update {sobject} Dependencies After {after}"
-                    mapping = {
-                        "sf_object": sobject,
-                        "action": "update",
-                        "table": step["table"],
-                        "lookups": {},
-                        "fields": {},
-                    }
-                    mapping["lookups"]["Id"] = {
-                        "table": step["table"],
-                        "key_field": self.models[
-                            step["table"]
-                        ].__table__.primary_key.columns.keys()[0],
-                    }
-                    for l in lookups:
-                        mapping["lookups"][l] = lookups[l].copy()
-                        mapping["lookups"][l]["after"] = None
-
-                    self.after_steps[after][name] = mapping
+            return parse_from_yaml(f)

@@ -20,7 +20,10 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
+from cumulusci.tasks.bulkdata.bulkdata_mapping import (
+    Mapping,
+    MappingStep,
+)
 
 
 MAPPING_FILE = """Insert Households:
@@ -166,10 +169,15 @@ class TestLoadData(unittest.TestCase):
             },
         )
         task._init_db = mock.Mock()
-        task._init_mapping = mock.Mock()
-        task.mapping = {}
-        task.mapping["Insert Households"] = MappingStep(sf_object="one", fields={})
-        task.mapping["Insert Contacts"] = MappingStep(sf_object="two", fields={})
+        task._init_mapping = mock.Mock(
+            return_value=Mapping(
+                {
+                    "Insert Households": MappingStep(sf_object="one", fields={}),
+                    "Insert Contacts": MappingStep(sf_object="two", fields={}),
+                }
+            )
+        )
+        task.models = {}
         task.after_steps = {}
         task._execute_step = mock.Mock(
             return_value=DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
@@ -179,24 +187,26 @@ class TestLoadData(unittest.TestCase):
             MappingStep(sf_object="two", fields={})
         )
 
+    def _setup_dummy_mapping(self, task):
+        task._init_db = mock.Mock()
+        task.models = {}
+        mapping = Mapping({"Insert Households": 1, "Insert Contacts": 2})
+        task._init_mapping = mock.Mock(return_value=mapping)
+        mapping._expand_mapping = mock.Mock()
+        households_steps = {}
+        households_steps["four"] = 4
+        households_steps["five"] = 5
+        mapping.after_steps = {
+            "Insert Contacts": {"three": 3},
+            "Insert Households": households_steps,
+        }
+
     def test_run_task__after_steps(self):
         task = _make_task(
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
-        task._init_mapping = mock.Mock()
-        task._expand_mapping = mock.Mock()
-        task.mapping = {}
-        task.mapping["Insert Households"] = 1
-        task.mapping["Insert Contacts"] = 2
-        households_steps = {}
-        households_steps["four"] = 4
-        households_steps["five"] = 5
-        task.after_steps = {
-            "Insert Contacts": {"three": 3},
-            "Insert Households": households_steps,
-        }
+        self._setup_dummy_mapping(task)
         task._execute_step = mock.Mock(
             return_value=DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
         )
@@ -210,19 +220,8 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
-        task._init_mapping = mock.Mock()
-        task._expand_mapping = mock.Mock()
-        task.mapping = {}
-        task.mapping["Insert Households"] = 1
-        task.mapping["Insert Contacts"] = 2
-        households_steps = {}
-        households_steps["four"] = 4
-        households_steps["five"] = 5
-        task.after_steps = {
-            "Insert Contacts": {"three": 3},
-            "Insert Households": households_steps,
-        }
+        self._setup_dummy_mapping(task)
+
         task._execute_step = mock.Mock(
             side_effect=[
                 DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0),
@@ -323,96 +322,23 @@ class TestLoadData(unittest.TestCase):
         assert t.options["sql_path"] == "test.sql"
         assert t.options["database_url"] is None
 
-    def test_expand_mapping_creates_after_steps(self):
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "mapping_after.yml")
-        task = _make_task(
-            LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
-        )
-
-        task._init_mapping()
-
-        model = mock.Mock()
-        model.__table__ = mock.Mock()
-        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
-        task.models = {"accounts": model, "contacts": model}
-
-        task._expand_mapping()
-
-        self.assertEqual({}, task.after_steps["Insert Opportunities"])
-        self.assertEqual(
-            [
-                "Update Account Dependencies After Insert Contacts",
-                "Update Contact Dependencies After Insert Contacts",
-            ],
-            list(task.after_steps["Insert Contacts"].keys()),
-        )
-        lookups = {}
-        lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
-        lookups["Primary_Contact__c"] = MappingLookup(table="contacts")
-        self.assertEqual(
-            {
-                "sf_object": "Account",
-                "action": "update",
-                "table": "accounts",
-                "lookups": lookups,
-                "fields": {},
-            },
-            task.after_steps["Insert Contacts"][
-                "Update Account Dependencies After Insert Contacts"
-            ],
-        )
-        lookups = {}
-        lookups["Id"] = {"table": "contacts", "key_field": "sf_id"}
-        lookups["ReportsToId"] = MappingLookup(table="contacts")
-        self.assertEqual(
-            {
-                "sf_object": "Contact",
-                "action": "update",
-                "table": "contacts",
-                "fields": {},
-                "lookups": lookups,
-            },
-            task.after_steps["Insert Contacts"][
-                "Update Contact Dependencies After Insert Contacts"
-            ],
-        )
-        self.assertEqual(
-            ["Update Account Dependencies After Insert Accounts"],
-            list(task.after_steps["Insert Accounts"].keys()),
-        )
-        lookups = {}
-        lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
-        lookups["ParentId"] = MappingLookup(table="accounts")
-        self.assertEqual(
-            {
-                "sf_object": "Account",
-                "action": "update",
-                "table": "accounts",
-                "fields": {},
-                "lookups": lookups,
-            },
-            task.after_steps["Insert Accounts"][
-                "Update Account Dependencies After Insert Accounts"
-            ],
-        )
-
     def test_stream_queried_data__skips_empty_rows(self):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
         )
         task.sf = mock.Mock()
 
-        mapping = {
-            "sf_object": "Account",
-            "action": "update",
-            "fields": {},
-            "lookups": {
-                "Id": {"table": "accounts", "key_field": "sf_id"},
-                "ParentId": {"table": "accounts"},
-            },
-        }
+        mapping = MappingStep(
+            **{
+                "sf_object": "Account",
+                "action": "update",
+                "fields": {},
+                "lookups": {
+                    "Id": {"table": "accounts", "key_field": "sf_id"},
+                    "ParentId": {"table": "accounts"},
+                },
+            }
+        )
 
         task._query_db = mock.Mock()
         task._query_db.return_value.yield_per = mock.Mock(
@@ -552,8 +478,8 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task.mapping = {}
-        task._init_db()
+        mapping = {}
+        task._init_db(mapping)
         id_table = Table(
             "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
         )
@@ -567,8 +493,8 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task.mapping = {}
-        task._init_db()
+        mapping = {}
+        task._init_db(mapping)
         id_table = Table(
             "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
         )
@@ -584,13 +510,12 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
         task._init_db = mock.Mock()
-        task._init_mapping = mock.Mock()
+        self._setup_dummy_mapping(task)
         task._execute_step = mock.Mock(
             return_value=DataOperationJobResult(
                 DataOperationStatus.JOB_FAILURE, [], 0, 0
             )
         )
-        task.mapping = {"Test": {"test": "test"}}
 
         with self.assertRaises(BulkDataException):
             task()
@@ -926,9 +851,9 @@ class TestLoadData(unittest.TestCase):
         task.models = mock.Mock()
         task.metadata = mock.Mock()
 
-        task._init_mapping()
-        task.mapping["Insert Households"]["fields"]["RecordTypeId"] = "RecordTypeId"
-        task._init_db()
+        mapping = task._init_mapping()
+        mapping["Insert Households"]["fields"]["RecordTypeId"] = "RecordTypeId"
+        task._init_db(mapping)
         task._create_record_type_table.assert_called_once_with(
             "Account_rt_target_mapping"
         )
@@ -1017,17 +942,16 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
 
-        task._init_mapping()
-        print(task.mapping)
+        mapping = task._init_mapping()
         assert (
-            task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
+            mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
             == "Insert Accounts"
         )
         task.models = {}
         task.models["accounts"] = mock.MagicMock()
         task.models["accounts"].__table__ = mock.MagicMock()
-        task._expand_mapping()
+        mapping._expand_mapping(task.models)
         assert (
-            task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
+            mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
             == "Insert Accounts"
         )
