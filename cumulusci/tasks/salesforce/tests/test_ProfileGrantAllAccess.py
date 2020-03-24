@@ -242,6 +242,26 @@ def test_expand_profile_members():
     }
 
 
+def test_expand_profile_members__namespaced_org():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {
+            "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
+            "namespace_inject": "ns",
+            "namespaced_org": True,
+        },
+    )
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+
+    task._expand_profile_members(package_xml)
+
+    types = package_xml.find("types", name="Profile")
+    assert {elem.text for elem in types.findall("members")} == {
+        "Admin",
+        "Continuous Integration",
+    }
+
+
 def test_expand_profile_members__broken_package():
     task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
     task.tooling = mock.Mock()
