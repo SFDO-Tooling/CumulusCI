@@ -89,7 +89,7 @@ class Robot(BaseSalesforceTask):
         # http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#return-codes
         if 0 < num_failed < 250:
             raise RobotTestFailure(
-                "{} test{} failed.".format(num_failed, "" if num_failed == 1 else "s")
+                f"{num_failed} test{'' if num_failed == 1 else 's'} failed."
             )
         elif num_failed == 250:
             raise RobotTestFailure("250 or more tests failed.")
