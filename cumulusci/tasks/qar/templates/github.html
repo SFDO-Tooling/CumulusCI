@@ -127,7 +127,7 @@
       {% for member_name, member_info in team_info.members.items() %}
       <tr>
         <td>{{ member_name }}</td>
-        <td>{% if member_info.owner %}Owner{% else %}Member{% endif %}</td>
+        <td> {{member_info["role"]}}</td>
       </tr>
       {% endfor %}
     </tbody>

@@ -28,8 +28,8 @@ class OrganizationReport(BaseGithubTask):
         self.template = self.options.get("template") or os.path.join(
             cumulusci.__location__, "tasks", "qar", "templates", "github.html",
         )
-
-        self.repos = self.options.get("repos", "").split(",")
+        repos = self.options.get("repos")
+        self.repos = repos.split(",") if repos else None
 
     def _run_task(self):
         org = self.github.organization(self.options["organization"])
@@ -61,11 +61,13 @@ class OrganizationReport(BaseGithubTask):
             for member in team.members():
                 info = {
                     "user": member,
-                    "owner": False,
+                    "role": None,
                 }
                 teams[team.name]["members"][member.login] = info
-            for member in team.members(role="owner"):
-                teams[team.name]["members"][member.login]["owner"] = True
+            for member in team.members(role="maintainer"):
+                teams[team.name]["members"][member.login]["role"] = "maintainer"
+            for member in team.members(role="member"):
+                teams[team.name]["members"][member.login]["role"] = "member"
             for repo in team.repositories():
                 info = {
                     "repo": repo,
