@@ -236,11 +236,15 @@ Options
 
 	 Value to check for. Supports Numeric, Boolean or String comparison.
 
-``-o managed true``
+``-o managed MANAGED``
 	 *Optional*
 
-	 If True, applies the project namespace to replace tokens in the object and field.
-	 Defaults to true
+	 If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
+
+``-o namespaced NAMESPACED``
+	 *Optional*
+
+	 If True, If True, the %%%NAMESPACE%%% token will get replaced with the namespace prefix for the object and field. Defaults to False. 
 
 ``-o poll_interval POLLINTERVAL``
 	 *Optional*

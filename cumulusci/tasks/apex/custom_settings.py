@@ -24,6 +24,21 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
             "description": "Value of the field to wait for (String, Integer or Boolean). ",
             "required": True,
         },
+        "managed": {
+            "description": (
+                "If True, will insert the project's namespace prefix.  "
+                "Defaults to False or no namespace."
+            ),
+            "required": False,
+        },
+        "namespaced": {
+            "description": (
+                "If True, the %%%NAMESPACE%%% token "
+                "will get replaced with the namespace prefix for the object and field."
+                "Defaults to False."
+            ),
+            "required": False,
+        },
         "poll_interval": {
             "description": (
                 "Seconds to wait before polling for batch job completion. "
@@ -35,20 +50,16 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
     def _run_task(self):
         self.poll_interval_s = int(self.options.get("poll_interval", 10))
 
+        # Retrieve polling object/field/value options
         self.object_name = self.options["object"]
         self.field_name = self.options["field"]
         self.check_value = self.options["value"]
 
         # Process namespace tokens
-        namespace = self.project_config.project__package__namespace
-        namespace_prefix = ""
-        if namespace:
-            namespace_prefix = namespace + "__"
+        self._apply_namespace()
 
-        self.object_name = self.object_name.replace("%%%NAMESPACE%%%", namespace_prefix)
-        self.field_name = self.field_name.replace("%%%NAMESPACE%%%", namespace_prefix)
-
-        self._poll()  # will block until poll_complete
+        # will block until poll_complete
+        self._poll()
 
         self.logger.info("Value Matched.")
 
@@ -76,6 +87,20 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
 
     def _poll_again(self):
         return not self.success
+
+    def _apply_namespace(self):
+        # Process namespace tokens
+        managed = self.options.get("managed") or False
+        namespaced = self.options.get("namespaced") or False
+        namespace = self.project_config.project__package__namespace
+        namespace_prefix = ""
+        if managed or namespaced:
+            namespace_prefix = namespace + "__"
+
+        self.object_name = self.object_name.replace("%%%NAMESPACE%%%", namespace_prefix)
+        self.field_name = self.field_name.replace("%%%NAMESPACE%%%", namespace_prefix)
+
+        return
 
     @property
     def success(self):
