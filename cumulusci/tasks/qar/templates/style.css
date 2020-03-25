@@ -1,27 +1,13 @@
 table {
     table-layout: fixed;
-    width: 600px;
+    width: 800px;
     border-collapse: separate;
     border-spacing: 0px;
     border: 3px solid #1798C1;
-    text-align: left;
+    text-align: center;
+    margin-top: 10px;
   }
 
-  thead th:nth-child(1) {
-    width: 61%;
-  }
-
-  thead th:nth-child(2) {
-    width: 13%;
-  }
-
-  thead th:nth-child(3) {
-    width: 13%;
-  }
-
-  thead th:nth-child(4) {
-    width: 13%;
-  }
 
   th,
   td {
@@ -33,7 +19,8 @@ table {
   }
 
   h3{
-      margin: 20px;
+      margin-top: 10px;
+      margin-left: 20px;
   }
 
   h4{
@@ -43,4 +30,5 @@ table {
 
   body{
     margin-left: 10px;
+    margin-bottom: 10px;
   }
