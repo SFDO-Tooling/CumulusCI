@@ -18,34 +18,34 @@ class OrganizationReport(BaseGithubTask):
         "template": {
             "description": "The path to a custom jinja2 template file for rendering the report",
         },
+        "repos": {
+            "description": "A comma-separated list of Repo names to report for (not including org-name)",
+        },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        if "template" not in self.options:
-            self.options["template"] = os.path.join(
-                cumulusci.__location__,
-                "tasks",
-                "qar",
-                "templates",
-                "github.html",
-            )
+        self.template = self.options.get("template") or os.path.join(
+            cumulusci.__location__, "tasks", "qar", "templates", "github.html",
+        )
+
+        self.repos = self.options.get("repos", "").split(",")
 
     def _run_task(self):
         org = self.github.organization(self.options["organization"])
-        members = {}
+        org_members = {}
         repos = {}
         teams = {}
 
         self.logger.info("Fetching members...")
         for member in org.members(role="admin"):
-            members[member.login] = {
+            org_members[member.login] = {
                 "obj": member,
                 "admin": True,
             }
 
         for member in org.members(role="member"):
-            members[member.login] = {
+            org_members[member.login] = {
                 "obj": member,
                 "admin": False,
             }
@@ -70,13 +70,17 @@ class OrganizationReport(BaseGithubTask):
                 info = {
                     "repo": repo,
                     "read": True,  # All teams returned at least have read
-                    "write": repo.permissions["push"] is True or repo.permissions["admin"] is True,
+                    "write": repo.permissions["push"] is True
+                    or repo.permissions["admin"] is True,
                     "admin": repo.permissions["admin"] is True,
                 }
                 teams[team.name]["repos"][repo.name] = info
 
         self.logger.info("Fetching repos...")
         for repo in org.repositories():
+            if self.repos and repo.name not in self.repos:
+                self.logger.warning(f"Skipping {repo.name}")
+                continue
             repos[repo.name] = {
                 "obj": repo,
                 "users": {},
@@ -88,26 +92,39 @@ class OrganizationReport(BaseGithubTask):
                 info = {
                     "user": user,
                     "read": True,  # All collaborators at least have read
-                    "write": user.permissions["push"] is True or user.permissions["admin"] is True,
+                    "write": user.permissions["push"] is True
+                    or user.permissions["admin"] is True,
                     "admin": user.permissions["admin"] is True,
                     "is_member": user.login in members,
                 }
                 # If this is a public repo, ignore read only users
-                if repo.private is False and info["write"] is False and info["admin"] is False:
+                if (
+                    repo.private is False
+                    and info["write"] is False
+                    and info["admin"] is False
+                ):
                     continue
 
                 # Skip org members whose only perms come from org membership
                 if repo.private is True and user.login in members:
-                    if org.default_repository_permission == "write" and info["write"] is True and info["admin"] is False:
+                    if (
+                        org.default_repository_permission == "write"
+                        and info["write"] is True
+                        and info["admin"] is False
+                    ):
                         continue
-                    elif org.default_repository_pemrission == "read" and info["write"] is False and info["admin"] is False:
+                    elif (
+                        org.default_repository_pemrission == "read"
+                        and info["write"] is False
+                        and info["admin"] is False
+                    ):
                         continue
 
                 repos[repo.name]["users"][user.login] = info
 
             for team in repo.teams():
                 # Skip teams from another org which can happen when a repo is moved to a different org
-                if '/{}/'.format(org.id) not in team.url:
+                if "/{}/".format(org.id) not in team.url:
                     continue
                 info = {
                     "team": team,
@@ -120,7 +137,11 @@ class OrganizationReport(BaseGithubTask):
             for username, user_info in repos[repo.name]["users"].items():
                 from_team = False
                 for team_name, team_info in repos[repo.name]["teams"].items():
-                    if username in teams[team_name]["members"]:
+                    team = teams.get(team_name)
+                    if not team:
+                        self.logger.warning(f"Cannot see team {team_name}")
+                        continue
+                    if username in ["members"]:
                         if user_info["admin"] is True and team_info["admin"] is True:
                             from_team = True
                             break
@@ -134,14 +155,17 @@ class OrganizationReport(BaseGithubTask):
                     repos[repo.name]["users_direct"][username] = user_info
 
         self.logger.info("Writing report to {output}".format(**self.options))
-        with open(self.options["template"], "r") as f:
+        with open(self.template, "r") as f:
             template = jinja2.Template(f.read())
 
         with open(self.options["output"], "w") as f:
-            f.write(template.render(
-                members=members,
-                repos=repos,
-                teams=teams,
-                org=org,
-                now=datetime.datetime.now(),
-            ))
+            f.write(
+                template.render(
+                    org_members=org_members,
+                    repos=repos,
+                    teams=teams,
+                    org=org,
+                    now=datetime.datetime.now(),
+                    check=lambda x: "&#x2713;" if x else "",
+                )
+            )
