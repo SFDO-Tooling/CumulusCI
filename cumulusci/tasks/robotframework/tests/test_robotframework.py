@@ -46,7 +46,7 @@ class TestRobot(unittest.TestCase):
             task = create_task(Robot, {"suites": "tests", "pdb": True})
             with self.assertRaises(RobotTestFailure) as error:
                 task()
-            self.assertEquals(str(error.exception), expected[error_code])
+            self.assertEqual(str(error.exception), expected[error_code])
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.patch_statusreporter")
     def test_pdb_arg(self, patch_statusreporter):
