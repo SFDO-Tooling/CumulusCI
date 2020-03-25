@@ -184,5 +184,6 @@ class OrganizationReport(BaseGithubTask):
                     now=datetime.datetime.now(),
                     check=lambda x: "&#x2713;" if x else "",
                     commit=self.project_config.repo_commit,
+                    link_style=False,  # change this for rapid changing of the CSS
                 )
             )

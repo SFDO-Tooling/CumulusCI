@@ -2,12 +2,12 @@
 
 <head>
   <link rel="stylesheet" href="https://archive-2_6_1.lightningdesignsystem.com/assets/styles/site.css">
-  {% if inline_style %}
-  <{{""}}style type="text/css">
+  {% if link_style %}
+  <link rel="stylesheet" href="cumulusci/tasks/qar/templates/style.css">
+  {% else %}
+  <{{""}}style type="text/css"> {# Hide HTML element from VSCode #}
     {% include "style.css" %}
     </style>
-    {% else %}
-    <link rel="stylesheet" href="cumulusci/tasks/qar/templates/style.css">
     {% endif %}
 </head>
 <h1 class="slds-text-heading_large">Github Access Report - {{ org.name }}</h1>
