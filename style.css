@@ -1,0 +1,46 @@
+table {
+    table-layout: fixed;
+    width: 600px;
+    border-collapse: separate;
+    border-spacing: 0px;
+    border: 3px solid #1798C1;
+    text-align: left;
+  }
+
+  thead th:nth-child(1) {
+    width: 61%;
+  }
+
+  thead th:nth-child(2) {
+    width: 13%;
+  }
+
+  thead th:nth-child(3) {
+    width: 13%;
+  }
+
+  thead th:nth-child(4) {
+    width: 13%;
+  }
+
+  th,
+  td {
+    padding: 20px;
+  }
+
+  h2{
+      margin-top: 25px;
+  }
+
+  h3{
+      margin: 20px;
+  }
+
+  h4{
+      margin-left: 50px;
+      margin-top: 10px;
+  }
+
+  body{
+    margin-left: 10px;
+  }

@@ -1,66 +1,106 @@
-<h1>Github Access Report - {{ org.name }} - {{ now }}</h1>
+<html>
 
-<h2>Contents</h2>
-<ul>
-  <li><a href="#repos">Repositories</a></li>
-  <li><a href="#members">Members</a></li>
-  <li><a href="#teams">Teams</a></li>
-</ul>
+<head>
+  <link rel="stylesheet" href="https://archive-2_6_1.lightningdesignsystem.com/assets/styles/site.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<h1 class="slds-text-heading_large">Github Access Report - {{ org.name }}</h1>
+<p>{{ now.__str__().split(".")[0] }}</p>
+<p>{{ commit }}</p>
+
+<h2 class="slds-text-heading_large">Contents</h2>
+<div class="slds-text-longform">
+  <ul role="tree">
+    <li role="treeitem"><a href="#repos">Repositories</a>
+      <ul class="slds-text-longform">
+        {% for repo_name in repos.keys() %}
+        <li><a href="#{{ repo_name }}">{{ repo_name }}</a>
+          <ul>
+            <li><a href="#{{ repo_name }}-teams">Teams</a></li>
+            <li><a href="#{{ repo_name }}-users">Direct Users</a></li>
+          </ul>
+        </li>
+        {% endfor %}
+      </ul>
+    </li>
+    <li><a href="#members">Organization Members</a></li>
+    <li><a href="#teams">Teams</a>
+      <ul class="slds-text-longform">
+        {% for team_name in teams.keys() %}
+        <li><a href="#{{ team_name }}">{{ team_name }}</a>
+          <ul>
+            <li>Team Members</li>
+            <li>Team Repositories</li>
+          </ul>
+        </li>
+        {% endfor %}
+      </ul>
+    </li>
+  </ul>
+</div>
 <hr />
 <div id="repos">
-{% for repo_name, repo_info in repos.items() %}
-<h3>{{ repo_name }}</h3>
-<h4>Teams</h4>
-<table>
-  <thead>
-    <tr>Name</tr>
-    <tr>Read</tr>
-    <tr>Write</tr>
-    <tr>Admin</tr>
-  </thead>
-  <tbody>
-    {% for team_name, team_info in repo_info["teams"].items() %}
-    <tr>
-      <td>{{ team_name }}</td>
-      <td>{{ team_info.read }}</td>
-      <td>{{ team_info.write }}</td>
-      <td>{{ team_info.admin }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-<h4>Direct Users</h4>
-<table>
-  <thead>
-    <tr>Name</tr>
-    <tr>Read</tr>
-    <tr>Write</tr>
-    <tr>Admin</tr>
-  </thead>
-  <tbody>
-    {% for user_name, user_info in repo_info["users_direct"].items() %}
-    <tr>
-      <td>{{ user_name }}</td>
-      <td>{{ user_info.read }}</td>
-      <td>{{ user_info.write }}</td>
-      <td>{{ user_info.admin }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endfor %}
+  <h2 class="slds-text-heading_large">Repositories</h2>
+
+  {% for repo_name, repo_info in repos.items() %}
+  <h3 class="slds-text-heading_medium" id="{{ repo_name }}">{{ repo_name }}</h3>
+  <h4 class="slds-text-heading_small" id="{{ repo_name }}-teams">Teams</h4>
+  <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Read</th>
+        <th>Write</th>
+        <th>Admin</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for team_name, team_info in repo_info["teams"].items() %}
+      <tr>
+        <td>{{ team_name }}</td>
+        <td>{{ check(team_info.read) }}</td>
+        <td>{{ check(team_info.write) }}</td>
+        <td>{{ check(team_info.admin) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <h4 class="slds-text-heading_small" id="{{ repo_name }}-users">Direct Users</h4>
+  <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Read</th>
+        <th>Write</th>
+        <th>Admin</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user_name, user_info in repo_info["users_direct"].items() %}
+      <tr>
+        <td>{{ user_name }}</td>
+        <td>{{ check(user_info.read) }}</td>
+        <td>{{ check(user_info.write) }}</td>
+        <td>{{ check(user_info.admin) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endfor %}
 </div>
 
 <hr />
 <div id="members">
-  <h2>Organization Members</h2>
-  <table>
+  <h2 class="slds-text-heading_large">Organization Members</h2>
+  <table class="slds-table slds-table_bordered slds-table_cell-buffer">
     <thead>
-      <tr>Username</tr>
-      <tr>Role</tr>
+      <tr>
+        <th>Username</th>
+        <th>Role</th>
+      </tr>
     </thead>
     <tbody>
-      {% for member_name, member_info in members.items() %}
+      {% for member_name, member_info in org_members.items() %}
       <tr>
         <td>{{ member_name }}</td>
         <td>{% if member_info.admin %}Admin{% else %}Member{% endif %}</td>
@@ -72,14 +112,16 @@
 
 <hr />
 <div id="teams">
-  <h2>Teams</h2>
+  <h2 class="slds-text-heading_large">Teams</h2>
   {% for team_name, team_info in teams.items() %}
-  <h3>{{ team_name }}</h3>
-  <h4>Team Members</h4>
-  <table>
+  <h3 class="slds-text-heading_medium" id="{{team_name}}">{{ team_name }}</h3>
+  <h4 class="slds-text-heading_small" id="{{team_name}}-members">Team Members</h4>
+  <table class="slds-table slds-table_bordered slds-table_cell-buffer">
     <thead>
-      <tr>Name</tr>
-      <tr>Role</tr>
+      <tr>
+        <th>Name</th>
+        <th>Role</th>
+      </tr>
     </thead>
     <tbody>
       {% for member_name, member_info in team_info.members.items() %}
@@ -90,24 +132,28 @@
       {% endfor %}
     </tbody>
   </table>
-  <h4>Team Repositories</h4>
-  <table>
+  <h4 class="slds-text-heading_small" id="{{team_name}}-repositories">Team Repositories</h4>
+  <table class="slds-table slds-table_bordered slds-table_cell-buffer">
     <thead>
-      <tr>Name</tr>
-      <tr>Read</tr>
-      <tr>Write</tr>
-      <tr>Admin</tr>
+      <tr>
+        <th>Name</th>
+        <th>Read</th>
+        <th>Write</th>
+        <th>Admin</th>
+      </tr>
     </thead>
     <tbody>
       {% for repo_name, repo_info in team_info.repos.items() %}
       <tr>
         <td>{{ repo_name }}</td>
-        <td>{{ repo_info.read }}</td>
-        <td>{{ repo_info.write }}</td>
-        <td>{{ repo_info.admin }}</td>
+        <td>{{ check(repo_info.read) }}</td>
+        <td>{{ check(repo_info.write) }}</td>
+        <td>{{ check(repo_info.admin) }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% endfor %}
 </div>
+
+</html>
