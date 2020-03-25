@@ -1,9 +1,9 @@
 import cumulusci
 import datetime
-import jinja2
+from jinja2 import Environment, FileSystemLoader
 import os
 from cumulusci.tasks.github.base import BaseGithubTask
-from cumulusci.core.utils import process_arg_list
+from cumulusci.core.utils import process_list_arg
 
 
 class OrganizationReport(BaseGithubTask):
@@ -27,30 +27,39 @@ class OrganizationReport(BaseGithubTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
         self.template = self.options.get("template") or os.path.join(
-            cumulusci.__location__, "tasks", "qar", "templates", "github.html",
+            "tasks", "qar", "templates", "github.html",
         )
         repos = self.options.get("repos")
-        self.repos = process_arg_list(repos) if repos else None
+        self.repos = process_list_arg(repos) if repos else None
 
     def _run_task(self):
         org = self.github.organization(self.options["organization"])
-        org_members = {}
-        repos = {}
-        teams = {}
 
+        org_members = self._fetch_members(org)
+        teams = self._fetch_teams(org)
+        repos = self._fetch_repos(org, org_members, teams)
+        self._report(org, org_members, teams, repos)
+
+    def _fetch_members(self, org):
         self.logger.info("Fetching members...")
+        org_members = {}
         for member in org.members(role="admin"):
             org_members[member.login] = {
                 "obj": member,
                 "admin": True,
+                "email": self.github.user(member.login).email,
             }
 
         for member in org.members(role="member"):
             org_members[member.login] = {
                 "obj": member,
                 "admin": False,
+                "email": self.github.user(member.login).email,
             }
+        return org_members
 
+    def _fetch_teams(self, org):
+        teams = {}
         self.logger.info("Fetching teams...")
         for team in org.teams():
             teams[team.name] = {
@@ -58,7 +67,6 @@ class OrganizationReport(BaseGithubTask):
                 "members": {},
                 "repos": {},
             }
-            members = {}
             for member in team.members():
                 info = {
                     "user": member,
@@ -76,7 +84,10 @@ class OrganizationReport(BaseGithubTask):
                     "admin": repo.permissions["admin"] is True,
                 }
                 teams[team.name]["repos"][repo.name] = info
+        return teams
 
+    def _fetch_repos(self, org, org_members, teams):
+        repos = {}
         self.logger.info("Fetching repos...")
         for repo in org.repositories():
             if self.repos and repo.name not in self.repos:
@@ -96,7 +107,7 @@ class OrganizationReport(BaseGithubTask):
                     "write": user.permissions["push"] is True
                     or user.permissions["admin"] is True,
                     "admin": user.permissions["admin"] is True,
-                    "is_member": user.login in members,
+                    "is_member": user.login in org_members,
                 }
                 # If this is a public repo, ignore read only users
                 if (
@@ -107,7 +118,7 @@ class OrganizationReport(BaseGithubTask):
                     continue
 
                 # Skip org members whose only perms come from org membership
-                if repo.private is True and user.login in members:
+                if repo.private is True and user.login in org_members:
                     if (
                         org.default_repository_permission == "write"
                         and info["write"] is True
@@ -115,7 +126,7 @@ class OrganizationReport(BaseGithubTask):
                     ):
                         continue
                     elif (
-                        org.default_repository_pemrission == "read"
+                        org.default_repository_permission == "read"
                         and info["write"] is False
                         and info["admin"] is False
                     ):
@@ -142,7 +153,7 @@ class OrganizationReport(BaseGithubTask):
                     if not team:
                         self.logger.warning(f"Cannot see team {team_name}")
                         continue
-                    if username in ["members"]:
+                    if username in team["members"]:
                         if user_info["admin"] is True and team_info["admin"] is True:
                             from_team = True
                             break
@@ -155,9 +166,13 @@ class OrganizationReport(BaseGithubTask):
                 if from_team is False:
                     repos[repo.name]["users_direct"][username] = user_info
 
+        return repos
+
+    def _report(self, org, org_members, teams, repos):
         self.logger.info("Writing report to {output}".format(**self.options))
-        with open(self.template, "r") as f:
-            template = jinja2.Template(f.read())
+        path = os.path.join(cumulusci.__location__, "tasks", "qar", "templates",)
+        environment = Environment(loader=FileSystemLoader(path))
+        template = environment.get_template("github.html")
 
         with open(self.options["output"], "w") as f:
             f.write(
@@ -168,5 +183,6 @@ class OrganizationReport(BaseGithubTask):
                     org=org,
                     now=datetime.datetime.now(),
                     check=lambda x: "&#x2713;" if x else "",
+                    commit=self.project_config.repo_commit,
                 )
             )
