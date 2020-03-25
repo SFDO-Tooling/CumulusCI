@@ -120,14 +120,14 @@
     <thead>
       <tr>
         <th>Name</th>
-        <th>Role</th>
+        <th>Maintainer</th>
       </tr>
     </thead>
     <tbody>
       {% for member_name, member_info in team_info.members.items() %}
       <tr>
         <td>{{ member_name }}</td>
-        <td> {{member_info["role"]}}</td>
+        <td> {{check(member_info["maintainer"])}}</td>
       </tr>
       {% endfor %}
     </tbody>

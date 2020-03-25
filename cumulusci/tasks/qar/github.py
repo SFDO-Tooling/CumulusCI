@@ -3,6 +3,7 @@ import datetime
 import jinja2
 import os
 from cumulusci.tasks.github.base import BaseGithubTask
+from cumulusci.core.utils import process_arg_list
 
 
 class OrganizationReport(BaseGithubTask):
@@ -29,7 +30,7 @@ class OrganizationReport(BaseGithubTask):
             cumulusci.__location__, "tasks", "qar", "templates", "github.html",
         )
         repos = self.options.get("repos")
-        self.repos = repos.split(",") if repos else None
+        self.repos = process_arg_list(repos) if repos else None
 
     def _run_task(self):
         org = self.github.organization(self.options["organization"])
@@ -61,13 +62,11 @@ class OrganizationReport(BaseGithubTask):
             for member in team.members():
                 info = {
                     "user": member,
-                    "role": None,
+                    "maintainer": False,
                 }
                 teams[team.name]["members"][member.login] = info
             for member in team.members(role="maintainer"):
-                teams[team.name]["members"][member.login]["role"] = "maintainer"
-            for member in team.members(role="member"):
-                teams[team.name]["members"][member.login]["role"] = "member"
+                teams[team.name]["members"][member.login]["maintainer"] = True
             for repo in team.repositories():
                 info = {
                     "repo": repo,
