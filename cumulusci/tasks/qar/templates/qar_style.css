@@ -1,19 +1,31 @@
 table {
     table-layout: fixed;
-    width: 800px;
+    width: auto;
     border-collapse: separate;
     border-spacing: 0px;
     border-left: 3px solid #1798C1;
     border-right: 3px solid #1798C1;
     text-align: center;
     margin-top: 10px;
+    min-width: 50%;
   }
 
-
-  th,
-  td {
-    padding: 20px;
+  table.qar-perms{
+    width:50%;
   }
+
+  table.qar-perms thead tr th:first-child{
+    width: 50%;
+  }
+
+  table.qar-wide {
+    width: auto;
+  }
+
+  table.qar-flag thead tr th:first-child{
+    width: 50%;
+  }
+
 
   h2{
       margin-top: 25px;
@@ -30,6 +42,9 @@ table {
   }
 
   body{
-    margin-left: 10px;
     margin-bottom: 10px;
+  }
+
+  div{
+    margin-left: 10px;
   }
