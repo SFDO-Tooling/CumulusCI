@@ -2,6 +2,26 @@
 History
 =======
 
+3.9.1 (2020-03-25)
+------------------
+
+Issues closed:
+
+* The ``batch_apex_wait`` task will now detect aborted and failed jobs instead of waiting indefinitely.
+
+* Fixed reporting of errors from Robot Framework when it exits with a return code > 250.
+
+* Fixed an ImportError that could happen when importing the new metadata ETL tasks.
+
+* Fixed bugs in how the ``set_organization_wide_defaults`` and ``update_admin_profile`` tasks operated in namespaced scratch orgs.
+
+* Show a more helpful error message if CumulusCI can't find a project's repository or release on GitHub. (#1281)
+
+* Fixed the message shown for skipped steps in ``cci flow info``.
+
+* Fixed a regression which accidentally removed support for the ``bulk_mode`` option in bulk data mappings.
+
+
 3.9.0 (2020-03-16)
 ------------------
 

@@ -28,9 +28,14 @@ from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.exceptions import MetadataParseError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 
-from urllib3.contrib import pyopenssl
-
-pyopenssl.extract_from_urllib3()
+# If pyOpenSSL is installed, make sure it's not used for requests
+# (it's not needed in the verisons of Python we support)
+try:
+    from urllib3.contrib import pyopenssl
+except ImportError:
+    pass
+else:
+    pyopenssl.extract_from_urllib3()
 
 retry_policy = Retry(backoff_factor=0.3)
 
