@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@master
+      - name: Abort for dev version
+        run: grep dev cumulusci/version.txt
       - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
