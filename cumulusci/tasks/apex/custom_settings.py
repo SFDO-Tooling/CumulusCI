@@ -2,7 +2,7 @@
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
-from simple_salesforce import SalesforceMalformedRequest
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 
 
@@ -68,11 +68,11 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
     def _poll_action(self):
         try:
             query_results = self.sf.query(self._object_query)
-        except:
-            print(
-                "Only Hierarchical Custom Settings objects can be used with this task"
-            )
-            raise
+        except Exception as e:
+            message = e.content[0]["message"]
+            if "SetupOwnerId" in message:
+                message = "Only Hierarchical Custom Settings objects are supported."
+            raise TaskOptionsError("Query Error: " + message)
 
         self.record = None
         for row in query_results["records"]:
@@ -81,7 +81,9 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
                 self.record = row
 
         if not self.record:
-            raise SalesforceException("Custom Settings Org Default record not found")
+            raise SalesforceException(
+                "Hierarchical Custom Settings Org Default record not found"
+            )
 
         self.poll_complete = not self._poll_again()
 
@@ -100,19 +102,17 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
         self.object_name = self.object_name.replace("%%%NAMESPACE%%%", namespace_prefix)
         self.field_name = self.field_name.replace("%%%NAMESPACE%%%", namespace_prefix)
 
-        return
-
     @property
     def success(self):
         self.field_value = self.record[self.field_name]
 
-        if isinstance(self.field_value, (bool)):
+        if isinstance(self.field_value, bool):
             self.check_value = process_bool_arg(self.check_value)
             self.field_value = process_bool_arg(self.field_value)
         elif isinstance(self.field_value, (int, float)):
             self.check_value = float(self.check_value)
             self.field_value = float(self.field_value)
-        elif isinstance(field_value, (str)):
+        elif isinstance(field_value, str):
             self.check_value = str(self.check_value).lower()
             self.field_value = str(self.field_value).lower()
 
