@@ -71,8 +71,8 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
         try:
             query_results = self.sf.query(self._object_query)
         except SalesforceError as e:
-            message = str(e)
-            if "SetupOwnerId" in message:
+            message = e.content[0]["message"]
+            if "No such column 'SetupOwnerId'" in message:
                 message = "Only Hierarchical Custom Settings objects are supported."
             raise TaskOptionsError(f"Query Error: {message}")
 
