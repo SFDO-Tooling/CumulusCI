@@ -7,7 +7,6 @@ from itertools import chain
 
 from jinja2 import Environment, FileSystemLoader
 
-import cumulusci
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.core.utils import process_list_arg
 
@@ -39,7 +38,11 @@ class OrganizationReport(BaseGithubTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
         self.template = self.options.get("template") or os.path.join(
-            "tasks", "qar", "templates", "github.html",
+            "cumulusci",
+            "tasks",
+            "github",
+            "report_templates",
+            "github_access_report.html",
         )
         repos = self.options.get("repos")
         self.repos = set(process_list_arg(repos)) if repos else None
@@ -229,9 +232,11 @@ class OrganizationReport(BaseGithubTask):
 
     def _report(self, org, org_members, teams, repos, extra_fields, ignored):
         self.logger.info("Writing report to {output}".format(**self.options))
-        path = os.path.join(cumulusci.__location__, "tasks", "qar", "templates",)
-        environment = Environment(loader=FileSystemLoader(path))
-        template = environment.get_template("github.html")
+
+        environment = RelEnvironment(
+            loader=FileSystemLoader(self.project_config.repo_root)
+        )
+        template = environment.get_template(self.template)
 
         with open(self.options["output"], "w") as f:
             f.write(
@@ -248,3 +253,12 @@ class OrganizationReport(BaseGithubTask):
                     link_style=False,  # change this for rapid changing of the CSS
                 )
             )
+
+
+class RelEnvironment(Environment):
+    """Override join_path() to enable relative template paths.
+
+    Per: https://stackoverflow.com/a/3655911/113477"""
+
+    def join_path(self, template, parent):
+        return os.path.join(os.path.dirname(parent), template)

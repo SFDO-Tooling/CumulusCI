@@ -255,9 +255,9 @@ tasks:
               - "Salesforce Subscription Expired"
               - "Package Uninstalled"
         group: Push Upgrades
-    qar_github:
+    github_access_report:
         description: Creates a Quarterly Access Review report for a Github Organziation
-        class_path: cumulusci.tasks.qar.github.OrganizationReport
+        class_path: cumulusci.tasks.github.access_report.OrganizationReport
         options:
             output: qar_github.html
         group: Quarterly Access Reports
