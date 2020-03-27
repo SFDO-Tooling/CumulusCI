@@ -1,5 +1,7 @@
 """ a task for waiting on a specific custom settings value """
 
+from simple_salesforce.exceptions import SalesforceError
+
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.exceptions import TaskOptionsError
@@ -43,7 +45,7 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
             "description": (
                 "Seconds to wait before polling for batch job completion. "
                 "Defaults to 10 seconds."
-            ),
+            )
         },
     }
 
@@ -68,11 +70,11 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
     def _poll_action(self):
         try:
             query_results = self.sf.query(self._object_query)
-        except Exception as e:
-            message = e.content[0]["message"]
+        except SalesforceError as e:
+            message = str(e)
             if "SetupOwnerId" in message:
                 message = "Only Hierarchical Custom Settings objects are supported."
-            raise TaskOptionsError("Query Error: " + message)
+            raise TaskOptionsError(f"Query Error: {message}")
 
         self.record = None
         for row in query_results["records"]:
@@ -112,7 +114,7 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
         elif isinstance(self.field_value, (int, float)):
             self.check_value = float(self.check_value)
             self.field_value = float(self.field_value)
-        elif isinstance(field_value, str):
+        elif isinstance(self.field_value, str):
             self.check_value = str(self.check_value).lower()
             self.field_value = str(self.field_value).lower()
 

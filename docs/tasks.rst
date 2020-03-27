@@ -203,38 +203,37 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
-**custom_setting_wait**
+**custom_settings_value_wait**
 ==========================================
 
-**Description:** Waits on for a specific custom setting field to be set to a specified value. Only Hierarchical Custom Settings objects are supported.
+**Description:** Waits for a specific field value on the specified custom settings object and field
 
-**Class:** cumulusci.tasks.apex.custom_setting.CustomSettingValueWait
+**Class:** cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
 
 Command Syntax
 ------------------------------------------
 
-``$ cci task run custom_setting_wait -o object {} -o field {} -o value {}``
-``$ cci task run custom_setting_wait -o object %%%NAMESPACE%%%Customizable_Rollups_Settings__c -o field %%%NAMESPACE%%%IsCustomizableRollupsEnabled__c -o value true``
+``$ cci task run custom_settings_value_wait``
 
 
 Options
 ------------------------------------------
 
 
-``-o object ObjectName``
+``-o object OBJECT``
 	 *Required*
 
-	 Name of the Hierarchical Custom Settings Object to query.
+	 Name of the Hierarchical Custom Settings object to query. Can include the %%%NAMESPACE%%% token. 
 
-``-o object FieldName``
+``-o field FIELD``
 	 *Required*
 
-	 Name of the Field on the Custom Settings object to query.
+	 Name of the field on the Custom Settings to query. Can include the %%%NAMESPACE%%% token. 
 
-``-o value Value``
+``-o value VALUE``
 	 *Required*
 
-	 Value to check for. Supports Numeric, Boolean or String comparison.
+	 Value of the field to wait for (String, Integer or Boolean). 
 
 ``-o managed MANAGED``
 	 *Optional*
@@ -244,7 +243,7 @@ Options
 ``-o namespaced NAMESPACED``
 	 *Optional*
 
-	 If True, If True, the %%%NAMESPACE%%% token will get replaced with the namespace prefix for the object and field. Defaults to False. 
+	 If True, the %%%NAMESPACE%%% token will get replaced with the namespace prefix for the object and field.Defaults to False.
 
 ``-o poll_interval POLLINTERVAL``
 	 *Optional*

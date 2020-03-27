@@ -30,7 +30,7 @@ tasks:
         group: Salesforce
     custom_settings_value_wait:
         description: Waits for a specific field value on the specified custom settings object and field
-        class_path: cumulusci.tasks.apex.custom_settings.CustomSettingValueWait
+        class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
         group: Salesforce
     command:
         description: Run an arbitrary command
