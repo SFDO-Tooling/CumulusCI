@@ -203,6 +203,53 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
+**custom_settings_value_wait**
+==========================================
+
+**Description:** Waits for a specific field value on the specified custom settings object and field
+
+**Class:** cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run custom_settings_value_wait``
+
+
+Options
+------------------------------------------
+
+
+``-o object OBJECT``
+	 *Required*
+
+	 Name of the Hierarchical Custom Settings object to query. Can include the %%%NAMESPACE%%% token. 
+
+``-o field FIELD``
+	 *Required*
+
+	 Name of the field on the Custom Settings to query. Can include the %%%NAMESPACE%%% token. 
+
+``-o value VALUE``
+	 *Required*
+
+	 Value of the field to wait for (String, Integer or Boolean). 
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
+
+``-o namespaced NAMESPACED``
+	 *Optional*
+
+	 If True, the %%%NAMESPACE%%% token will get replaced with the namespace prefix for the object and field.Defaults to False.
+
+``-o poll_interval POLLINTERVAL``
+	 *Optional*
+
+	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+
 **command**
 ==========================================
 
