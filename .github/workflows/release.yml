@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@master
+      - name: Abort for dev version
+        run: grep dev cumulusci/version.txt
       - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
@@ -28,8 +30,9 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       - name: Create tag
         run: |
-          git tag -a -m "version $(python setup.py --version)" v$(python setup.py --version)
-          git push --follow-tags
+          curl -s -X POST https://api.github.com/repos/$GITHUB_REPOSITORY/git/refs -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d @- << EOF
+          {"ref": "refs/tags/v$(python setup.py --version)", "sha": "$GITHUB_SHA"}
+          EOF
 
 # to do:
 # - add release notes in github

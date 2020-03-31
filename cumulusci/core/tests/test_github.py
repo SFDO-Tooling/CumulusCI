@@ -115,6 +115,13 @@ class TestGithub(GithubApiTestMixin):
                 get_github_api_for_repo(None, "TestOwner", "TestRepo")
 
     @responses.activate
+    @mock.patch("cumulusci.core.github.GitHub")
+    def test_get_github_api_for_repo__token(self, GitHub):
+        with mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token"}):
+            gh = get_github_api_for_repo(None, "TestOwner", "TestRepo")
+        gh.login.assert_called_once_with(token="token")
+
+    @responses.activate
     def test_validate_service(self):
         responses.add("GET", "https://api.github.com/rate_limit", status=401)
         with pytest.raises(GithubException):
