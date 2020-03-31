@@ -7,8 +7,9 @@ SalesforceBrowserTest - a task designed to wrap browser testing that could run l
 
 import json
 import os
-import subprocess
 import sys
+
+import sarge
 
 from cumulusci.core.exceptions import CommandException
 from cumulusci.core.exceptions import BrowserTestFailure
@@ -93,9 +94,9 @@ class Command(BaseTask):
 
     def _handle_returncode(self, returncode, stderr):
         if returncode:
-            message = u"Return code: {}".format(returncode)
+            message = "Return code: {}".format(returncode)
             if stderr:
-                message += u"\nstderr: {}".format(stderr.read().decode("utf-8"))
+                message += "\nstderr: {}".format(stderr.read().decode("utf-8"))
             self.logger.error(message)
             raise CommandException(message)
 
@@ -109,30 +110,33 @@ class Command(BaseTask):
 
         self.logger.info("Running command: %s", command)
 
-        p = subprocess.Popen(
+        p = sarge.Command(
             command,
-            stdout=sys.stdout if interactive_mode else subprocess.PIPE,
-            stderr=sys.stderr if interactive_mode else subprocess.PIPE,
-            stdin=sys.stdin if interactive_mode else subprocess.PIPE,
+            stdout=sys.stdout if interactive_mode else sarge.Capture(buffer_size=-1),
+            stderr=sys.stderr if interactive_mode else sarge.Capture(buffer_size=-1),
             shell=True,
             env=env,
             cwd=self.options.get("dir"),
         )
-
-        if not interactive_mode:
+        if interactive_mode:
+            p.run(input=sys.stdin)
+        else:
+            p.run(async_=True)
             # Handle output lines
             if not output_handler:
                 output_handler = self._process_output
-            for line in iter(p.stdout.readline, b""):
-                output_handler(line)
-            p.stdout.close()
-
-        p.wait()
+            while True:
+                line = p.stdout.readline(timeout=1.0)
+                if line:
+                    output_handler(line)
+                elif p.poll() is not None:
+                    break
+            p.wait()
 
         # Handle return code
         if not return_code_handler:
             return_code_handler = self._handle_returncode
-        return_code_handler(p.returncode, p.stderr)
+        return_code_handler(p.returncode, None if interactive_mode else p.stderr)
 
 
 class SalesforceCommand(Command):
