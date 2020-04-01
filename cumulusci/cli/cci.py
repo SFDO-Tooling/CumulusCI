@@ -350,9 +350,11 @@ def service():
     pass
 
 
-@cli.group("error")
+@cli.group("error", short_help="Get or share information about an error")
 def error():
     """
+    Get or share information about an error
+
     If you'd like to dig into an error more yourself,
     you can get the last few lines of context about it
     from `cci error info`.
@@ -932,7 +934,9 @@ def calculate_org_days(info):
 
 @org.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
-@click.option("print_json", "--json", is_flag=True, help="Print as JSON")
+@click.option(
+    "print_json", "--json", is_flag=True, help="Print as JSON.  Includes access token"
+)
 @pass_runtime(require_project=False, require_keychain=True)
 def org_info(runtime, org_name, print_json):
     org_name, org_config = runtime.get_org(org_name)

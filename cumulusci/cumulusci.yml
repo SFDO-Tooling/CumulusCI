@@ -28,6 +28,10 @@ tasks:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
+    custom_settings_value_wait:
+        description: Waits for a specific field value on the specified custom settings object and field
+        class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
+        group: Salesforce
     command:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
@@ -387,7 +391,7 @@ tasks:
     update_admin_profile:
         name: Update Admin Profile
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
-        class_path: cumulusci.tasks.salesforce.UpdateProfile
+        class_path: cumulusci.tasks.salesforce.ProfileGrantAllAccess
         group: Salesforce Metadata
     update_dependencies:
         description: Installs all dependencies in project__dependencies into the target org
@@ -725,7 +729,7 @@ flows:
                 task: snapshot_changes
 
     regression_org:
-        description: Set up an org for QA regression by upgrading from the previous managed package release to the current beta release.
+        description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
         steps:
             1:
                 flow: install_regression

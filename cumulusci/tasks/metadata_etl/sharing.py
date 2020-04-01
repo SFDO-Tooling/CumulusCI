@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from lxml import etree
-
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask, MD
+from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
-class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
+class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTask):
     entity = "CustomObject"
     task_options = {
         "org_wide_defaults": {
@@ -77,25 +77,23 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
             self._poll()
             self.logger.info(f"Sharing enablement is complete.")
 
-    def _transform_entity(self, metadata, api_name):
+    def _transform_entity(
+        self, metadata: MetadataElement, api_name: str
+    ) -> MetadataElement:
         desired_internal_model = self.owds[api_name].get("internal_sharing_model")
         desired_external_model = self.owds[api_name].get("external_sharing_model")
 
         if desired_external_model:
-            external_model = metadata.findall(f".//{MD}externalSharingModel")
+            external_model = metadata.find("externalSharingModel")
             if not external_model:
-                external_model = [
-                    etree.SubElement(metadata.getroot(), f"{MD}externalSharingModel")
-                ]
-            external_model[0].text = desired_external_model
+                external_model = metadata.append("externalSharingModel")
+            external_model.text = desired_external_model
 
         if desired_internal_model:
-            internal_model = metadata.findall(f".//{MD}sharingModel")
+            internal_model = metadata.find("sharingModel")
             if not internal_model:
-                internal_model = [
-                    etree.SubElement(metadata.getroot(), f"{MD}sharingModel")
-                ]
-            internal_model[0].text = desired_internal_model
+                internal_model = metadata.append("sharingModel")
+            internal_model.text = desired_internal_model
 
         return metadata
 
@@ -107,10 +105,19 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask):
             )
 
         for sobject in self.owds:
+            # The Tooling API requires that we use fully-qualified sObject names in namespaced scratch orgs.
+            # However, the Metadata API requires no namespaces in that context.
+            # Dynamically inject the namespace if required.
+            real_api_name = (
+                f"{self.project_config.project__package__namespace}__{sobject}"
+                if self.org_config.namespaced and sobject.count("__") == 1
+                else sobject
+            )
+
             result = self.sf.query(
                 f"SELECT ExternalSharingModel, InternalSharingModel "
                 f"FROM EntityDefinition "
-                f"WHERE QualifiedApiName = '{sobject}'"
+                f"WHERE QualifiedApiName = '{real_api_name}'"
             )
             if result["totalSize"] == 1:
                 record = result["records"][0]

@@ -6,6 +6,7 @@ import responses
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.github import CreateRelease
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
@@ -19,7 +20,11 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         self.repo_api_url = "https://api.github.com/repos/{}/{}".format(
             self.repo_owner, self.repo_name
         )
-        self.project_config = create_project_config(self.repo_name, self.repo_owner)
+        self.project_config = create_project_config(
+            self.repo_name,
+            self.repo_owner,
+            repo_commit="21e04cfe480f5293e2f7103eee8a5cbdb94f7982",
+        )
         self.project_config.keychain.set_service(
             "github",
             ServiceConfig(
@@ -51,7 +56,9 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             method=responses.POST,
             url=self.repo_api_url + "/git/tags",
-            json=self._get_expected_tag("release/1.0", "SHA"),
+            json=self._get_expected_tag(
+                "release/1.0", "21e04cfe480f5293e2f7103eee8a5cbdb94f7982"
+            ),
             status=201,
         )
         responses.add(
@@ -119,10 +126,29 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             url=self.repo_api_url + "/releases/tags/release/1.0",
             status=404,
         )
+        del self.project_config._repo_info["commit"]
 
-        task = CreateRelease(
-            self.project_config,
-            TaskConfig({"options": {"version": "1.0", "commit": None}}),
-        )
         with self.assertRaises(GithubException):
-            task()
+            CreateRelease(
+                self.project_config,
+                TaskConfig({"options": {"version": "1.0", "commit": None}}),
+            )
+
+    @responses.activate
+    def test_run_task__short_commit(self):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner=self.repo_owner, name=self.repo_name),
+        )
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/releases/tags/release/1.0",
+            status=404,
+        )
+        self.project_config._repo_info["commit"] = "too_short"
+
+        with self.assertRaises(TaskOptionsError):
+            CreateRelease(
+                self.project_config, TaskConfig({"options": {"version": "1.0"}})
+            )

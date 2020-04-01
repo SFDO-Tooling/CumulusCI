@@ -1,186 +1,306 @@
 import unittest
-
 from unittest import mock
-import responses
 
-from cumulusci.tasks import bulkdata
-from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
+from cumulusci.tasks.bulkdata import DeleteData
+from cumulusci.tasks.bulkdata.step import (
+    DataOperationStatus,
+    DataOperationResult,
+    DataOperationJobResult,
+    DataOperationType,
+)
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
-BULK_DELETE_QUERY_RESULT = b"Id\n003000000000001".splitlines()
-BULK_DELETE_RESPONSE = b'<root xmlns="http://ns"><id>4</id></root>'
-BULK_BATCH_RESPONSE = '<root xmlns="http://ns"><batch><state>{}</state></batch></root>'
 
-
-@mock.patch("cumulusci.tasks.bulkdata.delete.time.sleep", mock.Mock())
 class TestDeleteData(unittest.TestCase):
-    def _configure_mocks(self, query_job, query_batch, delete_job):
-        api = mock.Mock()
-        api.endpoint = "http://api"
-        api.jobNS = "http://ns"
-        api.create_query_job.return_value = query_job
-        api.query.return_value = query_batch
-        api.is_batch_done.side_effect = [False, True, False, True]
-        api.get_all_results_for_query_batch.return_value = [BULK_DELETE_QUERY_RESULT]
-        api.create_job.return_value = delete_job
-        api.headers.return_value = {}
-        responses.add(
-            method="POST",
-            url="http://api/job/3/batch",
-            body=BULK_DELETE_RESPONSE,
-            status=200,
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    def test_run(self, dml_mock, query_mock):
+        task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
+        query_mock.return_value.get_results.return_value = iter(
+            ["001000000000000", "001000000000001"]
         )
-        api.job_status.return_value = {
-            "numberBatchesCompleted": 1,
-            "numberBatchesTotal": 1,
-        }
-        responses.add(
-            method="GET",
-            url="http://api/job/3/batch",
-            body=BULK_BATCH_RESPONSE.format("InProgress"),
-            status=200,
+        query_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
         )
-        responses.add(
-            method="GET",
-            url="http://api/job/3/batch",
-            body=BULK_BATCH_RESPONSE.format("Completed"),
-            status=200,
+        dml_mock.return_value.get_results.return_value = iter(
+            [
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", True, None),
+            ]
         )
-        return api
+        dml_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
 
-    @responses.activate
-    def test_run(self):
-        query_job = "1"
-        query_batch = "2"
-        delete_job = "3"
-
-        api = self._configure_mocks(query_job, query_batch, delete_job)
-        task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-
-        def _init_class():
-            task.bulk = api
-
-        task._init_class = _init_class
         task()
 
-        api.create_query_job.assert_called_once_with("Contact", contentType="CSV")
-        api.query.assert_called_once_with(query_job, "SELECT Id FROM Contact")
-        api.is_batch_done.assert_has_calls(
-            [mock.call(query_batch, query_job), mock.call(query_batch, query_job)]
+        query_mock.assert_called_once_with(
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Contact",
         )
-        api.create_job.assert_called_once_with("Contact", "delete")
-        api.close_job.assert_has_calls([mock.call(query_job), mock.call(delete_job)])
+        query_mock.return_value.query.assert_called_once()
+        query_mock.return_value.get_results.assert_called_once()
 
-    @responses.activate
-    def test_run_with_where(self):
-        query_job = "1"
-        query_batch = "2"
-        delete_job = "3"
+        dml_mock.assert_called_once_with(
+            sobject="Contact",
+            operation=DataOperationType.DELETE,
+            api_options={},
+            context=task,
+            fields=["Id"],
+        )
+        dml_mock.return_value.start.assert_called_once()
+        dml_mock.return_value.end.assert_called_once()
+        dml_mock.return_value.load_records.assert_called_once()
+        dml_mock.return_value.get_results.assert_called_once()
 
-        api = self._configure_mocks(query_job, query_batch, delete_job)
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    def test_run__no_results(self, dml_mock, query_mock):
+        task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
+        query_mock.return_value.get_results.return_value = iter([])
+        query_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 0, 0
+        )
+
+        task()
+
+        query_mock.assert_called_once_with(
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Contact",
+        )
+        query_mock.return_value.query.assert_called_once()
+        query_mock.return_value.get_results.assert_not_called()
+
+        dml_mock.assert_not_called()
+
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    def test_run__job_error_delete(self, dml_mock, query_mock):
+        task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
+        query_mock.return_value.get_results.return_value = iter(
+            ["001000000000000", "001000000000001"]
+        )
+        query_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        dml_mock.return_value.get_results.return_value = iter(
+            [
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", False, None),
+            ]
+        )
+        with self.assertRaises(BulkDataException):
+            task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    def test_run__job_error_query(self, dml_mock, query_mock):
+        task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
+        query_mock.return_value.get_results.return_value = iter(
+            ["001000000000000", "001000000000001"]
+        )
+        query_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.JOB_FAILURE, [], 0, 0
+        )
+        with self.assertRaises(BulkDataException):
+            task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    def test_run__row_error(self, dml_mock, query_mock):
+        task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
+        query_mock.return_value.get_results.return_value = iter(
+            ["001000000000000", "001000000000001"]
+        )
+        query_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        dml_mock.return_value.get_results.return_value = iter(
+            [
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", False, None),
+            ]
+        )
+        with self.assertRaises(BulkDataException):
+            task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    def test_run__ignore_error(self, dml_mock, query_mock):
         task = _make_task(
-            bulkdata.DeleteData,
-            {"options": {"objects": "Contact", "where": "city='Goshen'"}},
+            DeleteData,
+            {
+                "options": {
+                    "objects": "Contact",
+                    "ignore_row_errors": "true",
+                    "hardDelete": "true",
+                }
+            },
         )
+        query_mock.return_value.get_results.return_value = iter(
+            ["001000000000000", "001000000000001"]
+        )
+        query_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        dml_mock.return_value.get_results.return_value = iter(
+            [
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", False, None),
+            ]
+        )
+        dml_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        with mock.patch.object(task.logger, "warning") as warning:
+            task()
+        assert len(warning.mock_calls) == 1
+        query_mock.assert_called_once_with(
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Contact",
+        )
+        query_mock.return_value.query.assert_called_once()
+        query_mock.return_value.get_results.assert_called_once()
 
-        def _init_class():
-            task.bulk = api
+        dml_mock.assert_called_once_with(
+            sobject="Contact",
+            operation=DataOperationType.HARD_DELETE,
+            api_options={},
+            context=task,
+            fields=["Id"],
+        )
+        dml_mock.return_value.start.assert_called_once()
+        dml_mock.return_value.end.assert_called_once()
+        dml_mock.return_value.load_records.assert_called_once()
+        dml_mock.return_value.get_results.assert_called_once()
 
-        task._init_class = _init_class
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    def test_run__ignore_error_throttling(self, dml_mock, query_mock):
+        task = _make_task(
+            DeleteData,
+            {
+                "options": {
+                    "objects": "Contact",
+                    "ignore_row_errors": "true",
+                    "hardDelete": "true",
+                }
+            },
+        )
+        query_mock.return_value.get_results.return_value = iter(
+            ["001000000000000", "001000000000001"] * 15
+        )
+        query_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        dml_mock.return_value.get_results.return_value = iter(
+            [
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", False, None),
+            ]
+            * 15
+        )
+        dml_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        with mock.patch.object(task.logger, "warning") as warning:
+            task()
+        assert len(warning.mock_calls) == task.row_warning_limit + 1 == 11
+        assert "warnings suppressed" in str(warning.mock_calls[-1])
+
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    def test_run__where(self, dml_mock, query_mock):
+        task = _make_task(
+            DeleteData, {"options": {"objects": "Contact", "where": "Id != null"}}
+        )
+        query_mock.return_value.get_results.return_value = iter(
+            ["001000000000000", "001000000000001"]
+        )
+        query_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        dml_mock.return_value.get_results.return_value = iter(
+            [
+                DataOperationResult("001000000000000", True, None),
+                DataOperationResult("001000000000001", True, None),
+            ]
+        )
+        dml_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
         task()
+        query_mock.assert_called_once_with(
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id FROM Contact WHERE Id != null",
+        )
+        query_mock.return_value.query.assert_called_once()
+        query_mock.return_value.get_results.assert_called_once()
 
-        api.create_query_job.assert_called_once_with("Contact", contentType="CSV")
-        api.query.assert_called_once_with(
-            query_job, "SELECT Id FROM Contact WHERE city='Goshen'"
+        dml_mock.assert_called_once_with(
+            sobject="Contact",
+            operation=DataOperationType.DELETE,
+            api_options={},
+            context=task,
+            fields=["Id"],
         )
-        api.is_batch_done.assert_has_calls(
-            [mock.call(query_batch, query_job), mock.call(query_batch, query_job)]
-        )
-        api.create_job.assert_called_once_with("Contact", "delete")
-        api.close_job.assert_has_calls([mock.call(query_job), mock.call(delete_job)])
+        dml_mock.return_value.start.assert_called_once()
+        dml_mock.return_value.end.assert_called_once()
+        dml_mock.return_value.load_records.assert_called_once()
+        dml_mock.return_value.get_results.assert_called_once()
 
-    def test_create_job__no_records(self):
-        task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-        task._query_salesforce_for_records_to_delete = mock.Mock(return_value=[])
-        task.logger = mock.Mock()
-        task._create_job("Contact")
-        task.logger.info.assert_called_with(
-            "  No Contact objects found, skipping delete"
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    def test_run__query_fails(self, dml_mock, query_mock):
+        task = _make_task(
+            DeleteData, {"options": {"objects": "Contact", "where": "Id != null"}}
         )
+        query_mock.return_value.get_results.return_value = iter(
+            ["001000000000000", "001000000000001"]
+        )
+        query_mock.return_value.job_result = DataOperationJobResult(
+            DataOperationStatus.JOB_FAILURE, [], 0, 0
+        )
+        with self.assertRaises(BulkDataException):
+            task()
 
-    def test_parse_job_state(self):
-        task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-        api = mock.Mock()
-        api.jobNS = "http://ns"
-        task.bulk = api
-        self.assertEqual(
-            ("InProgress", None),
-            task._parse_job_state(
-                '<root xmlns="http://ns">'
-                "  <batch><state>InProgress</state></batch>"
-                "  <batch><state>Failed</state><stateMessage>test</stateMessage></batch>"
-                "  <batch><state>Completed</state></batch>"
-                "</root>"
-            ),
-        )
-        self.assertEqual(
-            ("Failed", ["test"]),
-            task._parse_job_state(
-                '<root xmlns="http://ns">'
-                "  <batch><state>Failed</state><stateMessage>test</stateMessage></batch>"
-                "  <batch><state>Completed</state></batch>"
-                "</root>"
-            ),
-        )
-        self.assertEqual(
-            ("Completed", None),
-            task._parse_job_state(
-                '<root xmlns="http://ns">'
-                "  <batch><state>Completed</state></batch>"
-                "  <batch><state>Completed</state></batch>"
-                "</root>"
-            ),
-        )
-        self.assertEqual(
-            ("Aborted", None),
-            task._parse_job_state(
-                '<root xmlns="http://ns">'
-                "  <batch><state>Not Processed</state></batch>"
-                "  <batch><state>Completed</state></batch>"
-                "</root>"
-            ),
-        )
-        self.assertEqual(
-            ("CompletedWithFailures", ["Failures detected: 200"]),
-            task._parse_job_state(
-                '<root xmlns="http://ns">'
-                "  <batch><state>Completed</state></batch>"
-                "  <numberRecordsFailed>200</numberRecordsFailed>"
-                "</root>"
-            ),
-        )
+    def test_object_description(self):
+        t = _make_task(DeleteData, {"options": {"objects": "a", "where": "Id != null"}})
+        assert t._object_description("a") == 'a objects matching "Id != null"'
 
-    @responses.activate
-    def test_upload_batches__error(self):
-        task = _make_task(bulkdata.DeleteData, {"options": {"objects": "Contact"}})
-        api = mock.Mock()
-        api.endpoint = "http://api"
-        api.headers.return_value = {}
-        api.raise_error.side_effect = Exception
+        t = _make_task(DeleteData, {"options": {"objects": "a"}})
+        assert t._object_description("a") == "all a objects"
 
-        def _init_class():
-            task.bulk = api
-
-        task._init_class = _init_class
-        responses.add(responses.POST, "http://api/job/1/batch", body=b"", status=500)
-        with self.assertRaises(Exception):
-            list(task._upload_batches("1", [{"Id": "1"}]))
-
-    def test_validate_options(self):
+    def test_init_options(self):
         with self.assertRaises(TaskOptionsError):
-            _make_task(bulkdata.DeleteData, {"options": {"objects": ""}})
+            _make_task(DeleteData, {"options": {"objects": ""}})
 
         with self.assertRaises(TaskOptionsError):
-            _make_task(
-                bulkdata.DeleteData, {"options": {"objects": "a,b", "where": "x='y'"}}
-            )
+            _make_task(DeleteData, {"options": {"objects": "a,b", "where": "x='y'"}})
+
+        t = _make_task(
+            DeleteData,
+            {
+                "options": {
+                    "objects": "a",
+                    "where": "Id != null",
+                    "hardDelete": "true",
+                    "ignore_row_errors": "false",
+                }
+            },
+        )
+        assert t.options["where"] == "Id != null"
+        assert not t.options["ignore_row_errors"]
+        assert t.options["hardDelete"]
+
+        t = _make_task(DeleteData, {"options": {"objects": "a,b"}})
+        assert t.options["objects"] == ["a", "b"]

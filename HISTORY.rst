@@ -2,6 +2,93 @@
 History
 =======
 
+3.9.1 (2020-03-25)
+------------------
+
+Issues closed:
+
+* The ``batch_apex_wait`` task will now detect aborted and failed jobs instead of waiting indefinitely.
+
+* Fixed reporting of errors from Robot Framework when it exits with a return code > 250.
+
+* Fixed an ImportError that could happen when importing the new metadata ETL tasks.
+
+* Fixed bugs in how the ``set_organization_wide_defaults`` and ``update_admin_profile`` tasks operated in namespaced scratch orgs.
+
+* Show a more helpful error message if CumulusCI can't find a project's repository or release on GitHub. (#1281)
+
+* Fixed the message shown for skipped steps in ``cci flow info``.
+
+* Fixed a regression which accidentally removed support for the ``bulk_mode`` option in bulk data mappings.
+
+
+3.9.0 (2020-03-16)
+------------------
+
+Critical changes:
+
+* The ``update_admin_profile`` task can now add field-level permissions for all packaged objects.
+  This behavior is the default for projects with ``minimum_cumulusci_version`` >= 3.9.0 that are
+  not using the ``package_xml`` option. Other projects can opt into it using the
+  ``include_packaged_objects`` option.
+
+  The Python class used for this task has been renamed to ``ProfileGrantAllAccess`` and refactored
+  to use the Metadata ETL framework. This is a breaking change for custom tasks that subclassed
+  ``UpdateAdminProfile`` or ``UpdateProfile``.
+
+* Refactored how CumulusCI uses the Bulk API to load, extract, and delete data sets.
+  These changes should have no functional impact, but projects that subclass
+  CumulusCI's bulk data tasks should carefully review the changes.
+
+Changes:
+
+* New projects created using ``cci project init`` will now get set up with scratch org settings to:
+
+  * Use the Enhanced Profile Editor
+  * Allow logging in as another user
+  * _not_ force relogin after Login-As
+
+* If ``cumulusci.yml`` contains non-breaking spaces in indentation,
+  they will be automatically converted to normal spaces.
+
+* Bulk data tasks:
+
+  * Added improved validation that mapping files are in the expected format.
+
+  * When using the ``ignore_row_errors`` option, warnings will be suppressed after the 10th row with errors.
+
+Issues closed:
+
+* The ``github_release`` task now validates the ``commit`` option to make sure it is in the right format.
+
+* If there is an error from ``sfdx`` while using the ``retrieve_changes`` task, it will now be logged.
+
+
+3.8.0 (2020-02-28)
+------------------
+
+Changes:
+
+* The ``batch_apex_wait`` task can now wait for chained batch jobs,
+  i.e. when one job starts another job of the same class.
+
+* The metadata ETL tasks that were added in cumulusci 3.7.0 have been refactored
+  to use a new library, ``cumulusci.utils.xml.metadata_tree``, which streamlines
+  building Salesforce Metadata XML in Python. If you got an early start writing
+  custom tasks using the metadata ETL task framework, you may need to adjust them
+  to work with this library instead of lxml.
+
+Issues closed:
+
+* Adjusted the ``run_tests`` task to avoid an error due to not being able
+  to access the symbol table for managed Apex classes in Spring '20.
+  Due to this limitation, CumulusCI now will not attempt to retry class-level
+  concurrency failures when running Apex unit tests in a managed package.
+  Such failures will be logged but will not cause a build failure.
+
+* Corrected a bug in storing preflight check results for MetaDeploy
+  when multiple tasks have the same path.
+
 3.7.0 (2020-02-20)
 ------------------
 
