@@ -4,8 +4,7 @@ from unittest import mock
 import unittest
 from io import BytesIO
 
-from testfixtures.popen import MockPopen
-from testfixtures import Replacer
+from sarge import Capture
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -73,38 +72,21 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
         with self.assertRaises(CommandException):
             task._handle_returncode(1, BytesIO(b"err"))
 
-
-class TestCommandTaskWithMockPopen(MockLoggerMixin, unittest.TestCase):
-    """ Run command tasks with a mocked popen """
-
-    def setUp(self):
-        self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
-        )
-        self.task_config = TaskConfig()
-
-        self._task_log_handler.reset()
-        self.task_log = self._task_log_handler.messages
-
-        self.Popen = MockPopen()
-        self.r = Replacer()
-        self.r.replace("cumulusci.tasks.command.subprocess.Popen", self.Popen)
-        self.addCleanup(self.r.restore)
-
-    def test_functional_mock_command(self):
-        """ Functional test that runs a command with mocked
-        popen results and checks the log.
-        """
+    @mock.patch("cumulusci.tasks.command.sarge")
+    def test_run_task(self, sarge):
+        p = mock.Mock()
+        p.returncode = 0
+        p.stdout = Capture()
+        p.stdout.add_stream(BytesIO(b"testing testing 123"))
+        p.stderr = Capture()
+        p.stderr.add_stream(BytesIO(b"e"))
+        sarge.Command.return_value = p
 
         self.task_config.config["options"] = {"command": "ls -la"}
-
-        self.Popen.set_command("ls -la", stdout=b"testing testing 123", stderr=b"e")
-
         task = Command(self.project_config, self.task_config)
         task()
 
-        self.assertTrue(any("testing testing" in s for s in self.task_log["info"]))
+        assert any("testing testing" in s for s in self.task_log["info"])
 
 
 class TestSalesforceCommand(unittest.TestCase):
