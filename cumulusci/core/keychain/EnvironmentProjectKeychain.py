@@ -6,6 +6,13 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.utils import import_global
+
+scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
+if scratch_org_class:
+    scratch_org_factory = import_global(scratch_org_class)
+else:
+    scratch_org_factory = ScratchOrgConfig
 
 
 class EnvironmentProjectKeychain(BaseProjectKeychain):
@@ -36,7 +43,9 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
                 org_config = json.loads(value)
                 org_name = key[len(self.org_var_prefix) :].lower()
                 if org_config.get("scratch"):
-                    self.orgs[org_name] = ScratchOrgConfig(json.loads(value), org_name)
+                    self.orgs[org_name] = scratch_org_factory(
+                        json.loads(value), org_name
+                    )
                 else:
                     self.orgs[org_name] = OrgConfig(json.loads(value), org_name)
 
