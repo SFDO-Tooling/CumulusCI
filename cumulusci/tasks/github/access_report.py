@@ -118,7 +118,7 @@ class OrganizationReport(BaseGithubTask):
             repo_names = set(repo.name for repo in repos)
             if relevant_repos and not (set(relevant_repos) & set(repo_names)):
                 self.logger.info(
-                    f"Skipping {team.name} because they do not have access to relevant repos"
+                    f"Skipping Team '{team.name}' because they do not have access to relevant repos"
                 )
                 ignored.add(team.name)
                 continue
@@ -152,7 +152,7 @@ class OrganizationReport(BaseGithubTask):
         self.logger.info("Fetching repos...")
         for repo in org.repositories():
             if self.repos and repo.name not in self.repos:
-                self.logger.info(f"Skipping {repo.name}")
+                self.logger.info(f"Skipping Repo '{repo.name}''")
                 ignored.add(repo.name)
                 continue
             repos[repo.name] = {
