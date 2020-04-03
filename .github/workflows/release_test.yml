@@ -10,6 +10,10 @@ env:
   CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'
   CUMULUSCI_ORG_packaging: ${{ secrets.CUMULUSCI_ORG_packaging }}
   CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
+  SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+  SFDX_HUB_KEY: ${{ secrets.SFDX_HUB_KEY }}
+  SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
+  SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
 
 jobs:
   test_release:
@@ -39,12 +43,10 @@ jobs:
         mkdir sfdx
         wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
         ./sfdx/install
-        echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
+        SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
+        echo $SFDX_HUB_KEY > sfdx.key
         sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile $(realpath sfdx.key) --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-      env:
-        SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
-        SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
-        SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
+        echo "::set-env name=SFDX_HUB_KEY::$SFDX_HUB_KEY"
     - name: Check out CumulusCI-Test
       run: |
         git clone https://github.com/SFDO-Tooling/CumulusCI-Test
