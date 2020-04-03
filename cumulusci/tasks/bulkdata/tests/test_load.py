@@ -20,7 +20,7 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup
+from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 
 
 MAPPING_FILE = """Insert Households:
@@ -51,7 +51,9 @@ Insert Contacts:
 
 
 class MockBulkApiDmlOperation(BaseDmlOperation):
-    def __init__(self, *, sobject, operation, api_options, context, fields):
+    def __init__(
+        self, *, context, sobject=None, operation=None, api_options=None, fields=None,
+    ):
         super().__init__(
             sobject=sobject,
             operation=operation,
@@ -166,14 +168,16 @@ class TestLoadData(unittest.TestCase):
         task._init_db = mock.Mock()
         task._init_mapping = mock.Mock()
         task.mapping = {}
-        task.mapping["Insert Households"] = {"one": 1}
-        task.mapping["Insert Contacts"] = {"two": 2}
+        task.mapping["Insert Households"] = MappingStep(sf_object="one", fields={})
+        task.mapping["Insert Contacts"] = MappingStep(sf_object="two", fields={})
         task.after_steps = {}
-        task._load_mapping = mock.Mock(
+        task._execute_step = mock.Mock(
             return_value=DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
         )
         task()
-        task._load_mapping.assert_called_once_with({"two": 2, "action": "insert"})
+        task._execute_step.assert_called_once_with(
+            MappingStep(sf_object="two", fields={})
+        )
 
     def test_run_task__after_steps(self):
         task = _make_task(
@@ -193,11 +197,11 @@ class TestLoadData(unittest.TestCase):
             "Insert Contacts": {"three": 3},
             "Insert Households": households_steps,
         }
-        task._load_mapping = mock.Mock(
+        task._execute_step = mock.Mock(
             return_value=DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
         )
         task()
-        task._load_mapping.assert_has_calls(
+        task._execute_step.assert_has_calls(
             [mock.call(1), mock.call(4), mock.call(5), mock.call(2), mock.call(3)]
         )
 
@@ -219,7 +223,7 @@ class TestLoadData(unittest.TestCase):
             "Insert Contacts": {"three": 3},
             "Insert Households": households_steps,
         }
-        task._load_mapping = mock.Mock(
+        task._execute_step = mock.Mock(
             side_effect=[
                 DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0),
                 DataOperationJobResult(DataOperationStatus.JOB_FAILURE, [], 0, 0),
@@ -301,32 +305,6 @@ class TestLoadData(unittest.TestCase):
     def test_init_options__bulk_mode_wrong(self):
         with self.assertRaises(TaskOptionsError):
             _make_task(LoadData, {"options": {"bulk_mode": "Test"}})
-
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
-    def test_bulk_mode_override(self, stepmock):
-        task = _make_task(
-            LoadData,
-            {
-                "options": {
-                    "database_url": "file:///test.db",
-                    "mapping": "mapping.yml",
-                    "bulk_mode": "Serial",
-                }
-            },
-        )
-        task.session = mock.Mock()
-        task._load_record_types = mock.Mock()
-        task._process_job_results = mock.Mock()
-
-        task._load_mapping(
-            {
-                "sf_object": "Account",
-                "action": "insert",
-                "fields": {"Name": "Name"},
-                "bulk_mode": "XYZZY",
-            }
-        )
-        assert stepmock.mock_calls[0][2]["api_options"]["bulk_mode"] == "XYZZY"
 
     def test_init_options__database_url(self):
         t = _make_task(
@@ -607,7 +585,7 @@ class TestLoadData(unittest.TestCase):
         )
         task._init_db = mock.Mock()
         task._init_mapping = mock.Mock()
-        task._load_mapping = mock.Mock(
+        task._execute_step = mock.Mock(
             return_value=DataOperationJobResult(
                 DataOperationStatus.JOB_FAILURE, [], 0, 0
             )
@@ -854,7 +832,7 @@ class TestLoadData(unittest.TestCase):
         ]
 
     @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
-    def test_load_mapping__record_type_mapping(self, step_mock):
+    def test_execute_step__record_type_mapping(self, step_mock):
         task = _make_task(
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
@@ -864,18 +842,26 @@ class TestLoadData(unittest.TestCase):
         task._load_record_types = mock.Mock()
         task._process_job_results = mock.Mock()
 
-        task._load_mapping(
-            {"sf_object": "Account", "action": "insert", "fields": {"Name": "Name"}}
+        task._execute_step(
+            MappingStep(
+                **{
+                    "sf_object": "Account",
+                    "action": "insert",
+                    "fields": {"Name": "Name"},
+                }
+            )
         )
 
         task._load_record_types.assert_not_called()
 
-        task._load_mapping(
-            {
-                "sf_object": "Account",
-                "action": "insert",
-                "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
-            }
+        task._execute_step(
+            MappingStep(
+                **{
+                    "sf_object": "Account",
+                    "action": "insert",
+                    "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
+                }
+            )
         )
         task._load_record_types.assert_called_once_with(
             ["Account"], task.session.connection.return_value

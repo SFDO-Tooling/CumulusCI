@@ -350,9 +350,11 @@ def service():
     pass
 
 
-@cli.group("error")
+@cli.group("error", short_help="Get or share information about an error")
 def error():
     """
+    Get or share information about an error
+
     If you'd like to dig into an error more yourself,
     you can get the last few lines of context about it
     from `cci error info`.

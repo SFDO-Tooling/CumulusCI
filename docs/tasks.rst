@@ -203,6 +203,53 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
+**custom_settings_value_wait**
+==========================================
+
+**Description:** Waits for a specific field value on the specified custom settings object and field
+
+**Class:** cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run custom_settings_value_wait``
+
+
+Options
+------------------------------------------
+
+
+``-o object OBJECT``
+	 *Required*
+
+	 Name of the Hierarchical Custom Settings object to query. Can include the %%%NAMESPACE%%% token. 
+
+``-o field FIELD``
+	 *Required*
+
+	 Name of the field on the Custom Settings to query. Can include the %%%NAMESPACE%%% token. 
+
+``-o value VALUE``
+	 *Required*
+
+	 Value of the field to wait for (String, Integer or Boolean). 
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
+
+``-o namespaced NAMESPACED``
+	 *Optional*
+
+	 If True, the %%%NAMESPACE%%% token will get replaced with the namespace prefix for the object and field.Defaults to False.
+
+``-o poll_interval POLLINTERVAL``
+	 *Optional*
+
+	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+
 **command**
 ==========================================
 
@@ -1584,6 +1631,11 @@ Options
 	 *Optional*
 
 	 If True, set is_listed to True on the version. Default: False
+
+``-o labels LABELS``
+	 *Optional*
+
+	 Path to a file that will be updated with strings to be translated.
 
 **org_settings**
 ==========================================
@@ -3063,7 +3115,7 @@ Options
 ``-o include_packaged_objects INCLUDEPACKAGEDOBJECTS``
 	 *Optional*
 
-	 Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.8.1 and greater that don't use a custom package.xml, otherwise False.
+	 Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.9.0 and greater that don't use a custom package.xml, otherwise False.
 
 ``-o api_names APINAMES``
 	 *Optional*

@@ -176,6 +176,74 @@ class TestSetOrgWideDefaults:
 
         assert task.poll_complete
 
+    def test_post_deploy_waits_for_enablement__namespaced_org(self):
+        task = create_task(
+            SetOrgWideDefaults,
+            {
+                "managed": False,
+                "api_version": "47.0",
+                "api_names": "bar,foo",
+                "org_wide_defaults": [
+                    {
+                        "api_name": "Account",
+                        "internal_sharing_model": "Private",
+                        "external_sharing_model": "Private",
+                    },
+                    {
+                        "api_name": "Test__c",
+                        "internal_sharing_model": "ReadWrite",
+                        "external_sharing_model": "Read",
+                    },
+                ],
+            },
+        )
+        task.org_config.namespaced = True
+        task.project_config.project__package__namespace = "test"
+        task.sf = mock.Mock()
+        task.sf.query.side_effect = [
+            {
+                "totalSize": 1,
+                "records": [
+                    {"ExternalSharingModel": "Read", "InternalSharingModel": "Read"}
+                ],
+            },
+            {
+                "totalSize": 1,
+                "records": [
+                    {
+                        "ExternalSharingModel": "Private",
+                        "InternalSharingModel": "Private",
+                    }
+                ],
+            },
+            {
+                "totalSize": 1,
+                "records": [
+                    {
+                        "ExternalSharingModel": "Read",
+                        "InternalSharingModel": "ReadWrite",
+                    }
+                ],
+            },
+        ]
+        task._post_deploy("Success")
+
+        query = (
+            "SELECT ExternalSharingModel, InternalSharingModel "
+            "FROM EntityDefinition "
+            "WHERE QualifiedApiName = '{}'"
+        )
+
+        task.sf.query.assert_has_calls(
+            [
+                mock.call(query.format("Account")),
+                mock.call(query.format("Account")),
+                mock.call(query.format("test__Test__c")),
+            ]
+        )
+
+        assert task.poll_complete
+
     def test_post_deploy_exception_not_found(self):
         task = create_task(
             SetOrgWideDefaults,

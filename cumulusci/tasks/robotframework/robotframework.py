@@ -84,8 +84,23 @@ class Robot(BaseSalesforceTask):
         )
 
         num_failed = robot_run(self.options["suites"], **options)
-        if num_failed:
-            raise RobotTestFailure("{} tests failed".format(num_failed))
+
+        # These numbers are from the robot framework user guide:
+        # http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#return-codes
+        if 0 < num_failed < 250:
+            raise RobotTestFailure(
+                f"{num_failed} test{'' if num_failed == 1 else 's'} failed."
+            )
+        elif num_failed == 250:
+            raise RobotTestFailure("250 or more tests failed.")
+        elif num_failed == 251:
+            raise RobotTestFailure("Help or version information printed.")
+        elif num_failed == 252:
+            raise RobotTestFailure("Invalid test data or command line options.")
+        elif num_failed == 253:
+            raise RobotTestFailure("Test execution stopped by user.")
+        elif num_failed >= 255:
+            raise RobotTestFailure("Unexpected internal error")
 
 
 class RobotTestDoc(BaseTask):

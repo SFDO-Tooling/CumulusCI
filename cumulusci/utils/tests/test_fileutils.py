@@ -1,6 +1,7 @@
 import doctest
 from io import BytesIO, UnsupportedOperation
 from pathlib import Path
+from unittest import mock
 
 import pytest
 import responses
@@ -11,8 +12,13 @@ from cumulusci.utils.fileutils import load_from_source
 
 class TestFileutils:
     @responses.activate
-    def test_docstrings(self):
-        responses.add("GET", "http://www.salesforce.com", body="<!DOCTYPE HTML ...")
+    @mock.patch("urllib.request.urlopen")
+    def test_docstrings(self, urlopen):
+        pretend_html = b"<!DOCTYPE HTML ...blah blah blah"
+        responses.add("GET", "http://www.salesforce.com/", body=pretend_html)
+        fake_http_stream = BytesIO(pretend_html)
+        fake_http_stream.url = "https://www.salesforce.com/"
+        urlopen.return_value = fake_http_stream
         try:
             doctest.testmod(fileutils, raise_on_error=True, verbose=True)
         except doctest.DocTestFailure as e:

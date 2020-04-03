@@ -10,6 +10,9 @@ from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.oauth.salesforce import jwt_session
 
 
+SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
+
+
 class OrgConfig(BaseConfig):
     """ Salesforce org configuration (i.e. org credentials) """
 
@@ -24,16 +27,17 @@ class OrgConfig(BaseConfig):
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
-        SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
-        SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
-        if SFDX_CLIENT_ID and SFDX_HUB_KEY:
-            info = jwt_session(
-                SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, self.instance_url
-            )
-        else:
-            info = self._refresh_token(keychain, connected_app)
-        if info != self.config:
-            self.config.update(info)
+        if not SKIP_REFRESH:
+            SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
+            SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
+            if SFDX_CLIENT_ID and SFDX_HUB_KEY:
+                info = jwt_session(
+                    SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, self.instance_url
+                )
+            else:
+                info = self._refresh_token(keychain, connected_app)
+            if info != self.config:
+                self.config.update(info)
         self._load_userinfo()
         self._load_orginfo()
 

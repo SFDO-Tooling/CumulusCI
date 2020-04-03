@@ -1,14 +1,13 @@
 -r requirements.txt
 -e .
 black==19.10b0
-bump2version==1.0.0
-coverage==5.0.3
+coverage==5.0.4
 coveralls==1.11.1
 flake8==3.7.9
-pre-commit==2.1.1
-pytest==5.3.5
-responses==0.10.11
-Sphinx==2.4.3
+pre-commit==2.2.0
+pytest==5.4.1
+responses==0.10.12
+Sphinx==2.4.4
 testfixtures==6.14.0
 tox==3.14.5
 twine==3.1.1

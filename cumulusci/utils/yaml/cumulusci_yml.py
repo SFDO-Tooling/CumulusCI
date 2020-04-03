@@ -26,7 +26,7 @@ def _replace_nbsp(origdata):
 
     if counter:
         plural = "s were" if counter > 1 else " was"
-        logger.warn(
+        logger.warning(
             f"Note: {counter} lines with non-breaking space character{plural} detected in cumulusci.yml.\n"
             "Perhaps you cut and pasted from a Web page?\n"
             "Future versions of CumulusCI may disallow these characters.\n"
