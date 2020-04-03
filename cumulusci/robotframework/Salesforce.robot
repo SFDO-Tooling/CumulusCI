@@ -89,8 +89,7 @@ Open Test Browser
 Open Test Browser Chrome
     [Arguments]     ${login_url}  ${alias}=${NONE}
     ${options} =                Get Chrome Options
-    ${service_args} =           Create List  --log-path=chrome.log
-    Create Webdriver With Retry  Chrome  service_args=${service_args}  options=${options}  alias=${alias}
+    Create Webdriver With Retry  Chrome  options=${options}  alias=${alias}
     Set Selenium Implicit Wait  ${IMPLICIT_WAIT}
     Set Selenium Timeout        ${TIMEOUT}
     Go To                       ${login_url}
@@ -122,5 +121,4 @@ Chrome Set Headless
     Call Method  ${options}  set_headless  ${true}
     Call Method  ${options}  add_argument  --disable-dev-shm-usage
     Call Method  ${options}  add_argument  --disable-background-timer-throttling
-    Call Method  ${options}  add_argument  --no-sandbox
     [return]  ${options}

@@ -52,7 +52,6 @@ Create test data
 *** Test Cases ***
 
 Click Modal Button
-    [tags]  target
     Go To Object Home            Contact
     Click Object Button          New
     Click Modal Button           Save
