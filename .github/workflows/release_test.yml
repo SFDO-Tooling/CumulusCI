@@ -6,6 +6,10 @@ on:
     - feature/**
     - master
 
+env:
+  CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'
+  CUMULUSCI_ORG_packaging: ${{ secrets.CUMULUSCI_ORG_packaging }}
+
 jobs:
   test_release:
     name: "Test Release Flows"
