@@ -45,7 +45,6 @@ jobs:
         ./sfdx/install
         echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
         sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile $(realpath sfdx.key) --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-        echo "::set-env name=SFDX_HUB_KEY::$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
     - name: Check out CumulusCI-Test
       run: |
         git clone https://github.com/SFDO-Tooling/CumulusCI-Test
@@ -63,5 +62,6 @@ jobs:
         coverage run --append --rcfile=../.coveragerc --source=../cumulusci $(which cci) flow run ci_master --org scratch --delete-org
     - name: Run release_beta flow
       run: |
+        export SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
         cd CumulusCI-Test
         coverage run --append --rcfile=../.coveragerc --source=../cumulusci $(which cci) flow run release_beta --org packaging
