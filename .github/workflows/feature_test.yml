@@ -118,7 +118,7 @@ jobs:
         SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
         SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
         SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
-    - name: Run CumulusCI library tests
+    - name: Run robot tests
       run: |
         coverage run --append $(which cci) task run robot \
           -o name "CumulusCI" \
