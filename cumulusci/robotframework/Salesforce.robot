@@ -90,7 +90,8 @@ Open Test Browser
 Open Test Browser Chrome
     [Arguments]     ${login_url}  ${alias}=${NONE}
     ${options} =                Get Chrome Options
-    Create Webdriver With Retry  Chrome  options=${options}  alias=${alias}
+    ${service_args} =           Create List  --log-path=chrome.log
+    Create Webdriver With Retry  Chrome  service_args=${service_args}  options=${options}  alias=${alias}
     Set Selenium Implicit Wait  ${IMPLICIT_WAIT}
     Set Selenium Timeout        ${TIMEOUT}
     Go To                       ${login_url}
@@ -110,7 +111,6 @@ Get Chrome Options
     Run Keyword If  '${CHROME_BINARY}' != '${empty}'
     ...             Chrome Set Binary  ${options}
     Call Method  ${options}  add_argument  --disable-notifications
-    Call Method  ${options}  add_argument  --log-path=chrome.log
     [return]  ${options}
 
 Chrome Set Binary
