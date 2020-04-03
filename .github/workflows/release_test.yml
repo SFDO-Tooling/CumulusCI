@@ -43,10 +43,9 @@ jobs:
         mkdir sfdx
         wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
         ./sfdx/install
-        SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
-        echo $SFDX_HUB_KEY > sfdx.key
+        echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
         sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile $(realpath sfdx.key) --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-        echo "::set-env name=SFDX_HUB_KEY::$SFDX_HUB_KEY"
+        echo "::set-env name=SFDX_HUB_KEY::$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
     - name: Check out CumulusCI-Test
       run: |
         git clone https://github.com/SFDO-Tooling/CumulusCI-Test
