@@ -110,6 +110,7 @@ Get Chrome Options
     Run Keyword If  '${CHROME_BINARY}' != '${empty}'
     ...             Chrome Set Binary  ${options}
     Call Method  ${options}  add_argument  --disable-notifications
+    Call Method  ${options}  add_argument  --log-path=chrome.log
     [return]  ${options}
 
 Chrome Set Binary

@@ -118,17 +118,19 @@ jobs:
     - name: Run robot tests
       run: |
         mkdir -p robot_results/robot
+        coverage run --append $(which cci) task run robot -o suites cumulusci/robotframework/tests/salesforce -o include target -o xunit robot_results/robot/salesforce_ui_chrome.xml || true
+        cat chrome.log
         # we need to modify our task to make it easier to save the
         # output.xml file with a unique name. Until then, we have
         # to manually preserve each file under a different name
-        coverage run --append $(which cci) task run robot -o name "CumulusCI" -o suites cumulusci/robotframework/tests/cumulusci  -o xunit robot_results/robot/cumulusci.xml || true
-        mv output.xml robot_results/robot/cumulusci-output.xml
-        coverage run --append $(which cci) task run robot -o name "Salesforce API" -o suites cumulusci/robotframework/tests/salesforce -o include api -o xunit robot_results/robot/salesforce_api.xml || true
-        mv output.xml robot_results/robot/salesforce_api-output.xml
-        coverage run --append $(which cci) task run robot -o name "Salesforce UI Chrome" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o xunit robot_results/robot/salesforce_ui_chrome.xml || true
+        #coverage run --append $(which cci) task run robot -o name "CumulusCI" -o suites cumulusci/robotframework/tests/cumulusci  -o xunit robot_results/robot/cumulusci.xml || true
+        #mv output.xml robot_results/robot/cumulusci-output.xml
+        #coverage run --append $(which cci) task run robot -o name "Salesforce API" -o suites cumulusci/robotframework/tests/salesforce -o include api -o xunit robot_results/robot/salesforce_api.xml || true
+        #mv output.xml robot_results/robot/salesforce_api-output.xml
+        #coverage run --append $(which cci) task run robot -o name "Salesforce UI Chrome" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o xunit robot_results/robot/salesforce_ui_chrome.xml || true
         mv output.xml robot_results/robot/salesforce_ui_chrome-output.xml
-        coverage run --append $(which cci) task run robot -o name "Salesforce UI Firefox" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o vars BROWSER:headlessfirefox -o xunit robot_results/robot/salesforce_ui_firefox.xml || true
-        mv output.xml robot_results/robot/salesforce_ui_firefox-output.xml
+        #coverage run --append $(which cci) task run robot -o name "Salesforce UI Firefox" -o suites cumulusci/robotframework/tests/salesforce -o exclude api -o vars BROWSER:headlessfirefox -o xunit robot_results/robot/salesforce_ui_firefox.xml || true
+        #mv output.xml robot_results/robot/salesforce_ui_firefox-output.xml
         mv selenium-screenshot-* robot_results/robot || true
       env:
         BROWSER: headlesschrome
