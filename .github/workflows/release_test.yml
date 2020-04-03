@@ -39,7 +39,7 @@ jobs:
         wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
         ./sfdx/install
         echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-        sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+        sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile $(realpath sfdx.key) --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
       env:
         SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
         SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
