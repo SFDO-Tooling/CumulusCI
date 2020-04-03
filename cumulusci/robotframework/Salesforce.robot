@@ -29,7 +29,6 @@ ${BROWSER}          chrome
 ${SELENIUM_SPEED}   0
 ${DEBUG}            ${false}
 ${CHROME_BINARY}    ${empty}
-${CHROME_NO_SANDBOX}  ${empty}
 ${ORG}              ${empty}
 ${IMPLICIT_WAIT}    7.0
 ${INITIAL_TIMEOUT}  180.0
@@ -123,6 +122,5 @@ Chrome Set Headless
     Call Method  ${options}  set_headless  ${true}
     Call Method  ${options}  add_argument  --disable-dev-shm-usage
     Call Method  ${options}  add_argument  --disable-background-timer-throttling
-    Run Keyword If  '%{CHROME_NO_SANDBOX}' != '${empty}'
-    ...             Call Method  ${options}  add_argument  --no-sandbox
+    Call Method  ${options}  add_argument  --no-sandbox
     [return]  ${options}

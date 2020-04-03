@@ -118,7 +118,7 @@ jobs:
     - name: Run robot tests
       run: |
         mkdir -p robot_results/robot
-        coverage run --append $(which cci) task run robot -o suites cumulusci/robotframework/tests/salesforce -o include target -o xunit robot_results/robot/salesforce_ui_chrome.xml || true
+        coverage run --append $(which cci) task run robot -o suites cumulusci/robotframework/tests/salesforce -o include target -o vars BROWSER:headlesschrome -o xunit robot_results/robot/salesforce_ui_chrome.xml || true
         cat chrome.log
         # we need to modify our task to make it easier to save the
         # output.xml file with a unique name. Until then, we have
@@ -134,7 +134,6 @@ jobs:
         mv selenium-screenshot-* robot_results/robot || true
       env:
         BROWSER: headlesschrome
-        CHROME_NO_SANDBOX: true
     - name: Consolidate robot outputs into a single report and log
       if: always()
       run: |
