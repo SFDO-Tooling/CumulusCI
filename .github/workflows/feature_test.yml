@@ -108,12 +108,8 @@ jobs:
         mkdir sfdx
         wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
         ./sfdx/install
-    - name: Create scratch org
-      run: |
         echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
         sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-        cci org info dev > /dev/null
-        cci org default dev
       env:
         SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
         SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
@@ -121,6 +117,7 @@ jobs:
     - name: Run robot tests
       run: |
         coverage run --append $(which cci) task run robot \
+          --org dev \
           -o name "CumulusCI" \
           -o suites cumulusci/robotframework/tests \
           -o include no-browser
@@ -161,12 +158,8 @@ jobs:
         mkdir sfdx
         wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
         ./sfdx/install
-    - name: Create scratch org
-      run: |
         echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
         sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-        cci org info dev > /dev/null
-        cci org default dev
       env:
         SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
         SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
@@ -174,7 +167,8 @@ jobs:
     - name: Run robot tests
       run: |
         coverage run --append $(which cci) task run robot \
-          -o suites cumulusci/robotframework/tests/salesforce
+          --org dev \
+          -o suites cumulusci/robotframework/tests/salesforce \
           -o exclude no-browser \
           -o vars BROWSER:headlesschrome
     - name: Delete scratch org
@@ -214,12 +208,8 @@ jobs:
         mkdir sfdx
         wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
         ./sfdx/install
-    - name: Create scratch org
-      run: |
         echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
         sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-        cci org info dev > /dev/null
-        cci org default dev
       env:
         SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
         SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
@@ -227,6 +217,7 @@ jobs:
     - name: Run robot tests
       run: |
         coverage run --append $(which cci) task run robot \
+          --org dev \
           -o suites cumulusci/robotframework/tests/salesforce \
           -o exclude no-browser \
           -o vars BROWSER:headlessfirefox
