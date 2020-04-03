@@ -1,4 +1,6 @@
+from pathlib import Path
 import json
+import os
 import requests
 
 from cumulusci.core.config import BaseProjectConfig
@@ -60,6 +62,10 @@ class Publish(BaseMetaDeployTask):
             "description": "If True, set is_listed to True on the version. Default: False",
             "required": False,
         },
+        "labels_path": {
+            "description": "Path to a folder containing translations.",
+            "required": False,
+        },
     }
 
     def _init_task(self):
@@ -72,6 +78,9 @@ class Publish(BaseMetaDeployTask):
         self.commit = self.options.get("commit")
         if not self.tag and not self.commit:
             raise TaskOptionsError("You must specify either the tag or commit option.")
+        self.labels_path = self.options.get("labels_path", "metadeploy")
+        if not os.path.exists(self.labels_path):  # pragma: no cover
+            os.makedirs(self.labels_path)
 
         plan_name = self.options.get("plan")
         if plan_name:
@@ -83,11 +92,15 @@ class Publish(BaseMetaDeployTask):
         else:
             self.plan_configs = self.project_config.plans
 
+        self._load_labels()
+
     def _run_task(self):
         # Find or create Version
+        product = self._find_product()
         if not self.dry_run:
-            product = self._find_product()
             version = self._find_or_create_version(product)
+            if self.labels_path and "slug" in product:
+                self._publish_labels(product["slug"])
 
         # Check out the specified tag
         repo_owner = self.project_config.repo_owner
@@ -120,8 +133,49 @@ class Publish(BaseMetaDeployTask):
 
             # Create each plan
             for plan_name, plan_config in self.plan_configs.items():
+
+                self._add_labels(
+                    plan_config,
+                    f"plan:{plan_name}",
+                    {
+                        "title": "title of installation plan",
+                        "preflight_message": "shown before user starts installation (markdown)",
+                        "preflight_message_additional": "shown before user starts installation (markdown)",
+                        "post_install_message": "shown after successful installation (markdown)",
+                        "post_install_message_additional": "shown after successful installation (markdown)",
+                        "error_message": "shown after failed installation (markdown)",
+                    },
+                )
+                checks = plan_config.get("checks") or []
+                for check in checks:
+                    self._add_label(
+                        "checks", check.get("message"), "shown if validation fails"
+                    )
+
                 steps = self._freeze_steps(project_config, plan_config)
                 self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
+                for step in steps:
+                    # avoid separate labels for installing each package
+                    if step["name"].startswith("Install "):
+                        self._add_label(
+                            "steps",
+                            "Install {product} {version}",
+                            "title of installation step",
+                        )
+                    else:
+                        self._add_label(
+                            "steps", step["name"], "title of installation step"
+                        )
+                    self._add_label(
+                        "steps",
+                        step.get("description"),
+                        "description of installation step",
+                    )
+                    for check in step["task_config"].get("checks", []):
+                        self._add_label(
+                            "checks", check.get("message"), "shown if validation fails"
+                        )
+
                 if not self.dry_run:
                     self._publish_plan(product, version, plan_name, plan_config, steps)
 
@@ -133,6 +187,9 @@ class Publish(BaseMetaDeployTask):
                     json={"is_listed": True},
                 )
                 self.logger.info("Published Version {}".format(version["url"]))
+
+        # Save labels
+        self._save_labels()
 
     def _publish_plan(self, product, version, plan_name, plan_config, steps):
         plan_template = self._find_or_create_plan_template(
@@ -187,7 +244,19 @@ class Publish(BaseMetaDeployTask):
             raise Exception(
                 "No product found in MetaDeploy with repo URL {}".format(repo_url)
             )
-        return result["data"][0]
+        product = result["data"][0]
+        self._add_labels(
+            product,
+            "product",
+            {
+                "title": "name of product",
+                "short_description": "tagline of product",
+                "description": "shown on product detail page (markdown)",
+                "click_through_agreement": "legal text shown in modal dialog",
+                "error_message": "shown after failed installation (markdown)",
+            },
+        )
+        return product
 
     def _find_or_create_version(self, product):
         """Create a Version in MetaDeploy if it doesn't already exist
@@ -228,7 +297,13 @@ class Publish(BaseMetaDeployTask):
             plantemplate = self._call_api(
                 "POST",
                 "/plantemplates",
-                json={"name": plan_name, "product": product["url"]},
+                json={
+                    "name": plan_name,
+                    "product": product["url"],
+                    "preflight_message": plan_config.get("preflight_message", ""),
+                    "post_install_message": plan_config.get("post_install_message", ""),
+                    "error_message": plan_config.get("error_message", ""),
+                },
             )
             self.logger.info("Created {}".format(plantemplate["url"]))
             planslug = self._call_api(
@@ -241,3 +316,51 @@ class Publish(BaseMetaDeployTask):
             plantemplate = result["data"][0]
             self.logger.info("Found {}".format(plantemplate["url"]))
         return plantemplate
+
+    def _load_labels(self):
+        """Load existing English labels."""
+        self.labels = {}
+        labels_path = os.path.join(self.labels_path, "labels_en.json")
+        if os.path.exists(labels_path):
+            with open(labels_path, "r") as f:
+                self.labels = json.load(f)
+
+    def _add_labels(self, obj, category, fields):
+        """Add specified fields from obj to a label category."""
+        for name, description in fields.items():
+            text = obj.get(name)
+            if text:
+                if category not in self.labels:
+                    self.labels[category] = {}
+                label = {"message": text, "description": description}
+                self.labels[category][name] = label
+
+    def _add_label(self, category, text, description):
+        """Add a single label to a label category."""
+        if not text:
+            return
+        if category not in self.labels:
+            self.labels[category] = {}
+        label = {"message": text, "description": description}
+        self.labels[category][text] = label
+
+    def _save_labels(self):
+        """Save updates to English labels."""
+        if self.labels_path:
+            labels_path = os.path.join(self.labels_path, "labels_en.json")
+            self.logger.info(f"Updating labels in {labels_path}")
+            with open(labels_path, "w") as f:
+                json.dump(self.labels, f, indent=4)
+
+    def _publish_labels(self, slug):
+        """Publish labels in all languages to MetaDeploy."""
+        for path in Path(self.labels_path).glob("*.json"):
+            lang = path.stem[-2:]
+            if lang == "en":
+                continue
+            orig_labels = json.loads(path.read_text())
+            prefixed_labels = {}
+            for context, labels in orig_labels.items():
+                prefixed_labels[f"{slug}:{context}"] = labels
+            self.logger.info(f"Updating {lang} translations")
+            self._call_api("PATCH", f"/translations/{lang}", json=prefixed_labels)

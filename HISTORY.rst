@@ -2,6 +2,20 @@
 History
 =======
 
+3.10.0 (2020-04-02)
+-------------------
+
+Changes:
+
+* Added ``custom_settings_value_wait`` task to wait for a custom setting to have a particular value.
+
+* The ``metadeploy_publish`` task now has a ``labels_path`` option which specifies a folder to store translations. After publishing a plan, labels_en.json will be updated with the untranslated labels from the plan. Before publishing a plan, labels from other languages will be published to MetaDeploy.
+
+Issues closed:
+
+* Fixed an issue where running subprocesses could hang if too much output was buffered.
+
+
 3.9.1 (2020-03-25)
 ------------------
 
