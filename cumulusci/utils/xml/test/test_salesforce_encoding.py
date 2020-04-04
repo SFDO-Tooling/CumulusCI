@@ -122,3 +122,32 @@ class TestSalesforceEncoding:
 
         xml_out = serialize_xml_for_salesforce(tree, xml_declaration=False)
         assert xml_in == xml_out
+
+    def test_simple_attributes_roundtrip(self):
+        xml_in = """
+<Layout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <layoutSections>
+        <layoutColumns foo="bar"/>
+    </layoutSections>
+</Layout>""".strip()
+
+        tree = etree.parse(StringIO(xml_in))
+
+        xml_out = serialize_xml_for_salesforce(tree, xml_declaration=False)
+        assert xml_in == xml_out.strip()
+
+    def test_namespaced_attributes_roundtrip(self):
+        xml_in = """
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <label>Account MD Isolation Rollup</label>
+    <protected>false</protected>
+    <values>
+        <field>dlrs__Active__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+</CustomMetadata>""".strip()
+
+        tree = etree.parse(StringIO(xml_in))
+
+        xml_out = serialize_xml_for_salesforce(tree, xml_declaration=False)
+        assert xml_in == xml_out.strip()
