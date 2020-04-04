@@ -3,12 +3,13 @@ import datetime
 import os
 import csv
 from itertools import chain
-
+from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.core.utils import process_list_arg
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 class OrganizationReport(BaseGithubTask):
@@ -37,13 +38,15 @@ class OrganizationReport(BaseGithubTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.template = self.options.get("template") or os.path.join(
-            "cumulusci",
-            "tasks",
-            "github",
-            "report_templates",
-            "github_access_report.html",
+        default_template = (
+            Path(__file__).parent / "report_templates/github_access_report.html"
         )
+        template = self.options.get("template", default_template)
+        self.template = Path(template)
+
+        if not self.template.is_file():
+            raise TaskOptionsError(f"{self.template} is not a file")
+
         repos = self.options.get("repos")
         self.repos = set(process_list_arg(repos)) if repos else None
         self.additional_info_csv = self.options.get("additional_info_csv")
@@ -233,10 +236,9 @@ class OrganizationReport(BaseGithubTask):
     def _report(self, org, org_members, teams, repos, extra_fields, ignored):
         self.logger.info("Writing report to {output}".format(**self.options))
 
-        environment = RelEnvironment(
-            loader=FileSystemLoader(self.project_config.repo_root)
-        )
-        template = environment.get_template(self.template)
+        loader_dir = str(self.template.parent)
+        environment = RelEnvironment(loader=FileSystemLoader(loader_dir))
+        template = environment.get_template(self.template.name)
 
         with open(self.options["output"], "w") as f:
             f.write(
