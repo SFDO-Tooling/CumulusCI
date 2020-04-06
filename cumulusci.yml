@@ -7,6 +7,8 @@ tasks:
     robot:
         options:
             suites: cumulusci/robotframework/tests
+            options:
+                outputdir: robot/CumulusCI/results
     robot_testdoc:
         options:
             path: cumulusci/robotframework/tests
