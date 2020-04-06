@@ -1,4 +1,5 @@
 from distutils.version import LooseVersion
+import io
 import os
 import re
 
@@ -579,7 +580,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
-        cumulusci_yml = yaml.safe_load(contents.decoded)
+        cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
 
         # Get the namespace from the cumulusci.yml if set
         package_config = cumulusci_yml.get("project", {}).get("package", {})
