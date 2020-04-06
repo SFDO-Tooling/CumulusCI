@@ -1,5 +1,4 @@
 import json
-import requests
 from datetime import datetime
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
@@ -38,20 +37,6 @@ class CreateCommunity(BaseSalesforceApiTask):
 
     def _run_task(self):
         self.logger.info('Creating community "{}"'.format(self.options["name"]))
-
-        # Before we can create a Community, we have to click through the "New Community"
-        # button in the All Communities setup page. (This does some unknown behind-the-scenes setup).
-        # Let's simulate that without actually using a browser.
-        self.logger.info("Preparing org for Communities")
-        s = requests.Session()
-        s.get(self.org_config.start_url).raise_for_status()
-        r = s.get(
-            "{}/sites/servlet.SitePrerequisiteServlet".format(
-                self.org_config.instance_url
-            )
-        )
-        if r.status_code != 200:
-            raise SalesforceException("Unable to prepare org for Communities")
 
         payload = {
             "name": self.options["name"],

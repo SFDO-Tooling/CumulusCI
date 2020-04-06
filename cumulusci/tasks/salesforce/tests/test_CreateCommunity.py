@@ -26,17 +26,10 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_creates_community(self):
         cc_task = create_task(CreateCommunity, task_options)
-        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
-            cc_task.org_config.instance_url
-        )
         community_url = "{}/services/data/v46.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
 
-        responses.add(
-            method=responses.GET, url=cc_task.org_config.start_url, status=200
-        )
-        responses.add(method=responses.GET, url=servlet_url, status=200)
         responses.add(method=responses.POST, url=community_url, status=200, json={})
         responses.add(
             method=responses.GET,
@@ -47,11 +40,9 @@ class test_CreateCommunity(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(4, len(responses.calls))
-        self.assertEqual(cc_task.org_config.start_url, responses.calls[0].request.url)
-        self.assertEqual(servlet_url, responses.calls[1].request.url)
-        self.assertEqual(community_url, responses.calls[2].request.url)
-        self.assertEqual(community_url, responses.calls[3].request.url)
+        self.assertEqual(2, len(responses.calls))
+        self.assertEqual(community_url, responses.calls[0].request.url)
+        self.assertEqual(community_url, responses.calls[1].request.url)
         self.assertEqual(
             json.dumps(
                 {
@@ -61,23 +52,16 @@ class test_CreateCommunity(unittest.TestCase):
                     "urlPathPrefix": "test",
                 }
             ),
-            responses.calls[2].request.body,
+            responses.calls[0].request.body,
         )
 
     @responses.activate
     def test_creates_community_no_url_path_prefix(self):
         cc_task = create_task(CreateCommunity, task_options_no_url_path_prefix)
-        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
-            cc_task.org_config.instance_url
-        )
         community_url = "{}/services/data/v46.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
 
-        responses.add(
-            method=responses.GET, url=cc_task.org_config.start_url, status=200
-        )
-        responses.add(method=responses.GET, url=servlet_url, status=200)
         responses.add(method=responses.POST, url=community_url, status=200, json={})
         responses.add(
             method=responses.GET,
@@ -88,11 +72,9 @@ class test_CreateCommunity(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(4, len(responses.calls))
-        self.assertEqual(cc_task.org_config.start_url, responses.calls[0].request.url)
-        self.assertEqual(servlet_url, responses.calls[1].request.url)
-        self.assertEqual(community_url, responses.calls[2].request.url)
-        self.assertEqual(community_url, responses.calls[3].request.url)
+        self.assertEqual(2, len(responses.calls))
+        self.assertEqual(community_url, responses.calls[0].request.url)
+        self.assertEqual(community_url, responses.calls[1].request.url)
         self.assertEqual(
             json.dumps(
                 {
@@ -102,7 +84,7 @@ class test_CreateCommunity(unittest.TestCase):
                     "urlPathPrefix": "",
                 }
             ),
-            responses.calls[2].request.body,
+            responses.calls[0].request.body,
         )
 
     @responses.activate
@@ -242,18 +224,3 @@ class test_CreateCommunity(unittest.TestCase):
         cc_task.time_start = datetime(2019, 1, 1)
         with self.assertRaises(SalesforceException):
             cc_task._poll_action()
-
-    @responses.activate
-    def test_throws_exception_for_failed_prepare_step(self):
-        cc_task = create_task(CreateCommunity, task_options)
-        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
-            cc_task.org_config.instance_url
-        )
-
-        responses.add(
-            method=responses.GET, url=cc_task.org_config.start_url, status=200
-        )
-        responses.add(method=responses.GET, url=servlet_url, status=500)
-
-        with self.assertRaises(SalesforceException):
-            cc_task._run_task()
