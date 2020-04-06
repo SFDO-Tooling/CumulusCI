@@ -125,5 +125,5 @@ class TestRemoveElementsXPath(unittest.TestCase):
             },
         )
         self.assertEqual(
-            '<?xml version="1.0" encoding="UTF-8"?>\n<root><a/></root>\n', result
+            '<?xml version="1.0" encoding="UTF-8"?>\n<root><a/>\n</root>\n', result
         )

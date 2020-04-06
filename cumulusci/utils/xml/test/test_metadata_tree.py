@@ -111,10 +111,10 @@ class TestMetadataTree:
         Data.remove(Data.A[0])
         Data.remove(Data.B)
         Data.remove(Data.A)
-        assert Data.tostring() == f'<Data xmlns="{METADATA_NAMESPACE}"/>'
+        assert Data.tostring() == f'<Data xmlns="{METADATA_NAMESPACE}"/>\n'
 
     def test_error_handling(self):
-        Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>")
+        Data = fromstring(f"<Data xmlns='{METADATA_NAMESPACE}'><Foo/></Data>\n")
         Data.Foo
         with pytest.raises(AttributeError) as e:
             assert Data.Bar
@@ -198,3 +198,16 @@ class TestMetadataTree:
         Data = fromstring(standard_xml)
         with pytest.raises(TypeError):
             Data.foo[None]
+
+    def test_multiple_namespaces(self):
+        xml = """
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Account MD Isolation Rollup</label>
+    <protected>false</protected>
+    <values>
+        <field>dlrs__Active__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+</CustomMetadata>""".strip()
+        CustomMetadata = fromstring(xml)
+        assert xml.strip() == CustomMetadata.tostring().strip()
