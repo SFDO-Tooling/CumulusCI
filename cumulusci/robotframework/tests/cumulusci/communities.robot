@@ -1,6 +1,7 @@
 *** Settings ***
 Resource  cumulusci/robotframework/CumulusCI.robot
 Library   Collections
+Force Tags  no-browser
 
 Suite Setup  run keywords
      # Note: the first community name intentionally includes a unicode

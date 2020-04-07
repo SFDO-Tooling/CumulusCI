@@ -2,7 +2,7 @@
 
 Resource        cumulusci/robotframework/Salesforce.robot
 Suite Teardown  Delete Session Records
-Force Tags      api
+Force Tags      api  no-browser
 
 *** Keywords ***
 

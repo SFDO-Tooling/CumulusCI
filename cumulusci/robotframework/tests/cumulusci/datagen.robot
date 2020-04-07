@@ -3,7 +3,7 @@
 Resource       cumulusci/robotframework/Salesforce.robot
 Resource  cumulusci/robotframework/CumulusCI.robot
 
-Force Tags    bulkdata
+Force Tags    bulkdata  no-browser
 
 *** Keywords ***
 Assert Row Count
