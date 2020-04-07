@@ -4,6 +4,7 @@ import os
 import csv
 from itertools import chain
 from pathlib import Path
+import subprocess
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -139,6 +140,8 @@ class OrganizationReport(BaseGithubTask):
             for member in team.members(role="maintainer"):
                 teams[team.name]["members"][member.login]["maintainer"] = True
             for repo in repos:
+                if relevant_repos and repo.name not in relevant_repos:
+                    continue
                 info = {
                     "repo": repo,
                     "read": True,  # All teams returned at least have read
@@ -239,6 +242,7 @@ class OrganizationReport(BaseGithubTask):
         loader_dir = str(self.template.parent)
         environment = RelEnvironment(loader=FileSystemLoader(loader_dir))
         template = environment.get_template(self.template.name)
+        url, mode = script_url(self.project_config)
 
         with open(self.options["output"], "w") as f:
             f.write(
@@ -253,8 +257,23 @@ class OrganizationReport(BaseGithubTask):
                     extra_fields=extra_fields,
                     ignored=ignored,
                     link_style=False,  # change this for rapid changing of the CSS
+                    script_url=url,
+                    mode=mode,
                 )
             )
+
+
+def script_url(project_config):
+    proj = project_config
+
+    diff = subprocess.check_output(["git", "diff"]).decode("utf-8").strip()
+    mode = "dev" if diff else "prod"
+    if mode == "dev":
+        print("Warning: Running in dev mode because github repo is dirty.")
+    relpath = proj.relpath(__file__)
+
+    url = f"https://github.com/{proj.repo_owner}/{proj.repo_name}/blob/{proj.commit}/{relpath}"
+    return url, mode
 
 
 class RelEnvironment(Environment):
