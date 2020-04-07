@@ -10,7 +10,7 @@ class GetAvailableLicenses(BaseSalesforceApiTask):
             ]
         ]
         licenses = "\n".join(self.return_values)
-        self.logger.debug(f"Found licenses:\n{licenses}")
+        self.logger.info(f"Found licenses:\n{licenses}")
 
 
 class GetAvailablePermissionSetLicenses(BaseSalesforceApiTask):
@@ -22,4 +22,4 @@ class GetAvailablePermissionSetLicenses(BaseSalesforceApiTask):
             )["records"]
         ]
         licenses = "\n".join(self.return_values)
-        self.logger.debug(f"Found permission set licenses:\n{licenses}")
+        self.logger.info(f"Found permission set licenses:\n{licenses}")
