@@ -1,9 +1,14 @@
-from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from unittest import mock
+
 from cumulusci.tasks.salesforce.GetInstalledPackages import GetInstalledPackages
+from cumulusci.tasks.salesforce.tests.util import create_task
 
 
 class TestGetInstalledPackages:
-    def test_run_task(self, caplog):
-        task = _make_task(GetInstalledPackages, {})
-        task.__class__.__bases__[0]._run_task = lambda *args: "RESULT"
+    @mock.patch(
+        "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
+    )
+    def test_run_task(self, api):
+        task = create_task(GetInstalledPackages)
         task()
+        api.assert_called_once()
