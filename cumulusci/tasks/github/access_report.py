@@ -265,7 +265,6 @@ class OrganizationReport(BaseGithubTask):
 
 def script_url(project_config):
     proj = project_config
-
     diff = subprocess.check_output(["git", "diff"]).decode("utf-8").strip()
     mode = "dev" if diff else "prod"
     if mode == "dev":
@@ -277,9 +276,7 @@ def script_url(project_config):
 
 
 class RelEnvironment(Environment):
-    """Override join_path() to enable relative template paths.
-
-    Per: https://stackoverflow.com/a/3655911/113477"""
+    "Per: https://stackoverflow.com/a/3655911/113477"
 
     def join_path(self, template, parent):
         return os.path.join(os.path.dirname(parent), template)
