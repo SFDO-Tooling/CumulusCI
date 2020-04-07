@@ -144,6 +144,14 @@ tasks:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.salesforce.GetInstalledPackages
         group: Salesforce Metadata
+    get_available_licenses:
+        description: Retrieves a list of the currently available license definition keys
+        class_path: cumulusci.tasks.salesforce.license_preflights.GetAvailableLicenses
+        group: Salesforce Metadata
+    get_available_permission_set_licenses:
+        description: Retrieves a list of the currently available Permission Set License definition keys
+        class_path: cumulusci.tasks.salesforce.license_preflights.GetAvailablePermissionSetLicenses
+        group: Salesforce Metadata
     github_parent_pr_notes:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
         class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes

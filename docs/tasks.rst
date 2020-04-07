@@ -1081,6 +1081,34 @@ Command Syntax
 
 
 
+**get_available_licenses**
+==========================================
+
+**Description:** Retrieves a list of the currently available license definition keys
+
+**Class:** cumulusci.tasks.salesforce.license_preflights.GetAvailableLicenses
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run get_available_licenses``
+
+
+
+**get_available_permission_set_licenses**
+==========================================
+
+**Description:** Retrieves a list of the currently available Permission Set License definition keys
+
+**Class:** cumulusci.tasks.salesforce.license_preflights.GetAvailablePermissionSetLicenses
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run get_available_permission_set_licenses``
+
+
+
 **github_parent_pr_notes**
 ==========================================
 
@@ -1632,10 +1660,10 @@ Options
 
 	 If True, set is_listed to True on the version. Default: False
 
-``-o labels LABELS``
+``-o labels_path LABELSPATH``
 	 *Optional*
 
-	 Path to a file that will be updated with strings to be translated.
+	 Path to a folder containing translations.
 
 **org_settings**
 ==========================================
