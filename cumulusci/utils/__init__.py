@@ -15,6 +15,8 @@ import requests
 import sarge
 import xml.etree.ElementTree as ET
 
+from cumulusci.cli.logger import get_gist_logger
+
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 )
@@ -652,7 +654,7 @@ def get_git_config(config_key):
 
 
 @contextlib.contextmanager
-def tee_stdout_stderr(args, logger):
+def tee_stdout_stderr(args, logger, tempfile):
     """Tee stdout and stderr so that they're also routed to
     a log file. Add the current command arguments
     as the first item in the log."""
@@ -677,8 +679,21 @@ def tee_stdout_stderr(args, logger):
     try:
         yield
     finally:
+        # reset write functions
         sys.stdout.write = real_stdout_write
         sys.stderr.write = real_stderr_write
+
+        # close temporary logfile
+        logger.handlers[0].close()
+
+        # log contents of tempfile to rotating log files
+        with open(tempfile, "r") as f:
+            contents = f.read()
+
+        logger = get_gist_logger()
+        logger.debug(contents)
+        # delete temporary log file
+        os.remove(tempfile)
 
 
 def strip_ansi_sequences(input):
