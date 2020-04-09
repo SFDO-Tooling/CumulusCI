@@ -18,13 +18,11 @@ except ImportError:
     snowfakery = None
 
 if snowfakery:
-    sample_yaml = (
-        Path(snowfakery.__file__).parent / "../tests/gen_npsp_standard_objects.yml"
-    )
-    simple_yaml = Path(snowfakery.__file__).parent / "../tests/include_parent.yml"
+    sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
+    simple_yaml = Path(__file__).parent / "snowfakery/include_parent.yml"
     from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
 
-vanilla_mapping_file = Path(__file__).parent / "../../tests/mapping_vanilla_sf.yml"
+vanilla_mapping_file = Path(__file__).parent / "../tests/mapping_vanilla_sf.yml"
 
 
 @unittest.skipUnless(snowfakery, "Snowfakery not installed")
