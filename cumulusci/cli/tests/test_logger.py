@@ -18,4 +18,5 @@ class TestLogger:
         assert len(logger.handlers) == 1
         assert isinstance(logger.handlers[0], logging.FileHandler)
         # delete the temporary logfile
+        logger.handlers[0].close()
         os.remove(tempfile)
