@@ -63,7 +63,6 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
                 self.sflib.wait_until_salesforce_is_ready(timeout=0.01)
 
             self.sflib.selenium.capture_page_screenshot.assert_called()
-            assert self.sflib.wait_for_aura.call_count >= 2
 
 
 @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
