@@ -1,12 +1,10 @@
 import os
 import re
 import sys
-import string
 import contextlib
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from random import choice
 
 
 @contextlib.contextmanager
@@ -79,10 +77,3 @@ def strip_ansi_sequences(input):
     """Strip ANSI sequences from what's in buffer"""
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
     return ansi_escape.sub("", input)
-
-
-def get_random_string(len):
-    """Generates a random string of the specified
-    length comprised of ascii letters."""
-    letters = string.ascii_letters
-    return "".join(choice(letters) for i in range(len))

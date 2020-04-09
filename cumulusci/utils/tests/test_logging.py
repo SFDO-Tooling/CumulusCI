@@ -7,6 +7,7 @@ from cumulusci.utils.logging import (
     tee_stdout_stderr,
     get_gist_logger,
     get_rot_file_logger,
+    strip_ansi_sequences,
 )
 
 
@@ -57,3 +58,13 @@ class TestUtilLogging:
         rot_filehandler.assert_called_once_with(path, backupCount=5, encoding="utf-8")
         logger.addHandler.assert_called_once()
         logger.setLevel.assert_called_once()
+
+    def test_strip_ansi_sequences(self):
+        ansi_str = "\033[31mGoodbye ANSI color sequences!\033[0m"
+        plain_str = "This is [just a plain old string with some] [symbols]"
+
+        ansi_string_result = strip_ansi_sequences(ansi_str)
+        plain_string_result = strip_ansi_sequences(plain_str)
+
+        assert ansi_string_result == "Goodbye ANSI color sequences!"
+        assert plain_string_result == plain_str
