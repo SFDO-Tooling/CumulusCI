@@ -1,14 +1,13 @@
 """ CLI logger """
 import logging
-from logging.handlers import RotatingFileHandler
 import os
 import sys
-import string
 import requests
-from random import choice
 from pathlib import Path
 
 import coloredlogs
+
+from cumulusci.utils.__init__ import get_random_string
 
 try:
     import colorama
@@ -40,46 +39,16 @@ def init_logger(log_requests=False):
 
 
 def get_tempfile_logger():
-    """Creates and returns a logger tha writes to a
-    temporary logfile. Returns the logger and path to tempfile"""
+    """Creates a logger that writes to a temporary
+    logfile. Returns the logger and path to tempfile"""
     logger = logging.getLogger("tempfile_logger")
     temp_logfile_dir = Path.home() / ".cumulusci" / "logs"
     temp_logfile_dir.mkdir(parents=True, exist_ok=True)
 
-    filepath = temp_logfile_dir / get_tempfile_name(15)
+    filepath = temp_logfile_dir / f"{get_random_string(15)}.log"
+
     handler = logging.FileHandler(filepath, encoding="utf-8")
     handler.terminator = ""
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
     return logger, filepath
-
-
-def get_tempfile_name(len):
-    """Gneerates a logfile name comprised of lowercase letters
-    of the specified length ending in .log"""
-    letters = string.ascii_letters
-    filename = "".join(choice(letters) for i in range(len))
-    return f"{filename}.log"
-
-
-def get_gist_logger():
-    """Determines the appropriate filepath for logfile
-    and name for the logger. Returns a logger with
-    RotatingFileHandler attached."""
-    logfile_dir = Path.home() / ".cumulusci" / "logs"
-    logfile_dir.mkdir(parents=True, exist_ok=True)
-    logfile_path = logfile_dir / "cci.log"
-
-    return get_rot_file_logger("stdout/stderr", logfile_path)
-
-
-def get_rot_file_logger(name, path):
-    """Returns a logger with a rotating file handler"""
-    logger = logging.getLogger(name)
-
-    handler = RotatingFileHandler(path, backupCount=5, encoding="utf-8")
-    handler.doRollover()  # rollover existing log files
-    handler.terminator = ""  # click.echo already adds a newline
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
-    return logger

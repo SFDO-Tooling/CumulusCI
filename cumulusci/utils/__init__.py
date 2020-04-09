@@ -3,19 +3,24 @@ import fnmatch
 import io
 import math
 import os
+
 import re
+import logging
+from logging.handlers import RotatingFileHandler
 import shutil
 import sys
+import string
 import tempfile
 import textwrap
 import zipfile
 from datetime import datetime
+from random import choice
+from pathlib import Path
 
 import requests
 import sarge
 import xml.etree.ElementTree as ET
 
-from cumulusci.cli.logger import get_gist_logger
 
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
@@ -696,7 +701,37 @@ def tee_stdout_stderr(args, logger, tempfile):
         os.remove(tempfile)
 
 
+def get_gist_logger():
+    """Determines the appropriate filepath for logfile
+    and name for the logger. Returns a logger with
+    RotatingFileHandler attached."""
+    logfile_dir = Path.home() / ".cumulusci" / "logs"
+    logfile_dir.mkdir(parents=True, exist_ok=True)
+    logfile_path = logfile_dir / "cci.log"
+
+    return get_rot_file_logger("stdout/stderr", logfile_path)
+
+
+def get_rot_file_logger(name, path):
+    """Returns a logger with a rotating file handler"""
+    logger = logging.getLogger(name)
+
+    handler = RotatingFileHandler(path, backupCount=5, encoding="utf-8")
+    handler.doRollover()  # rollover existing log files
+    handler.terminator = ""  # click.echo already adds a newline
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+    return logger
+
+
 def strip_ansi_sequences(input):
     """Strip ANSI sequences from what's in buffer"""
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
     return ansi_escape.sub("", input)
+
+
+def get_random_string(len):
+    """Generates a random string of the specified
+    length comprised of ascii letters."""
+    letters = string.ascii_letters
+    return "".join(choice(letters) for i in range(len))
