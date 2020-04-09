@@ -2,12 +2,10 @@
 import logging
 import os
 import sys
+import tempfile
 import requests
-from pathlib import Path
 
 import coloredlogs
-
-from cumulusci.utils.__init__ import get_random_string
 
 try:
     import colorama
@@ -42,11 +40,7 @@ def get_tempfile_logger():
     """Creates a logger that writes to a temporary
     logfile. Returns the logger and path to tempfile"""
     logger = logging.getLogger("tempfile_logger")
-    temp_logfile_dir = Path.home() / ".cumulusci" / "logs"
-    temp_logfile_dir.mkdir(parents=True, exist_ok=True)
-
-    filepath = temp_logfile_dir / f"{get_random_string(15)}.log"
-
+    f, filepath = tempfile.mkstemp()
     handler = logging.FileHandler(filepath, encoding="utf-8")
     handler.terminator = ""
     logger.addHandler(handler)
