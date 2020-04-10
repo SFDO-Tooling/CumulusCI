@@ -1,5 +1,6 @@
 *** Settings ***
 Resource  cumulusci/robotframework/Salesforce.robot
+Force Tags  no-browser
 
 *** Variables ***
 ${ssn}    ${faker.ssn()}
