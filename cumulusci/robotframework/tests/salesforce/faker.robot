@@ -65,24 +65,3 @@ Faker keyword, bad property
     Run keyword and expect error
     ...  Unknown fake data request: 'bogus'
     ...  Get fake data  bogus
-
-Wowzer!
-    ${dob}=   Get fake data  date_of_birth  minimum_age=${20}   maximum_age=${29}
-    log to console  \nmonth: ${dob.month} day: ${dob.day} year: ${dob.year}
-
-
-*** Comments ***
-Whatever
-    log to console  \n
-    log to console  first_name: ${faker.first_name}
-    log to console  first_name(): ${faker.first_name()}
-    log to console  coordinate: ${faker.coordinate}
-    log to console  coordinate(): ${faker.coordinate}
-
-    ${coord}=  set variable  ${faker.coordinate}
-    ${foo}=  evaluate  type($coord)
-    log to console  type($coord): ${foo}
-
-    ${coord}=  set variable  ${faker.coordinate()}
-    ${foo}=  evaluate  type($coord)
-    log to console  type($coord): ${foo}
