@@ -177,10 +177,10 @@ class Salesforce(object):
         be regenerated, so that multiple calls will usually return
         different data.
 
-        This keyword can also be called using robot's extend variable
+        This keyword can also be called using robot's extended variable
         syntax using the variable ``${faker}``. In such a case, the
         data being asked for is a method call and arguments must be
-        enclosed in parenthesis and be quoted. Arguments should not be
+        enclosed in parentheses and be quoted. Arguments should not be
         quoted when using the keyword.
 
         To generate fake data for a locale other than en_US, use
