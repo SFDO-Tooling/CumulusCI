@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 from pathlib import Path
-from tempfile import TemporaryDirectory, NamedTemporaryFile
+from tempfile import TemporaryDirectory
 from contextlib import contextmanager
 
 from cumulusci.core.exceptions import TaskOptionsError
@@ -28,9 +28,15 @@ vanilla_mapping_file = Path(__file__).parent / "../tests/mapping_vanilla_sf.yml"
 
 
 @contextmanager
-def temp_sqlite_database_url():
+def temporary_file_path(filename):
     with TemporaryDirectory() as tmpdirname:
-        path = Path(tmpdirname) / "test.db"
+        path = Path(tmpdirname) / filename
+        yield path
+
+
+@contextmanager
+def temp_sqlite_database_url():
+    with temporary_file_path("test.db") as path:
         yield f"sqlite:///{str(path)}"
 
 
@@ -95,7 +101,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
                 self.assertRowsCreated(database_url)
 
     def test_generate_mapping_file(self):
-        with NamedTemporaryFile() as temp_mapping:
+        with temporary_file_path("mapping.yml") as temp_mapping:
             with temp_sqlite_database_url() as database_url:
                 task = _make_task(
                     GenerateDataFromYaml,
@@ -103,12 +109,12 @@ class TestGenerateFromDataTask(unittest.TestCase):
                         "options": {
                             "generator_yaml": sample_yaml,
                             "database_url": database_url,
-                            "generate_mapping_file": temp_mapping.name,
+                            "generate_mapping_file": temp_mapping,
                         }
                     },
                 )
                 task()
-            mapping = yaml.safe_load(open(temp_mapping.name))
+            mapping = yaml.safe_load(open(temp_mapping))
             assert mapping["Insert Account"]["fields"]
 
     def test_use_mapping_file(self):
@@ -164,10 +170,12 @@ class TestGenerateFromDataTask(unittest.TestCase):
             )
             task()
             assert len(_dataload.mock_calls) == 3
+            task = None  # clean up db?
 
             engine = create_engine(database_url)
             connection = engine.connect()
             records = list(connection.execute("select * from Account"))
+            connection.close()
             assert len(records) == 14 % 6  # leftovers
 
     def test_mismatched_options(self):
@@ -193,9 +201,10 @@ class TestGenerateFromDataTask(unittest.TestCase):
     def test_with_continuation_file(self):
         continuation_data = self.generate_continuation_data()
         with temp_sqlite_database_url() as database_url:
-            with NamedTemporaryFile("w+") as continuation_file:
-                continuation_file.write(continuation_data)
-                continuation_file.flush()
+            with temporary_file_path("cont.yml") as continuation_file_path:
+                with open(continuation_file_path, "w") as continuation_file:
+                    continuation_file.write(continuation_data)
+
                 task = _make_task(
                     GenerateDataFromYaml,
                     {
@@ -203,7 +212,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
                             "generator_yaml": sample_yaml,
                             "database_url": database_url,
                             "mapping": vanilla_mapping_file,
-                            "continuation_file": continuation_file.name,
+                            "continuation_file": continuation_file_path,
                         }
                     },
                 )
@@ -236,7 +245,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
         from snowfakery import version
 
         print(version.version)
-        with NamedTemporaryFile() as temp_continuation_file:
+        with temporary_file_path("cont.yml") as temp_continuation_file:
             with temp_sqlite_database_url() as database_url:
                 task = _make_task(
                     GenerateDataFromYaml,
@@ -244,10 +253,10 @@ class TestGenerateFromDataTask(unittest.TestCase):
                         "options": {
                             "generator_yaml": sample_yaml,
                             "database_url": database_url,
-                            "generate_continuation_file": temp_continuation_file.name,
+                            "generate_continuation_file": temp_continuation_file,
                         }
                     },
                 )
                 task()
-            mapping = yaml.safe_load(open(temp_continuation_file.name))
+            mapping = yaml.safe_load(open(temp_continuation_file))
             assert mapping  # internals of this file are not important to MetaCI

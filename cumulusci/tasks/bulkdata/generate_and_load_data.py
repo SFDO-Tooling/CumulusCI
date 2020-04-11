@@ -1,5 +1,5 @@
 import os
-from tempfile import TemporaryDirectory, NamedTemporaryFile
+from tempfile import TemporaryDirectory
 from pathlib import Path
 
 from sqlalchemy import MetaData, create_engine
@@ -177,9 +177,11 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         }
 
         # some generator tasks can generate the mapping file instead of reading it
-        with NamedTemporaryFile(suffix="_mapping.yml") as generated_mapping_file:
-            subtask_options["generate_mapping_file"] = generated_mapping_file.name
-            self._datagen(subtask_options)
+        with TemporaryDirectory() as tempdir:
+            temp_mapping = Path(tempdir) / "temp_mapping.yml"
+            with open(temp_mapping, "w+") as generated_mapping_file:
+                subtask_options["generate_mapping_file"] = generated_mapping_file.name
+                self._datagen(subtask_options)
             if not subtask_options.get("mapping"):
                 subtask_options["mapping"] = generated_mapping_file.name
             self._dataload(subtask_options)
