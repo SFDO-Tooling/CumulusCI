@@ -1,7 +1,8 @@
 import unittest
 from unittest import mock
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import TemporaryDirectory, NamedTemporaryFile
+from contextlib import contextmanager
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
@@ -26,6 +27,13 @@ if snowfakery:
 vanilla_mapping_file = Path(__file__).parent / "../tests/mapping_vanilla_sf.yml"
 
 
+@contextmanager
+def temp_sqlite_database_url():
+    with TemporaryDirectory() as tmpdirname:
+        path = Path(tmpdirname) / "test.db"
+        yield f"sqlite:///{str(path)}"
+
+
 @unittest.skipUnless(snowfakery, "Snowfakery not installed")
 class TestGenerateFromDataTask(unittest.TestCase):
     def assertRowsCreated(self, database_url):
@@ -41,8 +49,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             _make_task(GenerateDataFromYaml, {})
 
     def test_simple(self):
-        with NamedTemporaryFile() as t:
-            database_url = f"sqlite:///{t.name}"
+        with temp_sqlite_database_url() as database_url:
             task = _make_task(
                 GenerateDataFromYaml,
                 {
@@ -72,8 +79,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             task()
 
     def test_vars(self):
-        with NamedTemporaryFile() as t:
-            database_url = f"sqlite:///{t.name}"
+        with temp_sqlite_database_url() as database_url:
             with self.assertWarns(UserWarning):
                 task = _make_task(
                     GenerateDataFromYaml,
@@ -90,8 +96,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
 
     def test_generate_mapping_file(self):
         with NamedTemporaryFile() as temp_mapping:
-            with NamedTemporaryFile() as temp_db:
-                database_url = f"sqlite:///{temp_db.name}"
+            with temp_sqlite_database_url() as database_url:
                 task = _make_task(
                     GenerateDataFromYaml,
                     {
@@ -108,8 +113,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
 
     def test_use_mapping_file(self):
         assert vanilla_mapping_file.exists()
-        with NamedTemporaryFile() as temp_db:
-            database_url = f"sqlite:///{temp_db.name}"
+        with temp_sqlite_database_url() as database_url:
             task = _make_task(
                 GenerateDataFromYaml,
                 {
@@ -124,8 +128,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             self.assertRowsCreated(database_url)
 
     def test_num_records(self):
-        with NamedTemporaryFile() as t:
-            database_url = f"sqlite:///{t.name}"
+        with temp_sqlite_database_url() as database_url:
             task = _make_task(
                 GenerateDataFromYaml,
                 {
@@ -144,8 +147,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
         "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
     )
     def test_batching(self, _dataload):
-        with NamedTemporaryFile() as t:
-            database_url = f"sqlite:///{t.name}"
+        with temp_sqlite_database_url() as database_url:
             task = _make_task(
                 GenerateAndLoadDataFromYaml,
                 {
@@ -190,8 +192,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
 
     def test_with_continuation_file(self):
         continuation_data = self.generate_continuation_data()
-        with NamedTemporaryFile() as temp_db:
-            database_url = f"sqlite:///{temp_db.name}"
+        with temp_sqlite_database_url() as database_url:
             with NamedTemporaryFile("w+") as continuation_file:
                 continuation_file.write(continuation_data)
                 continuation_file.flush()
@@ -212,8 +213,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
 
     def test_with_nonexistent_continuation_file(self):
         with self.assertRaises(TaskOptionsError) as e:
-            with NamedTemporaryFile() as temp_db:
-                database_url = f"sqlite:///{temp_db.name}"
+            with temp_sqlite_database_url() as database_url:
                 task = _make_task(
                     GenerateDataFromYaml,
                     {
@@ -233,9 +233,11 @@ class TestGenerateFromDataTask(unittest.TestCase):
         assert "does not exist" in str(e.exception)
 
     def test_generate_continuation_file(self):
+        from snowfakery import version
+
+        print(version.version)
         with NamedTemporaryFile() as temp_continuation_file:
-            with NamedTemporaryFile() as temp_db:
-                database_url = f"sqlite:///{temp_db.name}"
+            with temp_sqlite_database_url() as database_url:
                 task = _make_task(
                     GenerateDataFromYaml,
                     {
