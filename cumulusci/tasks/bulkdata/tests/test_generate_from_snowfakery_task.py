@@ -14,6 +14,7 @@ try:
     from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
         GenerateAndLoadDataFromYaml,
     )
+    from snowfakery import data_generator_runtime
 except ImportError:
     snowfakery = None
 
@@ -176,22 +177,19 @@ class TestGenerateFromDataTask(unittest.TestCase):
             task()
         assert "without num_records_tablename" in str(e.exception)
 
-    def test_with_continuation_file(self):
-        continuation_data = """
-!snowfakery_globals
-id_manager: !snowfakery_ids
-  last_used_ids:
-    Account: 5
-last_seen_obj_of_type:
-  Account: &id001 !snowfakery_objectrow
-    _tablename: Account
-    _values:
-      Name: Johnston incorporated
-      id: 5
-named_objects:
-  blah: blah
-        """
+    def generate_continuation_data(self):
+        g = data_generator_runtime.Globals()
+        o = data_generator_runtime.ObjectRow(
+            "Account", {"Name": "Johnston incorporated", "id": 5}
+        )
+        g.register_object(o, "The Company")
+        for i in range(0, 5):
+            # burn through 5 imaginary accounts
+            g.id_manager.generate_id("Account")
+        return yaml.safe_dump(g)
 
+    def test_with_continuation_file(self):
+        continuation_data = self.generate_continuation_data()
         with NamedTemporaryFile() as temp_db:
             database_url = f"sqlite:///{temp_db.name}"
             with NamedTemporaryFile("w+") as continuation_file:
