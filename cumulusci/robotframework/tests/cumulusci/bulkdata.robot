@@ -9,7 +9,7 @@ Force Tags    bulkdata  no-browser
 
 Test Run Bulk Data Deletion With Error
 
-    ${account_name} =  Generate Random String
+    ${account_name} =  Get fake data  company
     ${account_id} =  Salesforce Insert  Account
     ...  Name=${account_name}
     ...  BillingStreet=Granville Ave., SFDO
