@@ -40,8 +40,10 @@ def get_tempfile_logger():
     """Creates a logger that writes to a temporary
     logfile. Returns the logger and path to tempfile"""
     logger = logging.getLogger("tempfile_logger")
-    f, filepath = tempfile.mkstemp()
-    handler = logging.FileHandler(filepath, encoding="utf-8")
+    file_handle, filepath = tempfile.mkstemp()
+    # close the file as it will be opened again by FileHandler
+    os.close(file_handle)
+    handler = logging.FileHandler(stream=file_handle)
     handler.terminator = ""
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
