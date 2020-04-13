@@ -43,7 +43,7 @@ def get_tempfile_logger():
     file_handle, filepath = tempfile.mkstemp()
     # close the file as it will be opened again by FileHandler
     os.close(file_handle)
-    handler = logging.FileHandler(stream=file_handle)
+    handler = logging.FileHandler(filepath, encoding="utf-8")
     handler.terminator = ""
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
