@@ -138,23 +138,32 @@ class TestCCI(unittest.TestCase):
             "\n".join(out),
         )
 
-    @mock.patch("cumulusci.cli.cci.get_gist_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     @mock.patch("cumulusci.cli.cci.cli")
     def test_main(
-        self, cli, CliRuntime, check_latest_version, init_logger, get_gist_logger
+        self,
+        cli,
+        CliRuntime,
+        check_latest_version,
+        init_logger,
+        get_tempfile_logger,
+        tee,
     ):
-        get_gist_logger.return_value.debug = mock.Mock()
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
         cci.main()
 
         check_latest_version.assert_called_once()
         init_logger.assert_called_once()
         CliRuntime.assert_called_once()
         cli.assert_called_once()
+        tee.assert_called_once()
 
-    @mock.patch("cumulusci.cli.cci.get_gist_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
@@ -169,10 +178,11 @@ class TestCCI(unittest.TestCase):
         CliRuntime,
         check_latest_version,
         init_logger,
-        get_gist_logger,
+        get_tempfile_logger,
+        tee,
     ):
         cli.side_effect = Exception
-        get_gist_logger.return_value.debug = mock.Mock()
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
 
         cci.main(["cci", "--debug"])
 
@@ -182,9 +192,12 @@ class TestCCI(unittest.TestCase):
         cli.assert_called_once()
         post_mortem.assert_called_once()
         sys_exit.assert_called_once_with(1)
+        get_tempfile_logger.assert_called_once()
+        tee.assert_called_once()
 
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
-    @mock.patch("cumulusci.cli.cci.get_gist_logger")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
@@ -199,15 +212,16 @@ class TestCCI(unittest.TestCase):
         CliRuntime,
         check_latest_version,
         init_logger,
-        get_gist_logger,
+        get_tempfile_logger,
         logfile_path,
+        tee,
     ):
         expected_logfile_content = "Hello there, I'm a logfile."
         logfile_path.is_file.return_value = True
         logfile_path.read_text.return_value = expected_logfile_content
 
         cli.side_effect = Exception
-        get_gist_logger.return_value.debug = mock.Mock()
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
 
         cci.main(["cci", "org", "info"])
 
@@ -217,6 +231,8 @@ class TestCCI(unittest.TestCase):
         cli.assert_called_once()
         post_mortem.call_count == 0
         sys_exit.assert_called_once_with(1)
+        get_tempfile_logger.assert_called_once()
+        tee.assert_called_once()
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
