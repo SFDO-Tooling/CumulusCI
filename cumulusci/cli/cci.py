@@ -45,12 +45,13 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task, tee_stdout_stderr
+from cumulusci.utils import doc_task
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
+from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
-from .logger import init_logger, get_gist_logger
+from .logger import init_logger, get_tempfile_logger
 
 
 @contextlib.contextmanager
@@ -210,8 +211,8 @@ def main(args=None):
         # that are not `cci error`
         is_error_command = len(args) > 2 and args[1] == "error"
         if not is_error_command:
-            logger = get_gist_logger()
-            stack.enter_context(tee_stdout_stderr(args, logger))
+            logger, tempfile_path = get_tempfile_logger()
+            stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
 
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
