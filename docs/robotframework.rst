@@ -39,8 +39,8 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
    *** Test Cases ***
 
    Via API
-       ${first_name} =       Generate Random String
-       ${last_name} =        Generate Random String
+       ${first_name} =       Get fake data  first_name
+       ${last_name} =        Get fake data  last_name
        ${contact_id} =       Salesforce Insert  Contact
        ...                     FirstName=${first_name}
        ...                     LastName=${last_name}
@@ -49,8 +49,8 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
        Validate Contact      ${contact_id}  ${first_name}  ${last_name}
 
    Via UI
-       ${first_name} =       Generate Random String
-       ${last_name} =        Generate Random String
+       ${first_name} =       Get fake data  first_name
+       ${last_name} =        Get fake data  last_name
 
        Go to page            Home  Contact
        Click Object Button   New
@@ -102,14 +102,14 @@ The two test cases test the same operation done through two different paths: the
 Via API
 ^^^^^^^
 
-This test case uses the **Generate Random String** keyword to create random strings for the contact's first and last name.  It then uses the **Salesforce Insert** keyword from the Salesforce Library (included via Salesforce.robot) to insert a Contact using the random first and last names.  Next, it uses **Salesforce Get** to retrieve the Contact's information as a dictionary.
+This test case uses the **Get fake data** keyword to generate a first and last name.  It then uses the **Salesforce Insert** keyword from the Salesforce Library (included via Salesforce.robot) to insert a Contact using the same technique for generating test data. Next, it uses **Salesforce Get** to retrieve the Contact's information as a dictionary.
 
 Finally, the test calls the **Validate Contact** keyword explained in the Keywords section below.
 
 Via UI
 ^^^^^^
 
-This test case also uses **Generate Random String** for the first and last name, but instead uses the test browser to create a Contact via the Salesforce UI.  Using keywords from the Salesforce Library, it navigates to the Contact home page and clicks the **New** button to open a modal form.  It then uses **Populate Form** to fill in the First Name and Last Name fields (selected by field label) and uses **Click Modal Button** to click the **Save** button and **Wait Until Modal Is Closed** to wait for the modal to close.
+This test case also uses **Get fake data** for the first and last name, but instead uses the test browser to create a Contact via the Salesforce UI.  Using keywords from the Salesforce Library, it navigates to the Contact home page and clicks the **New** button to open a modal form.  It then uses **Populate Form** to fill in the First Name and Last Name fields (selected by field label) and uses **Click Modal Button** to click the **Save** button and **Wait Until Modal Is Closed** to wait for the modal to close.
 
 At this point, we should be on the record view for the new Contact.  We use the **Get Current Record Id** keyword to parse the Contact's ID from the url in the browser and the **Store Session Record** keyword to register the Contact in the session records list.  The session records list stores the type and id of all records created in the session which is used by the **Delete Records and Close Browser** keyword on Suite Teardown to delete all the records created during the test.  In the **Via API** test, we didn't have to register the record since the **Salesforce Insert** keyword does that for us automatically.  In the **Via UI** test, we created the Contact in the browser and thus need to store its ID manually for it to be deleted.
 
