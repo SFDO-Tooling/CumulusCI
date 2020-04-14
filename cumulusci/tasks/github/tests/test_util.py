@@ -72,18 +72,23 @@ class TestCommitDir(unittest.TestCase):
                 {
                     "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
                     "mode": "100644",
-                    "path": "dir/unchanged",
+                    "path": os.path.join("dir", "unchanged"),
                     "size": None,
                     "type": "blob",
                 },
                 {
                     "sha": None,
                     "mode": "100644",
-                    "path": "dir/modified",
+                    "path": os.path.join("dir", "modified"),
                     "size": None,
                     "type": "blob",
                 },
-                {"path": "dir/new", "mode": "100644", "type": "blob", "sha": None},
+                {
+                    "path": os.path.join("dir", "new"),
+                    "mode": "100644",
+                    "type": "blob",
+                    "sha": None,
+                },
             ]
             commit(d, "master", "dir", commit_message="msg")
         repo.create_commit.assert_called_once()
