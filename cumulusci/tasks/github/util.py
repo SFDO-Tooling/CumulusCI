@@ -124,7 +124,9 @@ class CommitDir(object):
                             content = f.read()
                         repo_path = (self.repo_dir + "/") if self.repo_dir else ""
                         new_item = {
-                            "path": "{}{}".format(repo_path, local_file_subpath),
+                            "path": "{}{}".format(
+                                repo_path, local_file_subpath.replace(os.sep, "/")
+                            ),
                             "mode": "100644",
                             "type": "blob",
                             "sha": self._create_blob(content, local_file),

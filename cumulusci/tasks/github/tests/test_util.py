@@ -1,6 +1,5 @@
 import hashlib
 from unittest import mock
-import os
 import unittest
 
 from github3.repos import Repository
@@ -37,13 +36,13 @@ class TestCommitDir(unittest.TestCase):
                         {
                             "type": "blob",
                             "mode": "100644",
-                            "path": os.path.join("dir", "unchanged"),
+                            "path": "dir/unchanged",
                             "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
                         },
                         {
                             "type": "blob",
                             "mode": "100644",
-                            "path": os.path.join("dir", "modified"),
+                            "path": "dir/modified",
                             "sha": "bogus3",
                         },
                     ],
@@ -72,23 +71,18 @@ class TestCommitDir(unittest.TestCase):
                 {
                     "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
                     "mode": "100644",
-                    "path": os.path.join("dir", "unchanged"),
+                    "path": "dir/unchanged",
                     "size": None,
                     "type": "blob",
                 },
                 {
                     "sha": None,
                     "mode": "100644",
-                    "path": os.path.join("dir", "modified"),
+                    "path": "dir/modified",
                     "size": None,
                     "type": "blob",
                 },
-                {
-                    "path": os.path.join("dir", "new"),
-                    "mode": "100644",
-                    "type": "blob",
-                    "sha": None,
-                },
+                {"path": "dir/new", "mode": "100644", "type": "blob", "sha": None},
             ]
             commit(d, "master", "dir", commit_message="msg")
         repo.create_commit.assert_called_once()
