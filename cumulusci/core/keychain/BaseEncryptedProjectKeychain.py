@@ -22,10 +22,6 @@ def pad(s):
     return s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
 
 
-class DecryptionError(Exception):
-    pass
-
-
 class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     """ Base class for building project keychains that use AES encryption for securing stored org credentials """
 
