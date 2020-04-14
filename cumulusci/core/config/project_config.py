@@ -2,6 +2,7 @@ from distutils.version import LooseVersion
 import io
 import os
 import re
+from pathlib import Path
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -64,8 +65,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def config_project_local_path(self):
-        path = os.path.join(self.project_local_dir, self.config_filename)
-        if os.path.isfile(path):
+        path = Path(self.project_local_dir) / self.config_filename
+        if path.is_file():
             return path
 
     def _load_config(self):
@@ -240,6 +241,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         git_info = {"url": url, "owner": owner, "name": name}
         return git_info
 
+    def git_path(self, tail=None):
+        path = Path(self.repo_root) / ".git"
+        if tail is not None:
+            path = path / str(tail)
+        return path
+
     @property
     def repo_root(self):
         path = self.repo_info.get("root")
@@ -266,7 +273,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         in_remote_origin = False
-        with open(os.path.join(self.repo_root, ".git", "config"), "r") as f:
+        with open(self.git_path("config"), "r") as f:
             for line in f:
                 line = line.strip()
                 if line == '[remote "origin"]':
@@ -284,8 +291,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        git_config_file = os.path.join(self.repo_root, ".git", "config")
-        with open(git_config_file, "r") as f:
+        with open(self.git_path("config"), "r") as f:
             in_remote_origin = False
             for line in f:
                 line = line.strip()
@@ -305,7 +311,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         in_remote_origin = False
-        with open(os.path.join(self.repo_root, ".git", "config"), "r") as f:
+        with open(self.git_path("config"), "r") as f:
             for line in f:
                 line = line.strip()
                 if line == '[remote "origin"]':
@@ -324,7 +330,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        with open(os.path.join(self.repo_root, ".git", "HEAD"), "r") as f:
+        with open(self.git_path("HEAD"), "r") as f:
             branch_ref = f.read().strip()
         if branch_ref.startswith("ref: "):
             return "/".join(branch_ref[5:].split("/")[2:])
@@ -421,9 +427,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def config_project_path(self):
         if not self.repo_root:
             return
-        path = os.path.join(self.repo_root, self.config_filename)
-        if os.path.isfile(path):
-            return path
+        path = Path(self.repo_root) / self.config_filename
+        if path.is_file():
+            return str(path)
 
     @property
     def project_local_dir(self):
