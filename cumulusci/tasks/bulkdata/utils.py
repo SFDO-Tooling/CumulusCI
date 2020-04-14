@@ -22,6 +22,46 @@ def batch_iterator(iterator, n=10000):
         yield batch
 
 
+def batch_iterator2(iterator, fields, n=10000, char_limit=10000000):
+    """Given an iterator it returns batches that (in order of precedence):
+    (1) Do not exceed the given character limit
+    (2) Contain no more than n records.
+    """
+    batch = []
+    current_chars = 0
+    # for every record we have:
+    # num_fields * 2 quotations
+    # num_fields - 1 commas
+    # and a single newline
+    # this gives us: 3 * num_fields
+    per_record_constant_chars = 3 * len(fields)
+
+    current_chars += character_sum(fields)
+    for record in iterator:
+        if (
+            character_sum(record) + per_record_constant_chars + current_chars
+            > char_limit
+        ):
+            yield batch
+            current_chars = character_sum(fields)
+            current_chars = character_sum(record)
+            batch = [record]  # we didn't add this record yet
+        else:
+            current_chars += per_record_constant_chars
+            current_chars += character_sum(record)
+
+            batch.append(record)
+            if len(batch) == n:
+                yield batch
+                batch = []
+                current_chars = character_sum(fields)
+
+
+def character_sum(list):
+    """Given a list of strings return the sum of string lengths"""
+    return len("".join(list))
+
+
 def get_lookup_key_field(lookup, sf_field):
     return lookup.get("key_field") or convert_to_snake_case(sf_field)
 
