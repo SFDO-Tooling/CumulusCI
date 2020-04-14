@@ -111,7 +111,7 @@ class CommitDir(object):
         new_tree_target_subpaths = [
             self._get_item_sub_path(item)
             for item in new_tree_list
-            if not item["path"].startswith(self.repo_dir)
+            if item["path"].startswith(self.repo_dir)
         ]
 
         for root, dirs, files in os.walk(self.local_dir):
