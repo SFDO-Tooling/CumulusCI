@@ -242,9 +242,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return git_info
 
     def git_path(self, tail=None):
-        path = Path(self.repo_root) / ".git"
-        if tail is not None:
-            path = path / str(tail)
+        """Returns a Path to self.repo_root with
+        tail appended if it exists. Null if repo_root
+        is not present"""
+        path = None
+        if self.repo_root:
+            path = Path(self.repo_root) / ".git"
+            if tail is not None:
+                path = path / str(tail)
         return path
 
     @property
