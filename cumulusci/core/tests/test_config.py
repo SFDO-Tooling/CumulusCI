@@ -339,9 +339,18 @@ class TestBaseProjectConfig(unittest.TestCase):
         with temporary_dir():
             self.assertIsNone(config.repo_url)
 
-    def test_repo_url_from_git(self):
+    @mock.patch("cumulusci.core.config.project_config.BaseProjectConfig.git_path")
+    def test_repo_url_from_git(self, git_path):
+        git_config_file = "git_config"
+        git_path.return_value = git_config_file
+        repo_url = "https://github.com/foo/bar.git"
+        with open(git_config_file, "w") as f:
+            f.writelines(['[remote "origin"]\n' f"\turl = {repo_url}"])
+
         config = BaseProjectConfig(BaseGlobalConfig())
-        self.assertEquals("git@github.com:SFDO-Tooling/CumulusCI.git", config.repo_url)
+        self.assertEquals(repo_url, config.repo_url)
+
+        os.remove(git_config_file)
 
     def test_repo_owner_from_repo_info(self):
         config = BaseProjectConfig(BaseGlobalConfig())
