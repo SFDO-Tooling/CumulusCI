@@ -3,6 +3,7 @@ import io
 import os
 import re
 from pathlib import Path
+from itertools import dropwhile
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -252,6 +253,19 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 path = path / str(tail)
         return path
 
+    def git_config_remote_origin_line(self, start_string):
+        """Rerturns the first line under the [remote origin]
+        section of the .git/config file that that starts
+        with start_string. Returns None if .git/config file
+        not present or no matching line is found."""
+        with open(self.git_path("config"), "r") as f:
+            for line in dropwhile(self.line_not_remote_origin, f):
+                if start_string in line.strip():
+                    return line.strip()
+
+    def line_not_remote_origin(self, line):
+        return True if line.strip() != '[remote "origin"]' else False
+
     @property
     def repo_root(self):
         path = self.repo_info.get("root")
@@ -277,15 +291,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        in_remote_origin = False
-        with open(self.git_path("config"), "r") as f:
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and line.find("url =") != -1:
-                    return self._split_repo_url(line)["name"]
+        url_line = self.git_config_remote_origin_line("url = ")
+        return self._split_repo_url(url_line)["name"]
 
     @property
     def repo_url(self):
@@ -296,15 +303,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        with open(self.git_path("config"), "r") as f:
-            in_remote_origin = False
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and "url = " in line:
-                    return line[len("url = ") :]
+        url_line = self.git_config_remote_origin_line("url = ")
+        return url_line[len("url = ") :]
 
     @property
     def repo_owner(self):
@@ -315,16 +315,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        in_remote_origin = False
-        with open(self.git_path("config"), "r") as f:
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and line.find("url =") != -1:
-                    line_parts = line.split("/")
-                    return line_parts[-2].split(":")[-1]
+        url_line = self.git_config_remote_origin_line("url = ")
+        return self._split_repo_url(url_line)["owner"]
 
     @property
     def repo_branch(self):
