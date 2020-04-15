@@ -259,7 +259,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         with start_string. Returns None if .git/config file
         not present or no matching line is found."""
         with open(self.git_path("config"), "r") as f:
-            for line in dropwhile(self.line_not_remote_origin, f):
+            while next(f).strip() != '[remote "origin"]':
+                continue
+            for line in f:
                 if start_string in line.strip():
                     return line.strip()
 
