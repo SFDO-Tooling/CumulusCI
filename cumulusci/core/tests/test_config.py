@@ -945,6 +945,32 @@ class TestBaseProjectConfig(unittest.TestCase):
         with pytest.raises(ConfigError):
             project_config._validate_package_api_format()
 
+    @mock.patch("cumulusci.core.config.project_config.BaseProjectConfig.git_path")
+    def test_git_config_remote_origin_line(self, git_path):
+        git_config_file = "test_git_config_file"
+        git_path.return_value = git_config_file
+        expected_line = "url = some.url.here"
+
+        with open(git_config_file, "w") as f:
+            f.writelines(
+                [
+                    '[remote "not origin"]\n',
+                    "\tanother line here\n",
+                    "\tyet another line\n",
+                    '[remote "origin"]\n',
+                    f"\t{expected_line}\n",
+                ]
+            )
+
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+        actual_line = project_config.git_config_remote_origin_line("url =")
+        assert actual_line == expected_line
+
+        actual_line = project_config.git_config_remote_origin_line("does not exist")
+        assert actual_line is None
+
+        os.remove(git_config_file)
+
 
 class TestBaseTaskFlowConfig(unittest.TestCase):
     def setUp(self):
