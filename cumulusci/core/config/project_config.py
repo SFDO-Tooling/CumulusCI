@@ -67,7 +67,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def config_project_local_path(self):
         path = Path(self.project_local_dir) / self.config_filename
         if path.is_file():
-            return path
+            return str(path)
 
     def _load_config(self):
         """ Loads the configuration from YAML, if no override config was passed in initially. """
