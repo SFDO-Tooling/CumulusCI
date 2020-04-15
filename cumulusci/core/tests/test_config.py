@@ -348,7 +348,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             f.writelines(['[remote "origin"]\n' f"\turl = {repo_url}"])
 
         config = BaseProjectConfig(BaseGlobalConfig())
-        self.assertEquals(repo_url, config.repo_url)
+        assert repo_url == config.repo_url
 
         os.remove(git_config_file)
 
