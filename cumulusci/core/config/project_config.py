@@ -3,7 +3,7 @@ import io
 import os
 import re
 from pathlib import Path
-from itertools import dropwhile
+from configparser import ConfigParser
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -235,12 +235,16 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def _split_repo_url(self, url):
         url_parts = url.rstrip("/").split("/")
+
         name = url_parts[-1]
-        owner = url_parts[-2].split(":")[-1]
         if name.endswith(".git"):
             name = name[:-4]
-        git_info = {"url": url, "owner": owner, "name": name}
-        return git_info
+
+        owner = url_parts[-2]
+        if "git@github.com" in url:  # ssh url
+            owner = owner.split(":")[-1]
+
+        return {"url": url, "owner": owner, "name": name}
 
     def git_path(self, tail=None):
         """Returns a Path to the .git directory in self.repo_root
@@ -253,17 +257,18 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 path = path / str(tail)
         return path
 
-    def git_config_remote_origin_line(self, start_string):
-        """Returns the first line under the [remote origin]
-        section of the .git/config file that that starts
-        with start_string. Returns None if .git/config file
-        not present or no matching line is found."""
-        with open(self.git_path("config"), "r") as f:
-            while next(f).strip() != '[remote "origin"]':
-                continue
-            for line in f:
-                if start_string in line.strip():
-                    return line.strip()
+    def git_config_remote_origin_url(self):
+        """Returns the url under the [remote origin]
+        section of the .git/config file. Returns None
+        if .git/config file not present or no matching
+        line is found. """
+        config = ConfigParser(strict=False)
+        try:
+            config.read(self.git_path("config"))
+            url = config['remote "origin"']["url"]
+        except (KeyError, TypeError):
+            url = None
+        return url
 
     def line_not_remote_origin(self, line):
         return True if line.strip() != '[remote "origin"]' else False
@@ -293,7 +298,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        url_line = self.git_config_remote_origin_line("url = ")
+        url_line = self.git_config_remote_origin_url()
         return self._split_repo_url(url_line)["name"]
 
     @property
@@ -305,8 +310,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        url_line = self.git_config_remote_origin_line("url = ")
-        return url_line[len("url = ") :]
+        url = self.git_config_remote_origin_url()
+        return url
 
     @property
     def repo_owner(self):
@@ -317,7 +322,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        url_line = self.git_config_remote_origin_line("url = ")
+        url_line = self.git_config_remote_origin_url()
         return self._split_repo_url(url_line)["owner"]
 
     @property

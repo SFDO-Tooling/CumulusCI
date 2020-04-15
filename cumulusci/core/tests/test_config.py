@@ -341,7 +341,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_repo_url_from_git(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        self.assertIn("/CumulusCI", config.repo_url)
+        self.assertEquals("git@github.com:SFDO-Tooling/CumulusCI.git", config.repo_url)
 
     def test_repo_owner_from_repo_info(self):
         config = BaseProjectConfig(BaseGlobalConfig())
@@ -949,27 +949,48 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_git_config_remote_origin_line(self, git_path):
         git_config_file = "test_git_config_file"
         git_path.return_value = git_config_file
-        expected_line = "url = some.url.here"
 
         with open(git_config_file, "w") as f:
             f.writelines(
                 [
-                    '[remote "not origin"]\n',
-                    "\tanother line here\n",
-                    "\tyet another line\n",
+                    '[branch "feature-1"]\n',
+                    "\tremote = origin\n",
+                    "\tmerge = refs/heads/feature-1\n",
                     '[remote "origin"]\n',
-                    f"\t{expected_line}\n",
+                    "\tfetch = +refs/heads/*:refs/remotes/origin/*\n",
                 ]
             )
 
         project_config = BaseProjectConfig(BaseGlobalConfig())
-        actual_line = project_config.git_config_remote_origin_line("url =")
-        assert actual_line == expected_line
+        actual_line = project_config.git_config_remote_origin_url()
+        assert actual_line is None  # no url under [remote "origin"]
 
-        actual_line = project_config.git_config_remote_origin_line("does not exist")
-        assert actual_line is None
+        with open(git_config_file, "a") as f:
+            f.write("\turl = some.url.here\n")
+
+        actual_line = project_config.git_config_remote_origin_url()
+        assert actual_line == "some.url.here"
 
         os.remove(git_config_file)
+        actual_line = project_config.git_config_remote_origin_url()
+        assert actual_line is None  # no config file present
+
+    def test_split_repo_url(self):
+        name = "Cumulusci"
+        owner = "SFDO-Tooling"
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+
+        https_url = f"https://github.com/{owner}/{name}.git"
+        info = project_config._split_repo_url(https_url)
+        assert info["name"] == name
+        assert info["owner"] == owner
+        assert info["url"] == https_url
+
+        ssh_url = f"git@github.com:{owner}/{name}.git"
+        info = project_config._split_repo_url(ssh_url)
+        assert info["name"] == name
+        assert info["owner"] == owner
+        assert info["url"] == ssh_url
 
 
 class TestBaseTaskFlowConfig(unittest.TestCase):
