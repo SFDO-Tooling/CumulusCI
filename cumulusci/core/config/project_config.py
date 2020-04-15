@@ -242,9 +242,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return git_info
 
     def git_path(self, tail=None):
-        """Returns a Path to self.repo_root with
-        tail appended if it exists. Null if repo_root
-        is not present"""
+        """Returns a Path to the .git directory in self.repo_root
+        with tail appended (if present) or None if self.repo_root
+        is not set."""
         path = None
         if self.repo_root:
             path = Path(self.repo_root) / ".git"
