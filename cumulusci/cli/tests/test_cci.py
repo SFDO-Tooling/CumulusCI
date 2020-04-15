@@ -10,6 +10,7 @@ import tempfile
 import time
 import pytest
 import unittest
+from pathlib import Path
 
 import click
 from unittest import mock
@@ -238,30 +239,42 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
     def test_handle_exception(self, style, traceback, cci_open):
+        logfile_path = "file.log"
+        Path(logfile_path).touch()
+
         error = "Something bad happened."
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(error, is_error_cmd=False)
+        cci.handle_exception(error, False, logfile_path)
 
         style.call_args_list[0][0] == f"Error: {error}"
         style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
         traceback.print_exc.assert_called_once()
 
+        os.remove(logfile_path)
+
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
     def test_handle_click_exception(self, style, traceback, cci_open):
+        logfile_path = "file.log"
+        Path(logfile_path).touch()
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(click.ClickException("oops"), False)
-
+        cci.handle_exception(click.ClickException("oops"), False, logfile_path)
         style.call_args_list[0][0] == f"Error: oops"
+
+        os.remove(logfile_path)
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.connection_error_message")
     def test_handle_connection_exception(self, connection_msg, cci_open):
-        cci.handle_exception(ConnectionError(), False)
+        logfile_path = "file.log"
+        Path(logfile_path).touch()
+
+        cci.handle_exception(ConnectionError(), False, logfile_path)
         connection_msg.assert_called_once()
+        os.remove(logfile_path)
 
     @mock.patch("cumulusci.cli.cci.click.style")
     def test_connection_exception_message(self, style):
