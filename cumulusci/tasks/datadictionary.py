@@ -131,7 +131,7 @@ class GenerateDataDictionary(BaseGithubTask):
         """Process a <CustomObject> metadata entity, whether SFDX or MDAPI"""
         # If this is a custom object, register its presence in this version
         if sobject_name.count("__") == 1:
-            help_text_elem = element.description
+            help_text_elem = getattr(element, "description", None)
 
             self._set_version_with_props(
                 self.schema[sobject_name],
