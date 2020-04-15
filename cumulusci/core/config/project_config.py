@@ -235,7 +235,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def _split_repo_url(self, url):
         url_parts = url.rstrip("/").split("/")
         name = url_parts[-1]
-        owner = url_parts[-2]
+        owner = url_parts[-2].split(":")[-1]
         if name.endswith(".git"):
             name = name[:-4]
         git_info = {"url": url, "owner": owner, "name": name}
