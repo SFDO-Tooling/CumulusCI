@@ -53,15 +53,15 @@ class CommitDir(object):
         self.local_dir, self.repo_dir = self._validate_dirs(local_dir, repo_dir)
         self._set_git_data(branch)
 
-        new_tree_list = [self._create_new_tree_item(item) for item in self.tree]
-        self._add_new_files_to_tree(new_tree_list)
+        self.new_tree_list = [self._create_new_tree_item(item) for item in self.tree]
+        self._add_new_files_to_tree(self.new_tree_list)
 
-        tree_unchanged = self._summarize_changes(new_tree_list)
+        tree_unchanged = self._summarize_changes(self.new_tree_list)
         if tree_unchanged:
             self.logger.warning("No changes found, aborting commit")
             return
 
-        new_tree = self._create_tree(new_tree_list)
+        new_tree = self._create_tree(self.new_tree_list)
         new_commit = self._create_commit(commit_message, new_tree)
         self._update_head(new_commit)
 
@@ -111,7 +111,7 @@ class CommitDir(object):
         new_tree_target_subpaths = [
             self._get_item_sub_path(item)
             for item in new_tree_list
-            if not item["path"].startswith(self.repo_dir)
+            if item["path"].startswith(self.repo_dir)
         ]
 
         for root, dirs, files in os.walk(self.local_dir):
@@ -124,7 +124,9 @@ class CommitDir(object):
                             content = f.read()
                         repo_path = (self.repo_dir + "/") if self.repo_dir else ""
                         new_item = {
-                            "path": "{}{}".format(repo_path, local_file_subpath),
+                            "path": "{}{}".format(
+                                repo_path, local_file_subpath.replace(os.sep, "/")
+                            ),
                             "mode": "100644",
                             "type": "blob",
                             "sha": self._create_blob(content, local_file),
