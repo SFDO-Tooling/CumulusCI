@@ -1036,7 +1036,7 @@ The data dictionary is output as two CSV files.
 One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
 with one row per packaged object.
 The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
-Picklist Values (if any), Version Introduced.
+Allowed Values (if any), Version Introduced.
 Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
 is processed for SFDX projects.
 
