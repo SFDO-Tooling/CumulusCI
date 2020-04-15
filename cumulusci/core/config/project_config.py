@@ -261,8 +261,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         path = Path(os.path.splitdrive(Path.cwd())[1])
         while True:
             if (path / ".git").is_dir():
-                # if os.path.isdir(os.path.join(path, ".git")):
-                return path
+                return str(path)
             head, tail = os.path.split(path)
             if not tail:
                 # reached the root
