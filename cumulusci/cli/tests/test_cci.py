@@ -235,6 +235,8 @@ class TestCCI(unittest.TestCase):
         get_tempfile_logger.assert_called_once()
         tee.assert_called_once()
 
+        os.remove("tempfile.log")
+
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
