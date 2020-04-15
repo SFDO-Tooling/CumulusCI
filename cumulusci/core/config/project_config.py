@@ -254,7 +254,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return path
 
     def git_config_remote_origin_line(self, start_string):
-        """Rerturns the first line under the [remote origin]
+        """Returns the first line under the [remote origin]
         section of the .git/config file that that starts
         with start_string. Returns None if .git/config file
         not present or no matching line is found."""
