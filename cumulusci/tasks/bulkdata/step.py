@@ -285,7 +285,9 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
     def _batch(self, records):
         """Return a generator of generators, where each child generator is batched."""
-        for batch in batch_iterator(records, self.api_options.get("batch_size", 10000)):
+        for batch in batch_iterator(
+            records, self.fields, self.api_options.get("batch_size", 10000)
+        ):
             yield self._csv_generator(batch)
 
     def _csv_generator(self, records):

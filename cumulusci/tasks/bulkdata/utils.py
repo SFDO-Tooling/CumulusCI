@@ -1,5 +1,4 @@
 import datetime
-import itertools
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -13,51 +12,62 @@ from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils import convert_to_snake_case
 
 
-def batch_iterator(iterator, n=10000):
-    while True:
-        batch = list(itertools.islice(iterator, n))
-        if not batch:
-            return
-
-        yield batch
-
-
-def batch_iterator2(iterator, fields, n=10000, char_limit=10000000):
-    """Given an iterator it returns batches that (in order of precedence):
+def batch_iterator(iterator, fields, n=10000, char_limit=10000000):
+    """Given an iterator of records, return batches that (in order of precedence):
     (1) Do not exceed the given character limit
     (2) Contain no more than n records.
     """
-    batch = []
+
+    per_record_csv_chars = csv_const_chars_per_record(len(fields))
+    csv_field_chars = sum_chars(fields) + per_record_csv_chars
+
     current_chars = 0
-    # for every record we have:
-    # num_fields * 2 quotations
-    # num_fields - 1 commas
-    # and a single newline
-    # this gives us: 3 * num_fields
-    per_record_constant_chars = 3 * len(fields)
+    current_chars += csv_field_chars
 
-    current_chars += character_sum(fields)
+    batch = []
     for record in iterator:
-        if (
-            character_sum(record) + per_record_constant_chars + current_chars
-            > char_limit
-        ):
+        # Does the next record put us over the character limit?
+        if sum_chars(record) + per_record_csv_chars + current_chars > char_limit:
             yield batch
-            current_chars = character_sum(fields)
-            current_chars = character_sum(record)
-            batch = [record]  # we didn't add this record yet
-        else:
-            current_chars += per_record_constant_chars
-            current_chars += character_sum(record)
+            batch = []
+            current_chars = csv_field_chars
 
-            batch.append(record)
-            if len(batch) == n:
-                yield batch
-                batch = []
-                current_chars = character_sum(fields)
+        batch.append(record)
+        current_chars += sum_chars(record) + per_record_csv_chars
+
+        # yield batch if we're at desired size
+        if len(batch) == n:
+            yield batch
+            batch = []
+            current_chars = csv_field_chars
+
+    # give back anything leftover
+    if batch:
+        yield batch
 
 
-def character_sum(list):
+def csv_const_chars_per_record(num_fields):
+    """Given number of fields (or values) on a record, return the
+    number of **per record** constant characters that would be applied
+    in a .csv file format.
+
+    Given fields:
+        ['Id', 'FirstName', 'LastName']
+
+    The corresponding line in a csv file would be:
+        'Id','FirstName','LastName'\n
+
+    For each field there are:
+        quotations = num_fields * 2
+        commas = num_fields - 1
+        newlines = 1
+    Some algebra gives us: 3 * num_fields
+    #TODO: Do we include spaces in between values?
+    """
+    return 3 * num_fields
+
+
+def sum_chars(list):
     """Given a list of strings return the sum of string lengths"""
     return len("".join(list))
 
