@@ -236,9 +236,6 @@ class TestGenerateFromDataTask(unittest.TestCase):
         assert "does not exist" in str(e.exception)
 
     def test_generate_continuation_file(self):
-        from snowfakery import version
-
-        print(version.version)
         with temporary_file_path("cont.yml") as temp_continuation_file:
             with temp_sqlite_database_url() as database_url:
                 task = _make_task(
