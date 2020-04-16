@@ -230,6 +230,8 @@ class TestBatchIterator(unittest.TestCase):
 
         # set char limit such that 3 records is ok, but 4 is not
         char_limit = csv_field_chars + 3 * chars_per_csv_record + 1
+
+        # ask for batches of 4
         batches = list(
             batch_iterator(iter(records), fields, n=4, char_limit=char_limit)
         )
