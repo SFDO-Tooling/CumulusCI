@@ -10,14 +10,11 @@ from cumulusci.tasks.bulkdata.tests.utils import _make_task
 import yaml
 from sqlalchemy import create_engine
 
-try:
-    import snowfakery
-    from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
-        GenerateAndLoadDataFromYaml,
-    )
-    from snowfakery import data_generator_runtime
-except ImportError:
-    snowfakery = None
+import snowfakery
+from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
+    GenerateAndLoadDataFromYaml,
+)
+from snowfakery import data_generator_runtime
 
 if snowfakery:
     sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
@@ -40,7 +37,6 @@ def temp_sqlite_database_url():
         yield f"sqlite:///{str(path)}"
 
 
-@unittest.skipUnless(snowfakery, "Snowfakery not installed")
 class TestGenerateFromDataTask(unittest.TestCase):
     def assertRowsCreated(self, database_url):
         engine = create_engine(database_url)
