@@ -1,7 +1,8 @@
 import unittest
 from unittest import mock
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import TemporaryDirectory
+from contextlib import contextmanager
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
@@ -9,25 +10,31 @@ from cumulusci.tasks.bulkdata.tests.utils import _make_task
 import yaml
 from sqlalchemy import create_engine
 
-try:
-    import snowfakery
-    from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
-        GenerateAndLoadDataFromYaml,
-    )
-except ImportError:
-    snowfakery = None
+from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
+    GenerateAndLoadDataFromYaml,
+)
+from snowfakery import data_generator_runtime
 
-if snowfakery:
-    sample_yaml = (
-        Path(snowfakery.__file__).parent / "../tests/gen_npsp_standard_objects.yml"
-    )
-    simple_yaml = Path(snowfakery.__file__).parent / "../tests/include_parent.yml"
-    from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
+sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
+simple_yaml = Path(__file__).parent / "snowfakery/include_parent.yml"
+from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
 
-vanilla_mapping_file = Path(__file__).parent / "../../tests/mapping_vanilla_sf.yml"
+vanilla_mapping_file = Path(__file__).parent / "../tests/mapping_vanilla_sf.yml"
 
 
-@unittest.skipUnless(snowfakery, "Snowfakery not installed")
+@contextmanager
+def temporary_file_path(filename):
+    with TemporaryDirectory() as tmpdirname:
+        path = Path(tmpdirname) / filename
+        yield path
+
+
+@contextmanager
+def temp_sqlite_database_url():
+    with temporary_file_path("test.db") as path:
+        yield f"sqlite:///{str(path)}"
+
+
 class TestGenerateFromDataTask(unittest.TestCase):
     def assertRowsCreated(self, database_url):
         engine = create_engine(database_url)
@@ -42,8 +49,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             _make_task(GenerateDataFromYaml, {})
 
     def test_simple(self):
-        with NamedTemporaryFile() as t:
-            database_url = f"sqlite:///{t.name}"
+        with temp_sqlite_database_url() as database_url:
             task = _make_task(
                 GenerateDataFromYaml,
                 {
@@ -73,8 +79,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             task()
 
     def test_vars(self):
-        with NamedTemporaryFile() as t:
-            database_url = f"sqlite:///{t.name}"
+        with temp_sqlite_database_url() as database_url:
             with self.assertWarns(UserWarning):
                 task = _make_task(
                     GenerateDataFromYaml,
@@ -90,27 +95,25 @@ class TestGenerateFromDataTask(unittest.TestCase):
                 self.assertRowsCreated(database_url)
 
     def test_generate_mapping_file(self):
-        with NamedTemporaryFile() as temp_mapping:
-            with NamedTemporaryFile() as temp_db:
-                database_url = f"sqlite:///{temp_db.name}"
+        with temporary_file_path("mapping.yml") as temp_mapping:
+            with temp_sqlite_database_url() as database_url:
                 task = _make_task(
                     GenerateDataFromYaml,
                     {
                         "options": {
                             "generator_yaml": sample_yaml,
                             "database_url": database_url,
-                            "generate_mapping_file": temp_mapping.name,
+                            "generate_mapping_file": temp_mapping,
                         }
                     },
                 )
                 task()
-            mapping = yaml.safe_load(open(temp_mapping.name))
+            mapping = yaml.safe_load(open(temp_mapping))
             assert mapping["Insert Account"]["fields"]
 
     def test_use_mapping_file(self):
         assert vanilla_mapping_file.exists()
-        with NamedTemporaryFile() as temp_db:
-            database_url = f"sqlite:///{temp_db.name}"
+        with temp_sqlite_database_url() as database_url:
             task = _make_task(
                 GenerateDataFromYaml,
                 {
@@ -125,8 +128,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             self.assertRowsCreated(database_url)
 
     def test_num_records(self):
-        with NamedTemporaryFile() as t:
-            database_url = f"sqlite:///{t.name}"
+        with temp_sqlite_database_url() as database_url:
             task = _make_task(
                 GenerateDataFromYaml,
                 {
@@ -145,8 +147,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
         "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
     )
     def test_batching(self, _dataload):
-        with NamedTemporaryFile() as t:
-            database_url = f"sqlite:///{t.name}"
+        with temp_sqlite_database_url() as database_url:
             task = _make_task(
                 GenerateAndLoadDataFromYaml,
                 {
@@ -163,10 +164,12 @@ class TestGenerateFromDataTask(unittest.TestCase):
             )
             task()
             assert len(_dataload.mock_calls) == 3
+            task = None  # clean up db?
 
             engine = create_engine(database_url)
             connection = engine.connect()
             records = list(connection.execute("select * from Account"))
+            connection.close()
             assert len(records) == 14 % 6  # leftovers
 
     def test_mismatched_options(self):
@@ -178,27 +181,24 @@ class TestGenerateFromDataTask(unittest.TestCase):
             task()
         assert "without num_records_tablename" in str(e.exception)
 
-    def test_with_continuation_file(self):
-        continuation_data = """
-!snowfakery_globals
-id_manager: !snowfakery_ids
-  last_used_ids:
-    Account: 5
-last_seen_obj_of_type:
-  Account: &id001 !snowfakery_objectrow
-    _tablename: Account
-    _values:
-      Name: Johnston incorporated
-      id: 5
-named_objects:
-  blah: blah
-        """
+    def generate_continuation_data(self):
+        g = data_generator_runtime.Globals()
+        o = data_generator_runtime.ObjectRow(
+            "Account", {"Name": "Johnston incorporated", "id": 5}
+        )
+        g.register_object(o, "The Company")
+        for i in range(0, 5):
+            # burn through 5 imaginary accounts
+            g.id_manager.generate_id("Account")
+        return yaml.safe_dump(g)
 
-        with NamedTemporaryFile() as temp_db:
-            database_url = f"sqlite:///{temp_db.name}"
-            with NamedTemporaryFile("w+") as continuation_file:
-                continuation_file.write(continuation_data)
-                continuation_file.flush()
+    def test_with_continuation_file(self):
+        continuation_data = self.generate_continuation_data()
+        with temp_sqlite_database_url() as database_url:
+            with temporary_file_path("cont.yml") as continuation_file_path:
+                with open(continuation_file_path, "w") as continuation_file:
+                    continuation_file.write(continuation_data)
+
                 task = _make_task(
                     GenerateDataFromYaml,
                     {
@@ -206,7 +206,7 @@ named_objects:
                             "generator_yaml": sample_yaml,
                             "database_url": database_url,
                             "mapping": vanilla_mapping_file,
-                            "continuation_file": continuation_file.name,
+                            "continuation_file": continuation_file_path,
                         }
                     },
                 )
@@ -216,8 +216,7 @@ named_objects:
 
     def test_with_nonexistent_continuation_file(self):
         with self.assertRaises(TaskOptionsError) as e:
-            with NamedTemporaryFile() as temp_db:
-                database_url = f"sqlite:///{temp_db.name}"
+            with temp_sqlite_database_url() as database_url:
                 task = _make_task(
                     GenerateDataFromYaml,
                     {
@@ -237,19 +236,18 @@ named_objects:
         assert "does not exist" in str(e.exception)
 
     def test_generate_continuation_file(self):
-        with NamedTemporaryFile() as temp_continuation_file:
-            with NamedTemporaryFile() as temp_db:
-                database_url = f"sqlite:///{temp_db.name}"
+        with temporary_file_path("cont.yml") as temp_continuation_file:
+            with temp_sqlite_database_url() as database_url:
                 task = _make_task(
                     GenerateDataFromYaml,
                     {
                         "options": {
                             "generator_yaml": sample_yaml,
                             "database_url": database_url,
-                            "generate_continuation_file": temp_continuation_file.name,
+                            "generate_continuation_file": temp_continuation_file,
                         }
                     },
                 )
                 task()
-            mapping = yaml.safe_load(open(temp_continuation_file.name))
+            mapping = yaml.safe_load(open(temp_continuation_file))
             assert mapping  # internals of this file are not important to MetaCI
