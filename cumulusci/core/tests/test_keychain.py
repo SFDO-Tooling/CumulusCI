@@ -2,10 +2,9 @@ import json
 import os
 import tempfile
 import unittest
-
 from unittest import mock
 
-from cumulusci.core.tests.utils import EnvironmentVarGuard
+import pytest
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import BaseGlobalConfig
@@ -23,6 +22,7 @@ from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.tests.utils import EnvironmentVarGuard
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -344,6 +344,14 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
         config = keychain._decrypt_config(BaseConfig, None)
         self.assertEqual(config.__class__, BaseConfig)
         self.assertEqual(config.config, {})
+
+    def test_decrypt_config__wrong_key(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.set_org(self.org_config, True)
+
+        keychain.key = "x" * 16
+        with pytest.raises(KeychainKeyNotFound):
+            keychain.get_org("test")
 
     # def test_decrypt_config__py2_bytes(self):
     #     keychain = self.keychain_class(self.project_config, self.key)
