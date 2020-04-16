@@ -326,6 +326,12 @@ tasks:
         description: "Retrieves a list of any existing Experience Cloud site names in the org."
         class_path: cumulusci.tasks.salesforce.ListCommunities
         group: Salesforce Preflight Checks
+    generate_factory_yaml:
+        description: Generate a starting point for a Generator YAML for Snowfakery
+        class_path: cumulusci.tasks.bulkdata.generate_factory_yaml.GenerateFactoryYaml
+        group: Data Generation
+        options:
+            release_prefix: $project_config.project__git__prefix_release
     github_parent_pr_notes:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
         class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
