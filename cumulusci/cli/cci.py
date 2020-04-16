@@ -222,11 +222,13 @@ def main(args=None):
             show_debug_info() if debug else click.echo("\nAborted!")
             sys.exit(1)
         except Exception as e:
-            show_debug_info() if debug else handle_exception(e, is_error_command)
+            show_debug_info() if debug else handle_exception(
+                e, is_error_command, tempfile_path
+            )
             sys.exit(1)
 
 
-def handle_exception(error, is_error_cmd):
+def handle_exception(error, is_error_cmd, logfile_path):
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
@@ -240,7 +242,7 @@ def handle_exception(error, is_error_cmd):
     if not is_error_cmd:
         click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
 
-    with open(CCI_LOGFILE_PATH, "a") as log_file:
+    with open(logfile_path, "a") as log_file:
         traceback.print_exc(file=log_file)  # log stacktrace silently
 
 
@@ -306,7 +308,6 @@ def shell(runtime, script=None, python=None):
         code.interact(local={**globals(), **locals()})
 
 
-CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
 GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
 Please ensure that your GitHub personal access token has the 'Create gists' scope."""
 
@@ -1420,6 +1421,9 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(str(e))
+
+
+CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
 
 
 @error.command(

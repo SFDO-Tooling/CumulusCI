@@ -67,8 +67,7 @@ class DeployOrgSettings(Deploy):
             with open(settings_file, "w") as f:
                 f.write(SETTINGS_XML.format(settingsName=settings_name, values=values))
         api_version = (
-            self.options.get("api_version")
-            or self.project_config.project__package__api_version
+            self.options.get("api_version") or self.org_config.latest_api_version
         )
         with open("package.xml", "w") as f:
             f.write(PACKAGE_XML.format(api_version=api_version))
