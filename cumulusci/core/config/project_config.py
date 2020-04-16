@@ -270,9 +270,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             url = None
         return url
 
-    def line_not_remote_origin(self, line):
-        return True if line.strip() != '[remote "origin"]' else False
-
     @property
     def repo_root(self):
         path = self.repo_info.get("root")
