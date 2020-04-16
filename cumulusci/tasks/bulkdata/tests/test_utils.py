@@ -180,7 +180,7 @@ class TestBatching(unittest.TestCase):
         assert batches == [(7, 0), (7, 1), (6, 2)]
 
 
-class TestBatchIterator(unittest.TestCase):
+class TestBatchIterator:
     def test_sum_chars(self):
         item1 = "This is a longish string"
         item2 = "This is an even longer string"
@@ -198,19 +198,19 @@ class TestBatchIterator(unittest.TestCase):
         result = csv_const_chars_per_record(10)
         assert 30 == result
 
-    def test_batch_iterator(self):
-        fields = ["Id"]
-        num_records = 10
-        records = [[str(i)] for i in range(num_records)]
+    fields = ["Id"]
+    num_records = 10
+    records = [[str(i)] for i in range(num_records)]
 
-        csv_const_chars = csv_const_chars_per_record(len(fields))
-        csv_field_chars = sum_chars(fields) + csv_const_chars
-        chars_per_csv_record = sum_chars(records[0]) + csv_const_chars
+    def test_batch_iterator(self):
+        csv_const_chars = csv_const_chars_per_record(len(self.fields))
+        csv_field_chars = sum_chars(self.fields) + csv_const_chars
+        chars_per_csv_record = sum_chars(self.records[0]) + csv_const_chars
 
         # set char limit such that 3 records is ok, but 4 is not
         char_limit = csv_field_chars + 3 * chars_per_csv_record + 1
         batches = list(
-            batch_iterator(iter(records), fields, n=2, char_limit=char_limit)
+            batch_iterator(iter(self.records), self.fields, n=2, char_limit=char_limit)
         )
         assert len(batches) == 5
         assert list(batches[0]) == [["0"], ["1"]]
@@ -220,20 +220,16 @@ class TestBatchIterator(unittest.TestCase):
         assert list(batches[4]) == [["8"], ["9"]]
 
     def test_batch_iterator__char_limit_hit(self):
-        fields = ["Id"]
-        num_records = 10
-        records = [[str(i)] for i in range(num_records)]
-
-        csv_const_chars = csv_const_chars_per_record(len(fields))
-        csv_field_chars = sum_chars(fields) + csv_const_chars
-        chars_per_csv_record = sum_chars(records[0]) + csv_const_chars
+        csv_const_chars = csv_const_chars_per_record(len(self.fields))
+        csv_field_chars = sum_chars(self.fields) + csv_const_chars
+        chars_per_csv_record = sum_chars(self.records[0]) + csv_const_chars
 
         # set char limit such that 3 records is ok, but 4 is not
         char_limit = csv_field_chars + 3 * chars_per_csv_record + 1
 
         # ask for batches of 4
         batches = list(
-            batch_iterator(iter(records), fields, n=4, char_limit=char_limit)
+            batch_iterator(iter(self.records), self.fields, n=4, char_limit=char_limit)
         )
         assert 4 == len(batches)
         assert list(batches[0]) == [["0"], ["1"], ["2"]]
