@@ -24,7 +24,7 @@ class TestDeployOrgSettings:
                     f,
                 )
             path = os.path.join(d, "dev.json")
-            task_options = {"definition_file": path}
+            task_options = {"definition_file": path, "api_version": "48.0"}
             task = create_task(DeployOrgSettings, task_options)
             task.api_class = Mock()
             task()
