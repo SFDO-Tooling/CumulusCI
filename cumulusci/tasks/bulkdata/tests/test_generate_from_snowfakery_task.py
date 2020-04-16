@@ -10,16 +10,14 @@ from cumulusci.tasks.bulkdata.tests.utils import _make_task
 import yaml
 from sqlalchemy import create_engine
 
-import snowfakery
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
     GenerateAndLoadDataFromYaml,
 )
 from snowfakery import data_generator_runtime
 
-if snowfakery:
-    sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
-    simple_yaml = Path(__file__).parent / "snowfakery/include_parent.yml"
-    from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
+sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
+simple_yaml = Path(__file__).parent / "snowfakery/include_parent.yml"
+from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
 
 vanilla_mapping_file = Path(__file__).parent / "../tests/mapping_vanilla_sf.yml"
 
