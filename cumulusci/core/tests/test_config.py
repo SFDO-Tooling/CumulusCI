@@ -339,9 +339,18 @@ class TestBaseProjectConfig(unittest.TestCase):
         with temporary_dir():
             self.assertIsNone(config.repo_url)
 
-    def test_repo_url_from_git(self):
+    @mock.patch("cumulusci.core.config.project_config.BaseProjectConfig.git_path")
+    def test_repo_url_from_git(self, git_path):
+        git_config_file = "git_config"
+        git_path.return_value = git_config_file
+        repo_url = "https://github.com/foo/bar.git"
+        with open(git_config_file, "w") as f:
+            f.writelines(['[remote "origin"]\n' f"\turl = {repo_url}"])
+
         config = BaseProjectConfig(BaseGlobalConfig())
-        self.assertIn("/CumulusCI", config.repo_url)
+        assert repo_url == config.repo_url
+
+        os.remove(git_config_file)
 
     def test_repo_owner_from_repo_info(self):
         config = BaseProjectConfig(BaseGlobalConfig())
@@ -944,6 +953,53 @@ class TestBaseProjectConfig(unittest.TestCase):
         project_config.config["project"]["package"]["api_version"] = "45.00"
         with pytest.raises(ConfigError):
             project_config._validate_package_api_format()
+
+    @mock.patch("cumulusci.core.config.project_config.BaseProjectConfig.git_path")
+    def test_git_config_remote_origin_line(self, git_path):
+        git_config_file = "test_git_config_file"
+        git_path.return_value = git_config_file
+
+        with open(git_config_file, "w") as f:
+            f.writelines(
+                [
+                    '[branch "feature-1"]\n',
+                    "\tremote = origin\n",
+                    "\tmerge = refs/heads/feature-1\n",
+                    '[remote "origin"]\n',
+                    "\tfetch = +refs/heads/*:refs/remotes/origin/*\n",
+                ]
+            )
+
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+        actual_line = project_config.git_config_remote_origin_url()
+        assert actual_line is None  # no url under [remote "origin"]
+
+        with open(git_config_file, "a") as f:
+            f.write("\turl = some.url.here\n")
+
+        actual_line = project_config.git_config_remote_origin_url()
+        assert actual_line == "some.url.here"
+
+        os.remove(git_config_file)
+        actual_line = project_config.git_config_remote_origin_url()
+        assert actual_line is None  # no config file present
+
+    def test_split_repo_url(self):
+        name = "Cumulusci"
+        owner = "SFDO-Tooling"
+        project_config = BaseProjectConfig(BaseGlobalConfig())
+
+        https_url = f"https://github.com/{owner}/{name}.git"
+        info = project_config._split_repo_url(https_url)
+        assert info["name"] == name
+        assert info["owner"] == owner
+        assert info["url"] == https_url
+
+        ssh_url = f"git@github.com:{owner}/{name}.git"
+        info = project_config._split_repo_url(ssh_url)
+        assert info["name"] == name
+        assert info["owner"] == owner
+        assert info["url"] == ssh_url
 
 
 class TestBaseTaskFlowConfig(unittest.TestCase):

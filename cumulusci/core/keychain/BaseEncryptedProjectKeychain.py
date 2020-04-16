@@ -84,7 +84,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         pickled = cipher.decryptor().update(encrypted_config[16:])
         try:
             unpickled = pickle.loads(pickled, encoding="bytes")
-        except (pickle.UnpicklingError, UnicodeDecodeError):
+        except Exception:
             raise KeychainKeyNotFound(
                 f"Unable to decrypt{' ' + context if context else ''}. "
                 "It was probably stored using a different CUMULUSCI_KEY."
