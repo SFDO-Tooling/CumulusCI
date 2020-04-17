@@ -17,7 +17,6 @@ PACKAGE_VERSION="$(cat cumulusci/version.txt)"
 echo " "
 echo "=> Creating a temporary virtualenv and installing CumulusCI..."
 echo " "
-source deactivate
 python3.7 -m venv "$ENV_DIR" || exit 1
 source "$ENV_DIR/bin/activate" || exit 1
 pip install -U pip
