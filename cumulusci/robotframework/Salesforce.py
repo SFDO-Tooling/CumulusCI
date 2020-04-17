@@ -526,6 +526,7 @@ class Salesforce(object):
                 self.builtin.log(
                     f"caught exception waiting for app launcher; not retrying", "DEBUG"
                 )
+                raise
 
     def populate_field(self, name, value):
         """Enters a value into an input or textarea field.
