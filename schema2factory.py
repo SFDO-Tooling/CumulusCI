@@ -94,10 +94,11 @@ known_types = {
     "zip": KnownType(simple_fake("postalcode"), "string"),
     "datetime": KnownType(lambda **args: "<<fake.date>>T<<fake.time>>Z", "datetime"),
     "binary": KnownType(
-        lambda length=20, **args: f"<<fake.text(max_nb_chars={length})>>", "binary"
+        lambda length=20, **args: {"fake.text": {"max_nb_chars": min(length, 100)}},
+        "binary",
     ),
     "string": KnownType(
-        lambda length=20, **args: f"<<fake.text(max_nb_chars={min(length, 100)})>>",
+        lambda length=20, **args: {"fake.text": {"max_nb_chars": min(length, 100)}},
         "string",
     ),
     "currency": KnownType(
@@ -120,7 +121,8 @@ known_types = {
         lambda **args: {"random_number": {"min": 1, "max": 100}}, ("int")
     ),
     "textarea": KnownType(
-        lambda length=20, **args: f"<<fake.text(max_nb_chars={length})>>", ("textarea")
+        lambda length=20, **args: {"fake.text": {"max_nb_chars": min(length, 100)}},
+        ("textarea"),
     ),
     "year": KnownType(simple_fake("year"), ("string", "int")),
     "Installment Frequency": KnownType(
