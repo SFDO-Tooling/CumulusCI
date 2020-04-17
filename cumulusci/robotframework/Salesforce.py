@@ -496,7 +496,7 @@ class Salesforce(object):
         will need to create a custom keyword.
 
         If the retry parameter is true, the keyword will
-        close and then re-open the app launcher it times out
+        close and then re-open the app launcher if it times out
         while waiting for the dialog to open.
         """
 
