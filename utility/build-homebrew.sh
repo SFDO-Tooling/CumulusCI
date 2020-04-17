@@ -63,6 +63,7 @@ $(cat "$RES_FILE")
     end
 
     bin.install Dir["#{libexec}/bin/cci"]
+    bin.install Dir["#{libexec}/bin/snowfakery"]
     bin.env_script_all_files(libexec/"bin", :PYTHONPATH => ENV["PYTHONPATH"])
   end
 
