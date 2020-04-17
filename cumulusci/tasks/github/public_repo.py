@@ -1,22 +1,17 @@
-import os
-import shutil
+import tempfile
 from datetime import datetime
-import github3.exceptions
 
+import github3.exceptions
 from cumulusci.core.exceptions import GithubException
-from cumulusci.core.github import get_github_api_for_repo
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.utils import process_list_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.github.util import CommitDir
-from cumulusci.utils import cd
 from cumulusci.utils import download_extract_github_from_repo
-from cumulusci.utils import temporary_dir
 
 
 class PublishRelease(BaseGithubTask):
     task_options = {
-        "repo_url": {"description": "The url to the public repo", "required": True,},
+        "repo_url": {"description": "The url to the public repo", "required": True},
         "branch": {
             "description": "The branch to update in the target repo",
             "required": True,
@@ -25,15 +20,17 @@ class PublishRelease(BaseGithubTask):
             "description": "The version number to release.  Also supports latest and latest_beta to look up the latest releases.",
             "required": True,
         },
-        "exclude": {"description": "A list of paths from repo root to exclude",},
+        "include": {
+            "description": "A list of paths from repo root to include. Directories must end with a trailing slash."
+        },
         "release_body": {
-            "description": "If True, the entire release body will be published to the public repo.  Defaults to False",
+            "description": "If True, the entire release body will be published to the public repo.  Defaults to False"
         },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.options["exclude"] = process_list_arg(self.options.get("exclude", []))
+        self.options["include"] = process_list_arg(self.options.get("include", []))
         self.options["release_body"] = process_bool_arg(
             self.options.get("release_body", False)
         )
@@ -46,10 +43,10 @@ class PublishRelease(BaseGithubTask):
 
     def _get_target_repo_api(self):
         gh = self.project_config.get_github_api(
-            self._target_repo_info["owner"], self._target_repo_info["name"],
+            self._target_repo_info["owner"], self._target_repo_info["name"]
         )
         return gh.repository(
-            self._target_repo_info["owner"], self._target_repo_info["name"],
+            self._target_repo_info["owner"], self._target_repo_info["name"]
         )
 
     def _run_task(self):
@@ -58,34 +55,37 @@ class PublishRelease(BaseGithubTask):
         )
         self.target_repo = self._get_target_repo_api()
 
-        with temporary_dir(chdir=False) as target:
-            self._download_repo(target)
-            self._exclude_files(target)
+        with tempfile.TemporaryDirectory() as target:
+            self._download_repo_and_extract(target)
             commit = self._create_commit(target)
             self._create_release(target, commit)
 
-    def _download_repo(self, path):
+    def _download_repo_and_extract(self, path):
         zf = download_extract_github_from_repo(
             self.get_repo(),
             ref="tags/{}".format(
                 self.project_config.get_tag_for_version(self.options["version"])
             ),
         )
-        with cd(path):
-            zf.extractall()
+        included_members = self._filter_namelist(
+            includes=self.options["include"], namelist=zf.namelist()
+        )
+        zf.extractall(path=path, members=included_members)
 
-    def _exclude_files(self, path):
-        with cd(path):
-            for path in self.options["exclude"]:
-                if os.path.isdir(path):
-                    shutil.rmtree(path)
-                elif os.path.isfile(path):
-                    os.remove(path)
+    def _filter_namelist(self, includes, namelist):
+        filtered_names = set()
+        dirs = tuple(name for name in includes if name.endswith("/"))
+        filtered_names.update(
+            {name for name in namelist if name.startswith(dirs) or name in includes}
+        )
+        return list(filtered_names)
 
     def _create_commit(self, path):
         committer = CommitDir(self.target_repo)
         message = f"Publishing release {self.options['version']}"
-        commit = committer(path, self.options["branch"], commit_message=message)
+        commit = committer(
+            path, self.options["branch"], repo_dir="", commit_message=message
+        )
         return commit.sha
 
     def _create_release(self, path, commit):
@@ -115,9 +115,8 @@ class PublishRelease(BaseGithubTask):
             raise GithubException(message)
 
         # Check for tag in target repo
-        target_ref = None
         try:
-            target_ref = self.target_repo.ref(f"tags/{tag_name}")
+            self.target_repo.ref(f"tags/{tag_name}")
         except github3.exceptions.NotFoundError:
             pass
         else:
@@ -125,7 +124,7 @@ class PublishRelease(BaseGithubTask):
             raise GithubException(message)
 
         # Create the tag
-        target_tag = self.target_repo.create_tag(
+        self.target_repo.create_tag(
             tag=tag_name,
             message=tag.message,
             sha=commit,
@@ -139,8 +138,8 @@ class PublishRelease(BaseGithubTask):
         )
 
         # Create the release
-        body = release.body if self.options["release_body"] else ""
-        target_release = self.target_repo.create_release(
+        release.body if self.options["release_body"] else ""
+        self.target_repo.create_release(
             tag_name=tag_name,
             name=self.options["version"],
             prerelease=release.prerelease,
