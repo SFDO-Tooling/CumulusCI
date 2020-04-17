@@ -485,6 +485,7 @@ class Salesforce(object):
         output += pformat(self.selenium.driver.capabilities, indent=4)
         self.builtin.log(output, level=loglevel)
 
+    @capture_screenshot_on_error
     def open_app_launcher(self, retry=True):
         """Opens the Saleforce App Launcher Modal
 
@@ -678,7 +679,6 @@ class Salesforce(object):
         locator = lex_locators["app_launcher"]["app_link"].format(app_name)
         self.open_app_launcher()
         self.selenium.wait_until_page_contains_element(locator, timeout=30)
-        self.selenium.scroll_element_into_view(locator)
         self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
         link = elem.find_element_by_xpath("../../..")
@@ -692,7 +692,7 @@ class Salesforce(object):
         locator = lex_locators["app_launcher"]["tab_link"].format(tab_name)
         self.open_app_launcher()
         self.selenium.wait_until_page_contains_element(locator)
-        self.selenium.scroll_element_into_view(locator)
+        self.selenium.set_focus_to_element(locator)
         self._jsclick(locator)
         self.wait_until_modal_is_closed()
 
