@@ -291,7 +291,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
         for count, csv_batch in enumerate(self._batch(records)):
             self.context.logger.info(f"Uploading batch {count + 1}")
-            self.batch_ids.append(self.bulk.post_batch(self.job_id, csv_batch))
+            self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
 
     def _batch(self, records, n=10000, char_limit=10000000):
         serialized_csv_fields = self._serialize_csv_record(self.fields)
@@ -319,7 +319,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                 current_chars = len_csv_fields
 
         # give back anything leftover
-        if batch:
+        if len(batch) > 1:
             yield batch
 
     def _serialize_csv_record(self, record):
