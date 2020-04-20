@@ -11,7 +11,7 @@ Library         Dialogs
 
 Create Account
     [Arguments]      &{fields}
-    ${name} =        Generate Random String
+    ${name} =        Get fake data  name
     ${account_id} =  Salesforce Insert  Account
     ...                Name=${name}
     ...                &{fields}
@@ -20,8 +20,8 @@ Create Account
 
 Create Contact
     [Arguments]      &{fields}
-    ${first_name} =  Generate Random String
-    ${last_name} =   Generate Random String
+    ${first_name} =  Get fake data  first_name
+    ${last_name} =   Get fake data  last_name
     ${contact_id} =  Salesforce Insert  Contact
     ...                FirstName=${first_name}
     ...                LastName=${last_name}
@@ -210,7 +210,7 @@ Open App Launcher
     Page Should Contain  All Apps
 
 Populate Field
-    ${account_name} =    Generate Random String
+    ${account_name} =    Get fake data  company
     Go To Object Home    Account
     Click Object Button  New
     Populate Field       Account Name  ${account_name}
@@ -231,7 +231,7 @@ Populate Lookup Field
     Should Be Equal        ${value}  &{account}[Name]
 
 Populate Form
-    ${account_name} =    Generate Random String
+    ${account_name} =    Get fake data  company
     Go To Object Home    Account
     Click Object Button  New
     Populate Form

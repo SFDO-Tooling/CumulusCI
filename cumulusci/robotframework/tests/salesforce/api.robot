@@ -2,13 +2,13 @@
 
 Resource        cumulusci/robotframework/Salesforce.robot
 Suite Teardown  Delete Session Records
-Force Tags      api
+Force Tags      api  no-browser
 
 *** Keywords ***
 
 Create Contact
-    ${first_name} =  Generate Random String
-    ${last_name} =  Generate Random String
+    ${first_name} =  Get fake data  first_name
+    ${last_name} =   Get fake data  last_name
     ${contact_id} =  Salesforce Insert  Contact  FirstName=${first_name}  LastName=${last_name}
     &{contact} =  Salesforce Get  Contact  ${contact_id}
     [return]  &{contact}
@@ -16,25 +16,24 @@ Create Contact
 *** Test Cases ***
 
 Salesforce Delete
-    Log Variables
     &{contact} =  Create Contact
     Salesforce Delete  Contact  &{contact}[Id]
     &{result} =  SOQL Query  Select Id from Contact WHERE Id = '&{contact}[Id]'
     Should Be Equal  &{result}[totalSize]  ${0}
 
 Salesforce Insert
-    ${first_name} =  Generate Random String
-    ${last_name} =  Generate Random String
+    ${first_name} =  Get fake data  first_name
+    ${last_name} =   Get fake data  last_name
     ${contact_id} =  Salesforce Insert  Contact
     ...  FirstName=${first_name}
     ...  LastName=${last_name}
     &{contact} =  Salesforce Get  Contact  ${contact_id}
     Should Be Equal  &{contact}[FirstName]  ${first_name}
     Should Be Equal  &{contact}[LastName]  ${last_name}
-    
+
 Salesforce Update
     &{contact} =  Create Contact
-    ${new_last_name} =  Generate Random String
+    ${new_last_name} =  Get fake data  last_name
     Salesforce Update  Contact  &{contact}[Id]  LastName=${new_last_name}
     &{contact} =  Salesforce Get  Contact  &{contact}[Id]
     Should Be Equal  &{contact}[LastName]  ${new_last_name}
@@ -53,7 +52,6 @@ SOQL Query
     &{new_contact} =  Create Contact
     &{result} =  Soql Query  Select Id, FirstName, LastName from Contact WHERE Id = '&{new_contact}[Id]'
     @{records} =  Get From Dictionary  ${result}  records
-    Log Variables
     &{contact} =  Get From List  ${records}  0
     Should Be Equal  &{result}[totalSize]  ${1}
     Should Be Equal  &{contact}[FirstName]  &{new_contact}[FirstName]
@@ -88,29 +86,29 @@ Salesforce Delete Session Records
     length should be  ${query}  0  Expected the query to return 0 records, but it returned ${query}
 
 Collection API Test
-    @{objects} =  Generate Test Data  Contact  20  
+    @{objects} =  Generate Test Data  Contact  20
         ...  FirstName=User {{number}}
         ...  LastName={{fake.last_name}}
     @{records} =    Salesforce Collection Insert  ${objects}
     FOR     ${record}   IN  @{records}
-        ${new_last_name} =  Generate Random String
+        ${new_last_name} =  Get fake data  last_name
         set to dictionary   ${record}   LastName    ${new_last_name}
     END
     Salesforce Collection Update    ${records}
 
 Collection API Errors Test
-    @{objects} =  Generate Test Data  Contact  20  
+    @{objects} =  Generate Test Data  Contact  20
         ...  FirstName=User {{number}}
         ...  LastName={{fake.last_name}}
         ...  Xyzzy=qwertz
     Run Keyword And Expect Error   SalesforceMalformedRequest*   Salesforce Collection Insert  ${objects}
 
-    @{objects} =  Generate Test Data  Contact  20  
+    @{objects} =  Generate Test Data  Contact  20
         ...  FirstName=User {{number}}
         ...  LastName=
     Run Keyword And Expect Error   Error*  Salesforce Collection Insert  ${objects}
 
-    @{objects} =  Generate Test Data  Contact  20  
+    @{objects} =  Generate Test Data  Contact  20
         ...  FirstName=User {{number}}
         ...  LastName={{fake.last_name}}
     ${records} =     Salesforce Collection Insert  ${objects}

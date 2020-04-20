@@ -1,6 +1,8 @@
+import os
+import logging
+
 from unittest.mock import patch
-from pathlib import Path
-from ..logger import init_logger, get_gist_logger, get_rot_file_logger
+from ..logger import init_logger, get_tempfile_logger
 
 
 class TestLogger:
@@ -10,25 +12,11 @@ class TestLogger:
         init_logger(log_requests=True)
         requests.packages.urllib3.add_stderr_logger.assert_called_once()
 
-    @patch("cumulusci.cli.logger.Path.mkdir")
-    @patch("cumulusci.cli.logger.Path.home")
-    @patch("cumulusci.cli.logger.get_rot_file_logger")
-    def test_get_gist_logger(self, file_logger, home, mkdir):
-        home.return_value = Path("/Users/bob.ross")
-        get_gist_logger()
-        file_logger.assert_called_once_with(
-            "stdout/stderr", Path("/Users/bob.ross/.cumulusci/logs/cci.log")
-        )
-
-    @patch("cumulusci.cli.logger.RotatingFileHandler")
-    @patch("cumulusci.cli.logger.logging")
-    def test_get_rot_file_logger(self, logging, rot_filehandler):
-
-        logger_name = "The happy logger"
-        path = "happy/logger/path"
-        logger = get_rot_file_logger(logger_name, path)
-
-        logging.getLogger.assert_called_once_with(logger_name)
-        rot_filehandler.assert_called_once_with(path, backupCount=5, encoding="utf-8")
-        logger.addHandler.assert_called_once()
-        logger.setLevel.assert_called_once()
+    def test_get_tempfile_logger(self):
+        logger, tempfile = get_tempfile_logger()
+        assert os.path.isfile(tempfile)
+        assert len(logger.handlers) == 1
+        assert isinstance(logger.handlers[0], logging.FileHandler)
+        # delete temp logfile
+        logger.handlers[0].close()
+        os.remove(tempfile)

@@ -45,12 +45,13 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task, tee_stdout_stderr
+from cumulusci.utils import doc_task
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
+from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
-from .logger import init_logger, get_gist_logger
+from .logger import init_logger, get_tempfile_logger
 
 
 @contextlib.contextmanager
@@ -210,8 +211,8 @@ def main(args=None):
         # that are not `cci error`
         is_error_command = len(args) > 2 and args[1] == "error"
         if not is_error_command:
-            logger = get_gist_logger()
-            stack.enter_context(tee_stdout_stderr(args, logger))
+            logger, tempfile_path = get_tempfile_logger()
+            stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
 
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
@@ -221,11 +222,13 @@ def main(args=None):
             show_debug_info() if debug else click.echo("\nAborted!")
             sys.exit(1)
         except Exception as e:
-            show_debug_info() if debug else handle_exception(e, is_error_command)
+            show_debug_info() if debug else handle_exception(
+                e, is_error_command, tempfile_path
+            )
             sys.exit(1)
 
 
-def handle_exception(error, is_error_cmd):
+def handle_exception(error, is_error_cmd, logfile_path):
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
@@ -239,7 +242,7 @@ def handle_exception(error, is_error_cmd):
     if not is_error_cmd:
         click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
 
-    with open(CCI_LOGFILE_PATH, "a") as log_file:
+    with open(logfile_path, "a") as log_file:
         traceback.print_exc(file=log_file)  # log stacktrace silently
 
 
@@ -305,7 +308,6 @@ def shell(runtime, script=None, python=None):
         code.interact(local={**globals(), **locals()})
 
 
-CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
 GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
 Please ensure that your GitHub personal access token has the 'Create gists' scope."""
 
@@ -350,9 +352,11 @@ def service():
     pass
 
 
-@cli.group("error")
+@cli.group("error", short_help="Get or share information about an error")
 def error():
     """
+    Get or share information about an error
+
     If you'd like to dig into an error more yourself,
     you can get the last few lines of context about it
     from `cci error info`.
@@ -1417,6 +1421,9 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(str(e))
+
+
+CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
 
 
 @error.command(
