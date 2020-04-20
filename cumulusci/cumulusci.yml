@@ -251,6 +251,9 @@ tasks:
         description: Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
         group: Salesforce DX
+    describe_org:
+        description: Generate a JSON file representing a Salesforce org, appropriate for further processing by scripts or tasks.
+        class_path: cumulusci.tasks.describe_org.DescribeOrg
     dx_convert_to:
         description: Converts src directory metadata format into sfdx format under force-app
         class_path: cumulusci.tasks.sfdx.SFDXBaseTask
