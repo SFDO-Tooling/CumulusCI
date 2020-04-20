@@ -1,6 +1,7 @@
 *** Settings ***
 
 Resource  cumulusci/robotframework/CumulusCI.robot
+Force Tags  no-browser
 
 *** Test Cases ***
 

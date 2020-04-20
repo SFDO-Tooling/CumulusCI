@@ -47,7 +47,7 @@ def load_from_source(source: DataInput) -> ContextManager[Tuple[Text, IO[Text]]]
     <!DOCTYPE
 
     >>> from urllib.request import urlopen
-    >>> with urlopen("http://www.salesforce.com") as f:
+    >>> with urlopen("https://www.salesforce.com") as f:
     ...     with load_from_source(f) as (path, file):
     ...         print(path)
     ...         print(file.read(10).strip())  #doctest: +ELLIPSIS

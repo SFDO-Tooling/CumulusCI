@@ -89,7 +89,6 @@ class MetadataElement:
 
     def __init__(self, element: etree._Element, parent: etree._Element = None):
         assert isinstance(element, etree._Element)
-        assert len(element.nsmap) == 1, "Only one namespace allowed"
         self._element = element
         self._parent = parent
         self._ns = next(iter(element.nsmap.values()))

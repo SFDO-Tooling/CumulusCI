@@ -98,23 +98,20 @@ class CliRuntime(BaseCumulusCI):
     def check_org_expired(self, org_name, org_config):
         if org_config.scratch and org_config.date_created and org_config.expired:
             click.echo(click.style("The scratch org is expired", fg="yellow"))
-            if click.confirm("Attempt to recreate the scratch org?", default=True):
-                self.keychain.create_scratch_org(
-                    org_name,
-                    org_config.config_name,
-                    days=org_config.days,
-                    set_password=org_config.set_password,
+            self.keychain.create_scratch_org(
+                org_name,
+                org_config.config_name,
+                days=org_config.days,
+                set_password=org_config.set_password,
+            )
+            click.echo(
+                click.style(
+                    "Org config was refreshed, attempting to recreate scratch org",
+                    fg="yellow",
                 )
-                click.echo(
-                    "Org config was refreshed, attempting to recreate scratch org"
-                )
-                org_config = self.keychain.get_org(org_name)
-                org_config.create_org()
-            else:
-                raise click.ClickException(
-                    f"The target scratch org is expired.  You can use cci org remove {org_name} "
-                    "to remove the org and then recreate the config manually"
-                )
+            )
+            org_config = self.keychain.get_org(org_name)
+            org_config.create_org()
 
         return org_config
 

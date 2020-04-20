@@ -4,9 +4,65 @@ on:
   push:
     branches:
     - feature/**
+    - master
+
+env:
+  COVERALLS_PARALLEL: true
+  COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+  CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: pip cache
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install black
+      run: |
+        python -m pip install -U pip
+        pip install $(grep black requirements_dev.txt | cut -d';' -f 1)
+    - run: black --check --diff .
+
+  unit_tests:
+    name: "Unit tests: Python ${{ matrix.python-version }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8"]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: "${{ matrix.python-version }}"
+    - name: pip cache
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install
+      run: |
+        python -m pip install -U pip
+        pip install -r requirements_dev.txt
+    - run: |
+        coverage run $(which pytest)
+        coveralls
+
   windows:
+    name: "Unit Tests: Windows"
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
@@ -19,9 +75,168 @@ jobs:
       with:
         path: ~\AppData\Local\pip\Cache
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     - name: Install
       run: |
         python -m pip install -U pip
         pip install -r requirements_dev.txt
     - name: pytest
       run: pytest
+
+  robot_api:
+    name: "Robot: No browser"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: pip cache
+      uses: actions/cache@v1
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install Python dependencies
+      run: |
+        python -m pip install -U pip
+        pip install -r requirements_dev.txt
+    - name: Install sfdx
+      run: |
+        mkdir sfdx
+        wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+        ./sfdx/install
+        echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
+        sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+      env:
+        SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
+        SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+        SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
+    - name: Run robot tests
+      run: |
+        coverage run --append $(which cci) task run robot \
+          --org dev \
+          -o name "CumulusCI" \
+          -o suites cumulusci/robotframework/tests \
+          -o include no-browser
+    - name: Delete scratch org
+      if: always()
+      run: |
+        cci org scratch_delete dev
+    - name: Report coverage
+      run: coveralls
+    - name: Store robot results
+      uses: actions/upload-artifact@v1
+      with:
+        name: robot
+        path: robot/CumulusCI/results
+
+  robot_ui_chrome:
+    name: "Robot: Chrome"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: pip cache
+      uses: actions/cache@v1
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install Python dependencies
+      run: |
+        python -m pip install -U pip
+        pip install -r requirements_dev.txt
+    - name: Install sfdx
+      run: |
+        mkdir sfdx
+        wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+        ./sfdx/install
+        echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
+        sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+      env:
+        SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
+        SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+        SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
+    - name: Run robot tests
+      run: |
+        coverage run --append $(which cci) task run robot \
+          --org dev \
+          -o suites cumulusci/robotframework/tests/salesforce \
+          -o exclude no-browser \
+          -o vars BROWSER:headlesschrome
+    - name: Delete scratch org
+      if: always()
+      run: |
+        cci org scratch_delete dev
+    - name: Report coverage
+      run: coveralls
+    - name: Store robot results
+      uses: actions/upload-artifact@v1
+      with:
+        name: robot
+        path: robot/CumulusCI/results
+
+  robot_ui_firefox:
+    name: "Robot: Firefox"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: pip cache
+      uses: actions/cache@v1
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install Python dependencies
+      run: |
+        python -m pip install -U pip
+        pip install -r requirements_dev.txt
+    - name: Install sfdx
+      run: |
+        mkdir sfdx
+        wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+        ./sfdx/install
+        echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
+        sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+      env:
+        SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
+        SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+        SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
+    - name: Run robot tests
+      run: |
+        coverage run --append $(which cci) task run robot \
+          --org dev \
+          -o suites cumulusci/robotframework/tests/salesforce \
+          -o exclude no-browser \
+          -o vars BROWSER:headlessfirefox
+    - name: Delete scratch org
+      if: always()
+      run: |
+        cci org scratch_delete dev
+    - name: Report coverage
+      run: coveralls
+    - name: Store robot results
+      uses: actions/upload-artifact@v1
+      with:
+        name: robot
+        path: robot/CumulusCI/results
+
+  coveralls_done:
+    name: Finalize coveralls
+    needs: [unit_tests, windows, robot_api, robot_ui_chrome, robot_ui_firefox]
+    runs-on: ubuntu-latest
+    steps:
+    - run: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$GITHUB_SHA&payload[status]=done"
