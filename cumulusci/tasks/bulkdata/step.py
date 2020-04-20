@@ -14,7 +14,6 @@ import requests
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import batch_iterator
 
 
 class DataOperationType(Enum):
@@ -294,12 +293,46 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.context.logger.info(f"Uploading batch {count + 1}")
             self.batch_ids.append(self.bulk.post_batch(self.job_id, csv_batch))
 
-    def _batch(self, records):
-        """Return a generator of generators, where each child generator is batched."""
-        for batch in batch_iterator(
-            records, self.fields, self.api_options.get("batch_size", 10000)
-        ):
-            yield self._csv_generator(batch)
+    def _batch(self, records, n=10000, char_limit=10000000):
+        serialized_csv_fields = self._serialize_csv_record(self.fields)
+        len_csv_fields = len(serialized_csv_fields)
+
+        # append fields to first row
+        batch = [serialized_csv_fields]
+        current_chars = len_csv_fields
+        for record in records:
+            serialized_record = self._serialize_csv_record(record)
+            # Does the next record put us over the character limit?
+            if len(serialized_record) + current_chars > char_limit:
+                yield batch
+                batch = [serialized_csv_fields]
+                current_chars = len_csv_fields
+
+            batch.append(serialized_record)
+            current_chars += len(serialized_record)
+
+            # yield batch if we're at desired size
+            # -1 due to first row being field names
+            if len(batch) - 1 == n:
+                yield batch
+                batch = [serialized_csv_fields]
+                current_chars = len_csv_fields
+
+        # give back anything leftover
+        if batch:
+            yield batch
+
+    def _serialize_csv_record(self, record):
+        """Given a list of strings (record) return
+        the corresponding record serialized in .csv format"""
+        self.csv_writer.writerow(record)
+        self.csv_buff.seek(0)
+        serialized = self.csv_buff.read().encode("utf-8")
+        # flush buffer
+        self.csv_buff.truncate(0)
+        self.csv_buff.seek(0)
+
+        return serialized
 
     def _csv_generator(self, records):
         """Return a generator of binary, CSV-format data for the given record iterator."""
