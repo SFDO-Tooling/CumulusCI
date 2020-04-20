@@ -264,6 +264,17 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
 class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
     """Operation class for all DML operations run using the Bulk API."""
 
+    def __init__(self, *, sobject, operation, api_options, context, fields):
+        super().__init__(
+            sobject=sobject,
+            operation=operation,
+            api_options=api_options,
+            context=context,
+            fields=fields,
+        )
+        self.csv_buff = io.StringIO()
+        self.csv_writer = csv.writer(self.csv_buff)
+
     def start(self):
         self.job_id = self.bulk.create_job(
             self.sobject,
