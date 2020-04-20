@@ -2,6 +2,40 @@
 History
 =======
 
+3.11.0 (2020-04-17)
+-------------------
+
+Changes:
+
+* CumulusCI now includes `Snowfakery <https://pypi.org/project/snowfakery/>`_,
+  a tool for generating fake data. It can be used to generate and load data into an org
+  via the new ``generate_and_load_from_yaml`` task.
+
+* Added two new preflight check tasks for use in MetaDeploy:
+  ``get_available_licenses`` and ``get_available_permission_set_licenses``.
+  These tasks make available lists of the License Definition Keys for the org's licenses or PSLs.
+
+* The ``get_installed_packages`` task now logs its result.
+
+* Robot Framework: Added two new keywords (``Get Fake Data`` and ``Set Faker Locale``)
+  and a global robot variable (``${faker}``) which can be used to generate fake data
+  using the `Faker <https://pypi.org/project/Faker/>`_ library.
+
+Issues closed:
+
+* Fixed an error when loading a dependency whose ``cumulusci.yml`` contains non-breaking spaces.
+
+* Fixed a PermissionError when running multiple concurrent CumulusCI commands in Windows. (#1477)
+
+* Show a more helpful error message if a keychain entry can't be loaded
+  due to a change in the encryption key.
+
+* Fixed the ``org_settings`` task to use the API version of the org rather than the API version of the package.
+
+* In the Salesforce Robot Framework library, the ``Open App Launcher`` keyword now tries to detect
+  and recover from an occasional situation where the app launcher fails to load.
+
+
 3.10.0 (2020-04-02)
 -------------------
 

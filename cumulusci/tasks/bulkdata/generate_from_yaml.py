@@ -138,9 +138,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         return new_continuation_file
 
     def generate_data(self, session, engine, base, num_records, current_batch_num):
-        output_stream = SqlOutputStream.from_connection(
-            session, engine, base, self.mappings
-        )
+        output_stream = SqlOutputStream(engine, self.mappings)
         old_continuation_file = self.get_old_continuation_file()
         if old_continuation_file:
             # reopen to ensure file pointer is at starting point
