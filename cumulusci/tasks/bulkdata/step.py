@@ -341,22 +341,6 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
         return serialized
 
-    def _csv_generator(self, records):
-        """Return a generator of binary, CSV-format data for the given record iterator."""
-        content = io.StringIO()
-        writer = csv.writer(content)
-        writer.writerow(self.fields)
-        content.seek(0)
-        yield content.read().encode("utf-8")
-        content.truncate(0)
-        content.seek(0)
-        for rec in records:
-            writer.writerow(rec)
-            content.seek(0)
-            yield content.read().encode("utf-8")
-            content.truncate(0)
-            content.seek(0)
-
     def get_results(self):
         for batch_id in self.batch_ids:
             try:
