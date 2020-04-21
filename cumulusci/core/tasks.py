@@ -115,10 +115,14 @@ class BaseTask(object):
                 self.parsed_options = self.Options(**self.options)
             except ValidationError as e:
                 try:
-                    message = f"Task Options Error: {e.errors()[0]['loc'][0]} {e.errors()[0]['msg']}"
+                    message = f"Task Options Error: '{e.errors()[0]['loc'][0]}' {e.errors()[0]['msg']}"
                 except (AttributeError, IndexError):
                     message = f"Task Options Error"
+                if "extra fields not permitted" in message:
+                    message = message.replace("extra fields", "extra options")
                 raise TaskOptionsError(message) from e
+            except (TaskOptionsError, TypeError) as e:
+                raise TaskOptionsError(f"Task Options Error: '{option}': {e}")
 
     def _validate_options(self):
         missing_required = []

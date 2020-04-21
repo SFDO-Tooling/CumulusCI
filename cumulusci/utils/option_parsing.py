@@ -1,11 +1,13 @@
 from typing import List, Dict, Any
 import json
 from pathlib import Path
+from inspect import signature
 
 from pydantic import Field, create_model
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 def _describe_field(field):
@@ -20,6 +22,8 @@ def _describe_field(field):
 
 
 class CCIOptions(CCIDictModel):
+    "Base class for all options in tasks"
+
     @classmethod
     def as_task_options(cls):
         return {
@@ -29,6 +33,16 @@ class CCIOptions(CCIDictModel):
 
 
 class CCIOptionType:
+    """Base class custom option types.
+
+    Subclasses must implement 'from_str' and it must have a type-hinted return value like this:
+
+    class ListOfStringsOption(CCIOptionType):
+        @classmethod
+        def from_str(cls, v) -> List[str]:
+            return [s.strip() for s in v.split(",")]
+    """
+
     name = None
 
     @classmethod
@@ -51,39 +65,38 @@ class CCIOptionType:
         # Pydantic can't just parse/validate arbitrary data unless
         # it has a model. So we create a dummy model for
         # it to have a parsing/validating context
-        Dummy = create_model(cls.name or cls.__name__, __root__=(cls.target_type, ...))
+        target_type = signature(cls.from_str).return_annotation
+
+        Dummy = create_model(cls.name or cls.__name__, __root__=(target_type, ...))
 
         return Dummy.parse_obj(v).__root__
 
 
 class ListOfStringsOption(CCIOptionType):
-    """Parses a list of strings from a string"""
-
-    target_type = List[str]
+    """Parses a list of strings from a comma-delimited string"""
 
     @classmethod
-    def from_str(cls, v):
+    def from_str(cls, v) -> List[str]:
         return [s.strip() for s in v.split(",")]
 
 
 class PathOption(CCIOptionType):
     """Parses a Path from a string"""
 
-    target_type = Path
-
     @classmethod
-    def from_str(cls, v):
+    def from_str(cls, v) -> Path:
         return Path(v)
 
 
 class MappingOption(CCIOptionType):
-    """Parses a Mapping of Str->Any from a string"""
-
-    target_type = Dict[str, Any]
+    """Parses a Mapping of Str->Any from a string in format a:b,c:d"""
 
     @classmethod
-    def from_str(cls, v):
-        return process_list_of_pairs_dict_arg(v)
+    def from_str(cls, v) -> Dict[str, Any]:
+        try:
+            return process_list_of_pairs_dict_arg(v)
+        except TaskOptionsError as e:
+            raise TypeError(e)
 
 
 Field = Field  # export this and shut up linter
