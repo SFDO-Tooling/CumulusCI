@@ -1,51 +1,58 @@
 import pytest
 
+from cumulusci.cli.logger import init_logger
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.config import TaskConfig
-
-
-class CCI:
-    runtime = None
-
-    def __init__(self, org_name):
-        if self.runtime:
-            assert (
-                org_name == self.orig_origname
-            ), "This class only supports a single org per process, specified on the command line"
-        else:
-            self.init_runtime(org_name)
-
-    @classmethod
-    def init_runtime(cls, org_name):
-        cls.orig_origname = org_name
-        cls.runtime = CliRuntime()
-        cls.org_name, cls.org_config = cls.runtime.get_org(org_name)
-        cls.org_config.refresh_oauth_token(cls.runtime.keychain)
-        cls.project_config = cls.runtime.project_config
 
 
 def pytest_addoption(parser, pluginmanager):
     parser.addoption("--org", action="store", default=None, help="org to use")
 
 
-@pytest.fixture
-def sf(request):
-    org_name = request.config.getoption("--org")
-    cci = CCI(org_name)
+@pytest.fixture(scope="session")
+def runtime():
+    """Get the CumulusCI runtime for the current working directory."""
+    init_logger()
+    return CliRuntime()
 
-    sf = get_simple_salesforce_connection(cci.runtime.project_config, cci.org_config)
+
+@pytest.fixture(scope="session")
+def project_config(runtime):
+    """Get the project config for the current working directory."""
+    return runtime.project_config
+
+
+@pytest.fixture(scope="session")
+def org_config(request, runtime):
+    """Get an org config with an active access token.
+
+    Specify the org name using the --org option when running pytest.
+    Or else it will use your default CCI org.
+    """
+    org_name = request.config.getoption("--org")
+    org_name, org_config = runtime.get_org(org_name)
+    org_config.refresh_oauth_token(runtime.keychain)
+    return org_config
+
+
+@pytest.fixture
+def sf(request, project_config, org_config):
+    """Get a simple-salesforce client for org_config."""
+    sf = get_simple_salesforce_connection(project_config, org_config)
     return sf
 
 
 @pytest.fixture
-def create_task(request):
-    org_name = request.config.getoption("--org")
-    cci = CCI(org_name)
+def create_task(request, project_config, org_config):
+    """Get a task _factory_ which can be used to construct task instances.
+    """
+    session_project_config = project_config
+    session_org_config = org_config
 
     def create_task(task_class, options=None, project_config=None, org_config=None):
-        project_config = project_config or cci.project_config
-        org_config = org_config or cci.org_config
+        project_config = project_config or session_project_config
+        org_config = org_config or session_org_config
         options = options or {}
 
         task_config = TaskConfig({"options": options})
