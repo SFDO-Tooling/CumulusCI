@@ -333,8 +333,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         """Given a list of strings (record) return
         the corresponding record serialized in .csv format"""
         self.csv_writer.writerow(record)
-        self.csv_buff.seek(0)
-        serialized = self.csv_buff.read().encode("utf-8")
+        serialized = self.csv_buff.getvalue().encode("utf-8")
         # flush buffer
         self.csv_buff.truncate(0)
         self.csv_buff.seek(0)
