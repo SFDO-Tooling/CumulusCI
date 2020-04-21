@@ -1,6 +1,5 @@
 import hashlib
 from unittest import mock
-import os
 import unittest
 
 from github3.repos import Repository
@@ -37,20 +36,14 @@ class TestCommitDir(unittest.TestCase):
                         {
                             "type": "blob",
                             "mode": "100644",
-                            "path": os.path.join("dir", "unchanged"),
+                            "path": "dir/unchanged",
                             "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
                         },
                         {
                             "type": "blob",
                             "mode": "100644",
-                            "path": os.path.join("dir", "modified"),
+                            "path": "dir/modified",
                             "sha": "bogus3",
-                        },
-                        {
-                            "type": "blob",
-                            "mode": "100644",
-                            "path": os.path.join("dir", "removed"),
-                            "sha": "bogus4",
                         },
                     ],
                 },
@@ -58,7 +51,6 @@ class TestCommitDir(unittest.TestCase):
             )
 
             commit = CommitDir(repo)
-            os.mkdir("dir")
             with open("unchanged", "w") as f:
                 f.write("")
             with open("modified", "w") as f:
@@ -68,6 +60,30 @@ class TestCommitDir(unittest.TestCase):
             with open(".hidden", "w") as f:
                 pass
             commit(d, "master", "dir", dry_run=True)
+            assert commit.new_tree_list == [
+                {
+                    "sha": "bogus2",
+                    "mode": "100644",
+                    "path": "file_outside_dir",
+                    "size": None,
+                    "type": "blob",
+                },
+                {
+                    "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
+                    "mode": "100644",
+                    "path": "dir/unchanged",
+                    "size": None,
+                    "type": "blob",
+                },
+                {
+                    "sha": None,
+                    "mode": "100644",
+                    "path": "dir/modified",
+                    "size": None,
+                    "type": "blob",
+                },
+                {"path": "dir/new", "mode": "100644", "type": "blob", "sha": None},
+            ]
             commit(d, "master", "dir", commit_message="msg")
         repo.create_commit.assert_called_once()
 

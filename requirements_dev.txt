@@ -1,15 +1,15 @@
 -r requirements.txt
 -e .
 black==19.10b0
-coverage==5.0.3
-coveralls==1.11.1
+coverage==5.1
+coveralls==2.0.0
 flake8==3.7.9
 pre-commit==2.2.0
 pytest==5.4.1
 responses==0.10.12
-Sphinx==2.4.4
+Sphinx==3.0.1
 testfixtures==6.14.0
-tox==3.14.5
+tox==3.14.6
 twine==3.1.1
 typeguard==2.7.1
 wheel==0.34.2

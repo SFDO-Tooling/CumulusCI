@@ -10,6 +10,7 @@ import tempfile
 import time
 import pytest
 import unittest
+from pathlib import Path
 
 import click
 from unittest import mock
@@ -138,23 +139,32 @@ class TestCCI(unittest.TestCase):
             "\n".join(out),
         )
 
-    @mock.patch("cumulusci.cli.cci.get_gist_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     @mock.patch("cumulusci.cli.cci.cli")
     def test_main(
-        self, cli, CliRuntime, check_latest_version, init_logger, get_gist_logger
+        self,
+        cli,
+        CliRuntime,
+        check_latest_version,
+        init_logger,
+        get_tempfile_logger,
+        tee,
     ):
-        get_gist_logger.return_value.debug = mock.Mock()
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
         cci.main()
 
         check_latest_version.assert_called_once()
         init_logger.assert_called_once()
         CliRuntime.assert_called_once()
         cli.assert_called_once()
+        tee.assert_called_once()
 
-    @mock.patch("cumulusci.cli.cci.get_gist_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
@@ -169,10 +179,11 @@ class TestCCI(unittest.TestCase):
         CliRuntime,
         check_latest_version,
         init_logger,
-        get_gist_logger,
+        get_tempfile_logger,
+        tee,
     ):
         cli.side_effect = Exception
-        get_gist_logger.return_value.debug = mock.Mock()
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
 
         cci.main(["cci", "--debug"])
 
@@ -182,9 +193,12 @@ class TestCCI(unittest.TestCase):
         cli.assert_called_once()
         post_mortem.assert_called_once()
         sys_exit.assert_called_once_with(1)
+        get_tempfile_logger.assert_called_once()
+        tee.assert_called_once()
 
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
-    @mock.patch("cumulusci.cli.cci.get_gist_logger")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
@@ -199,15 +213,16 @@ class TestCCI(unittest.TestCase):
         CliRuntime,
         check_latest_version,
         init_logger,
-        get_gist_logger,
+        get_tempfile_logger,
         logfile_path,
+        tee,
     ):
         expected_logfile_content = "Hello there, I'm a logfile."
         logfile_path.is_file.return_value = True
         logfile_path.read_text.return_value = expected_logfile_content
 
         cli.side_effect = Exception
-        get_gist_logger.return_value.debug = mock.Mock()
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
 
         cci.main(["cci", "org", "info"])
 
@@ -217,35 +232,51 @@ class TestCCI(unittest.TestCase):
         cli.assert_called_once()
         post_mortem.call_count == 0
         sys_exit.assert_called_once_with(1)
+        get_tempfile_logger.assert_called_once()
+        tee.assert_called_once()
+
+        os.remove("tempfile.log")
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
     def test_handle_exception(self, style, traceback, cci_open):
+        logfile_path = "file.log"
+        Path(logfile_path).touch()
+
         error = "Something bad happened."
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(error, is_error_cmd=False)
+        cci.handle_exception(error, False, logfile_path)
 
         style.call_args_list[0][0] == f"Error: {error}"
         style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
         traceback.print_exc.assert_called_once()
 
+        os.remove(logfile_path)
+
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
     def test_handle_click_exception(self, style, traceback, cci_open):
+        logfile_path = "file.log"
+        Path(logfile_path).touch()
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(click.ClickException("oops"), False)
-
+        cci.handle_exception(click.ClickException("oops"), False, logfile_path)
         style.call_args_list[0][0] == f"Error: oops"
+
+        os.remove(logfile_path)
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.connection_error_message")
     def test_handle_connection_exception(self, connection_msg, cci_open):
-        cci.handle_exception(ConnectionError(), False)
+        logfile_path = "file.log"
+        Path(logfile_path).touch()
+
+        cci.handle_exception(ConnectionError(), False, logfile_path)
         connection_msg.assert_called_once()
+        os.remove(logfile_path)
 
     @mock.patch("cumulusci.cli.cci.click.style")
     def test_connection_exception_message(self, style):
