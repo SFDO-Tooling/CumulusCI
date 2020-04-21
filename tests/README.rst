@@ -4,7 +4,7 @@ or other remote services.
 Pytest integration tests are hidden from ordinary `pytest` because they are in
 a different directory.
 
-You can invoke these test with the CCI task:
+You can invoke these tests with the command:
 
 pytest tests/integration --org <orgname>
 
