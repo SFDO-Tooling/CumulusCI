@@ -138,7 +138,7 @@ CumulusCI provides a number of base task classes that are useful for building co
 
 Create the file `tasks/rest.py`::
 
-    from cumulusci.core.tasks.salesforce import BaseSalesforceApiTask
+    from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
     class ListContacts(BaseSalesforceApiTask):
         def _run_task(self):

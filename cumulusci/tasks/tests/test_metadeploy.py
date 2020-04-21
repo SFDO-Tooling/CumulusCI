@@ -1,5 +1,8 @@
+from pathlib import Path
 import io
 import json
+import shutil
+import tempfile
 import unittest
 import zipfile
 
@@ -67,7 +70,13 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                 "title": "Test Install",
                 "slug": "install",
                 "tier": "primary",
-                "steps": {1: {"flow": "install_prod"}},
+                "steps": {
+                    1: {"flow": "install_prod"},
+                    2: {
+                        "task": "util_sleep",
+                        "checks": [{"when": "False", "action": "error"}],
+                    },
+                },
                 "checks": [{"when": "False", "action": "error"}],
             }
         }
@@ -84,13 +93,22 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         responses.add(
             "GET",
             "https://metadeploy/products?repo_url=EXISTING_REPO",
-            json={"data": [{"id": "abcdef", "url": "https://EXISTING_PRODUCT"}]},
+            json={
+                "data": [
+                    {
+                        "id": "abcdef",
+                        "url": "https://EXISTING_PRODUCT",
+                        "slug": "existing",
+                    }
+                ]
+            },
         )
         responses.add(
             "GET",
             "https://api.github.com/repos/TestOwner/TestRepo",
             json=self._get_expected_repo("TestOwner", "TestRepo"),
         )
+        responses.add("PATCH", "https://metadeploy/translations/es", json={})
         responses.add(
             "GET",
             "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
@@ -149,7 +167,21 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add("PATCH", "https://metadeploy/versions/1", json={})
 
-        task_config = TaskConfig({"options": {"tag": "release/1.0", "publish": True}})
+        labels_path = tempfile.mkdtemp()
+        en_labels_path = Path(labels_path, "labels_en.json")
+        en_labels_path.write_text('{"test": {"title": {}}}')
+        es_labels_path = Path(labels_path, "labels_es.json")
+        es_labels_path.write_text('{"test": {"title": {}}}')
+
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "tag": "release/1.0",
+                    "publish": True,
+                    "labels_path": labels_path,
+                }
+            }
+        )
         task = Publish(project_config, task_config)
         task()
 
@@ -194,9 +226,48 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                         "checks": [],
                     },
                 },
+                {
+                    "name": "util_sleep",
+                    "kind": "other",
+                    "is_required": True,
+                    "path": "util_sleep",
+                    "step_num": "2",
+                    "task_class": "cumulusci.tasks.util.Sleep",
+                    "task_config": {
+                        "options": {"seconds": 5},
+                        "checks": [{"when": "False", "action": "error"}],
+                    },
+                    "source": None,
+                },
             ],
             steps,
         )
+
+        labels = json.loads(en_labels_path.read_text())
+        assert labels == {
+            "plan:install": {
+                "title": {
+                    "message": "Test Install",
+                    "description": "title of installation plan",
+                }
+            },
+            "steps": {
+                "Install {product} {version}": {
+                    "message": "Install {product} {version}",
+                    "description": "title of installation step",
+                },
+                "Update Admin Profile": {
+                    "message": "Update Admin Profile",
+                    "description": "title of installation step",
+                },
+                "util_sleep": {
+                    "message": "util_sleep",
+                    "description": "title of installation step",
+                },
+            },
+            "test": {"title": {}},
+        }
+        shutil.rmtree(labels_path)
 
     @responses.activate
     def test_find_or_create_version__already_exists(self):

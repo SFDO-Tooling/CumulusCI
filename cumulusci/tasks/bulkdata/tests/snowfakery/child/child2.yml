@@ -1,0 +1,3 @@
+- macro: AccountDefaults2
+  fields:
+    ShippingCountry: Canada

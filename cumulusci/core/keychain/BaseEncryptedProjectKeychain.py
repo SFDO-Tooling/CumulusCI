@@ -29,10 +29,14 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
 
     def _get_connected_app(self):
         if self.app:
-            return self._decrypt_config(ConnectedAppOAuthConfig, self.app)
+            return self._decrypt_config(
+                ConnectedAppOAuthConfig, self.app, context="connected app config"
+            )
 
     def _get_service(self, name):
-        return self._decrypt_config(ServiceConfig, self.services[name])
+        return self._decrypt_config(
+            ServiceConfig, self.services[name], context=f"service config ({name})"
+        )
 
     def _set_service(self, service, service_config, project):
         encrypted = self._encrypt_config(service_config)
@@ -49,7 +53,9 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         self.orgs[name] = encrypted
 
     def _get_org(self, name):
-        return self._decrypt_config(OrgConfig, self.orgs[name], extra=[name])
+        return self._decrypt_config(
+            OrgConfig, self.orgs[name], extra=[name], context=f"org config ({name})"
+        )
 
     def _get_cipher(self, iv=None):
         key = self.key
@@ -66,7 +72,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         cipher, iv = self._get_cipher()
         return base64.b64encode(iv + cipher.encryptor().update(pickled))
 
-    def _decrypt_config(self, config_class, encrypted_config, extra=None):
+    def _decrypt_config(self, config_class, encrypted_config, extra=None, context=None):
         if not encrypted_config:
             if extra:
                 return config_class(None, *extra)
@@ -76,7 +82,13 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         iv = encrypted_config[:16]
         cipher, iv = self._get_cipher(iv)
         pickled = cipher.decryptor().update(encrypted_config[16:])
-        unpickled = pickle.loads(pickled, encoding="bytes")
+        try:
+            unpickled = pickle.loads(pickled, encoding="bytes")
+        except Exception:
+            raise KeychainKeyNotFound(
+                f"Unable to decrypt{' ' + context if context else ''}. "
+                "It was probably stored using a different CUMULUSCI_KEY."
+            )
         # Convert bytes created in Python 2
         config_dict = {}
         for k, v in unpickled.items():

@@ -28,6 +28,10 @@ tasks:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
+    custom_settings_value_wait:
+        description: Waits for a specific field value on the specified custom settings object and field
+        class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
+        group: Salesforce
     command:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
@@ -136,10 +140,21 @@ tasks:
         class_path: cumulusci.tasks.datadictionary.GenerateDataDictionary
         options:
             release_prefix: $project_config.project__git__prefix_release
+    generate_and_load_from_yaml:
+        class_path: cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml
+        group: Data Operations
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.salesforce.get_installed_packages.GetInstalledPackages
-        group: Salesforce Metadata
+        group: Salesforce Preflight Checks
+    get_available_licenses:
+        description: Retrieves a list of the currently available license definition keys
+        class_path: cumulusci.tasks.salesforce.license_preflights.GetAvailableLicenses
+        group: Salesforce Preflight Checks
+    get_available_permission_set_licenses:
+        description: Retrieves a list of the currently available Permission Set License definition keys
+        class_path: cumulusci.tasks.salesforce.license_preflights.GetAvailablePermissionSetLicenses
+        group: Salesforce Preflight Checks
     github_parent_pr_notes:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
         class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes

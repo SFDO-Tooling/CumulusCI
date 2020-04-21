@@ -1,6 +1,9 @@
 from distutils.version import LooseVersion
+import io
 import os
 import re
+from pathlib import Path
+from configparser import ConfigParser
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -63,9 +66,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def config_project_local_path(self):
-        path = os.path.join(self.project_local_dir, self.config_filename)
-        if os.path.isfile(path):
-            return path
+        path = Path(self.project_local_dir) / self.config_filename
+        if path.is_file():
+            return str(path)
 
     def _load_config(self):
         """ Loads the configuration from YAML, if no override config was passed in initially. """
@@ -232,12 +235,40 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def _split_repo_url(self, url):
         url_parts = url.rstrip("/").split("/")
+
         name = url_parts[-1]
-        owner = url_parts[-2]
         if name.endswith(".git"):
             name = name[:-4]
-        git_info = {"url": url, "owner": owner, "name": name}
-        return git_info
+
+        owner = url_parts[-2]
+        if "git@github.com" in url:  # ssh url
+            owner = owner.split(":")[-1]
+
+        return {"url": url, "owner": owner, "name": name}
+
+    def git_path(self, tail=None):
+        """Returns a Path to the .git directory in self.repo_root
+        with tail appended (if present) or None if self.repo_root
+        is not set."""
+        path = None
+        if self.repo_root:
+            path = Path(self.repo_root) / ".git"
+            if tail is not None:
+                path = path / str(tail)
+        return path
+
+    def git_config_remote_origin_url(self):
+        """Returns the url under the [remote origin]
+        section of the .git/config file. Returns None
+        if .git/config file not present or no matching
+        line is found. """
+        config = ConfigParser(strict=False)
+        try:
+            config.read(self.git_path("config"))
+            url = config['remote "origin"']["url"]
+        except (KeyError, TypeError):
+            url = None
+        return url
 
     @property
     def repo_root(self):
@@ -245,15 +276,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if path:
             return path
 
-        path = os.path.splitdrive(os.getcwd())[1]
+        path = Path(os.path.splitdrive(Path.cwd())[1])
         while True:
-            if os.path.isdir(os.path.join(path, ".git")):
-                return path
+            if (path / ".git").is_dir():
+                return str(path)
             head, tail = os.path.split(path)
             if not tail:
                 # reached the root
                 break
-            path = head
+            path = Path(head)
 
     @property
     def repo_name(self):
@@ -264,15 +295,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        in_remote_origin = False
-        with open(os.path.join(self.repo_root, ".git", "config"), "r") as f:
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and line.find("url =") != -1:
-                    return self._split_repo_url(line)["name"]
+        url_line = self.git_config_remote_origin_url()
+        return self._split_repo_url(url_line)["name"]
 
     @property
     def repo_url(self):
@@ -283,16 +307,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        git_config_file = os.path.join(self.repo_root, ".git", "config")
-        with open(git_config_file, "r") as f:
-            in_remote_origin = False
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and "url = " in line:
-                    return line[len("url = ") :]
+        url = self.git_config_remote_origin_url()
+        return url
 
     @property
     def repo_owner(self):
@@ -303,16 +319,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        in_remote_origin = False
-        with open(os.path.join(self.repo_root, ".git", "config"), "r") as f:
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and line.find("url =") != -1:
-                    line_parts = line.split("/")
-                    return line_parts[-2].split(":")[-1]
+        url_line = self.git_config_remote_origin_url()
+        return self._split_repo_url(url_line)["owner"]
 
     @property
     def repo_branch(self):
@@ -323,7 +331,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        with open(os.path.join(self.repo_root, ".git", "HEAD"), "r") as f:
+        with open(self.git_path("HEAD"), "r") as f:
             branch_ref = f.read().strip()
         if branch_ref.startswith("ref: "):
             return "/".join(branch_ref[5:].split("/")[2:])
@@ -420,9 +428,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def config_project_path(self):
         if not self.repo_root:
             return
-        path = os.path.join(self.repo_root, self.config_filename)
-        if os.path.isfile(path):
-            return path
+        path = Path(self.repo_root) / self.config_filename
+        if path.is_file():
+            return str(path)
 
     @property
     def project_local_dir(self):
@@ -579,7 +587,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
-        cumulusci_yml = yaml.safe_load(contents.decoded)
+        cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
 
         # Get the namespace from the cumulusci.yml if set
         package_config = cumulusci_yml.get("project", {}).get("package", {})
