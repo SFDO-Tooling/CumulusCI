@@ -9,41 +9,65 @@ class MockSF:
             "encoding": "UTF-8",
             "maxBatchSize": 200,
             "sobjects": [
-                {"activateable": False, "createable": True, "name": "Account"},
-                {"activateable": False, "createable": True, "name": "Contact"},
-                {"activateable": False, "createable": True, "name": "BFG"},
+                {"createable": False, "deletable": True, "name": "Account"},
+                {"createable": False, "deletable": True, "name": "Contact"},
+                {"createable": False, "deletable": True, "name": "BFG"},
             ],
         }
 
-    def restful(self, path, method):
+    @staticmethod
+    def restful(sobj, method):
         return {
             "actionOverrides": [],
-            "activateable": "OVERRIDDEN",
+            "createable": "OVERRIDDEN",
+            "deletable": False,
+            "name": sobj,
             "fields": [
                 {
-                    "aggregatable": True,
                     "name": "Id",
+                    "aggregatable": True,  # non-default
                     "nameField": False,
                     "namePointing": False,
                     "nillable": False,
                 },
                 {
-                    "aggregatable": False,
                     "name": "IsDeleted",
+                    "aggregatable": False,
                     "nameField": False,
                     "namePointing": False,
-                    "nillable": False,
+                    "nillable": "OVERRIDDEN",  # non-default
                 },
             ],
         }
+
+    class Account:
+        @staticmethod
+        def describe():
+            return MockSF.restful("Account", "GET")
+
+    class Contact:
+        @staticmethod
+        def describe():
+            return MockSF.restful("Contact", "GET")
+
+    class BFG:
+        @staticmethod
+        def describe():
+            return MockSF.restful("BFG", "GET")
 
 
 class TestDescribeOrg:
     def test_compression(self):
         desc = Schema.from_api(MockSF())
         assert len(desc.sobjects) == 3
-        assert "createable" in desc["Account"].properties
-        assert "createable" not in desc["Account"].properties.non_default_properties
+        assert desc["Account"].properties["createable"] == "OVERRIDDEN"
+        assert desc["Account"].properties.non_default_properties.keys() == {
+            "createable",
+            "fields",
+            "name",
+        }
+
+        assert "deleteable" not in desc["Account"].properties
 
         assert "aggregatable" in desc["Account"]["Id"].properties
         assert "aggregatable" in desc["Account"]["Id"].properties.non_default_properties
@@ -53,37 +77,68 @@ class TestDescribeOrg:
             not in desc["Account"]["IsDeleted"].properties.non_default_properties
         )
 
-        assert len(desc["Account"].properties.non_default_properties) == 1
         assert (
-            desc["Account"].properties.non_default_properties["activateable"]
+            desc["Account"].properties.non_default_properties["createable"]
             == "OVERRIDDEN"
         )
+        assert desc["Account"]["Id"].properties["aggregatable"] is True
+        assert desc["Account"]["Id"].aggregatable is True
 
     def test_filtering(self):
         desc = Schema.from_api(
-            MockSF(), ["Account", "Contact"], ["IsDeleted"], ["nillable", "nameField"]
+            MockSF(),
+            ["Account", "Contact"],
+            ["IsDeleted"],
+            ["nillable", "nameField", "createable", "deletable"],
         )
-        assert "BFG" not in desc.sobjects
-        assert len(desc.sobjects) == 2
-        assert (
-            len(desc["Account"].properties) == 0
-        )  # no extra properties due to filtering
-        assert not len(desc["Account"].properties.non_default_properties)
-        assert "IsDeleted" in desc["Account"].fields
-        assert "IsDeleted" in desc["Account"]
+        self.shared_filter_tests(desc)
 
-        assert "Id" not in desc["Account"].fields
-        assert desc["Account"]["IsDeleted"].properties["nillable"] is False
-        assert desc["Account"]["IsDeleted"].nillable is False
-        assert (
-            "name" not in desc["Account"]["IsDeleted"].properties.non_default_properties
-        )
-        assert "name" not in desc["Account"]["IsDeleted"].properties
-        assert "activateable" not in desc["Account"].properties
+    def shared_filter_tests(self, schema):
+        assert "BFG" not in schema.sobjects
+        assert len(schema.sobjects) == 2
+        assert set(schema["Account"].properties) == {
+            "createable",
+            "deletable",
+            "fields",  # always included
+            "name",  # always included
+        }  # actionOverrides filtered out
+        assert set(schema["Account"].properties.non_default_properties.keys()) == {
+            "createable",
+            "fields",
+            "name",
+        }
+        assert "IsDeleted" in schema["Account"].fields
+        assert "IsDeleted" in schema["Account"]
 
-        assert set(desc["Account"]["IsDeleted"].properties.keys()) == set(
-            ["nillable", "nameField"]
+        assert "Id" not in schema["Account"].fields
+        assert schema["Account"]["IsDeleted"].properties["nillable"] == "OVERRIDDEN"
+        assert schema["Account"]["IsDeleted"].nillable == "OVERRIDDEN"
+        assert "isSubtype" not in schema["Account"].properties
+
+        assert set(schema["Account"]["IsDeleted"].properties.keys()) == set(
+            ["nillable", "nameField", "createable", "name"],
         )
+        assert schema.to_dict() == {
+            "sobjects": [
+                {
+                    "createable": "OVERRIDDEN",
+                    "name": "Account",
+                    "fields": [{"name": "IsDeleted", "nillable": "OVERRIDDEN"}],
+                },
+                {
+                    "createable": "OVERRIDDEN",
+                    "name": "Contact",
+                    "fields": [{"name": "IsDeleted", "nillable": "OVERRIDDEN"}],
+                },
+            ],
+            "sobject_property_defaults": {"createable": False, "deletable": False},
+            "field_property_defaults": {
+                "createable": False,
+                "name": None,
+                "nameField": False,
+                "nillable": True,
+            },
+        }
 
     def test_json(self):
         desc = Schema.from_api(MockSF())
@@ -93,15 +148,23 @@ class TestDescribeOrg:
             ["sobjects", "sobject_property_defaults", "field_property_defaults"]
         )
 
-        assert set(as_dict["sobjects"].keys()) == set(["Account", "BFG", "Contact"])
+        assert set(obj["name"] for obj in as_dict["sobjects"]) == {
+            "Account",
+            "BFG",
+            "Contact",
+        }
 
-        assert set(as_dict["sobjects"]["Account"]["fields"].keys()) == set(
-            ["Id", "IsDeleted"]
-        )
+        assert set(f["name"] for f in as_dict["sobjects"][0]["fields"]) == {
+            "Id",
+            "IsDeleted",
+        }
 
-        assert set(as_dict["sobjects"]["Account"]["properties"].keys()) == set(
-            ["activateable"]
-        )
+        assert set(as_dict["sobjects"][0].keys()) == {
+            "createable",
+            "name",
+            "fields",
+            "name",
+        }
 
     def test_json_roundtrip(self):
         desc = Schema.from_api(MockSF())
@@ -110,3 +173,13 @@ class TestDescribeOrg:
         assert "aggregatable" in data
         schema = Schema.from_dict(desc.to_dict())
         assert schema.to_dict() == desc.to_dict()
+
+    def test_filtering_from_roundtrip(self):
+        desc = Schema.from_api(MockSF())
+        schema = Schema.from_dict(
+            desc.to_dict(),
+            ["Account", "Contact"],
+            ["IsDeleted"],
+            ["nillable", "nameField", "createable", "deletable"],
+        )
+        self.shared_filter_tests(schema)

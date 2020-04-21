@@ -1,4 +1,4 @@
-from typing import Sequence, Dict, Any, NamedTuple, Set, List
+from typing import Sequence, Dict, Any
 from logging import getLogger
 from time import time
 from collections import UserDict
@@ -32,6 +32,9 @@ class IncludeEverything(set):
     def __contains__(self, other):
         return True
 
+    def __bool__(self):
+        return False
+
 
 class Properties(UserDict):
     interned_values = {}
@@ -39,7 +42,9 @@ class Properties(UserDict):
     def __init__(self, properties: Dict, defaults: Dict):
         self.defaults = defaults
         self.non_default_properties = {
-            self.shrink(k): self.shrink(v) for k, v in properties.items()
+            self.shrink(k): self.shrink(v)
+            for k, v in properties.items()
+            if v != defaults.get(k)
         }
 
     @classmethod
@@ -70,10 +75,18 @@ class Properties(UserDict):
     def to_dict(self):
         return self.non_default_properties
 
+    @staticmethod
+    def from_dict(d, defaults, filters):
+        if filters.incl_props:
+            relevant_properties = {
+                k: v for k, v in d.items() if k in filters.incl_props
+            }
+        else:
+            relevant_properties = d
+        return Properties(relevant_properties, defaults)
+
     def __repr__(self):
         return object.__repr__(self)
-
-    # from_data would be the same as __init__
 
 
 class SObjectField:
@@ -91,24 +104,21 @@ class SObjectField:
             raise AttributeError(self.name, attr)
 
     def to_dict(self):
-        return {"name": self.name, "properties": self.properties.to_dict()}
+        return {"name": self.name, **self.properties.to_dict()}
 
     @staticmethod
-    def from_dict(d, field_property_defaults):
-        properties = Properties(d["properties"], field_property_defaults)
-        return SObjectField(d["name"], properties)
+    def from_dict(d, filters):
+        d = d.copy()
+        name = d.pop("name")
+
+        properties = Properties.from_dict(d, filters.field_property_defaults, filters)
+        return SObjectField(name, properties)
 
 
 class SObject(UserDict):
-    name: str
-    fields: Dict[str, SObjectField]
     properties: Properties
 
-    def __init__(
-        self, name: str, fields: Dict[str, SObjectField], properties: Properties
-    ):
-        self.name = name
-        self.fields = fields
+    def __init__(self, properties: Properties):
         self.properties = properties
 
     def __getattr__(self, attr):
@@ -124,18 +134,28 @@ class SObject(UserDict):
     def to_dict(self):
         return {
             "name": self.name,
-            "fields": {field.name: field.to_dict() for field in self.fields.values()},
-            "properties": self.properties.to_dict(),
+            **self.properties.to_dict(),
+            "fields": [field.to_dict() for field in self.fields.values()],
         }
 
     @staticmethod
-    def from_dict(d, sobject_property_defaults, field_property_defaults):
-        fields = {
-            name: SObjectField.from_dict(f, field_property_defaults)
-            for name, f in d["fields"].items()
+    def from_dict(d, filters):
+        props = d.copy()
+        props["fields"] = {
+            f["name"]: SObjectField.from_dict(f, filters)
+            for f in d["fields"]
+            if f["name"] in filters.incl_fields
         }
-        properties = Properties(d["properties"], sobject_property_defaults)
-        return SObject(d["name"], fields, properties)
+
+        properties = Properties.from_dict(
+            props, filters.sobject_property_defaults, filters
+        )
+        return SObject(properties)
+
+    def from_api(sf_api, sobject_name, filters):
+        sftype = getattr(sf_api, sobject_name)
+        d = dict(sftype.describe())
+        return SObject.from_dict(d, filters)
 
 
 class Schema(UserDict):
@@ -159,122 +179,99 @@ class Schema(UserDict):
 
     def to_dict(self):
         return {
-            "sobjects": {
-                sobject.name: sobject.to_dict() for sobject in self.sobjects.values()
-            },
+            "sobjects": [sobject.to_dict() for sobject in self.sobjects.values()],
             "sobject_property_defaults": self.sobject_property_defaults,
             "field_property_defaults": self.field_property_defaults,
         }
 
     @staticmethod
-    def from_dict(d):
+    def from_dict(
+        d,
+        incl_objects: Sequence[str] = (),
+        incl_fields: Sequence[str] = (),
+        incl_props: Sequence[str] = (),
+    ):
+        filters = Filters(incl_objects, incl_fields, incl_props)
         objs = {
-            name: SObject.from_dict(
-                obj, d["sobject_property_defaults"], d["field_property_defaults"]
-            )
-            for name, obj in d["sobjects"].items()
+            obj["name"]: SObject.from_dict(obj, filters)
+            for obj in d["sobjects"]
+            if obj["name"] in filters.incl_objects
         }
         return Schema(
             objs,
-            sobject_property_defaults=d["sobject_property_defaults"],
-            field_property_defaults=d["field_property_defaults"],
+            sobject_property_defaults=filters.sobject_property_defaults,
+            field_property_defaults=filters.field_property_defaults,
         )
 
-    @staticmethod
+    @classmethod
     def from_api(
+        cls,
         sf,
         incl_objects: Sequence[str] = (),
         incl_fields: Sequence[str] = (),
         incl_props: Sequence[str] = (),
         logger=None,
     ):
-        sobjects = _describe_objects(
-            sf,
-            incl_objects=incl_objects,
-            incl_fields=incl_fields,
-            incl_props=incl_props,
-            logger=logger,
-        )
-        return Schema(
+        logger = logger or getLogger("DescribeSchema")
+        filters = Filters(incl_objects, incl_fields, incl_props)
+        sobjects = cls._describe_objects(sf, filters, logger=logger)
+        return cls(
             sobjects=sobjects,
-            sobject_property_defaults=SOBJECT_PROPERTY_DEFAULTS,
-            field_property_defaults=FIELD_PROPERTY_DEFAULTS,
+            sobject_property_defaults=filters.sobject_property_defaults,
+            field_property_defaults=filters.field_property_defaults,
         )
 
+    def _describe_objects(sf, filters, logger):
+        logger.info("Fetching SObject list")
+        # TODO: Attempt to cache using If-Modified-Since-Header
+        # Breadcrumb:
+        #   https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_rest_conditional_requests.htm
+        #   sf.describe(headers={"If-Modified-Since": "Mon, 20 Apr 2020 10:00:16 GMT"})
+        #   formattting dates: https://stackoverflow.com/questions/225086/rfc-1123-date-representation-in-python
+        #   exception thrown is simple_saleforce.SalesforceGeneralError
+        #   Seems to work well
+        global_describe = sf.describe()
+        logger.info("Fetching detailed SObject descriptions")
 
-class Filters(NamedTuple):
-    incl_objects: Set[str]
-    incl_fields: Set[str]
-    incl_props: Set[str]
+        target_sobjects = [
+            sobject["name"]
+            for sobject in global_describe["sobjects"]
+            if sobject["name"] in filters.incl_objects
+        ]
 
+        if filters.incl_objects and filters.incl_objects != set(target_sobjects):
+            logger.warning(
+                f"Could not find {filters.incl_objects - set(target_sobjects)}"
+            )
 
-IncludeEverything = IncludeEverything()
+        sobjects = {}
 
-
-def _describe_objects(
-    sf,
-    incl_objects: Sequence[str] = (),
-    incl_fields: Sequence[str] = (),
-    incl_props: Sequence[str] = (),
-    logger=None,
-):
-    logger = logger or getLogger("DescribeSchema")
-    filters = Filters(
-        incl_objects=set(incl_objects) or IncludeEverything,
-        incl_fields=set(incl_fields) or IncludeEverything,
-        incl_props=set(incl_props) or IncludeEverything,
-    )
-    sobjects = _describe_objects_uncompressed(sf, filters, logger)
-
-    # don't combine defaulting behaviour and filtering behaviour or else
-    # defaults will be swapped in for filtered properties
-    field_prop_defaults = {} if incl_props else FIELD_PROPERTY_DEFAULTS
-    schema_prop_defaults = {} if incl_props else SOBJECT_PROPERTY_DEFAULTS
-
-    for sobject in sobjects.values():
-        _compress_sobject(sobject, field_prop_defaults, schema_prop_defaults)
-
-    return sobjects
+        progress = progress_logger(len(target_sobjects), 10, logger)
+        for sobject in target_sobjects:
+            sobjects[sobject] = SObject.from_api(sf, sobject, filters)
+            next(progress)
+        return sobjects
 
 
-def test_time():
-    from wsgiref.handlers import format_date_time
-    from datetime import datetime
-    from time import mktime
+class Filters:
+    def __init__(
+        self,
+        incl_objects: Sequence[str] = (),
+        incl_fields: Sequence[str] = (),
+        incl_props: Sequence[str] = (),
+    ):
+        if incl_props:
+            incl_props = list(incl_props) + ["fields", "name"]  # always include fields
+        self.incl_objects = set(incl_objects) or IncludeEverything()
+        self.incl_fields = set(incl_fields) or IncludeEverything()
+        self.incl_props = set(incl_props) or IncludeEverything()
 
-    now = datetime.now()
-    stamp = mktime(now.timetuple())
-    return format_date_time(stamp)  # --> Wed, 22 Oct 2008 10:52:40 GMT
-
-
-def _describe_objects_uncompressed(sf, filters, logger):
-    logger.info("Fetching SObject list")
-    # TODO: Attempt to cache using If-Modified-Since-Header
-    # Breadcrumb:
-    #   https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_rest_conditional_requests.htm
-    #   sf.describe(headers={"If-Modified-Since": "Mon, 20 Apr 2020 10:00:16 GMT"})
-    #   formattting dates: https://stackoverflow.com/questions/225086/rfc-1123-date-representation-in-python
-    #   exception thrown is simple_saleforce.SalesforceGeneralError
-    #   Seems to work well
-    global_describe = sf.describe()
-    logger.info("Fetching detailed SObject descriptions")
-
-    target_sobjects = [
-        sobject["name"]
-        for sobject in global_describe["sobjects"]
-        if sobject["name"] in filters.incl_objects
-    ]
-
-    if list(filters.incl_objects) and filters.incl_objects != set(target_sobjects):
-        logger.warning(f"Could not find {filters.incl_objects - set(target_sobjects)}")
-
-    sobjects = {}
-
-    progress = progress_logger(len(target_sobjects), 10, logger)
-    for sobject in target_sobjects:
-        sobjects[sobject] = _describe_object(sf, sobject, filters)
-        next(progress)
-    return sobjects
+        self.sobject_property_defaults = {
+            k: v for k, v in SOBJECT_PROPERTY_DEFAULTS.items() if k in self.incl_props
+        }
+        self.field_property_defaults = {
+            k: v for k, v in FIELD_PROPERTY_DEFAULTS.items() if k in self.incl_props
+        }
 
 
 def progress_logger(target_count, report_when, logger):
@@ -286,47 +283,3 @@ def progress_logger(target_count, report_when, logger):
         if time() - last_report > report_when:
             last_report = time()
             logger.info(f"Completed {counter}/{target_count}")
-
-
-def _describe_object(sf_api, sobject_name, filters):
-    path = f"sobjects/{sobject_name}/describe"
-    props = dict(sf_api.restful(method="GET", path=path))
-    fields = props["fields"]
-    del props["fields"]
-    fields = _describe_fields(fields, filters)
-    props = _filter_props(props, filters.incl_props)
-    properties = Properties(props, {})  # defaults will be added later
-    return SObject(name=sobject_name, fields=fields, properties=properties)
-
-
-def _describe_fields(fields: List[Dict], filters: Filters):
-    return {
-        field["name"]: SObjectField(
-            name=field["name"],
-            properties=Properties(_filter_props(field, filters.incl_props), {}),
-        )
-        for field in fields
-        if field["name"] in filters.incl_fields
-    }
-
-
-def _filter_props(data, incl_props):
-    return {key: value for (key, value) in data.items() if key in incl_props}
-
-
-def _compress_sobject(sobject: SObject, field_defaults: Dict, sobject_defaults: Dict):
-    field_objs = sobject.fields.values()
-    for field in field_objs:
-        _compress_props(field, field_defaults)
-    _compress_props(sobject, sobject_defaults)
-
-
-def _compress_props(thing, defaults):
-    thing.properties = Properties(
-        {
-            key: value
-            for (key, value) in thing.properties.items()
-            if Properties.shrink(defaults.get(key)) != Properties.shrink(value)
-        },
-        defaults,
-    )

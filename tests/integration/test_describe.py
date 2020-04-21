@@ -20,7 +20,6 @@ class TestDescribeEverything:
             assert objects["AccountContactRole"].retrieveable
             assert "calculated" in objects["AccountContactRole"].fields["Id"].properties
             assert objects["AccountContactRole"]["Id"].calculated is False
-            assert "fields" not in objects["AccountContactRole"].properties
 
             assert len(schema.field_property_defaults) > 50
             assert len(schema.sobject_property_defaults) > 35
