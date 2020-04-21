@@ -294,6 +294,13 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
 
     def _batch(self, records, n=10000, char_limit=10000000):
+        """Given an iterator of records, yields batches of
+        records serialized in .csv format.
+
+        Batches adhere to the following, in order of presedence:
+        (1) They do not exceed the given character limit
+        (2) They do not contain more than n records per batch
+        """
         serialized_csv_fields = self._serialize_csv_record(self.fields)
         len_csv_fields = len(serialized_csv_fields)
 
