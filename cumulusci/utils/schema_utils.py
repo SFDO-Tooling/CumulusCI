@@ -34,9 +34,22 @@ class IncludeEverything(set):
 
 
 class Properties(UserDict):
+    interned_values = {}
+
     def __init__(self, properties: Dict, defaults: Dict):
         self.defaults = defaults
-        self.non_default_properties = properties
+        self.non_default_properties = {
+            self.shrink(k): self.shrink(v) for k, v in properties.items()
+        }
+
+    @classmethod
+    def shrink(cls, value):
+        if isinstance(value, list):
+            value = tuple(value)
+        try:
+            return cls.interned_values.setdefault(value, value)
+        except TypeError:
+            return value
 
     @cached_property
     def data(self):
@@ -313,7 +326,7 @@ def _compress_props(thing, defaults):
         {
             key: value
             for (key, value) in thing.properties.items()
-            if defaults.get(key) != value
+            if Properties.shrink(defaults.get(key)) != Properties.shrink(value)
         },
         defaults,
     )
