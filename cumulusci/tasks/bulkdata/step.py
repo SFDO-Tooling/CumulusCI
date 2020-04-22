@@ -271,7 +271,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             context=context,
             fields=fields,
         )
-        self.csv_buff = io.StringIO()
+        self.csv_buff = io.StringIO(newline="")
         self.csv_writer = csv.writer(self.csv_buff)
 
     def start(self):

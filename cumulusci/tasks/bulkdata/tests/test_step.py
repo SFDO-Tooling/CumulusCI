@@ -439,6 +439,10 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         serialized = step._serialize_csv_record(record)
         assert serialized == b"1,Bob,Ross\r\n"
 
+        record = ["col1", "multiline\ncol2"]
+        serialized = step._serialize_csv_record(record)
+        assert serialized == b'col1,"multiline\ncol2"\r\n'
+
     def test_batch(self):
         context = mock.Mock()
 
