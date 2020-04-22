@@ -1,7 +1,7 @@
 -r requirements.txt
 -e .
 black==19.10b0
-coverage==5.0.4
+coverage==5.1
 coveralls==2.0.0
 flake8==3.7.9
 pre-commit==2.2.0

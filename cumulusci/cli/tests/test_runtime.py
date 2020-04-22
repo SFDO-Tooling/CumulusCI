@@ -102,8 +102,7 @@ class TestCliRuntime(unittest.TestCase):
         with self.assertRaises(click.UsageError):
             org_name, org_config_result = config.get_org("test", fail_if_missing=True)
 
-    @mock.patch("click.confirm")
-    def test_check_org_expired(self, confirm):
+    def test_check_org_expired(self):
         config = CliRuntime()
         config.keychain = mock.Mock()
         org_config = OrgConfig(
@@ -114,27 +113,9 @@ class TestCliRuntime(unittest.TestCase):
             },
             "test",
         )
-        confirm.return_value = True
 
         config.check_org_expired("test", org_config)
         config.keychain.create_scratch_org.assert_called_once()
-
-    @mock.patch("click.confirm")
-    def test_check_org_expired_decline(self, confirm):
-        config = CliRuntime()
-        config.keychain = mock.Mock()
-        org_config = OrgConfig(
-            {
-                "scratch": True,
-                "date_created": date.today() - timedelta(days=2),
-                "expired": True,
-            },
-            "test",
-        )
-        confirm.return_value = False
-
-        with self.assertRaises(click.ClickException):
-            config.check_org_expired("test", org_config)
 
     def test_check_org_overwrite_not_found(self):
         config = CliRuntime()
