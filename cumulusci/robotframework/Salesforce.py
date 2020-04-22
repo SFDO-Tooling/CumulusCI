@@ -1102,7 +1102,6 @@ class Salesforce(object):
                 )
                 if time.time() - start_time > timeout_seconds:
                     self.selenium.log_location()
-                    self.selenium.capture_page_screenshot()
                     raise Exception("Timed out waiting for a lightning page")
 
             # known edge cases that can be worked around
