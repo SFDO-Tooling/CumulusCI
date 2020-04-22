@@ -418,6 +418,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
             # create any Record Type tables we need
             if mapping.get("fields", {}).get("RecordTypeId"):
+                self._create_record_type_table(mapping["sf_object"] + "_rt_mapping")
                 self._create_record_type_table(
                     mapping["sf_object"] + "_rt_target_mapping"
                 )
