@@ -70,15 +70,18 @@ Open Test Browser
     ...  size (default=${DEFAULT BROWSER SIZE})
     ...
     ...  The keyword `Log Browser Capabilities` will automatically be called.
+    ...  The keyword will also call `Wait Until Salesforce is Ready` unless
+    ...  the `wait` parameter is set to False.
 
-    [Arguments]  ${size}=${DEFAULT BROWSER SIZE}  ${alias}=${NONE}
+    [Arguments]  ${size}=${DEFAULT BROWSER SIZE}  ${alias}=${NONE}  ${wait}=True
     ${login_url} =  Login Url
     Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome  ${login_url}  alias=${alias}
     ...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox  ${login_url}  alias=${alias}
     ...    ELSE IF  '${BROWSER}' == 'headlesschrome'  Open Test Browser Chrome  ${login_url}  alias=${alias}
     ...    ELSE IF  '${BROWSER}' == 'headlessfirefox'  Open Test Browser Headless Firefox  ${login_url}  alias=${alias}
     ...    ELSE  Open Browser  ${login_url}  ${BROWSER}  alias=${alias}
-    Wait Until Salesforce Is Ready  timeout=180
+    ${should_wait}=  convert to boolean  ${wait}
+    Run keyword if  $should_wait  Wait Until Salesforce Is Ready  timeout=180
     Set Selenium Timeout  ${TIMEOUT}
     Initialize Location Strategies
     ${width}  ${height}=  split string  ${size}  separator=x  max_split=1
