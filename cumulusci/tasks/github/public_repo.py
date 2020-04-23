@@ -81,7 +81,7 @@ class PublishRelease(BaseGithubTask):
         return list(filtered_names)
 
     def _create_commit(self, path):
-        committer = CommitDir(self.target_repo)
+        committer = CommitDir(self.target_repo, logger=self.logger)
         message = f"Publishing release {self.options['version']}"
         commit = committer(
             path, self.options["branch"], repo_dir="", commit_message=message
