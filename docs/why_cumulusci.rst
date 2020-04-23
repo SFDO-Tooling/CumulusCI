@@ -1,16 +1,6 @@
 ==============
 Why CumulusCI?
 ==============
-
-CumulusCI was built to solve common challenges faced the development and release of Salesforce managed package projects such as:
-
-* Integration of Salesforce DX into the package release cycle
-* Reducing the burden and risk of cutting managed package releases
-* Agile development based on best practices of isolation and continuous integration
-* Reducing the pain of creating usable environments for QA, Doc, PM, etc
-* Scalability to handle new projects and growing project teams
-* Avoiding technical debt by encouraging reuse through portable automation
-
 CumulusCI is a framework for building portable automation for Salesforce projects on Github.  The automation is controlled by a simple **cumulusci.yml** file which is version controlled in the project repository and is available to anyone with CumulusCI configured on their system and able to access the repository.
 
 We've used CumulusCI every day at Salesforce.org to run over 40 thousand builds of 12 Github managed package repositories for our products.  The goal of making CumulusCI available as open source is to empower other Salesforce developers to benefit from the solutions to common challenges faced in managing the development and release cycle of Salesforce managed packages.

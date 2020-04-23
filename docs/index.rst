@@ -6,6 +6,18 @@
 Welcome to CumulusCI's documentation!
 ======================================
 
+CumulusCI is a command line tool that helps teams develop, test, and release Salesforce projects via managed packages.
+Use cases for CumulusCI include:
+
+* Integration of Salesforce DX into the package release cycle
+* Reducing the burden and risk of cutting managed package releases
+* Agile development based on best practices of isolation and continuous integration
+* Reducing the pain of creating usable environments for QA, Doc, PM, etc
+* Scalability to handle new projects and growing project teams
+* Avoiding technical debt by encouraging reuse through portable automation
+
+If you're just getting started with CumulusCI or want to enhance existing knowledge, you can checkout our trailhead trail: `Build Applications With CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_
+
 Contents:
 
 .. toctree::
