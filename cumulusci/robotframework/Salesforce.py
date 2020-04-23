@@ -71,6 +71,7 @@ class Salesforce(object):
         """
         try:
             version = int(float(self.get_latest_api_version()))
+            self.builtin.set_suite_metadata("Salesforce API Version", version)
             locator_module_name = "locators_{}".format(version)
 
         except RobotNotRunningError:
