@@ -203,11 +203,6 @@ tasks:
         options:
             ref: latest
             branch: master
-            include:
-                - datasets/
-                - documentation/
-                - tasks/
-                - unpackaged/
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests

@@ -30,7 +30,11 @@ class PublishRelease(BaseGithubTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.options["include"] = process_list_arg(self.options.get("include", []))
+        self.options["include"] = process_list_arg(
+            self.options.get(
+                "include", ["datasets/", "documentation/", "tasks/", "unpackaged/"]
+            )
+        )
         self.options["release_body"] = process_bool_arg(
             self.options.get("release_body", False)
         )
