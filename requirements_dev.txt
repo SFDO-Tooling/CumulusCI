@@ -8,7 +8,7 @@ pre-commit==2.2.0
 pytest==5.4.1
 responses==0.10.12
 Sphinx==3.0.1
-testfixtures==6.14.0
+testfixtures==6.14.1
 tox==3.14.6
 twine==3.1.1
 typeguard==2.7.1
