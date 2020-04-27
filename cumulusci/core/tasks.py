@@ -46,7 +46,7 @@ class BaseTask(object):
         flow=None,
         name=None,
         stepnum=None,
-        **kwargs
+        **kwargs,
     ):
         self.project_config = project_config
         self.task_config = task_config
@@ -144,10 +144,10 @@ class BaseTask(object):
 
     def _log_begin(self):
         """ Log the beginning of the task execution """
-        self.logger.info("Beginning task: %s", self.__class__.__name__)
+        self.logger.info(f"Beginning task: {self.__class__.__name__}")
         if self.salesforce_task and not self.flow:
-            self.logger.info("%15s %s", "As user:", self.org_config.username)
-            self.logger.info("%15s %s", "In org:", self.org_config.org_id)
+            self.logger.info(f"As user: {self.org_config.username}")
+            self.logger.info(f"In org: {self.org_config.org_id}")
         self.logger.info("")
 
     def _retry(self):
@@ -160,9 +160,7 @@ class BaseTask(object):
                     raise
                 if self.options["retry_interval"]:
                     self.logger.warning(
-                        "Sleeping for {} seconds before retry...".format(
-                            self.options["retry_interval"]
-                        )
+                        f"Sleeping for {self.options['retry_interval']} seconds before retry..."
                     )
                     time.sleep(self.options["retry_interval"])
                     if self.options["retry_interval_add"]:
@@ -171,7 +169,7 @@ class BaseTask(object):
                         ]
                 self.options["retries"] -= 1
                 self.logger.warning(
-                    "Retrying ({} attempts remaining)".format(self.options["retries"])
+                    f"Retrying ({self.options['retries']} attempts remaining)"
                 )
 
     def _try(self):
