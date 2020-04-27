@@ -2,6 +2,11 @@
 History
 =======
 
+3.12.1 (2020-04-27)
+-------------------
+
+Fixed a problem building the Homebrew formula for installing CumulusCI 3.12.0.
+
 3.12.0 (2020-04-27)
 -------------------
 
@@ -24,7 +29,7 @@ Changes:
   instead of OrderedDicts.  This should have minimal impact since normal dicts are ordered
   in the versions of Python that CumulusCI supports, but we mention it for the sake of completeness.
 
-Issued closed:
+Issues closed:
 
 * Fixed an issue where non-ASCII output caused an error when trying to write to the CumulusCI log
   in Windows. (#1619)
