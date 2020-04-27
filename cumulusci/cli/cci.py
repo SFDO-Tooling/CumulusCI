@@ -175,7 +175,7 @@ def pass_runtime(func=None, require_project=True, require_keychain=False):
 
 
 SUGGEST_ERROR_COMMAND = (
-    """Type `cci error --help` for more information about debugging errors."""
+    """Run this command for more information about debugging errors: cci error --help"""
 )
 
 
