@@ -2,6 +2,33 @@
 History
 =======
 
+3.12.0 (2020-04-27)
+-------------------
+
+Changes:
+
+* We've removed the prompt that users see when trying to use a scratch org that has expired,
+  and now automatically recreate the scratch org.
+
+* The ``load_dataset`` task now automatically avoids creating Bulk API batches larger than the
+  10 million character limit.
+
+* Robot Framework:
+
+  * When opening an org in the browser, the Salesforce library now attempts to detect if the org
+    was created using the Classic UI and automatically switch to Lightning Experience.
+
+  * The Salesforce library now has preliminary support for Summer '20 preview orgs.
+
+* CumulusCI now directs ``simple-salesforce`` to return results as normal Python dicts
+  instead of OrderedDicts.  This should have minimal impact since normal dicts are ordered
+  in the versions of Python that CumulusCI supports, but we mention it for the sake of completeness.
+
+Issued closed:
+
+* Fixed an issue where non-ASCII output caused an error when trying to write to the CumulusCI log
+  in Windows. (#1619)
+
 3.11.0 (2020-04-17)
 -------------------
 
