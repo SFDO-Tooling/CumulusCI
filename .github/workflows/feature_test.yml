@@ -129,6 +129,7 @@ jobs:
     - name: Report coverage
       run: coveralls
     - name: Store robot results
+      if: failure()
       uses: actions/upload-artifact@v1
       with:
         name: robot
@@ -179,6 +180,7 @@ jobs:
     - name: Report coverage
       run: coveralls
     - name: Store robot results
+      if: failure()
       uses: actions/upload-artifact@v1
       with:
         name: robot
@@ -229,6 +231,7 @@ jobs:
     - name: Report coverage
       run: coveralls
     - name: Store robot results
+      if: failure()
       uses: actions/upload-artifact@v1
       with:
         name: robot
@@ -279,6 +282,7 @@ jobs:
     - name: Report coverage
       run: coveralls
     - name: Store robot results
+      if: failure()
       uses: actions/upload-artifact@v1
       with:
         name: robot
