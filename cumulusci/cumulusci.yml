@@ -350,6 +350,12 @@ tasks:
         description: Runs all apex tests
         class_path: cumulusci.tasks.apex.testrunner.RunApexTests
         group: Salesforce
+    set_duplicate_rule_status:
+        group: Metadata Transformations
+        description: Sets the active status of Duplicate Rules.
+        class_path: cumulusci.tasks.metadata_etl.SetDuplicateRuleStatus
+        options:
+            namespace_inject: $project_config.project__package__namespace
     set_organization_wide_defaults:
         group: Metadata Transformations
         description: Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
