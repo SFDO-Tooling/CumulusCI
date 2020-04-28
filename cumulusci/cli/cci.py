@@ -210,6 +210,7 @@ def main(args=None):
         # Only create logfiles for commands
         # that are not `cci error`
         is_error_command = len(args) > 2 and args[1] == "error"
+        tempfile_path = None
         if not is_error_command:
             logger, tempfile_path = get_tempfile_logger()
             stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
@@ -242,8 +243,11 @@ def handle_exception(error, is_error_cmd, logfile_path):
     if not is_error_cmd:
         click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
 
-    with open(logfile_path, "a") as log_file:
-        traceback.print_exc(file=log_file)  # log stacktrace silently
+    # This is None if we're handling an exception for a
+    # `cci error` command.
+    if logfile_path:
+        with open(logfile_path, "a") as log_file:
+            traceback.print_exc(file=log_file)  # log stacktrace silently
 
 
 def connection_error_message():
