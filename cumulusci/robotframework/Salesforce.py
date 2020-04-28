@@ -10,7 +10,11 @@ from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from robot.utils import timestr_to_secs
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import (
+    StaleElementReferenceException,
+    NoSuchElementException,
+)
+import faker
 
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.utils import selenium_retry, capture_screenshot_on_error
@@ -52,6 +56,13 @@ class Salesforce(object):
         else:
             self._init_locators()
 
+        self._faker = faker.Faker("en_US")
+        try:
+            self.builtin.set_global_variable("${faker}", self._faker)
+        except RobotNotRunningError:
+            # this only happens during unit tests, and we don't care.
+            pass
+
     def _init_locators(self):
         """Load the appropriate locator file for the current version
 
@@ -60,6 +71,7 @@ class Salesforce(object):
         """
         try:
             version = int(float(self.get_latest_api_version()))
+            self.builtin.set_suite_metadata("Salesforce API Version", version)
             locator_module_name = "locators_{}".format(version)
 
         except RobotNotRunningError:
@@ -123,6 +135,80 @@ class Salesforce(object):
                     time.sleep(1)
                 else:
                     raise
+
+    def set_faker_locale(self, locale):
+        """Set the locale for fake data
+
+        This sets the locale for all calls to the ``Faker`` keyword
+        and ``${faker}`` variable. The default is en_US
+
+        For a list of supported locales see
+        [https://faker.readthedocs.io/en/master/locales.html|Localized Providers]
+        in the Faker documentation.
+
+        Example
+
+        | Set Faker Locale    fr_FR
+        | ${french_address}=  Faker  address
+
+        """
+        try:
+            self._faker = faker.Faker(locale)
+        except AttributeError:
+            raise Exception(f"Unknown locale for fake data: '{locale}'")
+
+    def get_fake_data(self, fake, *args, **kwargs):
+        """Return fake data
+
+        This uses the [https://faker.readthedocs.io/en/master/|Faker]
+        library to provide fake data in a variety of formats (names,
+        addresses, credit card numbers, dates, phone numbers, etc) and
+        locales (en_US, fr_FR, etc).
+
+        The _fake_ argument is the name of a faker property such as
+        ``first_name``, ``address``, ``lorem``, etc. Additional
+        arguments depend on type of data requested. For a
+        comprehensive list of the types of fake data that can be
+        generated see
+        [https://faker.readthedocs.io/en/master/providers.html|Faker
+        providers] in the Faker documentation.
+
+        The return value is typically a string, though in some cases
+        some other type of object will be returned. For example, the
+        ``date_between`` fake returns a
+        [https://docs.python.org/3/library/datetime.html#date-objects|datetime.date
+        object]. Each time a piece of fake data is requested it will
+        be regenerated, so that multiple calls will usually return
+        different data.
+
+        This keyword can also be called using robot's extended variable
+        syntax using the variable ``${faker}``. In such a case, the
+        data being asked for is a method call and arguments must be
+        enclosed in parentheses and be quoted. Arguments should not be
+        quoted when using the keyword.
+
+        To generate fake data for a locale other than en_US, use
+        the keyword ``Set Faker Locale`` prior to calling this keyword.
+
+        Examples
+
+        | # Generate a fake first name
+        | ${first_name}=  Get fake data  first_name
+
+        | # Generate a fake date in the default format
+        | ${date}=  Get fake data  date
+
+        | # Generate a fake date with an explicit format
+        | ${date}=  Get fake data  date  pattern=%Y-%m-%d
+
+        | # Generate a fake date using extended variable syntax
+        | Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
+
+        """
+        try:
+            return self._faker.format(fake, *args, **kwargs)
+        except AttributeError:
+            raise Exception(f"Unknown fake data request: '{fake}'")
 
     def get_latest_api_version(self):
         return self.cumulusci.org.latest_api_version
@@ -403,7 +489,8 @@ class Salesforce(object):
         output += pformat(self.selenium.driver.capabilities, indent=4)
         self.builtin.log(output, level=loglevel)
 
-    def open_app_launcher(self):
+    @capture_screenshot_on_error
+    def open_app_launcher(self, retry=True):
         """Opens the Saleforce App Launcher Modal
 
         Note: starting with Spring '20 the app launcher button opens a
@@ -411,24 +498,39 @@ class Salesforce(object):
         this keyword will continue to open the modal rather than the
         menu. If you need to interact with the app launcher menu, you
         will need to create a custom keyword.
-        """
-        locator = lex_locators["app_launcher"]["button"]
-        self.builtin.log("Clicking App Launcher button")
-        self._jsclick(locator)
 
-        api_version = int(float(self.get_latest_api_version()))
-        if api_version >= 48:
-            self.selenium.wait_until_element_is_visible(
-                lex_locators["app_launcher"]["menu"],
-                error="Expected to see the app launcher menu, but didn't",
-            )
-            element = self.selenium.get_webelement(
-                lex_locators["app_launcher"]["view_all"]
-            )
-            self.builtin.log("clicking 'view all' button")
-            self.selenium.capture_page_screenshot()
-            self._jsclick(element)
+        If the retry parameter is true, the keyword will
+        close and then re-open the app launcher if it times out
+        while waiting for the dialog to open.
+        """
+
+        self._jsclick("sf:app_launcher.button")
+        self._jsclick("sf:app_launcher.view_all")
         self.wait_until_modal_is_open()
+        try:
+            # the modal may be open, but not yet fully rendered
+            # wait until at least one link appears. We've seen that sometimes
+            # the dialog hangs prior to any links showing up
+            self.selenium.wait_until_element_is_visible(
+                "xpath://ul[contains(@class, 'al-modal-list')]//li"
+            )
+
+        except Exception as e:
+            # This should never happen, yet it does. Experience has
+            # shown that sometimes (at least in spring '20) the modal
+            # never renders. Refreshing the modal seems to fix it.
+            if retry:
+                self.builtin.log(
+                    f"caught exception {e} waiting for app launcher; retrying", "DEBUG"
+                )
+                self.selenium.press_keys("sf:modal.is_open", "ESCAPE")
+                self.wait_until_modal_is_closed()
+                self.open_app_launcher(retry=False)
+            else:
+                self.builtin.log(
+                    f"caught exception waiting for app launcher; not retrying", "DEBUG"
+                )
+                raise
 
     def populate_field(self, name, value):
         """Enters a value into an input or textarea field.
@@ -580,29 +682,23 @@ class Salesforce(object):
     def select_app_launcher_app(self, app_name):
         """Navigates to a Salesforce App via the App Launcher """
         locator = lex_locators["app_launcher"]["app_link"].format(app_name)
-        self.builtin.log("Opening the App Launcher")
         self.open_app_launcher()
-        self.builtin.log("Getting the web element for the app")
+        self.selenium.wait_until_page_contains_element(locator, timeout=30)
         self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
-        self.builtin.log("Getting the parent link from the web element")
         link = elem.find_element_by_xpath("../../..")
         self.selenium.set_focus_to_element(link)
-        self.builtin.log("Clicking the link")
         link.click()
-        self.builtin.log("Waiting for modal to close")
         self.wait_until_modal_is_closed()
 
     @capture_screenshot_on_error
     def select_app_launcher_tab(self, tab_name):
         """Navigates to a tab via the App Launcher"""
         locator = lex_locators["app_launcher"]["tab_link"].format(tab_name)
-        self.builtin.log("Opening the App Launcher")
         self.open_app_launcher()
-        self.builtin.log("Clicking App Tab")
-        element = self.selenium.get_webelement(locator)
-        self._jsclick(element)
-        self.builtin.log("Waiting for modal to close")
+        self.selenium.wait_until_page_contains_element(locator)
+        self.selenium.set_focus_to_element(locator)
+        self._jsclick(locator)
         self.wait_until_modal_is_closed()
 
     def salesforce_delete(self, obj_name, obj_id):
@@ -956,6 +1052,7 @@ class Salesforce(object):
                 self.builtin.warn("unable to capture screenshot: {}".format(str(e)))
             raise
 
+    @capture_screenshot_on_error
     def wait_until_salesforce_is_ready(self, locator=None, timeout=None, interval=5):
         """Waits until we are able to render the initial salesforce landing page
 
@@ -995,6 +1092,7 @@ class Salesforce(object):
                     "return (document.readyState == 'complete')"
                 )
                 self.wait_for_aura()
+
                 # If the following doesn't throw an error, we're good to go.
                 self.selenium.get_webelement(locator)
                 break
@@ -1005,30 +1103,17 @@ class Salesforce(object):
                 )
                 if time.time() - start_time > timeout_seconds:
                     self.selenium.log_location()
-                    self.selenium.capture_page_screenshot()
                     raise Exception("Timed out waiting for a lightning page")
 
-            self.builtin.log("waiting for a refresh...", "DEBUG")
-            self.selenium.capture_page_screenshot()
+            # known edge cases that can be worked around
+            if self._check_for_login_failure():
+                continue
+            elif self._check_for_classic():
+                continue
+
+            # not a known edge case; take a deep breath and
+            # try again.
             time.sleep(interval)
-            location = self.selenium.get_location()
-            if (
-                "//test.salesforce.com" in location
-                or "//login.salesforce.com" in location
-            ):
-                # Sometimes we get redirected to a login URL rather
-                # than being logged in, and we've yet to figure out
-                # precisely why that happens. Experimentation shows
-                # that authentication has already happened, so in
-                # this case we'll try going back to the instance url
-                # rather than the front door servlet.
-                #
-                # Admittedly, this is a bit of a hack, but it's better
-                # than never getting past this redirect.
-                login_url = self.cumulusci.org.config["instance_url"]
-                self.builtin.log(
-                    f"setting login_url temporarily to {login_url}", "DEBUG"
-                )
             self.selenium.go_to(login_url)
 
     def breakpoint(self):
@@ -1039,3 +1124,58 @@ class Salesforce(object):
         set, this keyword will have no effect on a running test.
         """
         return None
+
+    def _check_for_classic(self):
+        """Switch to lightning if we land on a classic page
+
+        This seems to happen randomly, causing tests to fail
+        catastrophically. The idea is to detect such a case and
+        auto-click the "switch to lightning" link
+
+        """
+        try:
+            # we don't actually want to wait here, but if we don't
+            # explicitly wait, we'll implicitly wait longer than
+            # necessary.  This needs to be a quick-ish check.
+            self.selenium.wait_until_element_is_visible(
+                "class:switch-to-lightning", timeout=2
+            )
+            self.builtin.log(
+                "It appears we are on a classic page; attempting to switch to lightning",
+                "WARN",
+            )
+            # this screenshot should be removed at some point,
+            # but for now I want to make sure we see what the
+            # page looks like if we get here.
+            self.selenium.capture_page_screenshot()
+
+            # just in case there's a modal present we'll try simulating
+            # the escape key. Then, click on the switch-to-lightning link
+            self.selenium.press_keys(None, "ESC")
+            self.builtin.sleep("1 second")
+            self.selenium.click_link("class:switch-to-lightning")
+            return True
+
+        except (NoSuchElementException, AssertionError):
+            return False
+
+    def _check_for_login_failure(self):
+        """Handle the case where we land on a login screen
+
+           Sometimes we get redirected to a login URL rather than
+           being logged in, and we've yet to figure out precisely why
+           that happens. Experimentation shows that authentication has
+           already happened, so in this case we'll try going back to
+           the instance url rather than the front door servlet.
+
+           Admittedly, this is a bit of a hack, but it's better than
+           never getting past this redirect.
+        """
+
+        location = self.selenium.get_location()
+        if "//test.salesforce.com" in location or "//login.salesforce.com" in location:
+            login_url = self.cumulusci.org.config["instance_url"]
+            self.builtin.log(f"setting login_url temporarily to {login_url}", "DEBUG")
+            self.selenium.go_to(login_url)
+            return True
+        return False

@@ -41,15 +41,21 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
         """Verify that we attempt a reload when we don't find the lightning component"""
         with mock.patch.object(Salesforce, "wait_for_aura", return_value=True):
             with mock.patch.object(
-                self.sflib.selenium,
-                "get_webelement",
-                side_effect=(ElementNotFound(), True),
+                Salesforce, "_check_for_classic", return_value=False
             ):
-                self.sflib.wait_until_salesforce_is_ready(timeout="10")
-                self.sflib.selenium.go_to.assert_called_once()
+                with mock.patch.object(
+                    Salesforce, "_check_for_login_failure", return_value=False
+                ):
+                    with mock.patch.object(
+                        self.sflib.selenium,
+                        "get_webelement",
+                        side_effect=(ElementNotFound(), True),
+                    ):
+                        self.sflib.wait_until_salesforce_is_ready(timeout="10")
+                        self.sflib.selenium.go_to.assert_called_once()
 
-    def test_exception_on_timeout(self, mock_robot_context):
-        """Verify that we through an appropriate exception after the timeout"""
+    def test_exception_and_screenshot_on_timeout(self, mock_robot_context):
+        """Verify that we throw an appropriate exception after the timeout"""
         with mock.patch.object(Salesforce, "wait_for_aura", return_value=True):
             self.sflib.selenium.get_webelement.side_effect = ElementNotFound()
 
@@ -63,7 +69,6 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
                 self.sflib.wait_until_salesforce_is_ready(timeout=0.01)
 
             self.sflib.selenium.capture_page_screenshot.assert_called()
-            assert self.sflib.wait_for_aura.call_count >= 2
 
 
 @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
