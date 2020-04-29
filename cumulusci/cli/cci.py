@@ -1241,6 +1241,10 @@ def task_info(runtime, task_name):
 
 
 class RunTaskCommand(click.MultiCommand):
+    def __init__(self, **attrs):
+        self.user_args = None
+        click.MultiCommand.__init__(self, **attrs)
+
     def _get_configured_tasks(self, runtime):
         return list(
             runtime.project_config.config["tasks"].keys()
@@ -1253,35 +1257,45 @@ class RunTaskCommand(click.MultiCommand):
         tasks = self._get_configured_tasks(RUNTIME)
         return sorted(tasks)
 
-    def _get_default_params(self):
+    def _get_default_command_options(self):
         return [
             click.Option(
-                ("--org",),
+                param_decls=("--org",),
                 help="Specify the target org. By default, runs against the current default org.",
-            )
+            ),
+            click.Option(
+                param_decls=("--debug",),
+                is_flag=True,
+                help="Drops into the Python debugger on an exception",
+            ),
+            click.Option(
+                param_decls=("--debug-before",),
+                is_flag=True,
+                help="Drops into the Python debugger right before the task starts",
+            ),
+            click.Option(
+                param_decls=("--debug-after",),
+                is_flag=True,
+                help="Drops into the Python debugger at task completion.",
+            ),
+            click.Option(
+                param_decls=("--no-prompt",),
+                is_flag=True,
+                help="Disables all prompts. Set for non-interactive mode such as calling from scripts or CI sytems",
+            ),
         ]
 
     def get_command(self, ctx, task_name):
         runtime = RUNTIME
         runtime._load_keychain()
 
-        # given the task_name get the corresponding class
-        # get list of options from the class
-
-        params = self._get_default_params()
-
-        # create params : list(click.Option)
-        # find options passed in ctx
-        # backwards compatability transform here? -o name value
-        # if option name not in tasks
-        # click.echo(f"I'm not aware of the option {opt_name} for the given task ({task_name}).")
+        params = self._get_default_command_options()
+        params.append(*self._get_click_options_for_task(task_name))
+        1 == 1
 
         def run_task(*args, **kwargs):
             """Callback function to execute when the command fires."""
-            click.echo("run_task()")
-
-            # given the task name fetch the task class
-            # instantiate the task
+            click.echo(">>> Running task")
 
             if False:
                 try:
@@ -1304,7 +1318,39 @@ class RunTaskCommand(click.MultiCommand):
                 finally:
                     runtime.alert(f"Task complete: {task_name}")
 
-        return click.Command(task_name, params=None, callback=run_task)
+        return click.Command(task_name, params=params, callback=run_task)
+
+    def resolve_command(self, ctx, args):
+        """We override this method to allow us access to the actual
+        command line args being passed in. This allows us to convert
+        the old option syntax to the new option syntax"""
+
+        while "-o" in args:
+            idx = args.index("-o")
+            args[idx + 1] = f"--{args[idx+1]}"
+            args.remove("-o")
+
+        return click.MultiCommand.resolve_command(self, ctx, args)
+
+    def _get_click_options_for_task(self, task_name):
+        task_config = RUNTIME.project_config.get_task(task_name)
+        task_class = import_global(task_config.class_path)
+        return self._construct_click_options(task_class.task_options)
+
+    def _construct_click_options(self, task_options):
+        """Given a dict of task_options, construct and return the
+        corresponding list of click.Option instances"""
+        click_options = []
+        if task_options:
+            for name, properties in task_options.items():
+                click_options.append(
+                    click.Option(
+                        param_decls=(f"--{name}",),
+                        required=properties["required"],
+                        help=properties["description"],
+                    )
+                )
+        return click_options
 
 
 @task.command(cls=RunTaskCommand, name="roadrunner", help="Runs a task")
@@ -1364,8 +1410,8 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
                     f'Option "{name}" is not available for task {task_name}'
                 )
 
-            # Override the option in the task config
-            task_config.config["options"][name] = value
+                # Override the option in the task config
+                task_config.config["options"][name] = value
 
     # Create and run the task
     try:
