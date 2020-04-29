@@ -1245,6 +1245,11 @@ class RunTaskCommand(click.MultiCommand):
         self.user_args = None
         click.MultiCommand.__init__(self, **attrs)
 
+    def list_commands(self, ctx):
+        """Lists the currently configured tasks"""
+        tasks = self._get_configured_tasks(RUNTIME)
+        return sorted(tasks)
+
     def _get_configured_tasks(self, runtime):
         return list(
             runtime.project_config.config["tasks"].keys()
@@ -1252,10 +1257,68 @@ class RunTaskCommand(click.MultiCommand):
             else runtime.global_config.config["tasks"].keys()
         )
 
-    def list_commands(self, ctx):
-        """Lists the currently configured tasks"""
-        tasks = self._get_configured_tasks(RUNTIME)
-        return sorted(tasks)
+    def get_command(self, ctx, task_name):
+        RUNTIME._load_keychain()
+        task_config = RUNTIME.project_config.get_task(task_name)
+        task_class = import_global(task_config.class_path)
+        task_options = task_class.task_options
+
+        params = self._get_default_command_options()
+        params.extend(self._get_click_options_for_task(task_options))
+
+        def run_task(*args, **kwargs):
+            """Callback function to execute when the command fires."""
+            org, org_config = RUNTIME.get_org(kwargs["org"], fail_if_missing=False)
+
+            # overwrite any existing configured options with those being passed in
+            for name, value in kwargs.items():
+                if name in task_options.keys():
+                    task_config.config["options"][name] = value
+
+            try:
+                task = task_class(
+                    task_config.project_config, task_config, org_config=org_config
+                )
+
+                if kwargs["debug_before"]:
+                    self._import_pdb_and_set_trace()
+
+                task()
+
+                if kwargs["debug_after"]:
+                    self._import_pdb_and_set_trace()
+
+            finally:
+                RUNTIME.alert(f"Task complete: {task_name}")
+
+        return click.Command(task_name, params=params, callback=run_task)
+
+    def resolve_command(self, ctx, args):
+        """We override this method to allow us access to the actual
+        command line args being passed in. This allows us to convert
+        the old option syntax to the new option syntax"""
+
+        while "-o" in args:
+            idx = args.index("-o")
+            args[idx + 1] = f"--{args[idx+1]}"
+            args.remove("-o")
+
+        return click.MultiCommand.resolve_command(self, ctx, args)
+
+    def _get_click_options_for_task(self, task_options):
+        """Given a dict of options in a task, constructs and returns the
+        corresponding list of click.Option instances"""
+        click_options = []
+        if task_options:
+            for name, properties in task_options.items():
+                click_options.append(
+                    click.Option(
+                        param_decls=(f"--{name}",),
+                        required=properties.pop("required", False),
+                        help=properties.pop("description", ""),
+                    )
+                )
+        return click_options
 
     def _get_default_command_options(self):
         return [
@@ -1285,153 +1348,15 @@ class RunTaskCommand(click.MultiCommand):
             ),
         ]
 
-    def get_command(self, ctx, task_name):
-        runtime = RUNTIME
-        runtime._load_keychain()
+    def _import_pdb_and_set_trace(self):
+        import pdb
 
-        params = self._get_default_command_options()
-        params.append(*self._get_click_options_for_task(task_name))
-        1 == 1
-
-        def run_task(*args, **kwargs):
-            """Callback function to execute when the command fires."""
-            click.echo(">>> Running task")
-
-            if False:
-                try:
-                    task = task_class(
-                        task_config.project_config, task_config, org_config=org_config
-                    )
-
-                    if debug_before:
-                        import pdb
-
-                        pdb.set_trace()
-
-                    task()
-
-                    if debug_after:
-                        import pdb
-
-                        pdb.set_trace()
-
-                finally:
-                    runtime.alert(f"Task complete: {task_name}")
-
-        return click.Command(task_name, params=params, callback=run_task)
-
-    def resolve_command(self, ctx, args):
-        """We override this method to allow us access to the actual
-        command line args being passed in. This allows us to convert
-        the old option syntax to the new option syntax"""
-
-        while "-o" in args:
-            idx = args.index("-o")
-            args[idx + 1] = f"--{args[idx+1]}"
-            args.remove("-o")
-
-        return click.MultiCommand.resolve_command(self, ctx, args)
-
-    def _get_click_options_for_task(self, task_name):
-        task_config = RUNTIME.project_config.get_task(task_name)
-        task_class = import_global(task_config.class_path)
-        return self._construct_click_options(task_class.task_options)
-
-    def _construct_click_options(self, task_options):
-        """Given a dict of task_options, construct and return the
-        corresponding list of click.Option instances"""
-        click_options = []
-        if task_options:
-            for name, properties in task_options.items():
-                click_options.append(
-                    click.Option(
-                        param_decls=(f"--{name}",),
-                        required=properties["required"],
-                        help=properties["description"],
-                    )
-                )
-        return click_options
+        pdb.set_trace()
 
 
-@task.command(cls=RunTaskCommand, name="roadrunner", help="Runs a task")
+@task.command(cls=RunTaskCommand, name="run", help="Runs a task")
 def task_run_normalized_options():
     pass
-
-
-@task.command(name="run", help="Runs a task")
-@click.argument("task_name")
-@click.option(
-    "--org",
-    help="Specify the target org.  By default, runs against the current default org",
-)
-@click.option(
-    "-o",
-    nargs=2,
-    multiple=True,
-    help="Pass task specific options for the task as '-o option value'.  You can specify more than one option by using -o more than once.",
-)
-@click.option(
-    "--debug", is_flag=True, help="Drops into pdb, the Python debugger, on an exception"
-)
-@click.option(
-    "--debug-before",
-    is_flag=True,
-    help="Drops into the Python debugger right before task start.",
-)
-@click.option(
-    "--debug-after",
-    is_flag=True,
-    help="Drops into the Python debugger at task completion.",
-)
-@click.option(
-    "--no-prompt",
-    is_flag=True,
-    help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-)
-@pass_runtime(require_keychain=True)
-def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_prompt):
-
-    # Get necessary configs
-    org, org_config = runtime.get_org(org, fail_if_missing=False)
-    task_config = runtime.project_config.get_task(task_name)
-
-    # Get the class to look up options
-    class_path = task_config.class_path
-    task_class = import_global(class_path)
-
-    # Parse command line options and add to task config
-    if o:
-        if "options" not in task_config.config:
-            task_config.config["options"] = {}
-        for name, value in o:
-            # Validate the option
-            if name not in task_class.task_options:
-                raise click.UsageError(
-                    f'Option "{name}" is not available for task {task_name}'
-                )
-
-                # Override the option in the task config
-                task_config.config["options"][name] = value
-
-    # Create and run the task
-    try:
-        task = task_class(
-            task_config.project_config, task_config, org_config=org_config
-        )
-
-        if debug_before:
-            import pdb
-
-            pdb.set_trace()
-
-        task()
-
-        if debug_after:
-            import pdb
-
-            pdb.set_trace()
-    finally:
-        runtime.alert(f"Task complete: {task_name}")
 
 
 @flow.command(name="list", help="List available flows for the current context")
