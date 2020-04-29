@@ -2808,6 +2808,50 @@ Options
 
 	 By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
 
+**set_duplicate_rule_status**
+==========================================
+
+**Description:** Sets the active status of Duplicate Rules.
+
+**Class:** cumulusci.tasks.metadata_etl.SetDuplicateRuleStatus
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run set_duplicate_rule_status``
+
+
+Options
+------------------------------------------
+
+
+``-o active ACTIVE``
+	 *Required*
+
+	 Boolean value, set the Duplicate Rule to either active or inactive
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **set_organization_wide_defaults**
 ==========================================
 

@@ -19,8 +19,8 @@ class TestUtilLogging:
         gist_logger.return_value = Mock()
         # Setup temp logfile
         tempfile = "tempfile.log"
-        log_content = "This is the content for the temp log file."
-        with open(tempfile, "w") as f:
+        log_content = "This is the content for the temp log file. And '┌' is an annoying character for Windows."
+        with open(tempfile, "w", encoding="utf-8") as f:
             f.write(log_content)
 
         expected_stdout_text = "This is expected stdout.\n"

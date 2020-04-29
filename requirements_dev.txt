@@ -4,11 +4,11 @@ black==19.10b0
 coverage==5.1
 coveralls==2.0.0
 flake8==3.7.9
-pre-commit==2.2.0
+pre-commit==2.3.0
 pytest==5.4.1
-responses==0.10.12
-Sphinx==3.0.1
-testfixtures==6.14.0
+responses==0.10.14
+Sphinx==3.0.2
+testfixtures==6.14.1
 tox==3.14.6
 twine==3.1.1
 typeguard==2.7.1
