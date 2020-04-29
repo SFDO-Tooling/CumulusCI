@@ -1240,6 +1240,78 @@ def task_info(runtime, task_name):
     click.echo(rst2ansi(doc))
 
 
+class RunTaskCommand(click.MultiCommand):
+    def _get_configured_tasks(self, runtime):
+        return list(
+            runtime.project_config.config["tasks"].keys()
+            if runtime.project_config
+            else runtime.global_config.config["tasks"].keys()
+        )
+
+    def list_commands(self, ctx):
+        """Lists the currently configured tasks"""
+        tasks = self._get_configured_tasks(RUNTIME)
+        return sorted(tasks)
+
+    def _get_default_params(self):
+        return [
+            click.Option(
+                ("--org",),
+                help="Specify the target org. By default, runs against the current default org.",
+            )
+        ]
+
+    def get_command(self, ctx, task_name):
+        runtime = RUNTIME
+        runtime._load_keychain()
+
+        # given the task_name get the corresponding class
+        # get list of options from the class
+
+        params = self._get_default_params()
+
+        # create params : list(click.Option)
+        # find options passed in ctx
+        # backwards compatability transform here? -o name value
+        # if option name not in tasks
+        # click.echo(f"I'm not aware of the option {opt_name} for the given task ({task_name}).")
+
+        def run_task(*args, **kwargs):
+            """Callback function to execute when the command fires."""
+            click.echo("run_task()")
+
+            # given the task name fetch the task class
+            # instantiate the task
+
+            if False:
+                try:
+                    task = task_class(
+                        task_config.project_config, task_config, org_config=org_config
+                    )
+
+                    if debug_before:
+                        import pdb
+
+                        pdb.set_trace()
+
+                    task()
+
+                    if debug_after:
+                        import pdb
+
+                        pdb.set_trace()
+
+                finally:
+                    runtime.alert(f"Task complete: {task_name}")
+
+        return click.Command(task_name, params=None, callback=run_task)
+
+
+@task.command(cls=RunTaskCommand, name="roadrunner", help="Runs a task")
+def task_run_normalized_options():
+    pass
+
+
 @task.command(name="run", help="Runs a task")
 @click.argument("task_name")
 @click.option(
@@ -1314,9 +1386,6 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
             pdb.set_trace()
     finally:
         runtime.alert(f"Task complete: {task_name}")
-
-
-# Commands for group: flow
 
 
 @flow.command(name="list", help="List available flows for the current context")
