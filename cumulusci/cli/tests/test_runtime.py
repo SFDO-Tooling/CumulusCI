@@ -53,6 +53,8 @@ class TestCliRuntime(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__env_takes_precedence(self, keyring):
+        if os.environ.get("CUMULUSCI_KEYCHAIN_CLASS"):
+            del os.environ["CUMULUSCI_KEYCHAIN_CLASS"]
         keyring.get_password.return_value = "overridden"
 
         config = CliRuntime()
@@ -61,6 +63,8 @@ class TestCliRuntime(unittest.TestCase):
     @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__generates_key(self, keyring):
         del os.environ["CUMULUSCI_KEY"]
+        if os.environ.get("CUMULUSCI_KEYCHAIN_CLASS"):
+            del os.environ["CUMULUSCI_KEYCHAIN_CLASS"]
         keyring.get_password.return_value = None
 
         config = CliRuntime()
