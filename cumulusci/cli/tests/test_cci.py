@@ -37,27 +37,7 @@ from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.cli import cci
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.utils import temporary_dir
-
-
-def run_click_command(cmd, *args, **kw):
-    """Run a click command with a mock context and injected CCI runtime object.
-    """
-    runtime = kw.pop("runtime", mock.Mock())
-    with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
-        with click.Context(command=mock.Mock()):
-            return cmd.callback(*args, **kw)
-
-
-def recursive_list_files(d="."):
-    result = []
-    for d, subdirs, files in os.walk(d):
-        d = d.replace(os.path.sep, "/")
-        if d != ".":
-            result.append("/".join([d, ""])[2:])
-        for f in files:
-            result.append("/".join([d, f])[2:])
-    result.sort()
-    return result
+from cumulusci.cli.tests.utils import run_click_command, recursive_list_files, DummyTask
 
 
 class TestCCI(unittest.TestCase):
@@ -1375,53 +1355,6 @@ Environment Info: Rossian / x68_46
         doc_task.assert_called_once()
         rst2ansi.assert_called_once()
 
-    def test_task_run(self):
-        runtime = mock.Mock()
-        runtime.get_org.return_value = (None, None)
-        runtime.project_config = BaseProjectConfig(
-            None,
-            config={
-                "tasks": {
-                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-                }
-            },
-        )
-        DummyTask._run_task = mock.Mock()
-
-        run_click_command(
-            cci.task_run,
-            runtime=runtime,
-            task_name="test",
-            org=None,
-            o=[("color", "blue")],
-            debug=False,
-            debug_before=False,
-            debug_after=False,
-            no_prompt=True,
-        )
-
-        DummyTask._run_task.assert_called_once()
-
-    def test_task_run_invalid_option(self):
-        runtime = mock.Mock()
-        runtime.get_org.return_value = (None, None)
-        runtime.project_config.get_task.return_value = TaskConfig(
-            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-        )
-
-        with self.assertRaises(click.UsageError):
-            run_click_command(
-                cci.task_run,
-                runtime=runtime,
-                task_name="test",
-                org=None,
-                o=[("bogus", "blue")],
-                debug=False,
-                debug_before=False,
-                debug_after=False,
-                no_prompt=True,
-            )
-
     @mock.patch("pdb.set_trace")
     def test_task_run_debug_before(self, set_trace):
         runtime = mock.Mock()
@@ -1644,14 +1577,6 @@ Environment Info: Rossian / x68_46
         content = "This\nis\na" + traceback
         output = cci.lines_from_traceback(content, 10)
         assert output == traceback
-
-
-class SetTrace(Exception):
-    pass
-
-
-class DummyTask(BaseTask):
-    task_options = {"color": {}}
 
 
 def validate_service(options):

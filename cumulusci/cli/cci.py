@@ -1241,10 +1241,6 @@ def task_info(runtime, task_name):
 
 
 class RunTaskCommand(click.MultiCommand):
-    def __init__(self, **attrs):
-        self.user_args = None
-        click.MultiCommand.__init__(self, **attrs)
-
     def list_commands(self, ctx):
         """Lists the currently configured tasks"""
         tasks = self._get_configured_tasks(RUNTIME)
@@ -1268,7 +1264,9 @@ class RunTaskCommand(click.MultiCommand):
 
         def run_task(*args, **kwargs):
             """Callback function to execute when the command fires."""
-            org, org_config = RUNTIME.get_org(kwargs["org"], fail_if_missing=False)
+            org, org_config = RUNTIME.get_org(
+                kwargs.pop("org", None), fail_if_missing=False
+            )
 
             # overwrite any existing configured options with those being passed in
             for name, value in kwargs.items():
@@ -1280,12 +1278,12 @@ class RunTaskCommand(click.MultiCommand):
                     task_config.project_config, task_config, org_config=org_config
                 )
 
-                if kwargs["debug_before"]:
+                if kwargs.pop("debug_before", None):
                     self._import_pdb_and_set_trace()
 
                 task()
 
-                if kwargs["debug_after"]:
+                if kwargs.pop("debug_after", None):
                     self._import_pdb_and_set_trace()
 
             finally:
@@ -1298,12 +1296,24 @@ class RunTaskCommand(click.MultiCommand):
         command line args being passed in. This allows us to convert
         the old option syntax to the new option syntax"""
 
+        # TODO: What's a good way to account for scenarios where
+        # the user for gets option name/value. Example would be:
+        # cci task run task_name -o name1 -o name2 value2
+        task_name = args[0]
         while "-o" in args:
             idx = args.index("-o")
-            args[idx + 1] = f"--{args[idx+1]}"
+            opt_name = args[idx + 1]
+            if not self._option_in_task(opt_name, task_name):
+                raise click.UsageError(f"Unrecognized option: {opt_name}")
+            args[idx + 1] = f"--{opt_name}"
             args.remove("-o")
 
         return click.MultiCommand.resolve_command(self, ctx, args)
+
+    def _option_in_task(opt_name, task_name):
+        """Returns True if opt_name is the name of an
+        option in the given task, else False"""
+        pass
 
     def _get_click_options_for_task(self, task_options):
         """Given a dict of options in a task, constructs and returns the
@@ -1355,7 +1365,7 @@ class RunTaskCommand(click.MultiCommand):
 
 
 @task.command(cls=RunTaskCommand, name="run", help="Runs a task")
-def task_run_normalized_options():
+def task_run():
     pass
 
 
