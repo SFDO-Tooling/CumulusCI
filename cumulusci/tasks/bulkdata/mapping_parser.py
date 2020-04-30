@@ -32,7 +32,7 @@ class MappingStep(CCIDictModel):
     action: str = "insert"
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: str = None  # should be discussed and probably deprecated
-    bulk_mode: Literal["Serial", "Parallel"] = "Parallel"
+    bulk_mode: Literal["Serial", "Parallel"]  # default should come from task options
 
     @validator("record_type")
     def record_type_is_deprecated(cls, v):
