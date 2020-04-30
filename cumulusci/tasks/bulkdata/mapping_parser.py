@@ -1,4 +1,4 @@
-from typing import Dict, List, Union, IO
+from typing import Dict, List, Union, IO, Optional
 from logging import getLogger
 from pathlib import Path
 
@@ -14,25 +14,27 @@ logger = getLogger(LOGGER_NAME)
 class MappingLookup(CCIDictModel):
     "Lookup relationship between two tables."
     table: str
-    key_field: str = None
-    value_field: str = None
-    join_field: str = None
-    after: str = None
-    aliased_table: str = None
+    key_field: Optional[str] = None
+    value_field: Optional[str] = None
+    join_field: Optional[str] = None
+    after: Optional[str] = None
+    aliased_table: Optional[str] = None
 
 
 class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
-    table: str = None
+    table: Optional[str] = None
     fields_: Dict[str, str] = Field(..., alias="fields")
     lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
     action: str = "insert"
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
-    record_type: str = None  # should be discussed and probably deprecated
-    bulk_mode: Literal["Serial", "Parallel"]  # default should come from task options
+    record_type: Optional[str] = None  # should be discussed and probably deprecated
+    bulk_mode: Optional[
+        Literal["Serial", "Parallel"]
+    ] = None  # default should come from task options
 
     @validator("record_type")
     def record_type_is_deprecated(cls, v):
