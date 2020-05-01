@@ -53,7 +53,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.1"),
                         "label": "Test",
                         "help_text": "Text field",
-                        "picklist_values": "",
+                        "valid_values": "",
                         "type": "Text",
                     }
                 }
@@ -64,7 +64,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.2"),
                         "label": "Parent",
                         "help_text": "Lookup",
-                        "picklist_values": "",
+                        "valid_values": "",
                         "type": "Lookup",
                     }
                 },
@@ -88,7 +88,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
                 call("Child__c,Child,Child object,1.0\r\n"),
                 call(
-                    "Object Name,Field Name,Field Label,Type,Field Help Text,Picklist Values,Version Introduced\r\n"
+                    "Object Name,Field Name,Field Label,Type,Field Help Text,Allowed Values,Version Introduced\r\n"
                 ),
                 call("Account,Test__c,Test,Text,Text field,,1.1\r\n"),
                 call("Child__c,Parent__c,Parent,Lookup,Lookup,,1.2\r\n"),
@@ -102,6 +102,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <fullName>Account__c</fullName>
     <label>Account</label>
     <type>Lookup</type>
+    <referenceTo>Account</referenceTo>
 </CustomField>
 """
         task = create_task(
@@ -125,7 +126,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "help_text": "",
             "label": "Account",
             "type": "Lookup",
-            "picklist_values": "",
+            "valid_values": "->Account",
         }
 
     def test_process_field_element__standard(self):
@@ -134,6 +135,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <fullName>Account</fullName>
     <label>Account</label>
     <type>Lookup</type>
+    <referenceTo>Account</referenceTo>
 </CustomField>
 """
         task = create_task(
@@ -159,6 +161,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <inlineHelpText>{}</inlineHelpText>
     <label>Account</label>
     <type>Lookup</type>
+    <referenceTo>Account</referenceTo>
 </CustomField>
 """
         task = create_task(
@@ -182,7 +185,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "help_text": "Initial",
             "label": "Account",
             "type": "Lookup",
-            "picklist_values": "",
+            "valid_values": "->Account",
         }
 
         task._process_field_element(
@@ -195,10 +198,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "help_text": "New",
             "label": "Account",
             "type": "Lookup",
-            "picklist_values": "",
+            "valid_values": "->Account",
         }
 
-    def test_process_field_element__picklist_values(self):
+    def test_process_field_element__valid_values(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Type__c</fullName>
@@ -237,10 +240,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "help_text": "",
             "label": "Type",
             "type": "Picklist",
-            "picklist_values": "Test 1; Test 2",
+            "valid_values": "Test 1; Test 2",
         }
 
-    def test_process_field_element__picklist_values_old_format(self):
+    def test_process_field_element__valid_values_old_format(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Type__c</fullName>
@@ -277,10 +280,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "help_text": "",
             "label": "Type",
             "type": "Picklist",
-            "picklist_values": "Test 1; Test 2",
+            "valid_values": "Test 1; Test 2",
         }
 
-    def test_process_field_element__picklist_values_global_value_set(self):
+    def test_process_field_element__valid_values_global_value_set(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Type__c</fullName>
@@ -310,7 +313,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "help_text": "",
             "label": "Type",
             "type": "Picklist",
-            "picklist_values": "Global Value Set Test Value Set",
+            "valid_values": "Global Value Set Test Value Set",
         }
 
     def test_process_object_element(self):
@@ -352,7 +355,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.1"),
                         "label": "Type",
                         "help_text": "Type of field.",
-                        "picklist_values": "",
+                        "valid_values": "",
                         "type": "Text",
                     }
                 },
@@ -607,7 +610,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
                 call("Test__c,Test,Description,1.1\r\n"),
                 call(
-                    "Object Name,Field Name,Field Label,Type,Field Help Text,Picklist Values,Version Introduced\r\n"
+                    "Object Name,Field Name,Field Label,Type,Field Help Text,Allowed Values,Version Introduced\r\n"
                 ),
                 call("Test__c,Type__c,Type,Text,Type of field.,,1.1\r\n"),
             ],
