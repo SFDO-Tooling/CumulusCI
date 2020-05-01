@@ -1,5 +1,4 @@
 import datetime
-import itertools
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -11,15 +10,6 @@ from sqlalchemy.orm import mapper
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils import convert_to_snake_case
-
-
-def batch_iterator(iterator, n=10000):
-    while True:
-        batch = list(itertools.islice(iterator, n))
-        if not batch:
-            return
-
-        yield batch
 
 
 def get_lookup_key_field(lookup, sf_field):

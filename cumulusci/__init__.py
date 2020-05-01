@@ -1,5 +1,6 @@
 import os
 import sys
+from simple_salesforce import api, bulk
 
 __import__("pkg_resources").declare_namespace("cumulusci")
 
@@ -10,3 +11,6 @@ with open(os.path.join(__location__, "version.txt")) as f:
 
 if sys.version_info < (3, 6):  # pragma: no cover
     raise Exception("CumulusCI requires Python 3.6+.")
+
+api.OrderedDict = dict
+bulk.OrderedDict = dict

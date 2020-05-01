@@ -10,7 +10,10 @@ from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from robot.utils import timestr_to_secs
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import (
+    StaleElementReferenceException,
+    NoSuchElementException,
+)
 import faker
 
 from simple_salesforce import SalesforceResourceNotFound
@@ -68,6 +71,7 @@ class Salesforce(object):
         """
         try:
             version = int(float(self.get_latest_api_version()))
+            self.builtin.set_suite_metadata("Salesforce API Version", version)
             locator_module_name = "locators_{}".format(version)
 
         except RobotNotRunningError:
@@ -1048,6 +1052,7 @@ class Salesforce(object):
                 self.builtin.warn("unable to capture screenshot: {}".format(str(e)))
             raise
 
+    @capture_screenshot_on_error
     def wait_until_salesforce_is_ready(self, locator=None, timeout=None, interval=5):
         """Waits until we are able to render the initial salesforce landing page
 
@@ -1087,6 +1092,7 @@ class Salesforce(object):
                     "return (document.readyState == 'complete')"
                 )
                 self.wait_for_aura()
+
                 # If the following doesn't throw an error, we're good to go.
                 self.selenium.get_webelement(locator)
                 break
@@ -1097,30 +1103,17 @@ class Salesforce(object):
                 )
                 if time.time() - start_time > timeout_seconds:
                     self.selenium.log_location()
-                    self.selenium.capture_page_screenshot()
                     raise Exception("Timed out waiting for a lightning page")
 
-            self.builtin.log("waiting for a refresh...", "DEBUG")
-            self.selenium.capture_page_screenshot()
+            # known edge cases that can be worked around
+            if self._check_for_login_failure():
+                continue
+            elif self._check_for_classic():
+                continue
+
+            # not a known edge case; take a deep breath and
+            # try again.
             time.sleep(interval)
-            location = self.selenium.get_location()
-            if (
-                "//test.salesforce.com" in location
-                or "//login.salesforce.com" in location
-            ):
-                # Sometimes we get redirected to a login URL rather
-                # than being logged in, and we've yet to figure out
-                # precisely why that happens. Experimentation shows
-                # that authentication has already happened, so in
-                # this case we'll try going back to the instance url
-                # rather than the front door servlet.
-                #
-                # Admittedly, this is a bit of a hack, but it's better
-                # than never getting past this redirect.
-                login_url = self.cumulusci.org.config["instance_url"]
-                self.builtin.log(
-                    f"setting login_url temporarily to {login_url}", "DEBUG"
-                )
             self.selenium.go_to(login_url)
 
     def breakpoint(self):
@@ -1131,3 +1124,58 @@ class Salesforce(object):
         set, this keyword will have no effect on a running test.
         """
         return None
+
+    def _check_for_classic(self):
+        """Switch to lightning if we land on a classic page
+
+        This seems to happen randomly, causing tests to fail
+        catastrophically. The idea is to detect such a case and
+        auto-click the "switch to lightning" link
+
+        """
+        try:
+            # we don't actually want to wait here, but if we don't
+            # explicitly wait, we'll implicitly wait longer than
+            # necessary.  This needs to be a quick-ish check.
+            self.selenium.wait_until_element_is_visible(
+                "class:switch-to-lightning", timeout=2
+            )
+            self.builtin.log(
+                "It appears we are on a classic page; attempting to switch to lightning",
+                "WARN",
+            )
+            # this screenshot should be removed at some point,
+            # but for now I want to make sure we see what the
+            # page looks like if we get here.
+            self.selenium.capture_page_screenshot()
+
+            # just in case there's a modal present we'll try simulating
+            # the escape key. Then, click on the switch-to-lightning link
+            self.selenium.press_keys(None, "ESC")
+            self.builtin.sleep("1 second")
+            self.selenium.click_link("class:switch-to-lightning")
+            return True
+
+        except (NoSuchElementException, AssertionError):
+            return False
+
+    def _check_for_login_failure(self):
+        """Handle the case where we land on a login screen
+
+           Sometimes we get redirected to a login URL rather than
+           being logged in, and we've yet to figure out precisely why
+           that happens. Experimentation shows that authentication has
+           already happened, so in this case we'll try going back to
+           the instance url rather than the front door servlet.
+
+           Admittedly, this is a bit of a hack, but it's better than
+           never getting past this redirect.
+        """
+
+        location = self.selenium.get_location()
+        if "//test.salesforce.com" in location or "//login.salesforce.com" in location:
+            login_url = self.cumulusci.org.config["instance_url"]
+            self.builtin.log(f"setting login_url temporarily to {login_url}", "DEBUG")
+            self.selenium.go_to(login_url)
+            return True
+        return False
