@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from distutils.version import LooseVersion
 
-
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.utils import download_extract_github_from_repo
 from cumulusci.utils.xml import metadata_tree
@@ -33,10 +33,16 @@ class GenerateDataDictionary(BaseGithubTask):
             "description": "The tag prefix used for releases.",
             "required": True,
         },
+        "field_description": {
+            "description": "Replaces help field text with field's description value when set."
+        },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
+        self.options["field_description"] = process_bool_arg(
+            self.options.get("field_description", False)
+        )
 
         if self.options.get("object_path") is None:
             self.options[
@@ -146,6 +152,7 @@ class GenerateDataDictionary(BaseGithubTask):
 
         # For MDAPI-format elements. No-op on SFDX.
         for field in element.findall("fields"):
+            # print(self._process_field_element(sobject_name, field, version))
             self._process_field_element(sobject_name, field, version)
 
     def _process_field_element(self, sobject_name, field, version):
@@ -156,6 +163,10 @@ class GenerateDataDictionary(BaseGithubTask):
         # If this is a custom field, register its presence in this version
         field_name = field.fullName.text
         help_text_elem = field.find("inlineHelpText")
+        description_text_elem = field.find("description")
+
+        if self.options["field_description"]:
+            help_text_elem = description_text_elem
 
         if "__" in field_name:
             field_type = field.type.text
@@ -238,7 +249,10 @@ class GenerateDataDictionary(BaseGithubTask):
                     "Field Name",
                     "Field Label",
                     "Type",
-                    "Field Help Text",
+                    "Field Help Text"
+                    if self.options["field_description"] == False
+                    or self.options["field_description"] == None
+                    else "Description",
                     "Allowed Values",
                     "Version Introduced",
                 ]
