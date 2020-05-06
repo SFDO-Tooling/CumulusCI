@@ -266,6 +266,10 @@ MobileApplicationDetails:
     - type: MobileApplicationDetail
       class: MetadataFilenameParser
       extension: MobileApplicationDetail
+navigationMenus:
+    - type: NavigationMenu
+      class: MetadataFilenameParser
+      extension: navigationMenu
 namedCredentials:
     - type: NamedCredential
       class: MetadataFilenameParser
