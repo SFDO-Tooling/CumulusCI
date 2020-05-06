@@ -2,6 +2,72 @@
 History
 =======
 
+3.12.1 (2020-04-27)
+-------------------
+
+Fixed a problem building the Homebrew formula for installing CumulusCI 3.12.0.
+
+3.12.0 (2020-04-27)
+-------------------
+
+Changes:
+
+* We've removed the prompt that users see when trying to use a scratch org that has expired,
+  and now automatically recreate the scratch org.
+
+* The ``load_dataset`` task now automatically avoids creating Bulk API batches larger than the
+  10 million character limit.
+
+* Robot Framework:
+
+  * When opening an org in the browser, the Salesforce library now attempts to detect if the org
+    was created using the Classic UI and automatically switch to Lightning Experience.
+
+  * The Salesforce library now has preliminary support for Summer '20 preview orgs.
+
+* CumulusCI now directs ``simple-salesforce`` to return results as normal Python dicts
+  instead of OrderedDicts.  This should have minimal impact since normal dicts are ordered
+  in the versions of Python that CumulusCI supports, but we mention it for the sake of completeness.
+
+Issues closed:
+
+* Fixed an issue where non-ASCII output caused an error when trying to write to the CumulusCI log
+  in Windows. (#1619)
+
+3.11.0 (2020-04-17)
+-------------------
+
+Changes:
+
+* CumulusCI now includes `Snowfakery <https://pypi.org/project/snowfakery/>`_,
+  a tool for generating fake data. It can be used to generate and load data into an org
+  via the new ``generate_and_load_from_yaml`` task.
+
+* Added two new preflight check tasks for use in MetaDeploy:
+  ``get_available_licenses`` and ``get_available_permission_set_licenses``.
+  These tasks make available lists of the License Definition Keys for the org's licenses or PSLs.
+
+* The ``get_installed_packages`` task now logs its result.
+
+* Robot Framework: Added two new keywords (``Get Fake Data`` and ``Set Faker Locale``)
+  and a global robot variable (``${faker}``) which can be used to generate fake data
+  using the `Faker <https://pypi.org/project/Faker/>`_ library.
+
+Issues closed:
+
+* Fixed an error when loading a dependency whose ``cumulusci.yml`` contains non-breaking spaces.
+
+* Fixed a PermissionError when running multiple concurrent CumulusCI commands in Windows. (#1477)
+
+* Show a more helpful error message if a keychain entry can't be loaded
+  due to a change in the encryption key.
+
+* Fixed the ``org_settings`` task to use the API version of the org rather than the API version of the package.
+
+* In the Salesforce Robot Framework library, the ``Open App Launcher`` keyword now tries to detect
+  and recover from an occasional situation where the app launcher fails to load.
+
+
 3.10.0 (2020-04-02)
 -------------------
 
