@@ -17,7 +17,7 @@ class GenerateDataDictionary(BaseGithubTask):
     One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
     with one row per packaged object.
     The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
-    Picklist Values (if any), Version Introduced.
+    Valid Picklist Values (if any) or a Lookup referenced table (if any), Version Introduced.
     Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
     is processed for SFDX projects.
     """
@@ -159,7 +159,7 @@ class GenerateDataDictionary(BaseGithubTask):
 
         if "__" in field_name:
             field_type = field.type.text
-            if field_type == "Picklist":
+            if field_type in ("Picklist", "MultiselectPicklist"):
                 # There's two different ways of storing picklist values
                 # (exclusive of Global Value Sets).
                 # <picklist> is used prior to API 38.0: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_picklist.htm
@@ -169,7 +169,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     value_set = field.valueSet
                     if value_set.find("valueSetName") is not None:
                         value_set_name = value_set.find("valueSetName").text
-                        picklist_values = f"Global Value Set {value_set_name}"
+                        valid_values = f"Global Value Set {value_set_name}"
                     else:
                         valueSetDefinition = value_set.valueSetDefinition
                         labels = [
@@ -177,7 +177,7 @@ class GenerateDataDictionary(BaseGithubTask):
                             for value in valueSetDefinition.findall("value")
                         ]
 
-                        picklist_values = "; ".join(labels)
+                        valid_values = "; ".join(labels)
                 elif field.find("picklist") is not None:
                     picklist = field.picklist
                     names = [
@@ -185,10 +185,11 @@ class GenerateDataDictionary(BaseGithubTask):
                         for value in picklist.findall("picklistValues")
                     ]
 
-                    picklist_values = "; ".join(names)
-
+                    valid_values = "; ".join(names)
+            elif field_type == "Lookup":
+                valid_values = "->" + field.referenceTo.text
             else:
-                picklist_values = ""
+                valid_values = ""
 
             self._set_version_with_props(
                 self.schema[sobject_name]["fields"][field_name],
@@ -198,7 +199,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     if help_text_elem is not None
                     else "",
                     "label": field.label.text,
-                    "picklist_values": picklist_values,
+                    "valid_values": valid_values,
                     "type": field_type,
                 },
             )
@@ -238,7 +239,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     "Field Label",
                     "Type",
                     "Field Help Text",
-                    "Picklist Values",
+                    "Allowed Values",
                     "Version Introduced",
                 ]
             )
@@ -252,7 +253,7 @@ class GenerateDataDictionary(BaseGithubTask):
                             field_data["label"],
                             field_data["type"],
                             field_data["help_text"],
-                            field_data["picklist_values"],
+                            field_data["valid_values"],
                             field_data["version"],
                         ]
                     )

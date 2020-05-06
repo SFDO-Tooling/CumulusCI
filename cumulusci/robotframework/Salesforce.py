@@ -228,6 +228,7 @@ class Salesforce(object):
                 time.sleep(5)
         raise Exception("Could not connect to remote webdriver after 1 minute")
 
+    @capture_screenshot_on_error
     def click_modal_button(self, title):
         """Clicks a button in a Lightning modal."""
         locator = lex_locators["modal"]["button"].format(title)
@@ -235,6 +236,7 @@ class Salesforce(object):
         self.selenium.wait_until_element_is_enabled(locator)
         self._jsclick(locator)
 
+    @capture_screenshot_on_error
     def click_object_button(self, title):
         """Clicks a button in an object's actions."""
         locator = lex_locators["object"]["button"].format(title)
