@@ -121,7 +121,7 @@ class CliRuntime(BaseCumulusCI):
             if org.scratch:
                 if org.created:
                     raise click.ClickException(
-                        f"Scratch org has already been created. Use `cci org scratch_delete {org_name}"
+                        f"Scratch org has already been created. Use `cci org scratch_delete {org_name}`"
                     )
             else:
                 raise click.ClickException(
