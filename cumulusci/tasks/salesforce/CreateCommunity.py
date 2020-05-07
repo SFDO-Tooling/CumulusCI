@@ -4,12 +4,14 @@ from datetime import datetime
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import SalesforceException
 
 
 class CreateCommunity(BaseSalesforceApiTask):
     api_version = "48.0"
-    task_docs = """Create a Salesforce Community via the Connect API.
+    task_docs = """
+    Create a Salesforce Community via the Connect API.
 
     Specify the `template` "VF Template" for Visualforce Tabs community,
     or the name for a specific desired template
@@ -44,7 +46,7 @@ class CreateCommunity(BaseSalesforceApiTask):
     def _run_task(self):
         community = self._get_community()
         if community is not None:
-            raise Exception(
+            raise CumulusCIException(
                 'A community named "{}" already exists.'.format(self.options["name"])
             )
 
