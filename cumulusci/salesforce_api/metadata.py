@@ -70,6 +70,8 @@ class BaseMetadataApiCall(object):
                 raise MetadataParseError(
                     f"Could not process MDAPI response: {str(e)}", response=response
                 )
+        else:
+            raise MetadataApiError(response.text, response)
 
     def _build_endpoint_url(self):
         # Parse org id from id which ends in /ORGID/USERID
@@ -223,7 +225,15 @@ class BaseMetadataApiCall(object):
         done = resp_xml.getElementsByTagName("done")
         if done:
             if done[0].firstChild.nodeValue == "true":
-                self._set_status("Done")
+                errorMessage = resp_xml.getElementsByTagName("errorMessage")
+                if errorMessage:
+                    self._set_status(
+                        "Failed",
+                        errorMessage[0].firstChild.nodeValue,
+                        response=response,
+                    )
+                else:
+                    self._set_status("Done")
             else:
                 state_detail = resp_xml.getElementsByTagName("stateDetail")
                 if state_detail:
