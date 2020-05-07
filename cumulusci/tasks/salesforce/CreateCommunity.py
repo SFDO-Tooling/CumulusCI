@@ -42,8 +42,13 @@ class CreateCommunity(BaseSalesforceApiTask):
         self.options["timeout"] = int(self.options.get("timeout", 300))
 
     def _run_task(self):
-        self.logger.info('Creating community "{}"'.format(self.options["name"]))
+        community = self._get_community()
+        if community is not None:
+            raise Exception(
+                'A community named "{}" already exists.'.format(self.options["name"])
+            )
 
+        self.logger.info('Creating community "{}"'.format(self.options["name"]))
         tries = 0
         while True:
             tries += 1
@@ -76,7 +81,9 @@ class CreateCommunity(BaseSalesforceApiTask):
             if "Error: A Community with this name already exists" in str(e):
                 # We can end up here if the previous try timed out
                 # but the community finished creating before we tried again.
-                self._check_completion()
+                community = self._get_community()
+                self.poll_complete = True
+                self.logger.info("Community {} created".format(community["id"]))
                 return
             else:
                 raise
@@ -93,13 +100,13 @@ class CreateCommunity(BaseSalesforceApiTask):
                     **self.options
                 )
             )
-        self._check_completion()
 
-    def _check_completion(self):
+        community = self._get_community()
+        if community is not None:
+            self.poll_complete = True
+            self.logger.info("Community {} created".format(community["id"]))
+
+    def _get_community(self):
         community_list = self.sf.restful("connect/communities")["communities"]
         communities = {c["name"]: c for c in community_list}
-        if self.options["name"] in communities:
-            self.poll_complete = True
-            self.logger.info(
-                "Community {} created".format(communities[self.options["name"]]["id"])
-            )
+        return communities.get(self.options["name"])

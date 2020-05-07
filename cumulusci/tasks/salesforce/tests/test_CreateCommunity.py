@@ -30,6 +30,12 @@ class test_CreateCommunity(unittest.TestCase):
             cc_task.org_config.instance_url
         )
 
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
+        )
         responses.add(method=responses.POST, url=community_url, status=200, json={})
         responses.add(
             method=responses.GET,
@@ -40,9 +46,9 @@ class test_CreateCommunity(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(2, len(responses.calls))
-        self.assertEqual(community_url, responses.calls[0].request.url)
+        self.assertEqual(3, len(responses.calls))
         self.assertEqual(community_url, responses.calls[1].request.url)
+        self.assertEqual(community_url, responses.calls[2].request.url)
         self.assertEqual(
             json.dumps(
                 {
@@ -52,7 +58,7 @@ class test_CreateCommunity(unittest.TestCase):
                     "urlPathPrefix": "test",
                 }
             ),
-            responses.calls[0].request.body,
+            responses.calls[1].request.body,
         )
 
     @responses.activate
@@ -62,6 +68,12 @@ class test_CreateCommunity(unittest.TestCase):
             cc_task.org_config.instance_url
         )
 
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
+        )
         responses.add(method=responses.POST, url=community_url, status=200, json={})
         responses.add(
             method=responses.GET,
@@ -72,9 +84,9 @@ class test_CreateCommunity(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(2, len(responses.calls))
-        self.assertEqual(community_url, responses.calls[0].request.url)
+        self.assertEqual(3, len(responses.calls))
         self.assertEqual(community_url, responses.calls[1].request.url)
+        self.assertEqual(community_url, responses.calls[2].request.url)
         self.assertEqual(
             json.dumps(
                 {
@@ -84,16 +96,39 @@ class test_CreateCommunity(unittest.TestCase):
                     "urlPathPrefix": "",
                 }
             ),
-            responses.calls[0].request.body,
+            responses.calls[1].request.body,
         )
 
     @responses.activate
-    def test_handles_existing_community(self):
+    def test_error_for_existing_community(self):
         cc_task = create_task(CreateCommunity, task_options)
         community_url = "{}/services/data/v48.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
 
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": [{"name": "Test Community", "id": "000000000000000"}]},
+        )
+
+        with self.assertRaises(Exception):
+            cc_task()
+
+    @responses.activate
+    def test_handles_community_created_between_tries(self):
+        cc_task = create_task(CreateCommunity, task_options)
+        community_url = "{}/services/data/v48.0/connect/communities".format(
+            cc_task.org_config.instance_url
+        )
+
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
+        )
         responses.add(
             method=responses.POST,
             url=community_url,
@@ -122,6 +157,12 @@ class test_CreateCommunity(unittest.TestCase):
         )
 
         responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
+        )
+        responses.add(
             method=responses.POST,
             url=community_url,
             status=400,
@@ -144,6 +185,12 @@ class test_CreateCommunity(unittest.TestCase):
             cc_task.org_config.instance_url
         )
 
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
+        )
         responses.add(
             method=responses.POST,
             url=community_url,
