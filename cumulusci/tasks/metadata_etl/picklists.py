@@ -25,10 +25,7 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             "should be available. Any Record Types not present in the target org will be "
             "ignored, and * is a wildcard. Default behavior is to do nothing."
         },
-        "sort_values": {"description": "Sort the picklist values alphabetically."},
-        "force_last": {
-            "description": "Require a specific value to appear last in the list."
-        },
+        "sorted": {"description": "Sort the picklist values alphabetically."},
         **MetadataSingleEntityTransformTask.task_options,
     }
 
@@ -36,10 +33,17 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
         self.task_config.options["api_names"] = "dummy"
         super()._init_options(kwargs)
 
+        try:
+            if float(self.api_version) < 38.0:
+                raise TaskOptionsError("This task requires API version 38.0 or later.")
+        except ValueError:
+            raise TaskOptionsError(f"Invalid API version {self.api_version}")
+
         self.picklists = {}
-        for pl in self.options["picklists"]:
-            obj, field = pl.split(".")
-            if None in [obj, field]:
+        for pl in process_list_arg(self.options["picklists"]):
+            try:
+                obj, field = pl.split(".")
+            except ValueError:
                 raise TaskOptionsError(
                     f"Picklist {pl} is not a valid Object.Field reference"
                 )
@@ -59,32 +63,28 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             )
 
         if (
-            len(
-                list(
-                    x
-                    for x in self.options["entries"]
-                    if process_bool_arg(x.get("default", False))
-                )
+            sum(
+                1
+                for x in self.options["entries"]
+                if process_bool_arg(x.get("default", False))
             )
             > 1
         ):
             raise TaskOptionsError("Only one default picklist value is allowed.")
 
-        self.options["sort_values"] = process_bool_arg(
-            self.options.get("sort_values", False)
-        )
-        self.options["record_types"] = process_list_arg(
-            self.options.get("record_types", [])
-        )
+        self.options["sorted"] = process_bool_arg(self.options.get("sorted", False))
+        self.options["record_types"] = [
+            self._inject_namespace(x)
+            for x in process_list_arg(self.options.get("record_types", []))
+        ]
 
         self.api_names = set(self.picklists.keys())
-
-    def _deploy(self):
-        raise Exception
 
     def _transform_entity(self, metadata: MetadataElement, api_name: str):
         for pl in self.picklists[api_name]:
             self._modify_picklist(metadata, api_name, pl)
+
+        return metadata
 
     def _modify_picklist(self, metadata: MetadataElement, api_name: str, picklist: str):
         # Locate the <fields> entry for this picklist.
@@ -93,19 +93,19 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
         if not field:
             raise TaskOptionsError(f"The field {api_name}.{picklist} was not found.")
 
-        vsd = field.valueSet.valueSetDefinition  # TODO: clamp API > 38
+        vsd = field.valueSet.valueSetDefinition
 
+        # Update each entry in this picklist, and also add to all record types.
         for entry in self.options["entries"]:
             self._add_picklist_field_entry(vsd, api_name, picklist, entry)
 
             if self.options["record_types"]:
                 self._add_record_type_entries(metadata, api_name, picklist, entry)
 
-        if self.options["sort_values"] and not self.options.get("force_last"):
-            vsd.sorted.text = "true"
-        elif self.options["sort_values"]:
-            # Manually sort values so that we can apply force_last
-            pass  # TODO
+        # Set the sorted value for this picklist
+        if self.options["sorted"]:
+            sorted_elem = vsd.find("sorted") or vsd.append("sorted")
+            sorted_elem.text = "true"
 
     def _add_picklist_field_entry(
         self, vsd: MetadataElement, api_name: str, picklist: str, entry: Dict
@@ -122,37 +122,57 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             entry_element = vsd.append("value")
             entry_element.append("fullName", text=fullName)
             entry_element.append("label", text=label)
-            entry_element.append(
-                "default", text=str(default).lower()
-            )  # TODO: enforce one default value
+            entry_element.append("default", text=str(default).lower())
+
+        # If we're setting this as the default, unset all of the other entries.
+        if default:
+            for value in vsd.findall("value"):
+                default = value.find("default")
+                if default:
+                    default.text = (
+                        "false" if value.fullName.text != fullName else "true"
+                    )
 
     def _add_record_type_entries(
         self, metadata: MetadataElement, api_name: str, picklist: str, entry: Dict
     ):
-        for record_type in self.options["record_types"]:
-            rt_element = metadata.find("recordTypes", fullName=record_type)
+        if "*" in self.options["record_types"]:
+            rt_list = metadata.findall("recordTypes")
+        else:
+            rt_list = [
+                metadata.find("recordTypes", fullName=record_type)
+                for record_type in self.options["record_types"]
+            ]
 
+        for rt_element in rt_list:
             # Silently ignore record types that don't exist in the target org.
             if rt_element:
-                # Locate, or add, the root picklistValues element for this picklist.
-                picklist_element = rt_element.find(
-                    "picklistValues", picklist=picklist
-                ) or rt_element.append("picklistValues")
-                if not picklist_element.find("picklist", text=picklist):
-                    picklist_element.append("picklist", text=picklist)
+                self._add_single_record_type_entries(
+                    rt_element, api_name, picklist, entry
+                )
 
-                # If this picklist value entry is not already present, add it.
-                if not picklist_element.find("values", fullName=entry["fullName"]):
-                    values = picklist_element.append("values")
-                    values.append("fullName", text=entry["fullName"])
+    def _add_single_record_type_entries(
+        self, rt_element: MetadataElement, api_name: str, picklist: str, entry: Dict
+    ):
+        # Locate, or add, the root picklistValues element for this picklist.
+        picklist_element = rt_element.find(
+            "picklistValues", picklist=picklist
+        ) or rt_element.append("picklistValues")
+        if not picklist_element.find("picklist", text=picklist):
+            picklist_element.append("picklist", text=picklist)
 
-                # If this picklist value needs to be made default, do so, and remove any existing default.
-                if process_bool_arg(entry.get("default", False)):
-                    # Find existing default and remove it.
+        # If this picklist value entry is not already present, add it.
+        if not picklist_element.find("values", fullName=entry["fullName"]):
+            values = picklist_element.append("values")
+            values.append("fullName", text=entry["fullName"])
 
-                    for value in picklist_element.values:
-                        value.default.text = (
-                            "false"
-                            if value.fullName.text != entry["fullName"]
-                            else "true"
-                        )
+        # If this picklist value needs to be made default, do so, and remove any existing default.
+        if process_bool_arg(entry.get("default", False)):
+            # Find existing default and remove it.
+
+            for value in picklist_element.values:
+                default = value.find("default")
+                if default:
+                    default.text = (
+                        "false" if value.fullName.text != entry["fullName"] else "true"
+                    )
