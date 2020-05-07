@@ -359,6 +359,7 @@ Options
 **Class:** cumulusci.tasks.salesforce.CreateCommunity
 
 Create a Salesforce Community via the Connect API.
+
 Specify the `template` "VF Template" for Visualforce Tabs community,
 or the name for a specific desired template
 
@@ -391,6 +392,11 @@ Options
 	 *Optional*
 
 	 URL prefix for the community.
+
+``-o retries RETRIES``
+	 *Optional*
+
+	 Number of times to retry community creation request
 
 ``-o timeout TIMEOUT``
 	 *Optional*
@@ -1036,7 +1042,7 @@ The data dictionary is output as two CSV files.
 One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
 with one row per packaged object.
 The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
-Allowed Values (if any), Version Introduced.
+Valid Picklist Values (if any) or a Lookup referenced table (if any), Version Introduced.
 Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
 is processed for SFDX projects.
 

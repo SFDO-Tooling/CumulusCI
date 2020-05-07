@@ -26,17 +26,16 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_creates_community(self):
         cc_task = create_task(CreateCommunity, task_options)
-        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
-            cc_task.org_config.instance_url
-        )
-        community_url = "{}/services/data/v46.0/connect/communities".format(
+        community_url = "{}/services/data/v48.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
 
         responses.add(
-            method=responses.GET, url=cc_task.org_config.start_url, status=200
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
         )
-        responses.add(method=responses.GET, url=servlet_url, status=200)
         responses.add(method=responses.POST, url=community_url, status=200, json={})
         responses.add(
             method=responses.GET,
@@ -47,11 +46,9 @@ class test_CreateCommunity(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(4, len(responses.calls))
-        self.assertEqual(cc_task.org_config.start_url, responses.calls[0].request.url)
-        self.assertEqual(servlet_url, responses.calls[1].request.url)
+        self.assertEqual(3, len(responses.calls))
+        self.assertEqual(community_url, responses.calls[1].request.url)
         self.assertEqual(community_url, responses.calls[2].request.url)
-        self.assertEqual(community_url, responses.calls[3].request.url)
         self.assertEqual(
             json.dumps(
                 {
@@ -61,23 +58,22 @@ class test_CreateCommunity(unittest.TestCase):
                     "urlPathPrefix": "test",
                 }
             ),
-            responses.calls[2].request.body,
+            responses.calls[1].request.body,
         )
 
     @responses.activate
     def test_creates_community_no_url_path_prefix(self):
         cc_task = create_task(CreateCommunity, task_options_no_url_path_prefix)
-        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
-            cc_task.org_config.instance_url
-        )
-        community_url = "{}/services/data/v46.0/connect/communities".format(
+        community_url = "{}/services/data/v48.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
 
         responses.add(
-            method=responses.GET, url=cc_task.org_config.start_url, status=200
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
         )
-        responses.add(method=responses.GET, url=servlet_url, status=200)
         responses.add(method=responses.POST, url=community_url, status=200, json={})
         responses.add(
             method=responses.GET,
@@ -88,11 +84,9 @@ class test_CreateCommunity(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(4, len(responses.calls))
-        self.assertEqual(cc_task.org_config.start_url, responses.calls[0].request.url)
-        self.assertEqual(servlet_url, responses.calls[1].request.url)
+        self.assertEqual(3, len(responses.calls))
+        self.assertEqual(community_url, responses.calls[1].request.url)
         self.assertEqual(community_url, responses.calls[2].request.url)
-        self.assertEqual(community_url, responses.calls[3].request.url)
         self.assertEqual(
             json.dumps(
                 {
@@ -102,23 +96,39 @@ class test_CreateCommunity(unittest.TestCase):
                     "urlPathPrefix": "",
                 }
             ),
-            responses.calls[2].request.body,
+            responses.calls[1].request.body,
         )
 
     @responses.activate
-    def test_throws_exception_for_existing_name(self):
+    def test_error_for_existing_community(self):
         cc_task = create_task(CreateCommunity, task_options)
-        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
-            cc_task.org_config.instance_url
-        )
-        community_url = "{}/services/data/v46.0/connect/communities".format(
+        community_url = "{}/services/data/v48.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
 
         responses.add(
-            method=responses.GET, url=cc_task.org_config.start_url, status=200
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": [{"name": "Test Community", "id": "000000000000000"}]},
         )
-        responses.add(method=responses.GET, url=servlet_url, status=200)
+
+        with self.assertRaises(Exception):
+            cc_task()
+
+    @responses.activate
+    def test_handles_community_created_between_tries(self):
+        cc_task = create_task(CreateCommunity, task_options)
+        community_url = "{}/services/data/v48.0/connect/communities".format(
+            cc_task.org_config.instance_url
+        )
+
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
+        )
         responses.add(
             method=responses.POST,
             url=community_url,
@@ -130,25 +140,28 @@ class test_CreateCommunity(unittest.TestCase):
                 }
             ],
         )
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": [{"name": "Test Community", "id": "000000000000000"}]},
+        )
 
-        cc_task._init_task()
-        with self.assertRaises(SalesforceMalformedRequest):
-            cc_task._run_task()()
+        cc_task()
 
     @responses.activate
     def test_throws_exception_for_existing_url_path_prefix(self):
         cc_task = create_task(CreateCommunity, task_options)
-        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
-            cc_task.org_config.instance_url
-        )
-        community_url = "{}/services/data/v46.0/connect/communities".format(
+        community_url = "{}/services/data/v48.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
 
         responses.add(
-            method=responses.GET, url=cc_task.org_config.start_url, status=200
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
         )
-        responses.add(method=responses.GET, url=servlet_url, status=200)
         responses.add(
             method=responses.POST,
             url=community_url,
@@ -168,17 +181,16 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_throws_exception_for_existing_no_url_path_prefix(self):
         cc_task = create_task(CreateCommunity, task_options_no_url_path_prefix)
-        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
-            cc_task.org_config.instance_url
-        )
-        community_url = "{}/services/data/v46.0/connect/communities".format(
+        community_url = "{}/services/data/v48.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
 
         responses.add(
-            method=responses.GET, url=cc_task.org_config.start_url, status=200
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": []},
         )
-        responses.add(method=responses.GET, url=servlet_url, status=200)
         responses.add(
             method=responses.POST,
             url=community_url,
@@ -199,7 +211,7 @@ class test_CreateCommunity(unittest.TestCase):
     def test_waits_for_community_result__not_complete(self):
         cc_task = create_task(CreateCommunity, task_options)
 
-        community_url = "{}/services/data/v46.0/connect/communities".format(
+        community_url = "{}/services/data/v48.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
         responses.add(
@@ -218,7 +230,7 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_waits_for_community_result__complete(self):
         cc_task = create_task(CreateCommunity, task_options)
-        community_url = "{}/services/data/v46.0/connect/communities".format(
+        community_url = "{}/services/data/v48.0/connect/communities".format(
             cc_task.org_config.instance_url
         )
         responses.add(
@@ -242,18 +254,3 @@ class test_CreateCommunity(unittest.TestCase):
         cc_task.time_start = datetime(2019, 1, 1)
         with self.assertRaises(SalesforceException):
             cc_task._poll_action()
-
-    @responses.activate
-    def test_throws_exception_for_failed_prepare_step(self):
-        cc_task = create_task(CreateCommunity, task_options)
-        servlet_url = "{}/sites/servlet.SitePrerequisiteServlet".format(
-            cc_task.org_config.instance_url
-        )
-
-        responses.add(
-            method=responses.GET, url=cc_task.org_config.start_url, status=200
-        )
-        responses.add(method=responses.GET, url=servlet_url, status=500)
-
-        with self.assertRaises(SalesforceException):
-            cc_task._run_task()

@@ -1,14 +1,18 @@
 import json
-import requests
 from datetime import datetime
+
+from simple_salesforce.exceptions import SalesforceMalformedRequest
+
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import SalesforceException
 
 
 class CreateCommunity(BaseSalesforceApiTask):
-    api_version = "46.0"
+    api_version = "48.0"
     task_docs = """
     Create a Salesforce Community via the Connect API.
+
     Specify the `template` "VF Template" for Visualforce Tabs community,
     or the name for a specific desired template
     """
@@ -26,33 +30,43 @@ class CreateCommunity(BaseSalesforceApiTask):
             "description": "URL prefix for the community.",
             "required": False,
         },
+        "retries": {
+            "description": "Number of times to retry community creation request"
+        },
         "timeout": {
-            "description": "Time to wait, in seconds, for the community to be created",
-            "default": 120,
+            "description": "Time to wait, in seconds, for the community to be created"
         },
     }
 
     def _init_options(self, kwargs):
         super(CreateCommunity, self)._init_options(kwargs)
-        self.options["timeout"] = int(self.options.get("timeout", 120))
+        self.options["retries"] = int(self.options.get("retries", 6))
+        self.options["timeout"] = int(self.options.get("timeout", 300))
 
     def _run_task(self):
-        self.logger.info('Creating community "{}"'.format(self.options["name"]))
-
-        # Before we can create a Community, we have to click through the "New Community"
-        # button in the All Communities setup page. (This does some unknown behind-the-scenes setup).
-        # Let's simulate that without actually using a browser.
-        self.logger.info("Preparing org for Communities")
-        s = requests.Session()
-        s.get(self.org_config.start_url).raise_for_status()
-        r = s.get(
-            "{}/sites/servlet.SitePrerequisiteServlet".format(
-                self.org_config.instance_url
+        community = self._get_community()
+        if community is not None:
+            raise CumulusCIException(
+                'A community named "{}" already exists.'.format(self.options["name"])
             )
-        )
-        if r.status_code != 200:
-            raise SalesforceException("Unable to prepare org for Communities")
 
+        self.logger.info('Creating community "{}"'.format(self.options["name"]))
+        tries = 0
+        while True:
+            tries += 1
+            try:
+                self._create_community()
+            except Exception as e:
+                if tries > self.options["retries"]:
+                    raise
+                else:
+                    self.logger.warning(str(e))
+                    self.logger.info("Retrying community creation request")
+                    self.poll_interval_s = 1
+            else:
+                break  # pragma: no cover
+
+    def _create_community(self):
         payload = {
             "name": self.options["name"],
             "description": self.options.get("description") or "",
@@ -61,7 +75,20 @@ class CreateCommunity(BaseSalesforceApiTask):
         }
 
         self.logger.info("Sending request to create Community")
-        self.sf.restful("connect/communities", method="POST", data=json.dumps(payload))
+        try:
+            self.sf.restful(
+                "connect/communities", method="POST", data=json.dumps(payload)
+            )
+        except SalesforceMalformedRequest as e:
+            if "Error: A Community with this name already exists" in str(e):
+                # We can end up here if the previous try timed out
+                # but the community finished creating before we tried again.
+                community = self._get_community()
+                self.poll_complete = True
+                self.logger.info("Community {} created".format(community["id"]))
+                return
+            else:
+                raise
 
         # Wait for the community to be created
         self.time_start = datetime.now()
@@ -76,10 +103,12 @@ class CreateCommunity(BaseSalesforceApiTask):
                 )
             )
 
+        community = self._get_community()
+        if community is not None:
+            self.poll_complete = True
+            self.logger.info("Community {} created".format(community["id"]))
+
+    def _get_community(self):
         community_list = self.sf.restful("connect/communities")["communities"]
         communities = {c["name"]: c for c in community_list}
-        if self.options["name"] in communities:
-            self.poll_complete = True
-            self.logger.info(
-                "Community {} created".format(communities[self.options["name"]]["id"])
-            )
+        return communities.get(self.options["name"])
