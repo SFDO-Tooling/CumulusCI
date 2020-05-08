@@ -2,8 +2,16 @@
 import sys
 
 from unittest import mock
+from pprint import pformat
+
 import pytest
-from cumulusci.cli.ui import CHECKMARK, CliTable
+from cumulusci.cli.ui import (
+    CHECKMARK,
+    CliTable,
+    _summarize,
+    pretty_describe,
+    pretty_soql_query,
+)
 
 
 @pytest.fixture
@@ -199,3 +207,80 @@ def test_table_wrap_cols(max_width, sample_data):
     data[1][1] = data[1][1] + "a" * 256
     instance = CliTable(data, wrap_cols=["Description"])
     assert all((len(line) for line in instance._table.table_data[1][1].split("\n")))
+
+
+PRETEND_DESCRIBE_DATA = {
+    "name": "Blah",
+    "updateable": False,
+    "fields": [
+        {"name": "Foo", "referenceTo": ["Bar"], "picklistValues": []},
+        {
+            "name": "Bar",
+            "referenceTo": [],
+            "picklistValues": [{"value": "a"}, {"value": "b"}],
+        },
+        {"name": "Baz", "type": "string", "referenceTo": [], "picklistValues": []},
+    ],
+}
+
+
+def test_summarize():
+    fields = PRETEND_DESCRIBE_DATA["fields"]
+    assert _summarize(fields[0]) == ("Foo", ["Bar"])
+    assert _summarize(fields[1]) == ("Bar", ["a", "b"])
+    assert _summarize(fields[2]) == ("Baz", "string")
+
+
+def test_pretty_describe():
+    sf = mock.MagicMock()
+    sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
+    rc = pretty_describe(sf, "Blah", detailed=False)
+    assert sf.Blah.describe.mock_calls
+    assert rc == pformat([("Foo", ["Bar"]), ("Bar", ["a", "b"]), ("Baz", "string")])
+
+
+def test_pretty_describe_detailed():
+    sf = mock.MagicMock()
+    sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
+    rc = pretty_describe(sf, "Blah", detailed=True)
+    assert sf.Blah.describe.mock_calls
+    assert rc == pformat(PRETEND_DESCRIBE_DATA), rc
+
+
+def _pretend_soql_result(*args):
+    return {
+        "totalSize": 1,
+        "done": True,
+        "records": [{"attributes": {"type": "AggregateResult"}, "expr0": 20}],
+    }
+
+
+def test_pretty_soql_query_simple_count():
+    sf = mock.MagicMock()
+    sf.query.return_value = _pretend_soql_result()
+    rc = pretty_soql_query(
+        sf,
+        "select Count(Id) from Account",
+        include_deleted=False,
+        format="obj",
+        max_rows=100,
+    )
+    assert sf.query.mock_calls == [
+        mock.call("select Count(Id) from Account", include_deleted=False)
+    ], sf.query.mock_calls
+    assert rc == [{"expr0": 20}]
+
+    sf = mock.MagicMock()
+    sf.query.return_value = _pretend_soql_result()
+
+    rc = pretty_soql_query(
+        sf,
+        "select Count(Id) from Account",
+        include_deleted=True,
+        format="obj",
+        max_rows=100,
+    )
+    assert sf.query.mock_calls == [
+        mock.call("select Count(Id) from Account", include_deleted=True)
+    ], sf.query.mock_calls
+    assert rc == [{"expr0": 20}]

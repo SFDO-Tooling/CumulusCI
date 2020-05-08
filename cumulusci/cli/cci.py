@@ -43,7 +43,7 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
-from cumulusci.cli.ui import CliTable, CROSSMARK
+from cumulusci.cli.ui import CliTable, CROSSMARK, pretty_soql_query, pretty_describe
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
 from cumulusci.utils import parse_api_datetime
@@ -1138,6 +1138,21 @@ def org_scratch_delete(runtime, org_name):
     runtime.keychain.set_org(org_config)
 
 
+org_shell_cci_help_message = """
+The cumulusci shell gives you access to the following objects and functions:
+
+* sf - simple_salesforce connected to your org. [1]
+* org_config - local information about your org. [2]
+* project_config - information about your project. [3]
+* query() - SOQL query. `help(query)` for more information
+* describe() - Inspect object fields. `help(describe)` for more information
+
+[1] https://github.com/simple-salesforce/simple-salesforce
+[2] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.OrgConfig
+[3] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.project_config
+"""
+
+
 @org.command(
     name="shell",
     help="Drop into a Python shell with a simple_salesforce connection in `sf`, "
@@ -1152,10 +1167,26 @@ def org_shell(runtime, org_name, script=None, python=None):
     org_config.refresh_oauth_token(runtime.keychain)
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
+    printer = type(copyright)
+
+    def query(soql_text, include_deleted=False, format="obj", **kwargs):
+        return pretty_soql_query(
+            sf, soql_text, include_deleted=False, format=format, **kwargs
+        )
+
+    def describe(obj_name, detailed=False):
+        return pretty_describe(sf, obj_name, detailed=detailed)
+
+    query.__doc__ = pretty_soql_query.__doc__.replace("pretty_soql_query", "query")
+    describe.__doc__ = pretty_describe.__doc__.replace("pretty_describe", "describe")
+
     globals = {
         "sf": sf,
+        "query": query,
+        "describe": describe,
         "org_config": org_config,
         "project_config": runtime.project_config,
+        "cci": printer("cci", org_shell_cci_help_message),
     }
 
     if script:
@@ -1166,7 +1197,8 @@ def org_shell(runtime, org_name, script=None, python=None):
         exec(python)
     else:
         code.interact(
-            banner=f"Use `sf` to access org `{org_name}` via simple_salesforce",
+            banner=f"Use `sf` to access org `{org_name}` via simple_salesforce\n"
+            + "Type `cci` for more information about the cci shell.",
             local=globals,
         )
 

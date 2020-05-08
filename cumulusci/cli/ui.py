@@ -7,6 +7,7 @@ Classes:
 import os
 import click
 import textwrap
+import shutil
 from terminaltables import AsciiTable, SingleTable
 
 
@@ -133,3 +134,99 @@ class CliTable:
         # If a string has been wrapped, wrap each line to avoid dimming table borders
         dimmed_strs = [click.style(line, dim=True) for line in val.split("\n")]
         return "\n".join(dimmed_strs)
+
+
+def pretty_soql_query(sf, query, include_deleted=False, format="obj", max_rows=100):
+    """Return the result of a Salesforce SOQL query.
+
+        Arguments:
+
+        * query -- the SOQL query to send to Salesforce, e.g.
+                   SELECT Id FROM Lead WHERE Email = "waldo@somewhere.com"
+        * include_deleted -- True if deleted records should be included
+        * format -- one of these values:
+           - obj -- ordinary Python objects (default)
+           - table -- printable ASCII tablee
+           - pprint -- string in easily readable Python dict shape
+           - json -- JSON
+        * max_rows -- maximuim rows to output, defaults to 100
+
+    For example:
+        pretty_soql_query("select Name, Id from Account")
+        pretty_soql_query("select count(Id) from Contact")
+    """
+    results = sf.query(query, include_deleted=include_deleted)["records"]
+
+    if len(results) > max_rows:
+        truncated = f"... truncated {len(results) - max_rows} rows"
+        results = results[0:max_rows]
+    else:
+        truncated = False
+
+    for result in results:
+        print(result)
+        del result["attributes"]
+
+    if truncated:
+        results.append(truncated)
+
+    if format == "table":
+        return _soql_table(results, truncated)
+    if format == "obj":
+        return results
+    elif format == "pprint":
+        return _pformat(results)
+    elif format == "json":
+        from json import dumps
+
+        return dumps(results, indent=2)
+    else:
+        raise TypeError(f"Unknown format `{format}`")
+
+
+def _soql_table(results, truncated):
+    if results:
+        if truncated:
+            assert results[-1] == truncated
+            first_row = results[0]
+            fake_row = {k: "" for k, v in first_row.items()}
+            first_column = list(first_row)[0]
+            fake_row[first_column] = truncated
+
+            results[-1] = fake_row
+
+        headings = list(results[0].keys())
+        return CliTable(
+            [headings] + [list(r.values()) for r in results], wrap_cols=headings
+        )
+    else:
+        return CliTable([["No results"]])
+
+
+def _pformat(values):
+    columns, _rows = shutil.get_terminal_size(fallback=(80, 24))
+    from pprint import pformat
+
+    return pformat(values)
+
+
+def pretty_describe(sf, sobj_name, detailed=False):
+    """Describe an sobject. Use detailed=True to get lots of details"""
+    data = getattr(sf, sobj_name).describe()
+
+    if detailed:
+        rc = data
+    else:
+        rc = [_summarize(field) for field in data["fields"]]
+
+    return _pformat(rc)
+
+
+def _summarize(field):
+    if field["referenceTo"]:
+        allowed = field["referenceTo"]
+    elif field["picklistValues"]:
+        allowed = [value["value"] for value in field["picklistValues"]]
+    else:
+        allowed = field["type"]
+    return (field["name"], allowed)
