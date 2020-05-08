@@ -18,7 +18,7 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.AddValueSetEntries
         options:
             namespace_inject: $project_config.project__package__namespace
-    add_picklist_values:
+    add_picklist_entries:
         group: Metadata Transformations
         description: Adds specified picklist entries to a custom picklist field.
         class_path: cumulusci.tasks.metadata_etl.AddPicklistEntries

@@ -167,16 +167,16 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             picklist_element.append("picklist", text=picklist)
 
         # If this picklist value entry is not already present, add it.
+        default = process_bool_arg(entry.get("default", False))
         values = picklist_element.find("values", fullName=entry["fullName"])
         if not values:
             values = picklist_element.append("values")
             values.append("fullName", text=entry["fullName"])
-            values.append("default", text="")  # Populated below.
+            values.append("default", text=str(default).lower())
 
-        # If this picklist value needs to be made default, do so, and remove any existing default.
-        if process_bool_arg(entry.get("default", False)):
+        # If this picklist value needs to be made default, remove any existing default.
+        if default:
             # Find existing default and remove it, while setting our value as default
-
             for value in picklist_element.values:
                 default = value.find("default")
                 if default:
