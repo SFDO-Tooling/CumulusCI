@@ -16,16 +16,20 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
         "entries": {
             "description": "Array of picklist values to insert. "
             "Each value should contain the keys 'fullName', the API name of the entry, "
-            "and 'label', the user-facing label. Optionally, specify 'default` on exactly one "
-            "entry to make that value the default.",
+            "and 'label', the user-facing label. Optionally, specify `default: True` on exactly one "
+            "entry to make that value the default. Any existing values will not be affected other than "
+            "setting the default (labels of existing entries are not changed).",
             "required": True,
         },
         "record_types": {
             "description": "List of Record Type developer names for which the new values "
-            "should be available. Any Record Types not present in the target org will be "
+            "should be available. If any of the entries have `default: True`, they are also made "
+            "default for these Record Types. Any Record Types not present in the target org will be "
             "ignored, and * is a wildcard. Default behavior is to do nothing."
         },
-        "sorted": {"description": "Sort the picklist values alphabetically."},
+        "sorted": {
+            "description": "Set whether or not to sort the picklist values alphabetically. Default is no change."
+        },
         **MetadataSingleEntityTransformTask.task_options,
     }
 
@@ -72,7 +76,6 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
         ):
             raise TaskOptionsError("Only one default picklist value is allowed.")
 
-        self.options["sorted"] = process_bool_arg(self.options.get("sorted", False))
         self.options["record_types"] = [
             self._inject_namespace(x)
             for x in process_list_arg(self.options.get("record_types", []))
@@ -103,9 +106,11 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
                 self._add_record_type_entries(metadata, api_name, picklist, entry)
 
         # Set the sorted value for this picklist
-        if self.options["sorted"]:
+        if "sorted" in self.options:
             sorted_elem = vsd.find("sorted") or vsd.append("sorted")
-            sorted_elem.text = "true"
+            sorted_elem.text = (
+                "true" if process_bool_arg(self.options["sorted"]) else "false"
+            )
 
     def _add_picklist_field_entry(
         self, vsd: MetadataElement, api_name: str, picklist: str, entry: Dict
@@ -162,13 +167,15 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             picklist_element.append("picklist", text=picklist)
 
         # If this picklist value entry is not already present, add it.
-        if not picklist_element.find("values", fullName=entry["fullName"]):
+        values = picklist_element.find("values", fullName=entry["fullName"])
+        if not values:
             values = picklist_element.append("values")
             values.append("fullName", text=entry["fullName"])
+            values.append("default", text="")  # Populated below.
 
         # If this picklist value needs to be made default, do so, and remove any existing default.
         if process_bool_arg(entry.get("default", False)):
-            # Find existing default and remove it.
+            # Find existing default and remove it, while setting our value as default
 
             for value in picklist_element.values:
                 default = value.find("default")
