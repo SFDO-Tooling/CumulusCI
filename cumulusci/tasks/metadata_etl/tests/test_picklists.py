@@ -285,6 +285,41 @@ class TestAddPicklistValues:
             )
             assert "Test" not in (v.fullName.text for v in values)
 
+    def test_adds_record_type_entries__missing_picklist(self):
+        task = create_task(
+            AddPicklistEntries,
+            {
+                "api_version": "47.0",
+                "picklists": ["MyObject.Time_Zone__c", "MyObject2.Type__c"],
+                "entries": [
+                    {"fullName": "Test"},
+                    {"fullName": "Foo", "label": "Bar", "default": True},
+                ],
+                "record_types": ["*"],
+            },
+        )
+
+        # Validate that the entries are added to the Record Type
+        # when the Record Type metadata doesn't already contain
+        # an entry for this picklist
+        tree = metadata_tree.fromstring(OBJECT_XML)
+        tree.find("recordTypes", fullName="Default_RT").remove(
+            tree.find("recordTypes", fullName="Default_RT").find(
+                "picklistValues", picklist="Type__c"
+            )
+        )
+        result = task._transform_entity(tree, "MyObject2")
+
+        for rt_name in ["Default_RT", "Second_RT"]:
+            # Make sure we added the picklist values
+            values = (
+                result.find("recordTypes", fullName=rt_name)
+                .find("picklistValues", picklist="Type__c")
+                .values
+            )
+            assert "Test" in (v.fullName.text for v in values)
+            assert "Foo" in (v.fullName.text for v in values)
+
     def test_adds_record_type_entries__single(self):
         task = create_task(
             AddPicklistEntries,
