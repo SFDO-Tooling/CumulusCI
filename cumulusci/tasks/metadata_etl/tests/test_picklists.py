@@ -420,11 +420,8 @@ class TestAddPicklistValues:
             AddPicklistEntries,
             {
                 "api_version": "47.0",
-                "picklists": ["Opportunity.Type2__c"],
-                "entries": [
-                    {"fullName": "Test", "default": True},
-                    {"fullName": "Bar", "default": True},
-                ],
+                "picklists": ["MyObject.Type2__c"],
+                "entries": [{"fullName": "Test", "default": True}],
             },
         )
         tree = metadata_tree.fromstring(OBJECT_XML)
