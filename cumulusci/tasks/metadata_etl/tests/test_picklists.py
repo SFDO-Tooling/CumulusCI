@@ -346,12 +346,23 @@ class TestAddPicklistValues:
             assert "Test" in (v.fullName.text for v in values)
             assert "Foo" in (v.fullName.text for v in values)
 
-    def test_init_options__bad_api_version(self):
+    def test_init_options__old_api_version(self):
         with pytest.raises(TaskOptionsError):
             create_task(
                 AddPicklistEntries,
                 {
                     "api_version": "35.0",
+                    "picklists": ["MyObject.Time_Zone__c", "MyObject2.Type__c"],
+                    "entries": [{"fullName": "Test"}],
+                },
+            )
+
+    def test_init_options__bad_api_version(self):
+        with pytest.raises(TaskOptionsError):
+            create_task(
+                AddPicklistEntries,
+                {
+                    "api_version": "35q.0",
                     "picklists": ["MyObject.Time_Zone__c", "MyObject2.Type__c"],
                     "entries": [{"fullName": "Test"}],
                 },
@@ -385,7 +396,7 @@ class TestAddPicklistValues:
                 AddPicklistEntries,
                 {
                     "api_version": "47.0",
-                    "picklists": ["Opportunity.StageName"],
+                    "picklists": ["Opportunity.Type__c"],
                     "entries": [{"label": "Test"}],
                 },
             )
@@ -396,10 +407,26 @@ class TestAddPicklistValues:
                 AddPicklistEntries,
                 {
                     "api_version": "47.0",
-                    "picklists": ["Opportunity.StageName"],
+                    "picklists": ["Opportunity.Type__c"],
                     "entries": [
                         {"fullName": "Test", "default": True},
                         {"fullName": "Bar", "default": True},
                     ],
                 },
             )
+
+    def test_raises_for_missing_picklist(self):
+        task = create_task(
+            AddPicklistEntries,
+            {
+                "api_version": "47.0",
+                "picklists": ["Opportunity.Type2__c"],
+                "entries": [
+                    {"fullName": "Test", "default": True},
+                    {"fullName": "Bar", "default": True},
+                ],
+            },
+        )
+        tree = metadata_tree.fromstring(OBJECT_XML)
+        with pytest.raises(TaskOptionsError):
+            task._transform_entity(tree, "MyObject")
