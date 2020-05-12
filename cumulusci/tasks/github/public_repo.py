@@ -113,6 +113,7 @@ class PublishRelease(BaseGithubTask):
         # Get the release
         try:
             release = repo.release_from_tag(tag_name)
+            release_body = release.body if self.options["release_body"] else ""
         except github3.exceptions.NotFoundError:
             message = f"Release for {tag_name} not found"
             self.logger.error(message)
@@ -142,9 +143,9 @@ class PublishRelease(BaseGithubTask):
         )
 
         # Create the release
-        release.body if self.options["release_body"] else ""
         self.target_repo.create_release(
             tag_name=tag_name,
             name=self.options["version"],
             prerelease=release.prerelease,
+            body=release_body,
         )
