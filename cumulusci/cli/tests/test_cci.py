@@ -1322,7 +1322,7 @@ Environment Info: Rossian / x68_46
         self.assertIn("sf", runpy.call_args[1]["init_globals"])
         assert runpy.call_args[0][0] == "foo.py", runpy.call_args[0]
 
-    @mock.patch("cumulusci.cli.ui.pretty_describe")
+    @mock.patch("cumulusci.cli.ui.ReplHelpers.describe")
     def test_org_shell_describe(self, describe):
         org_config = mock.Mock()
         org_config.instance_url = "https://salesforce.com"
@@ -1333,7 +1333,7 @@ Environment Info: Rossian / x68_46
             cci.org_shell, runtime=runtime, org_name="test", python="describe('blah')"
         )
         describe.assert_called_once()
-        assert "blah" in describe.call_args[0][1]
+        assert "blah" in describe.call_args[0][0]
 
     @mock.patch("cumulusci.cli.cci.print")
     def test_org_shell_mutually_exclusive_args(self, print):

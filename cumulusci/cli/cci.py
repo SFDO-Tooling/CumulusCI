@@ -46,7 +46,7 @@ from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import (
     CliTable,
     CROSSMARK,
-    repl_helpers,
+    ReplHelpers,
 )
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
@@ -1179,14 +1179,14 @@ def org_shell(runtime, org_name, script=None, python=None):
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
 
-    helpers = repl_helpers(sf)
+    helpers = ReplHelpers(sf)
 
     globals = {
         "sf": sf,
         "org_config": org_config,
         "project_config": runtime.project_config,
         "help": CCIHelp(),
-        **helpers,
+        **helpers._helpers(),
     }
 
     if script:

@@ -135,63 +135,6 @@ class CliTable:
         return "\n".join(dimmed_strs)
 
 
-def pretty_soql_query(sf, query, format, include_deleted=False, max_rows=100):
-    """Return the result of a Salesforce SOQL query.
-
-    Arguments:
-
-        * query -- the SOQL query to send to Salesforce, e.g.
-                   SELECT Id FROM Lead WHERE Email = "waldo@somewhere.com"
-        * include_deleted -- True if deleted records should be included
-        * format -- one of these values:
-           - "table" -- printable ASCII table (the default)
-           - "obj" -- ordinary Python objects
-           - "pprint" -- string in easily readable Python dict shape
-           - "json" -- JSON
-        * max_rows -- maximum rows to output, defaults to 100
-
-    For example:
-        pretty_soql_query("select Name, Id from Account", format="pprint")
-        contact_ids = pretty_soql_query("select count(Id) from Contact", format="obj")
-    """
-    results = sf.query(query, include_deleted=include_deleted)["records"]
-
-    if len(results) > max_rows:
-        truncated = f"... truncated {len(results) - max_rows} rows"
-        results = results[0:max_rows]
-    else:
-        truncated = False
-
-    for result in results:
-        if result.get("attributes"):
-            del result["attributes"]
-
-    if truncated:
-        results.append(truncated)
-
-    if format == "table":
-        help_message = "Type help(query) to learn about other return formats or assigning the result."
-        print(_soql_table(results, truncated))
-        print()
-        print(help_message)
-        rc = None
-    elif format == "obj":
-        rc = results
-    elif format == "pprint":
-        from pprint import pprint
-
-        pprint(results)
-        rc = None
-    elif format == "json":
-        from json import dumps
-
-        rc = dumps(results, indent=2)
-    else:
-        raise TypeError(f"Unknown format `{format}`")
-
-    return rc
-
-
 def _soql_table(results, truncated):
     if results:
         if truncated:
@@ -214,34 +157,6 @@ def _soql_table(results, truncated):
         return str(CliTable([["No results"]]))
 
 
-def pretty_describe(sf, sobj_name, detailed, format):
-    """Describe an sobject.
-
-    Arguments:
-
-        sobj_name - sobject name to describe. e.g. "Account", "Contact"
-        detailed - set to `True` to get detailed information about object
-        format -- one of these values:
-           - "obj" -- ordinary Python objects (default)
-           - "pprint" -- string in easily readable Python dict shape
-        """
-    from pprint import pprint
-
-    data = getattr(sf, sobj_name).describe()
-
-    if detailed:
-        rc = data
-    else:
-        rc = dict(_summarize(field) for field in data["fields"])
-
-    if format == "pprint":
-        pprint(rc)
-    elif format == "obj":
-        return rc
-    else:
-        raise TypeError(f"Unknown format {format}")
-
-
 def _summarize(field):
     if field["referenceTo"]:
         allowed = field["referenceTo"]
@@ -252,18 +167,103 @@ def _summarize(field):
     return (field["name"], allowed)
 
 
-def repl_helpers(sf):
-    # these don't use functools.partial because it has a weird __repr__
-    def query(soql_text, include_deleted=False, format="table", max_rows=100):
-        return pretty_soql_query(
-            sf, soql_text, include_deleted=False, format=format, max_rows=max_rows
-        )
+import pysnooper
 
-    query.__doc__ = pretty_soql_query.__doc__.replace("pretty_soql_query", "query")
 
-    def describe(obj_name, detailed=False, format="pprint"):
-        return pretty_describe(sf, obj_name, detailed=detailed, format=format)
+@pysnooper.snoop()
+class ReplHelpers:
+    def __init__(self, sf):
+        self._sf = sf
 
-    describe.__doc__ = pretty_describe.__doc__.replace("pretty_describe", "describe")
+    def query(self, query, format="table", include_deleted=False, max_rows=100):
+        """Return the result of a Salesforce SOQL query.
 
-    return locals()
+        Arguments:
+
+            * query -- the SOQL query to send to Salesforce, e.g.
+                    SELECT Id FROM Lead WHERE Email = "waldo@somewhere.com"
+            * include_deleted -- True if deleted records should be included
+            * format -- one of these values:
+                - "table" -- printable ASCII table (the default)
+                - "obj" -- ordinary Python objects
+                - "pprint" -- string in easily readable Python dict shape
+                - "json" -- JSON
+            * max_rows -- maximum rows to output, defaults to 100
+
+        For example:
+            query("select Name, Id from Account", format="pprint")
+            contact_ids = query("select count(Id) from Contact", format="obj")
+        """
+        results = self._sf.query_all(query, include_deleted=include_deleted)["records"]
+
+        if len(results) > max_rows:
+            truncated = f"... truncated {len(results) - max_rows} rows"
+            results = results[0:max_rows]
+        else:
+            truncated = False
+
+        for result in results:
+            if result.get("attributes"):
+                del result["attributes"]
+
+        if truncated:
+            results.append(truncated)
+
+        if format == "table":
+            help_message = "Type help(query) to learn about other return formats or assigning the result."
+            print(_soql_table(results, truncated))
+            print()
+            print(help_message)
+            rc = None
+        elif format == "obj":
+            rc = results
+        elif format == "pprint":
+            from pprint import pprint
+
+            pprint(results)
+            rc = None
+        elif format == "json":
+            from json import dumps
+
+            rc = dumps(results, indent=2)
+        else:
+            raise TypeError(f"Unknown format `{format}`")
+
+        return rc
+
+    def describe(self, sobj_name, detailed=False, format="pprint"):
+        """Describe an sobject.
+
+        Arguments:
+
+            sobj_name - sobject name to describe. e.g. "Account", "Contact"
+            detailed - set to `True` to get detailed information about object
+            format -- one of these values:
+            - "pprint" -- string in easily readable Python dict shape (default)
+            - "obj" -- ordinary Python objects
+
+        For example:
+
+            >>> describe("Account")
+            >>> data = describe("Account", detailed=True, format=obj)
+            """
+        from pprint import pprint
+
+        data = getattr(self._sf, sobj_name).describe()
+
+        if detailed:
+            rc = data
+        else:
+            rc = dict(_summarize(field) for field in data["fields"])
+
+        if format == "pprint":
+            pprint(rc)
+        elif format == "obj":
+            return rc
+        else:
+            raise TypeError(f"Unknown format {format}")
+
+    def _helpers(self):
+        return {
+            name: getattr(self, name) for name in dir(self) if not name.startswith("_")
+        }
