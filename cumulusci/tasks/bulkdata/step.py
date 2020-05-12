@@ -14,7 +14,6 @@ import requests
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import batch_iterator
 
 
 class DataOperationType(Enum):
@@ -264,6 +263,17 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
 class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
     """Operation class for all DML operations run using the Bulk API."""
 
+    def __init__(self, *, sobject, operation, api_options, context, fields):
+        super().__init__(
+            sobject=sobject,
+            operation=operation,
+            api_options=api_options,
+            context=context,
+            fields=fields,
+        )
+        self.csv_buff = io.StringIO(newline="")
+        self.csv_writer = csv.writer(self.csv_buff)
+
     def start(self):
         self.job_id = self.bulk.create_job(
             self.sobject,
@@ -281,28 +291,54 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
         for count, csv_batch in enumerate(self._batch(records)):
             self.context.logger.info(f"Uploading batch {count + 1}")
-            self.batch_ids.append(self.bulk.post_batch(self.job_id, csv_batch))
+            self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
 
-    def _batch(self, records):
-        """Return a generator of generators, where each child generator is batched."""
-        for batch in batch_iterator(records, self.api_options.get("batch_size", 10000)):
-            yield self._csv_generator(batch)
+    def _batch(self, records, n=10000, char_limit=10000000):
+        """Given an iterator of records, yields batches of
+        records serialized in .csv format.
 
-    def _csv_generator(self, records):
-        """Return a generator of binary, CSV-format data for the given record iterator."""
-        content = io.StringIO()
-        writer = csv.writer(content)
-        writer.writerow(self.fields)
-        content.seek(0)
-        yield content.read().encode("utf-8")
-        content.truncate(0)
-        content.seek(0)
-        for rec in records:
-            writer.writerow(rec)
-            content.seek(0)
-            yield content.read().encode("utf-8")
-            content.truncate(0)
-            content.seek(0)
+        Batches adhere to the following, in order of presedence:
+        (1) They do not exceed the given character limit
+        (2) They do not contain more than n records per batch
+        """
+        serialized_csv_fields = self._serialize_csv_record(self.fields)
+        len_csv_fields = len(serialized_csv_fields)
+
+        # append fields to first row
+        batch = [serialized_csv_fields]
+        current_chars = len_csv_fields
+        for record in records:
+            serialized_record = self._serialize_csv_record(record)
+            # Does the next record put us over the character limit?
+            if len(serialized_record) + current_chars > char_limit:
+                yield batch
+                batch = [serialized_csv_fields]
+                current_chars = len_csv_fields
+
+            batch.append(serialized_record)
+            current_chars += len(serialized_record)
+
+            # yield batch if we're at desired size
+            # -1 due to first row being field names
+            if len(batch) - 1 == n:
+                yield batch
+                batch = [serialized_csv_fields]
+                current_chars = len_csv_fields
+
+        # give back anything leftover
+        if len(batch) > 1:
+            yield batch
+
+    def _serialize_csv_record(self, record):
+        """Given a list of strings (record) return
+        the corresponding record serialized in .csv format"""
+        self.csv_writer.writerow(record)
+        serialized = self.csv_buff.getvalue().encode("utf-8")
+        # flush buffer
+        self.csv_buff.truncate(0)
+        self.csv_buff.seek(0)
+
+        return serialized
 
     def get_results(self):
         for batch_id in self.batch_ids:

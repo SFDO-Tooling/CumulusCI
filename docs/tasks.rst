@@ -359,6 +359,7 @@ Options
 **Class:** cumulusci.tasks.salesforce.CreateCommunity
 
 Create a Salesforce Community via the Connect API.
+
 Specify the `template` "VF Template" for Visualforce Tabs community,
 or the name for a specific desired template
 
@@ -391,6 +392,11 @@ Options
 	 *Optional*
 
 	 URL prefix for the community.
+
+``-o retries RETRIES``
+	 *Optional*
+
+	 Number of times to retry community creation request
 
 ``-o timeout TIMEOUT``
 	 *Optional*
@@ -1036,7 +1042,7 @@ The data dictionary is output as two CSV files.
 One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
 with one row per packaged object.
 The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
-Picklist Values (if any), Version Introduced.
+Valid Picklist Values (if any) or a Lookup referenced table (if any), Version Introduced.
 Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
 is processed for SFDX projects.
 
@@ -2807,6 +2813,50 @@ Options
 	 *Optional*
 
 	 By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
+
+**set_duplicate_rule_status**
+==========================================
+
+**Description:** Sets the active status of Duplicate Rules.
+
+**Class:** cumulusci.tasks.metadata_etl.SetDuplicateRuleStatus
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run set_duplicate_rule_status``
+
+
+Options
+------------------------------------------
+
+
+``-o active ACTIVE``
+	 *Required*
+
+	 Boolean value, set the Duplicate Rule to either active or inactive
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
 
 **set_organization_wide_defaults**
 ==========================================

@@ -2,6 +2,66 @@
 History
 =======
 
+3.12.2 (2020-05-07)
+-------------------
+
+Changes:
+
+* Added a task, ``set_duplicate_rule_status``, which allows selective activation and
+  deactivation of Duplicate Rules.
+
+* The ``create_community`` task now retries multiple times if there's an error.
+
+* The ``generate_data_dictionary`` task now supports multi-select picklist fields
+  and will indicate the related object for lookup fields.
+
+* The ``update_package_xml`` task now supports the ``NavigationMenu`` metadata type.
+
+Issued closed:
+
+* In the Salesforce library for Robot Framework,
+  fixed locators for the actions ribbon and app launcher button in Summer '20.
+
+* Fixed the ``load_dataset`` task so that steps which don't explicitly specify a ``bulk_mode``
+  will inherit the option specified at the task level.
+
+* Fixed error handling if an exception occurs within one of the `cci error` commands.
+
+* Fixed error handling if the Metadata API returns a response that is marked as done
+  but also contains an ``errorMessage``.
+
+3.12.1 (2020-04-27)
+-------------------
+
+Fixed a problem building the Homebrew formula for installing CumulusCI 3.12.0.
+
+3.12.0 (2020-04-27)
+-------------------
+
+Changes:
+
+* We've removed the prompt that users see when trying to use a scratch org that has expired,
+  and now automatically recreate the scratch org.
+
+* The ``load_dataset`` task now automatically avoids creating Bulk API batches larger than the
+  10 million character limit.
+
+* Robot Framework:
+
+  * When opening an org in the browser, the Salesforce library now attempts to detect if the org
+    was created using the Classic UI and automatically switch to Lightning Experience.
+
+  * The Salesforce library now has preliminary support for Summer '20 preview orgs.
+
+* CumulusCI now directs ``simple-salesforce`` to return results as normal Python dicts
+  instead of OrderedDicts.  This should have minimal impact since normal dicts are ordered
+  in the versions of Python that CumulusCI supports, but we mention it for the sake of completeness.
+
+Issues closed:
+
+* Fixed an issue where non-ASCII output caused an error when trying to write to the CumulusCI log
+  in Windows. (#1619)
+
 3.11.0 (2020-04-17)
 -------------------
 

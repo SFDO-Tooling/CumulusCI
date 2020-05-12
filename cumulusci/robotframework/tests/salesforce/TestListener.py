@@ -10,7 +10,6 @@
     from growing too large.
 
 """
-from robot.libraries.BuiltIn import BuiltIn
 import re
 
 
@@ -80,8 +79,7 @@ class TestListener(object):
             )
 
     def assert_robot_log(self, message_pattern, log_level=None):
-        """Assert that a message matching the pattern was emitted"""
-        BuiltIn().log_to_console("\n")
+        """Assert that a message matching the regex pattern was emitted"""
         for message in self.message_log:
             # note: message is a dictionary with the following keys:
             # 'timestamp', 'message', 'level', 'html'
