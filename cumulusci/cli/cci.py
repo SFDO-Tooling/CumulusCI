@@ -1150,11 +1150,18 @@ The cumulusci shell gives you access to the following objects and functions:
 * project_config - information about your project. [3]
 * query() - SOQL query. `help(query)` for more information
 * describe() - Inspect object fields. `help(describe)` for more information
+* help() - for interactive help on Python
+* help(obj) - for help on any specific Python object or module
 
 [1] https://github.com/simple-salesforce/simple-salesforce
 [2] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.OrgConfig
 [3] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.project_config
 """
+
+
+class CCIHelp(type(help)):
+    def __repr__(self):
+        return org_shell_cci_help_message
 
 
 @org.command(
@@ -1171,7 +1178,6 @@ def org_shell(runtime, org_name, script=None, python=None):
     org_config.refresh_oauth_token(runtime.keychain)
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
-    printer = type(copyright)
 
     helpers = repl_helpers(sf)
 
@@ -1179,7 +1185,7 @@ def org_shell(runtime, org_name, script=None, python=None):
         "sf": sf,
         "org_config": org_config,
         "project_config": runtime.project_config,
-        "cci": printer("cci", org_shell_cci_help_message),
+        "help": CCIHelp(),
         **helpers,
     }
 
@@ -1192,7 +1198,7 @@ def org_shell(runtime, org_name, script=None, python=None):
     else:
         code.interact(
             banner=f"Use `sf` to access org `{org_name}` via simple_salesforce\n"
-            + "Type `cci` for more information about the cci shell.",
+            + "Type `help` for more information about the cci shell.",
             local=globals,
         )
 
