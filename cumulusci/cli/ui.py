@@ -7,7 +7,6 @@ Classes:
 import os
 import click
 import textwrap
-import shutil
 from terminaltables import AsciiTable, SingleTable
 
 
@@ -136,24 +135,24 @@ class CliTable:
         return "\n".join(dimmed_strs)
 
 
-def pretty_soql_query(sf, query, include_deleted=False, format="obj", max_rows=100):
+def pretty_soql_query(sf, query, format, include_deleted=False, max_rows=100):
     """Return the result of a Salesforce SOQL query.
 
-        Arguments:
+    Arguments:
 
         * query -- the SOQL query to send to Salesforce, e.g.
                    SELECT Id FROM Lead WHERE Email = "waldo@somewhere.com"
         * include_deleted -- True if deleted records should be included
         * format -- one of these values:
-           - obj -- ordinary Python objects (default)
-           - table -- printable ASCII tablee
-           - pprint -- string in easily readable Python dict shape
-           - json -- JSON
-        * max_rows -- maximuim rows to output, defaults to 100
+           - "table" -- printable ASCII table (the default)
+           - "obj" -- ordinary Python objects
+           - "pprint" -- string in easily readable Python dict shape
+           - "json" -- JSON
+        * max_rows -- maximum rows to output, defaults to 100
 
     For example:
-        pretty_soql_query("select Name, Id from Account")
-        pretty_soql_query("select count(Id) from Contact")
+        pretty_soql_query("select Name, Id from Account", format="pprint")
+        contact_ids = pretty_soql_query("select count(Id) from Contact", format="obj")
     """
     results = sf.query(query, include_deleted=include_deleted)["records"]
 
@@ -164,24 +163,33 @@ def pretty_soql_query(sf, query, include_deleted=False, format="obj", max_rows=1
         truncated = False
 
     for result in results:
-        print(result)
-        del result["attributes"]
+        if result.get("attributes"):
+            del result["attributes"]
 
     if truncated:
         results.append(truncated)
 
     if format == "table":
-        return _soql_table(results, truncated)
-    if format == "obj":
-        return results
+        help_message = "Type help(query) to learn about other return formats or assigning the result."
+        print(_soql_table(results, truncated))
+        print()
+        print(help_message)
+        rc = None
+    elif format == "obj":
+        rc = results
     elif format == "pprint":
-        return _pformat(results)
+        from pprint import pprint
+
+        pprint(results)
+        rc = None
     elif format == "json":
         from json import dumps
 
-        return dumps(results, indent=2)
+        rc = dumps(results, indent=2)
     else:
         raise TypeError(f"Unknown format `{format}`")
+
+    return rc
 
 
 def _soql_table(results, truncated):
@@ -196,30 +204,42 @@ def _soql_table(results, truncated):
             results[-1] = fake_row
 
         headings = list(results[0].keys())
-        return CliTable(
-            [headings] + [list(r.values()) for r in results], wrap_cols=headings
+        return str(
+            CliTable(
+                [headings] + [list(map(str, r.values())) for r in results],
+                wrap_cols=headings,
+            )
         )
     else:
-        return CliTable([["No results"]])
+        return str(CliTable([["No results"]]))
 
 
-def _pformat(values):
-    columns, _rows = shutil.get_terminal_size(fallback=(80, 24))
-    from pprint import pformat
+def pretty_describe(sf, sobj_name, detailed, format):
+    """Describe an sobject.
 
-    return pformat(values)
+    Arguments:
 
+        sobj_name - sobject name to describe. e.g. "Account", "Contact"
+        detailed - set to `True` to get detailed information about object
+        format -- one of these values:
+           - "obj" -- ordinary Python objects (default)
+           - "pprint" -- string in easily readable Python dict shape
+        """
+    from pprint import pprint
 
-def pretty_describe(sf, sobj_name, detailed=False):
-    """Describe an sobject. Use detailed=True to get lots of details"""
     data = getattr(sf, sobj_name).describe()
 
     if detailed:
         rc = data
     else:
-        rc = [_summarize(field) for field in data["fields"]]
+        rc = dict(_summarize(field) for field in data["fields"])
 
-    return _pformat(rc)
+    if format == "pprint":
+        pprint(rc)
+    elif format == "obj":
+        return rc
+    else:
+        raise TypeError(f"Unknown format {format}")
 
 
 def _summarize(field):
@@ -230,3 +250,20 @@ def _summarize(field):
     else:
         allowed = field["type"]
     return (field["name"], allowed)
+
+
+def repl_helpers(sf):
+    # these don't use functools.partial because it has a weird __repr__
+    def query(soql_text, include_deleted=False, format="table", max_rows=100):
+        return pretty_soql_query(
+            sf, soql_text, include_deleted=False, format=format, max_rows=max_rows
+        )
+
+    query.__doc__ = pretty_soql_query.__doc__.replace("pretty_soql_query", "query")
+
+    def describe(obj_name, detailed=False, format="pprint"):
+        return pretty_describe(sf, obj_name, detailed=detailed, format=format)
+
+    describe.__doc__ = pretty_describe.__doc__.replace("pretty_describe", "describe")
+
+    return locals()

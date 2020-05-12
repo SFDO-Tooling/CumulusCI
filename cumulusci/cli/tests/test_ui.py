@@ -11,6 +11,7 @@ from cumulusci.cli.ui import (
     _summarize,
     pretty_describe,
     pretty_soql_query,
+    repl_helpers,
 )
 
 
@@ -223,6 +224,8 @@ PRETEND_DESCRIBE_DATA = {
     ],
 }
 
+SUMMARIZED_DATA = {"Foo": ["Bar"], "Bar": ["a", "b"], "Baz": "string"}
+
 
 def test_summarize():
     fields = PRETEND_DESCRIBE_DATA["fields"]
@@ -234,17 +237,33 @@ def test_summarize():
 def test_pretty_describe():
     sf = mock.MagicMock()
     sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
-    rc = pretty_describe(sf, "Blah", detailed=False)
+    rc = pretty_describe(sf, "Blah", detailed=False, format="obj")
     assert sf.Blah.describe.mock_calls
-    assert rc == pformat([("Foo", ["Bar"]), ("Bar", ["a", "b"]), ("Baz", "string")])
+    assert rc == SUMMARIZED_DATA, rc
 
 
 def test_pretty_describe_detailed():
     sf = mock.MagicMock()
     sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
-    rc = pretty_describe(sf, "Blah", detailed=True)
+    rc = pretty_describe(sf, "Blah", detailed=True, format="obj")
     assert sf.Blah.describe.mock_calls
-    assert rc == pformat(PRETEND_DESCRIBE_DATA), rc
+    assert rc == PRETEND_DESCRIBE_DATA, rc
+
+
+def test_pretty_describe_pprint(capsys):
+    sf = mock.MagicMock()
+    sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
+    pretty_describe(sf, "Blah", detailed=False, format="pprint")
+    out = capsys.readouterr().out
+    assert sf.Blah.describe.mock_calls
+    assert out.strip() == pformat(SUMMARIZED_DATA), (out, pformat(SUMMARIZED_DATA))
+
+
+def test_pretty_describe_format_error():
+    sf = mock.MagicMock()
+    sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
+    with pytest.raises(TypeError):
+        pretty_describe(sf, "Blah", detailed=False, format="xyzzy")
 
 
 def _pretend_soql_result(*args):
@@ -253,6 +272,15 @@ def _pretend_soql_result(*args):
         "done": True,
         "records": [{"attributes": {"type": "AggregateResult"}, "expr0": 20}],
     }
+
+
+def _pretend_soql_results(num_records):
+    rc = {"totalSize": 1, "done": True, "records": []}
+    for i in range(0, num_records):
+        rc["records"].append(
+            {"attributes": {"type": "AggregateResult"}, "Id": "00GUSWLMA"}
+        )
+    return rc
 
 
 def test_pretty_soql_query_simple_count():
@@ -284,3 +312,149 @@ def test_pretty_soql_query_simple_count():
         mock.call("select Count(Id) from Account", include_deleted=True)
     ], sf.query.mock_calls
     assert rc == [{"expr0": 20}]
+
+
+def test_pretty_soql_query_simple_truncation():
+    sf = mock.MagicMock()
+    sf.query.return_value = _pretend_soql_results(150)
+    rc = pretty_soql_query(
+        sf, "select Id from Account", include_deleted=False, format="obj", max_rows=100,
+    )
+    assert sf.query.mock_calls == [
+        mock.call("select Id from Account", include_deleted=False)
+    ], sf.query.mock_calls
+    assert len(rc) == 101, len(rc)
+    assert rc[-1] == "... truncated 50 rows"
+
+
+def pretty_table_raises(*args):
+    """If the pretty_table method raises, CliTable will
+    use ascii_table which is easier to deal with for
+    checking correctness """
+    raise UnicodeEncodeError("a", "b", 0, 0, "e")
+
+
+def test_pretty_soql_query_table(capsys):
+    sf = mock.MagicMock()
+    sf.query.return_value = _pretend_soql_result()
+
+    with mock.patch("cumulusci.cli.ui.CliTable.pretty_table", pretty_table_raises):
+        pretty_soql_query(
+            sf,
+            "select Count(Id) from Account",
+            include_deleted=False,
+            format="table",
+            max_rows=100,
+        )
+    assert sf.query.mock_calls == [
+        mock.call("select Count(Id) from Account", include_deleted=False)
+    ], sf.query.mock_calls
+    out = capsys.readouterr().out
+
+    assert "expr0" in out
+    assert "20" in out
+    assert "help" in out
+
+
+def test_pretty_soql_query_table_truncation(capsys):
+    sf = mock.MagicMock()
+    sf.query.return_value = _pretend_soql_results(150)
+
+    def pretty_table_raises(*args):
+        raise UnicodeEncodeError("a", "b", 0, 0, "e")
+
+    with mock.patch("cumulusci.cli.ui.CliTable.pretty_table", pretty_table_raises):
+        pretty_soql_query(
+            sf,
+            "select Id from Account",
+            include_deleted=False,
+            format="table",
+            max_rows=100,
+        )
+    assert sf.query.mock_calls == [
+        mock.call("select Id from Account", include_deleted=False)
+    ], sf.query.mock_calls
+    out = capsys.readouterr().out
+    assert out.count("00GUSWLMA") == 100
+
+
+def test_pretty_table_empty(capsys):
+    sf = mock.MagicMock()
+    sf.query.return_value = _pretend_soql_results(0)
+
+    pretty_soql_query(
+        sf,
+        "select Id from Account",
+        include_deleted=False,
+        format="table",
+        max_rows=100,
+    )
+    assert sf.query.mock_calls == [
+        mock.call("select Id from Account", include_deleted=False)
+    ], sf.query.mock_calls
+    out = capsys.readouterr().out
+    assert out.count("00GUSWLMA") == 0
+    assert "No results" in out
+
+
+def test_pretty_soql_query_pprint(capsys):
+    sf = mock.MagicMock()
+    sf.query.return_value = _pretend_soql_results(150)
+
+    pretty_soql_query(
+        sf,
+        "select Id from Account",
+        include_deleted=False,
+        format="pprint",
+        max_rows=100,
+    )
+    assert sf.query.mock_calls == [
+        mock.call("select Id from Account", include_deleted=False)
+    ], sf.query.mock_calls
+    out = capsys.readouterr().out
+    assert out.count("00GUSWLMA") == 100
+
+
+def test_pretty_soql_query_json():
+    sf = mock.MagicMock()
+    sf.query.return_value = _pretend_soql_results(150)
+
+    rc = pretty_soql_query(
+        sf,
+        "select Id from Account",
+        include_deleted=False,
+        format="json",
+        max_rows=100,
+    )
+    assert sf.query.mock_calls == [
+        mock.call("select Id from Account", include_deleted=False)
+    ], sf.query.mock_calls
+
+    assert rc.count("00GUSWLMA") == 100
+
+
+def test_pretty_soql_query_errors():
+    sf = mock.MagicMock()
+    sf.query.return_value = _pretend_soql_results(150)
+
+    with pytest.raises(TypeError):
+        pretty_soql_query(
+            sf,
+            "select Id from Account",
+            include_deleted=False,
+            format="punchcard",
+            max_rows=100,
+        )
+
+
+@mock.patch("cumulusci.cli.ui.pretty_describe")
+@mock.patch("cumulusci.cli.ui.pretty_soql_query")
+def test_repl_helpers(pretty_soql_query, pretty_describe):
+    sf = mock.MagicMock()
+    rc = repl_helpers(sf)
+    describe = rc["describe"]
+    query = rc["query"]
+    assert describe("Account", format="obj")
+    assert pretty_describe.called_once
+    assert query("select Id from Account", format="obj")
+    assert pretty_soql_query.called_once

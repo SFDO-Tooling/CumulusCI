@@ -43,7 +43,11 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
-from cumulusci.cli.ui import CliTable, CROSSMARK, pretty_soql_query, pretty_describe
+from cumulusci.cli.ui import (
+    CliTable,
+    CROSSMARK,
+    repl_helpers,
+)
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
 from cumulusci.utils import parse_api_datetime
@@ -1169,24 +1173,14 @@ def org_shell(runtime, org_name, script=None, python=None):
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
     printer = type(copyright)
 
-    def query(soql_text, include_deleted=False, format="obj", **kwargs):
-        return pretty_soql_query(
-            sf, soql_text, include_deleted=False, format=format, **kwargs
-        )
-
-    def describe(obj_name, detailed=False):
-        return pretty_describe(sf, obj_name, detailed=detailed)
-
-    query.__doc__ = pretty_soql_query.__doc__.replace("pretty_soql_query", "query")
-    describe.__doc__ = pretty_describe.__doc__.replace("pretty_describe", "describe")
+    helpers = repl_helpers(sf)
 
     globals = {
         "sf": sf,
-        "query": query,
-        "describe": describe,
         "org_config": org_config,
         "project_config": runtime.project_config,
         "cci": printer("cci", org_shell_cci_help_message),
+        **helpers,
     }
 
     if script:
@@ -1194,7 +1188,7 @@ def org_shell(runtime, org_name, script=None, python=None):
             raise click.UsageError("Cannot specify both --script and --python")
         runpy.run_path(script, init_globals=globals)
     elif python:
-        exec(python)
+        exec(python, globals)
     else:
         code.interact(
             banner=f"Use `sf` to access org `{org_name}` via simple_salesforce\n"

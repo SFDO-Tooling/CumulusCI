@@ -197,6 +197,20 @@ class TestCCI(unittest.TestCase):
         tee.assert_called_once()
 
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.init_logger")
+    @mock.patch("cumulusci.cli.cci.cli")
+    @mock.patch("sys.exit")
+    def test_main__abort(
+        self, sys_exit, cli, init_logger, get_tempfile_logger, tee_stdout_stderr
+    ):
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
+        cli.side_effect = click.Abort
+        cci.main(["cci"])
+        cli.assert_called_once()
+        sys_exit.assert_called_once_with(1)
+
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
@@ -1308,18 +1322,18 @@ Environment Info: Rossian / x68_46
         self.assertIn("sf", runpy.call_args[1]["init_globals"])
         assert runpy.call_args[0][0] == "foo.py", runpy.call_args[0]
 
-    @mock.patch("cumulusci.cli.cci.print")
-    def test_org_shell_code(self, print):
+    @mock.patch("cumulusci.cli.ui.pretty_describe")
+    def test_org_shell_describe(self, describe):
         org_config = mock.Mock()
         org_config.instance_url = "https://salesforce.com"
         org_config.access_token = "TEST"
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)
         run_click_command(
-            cci.org_shell, runtime=runtime, org_name="test", python="print(sf)"
+            cci.org_shell, runtime=runtime, org_name="test", python="describe('blah')"
         )
-        print.assert_called_once()
-        assert "Salesforce" in str(type(print.call_args[0][0]))
+        describe.assert_called_once()
+        assert "blah" in describe.call_args[0][1]
 
     @mock.patch("cumulusci.cli.cci.print")
     def test_org_shell_mutually_exclusive_args(self, print):
