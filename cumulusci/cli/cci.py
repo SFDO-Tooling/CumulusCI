@@ -301,15 +301,16 @@ def version():
 def shell(runtime, script=None, python=None):
     # alias for backwards-compatibility
     config = runtime  # noQA
+    variables = {"config": config, "runtime": runtime}
 
     if script:
         if python:
             raise click.UsageError("Cannot specify both --script and --python")
-        runpy.run_path(script, init_globals={**globals(), **locals()})
+        runpy.run_path(script, init_globals=variables)
     elif python:
-        exec(python)
+        exec(python, variables)
     else:
-        code.interact(local={**globals(), **locals()})
+        code.interact(local=variables)
 
 
 GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.

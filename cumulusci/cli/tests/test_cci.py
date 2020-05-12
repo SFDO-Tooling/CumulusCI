@@ -452,7 +452,7 @@ Environment Info: Rossian / x68_46
         self.assertIn("runtime", runpy.call_args[1]["init_globals"])
         assert runpy.call_args[0][0] == "foo.py", runpy.call_args[0]
 
-    @mock.patch("cumulusci.cli.cci.print")
+    @mock.patch("builtins.print")
     def test_shell_code(self, print):
         run_click_command(cci.shell, python="print(config, runtime)")
         print.assert_called_once()
