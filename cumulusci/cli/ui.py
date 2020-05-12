@@ -167,11 +167,7 @@ def _summarize(field):
     return (field["name"], allowed)
 
 
-import pysnooper
-
-
-@pysnooper.snoop()
-class ReplHelpers:
+class SimpleSalesforceUIHelpers:
     def __init__(self, sf):
         self._sf = sf
 
@@ -262,8 +258,3 @@ class ReplHelpers:
             return rc
         else:
             raise TypeError(f"Unknown format {format}")
-
-    def _helpers(self):
-        return {
-            name: getattr(self, name) for name in dir(self) if not name.startswith("_")
-        }

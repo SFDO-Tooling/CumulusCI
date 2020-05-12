@@ -5,12 +5,7 @@ from unittest import mock
 from pprint import pformat
 
 import pytest
-from cumulusci.cli.ui import (
-    CHECKMARK,
-    CliTable,
-    _summarize,
-    ReplHelpers,
-)
+from cumulusci.cli.ui import CHECKMARK, CliTable, _summarize, SimpleSalesforceUIHelpers
 
 
 @pytest.fixture
@@ -235,7 +230,7 @@ def test_summarize():
 def test_pretty_describe():
     sf = mock.MagicMock()
     sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
-    rc = ReplHelpers(sf).describe("Blah", detailed=False, format="obj")
+    rc = SimpleSalesforceUIHelpers(sf).describe("Blah", detailed=False, format="obj")
     assert sf.Blah.describe.mock_calls
     assert rc == SUMMARIZED_DATA, rc
 
@@ -243,7 +238,7 @@ def test_pretty_describe():
 def test_pretty_describe_detailed():
     sf = mock.MagicMock()
     sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
-    rc = ReplHelpers(sf).describe("Blah", detailed=True, format="obj")
+    rc = SimpleSalesforceUIHelpers(sf).describe("Blah", detailed=True, format="obj")
     assert sf.Blah.describe.mock_calls
     assert rc == PRETEND_DESCRIBE_DATA, rc
 
@@ -251,7 +246,7 @@ def test_pretty_describe_detailed():
 def test_pretty_describe_pprint(capsys):
     sf = mock.MagicMock()
     sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
-    ReplHelpers(sf).describe("Blah", detailed=False, format="pprint")
+    SimpleSalesforceUIHelpers(sf).describe("Blah", detailed=False, format="pprint")
     out = capsys.readouterr().out
     assert sf.Blah.describe.mock_calls
     assert out.strip() == pformat(SUMMARIZED_DATA), (out, pformat(SUMMARIZED_DATA))
@@ -261,7 +256,7 @@ def test_pretty_describe_format_error():
     sf = mock.MagicMock()
     sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
     with pytest.raises(TypeError):
-        ReplHelpers(sf).describe("Blah", detailed=False, format="xyzzy")
+        SimpleSalesforceUIHelpers(sf).describe("Blah", detailed=False, format="xyzzy")
 
 
 def _pretend_soql_result(*args):
@@ -284,7 +279,7 @@ def _pretend_soql_results(num_records):
 def test_pretty_soql_query_simple_count():
     sf = mock.MagicMock()
     sf.query_all.return_value = _pretend_soql_result()
-    rc = ReplHelpers(sf).query(
+    rc = SimpleSalesforceUIHelpers(sf).query(
         "select Count(Id) from Account",
         include_deleted=False,
         format="obj",
@@ -298,7 +293,7 @@ def test_pretty_soql_query_simple_count():
     sf = mock.MagicMock()
     sf.query_all.return_value = _pretend_soql_result()
 
-    rc = ReplHelpers(sf).query(
+    rc = SimpleSalesforceUIHelpers(sf).query(
         "select Count(Id) from Account",
         include_deleted=True,
         format="obj",
@@ -313,8 +308,8 @@ def test_pretty_soql_query_simple_count():
 def test_pretty_soql_query_simple_truncation():
     sf = mock.MagicMock()
     sf.query_all.return_value = _pretend_soql_results(150)
-    rc = ReplHelpers(sf).query(
-        "select Id from Account", include_deleted=False, format="obj", max_rows=100,
+    rc = SimpleSalesforceUIHelpers(sf).query(
+        "select Id from Account", include_deleted=False, format="obj", max_rows=100
     )
     assert sf.query_all.mock_calls == [
         mock.call("select Id from Account", include_deleted=False)
@@ -335,7 +330,7 @@ def test_pretty_soql_query_table(capsys):
     sf.query_all.return_value = _pretend_soql_result()
 
     with mock.patch("cumulusci.cli.ui.CliTable.pretty_table", pretty_table_raises):
-        ReplHelpers(sf).query(
+        SimpleSalesforceUIHelpers(sf).query(
             "select Count(Id) from Account",
             include_deleted=False,
             format="table",
@@ -359,7 +354,7 @@ def test_pretty_soql_query_table_truncation(capsys):
         raise UnicodeEncodeError("a", "b", 0, 0, "e")
 
     with mock.patch("cumulusci.cli.ui.CliTable.pretty_table", pretty_table_raises):
-        ReplHelpers(sf).query(
+        SimpleSalesforceUIHelpers(sf).query(
             "select Id from Account",
             include_deleted=False,
             format="table",
@@ -376,8 +371,8 @@ def test_pretty_table_empty(capsys):
     sf = mock.MagicMock()
     sf.query_all.return_value = _pretend_soql_results(0)
 
-    ReplHelpers(sf).query(
-        "select Id from Account", include_deleted=False, format="table", max_rows=100,
+    SimpleSalesforceUIHelpers(sf).query(
+        "select Id from Account", include_deleted=False, format="table", max_rows=100
     )
     assert sf.query_all.mock_calls == [
         mock.call("select Id from Account", include_deleted=False)
@@ -391,8 +386,8 @@ def test_pretty_soql_query_pprint(capsys):
     sf = mock.MagicMock()
     sf.query_all.return_value = _pretend_soql_results(150)
 
-    ReplHelpers(sf).query(
-        "select Id from Account", include_deleted=False, format="pprint", max_rows=100,
+    SimpleSalesforceUIHelpers(sf).query(
+        "select Id from Account", include_deleted=False, format="pprint", max_rows=100
     )
     assert sf.query_all.mock_calls == [
         mock.call("select Id from Account", include_deleted=False)
@@ -405,8 +400,8 @@ def test_pretty_soql_query_json():
     sf = mock.MagicMock()
     sf.query_all.return_value = _pretend_soql_results(150)
 
-    rc = ReplHelpers(sf).query(
-        "select Id from Account", include_deleted=False, format="json", max_rows=100,
+    rc = SimpleSalesforceUIHelpers(sf).query(
+        "select Id from Account", include_deleted=False, format="json", max_rows=100
     )
     assert sf.query_all.mock_calls == [
         mock.call("select Id from Account", include_deleted=False)
@@ -420,7 +415,7 @@ def test_pretty_soql_query_errors():
     sf.query_all.return_value = _pretend_soql_results(150)
 
     with pytest.raises(TypeError):
-        ReplHelpers(sf).query(
+        SimpleSalesforceUIHelpers(sf).query(
             "select Id from Account",
             include_deleted=False,
             format="punchcard",
@@ -428,10 +423,10 @@ def test_pretty_soql_query_errors():
         )
 
 
-@mock.patch("cumulusci.cli.ui.ReplHelpers.query")
-@mock.patch("cumulusci.cli.ui.ReplHelpers.describe")
+@mock.patch("cumulusci.cli.ui.SimpleSalesforceUIHelpers.query")
+@mock.patch("cumulusci.cli.ui.SimpleSalesforceUIHelpers.describe")
 def test_repl_helpers(pretty_soql_query, pretty_describe):
     sf = mock.MagicMock()
-    helpers = ReplHelpers(sf)
+    helpers = SimpleSalesforceUIHelpers(sf)
     assert helpers.describe("Account", format="obj")
     assert helpers.query("select Id from Account", format="obj")

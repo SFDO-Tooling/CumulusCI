@@ -1322,7 +1322,7 @@ Environment Info: Rossian / x68_46
         self.assertIn("sf", runpy.call_args[1]["init_globals"])
         assert runpy.call_args[0][0] == "foo.py", runpy.call_args[0]
 
-    @mock.patch("cumulusci.cli.ui.ReplHelpers.describe")
+    @mock.patch("cumulusci.cli.ui.SimpleSalesforceUIHelpers.describe")
     def test_org_shell_describe(self, describe):
         org_config = mock.Mock()
         org_config.instance_url = "https://salesforce.com"

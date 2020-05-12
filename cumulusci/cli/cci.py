@@ -43,11 +43,7 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
-from cumulusci.cli.ui import (
-    CliTable,
-    CROSSMARK,
-    ReplHelpers,
-)
+from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
 from cumulusci.utils import parse_api_datetime
@@ -1179,14 +1175,15 @@ def org_shell(runtime, org_name, script=None, python=None):
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
 
-    helpers = ReplHelpers(sf)
+    sf_helpers = SimpleSalesforceUIHelpers(sf)
 
     globals = {
         "sf": sf,
         "org_config": org_config,
         "project_config": runtime.project_config,
         "help": CCIHelp(),
-        **helpers._helpers(),
+        "query": sf_helpers.query,
+        "describe": sf_helpers.describe,
     }
 
     if script:
