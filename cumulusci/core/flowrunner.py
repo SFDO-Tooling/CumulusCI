@@ -31,7 +31,7 @@ Upon running the flow, FlowRunner:
 - * Logs the task or skip
 - * Updates any ^^ task option values with return_values references
 - * Creates a TaskRunner to run the task and get the result
-- * Re-raise any fatal exceptions from the task, if not ignore_failure.
+- * Re-raise any fatal exceptions from the task, if not allow_failure.
 - * collects StepResults into the flow.
 
 TaskRunner:
@@ -465,6 +465,7 @@ class FlowCoordinator(object):
                     step_num=number,
                     task_name=step_config.get("task", step_config.get("flow")),
                     task_config=step_config.get("options", {}),
+                    allow_failure=step_config.get("allow_failure", False),
                     task_class=None,
                     project_config=project_config,
                     from_flow=from_flow,
@@ -517,7 +518,7 @@ class FlowCoordinator(object):
                     task_config=task_config_dict,
                     task_class=task_class,
                     project_config=task_config.project_config,
-                    allow_failure=step_config.get("ignore_failure", False),
+                    allow_failure=step_config.get("allow_failure", False),
                     from_flow=from_flow,
                     when=step_config.get("when"),
                 )
@@ -701,6 +702,7 @@ class CachedTaskRunner(object):
             step_num=1,
             task_name=self.task_name,
             task_config=task_config,
+            allow_failure=task_config.allow_failure,
             task_class=task_class,
             project_config=self.cache.flow.project_config,
         )
