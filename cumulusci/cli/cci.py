@@ -300,8 +300,7 @@ def version():
 @pass_runtime(require_project=False, require_keychain=True)
 def shell(runtime, script=None, python=None):
     # alias for backwards-compatibility
-    config = runtime  # noQA
-    variables = {"config": config, "runtime": runtime}
+    variables = {"config": runtime, "runtime": runtime}
 
     if script:
         if python:
