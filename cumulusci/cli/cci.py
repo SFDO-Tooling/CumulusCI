@@ -43,7 +43,7 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
-from cumulusci.cli.ui import CliTable, CROSSMARK
+from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
 from cumulusci.utils import parse_api_datetime
@@ -1138,6 +1138,28 @@ def org_scratch_delete(runtime, org_name):
     runtime.keychain.set_org(org_config)
 
 
+org_shell_cci_help_message = """
+The cumulusci shell gives you access to the following objects and functions:
+
+* sf - simple_salesforce connected to your org. [1]
+* org_config - local information about your org. [2]
+* project_config - information about your project. [3]
+* query() - SOQL query. `help(query)` for more information
+* describe() - Inspect object fields. `help(describe)` for more information
+* help() - for interactive help on Python
+* help(obj) - for help on any specific Python object or module
+
+[1] https://github.com/simple-salesforce/simple-salesforce
+[2] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.OrgConfig
+[3] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.project_config
+"""
+
+
+class CCIHelp(type(help)):
+    def __repr__(self):
+        return org_shell_cci_help_message
+
+
 @org.command(
     name="shell",
     help="Drop into a Python shell with a simple_salesforce connection in `sf`, "
@@ -1152,10 +1174,16 @@ def org_shell(runtime, org_name, script=None, python=None):
     org_config.refresh_oauth_token(runtime.keychain)
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
+
+    sf_helpers = SimpleSalesforceUIHelpers(sf)
+
     globals = {
         "sf": sf,
         "org_config": org_config,
         "project_config": runtime.project_config,
+        "help": CCIHelp(),
+        "query": sf_helpers.query,
+        "describe": sf_helpers.describe,
     }
 
     if script:
@@ -1163,10 +1191,11 @@ def org_shell(runtime, org_name, script=None, python=None):
             raise click.UsageError("Cannot specify both --script and --python")
         runpy.run_path(script, init_globals=globals)
     elif python:
-        exec(python)
+        exec(python, globals)
     else:
         code.interact(
-            banner=f"Use `sf` to access org `{org_name}` via simple_salesforce",
+            banner=f"Use `sf` to access org `{org_name}` via simple_salesforce\n"
+            + "Type `help` for more information about the cci shell.",
             local=globals,
         )
 
