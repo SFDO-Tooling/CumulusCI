@@ -528,7 +528,7 @@ class RunApexTests(BaseSalesforceApiTask):
             )
 
         if self.code_coverage_level:
-            if self.options["namespace"] not in self.org_config.installed_packages:
+            if self.options.get("namespace") not in self.org_config.installed_packages:
                 self._check_code_coverage()
             else:
                 self.logger.info("This is a managed org; not checking code coverage.")

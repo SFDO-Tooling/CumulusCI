@@ -186,16 +186,18 @@ class OrgConfig(BaseConfig):
         if not self._installed_packages:
             response = self.salesforce_client.restful(
                 "tooling/query/?q=SELECT SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
-                "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion, "
+                "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion "
                 "FROM InstalledSubscriberPackage"
             )
 
             self._installed_packages = {}
             for package in response["records"]:
                 sp = package["SubscriberPackage"]
-                version = f"{sp['MajorVersion']}.{sp['MinorVersion']}"
-                if sp["PatchVersion"]:
-                    version += f".{sp['PatchVersion']}"
+                spv = package["SubscriberPackageVersion"]
+                # PatchVersion is a 0 on a non-patch version.
+                version = (
+                    f"{spv['MajorVersion']}.{spv['MinorVersion']}.{spv['PatchVersion']}"
+                )
                 self._installed_packages[sp["NamespacePrefix"]] = StrictVersion(version)
 
         return self._installed_packages
