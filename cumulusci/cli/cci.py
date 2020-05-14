@@ -1053,6 +1053,41 @@ def org_list(runtime, plain):
     persistent_table.echo(plain)
 
 
+@org.command(name="prune", help="Removes all expired orgs from the current project")
+@pass_runtime(require_project=False, require_keychain=True)
+def org_prune(runtime):
+    org_configs = {
+        org: runtime.keychain.get_org(org) for org in runtime.keychain.list_orgs()
+    }
+    scratch_configs = getattr(runtime.project_config, "orgs__scratch", {})
+
+    expired_orgs_removed = []
+    org_shapes_skipped = []
+    active_orgs_skipped = []
+    for org, org_config in org_configs.items():
+        if scratch_configs.get(org):
+            org_shapes_skipped.append(org)
+        elif org_config.active:
+            active_orgs_skipped.append(org)
+        elif isinstance(org_config, ScratchOrgConfig) and not org_config.active:
+            try:
+                runtime.keychain.remove_org(org)
+                expired_orgs_removed.append(org)
+            except Exception as e:
+                click.echo(e)
+    # see test_org_remove_delete_error for how to mock click.echo and assert the messages
+    if expired_orgs_removed:
+        click.echo(
+            f"Successfully removed {len(expired_orgs_removed)} expired scratch orgs: {', '.join(expired_orgs_removed)}"
+        )
+    else:
+        click.echo("No expired scratch orgs to delete. ✨")
+    if org_shapes_skipped:
+        click.echo(f"Skipped org shapes: {', '.join(org_shapes_skipped)}")
+    if active_orgs_skipped:
+        click.echo(f"Skipped active orgs: {', '.join(active_orgs_skipped)}")
+
+
 @org.command(name="remove", help="Removes an org from the keychain")
 @click.argument("org_name")
 @click.option(
