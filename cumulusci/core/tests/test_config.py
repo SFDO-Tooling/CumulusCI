@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from distutils.version import StrictVersion
 import os
 import unittest
 
@@ -1233,3 +1234,51 @@ class TestOrgConfig(unittest.TestCase):
         expected_exception = "Unable to find community information for 'bogus'"
         with self.assertRaisesRegex(Exception, expected_exception):
             config.get_community_info("bogus")
+
+    def test_installed_packages(self):
+        config = OrgConfig({}, "test")
+        config._client = mock.Mock()
+        config._client.restful.return_value = {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "queryLocator": None,
+            "entityTypeName": "InstalledSubscriberPackage",
+            "records": [
+                {
+                    "attributes": {
+                        "type": "InstalledSubscriberPackage",
+                        "url": "/services/data/v45.0/tooling/sobjects/InstalledSubscriberPackage/0A3P00000001og1KAA",
+                    },
+                    "SubscriberPackage": {
+                        "attributes": {
+                            "type": "SubscriberPackage",
+                            "url": "/services/data/v45.0/tooling/sobjects/SubscriberPackage/03350000000DEz4AAG",
+                        },
+                        "NamespacePrefix": "GW_Volunteers",
+                    },
+                    "SubscriberPackageVersion": {
+                        "attributes": {
+                            "type": "SubscriberPackageVersion",
+                            "url": "/services/data/v40.0/tooling/sobjects/SubscriberPackageVersion/04t1T00000070z0QAA",
+                        },
+                        "MajorVersion": 3,
+                        "MinorVersion": 119,
+                        "PatchVersion": 0,
+                    },
+                }
+            ],
+        }
+
+        assert config.installed_packages == {"GW_Volunteers": StrictVersion("3.119")}
+        assert config.installed_packages == {"GW_Volunteers": StrictVersion("3.119")}
+        config._client.restful.assert_called_once_with(
+            "tooling/query/?q=SELECT SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
+            "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion "
+            "FROM InstalledSubscriberPackage"
+        )
+
+        config._client.restful.reset_mock()
+        config.reset_installed_packages()
+        assert config.installed_packages == {"GW_Volunteers": StrictVersion("3.119")}
+        config._client.restful.assert_called_once()
