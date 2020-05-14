@@ -515,6 +515,18 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         task()
         task._check_code_coverage.assert_called_once()
 
+    def test_exception_bad_code_coverage(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": "foo",
+        }
+
+        with self.assertRaises(TaskOptionsError):
+            RunApexTests(self.project_config, task_config, self.org_config)
+
     @responses.activate
     def test_run_task__code_coverage_managed(self):
         self._mock_apex_class_query()
