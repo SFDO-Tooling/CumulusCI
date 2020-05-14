@@ -1,5 +1,6 @@
 import os
 
+from distutils.version import StrictVersion
 import requests
 
 from simple_salesforce import Salesforce
@@ -24,6 +25,7 @@ class OrgConfig(BaseConfig):
         self._community_info_cache = {}
         self._client = None
         self._latest_api_version = None
+        self._installed_packages = None
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -178,3 +180,25 @@ class OrgConfig(BaseConfig):
             )
 
         return self._community_info_cache[community_name]
+
+    @property
+    def installed_packages(self):
+        if not self._installed_packages:
+            response = self.salesforce_client.restful(
+                "tooling/query/?q=SELECT SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
+                "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion, "
+                "FROM InstalledSubscriberPackage"
+            )
+
+            self._installed_packages = {}
+            for package in response["records"]:
+                sp = package["SubscriberPackage"]
+                version = f"{sp['MajorVersion']}.{sp['MinorVersion']}"
+                if sp["PatchVersion"]:
+                    version += f".{sp['PatchVersion']}"
+                self._installed_packages[sp["NamespacePrefix"]] = StrictVersion(version)
+
+        return self._installed_packages
+
+    def reset_installed_packages(self):
+        self._installed_packages = None
