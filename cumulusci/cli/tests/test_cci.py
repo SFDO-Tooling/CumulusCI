@@ -1271,7 +1271,7 @@ Environment Info: Rossian / x68_46
             "shape2",
             "active1",
             "active2",
-            "persistent"
+            "persistent",
         ]
         runtime.project_config.orgs__scratch = {
             "shape1": True,
@@ -1340,10 +1340,7 @@ Environment Info: Rossian / x68_46
         run_click_command(cci.org_prune, runtime=runtime)
         runtime.keychain.remove_org.assert_not_called()
 
-        echo.assert_any_call(
-            "No expired scratch orgs to delete. ✨"
-        )
-
+        echo.assert_any_call("No expired scratch orgs to delete. ✨")
 
     def test_org_remove(self):
         org_config = mock.Mock()
