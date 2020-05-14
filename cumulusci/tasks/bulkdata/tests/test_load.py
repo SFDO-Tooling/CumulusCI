@@ -500,6 +500,24 @@ class TestLoadData(unittest.TestCase):
             ),
         )
 
+    def test_get_statics_record_type_not_matched(self):
+        task = _make_task(
+            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
+        )
+        task.sf = mock.Mock()
+        task.sf.query.return_value = {"records": []}
+        with self.assertRaises(BulkDataException) as e:
+            task._get_statics(
+                {
+                    "sf_object": "Account",
+                    "action": "insert",
+                    "fields": {"Id": "sf_id", "Name": "Name"},
+                    "static": {"Industry": "Technology"},
+                    "record_type": "Organization",
+                }
+            ),
+        assert "RecordType" in str(e.exception)
+
     @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
     def test_query_db__joins_self_lookups(self, aliased):
         task = _make_task(
