@@ -566,7 +566,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.schema is not None
 
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
-    def test_run_task_default(self, extract_github):
+    def test_run_task(self, extract_github):
         # This is an integration test. We mock out `get_repo()` and the filesystem.
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
