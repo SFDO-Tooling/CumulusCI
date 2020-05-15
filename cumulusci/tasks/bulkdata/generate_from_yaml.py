@@ -170,4 +170,3 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                     yaml.safe_dump(
                         mapping_from_factory_templates(summary), f, sort_keys=False
                     )
-                    f.close()

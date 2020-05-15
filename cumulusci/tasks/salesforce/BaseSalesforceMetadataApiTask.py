@@ -13,5 +13,6 @@ class BaseSalesforceMetadataApiTask(BaseSalesforceTask):
         result = None
         if api:
             result = api()
+            self.org_config.reset_installed_packages()
             self.return_values = result
         return result

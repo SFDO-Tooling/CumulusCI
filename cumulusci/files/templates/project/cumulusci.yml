@@ -53,3 +53,9 @@ tasks:
         options:
             path: robot/{{project_name}}/tests
             output: robot/{{project_name}}/doc/{{project_name}}_tests.html
+
+    {% if code_coverage %}
+    run_tests:
+        options:
+            required_org_code_coverage_percent: {{code_coverage}}
+    {% endif %}
