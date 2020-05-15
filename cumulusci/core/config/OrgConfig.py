@@ -188,13 +188,13 @@ class OrgConfig(BaseConfig):
         Use a package Id to handle this circumstance."""
         installed_version = self.installed_packages.get(package_identifier)
 
-        if len(installed_version) > 1:
+        if not installed_version:
+            return False
+        elif len(installed_version) > 1:
             raise CumulusCIException(
                 f"Cannot check installed version of {package_identifier}, because multiple "
                 f"packages are installed that match this identifier."
             )
-        elif not installed_version:
-            return False
 
         return installed_version[0] >= version_identifier
 
@@ -210,7 +210,7 @@ class OrgConfig(BaseConfig):
         Beta version of a package are represented as "1.2.3b5", where 5 is the build number."""
         if not self._installed_packages:
             response = self.salesforce_client.restful(
-                "tooling/query/?q=SELECT SubscriberPackage.NamespacePrefix, SubscriSubscriberPackageVersion.MajorVersion, "
+                "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
                 "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
                 "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
                 "FROM InstalledSubscriberPackage"

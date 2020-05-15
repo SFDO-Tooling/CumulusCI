@@ -1309,7 +1309,7 @@ class TestOrgConfig(unittest.TestCase):
             "03350000000DEz7AAG": [StrictVersion("1.10b5")],
         }
         config._client.restful.assert_called_once_with(
-            "tooling/query/?q=SELECT SubscriberPackage.NamespacePrefix, SubscriSubscriberPackageVersion.MajorVersion, "
+            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
             "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
             "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
             "FROM InstalledSubscriberPackage"
@@ -1335,6 +1335,7 @@ class TestOrgConfig(unittest.TestCase):
         assert config.has_minimum_package_version("TESTY", "1.10b5")
         assert not config.has_minimum_package_version("TESTY", "1.10b6")
         assert not config.has_minimum_package_version("TESTY", "1.10")
+        assert not config.has_minimum_package_version("npsp", "1.0")
 
         assert config.has_minimum_package_version("03350000000DEz4AAG", "3.119")
 
