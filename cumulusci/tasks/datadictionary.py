@@ -152,7 +152,6 @@ class GenerateDataDictionary(BaseGithubTask):
 
         # For MDAPI-format elements. No-op on SFDX.
         for field in element.findall("fields"):
-            # print(self._process_field_element(sobject_name, field, version))
             self._process_field_element(sobject_name, field, version)
 
     def _process_field_element(self, sobject_name, field, version):
@@ -209,6 +208,9 @@ class GenerateDataDictionary(BaseGithubTask):
                     "help_text": help_text_elem.text
                     if help_text_elem is not None
                     else "",
+                    "description": description_text_elem.text
+                    if description_text_elem is not None
+                    else "",
                     "label": field.label.text,
                     "valid_values": valid_values,
                     "type": field_type,
@@ -249,10 +251,8 @@ class GenerateDataDictionary(BaseGithubTask):
                     "Field Name",
                     "Field Label",
                     "Type",
-                    "Field Help Text"
-                    if self.options["field_description"] == False
-                    or self.options["field_description"] == None
-                    else "Description",
+                    "Field Help Text",
+                    "Description",
                     "Allowed Values",
                     "Version Introduced",
                 ]
@@ -267,6 +267,7 @@ class GenerateDataDictionary(BaseGithubTask):
                             field_data["label"],
                             field_data["type"],
                             field_data["help_text"],
+                            field_data["description"],
                             field_data["valid_values"],
                             field_data["version"],
                         ]
