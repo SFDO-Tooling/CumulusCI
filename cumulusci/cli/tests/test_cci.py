@@ -519,8 +519,13 @@ Environment Info: Rossian / x68_46
                 "uat/",  # git_prefix_beta
                 "rel/",  # git_prefix_release
                 "%_TEST%",  # test_name_match
+                "90",  # code_coverage
             )
-            click.confirm.side_effect = (True, True)  # is managed?  # extending?
+            click.confirm.side_effect = (
+                True,
+                True,
+                True,
+            )  # is managed? extending? enforce Apex coverage?
 
             runtime = CliRuntime(
                 config={"project": {"test": {"name_match": "%_TEST%"}}},
@@ -575,8 +580,13 @@ Environment Info: Rossian / x68_46
                 "uat/",  # git_prefix_beta
                 "rel/",  # git_prefix_release
                 "%_TEST%",  # test_name_match
+                "90",  # code_coverage
             )
-            click.confirm.side_effect = (True, True)  # is managed?  # extending?
+            click.confirm.side_effect = (
+                True,
+                True,
+                True,
+            )  # is managed? extending? enforce code coverage?
 
             run_click_command(cci.project_init)
 
@@ -598,6 +608,7 @@ Environment Info: Rossian / x68_46
                         "output": "robot/testproj/doc/testproj_tests.html",
                     }
                 },
+                "run_tests": {"options": {"required_org_code_coverage_percent": 90}},
             }
             self.assertDictEqual(config["tasks"], expected_tasks)
 

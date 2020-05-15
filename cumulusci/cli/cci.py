@@ -563,6 +563,15 @@ def project_init(runtime):
         test_name_match = None
     context["test_name_match"] = test_name_match
 
+    context["code_coverage"] = None
+    if click.confirm(
+        click.style("Do you want to enforce Apex code coverage?", bold=True),
+        default=True,
+    ):
+        context["code_coverage"] = click.prompt(
+            click.style("Minimum code coverage percentage", bold=True), default=75
+        )
+
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
         template = env.get_template(name)
