@@ -62,7 +62,7 @@ import copy
 import logging
 from collections import defaultdict
 from collections import namedtuple
-from distutils.version import StrictVersion, LooseVersion
+from distutils.version import LooseVersion
 from operator import attrgetter
 
 from jinja2.sandbox import ImmutableSandboxedEnvironment
@@ -359,7 +359,6 @@ class FlowCoordinator(object):
                     jinja2_context = {
                         "project_config": step.project_config,
                         "org_config": self.org_config,
-                        "StrictVersion": StrictVersion,
                     }
                     expr = jinja2_env.compile_expression(step.when)
                     value = expr(**jinja2_context)

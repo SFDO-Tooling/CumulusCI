@@ -14,6 +14,7 @@ from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import KeychainNotFound
@@ -1172,8 +1173,12 @@ class TestOrgConfig(unittest.TestCase):
             "test",
         )
         responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        responses.add(
             "GET",
-            "https://example.com/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            "https://example.com/services/data/v48.0/sobjects/Organization/OODxxxxxxxxxxxx",
             json={"OrganizationType": "Enterprise Edition", "IsSandbox": False},
         )
 
@@ -1198,9 +1203,11 @@ class TestOrgConfig(unittest.TestCase):
         The cache should be refreshed automatically if the requested community
         is not in the cache.
         """
+        responses.add("GET", "https://test/services/data", json=[{"version": 48.0}])
+
         responses.add(
             "GET",
-            "https://test/services/data/v45.0/connect/communities",
+            "https://test/services/data/v48.0/connect/communities",
             json={"communities": [{"name": "Kōkua"}]},
         )
 
@@ -1235,50 +1242,101 @@ class TestOrgConfig(unittest.TestCase):
         with self.assertRaisesRegex(Exception, expected_exception):
             config.get_community_info("bogus")
 
+    MOCK_TOOLING_PACKAGE_RESULTS = {
+        "size": 2,
+        "totalSize": 2,
+        "done": True,
+        "records": [
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz4AAG",
+                    "NamespacePrefix": "GW_Volunteers",
+                },
+                "SubscriberPackageVersion": {
+                    "MajorVersion": 3,
+                    "MinorVersion": 119,
+                    "PatchVersion": 0,
+                    "BuildNumber": 5,
+                    "IsBeta": False,
+                },
+            },
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz5AAG",
+                    "NamespacePrefix": "GW_Volunteers",
+                },
+                "SubscriberPackageVersion": {
+                    "MajorVersion": 12,
+                    "MinorVersion": 0,
+                    "PatchVersion": 0,
+                    "BuildNumber": 1,
+                    "IsBeta": False,
+                },
+            },
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz7AAG",
+                    "NamespacePrefix": "TESTY",
+                },
+                "SubscriberPackageVersion": {
+                    "MajorVersion": 1,
+                    "MinorVersion": 10,
+                    "PatchVersion": 0,
+                    "BuildNumber": 5,
+                    "IsBeta": True,
+                },
+            },
+        ],
+    }
+
     def test_installed_packages(self):
         config = OrgConfig({}, "test")
         config._client = mock.Mock()
-        config._client.restful.return_value = {
-            "size": 1,
-            "totalSize": 1,
-            "done": True,
-            "queryLocator": None,
-            "entityTypeName": "InstalledSubscriberPackage",
-            "records": [
-                {
-                    "attributes": {
-                        "type": "InstalledSubscriberPackage",
-                        "url": "/services/data/v45.0/tooling/sobjects/InstalledSubscriberPackage/0A3P00000001og1KAA",
-                    },
-                    "SubscriberPackage": {
-                        "attributes": {
-                            "type": "SubscriberPackage",
-                            "url": "/services/data/v45.0/tooling/sobjects/SubscriberPackage/03350000000DEz4AAG",
-                        },
-                        "NamespacePrefix": "GW_Volunteers",
-                    },
-                    "SubscriberPackageVersion": {
-                        "attributes": {
-                            "type": "SubscriberPackageVersion",
-                            "url": "/services/data/v40.0/tooling/sobjects/SubscriberPackageVersion/04t1T00000070z0QAA",
-                        },
-                        "MajorVersion": 3,
-                        "MinorVersion": 119,
-                        "PatchVersion": 0,
-                    },
-                }
-            ],
-        }
+        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
 
-        assert config.installed_packages == {"GW_Volunteers": StrictVersion("3.119")}
-        assert config.installed_packages == {"GW_Volunteers": StrictVersion("3.119")}
+        assert config.installed_packages == {
+            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
+            "TESTY": [StrictVersion("1.10.0b5")],
+            "03350000000DEz4AAG": [StrictVersion("3.119")],
+            "03350000000DEz5AAG": [StrictVersion("12.0")],
+            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        }
+        assert config.installed_packages == {
+            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
+            "TESTY": [StrictVersion("1.10.0b5")],
+            "03350000000DEz4AAG": [StrictVersion("3.119")],
+            "03350000000DEz5AAG": [StrictVersion("12.0")],
+            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        }
         config._client.restful.assert_called_once_with(
-            "tooling/query/?q=SELECT SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
-            "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion "
+            "tooling/query/?q=SELECT SubscriberPackage.NamespacePrefix, SubscriSubscriberPackageVersion.MajorVersion, "
+            "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
+            "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
             "FROM InstalledSubscriberPackage"
         )
 
         config._client.restful.reset_mock()
         config.reset_installed_packages()
-        assert config.installed_packages == {"GW_Volunteers": StrictVersion("3.119")}
+        assert config.installed_packages == {
+            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
+            "TESTY": [StrictVersion("1.10.0b5")],
+            "03350000000DEz4AAG": [StrictVersion("3.119")],
+            "03350000000DEz5AAG": [StrictVersion("12.0")],
+            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        }
         config._client.restful.assert_called_once()
+
+    def test_has_minimum_package_version(self):
+        config = OrgConfig({}, "test")
+        config._client = mock.Mock()
+        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+
+        assert config.has_minimum_package_version("TESTY", "1.9")
+        assert config.has_minimum_package_version("TESTY", "1.10b5")
+        assert not config.has_minimum_package_version("TESTY", "1.10b6")
+        assert not config.has_minimum_package_version("TESTY", "1.10")
+
+        assert config.has_minimum_package_version("03350000000DEz4AAG", "3.119")
+
+        with self.assertRaises(CumulusCIException):
+            config.has_minimum_package_version("GW_Volunteers", "1.0")

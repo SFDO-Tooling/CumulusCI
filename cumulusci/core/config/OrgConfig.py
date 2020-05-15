@@ -1,12 +1,12 @@
+from collections import defaultdict
+from distutils.version import StrictVersion
 import os
 
-from distutils.version import StrictVersion
 import requests
-
 from simple_salesforce import Salesforce
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.exceptions import SalesforceCredentialsException
+from cumulusci.core.exceptions import SalesforceCredentialsException, CumulusCIException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.oauth.salesforce import jwt_session
 
@@ -79,17 +79,20 @@ class OrgConfig(BaseConfig):
             self._client = Salesforce(
                 instance=self.instance_url.replace("https://", ""),
                 session_id=self.access_token,
-                version="45.0",
+                version=self.latest_api_version,
             )
+
         return self._client
 
     @property
     def latest_api_version(self):
         if not self._latest_api_version:
-            response = self.salesforce_client._call_salesforce(
-                "GET", f"https://{self.salesforce_client.sf_instance}/services/data"
+            headers = {"Authorization": "Bearer " + self.access_token}
+            response = requests.get(
+                self.instance_url + "/services/data", headers=headers
             )
             self._latest_api_version = str(response.json()[-1]["version"])
+
         return self._latest_api_version
 
     @property
@@ -131,12 +134,8 @@ class OrgConfig(BaseConfig):
         return False
 
     def _load_orginfo(self):
-        headers = {"Authorization": "Bearer " + self.access_token}
-        self._org_sobject = requests.get(
-            self.instance_url
-            + f"/services/data/v45.0/sobjects/Organization/{self.org_id}",
-            headers=headers,
-        ).json()
+        self._org_sobject = self.salesforce_client.Organization.get(self.org_id)
+
         result = {
             "org_type": self._org_sobject["OrganizationType"],
             "is_sandbox": self._org_sobject["IsSandbox"],
@@ -149,11 +148,7 @@ class OrgConfig(BaseConfig):
 
     def _fetch_community_info(self):
         """Use the API to re-fetch information about communities"""
-        headers = {"Authorization": "Bearer " + self.access_token}
-        response = requests.get(
-            self.instance_url + "/services/data/v45.0/connect/communities",
-            headers=headers,
-        ).json()
+        response = self.salesforce_client.restful("connect/communities")
 
         # Since community names must be unique, we'll return a dictionary
         # with the community names as keys
@@ -181,16 +176,47 @@ class OrgConfig(BaseConfig):
 
         return self._community_info_cache[community_name]
 
+    def has_minimum_package_version(self, package_identifier, version_identifier):
+        """Return True if the org has a version of the specified package that is
+        equal to or newer than the supplied version identifier.
+
+        The package identifier may be either a namespace or a 033 package Id.
+        The version identifier should be in "1.2.3" or "1.2.3b4" format.
+
+        A CumulusCIException will be thrown if you request to check a namespace
+        and multiple second-generation packages sharing that namespace are installed.
+        Use a package Id to handle this circumstance."""
+        installed_version = self.installed_packages.get(package_identifier)
+
+        if len(installed_version) > 1:
+            raise CumulusCIException(
+                f"Cannot check installed version of {package_identifier}, because multiple "
+                f"packages are installed that match this identifier."
+            )
+        elif not installed_version:
+            return False
+
+        return installed_version[0] >= version_identifier
+
     @property
     def installed_packages(self):
+        """installed_packages is a dict mapping a namespace or package Id (033*) to the installed package
+        version(s) matching that identifier. All values are lists, because multiple second-generation
+        packages may be installed with the same namespace.
+
+        To check if a required package is present, call `has_minimum_package_version()` with either the
+        namespace or 033 Id of the desired package and its version, in 1.2.3 format.
+
+        Beta version of a package are represented as "1.2.3b5", where 5 is the build number."""
         if not self._installed_packages:
             response = self.salesforce_client.restful(
-                "tooling/query/?q=SELECT SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
-                "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion "
+                "tooling/query/?q=SELECT SubscriberPackage.NamespacePrefix, SubscriSubscriberPackageVersion.MajorVersion, "
+                "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
+                "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
                 "FROM InstalledSubscriberPackage"
             )
 
-            self._installed_packages = {}
+            self._installed_packages = defaultdict(lambda: [])
             for package in response["records"]:
                 sp = package["SubscriberPackage"]
                 spv = package["SubscriberPackageVersion"]
@@ -198,7 +224,12 @@ class OrgConfig(BaseConfig):
                 version = (
                     f"{spv['MajorVersion']}.{spv['MinorVersion']}.{spv['PatchVersion']}"
                 )
-                self._installed_packages[sp["NamespacePrefix"]] = StrictVersion(version)
+                if spv["IsBeta"]:
+                    version += f"b{spv['BuildNumber']}"
+                self._installed_packages[sp["NamespacePrefix"]].append(
+                    StrictVersion(version)
+                )
+                self._installed_packages[sp["Id"]].append(StrictVersion(version))
 
         return self._installed_packages
 

@@ -216,7 +216,7 @@ class RunApexTests(BaseSalesforceApiTask):
         if "required_org_code_coverage_percent" in self.options:
             try:
                 self.code_coverage_level = int(
-                    self.options["required_org_code_coverage_percent"]
+                    self.options["required_org_code_coverage_percent"].rstrip("%")
                 )
             except ValueError:
                 raise TaskOptionsError(
@@ -531,7 +531,9 @@ class RunApexTests(BaseSalesforceApiTask):
             if self.options.get("namespace") not in self.org_config.installed_packages:
                 self._check_code_coverage()
             else:
-                self.logger.info("This is a managed org; not checking code coverage.")
+                self.logger.info(
+                    "This org contains a managed installation; not checking code coverage."
+                )
         else:
             self.logger.info(
                 "No code coverage level specified; not checking code coverage."
