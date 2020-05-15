@@ -178,10 +178,6 @@ tasks:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
         group: GitHub
-    github_protect_branch:
-        description: Protects master branch in project Github repository
-        class_path: cumulusci.tasks.github.protect_branch.ProtectBranch
-        group: GitHub
     github_release:
         description: Creates a Github release for a given managed package version number
         class_path: cumulusci.tasks.github.CreateRelease

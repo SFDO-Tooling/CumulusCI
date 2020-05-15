@@ -638,17 +638,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.options["object_path"] == "Project sObject Data Dictionary.csv"
         assert task.options["field_path"] == "Project Field Data Dictionary.csv"
 
-    def test_init_options__defaults(self):
-        project_config = create_project_config()
-        project_config.project__name = "Project"
-
-        task = create_task(
-            GenerateDataDictionary, {"release_prefix": "rel/"}, project_config
-        )
-
-        assert task.options["object_path"] == "Project sObject Data Dictionary.csv"
-        assert task.options["field_path"] == "Project Field Data Dictionary.csv"
-
     def test_init_options(self):
         task = create_task(
             GenerateDataDictionary,

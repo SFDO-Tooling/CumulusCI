@@ -4,7 +4,6 @@ from collections import defaultdict
 
 from distutils.version import LooseVersion
 
-from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.utils import download_extract_github_from_repo
 from cumulusci.utils.xml import metadata_tree
