@@ -216,7 +216,7 @@ class OrgConfig(BaseConfig):
                 "FROM InstalledSubscriberPackage"
             )
 
-            self._installed_packages = defaultdict(lambda: [])
+            self._installed_packages = defaultdict(list)
             for package in response["records"]:
                 sp = package["SubscriberPackage"]
                 spv = package["SubscriberPackageVersion"]
