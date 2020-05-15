@@ -565,7 +565,9 @@ def project_init(runtime):
 
     context["code_coverage"] = None
     if click.confirm(
-        click.style("Do you want to enforce Apex code coverage?", bold=True),
+        click.style(
+            "Do you want to check Apex code coverage when tests are run?", bold=True
+        ),
         default=True,
     ):
         context["code_coverage"] = click.prompt(
