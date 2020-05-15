@@ -53,6 +53,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.1"),
                         "label": "Test",
                         "help_text": "Text field",
+                        "description": "",
                         "valid_values": "",
                         "type": "Text",
                     }
@@ -64,6 +65,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.2"),
                         "label": "Parent",
                         "help_text": "Lookup",
+                        "description": "",
                         "valid_values": "",
                         "type": "Lookup",
                     }
@@ -71,6 +73,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "version": LooseVersion("1.0"),
                 "label": "Child",
                 "help_text": "Child object",
+                "description": "",
             },
         }
 
@@ -88,10 +91,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
                 call("Child__c,Child,Child object,1.0\r\n"),
                 call(
-                    "Object Name,Field Name,Field Label,Type,Field Help Text,Allowed Values,Version Introduced\r\n"
+                    "Object Name,Field Name,Field Label,Type,Field Help Text,Description,Allowed Values,Version Introduced\r\n"
                 ),
-                call("Account,Test__c,Test,Text,Text field,,1.1\r\n"),
-                call("Child__c,Parent__c,Parent,Lookup,Lookup,,1.2\r\n"),
+                call("Account,Test__c,Test,Text,Text field,,,1.1\r\n"),
+                call("Child__c,Parent__c,Parent,Lookup,Lookup,,,1.2\r\n"),
             ],
             any_order=True,
         )
@@ -125,6 +128,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Account",
+            "description": "",
             "type": "Lookup",
             "valid_values": "->Account",
         }
@@ -183,6 +187,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.schema["Test__c"]["fields"]["Account__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "Initial",
+            "description": "",
             "label": "Account",
             "type": "Lookup",
             "valid_values": "->Account",
@@ -196,6 +201,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.schema["Test__c"]["fields"]["Account__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "New",
+            "description": "",
             "label": "Account",
             "type": "Lookup",
             "valid_values": "->Account",
@@ -238,6 +244,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.schema["Test__c"]["fields"]["Type__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "",
+            "description": "",
             "label": "Type",
             "type": "Picklist",
             "valid_values": "Test 1; Test 2",
@@ -279,6 +286,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Type",
+            "description": "",
             "type": "Picklist",
             "valid_values": "Test 1; Test 2",
         }
@@ -312,6 +320,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Type",
+            "description": "",
             "type": "Picklist",
             "valid_values": "Global Value Set Test Value Set",
         }
@@ -355,6 +364,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.1"),
                         "label": "Type",
                         "help_text": "Type of field.",
+                        "description": "",
                         "valid_values": "",
                         "type": "Text",
                     }
@@ -610,71 +620,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
                 call("Test__c,Test,Description,1.1\r\n"),
                 call(
-                    "Object Name,Field Name,Field Label,Type,Field Help Text,Allowed Values,Version Introduced\r\n"
+                    "Object Name,Field Name,Field Label,Type,Field Help Text,Description,Allowed Values,Version Introduced\r\n"
                 ),
-                call("Test__c,Type__c,Type,Text,Type of field.,,1.1\r\n"),
-            ],
-            any_order=True,
-        )
-
-    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
-    def test_run_task_with_description(self, extract_github):
-        # This is an integration test. We mock out `get_repo()` and the filesystem.
-        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
-<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Description</description>
-    <label>Test</label>
-    <fields>
-        <fullName>Type__c</fullName>
-        <inlineHelpText>Type of field.</inlineHelpText>
-        <label>Type</label>
-        <type>Text</type>
-    </fields>
-</CustomObject>"""
-        project_config = create_project_config()
-        project_config.keychain.get_service = Mock()
-        project_config.project__name = "Project"
-
-        task = create_task(
-            GenerateDataDictionary,
-            {"release_prefix": "rel/", "field_description": True},
-            project_config=project_config,
-        )
-
-        task.get_repo = Mock()
-        release = Mock()
-        release.draft = False
-        release.prerelease = False
-        release.tag_name = "rel/1.1"
-        task.get_repo.return_value.releases.return_value = [release]
-
-        extract_github.return_value.namelist.return_value = [
-            "src/objects/",
-            "src/objects/Test__c.object",
-        ]
-        extract_github.return_value.read.return_value = xml_source.encode("utf-8")
-        m = mock_open()
-
-        with patch("builtins.open", m):
-            task()
-
-        m.assert_has_calls(
-            [
-                call("Project sObject Data Dictionary.csv", "w"),
-                call("Project Field Data Dictionary.csv", "w"),
-            ],
-            any_order=True,
-        )
-        m.return_value.write.assert_has_calls(
-            [
-                call(
-                    "Object Name,Object Label,Object Description,Version Introduced\r\n"
-                ),
-                call("Test__c,Test,Description,1.1\r\n"),
-                call(
-                    "Object Name,Field Name,Field Label,Type,Description,Allowed Values,Version Introduced\r\n"
-                ),
-                call("Test__c,Type__c,Type,Text,,,1.1\r\n"),
+                call("Test__c,Type__c,Type,Text,Type of field.,,,1.1\r\n"),
             ],
             any_order=True,
         )

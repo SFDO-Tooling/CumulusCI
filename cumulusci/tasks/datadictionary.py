@@ -33,16 +33,10 @@ class GenerateDataDictionary(BaseGithubTask):
             "description": "The tag prefix used for releases.",
             "required": True,
         },
-        "field_description": {
-            "description": "Replaces help field text with field's description value when set."
-        },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.options["field_description"] = process_bool_arg(
-            self.options.get("field_description", False)
-        )
 
         if self.options.get("object_path") is None:
             self.options[
@@ -161,11 +155,10 @@ class GenerateDataDictionary(BaseGithubTask):
         # or a `CustomField` (SFDX)
         # If this is a custom field, register its presence in this version
         field_name = field.fullName.text
+        # get field help text value
         help_text_elem = field.find("inlineHelpText")
+        # get field description text value
         description_text_elem = field.find("description")
-
-        if self.options["field_description"]:
-            help_text_elem = description_text_elem
 
         if "__" in field_name:
             field_type = field.type.text
