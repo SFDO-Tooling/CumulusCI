@@ -1471,7 +1471,12 @@ Environment Info: Rossian / x68_46
         echo.assert_any_call("Skipped org shapes: shape1, shape2")
 
         runtime.keychain.remove_org.assert_has_calls(
-            [mock.call("remove1"), mock.call("remove2"), mock.call("active1"), mock.call("active2")]
+            [
+                mock.call("remove1"),
+                mock.call("remove2"),
+                mock.call("active1"),
+                mock.call("active2"),
+            ]
         )
         assert runtime.keychain.remove_org.call_count == 4
 

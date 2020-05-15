@@ -1064,13 +1064,16 @@ def org_list(runtime, plain):
     persistent_table.echo(plain)
 
 
-@org.command(name="prune", help="Removes all expired scratch orgs from the current project")
+@org.command(
+    name="prune", help="Removes all expired scratch orgs from the current project"
+)
 @click.option(
-    "--include-active", is_flag=True, help="Remove all scratch orgs, regardless of expiry."
+    "--include-active",
+    is_flag=True,
+    help="Remove all scratch orgs, regardless of expiry.",
 )
 @pass_runtime(require_project=True, require_keychain=True)
-def org_prune(runtime, include_active):
-    include_active = include_active or False
+def org_prune(runtime, include_active=False):
 
     predefined_scratch_configs = getattr(runtime.project_config, "orgs__scratch", {})
 
