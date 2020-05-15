@@ -812,7 +812,11 @@ Environment Info: Rossian / x68_46
     @responses.activate
     def test_org_connect(self, oauth):
         oauth.return_value = mock.Mock(
-            return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
+            return_value={
+                "instance_url": "https://instance",
+                "access_token": "BOGUS",
+                "id": "OODxxxxxxxxxxxx/user",
+            }
         )
         runtime = mock.Mock()
         responses.add(
@@ -823,7 +827,7 @@ Environment Info: Rossian / x68_46
         )
         responses.add(
             method="GET",
-            url="https://instance/services/data/v45.0/sobjects/Organization/None",
+            url="https://instance/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": None,
                 "OrganizationType": "Developer Edition",
@@ -831,6 +835,7 @@ Environment Info: Rossian / x68_46
             },
             status=200,
         )
+        responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
         run_click_command(
             cci.org_connect,
             runtime=runtime,
@@ -851,7 +856,11 @@ Environment Info: Rossian / x68_46
     @responses.activate
     def test_org_connect_expires(self, oauth):
         oauth.return_value = mock.Mock(
-            return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
+            return_value={
+                "instance_url": "https://instance",
+                "access_token": "BOGUS",
+                "id": "OODxxxxxxxxxxxx/user",
+            }
         )
         runtime = mock.Mock()
         responses.add(
@@ -862,7 +871,7 @@ Environment Info: Rossian / x68_46
         )
         responses.add(
             method="GET",
-            url="https://instance/services/data/v45.0/sobjects/Organization/None",
+            url="https://instance/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": "1970-01-01T12:34:56.000+0000",
                 "OrganizationType": "Developer Edition",
@@ -870,6 +879,8 @@ Environment Info: Rossian / x68_46
             },
             status=200,
         )
+        responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
+
         run_click_command(
             cci.org_connect,
             runtime=runtime,
