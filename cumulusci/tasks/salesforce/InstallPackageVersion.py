@@ -72,6 +72,7 @@ class InstallPackageVersion(Deploy):
             f"Installing {self.options['name']} release: {self.options['version']}"
         )
         self._retry()
+        self.org_config.reset_installed_packages()
 
     def _try(self):
         api = self._get_api()

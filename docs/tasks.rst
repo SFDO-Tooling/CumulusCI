@@ -2814,6 +2814,11 @@ Options
 
 	 By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
 
+``-o required_org_code_coverage_percent REQUIREDORGCODECOVERAGEPERCENT``
+	 *Optional*
+
+	 Require at least X percent code coverage across the org following the test run.
+
 **set_duplicate_rule_status**
 ==========================================
 
