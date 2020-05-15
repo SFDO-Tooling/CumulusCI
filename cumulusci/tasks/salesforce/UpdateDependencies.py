@@ -102,6 +102,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
         self._uninstall_dependencies()
         self._install_dependencies()
+        self.org_config.reset_installed_packages()
 
     def _process_dependencies(self, dependencies):
         for dependency in dependencies:
