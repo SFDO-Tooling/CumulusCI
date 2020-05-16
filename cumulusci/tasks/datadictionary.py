@@ -4,7 +4,6 @@ from collections import defaultdict
 
 from distutils.version import LooseVersion
 
-
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.utils import download_extract_github_from_repo
 from cumulusci.utils.xml import metadata_tree
@@ -155,7 +154,10 @@ class GenerateDataDictionary(BaseGithubTask):
         # or a `CustomField` (SFDX)
         # If this is a custom field, register its presence in this version
         field_name = field.fullName.text
+        # get field help text value
         help_text_elem = field.find("inlineHelpText")
+        # get field description text value
+        description_text_elem = field.find("description")
 
         if "__" in field_name:
             field_type = field.type.text
@@ -198,6 +200,9 @@ class GenerateDataDictionary(BaseGithubTask):
                     "help_text": help_text_elem.text
                     if help_text_elem is not None
                     else "",
+                    "description": description_text_elem.text
+                    if description_text_elem is not None
+                    else "",
                     "label": field.label.text,
                     "valid_values": valid_values,
                     "type": field_type,
@@ -239,6 +244,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     "Field Label",
                     "Type",
                     "Field Help Text",
+                    "Description",
                     "Allowed Values",
                     "Version Introduced",
                 ]
@@ -253,6 +259,7 @@ class GenerateDataDictionary(BaseGithubTask):
                             field_data["label"],
                             field_data["type"],
                             field_data["help_text"],
+                            field_data["description"],
                             field_data["valid_values"],
                             field_data["version"],
                         ]
