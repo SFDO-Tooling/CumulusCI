@@ -1,4 +1,5 @@
 from typing import Dict
+from urllib.parse import quote
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
@@ -18,7 +19,9 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             "Each value should contain the keys 'fullName', the API name of the entry, "
             "and 'label', the user-facing label. Optionally, specify `default: True` on exactly one "
             "entry to make that value the default. Any existing values will not be affected other than "
-            "setting the default (labels of existing entries are not changed).",
+            "setting the default (labels of existing entries are not changed).\n"
+            "To order values, include the 'add_before' key. This will insert the new value "
+            "before the existing value with the given API name, or at the end of the list if not present.",
             "required": True,
         },
         "record_types": {
@@ -26,9 +29,6 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             "should be available. If any of the entries have `default: True`, they are also made "
             "default for these Record Types. Any Record Types not present in the target org will be "
             "ignored, and * is a wildcard. Default behavior is to do nothing."
-        },
-        "sorted": {
-            "description": "Set whether or not to sort the picklist values alphabetically. Default is no change."
         },
         **MetadataSingleEntityTransformTask.task_options,
     }
@@ -105,26 +105,34 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             if self.options["record_types"]:
                 self._add_record_type_entries(metadata, api_name, picklist, entry)
 
-        # Set the sorted value for this picklist
-        if "sorted" in self.options:
-            sorted_elem = vsd.find("sorted") or vsd.append("sorted")
-            sorted_elem.text = (
-                "true" if process_bool_arg(self.options["sorted"]) else "false"
-            )
-
     def _add_picklist_field_entry(
         self, vsd: MetadataElement, api_name: str, picklist: str, entry: Dict
     ):
         fullName = entry["fullName"]
         label = entry.get("label") or fullName
         default = entry.get("default", False)
+        add_before = entry.get("add_before")
 
-        if vsd.find("value", fullName=fullName):
+        if vsd.find("value", fullName=fullName) or vsd.find(
+            "value", fullname=quote(fullName, safe=" ")
+        ):
             self.logger.warning(
-                f"Picklist entry with fullName {fullName} already exists on picklist {picklist}"
+                f"Picklist entry with fullName {fullName} already exists on picklist {picklist}."
             )
         else:
-            entry_element = vsd.append("value")
+            if add_before and (
+                vsd.find("value", fullName=add_before)
+                or vsd.find("value", fullName=quote(add_before, safe=" "))
+            ):
+                entry_element = vsd.insert_before(
+                    (
+                        vsd.find("value", fullName=add_before)
+                        or vsd.find("value", fullName=quote(add_before, safe=" "))
+                    ),
+                    "value",
+                )
+            else:
+                entry_element = vsd.append("value")
             entry_element.append("fullName", text=fullName)
             entry_element.append("label", text=label)
             entry_element.append("default", text=str(default).lower())
@@ -135,7 +143,10 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
                 default = value.find("default")
                 if default:
                     default.text = (
-                        "false" if value.fullName.text != fullName else "true"
+                        "false"
+                        if value.fullName.text
+                        not in [fullName, quote(fullName, safe=" ")]
+                        else "true"
                     )
 
     def _add_record_type_entries(
@@ -168,9 +179,27 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
 
         # If this picklist value entry is not already present, add it.
         default = process_bool_arg(entry.get("default", False))
-        values = picklist_element.find("values", fullName=entry["fullName"])
+        values = picklist_element.find(
+            "values", fullName=entry["fullName"]
+        ) or picklist_element.find(
+            "values", fullName=quote(entry["fullName"], safe=" ")
+        )
         if not values:
-            values = picklist_element.append("values")
+            add_before = entry.get("add_before")
+            if add_before and (
+                picklist_element.find("values", fullName=add_before)
+                or picklist_element.find("values", fullName=quote(add_before, safe=" "))
+            ):
+                values = picklist_element.insert_before(
+                    picklist_element.find("values", fullName=add_before)
+                    or picklist_element.find(
+                        "values", fullName=quote(add_before, safe=" ")
+                    ),
+                    "values",
+                )
+            else:
+                values = picklist_element.append("values")
+
             values.append("fullName", text=entry["fullName"])
             values.append("default", text=str(default).lower())
 
@@ -181,5 +210,8 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
                 default = value.find("default")
                 if default:
                     default.text = (
-                        "false" if value.fullName.text != entry["fullName"] else "true"
+                        "false"
+                        if value.fullName.text
+                        not in [entry["fullName"], quote(entry["fullName"], safe=" ")]
+                        else "true"
                     )

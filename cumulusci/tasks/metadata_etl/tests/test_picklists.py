@@ -98,26 +98,6 @@ OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 
 
 class TestAddPicklistValues:
-    def test_sets_sorted(self):
-        task = create_task(
-            AddPicklistEntries,
-            {
-                "api_version": "47.0",
-                "picklists": ["MyObject.Time_Zone__c", "MyObject2.Type__c"],
-                "entries": [
-                    {"fullName": "Test"},
-                    {"fullName": "Foo", "label": "Bar", "default": True},
-                ],
-                "sorted": True,
-            },
-        )
-
-        # Validate that the first sObject has one picklist changed
-        tree = metadata_tree.fromstring(OBJECT_XML)
-        result = task._transform_entity(tree, "MyObject")
-        vsd = result.find("fields", fullName="Time_Zone__c").valueSet.valueSetDefinition
-        assert vsd.sorted.text == "true"
-
     def test_adds_values(self):
         task = create_task(
             AddPicklistEntries,
@@ -128,7 +108,6 @@ class TestAddPicklistValues:
                     {"fullName": "Test"},
                     {"fullName": "Foo", "label": "Bar", "default": True},
                 ],
-                "sorted": True,
             },
         )
 
@@ -165,7 +144,6 @@ class TestAddPicklistValues:
                 "api_version": "47.0",
                 "picklists": ["MyObject.Time_Zone__c", "MyObject2.Type__c"],
                 "entries": [{"fullName": "Outreach"}],
-                "sorted": True,
             },
         )
 
@@ -179,29 +157,6 @@ class TestAddPicklistValues:
         test_elem = list(v for v in values if v.fullName.text == "Outreach")
         assert len(test_elem) == 1
 
-    def test_adds_values__unsorted(self):
-        task = create_task(
-            AddPicklistEntries,
-            {
-                "api_version": "47.0",
-                "picklists": ["MyObject.Time_Zone__c", "MyObject2.Type__c"],
-                "entries": [
-                    {"fullName": "Test"},
-                    {"fullName": "Foo", "label": "Bar", "default": True},
-                ],
-            },
-        )
-
-        # Validate that the sorted attribute is not changed.
-        tree = metadata_tree.fromstring(OBJECT_XML)
-        result = task._transform_entity(tree, "MyObject")
-        vsd = result.find("fields", fullName="Time_Zone__c").valueSet.valueSetDefinition
-        assert vsd.sorted.text == "false"
-
-        result = task._transform_entity(tree, "MyObject2")
-        vsd = result.find("fields", fullName="Type__c").valueSet.valueSetDefinition
-        assert vsd.sorted.text == "true"
-
     def test_adds_values_second_object(self):
         task = create_task(
             AddPicklistEntries,
@@ -212,7 +167,6 @@ class TestAddPicklistValues:
                     {"fullName": "Test"},
                     {"fullName": "Foo", "label": "Bar", "default": True},
                 ],
-                "sorted": True,
             },
         )
 
@@ -380,6 +334,44 @@ class TestAddPicklistValues:
             )
             assert "Test" in (v.fullName.text for v in values)
             assert "Foo" in (v.fullName.text for v in values)
+
+    def test_add_before__existing(self):
+        task = create_task(
+            AddPicklistEntries,
+            {
+                "api_version": "47.0",
+                "picklists": ["MyObject.Time_Zone__c", "MyObject2.Type__c"],
+                "entries": [
+                    {"fullName": "Test", "add_before": "Pacific/Chatham"},
+                    {"fullName": "Foo", "label": "Bar", "default": True},
+                ],
+                "record_types": ["Default_RT"],
+            },
+        )
+
+        tree = metadata_tree.fromstring(OBJECT_XML)
+        result = task._transform_entity(tree, "MyObject")
+        vsd = result.find("fields", fullName="Time_Zone__c").valueSet.valueSetDefinition
+        values = vsd.value
+        test_elem = next(v for v in values if v.fullName.text == "Test")
+        assert vsd._element.index(test_elem._element) == 2  # The `sorted` element is 0
+
+        test_elem = next(v for v in values if v.fullName.text == "Foo")
+        assert vsd._element.index(test_elem._element) == 4
+
+        rt_picklist = result.find("recordTypes", fullName="Default_RT").find(
+            "picklistValues", picklist="Time_Zone__c"
+        )
+        rt_values = rt_picklist.values
+        test_elem = next(v for v in rt_values if v.fullName.text == "Test")
+        assert (
+            rt_picklist._element.index(test_elem._element) == 2
+        )  # The `picklist` element is 0
+        test_elem = next(v for v in rt_values if v.fullName.text == "Foo")
+        assert rt_picklist._element.index(test_elem._element) == 4
+
+    def test_add_before__missing(self):
+        pass
 
     def test_init_options__old_api_version(self):
         with pytest.raises(TaskOptionsError):
