@@ -307,6 +307,29 @@ class TestAddPicklistValues:
         )
         assert "Test" not in (v.fullName.text for v in values)
 
+    def test_adds_record_type_entries__existing_quoted(self):
+        task = create_task(
+            AddPicklistEntries,
+            {
+                "api_version": "47.0",
+                "picklists": ["MyObject.Time_Zone__c", "MyObject2.Type__c"],
+                "entries": [{"fullName": "Pacific%2FKiritimati"}],
+                "record_types": ["Default_RT"],
+            },
+        )
+
+        # Validate that the entries are not added to the Record Type in duplicate
+        tree = metadata_tree.fromstring(OBJECT_XML)
+        result = task._transform_entity(tree, "MyObject")
+
+        values = (
+            result.find("recordTypes", fullName="Default_RT")
+            .find("picklistValues", picklist="Time_Zone__c")
+            .values
+        )
+        assert "Pacific%2FKiritimati" in (v.fullName.text for v in values)
+        assert "Pacific/Kiritimati" not in (v.fullName.text for v in values)
+
     def test_adds_record_type_entries__multiple(self):
         task = create_task(
             AddPicklistEntries,
@@ -371,7 +394,39 @@ class TestAddPicklistValues:
         assert rt_picklist._element.index(test_elem._element) == 4
 
     def test_add_before__missing(self):
-        pass
+        task = create_task(
+            AddPicklistEntries,
+            {
+                "api_version": "47.0",
+                "picklists": ["MyObject.Time_Zone__c", "MyObject2.Type__c"],
+                "entries": [
+                    {"fullName": "Test", "add_before": "Not-there"},
+                    {"fullName": "Foo", "label": "Bar", "default": True},
+                ],
+                "record_types": ["Default_RT"],
+            },
+        )
+
+        tree = metadata_tree.fromstring(OBJECT_XML)
+        result = task._transform_entity(tree, "MyObject")
+        vsd = result.find("fields", fullName="Time_Zone__c").valueSet.valueSetDefinition
+        values = vsd.value
+        test_elem = next(v for v in values if v.fullName.text == "Test")
+        assert vsd._element.index(test_elem._element) == 3  # The `sorted` element is 0
+
+        test_elem = next(v for v in values if v.fullName.text == "Foo")
+        assert vsd._element.index(test_elem._element) == 4
+
+        rt_picklist = result.find("recordTypes", fullName="Default_RT").find(
+            "picklistValues", picklist="Time_Zone__c"
+        )
+        rt_values = rt_picklist.values
+        test_elem = next(v for v in rt_values if v.fullName.text == "Test")
+        assert (
+            rt_picklist._element.index(test_elem._element) == 3
+        )  # The `picklist` element is 0
+        test_elem = next(v for v in rt_values if v.fullName.text == "Foo")
+        assert rt_picklist._element.index(test_elem._element) == 4
 
     def test_init_options__old_api_version(self):
         with pytest.raises(TaskOptionsError):

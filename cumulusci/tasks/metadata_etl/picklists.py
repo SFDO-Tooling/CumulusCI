@@ -1,5 +1,5 @@
 from typing import Dict
-from urllib.parse import quote
+from urllib.parse import unquote
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
@@ -96,7 +96,11 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
         if not field:
             raise TaskOptionsError(f"The field {api_name}.{picklist} was not found.")
 
-        vsd = field.valueSet.valueSetDefinition
+        vsd = field.valueSet.find("valueSetDefinition")
+        if not vsd:
+            raise TaskOptionsError(
+                f"The picklist {api_name}.{picklist} uses a Global Value Set, which is not supported."
+            )
 
         # Update each entry in this picklist, and also add to all record types.
         for entry in self.options["entries"]:
@@ -113,23 +117,14 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
         default = entry.get("default", False)
         add_before = entry.get("add_before")
 
-        if vsd.find("value", fullName=fullName) or vsd.find(
-            "value", fullname=quote(fullName, safe=" ")
-        ):
+        if vsd.find("value", fullName=fullName):
             self.logger.warning(
                 f"Picklist entry with fullName {fullName} already exists on picklist {picklist}."
             )
         else:
-            if add_before and (
-                vsd.find("value", fullName=add_before)
-                or vsd.find("value", fullName=quote(add_before, safe=" "))
-            ):
+            if add_before and vsd.find("value", fullName=add_before):
                 entry_element = vsd.insert_before(
-                    (
-                        vsd.find("value", fullName=add_before)
-                        or vsd.find("value", fullName=quote(add_before, safe=" "))
-                    ),
-                    "value",
+                    vsd.find("value", fullName=add_before), "value"
                 )
             else:
                 entry_element = vsd.append("value")
@@ -143,10 +138,7 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
                 default = value.find("default")
                 if default:
                     default.text = (
-                        "false"
-                        if value.fullName.text
-                        not in [fullName, quote(fullName, safe=" ")]
-                        else "true"
+                        "false" if value.fullName.text != fullName else "true"
                     )
 
     def _add_record_type_entries(
@@ -178,29 +170,40 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             picklist_element.append("picklist", text=picklist)
 
         # If this picklist value entry is not already present, add it.
-        default = process_bool_arg(entry.get("default", False))
-        values = picklist_element.find(
-            "values", fullName=entry["fullName"]
-        ) or picklist_element.find(
-            "values", fullName=quote(entry["fullName"], safe=" ")
-        )
+        default = str(process_bool_arg(entry.get("default", False))).lower
+        fullName = entry["fullName"]
+
+        # The Metadata API's behavior with picklist values in record types
+        # is to return partially URL-encoded values. Most punctuation appears
+        # to be escaped, but spaces and high-bit characters are not.
+        # To route around this, we compare the `unquote()`-ed
+        # value of each element, since we don't know in 100% of cases
+        # how to make our input look like what MDAPI returns.
+
+        # Note that this behavior is different from picklist values in value sets.
+        def find_matching_value(picklist, target):
+            return next(
+                filter(
+                    lambda x: unquote(x.fullName.text) == target,
+                    picklist.findall("values"),
+                ),
+                None,
+            )
+
+        values = find_matching_value(picklist_element, fullName)
         if not values:
             add_before = entry.get("add_before")
-            if add_before and (
-                picklist_element.find("values", fullName=add_before)
-                or picklist_element.find("values", fullName=quote(add_before, safe=" "))
-            ):
-                values = picklist_element.insert_before(
-                    picklist_element.find("values", fullName=add_before)
-                    or picklist_element.find(
-                        "values", fullName=quote(add_before, safe=" ")
-                    ),
-                    "values",
-                )
+            if add_before:
+                before_elem = find_matching_value(picklist_element, add_before)
+                if before_elem:
+                    values = picklist_element.insert_before(before_elem, "values")
+                else:
+                    values = picklist_element.append("values")
             else:
                 values = picklist_element.append("values")
 
-            values.append("fullName", text=entry["fullName"])
+            # The Metadata API does _not_ require us to perform its partial URL-encoding to deploy.
+            values.append("fullName", text=fullName)
             values.append("default", text=str(default).lower())
 
         # If this picklist value needs to be made default, remove any existing default.
@@ -210,8 +213,5 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
                 default = value.find("default")
                 if default:
                     default.text = (
-                        "false"
-                        if value.fullName.text
-                        not in [entry["fullName"], quote(entry["fullName"], safe=" ")]
-                        else "true"
+                        "false" if value.fullName.text != fullName else "true"
                     )
