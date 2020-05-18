@@ -127,7 +127,7 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
-**add_picklist_values**
+**add_picklist_entries**
 ==========================================
 
 **Description:** Adds specified picklist entries to a custom picklist field.
@@ -137,7 +137,7 @@ Options
 Command Syntax
 ------------------------------------------
 
-``$ cci task run add_picklist_values``
+``$ cci task run add_picklist_entries``
 
 
 Options
@@ -153,16 +153,12 @@ Options
 	 *Required*
 
 	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed).
+To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
 
 ``-o record_types RECORDTYPES``
 	 *Optional*
 
 	 List of Record Type developer names for which the new values should be available. If any of the entries have `default: True`, they are also made default for these Record Types. Any Record Types not present in the target org will be ignored, and * is a wildcard. Default behavior is to do nothing.
-
-``-o sorted SORTED``
-	 *Optional*
-
-	 Set whether or not to sort the picklist values alphabetically. Default is no change.
 
 ``-o api_names APINAMES``
 	 *Optional*

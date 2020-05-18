@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Dict
 from urllib.parse import unquote
 
@@ -46,7 +47,7 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
         if "picklists" not in self.options:
             raise TaskOptionsError("The 'picklists' option is required.")
 
-        self.picklists = {}
+        self.picklists = defaultdict(list)
         for pl in process_list_arg(self.options["picklists"]):
             try:
                 obj, field = pl.split(".")
@@ -60,7 +61,7 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
                     "Standard Value Sets, use the add_standard_value_set_entries task."
                 )
 
-            self.picklists.setdefault(self._inject_namespace(obj), []).append(
+            self.picklists[self._inject_namespace(obj)].append(
                 self._inject_namespace(field)
             )
 
