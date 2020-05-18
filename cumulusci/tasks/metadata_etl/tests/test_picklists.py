@@ -509,3 +509,13 @@ class TestAddPicklistValues:
         tree = metadata_tree.fromstring(OBJECT_XML)
         with pytest.raises(TaskOptionsError):
             task._transform_entity(tree, "MyObject")
+
+    def test_raises_for_missing_picklists_option(self):
+        with pytest.raises(TaskOptionsError):
+            create_task(
+                AddPicklistEntries,
+                {
+                    "api_version": "47.0",
+                    "entries": [{"fullName": "Test", "default": True}],
+                },
+            )

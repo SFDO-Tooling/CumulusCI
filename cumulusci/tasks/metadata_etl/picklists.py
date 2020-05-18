@@ -43,6 +43,9 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
         except ValueError:
             raise TaskOptionsError(f"Invalid API version {self.api_version}")
 
+        if "picklists" not in self.options:
+            raise TaskOptionsError("The 'picklists' option is required.")
+
         self.picklists = {}
         for pl in process_list_arg(self.options["picklists"]):
             try:
