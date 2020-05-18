@@ -41,6 +41,18 @@ OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
             </valueSetDefinition>
         </valueSet>
     </fields>
+    <fields>
+        <fullName>TestGVS__c</fullName>
+        <externalId>false</externalId>
+        <label>TestGVS</label>
+        <required>false</required>
+        <trackFeedHistory>false</trackFeedHistory>
+        <type>Picklist</type>
+        <valueSet>
+            <restricted>true</restricted>
+            <valueSetName>Test</valueSetName>
+        </valueSet>
+    </fields>
     <recordTypes>
         <fullName>Default_RT</fullName>
         <active>true</active>
@@ -519,3 +531,17 @@ class TestAddPicklistValues:
                     "entries": [{"fullName": "Test", "default": True}],
                 },
             )
+
+    def test_raises_for_global_value_set(self):
+        with pytest.raises(TaskOptionsError):
+            task = create_task(
+                AddPicklistEntries,
+                {
+                    "api_version": "47.0",
+                    "picklists": ["MyObject.TestGVS__c"],
+                    "entries": [{"fullName": "Test", "default": True}],
+                },
+            )
+
+            tree = metadata_tree.fromstring(OBJECT_XML)
+            task._transform_entity(tree, "MyObject")
