@@ -30,7 +30,7 @@ selenium==3.141.0
 simple-salesforce==1.0.0
 six==1.14.0
 snowfakery==0.8.1
-SQLAlchemy==1.3.16
+SQLAlchemy==1.3.17
 terminaltables==3.1.0
 typing-extensions==3.7.4.2
 unicodecsv==0.14.1
