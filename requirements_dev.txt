@@ -3,7 +3,7 @@
 black==19.10b0
 coverage==5.1
 coveralls==2.0.0
-flake8==3.7.9
+flake8==3.8.1
 pre-commit==2.3.0
 pytest==5.4.1
 responses==0.10.14
