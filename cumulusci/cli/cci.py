@@ -1064,6 +1064,66 @@ def org_list(runtime, plain):
     persistent_table.echo(plain)
 
 
+@org.command(
+    name="prune", help="Removes all expired scratch orgs from the current project"
+)
+@click.option(
+    "--include-active",
+    is_flag=True,
+    help="Remove all scratch orgs, regardless of expiry.",
+)
+@pass_runtime(require_project=True, require_keychain=True)
+def org_prune(runtime, include_active=False):
+
+    predefined_scratch_configs = getattr(runtime.project_config, "orgs__scratch", {})
+
+    expired_orgs_removed = []
+    active_orgs_removed = []
+    org_shapes_skipped = []
+    active_orgs_skipped = []
+    for org_name in runtime.keychain.list_orgs():
+
+        org_config = runtime.keychain.get_org(org_name)
+
+        if org_name in predefined_scratch_configs:
+            if org_config.active and include_active:
+                runtime.keychain.remove_org(org_name)
+                active_orgs_removed.append(org_name)
+            else:
+                org_shapes_skipped.append(org_name)
+
+        elif org_config.active:
+            if include_active:
+                runtime.keychain.remove_org(org_name)
+                active_orgs_removed.append(org_name)
+            else:
+                active_orgs_skipped.append(org_name)
+
+        elif isinstance(org_config, ScratchOrgConfig):
+            runtime.keychain.remove_org(org_name)
+            expired_orgs_removed.append(org_name)
+
+    if expired_orgs_removed:
+        click.echo(
+            f"Successfully removed {len(expired_orgs_removed)} expired scratch orgs: {', '.join(expired_orgs_removed)}"
+        )
+    else:
+        click.echo("No expired scratch orgs to delete. ✨")
+
+    if active_orgs_removed:
+        click.echo(
+            f"Successfully removed {len(active_orgs_removed)} active scratch orgs: {', '.join(active_orgs_removed)}"
+        )
+    elif include_active:
+        click.echo("No active scratch orgs to delete. ✨")
+
+    if org_shapes_skipped:
+        click.echo(f"Skipped org shapes: {', '.join(org_shapes_skipped)}")
+
+    if active_orgs_skipped:
+        click.echo(f"Skipped active orgs: {', '.join(active_orgs_skipped)}")
+
+
 @org.command(name="remove", help="Removes an org from the keychain")
 @click.argument("org_name")
 @click.option(

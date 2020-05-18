@@ -1174,6 +1174,312 @@ Environment Info: Rossian / x68_46
         self.assertIn(scratch_table_call, cli_tbl.call_args_list)
         self.assertIn(connected_table_call, cli_tbl.call_args_list)
 
+    @mock.patch("click.echo")
+    def test_org_prune(self, echo):
+        runtime = mock.Mock()
+        runtime.keychain.list_orgs.return_value = [
+            "shape1",
+            "shape2",
+            "remove1",
+            "remove2",
+            "active1",
+            "active2",
+            "persistent",
+        ]
+        runtime.project_config.orgs__scratch = {
+            "shape1": True,
+            "shape2": True,
+        }
+
+        runtime.keychain.get_org.side_effect = [
+            ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "shape1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now(),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test1@example.com",
+                },
+                "shape2",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime(1999, 11, 1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "remove1@example.com",
+                },
+                "remove1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime(1999, 11, 1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "remove2@example.com",
+                },
+                "remove2",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active1@example.com",
+                },
+                "active1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active2@example.com",
+                },
+                "active2",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expires": "Persistent",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "persistent@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "persistent",
+            ),
+        ]
+
+        run_click_command(cci.org_prune, runtime=runtime, include_active=False)
+
+        echo.assert_any_call(
+            "Successfully removed 2 expired scratch orgs: remove1, remove2"
+        )
+        echo.assert_any_call("Skipped org shapes: shape1, shape2")
+        echo.assert_any_call("Skipped active orgs: active1, active2")
+
+        runtime.keychain.remove_org.assert_has_calls(
+            [mock.call("remove1"), mock.call("remove2")]
+        )
+        assert runtime.keychain.remove_org.call_count == 2
+
+    @mock.patch("click.echo")
+    def test_org_prune_no_expired(self, echo):
+        runtime = mock.Mock()
+        runtime.keychain.list_orgs.return_value = [
+            "shape1",
+            "shape2",
+            "active1",
+            "active2",
+            "persistent",
+        ]
+        runtime.project_config.orgs__scratch = {
+            "shape1": True,
+            "shape2": True,
+        }
+
+        runtime.keychain.get_org.side_effect = [
+            ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "shape1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now(),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test1@example.com",
+                },
+                "shape2",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active1@example.com",
+                },
+                "active1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active2@example.com",
+                },
+                "active2",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expires": "Persistent",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "persistent@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "persistent",
+            ),
+        ]
+
+        run_click_command(cci.org_prune, runtime=runtime, include_active=False)
+        runtime.keychain.remove_org.assert_not_called()
+
+        echo.assert_any_call("No expired scratch orgs to delete. ✨")
+
+    @mock.patch("click.echo")
+    def test_org_prune_include_active(self, echo):
+        runtime = mock.Mock()
+        runtime.keychain.list_orgs.return_value = [
+            "shape1",
+            "shape2",
+            "remove1",
+            "remove2",
+            "active1",
+            "active2",
+            "persistent",
+        ]
+        runtime.project_config.orgs__scratch = {
+            "shape1": True,
+            "shape2": True,
+        }
+
+        runtime.keychain.get_org.side_effect = [
+            ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "shape1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test1@example.com",
+                },
+                "shape2",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime(1999, 11, 1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "remove1@example.com",
+                },
+                "remove1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime(1999, 11, 1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "remove2@example.com",
+                },
+                "remove2",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active1@example.com",
+                },
+                "active1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active2@example.com",
+                },
+                "active2",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expires": "Persistent",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "persistent@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "persistent",
+            ),
+        ]
+
+        run_click_command(cci.org_prune, runtime=runtime, include_active=True)
+
+        echo.assert_any_call(
+            "Successfully removed 2 expired scratch orgs: remove1, remove2"
+        )
+        echo.assert_any_call(
+            "Successfully removed 2 active scratch orgs: active1, active2"
+        )
+        echo.assert_any_call("Skipped org shapes: shape1, shape2")
+
+        runtime.keychain.remove_org.assert_has_calls(
+            [
+                mock.call("remove1"),
+                mock.call("remove2"),
+                mock.call("active1"),
+                mock.call("active2"),
+            ]
+        )
+        assert runtime.keychain.remove_org.call_count == 4
+
     def test_org_remove(self):
         org_config = mock.Mock()
         org_config.can_delete.return_value = True
