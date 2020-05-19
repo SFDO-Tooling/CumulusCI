@@ -523,11 +523,6 @@ Options\n------------------------------------------\n\n
         upgrade_cmd = utils.get_cci_upgrade_command()
         assert utils.PIPX_UPDATE_CMD == upgrade_cmd
 
-    def test_convert_to_snake_case(self):
-        assert "one_two" == utils.convert_to_snake_case("OneTwo")
-        assert "one_two" == utils.convert_to_snake_case("ONETwo")
-        assert "one_two" == utils.convert_to_snake_case("One_Two")
-
     def test_os_friendly_path(self):
         with mock.patch("os.sep", "\\"):
             assert "\\" == utils.os_friendly_path("/")
