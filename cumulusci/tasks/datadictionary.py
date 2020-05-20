@@ -51,11 +51,6 @@ class GenerateDataDictionary(BaseGithubTask):
             ] = f"{self.project_config.project__name} Field Data Dictionary.csv"
 
     def _get_repo_dependencies(self, dependencies=None, include_beta=None):
-        if not dependencies:
-            dependencies = self.project_config.project__dependencies
-        if not dependencies:
-            return []
-
         deps = []
 
         for dependency in dependencies:
@@ -83,7 +78,7 @@ class GenerateDataDictionary(BaseGithubTask):
                 )
 
                 deps.extend(
-                    self.get_repo_dependencies(
+                    self._get_repo_dependencies(
                         cumulusci_yml.get("project", {}).get("dependencies", [])
                     )
                 )
@@ -96,13 +91,14 @@ class GenerateDataDictionary(BaseGithubTask):
         self._init_schema()
 
         # Find all of our dependencies.
+        dependencies = self.project_config.project__dependencies
         repos = [
-            (self.repo, self.project_config.project__git__release_prefix)
-        ] + self.project_config.get_repo_dependencies(include_beta=False)
+            (self.get_repo(), self.project_config.project__git__prefix_release)
+        ] + self._get_repo_dependencies(dependencies, include_beta=False)
         for (repo, release_prefix) in repos:
             self._walk_releases(repo, release_prefix)
 
-        self._write_results()
+        self._write_results(self.project_config.project__package__namespace)
 
     def _init_schema(self):
         """Initialize the structure used for schema storage."""
@@ -133,7 +129,9 @@ class GenerateDataDictionary(BaseGithubTask):
             if "cumulusci.yml" not in zip_file.namelist():
                 self.logger.warning("cumulusci.yml not found; skipping version.")
 
-            cumulusci_yml = cci_safe_load(io.StringIO(zip_file.read("cumulusci.yml")))
+            cumulusci_yml = cci_safe_load(
+                io.StringIO(zip_file.read("cumulusci.yml").decode("utf-8"))
+            )
             namespace = (
                 cumulusci_yml.get("project", {}).get("package", {}).get("namespace", "")
             )
@@ -170,16 +168,21 @@ class GenerateDataDictionary(BaseGithubTask):
             if f.startswith("force-app/main/default/objects"):
                 if path.suffixes == [".object-meta", ".xml"]:
                     sobject_name = path.name[: -len(".object-meta.xml")]
+                    if sobject_name.count("__") == 1:
+                        sobject_name = f"{namespace}{sobject_name}"
 
                     self._process_object_element(
-                        f"{namespace}{sobject_name}",
+                        sobject_name,
                         metadata_tree.fromstring(zip_file.read(f)),
                         version,
+                        namespace,
                     )
                 elif path.suffixes == [".field-meta", ".xml"]:
                     # To get the sObject name, we need to remove the `/fields/SomeField.field-meta.xml`
                     # and take the last path component
-                    sobject_name = f"{namespace}{path.parent.parent.stem}"
+                    sobject_name = f"{path.parent.parent.stem}"
+                    if sobject_name.count("__") == 1:
+                        sobject_name = f"{namespace}{sobject_name}"
 
                     self._process_field_element(
                         sobject_name,
@@ -191,7 +194,8 @@ class GenerateDataDictionary(BaseGithubTask):
     def _process_object_element(self, sobject_name, element, version, namespace):
         """Process a <CustomObject> metadata entity, whether SFDX or MDAPI"""
         # If this is a custom object, register its presence in this version
-        if sobject_name.count("__") == 1:
+        # Don't process custom objects owned by other namespaces.
+        if sobject_name.startswith(namespace) and sobject_name.endswith("__c"):
             description_elem = getattr(element, "description", None)
 
             self._set_version_with_props(
@@ -255,12 +259,13 @@ class GenerateDataDictionary(BaseGithubTask):
             else:
                 valid_values = ""
 
-            if field_type == "Text":
-                length = field.length.text
-            elif field_type == "Number":
-                length = f"{field.precision.text}.{field.scale.text}"
-            else:
-                length = ""
+            length = ""
+
+            if not field.find("formula"):
+                if field_type == "Text":
+                    length = field.length.text
+                elif field_type == "Number":
+                    length = f"{field.precision.text}.{field.scale.text}"
 
             self._set_version_with_props(
                 self.schema[sobject_name]["fields"][field_name],
@@ -279,7 +284,7 @@ class GenerateDataDictionary(BaseGithubTask):
                 },
             )
 
-    def _write_results(self):
+    def _write_results(self, namespace):
         """Write the stored schema details to our destination CSVs"""
         with open(self.options["object_path"], "w") as object_file:
             writer = csv.writer(object_file)
@@ -287,7 +292,7 @@ class GenerateDataDictionary(BaseGithubTask):
             writer.writerow(["Label", "API Name", "Description", "Version Introduced"])
 
             for sobject_name in self.schema:
-                if sobject_name.count("__") == 1:
+                if sobject_name.startswith(namespace) and sobject_name.endswith("__c"):
                     writer.writerow(
                         [
                             self.schema[sobject_name]["label"],
