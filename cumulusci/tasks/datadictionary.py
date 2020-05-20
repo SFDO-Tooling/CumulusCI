@@ -1,15 +1,18 @@
 import csv
 import io
 from pathlib import PurePosixPath
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from distutils.version import LooseVersion
 
 from cumulusci.tasks.github.base import BaseGithubTask
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils import download_extract_github_from_repo
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.core.exceptions import DependencyResolutionError
+
+Package = namedtuple("Package", ["repo", "package_name", "namespace", "prefix_release"])
 
 
 class GenerateDataDictionary(BaseGithubTask):
@@ -31,9 +34,10 @@ class GenerateDataDictionary(BaseGithubTask):
         "field_path": {
             "description": "Path to a CSV file to contain an field-level data dictionary."
         },
-        "release_prefix": {
-            "description": "The tag prefix used for releases.",
-            "required": True,
+        "include_dependencies": {
+            "description": "Process all of the GitHub dependencies of this project and include "
+            "their schema in the data dictionary.",
+            "default": True,
         },
     }
 
@@ -49,6 +53,10 @@ class GenerateDataDictionary(BaseGithubTask):
             self.options[
                 "field_path"
             ] = f"{self.project_config.project__name} Field Data Dictionary.csv"
+
+        self.options["include_dependencies"] = process_bool_arg(
+            self.options.get("include_dependencies", True)
+        )
 
     def _get_repo_dependencies(self, dependencies=None, include_beta=None):
         deps = []
@@ -68,12 +76,21 @@ class GenerateDataDictionary(BaseGithubTask):
                 cumulusci_yml = cci_safe_load(
                     io.StringIO(contents.decoded.decode("utf-8"))
                 )
+                project = cumulusci_yml.get("project", {})
+                namespace = project.get("package", {}).get("namespace", "")
+                if namespace:
+                    namespace = f"{namespace}__"
+                else:
+                    namespace = ""
+
                 deps.append(
-                    (
+                    Package(
                         repo,
-                        cumulusci_yml.get("project", {})
-                        .get("git", {})
-                        .get("release_prefix", ""),
+                        project.get("package", {}).get(
+                            "name", ""
+                        ),  # FIXME: use owner/repo as default name
+                        namespace,
+                        project.get("git", {}).get("prefix_release", "release/"),
                     )
                 )
 
@@ -90,15 +107,26 @@ class GenerateDataDictionary(BaseGithubTask):
 
         self._init_schema()
 
-        # Find all of our dependencies.
+        # Find all of our dependencies, if we're processing dependencies.
         dependencies = self.project_config.project__dependencies
+        namespace = self.project_config.project__package__namespace
+        if namespace:
+            namespace = f"{namespace}__"
         repos = [
-            (self.get_repo(), self.project_config.project__git__prefix_release)
-        ] + self._get_repo_dependencies(dependencies, include_beta=False)
-        for (repo, release_prefix) in repos:
-            self._walk_releases(repo, release_prefix)
+            Package(
+                self.get_repo(),
+                self.project_config.project__package__name,
+                namespace,
+                self.project_config.project__git__prefix_release,
+            )
+        ]
+        if self.options["include_dependencies"]:
+            repos += self._get_repo_dependencies(dependencies, include_beta=False)
 
-        self._write_results(self.project_config.project__package__namespace)
+        for package in repos:
+            self._walk_releases(package)
+
+        self._write_results()
 
     def _init_schema(self):
         """Initialize the structure used for schema storage."""
@@ -106,10 +134,10 @@ class GenerateDataDictionary(BaseGithubTask):
             lambda: {"version": None, "fields": defaultdict(lambda: {"version": None})}
         )
 
-    def _walk_releases(self, repo, release_prefix):
+    def _walk_releases(self, package):
         """Traverse all of the releases in this project's repository and process
         each one matching our tag (not draft/prerelease) to generate the data dictionary."""
-        for release in repo.releases():
+        for release in package.repo.releases():
             # Skip this release if any are true:
             # It is a draft release
             # It is prerelease (managed beta)
@@ -118,36 +146,28 @@ class GenerateDataDictionary(BaseGithubTask):
             if (
                 release.draft
                 or release.prerelease
-                or not release.tag_name.startswith(release_prefix)
+                or not release.tag_name.startswith(package.prefix_release)
             ):
                 continue
 
-            zip_file = download_extract_github_from_repo(repo, ref=release.tag_name)
-            version = self._version_from_tag_name(release.tag_name, release_prefix)
-            self.logger.info(f"Analyzing version {version}")
-
-            if "cumulusci.yml" not in zip_file.namelist():
-                self.logger.warning("cumulusci.yml not found; skipping version.")
-
-            cumulusci_yml = cci_safe_load(
-                io.StringIO(zip_file.read("cumulusci.yml").decode("utf-8"))
+            zip_file = download_extract_github_from_repo(
+                package.repo, ref=release.tag_name
             )
-            namespace = (
-                cumulusci_yml.get("project", {}).get("package", {}).get("namespace", "")
+            version = self._version_from_tag_name(
+                release.tag_name, package.prefix_release
             )
-            if namespace:
-                namespace = f"{namespace}__"
+            self.logger.info(f"Analyzing {package.package_name} version {version}")
 
             if "src/objects/" in zip_file.namelist():
                 # MDAPI format
-                self._process_mdapi_release(zip_file, version, namespace)
+                self._process_mdapi_release(zip_file, version, package)
 
             if "force-app/main/default/objects/" in zip_file.namelist():
                 # FIXME: check sfdx-project.json for directories to process.
                 # SFDX format
-                self._process_sfdx_release(zip_file, version, namespace)
+                self._process_sfdx_release(zip_file, version, package)
 
-    def _process_mdapi_release(self, zip_file, version, namespace):
+    def _process_mdapi_release(self, zip_file, version, package):
         """Process an MDAPI ZIP file for objects and fields"""
         for f in zip_file.namelist():
             path = PurePosixPath(f)
@@ -158,10 +178,10 @@ class GenerateDataDictionary(BaseGithubTask):
                     sobject_name,
                     metadata_tree.fromstring(zip_file.read(f)),
                     version,
-                    namespace,
+                    package,
                 )
 
-    def _process_sfdx_release(self, zip_file, version, namespace):
+    def _process_sfdx_release(self, zip_file, version, package):
         """Process an SFDX ZIP file for objects and fields"""
         for f in zip_file.namelist():
             path = PurePosixPath(f)
@@ -169,33 +189,36 @@ class GenerateDataDictionary(BaseGithubTask):
                 if path.suffixes == [".object-meta", ".xml"]:
                     sobject_name = path.name[: -len(".object-meta.xml")]
                     if sobject_name.count("__") == 1:
-                        sobject_name = f"{namespace}{sobject_name}"
+                        sobject_name = f"{package.namespace}{sobject_name}"
 
                     self._process_object_element(
                         sobject_name,
                         metadata_tree.fromstring(zip_file.read(f)),
                         version,
-                        namespace,
+                        package,
                     )
                 elif path.suffixes == [".field-meta", ".xml"]:
                     # To get the sObject name, we need to remove the `/fields/SomeField.field-meta.xml`
                     # and take the last path component
                     sobject_name = f"{path.parent.parent.stem}"
                     if sobject_name.count("__") == 1:
-                        sobject_name = f"{namespace}{sobject_name}"
+                        sobject_name = f"{package.namespace}{sobject_name}"
 
                     self._process_field_element(
                         sobject_name,
                         metadata_tree.fromstring(zip_file.read(f)),
                         version,
-                        namespace,
+                        package,
                     )
 
-    def _process_object_element(self, sobject_name, element, version, namespace):
+    def _process_object_element(self, sobject_name, element, version, package):
         """Process a <CustomObject> metadata entity, whether SFDX or MDAPI"""
         # If this is a custom object, register its presence in this version
         # Don't process custom objects owned by other namespaces.
-        if sobject_name.startswith(namespace) and sobject_name.endswith("__c"):
+
+        # It's fine for Package A to package fields on an object owned by Package B.
+        # We'll record the fields on their owning package (B) and the object on its (A).
+        if sobject_name.startswith(package.namespace) and sobject_name.endswith("__c"):
             description_elem = getattr(element, "description", None)
 
             self._set_version_with_props(
@@ -206,20 +229,23 @@ class GenerateDataDictionary(BaseGithubTask):
                     "description": description_elem.text
                     if description_elem is not None
                     else "",
+                    "owning_package": package.package_name,
                 },
             )
 
         # For MDAPI-format elements. No-op on SFDX.
-        for field in element.findall("fields"):
-            self._process_field_element(sobject_name, field, version, namespace)
+        # No Custom Metadata Types or Platform Events. FIXME: omit Custom Settings.
+        if sobject_name.endswith("__c"):
+            for field in element.findall("fields"):
+                self._process_field_element(sobject_name, field, version, package)
 
-    def _process_field_element(self, sobject_name, field, version, namespace):
+    def _process_field_element(self, sobject_name, field, version, package):
         """Process a field entity, which can be either a <fields> element
         in MDAPI format or a <CustomField> in SFDX"""
         # `element` may be either a `fields` element (in MDAPI)
         # or a `CustomField` (SFDX)
         # If this is a custom field, register its presence in this version
-        field_name = f"{namespace}{field.fullName.text}"
+        field_name = f"{package.namespace}{field.fullName.text}"
         # get field help text value
         help_text_elem = field.find("inlineHelpText")
         # get field description text value
@@ -255,7 +281,9 @@ class GenerateDataDictionary(BaseGithubTask):
 
                     valid_values = "; ".join(names)
             elif field_type == "Lookup":
-                valid_values = "->" + field.referenceTo.text
+                valid_values = (
+                    "->" + field.referenceTo.text
+                )  # Note: polymorphic custom fields are not allowed.
             else:
                 valid_values = ""
 
@@ -265,7 +293,7 @@ class GenerateDataDictionary(BaseGithubTask):
                 if field_type == "Text":
                     length = field.length.text
                 elif field_type == "Number":
-                    length = f"{field.precision.text}.{field.scale.text}"
+                    length = f"{int(field.precision.text) - int(field.scale.text)}.{field.scale.text}"
 
             self._set_version_with_props(
                 self.schema[sobject_name]["fields"][field_name],
@@ -281,10 +309,11 @@ class GenerateDataDictionary(BaseGithubTask):
                     "valid_values": valid_values,
                     "length": length,
                     "type": field_type,
+                    "owning_package": package.package_name,
                 },
             )
 
-    def _write_results(self, namespace):
+    def _write_results(self):
         """Write the stored schema details to our destination CSVs"""
         with open(self.options["object_path"], "w") as object_file:
             writer = csv.writer(object_file)
@@ -292,13 +321,13 @@ class GenerateDataDictionary(BaseGithubTask):
             writer.writerow(["Label", "API Name", "Description", "Version Introduced"])
 
             for sobject_name in self.schema:
-                if sobject_name.startswith(namespace) and sobject_name.endswith("__c"):
+                if sobject_name.endswith("__c"):
                     writer.writerow(
                         [
                             self.schema[sobject_name]["label"],
                             sobject_name,
                             self.schema[sobject_name]["description"],
-                            self.schema[sobject_name]["version"],
+                            f"{self.schema[sobject_name]['owning_package']} {self.schema[sobject_name]['version']}",
                         ]
                     )
 
@@ -323,6 +352,12 @@ class GenerateDataDictionary(BaseGithubTask):
 
             for sobject_name, sobject_data in self.schema.items():
                 for field_name, field_data in sobject_data["fields"].items():
+                    valid_values_version = field_data.get(
+                        "valid_values_version", field_data["version"]
+                    )
+                    help_text_version = field_data.get(
+                        "help_text_version", field_data["version"]
+                    )
                     writer.writerow(
                         [
                             sobject_name,
@@ -333,17 +368,15 @@ class GenerateDataDictionary(BaseGithubTask):
                             field_data["description"],
                             field_data["valid_values"],
                             field_data["length"],
-                            field_data["version"],
-                            field_data.get(
-                                "valid_values_version", field_data["version"]
-                            ),
-                            field_data.get("help_text_version", field_data["version"]),
+                            f"{field_data['owning_package']} {field_data['version']}",
+                            f"{field_data['owning_package']} {valid_values_version}",
+                            f"{field_data['owning_package']} {help_text_version}",
                         ]
                     )
 
-    def _version_from_tag_name(self, tag_name, release_prefix):
+    def _version_from_tag_name(self, tag_name, prefix_release):
         """Parse a release's tag and return a LooseVersion"""
-        return LooseVersion(tag_name[len(release_prefix) :])
+        return LooseVersion(tag_name[len(prefix_release) :])
 
     def _set_version_with_props(self, in_dict, props):
         """Update our schema storage with this release's details for an entity.
