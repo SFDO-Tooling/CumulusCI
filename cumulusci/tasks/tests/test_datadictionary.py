@@ -53,6 +53,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.1"),
                         "label": "Test",
                         "help_text": "Text field",
+                        "description": "",
                         "valid_values": "",
                         "type": "Text",
                     }
@@ -64,6 +65,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.2"),
                         "label": "Parent",
                         "help_text": "Lookup",
+                        "description": "",
                         "valid_values": "",
                         "type": "Lookup",
                     }
@@ -71,6 +73,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "version": LooseVersion("1.0"),
                 "label": "Child",
                 "help_text": "Child object",
+                "description": "",
             },
         }
 
@@ -88,10 +91,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
                 call("Child__c,Child,Child object,1.0\r\n"),
                 call(
-                    "Object Name,Field Name,Field Label,Type,Field Help Text,Allowed Values,Version Introduced\r\n"
+                    "Object Name,Field Name,Field Label,Type,Field Help Text,Description,Allowed Values,Version Introduced\r\n"
                 ),
-                call("Account,Test__c,Test,Text,Text field,,1.1\r\n"),
-                call("Child__c,Parent__c,Parent,Lookup,Lookup,,1.2\r\n"),
+                call("Account,Test__c,Test,Text,Text field,,,1.1\r\n"),
+                call("Child__c,Parent__c,Parent,Lookup,Lookup,,,1.2\r\n"),
             ],
             any_order=True,
         )
@@ -125,6 +128,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Account",
+            "description": "",
             "type": "Lookup",
             "valid_values": "->Account",
         }
@@ -183,6 +187,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.schema["Test__c"]["fields"]["Account__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "Initial",
+            "description": "",
             "label": "Account",
             "type": "Lookup",
             "valid_values": "->Account",
@@ -196,6 +201,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.schema["Test__c"]["fields"]["Account__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "New",
+            "description": "",
             "label": "Account",
             "type": "Lookup",
             "valid_values": "->Account",
@@ -238,6 +244,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.schema["Test__c"]["fields"]["Type__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "",
+            "description": "",
             "label": "Type",
             "type": "Picklist",
             "valid_values": "Test 1; Test 2",
@@ -279,6 +286,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Type",
+            "description": "",
             "type": "Picklist",
             "valid_values": "Test 1; Test 2",
         }
@@ -312,6 +320,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Type",
+            "description": "",
             "type": "Picklist",
             "valid_values": "Global Value Set Test Value Set",
         }
@@ -355,6 +364,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.1"),
                         "label": "Type",
                         "help_text": "Type of field.",
+                        "description": "",
                         "valid_values": "",
                         "type": "Text",
                     }
@@ -610,9 +620,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
                 call("Test__c,Test,Description,1.1\r\n"),
                 call(
-                    "Object Name,Field Name,Field Label,Type,Field Help Text,Allowed Values,Version Introduced\r\n"
+                    "Object Name,Field Name,Field Label,Type,Field Help Text,Description,Allowed Values,Version Introduced\r\n"
                 ),
-                call("Test__c,Type__c,Type,Text,Type of field.,,1.1\r\n"),
+                call("Test__c,Type__c,Type,Text,Type of field.,,,1.1\r\n"),
             ],
             any_order=True,
         )

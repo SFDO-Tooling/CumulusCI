@@ -300,16 +300,20 @@ def version():
 @pass_runtime(require_project=False, require_keychain=True)
 def shell(runtime, script=None, python=None):
     # alias for backwards-compatibility
-    config = runtime  # noQA
+    variables = {
+        "config": runtime,
+        "runtime": runtime,
+        "project_config": runtime.project_config,
+    }
 
     if script:
         if python:
             raise click.UsageError("Cannot specify both --script and --python")
-        runpy.run_path(script, init_globals={**globals(), **locals()})
+        runpy.run_path(script, init_globals=variables)
     elif python:
-        exec(python)
+        exec(python, variables)
     else:
-        code.interact(local={**globals(), **locals()})
+        code.interact(local=variables)
 
 
 GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
@@ -558,6 +562,17 @@ def project_init(runtime):
     ):
         test_name_match = None
     context["test_name_match"] = test_name_match
+
+    context["code_coverage"] = None
+    if click.confirm(
+        click.style(
+            "Do you want to check Apex code coverage when tests are run?", bold=True
+        ),
+        default=True,
+    ):
+        context["code_coverage"] = click.prompt(
+            click.style("Minimum code coverage percentage", bold=True), default=75
+        )
 
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
@@ -1047,6 +1062,66 @@ def org_list(runtime, plain):
         bool_cols=["Default"],
     )
     persistent_table.echo(plain)
+
+
+@org.command(
+    name="prune", help="Removes all expired scratch orgs from the current project"
+)
+@click.option(
+    "--include-active",
+    is_flag=True,
+    help="Remove all scratch orgs, regardless of expiry.",
+)
+@pass_runtime(require_project=True, require_keychain=True)
+def org_prune(runtime, include_active=False):
+
+    predefined_scratch_configs = getattr(runtime.project_config, "orgs__scratch", {})
+
+    expired_orgs_removed = []
+    active_orgs_removed = []
+    org_shapes_skipped = []
+    active_orgs_skipped = []
+    for org_name in runtime.keychain.list_orgs():
+
+        org_config = runtime.keychain.get_org(org_name)
+
+        if org_name in predefined_scratch_configs:
+            if org_config.active and include_active:
+                runtime.keychain.remove_org(org_name)
+                active_orgs_removed.append(org_name)
+            else:
+                org_shapes_skipped.append(org_name)
+
+        elif org_config.active:
+            if include_active:
+                runtime.keychain.remove_org(org_name)
+                active_orgs_removed.append(org_name)
+            else:
+                active_orgs_skipped.append(org_name)
+
+        elif isinstance(org_config, ScratchOrgConfig):
+            runtime.keychain.remove_org(org_name)
+            expired_orgs_removed.append(org_name)
+
+    if expired_orgs_removed:
+        click.echo(
+            f"Successfully removed {len(expired_orgs_removed)} expired scratch orgs: {', '.join(expired_orgs_removed)}"
+        )
+    else:
+        click.echo("No expired scratch orgs to delete. ✨")
+
+    if active_orgs_removed:
+        click.echo(
+            f"Successfully removed {len(active_orgs_removed)} active scratch orgs: {', '.join(active_orgs_removed)}"
+        )
+    elif include_active:
+        click.echo("No active scratch orgs to delete. ✨")
+
+    if org_shapes_skipped:
+        click.echo(f"Skipped org shapes: {', '.join(org_shapes_skipped)}")
+
+    if active_orgs_skipped:
+        click.echo(f"Skipped active orgs: {', '.join(active_orgs_skipped)}")
 
 
 @org.command(name="remove", help="Removes an org from the keychain")

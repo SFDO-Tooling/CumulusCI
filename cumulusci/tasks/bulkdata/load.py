@@ -216,7 +216,11 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 f"SELECT Id FROM RecordType WHERE SObjectType='{mapping.get('sf_object')}'"
                 f"AND DeveloperName = '{mapping['record_type']}' LIMIT 1"
             )
-            record_type_id = self.sf.query(query)["records"][0]["Id"]
+            records = self.sf.query(query)["records"]
+            if records:
+                record_type_id = records[0]["Id"]
+            else:
+                raise BulkDataException(f"Cannot find RecordType with query `{query}`")
             statics.append(record_type_id)
 
         return statics
