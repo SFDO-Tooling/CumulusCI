@@ -97,7 +97,7 @@ class TestLoadData(unittest.TestCase):
     def test_run(self, step_mock):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/vNone/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -237,7 +237,7 @@ class TestLoadData(unittest.TestCase):
     def test_run__sql(self, step_mock):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/vNone/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -972,7 +972,7 @@ class TestLoadData(unittest.TestCase):
     def test_run__autopk(self, step_mock):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/vNone/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
