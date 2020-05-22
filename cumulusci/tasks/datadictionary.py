@@ -423,13 +423,13 @@ class GenerateDataDictionary(BaseGithubTask):
                 valid_values_version = None
                 for (index, version) in enumerate(versions[1:]):
                     if version.valid_values != last_version.valid_values:
-                        valid_values_version = versions[index - 1]
+                        valid_values_version = versions[index]
                         break
 
                 help_text_version = None
                 for (index, version) in enumerate(versions[1:]):
                     if version.help_text != last_version.help_text:
-                        help_text_version = versions[index - 1]
+                        help_text_version = versions[index]
                         break
 
                 writer.writerow(
