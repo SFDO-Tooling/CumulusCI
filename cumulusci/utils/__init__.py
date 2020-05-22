@@ -3,6 +3,7 @@ import fnmatch
 import io
 import math
 import os
+
 import re
 import shutil
 import sys
@@ -15,8 +16,9 @@ import requests
 import sarge
 import xml.etree.ElementTree as ET
 
+
 CUMULUSCI_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
 )
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
@@ -472,6 +474,7 @@ def get_task_option_info(task_config, task_class):
 def get_option_usage_string(name, option):
     """Returns a usage string if one exists
     else creates a usage string in the form of:
+
         -o option_name OPTIONNAME
     """
     usage_str = option.get("usage")
@@ -648,39 +651,3 @@ def get_git_config(config_key):
     )
 
     return config_value if config_value and not p.returncode else None
-
-
-@contextlib.contextmanager
-def tee_stdout_stderr(args, logger):
-    """Tee stdout and stderr so that they're also routed to
-    a log file. Add the current command arguments
-    as the first item in the log."""
-    real_stdout_write = sys.stdout.write
-    real_stderr_write = sys.stderr.write
-
-    # Add current command args as first line in logfile
-    logger.debug(" ".join(args) + "\n")
-
-    def stdout_write(s):
-        output = strip_ansi_sequences(s)
-        logger.debug(output)
-        real_stdout_write(s)
-
-    def stderr_write(s):
-        output = strip_ansi_sequences(s)
-        logger.debug(output)
-        real_stderr_write(s)
-
-    sys.stdout.write = stdout_write
-    sys.stderr.write = stderr_write
-    try:
-        yield
-    finally:
-        sys.stdout.write = real_stdout_write
-        sys.stderr.write = real_stderr_write
-
-
-def strip_ansi_sequences(input):
-    """Strip ANSI sequences from what's in buffer"""
-    ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
-    return ansi_escape.sub("", input)

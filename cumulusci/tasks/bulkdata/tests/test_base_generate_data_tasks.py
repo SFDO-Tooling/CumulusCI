@@ -5,7 +5,7 @@ from unittest import mock
 from sqlalchemy import Unicode
 
 from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
-from cumulusci.tasks.bulkdata.tests.test_bulkdata import _make_task
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils import temporary_dir
 
 

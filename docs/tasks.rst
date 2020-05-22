@@ -127,6 +127,61 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+**add_picklist_entries**
+==========================================
+
+**Description:** Adds specified picklist entries to a custom picklist field.
+
+**Class:** cumulusci.tasks.metadata_etl.AddPicklistEntries
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run add_picklist_entries``
+
+
+Options
+------------------------------------------
+
+
+``-o picklists PICKLISTS``
+	 *Required*
+
+	 List of picklists to affect, in Object__c.Field__c form.
+
+``-o entries ENTRIES``
+	 *Required*
+
+	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed).
+To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
+
+``-o record_types RECORDTYPES``
+	 *Optional*
+
+	 List of Record Type developer names for which the new values should be available. If any of the entries have `default: True`, they are also made default for these Record Types. Any Record Types not present in the target org will be ignored, and * is a wildcard. Default behavior is to do nothing.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **add_permission_set_perms**
 ==========================================
 
@@ -203,6 +258,53 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
+**custom_settings_value_wait**
+==========================================
+
+**Description:** Waits for a specific field value on the specified custom settings object and field
+
+**Class:** cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run custom_settings_value_wait``
+
+
+Options
+------------------------------------------
+
+
+``-o object OBJECT``
+	 *Required*
+
+	 Name of the Hierarchical Custom Settings object to query. Can include the %%%NAMESPACE%%% token. 
+
+``-o field FIELD``
+	 *Required*
+
+	 Name of the field on the Custom Settings to query. Can include the %%%NAMESPACE%%% token. 
+
+``-o value VALUE``
+	 *Required*
+
+	 Value of the field to wait for (String, Integer or Boolean). 
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If True, will insert the project's namespace prefix.  Defaults to False or no namespace.
+
+``-o namespaced NAMESPACED``
+	 *Optional*
+
+	 If True, the %%%NAMESPACE%%% token will get replaced with the namespace prefix for the object and field.Defaults to False.
+
+``-o poll_interval POLLINTERVAL``
+	 *Optional*
+
+	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+
 **command**
 ==========================================
 
@@ -210,14 +312,18 @@ Options
 
 **Class:** cumulusci.tasks.command.Command
 
-**Example Command-line Usage::** cci task run command -o command "echo 'Hello command task!'"
+**Example Command-line Usage:**
+``cci task run command -o command "echo 'Hello command task!'"``
 
-**Example Task to Run Command::**
-hello_world:
-    description: Says hello world
-    class_path: cumulusci.tasks.command.Command
-    options:
-    command: echo 'Hello World!'
+**Example Task to Run Command:**
+
+..code-block:: yaml
+
+    hello_world:
+        description: Says hello world
+        class_path: cumulusci.tasks.command.Command
+        options:
+        command: echo 'Hello World!'
 
 Command Syntax
 ------------------------------------------
@@ -308,6 +414,7 @@ Options
 **Class:** cumulusci.tasks.salesforce.CreateCommunity
 
 Create a Salesforce Community via the Connect API.
+
 Specify the `template` "VF Template" for Visualforce Tabs community,
 or the name for a specific desired template
 
@@ -340,6 +447,11 @@ Options
 	 *Optional*
 
 	 URL prefix for the community.
+
+``-o retries RETRIES``
+	 *Optional*
+
+	 Number of times to retry community creation request
 
 ``-o timeout TIMEOUT``
 	 *Optional*
@@ -985,7 +1097,7 @@ The data dictionary is output as two CSV files.
 One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
 with one row per packaged object.
 The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
-Picklist Values (if any), Version Introduced.
+Valid Picklist Values (if any) or a Lookup referenced table (if any), Version Introduced.
 Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
 is processed for SFDX projects.
 
@@ -1016,6 +1128,123 @@ Options
 
 	 Path to a CSV file to contain an field-level data dictionary.
 
+**generate_and_load_from_yaml**
+==========================================
+
+**Description:** None
+
+**Class:** cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run generate_and_load_from_yaml``
+
+
+Options
+------------------------------------------
+
+
+``-o data_generation_task DATAGENERATIONTASK``
+	 *Required*
+
+	 Fully qualified class path of a task to generate the data. Look at cumulusci.tasks.bulkdata.tests.dummy_data_factory to learn how to write them.
+
+``-o generator_yaml GENERATORYAML``
+	 *Required*
+
+	 A generator YAML file to use
+
+``-o num_records NUMRECORDS``
+	 *Optional*
+
+	 How many records to generate: total number of opportunities.
+
+``-o num_records_tablename NUMRECORDSTABLENAME``
+	 *Optional*
+
+	 A string representing which table to count records in.
+
+``-o batch_size BATCHSIZE``
+	 *Optional*
+
+	 How many records to create and load at a time.
+
+``-o data_generation_options DATAGENERATIONOPTIONS``
+	 *Optional*
+
+	 Options to pass to the data generator.
+
+``-o vars VARS``
+	 *Optional*
+
+	 Pass values to override options in the format VAR1:foo,VAR2:bar
+
+``-o replace_database REPLACEDATABASE``
+	 *Optional*
+
+	 Confirmation that it is okay to delete the data in database_url
+
+``-o debug_dir DEBUGDIR``
+	 *Optional*
+
+	 Store temporary DB files in debug_dir for easier debugging.
+
+``-o database_url DATABASEURL``
+	 *Optional*
+
+	 A path to put a copy of the sqlite database (for debugging)
+
+``-o mapping MAPPING``
+	 *Optional*
+
+	 A mapping YAML file to use
+
+``-o start_step STARTSTEP``
+	 *Optional*
+
+	 If specified, skip steps before this one in the mapping
+
+``-o sql_path SQLPATH``
+	 *Optional*
+
+	 If specified, a database will be created from an SQL script at the provided path
+
+``-o ignore_row_errors IGNOREROWERRORS``
+	 *Optional*
+
+	 If True, allow the load to continue even if individual rows fail to load.
+
+``-o reset_oids RESETOIDS``
+	 *Optional*
+
+	 If True (the default), and the _sf_ids tables exist, reset them before continuing.
+
+``-o bulk_mode BULKMODE``
+	 *Optional*
+
+	 Set to Serial to force serial mode on all jobs. Parallel is the default.
+
+``-o generate_mapping_file GENERATEMAPPINGFILE``
+	 *Optional*
+
+	 A path to put a mapping file inferred from the generator_yaml
+
+``-o continuation_file CONTINUATIONFILE``
+	 *Optional*
+
+	 YAML file generated by Snowfakery representing next steps for data generation
+
+``-o generate_continuation_file GENERATECONTINUATIONFILE``
+	 *Optional*
+
+	 Path for Snowfakery to put its next continuation file
+
+``-o working_directory WORKINGDIRECTORY``
+	 *Optional*
+
+	 Default path for temporary / working files
+
 **get_installed_packages**
 ==========================================
 
@@ -1027,6 +1256,34 @@ Command Syntax
 ------------------------------------------
 
 ``$ cci task run get_installed_packages``
+
+
+
+**get_available_licenses**
+==========================================
+
+**Description:** Retrieves a list of the currently available license definition keys
+
+**Class:** cumulusci.tasks.salesforce.license_preflights.GetAvailableLicenses
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run get_available_licenses``
+
+
+
+**get_available_permission_set_licenses**
+==========================================
+
+**Description:** Retrieves a list of the currently available Permission Set License definition keys
+
+**Class:** cumulusci.tasks.salesforce.license_preflights.GetAvailablePermissionSetLicenses
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run get_available_permission_set_licenses``
 
 
 
@@ -1580,6 +1837,11 @@ Options
 	 *Optional*
 
 	 If True, set is_listed to True on the version. Default: False
+
+``-o labels_path LABELSPATH``
+	 *Optional*
+
+	 Path to a folder containing translations.
 
 **org_settings**
 ==========================================
@@ -2409,7 +2671,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: robot/SAL/doc/*PageObject.py). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted
+	 The path to one or more keyword libraries to be documented. The path can be single a python file, a .robot file, a python module (eg: cumulusci.robotframework.Salesforce) or a comma separated list of any of those. Glob patterns are supported for filenames (eg: ``robot/SAL/doc/*PageObject.py``). The order of the files will be preserved in the generated documentation. The result of pattern expansion will be sorted
 
 ``-o output OUTPUT``
 	 *Required*
@@ -2606,6 +2868,55 @@ Options
 	 *Optional*
 
 	 By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
+
+``-o required_org_code_coverage_percent REQUIREDORGCODECOVERAGEPERCENT``
+	 *Optional*
+
+	 Require at least X percent code coverage across the org following the test run.
+
+**set_duplicate_rule_status**
+==========================================
+
+**Description:** Sets the active status of Duplicate Rules.
+
+**Class:** cumulusci.tasks.metadata_etl.SetDuplicateRuleStatus
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run set_duplicate_rule_status``
+
+
+Options
+------------------------------------------
+
+
+``-o active ACTIVE``
+	 *Required*
+
+	 Boolean value, set the Duplicate Rule to either active or inactive
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
 
 **set_organization_wide_defaults**
 ==========================================
@@ -3014,7 +3325,7 @@ Options
 
 **Description:** Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
 
-**Class:** cumulusci.tasks.salesforce.UpdateProfile
+**Class:** cumulusci.tasks.salesforce.ProfileGrantAllAccess
 
 Command Syntax
 ------------------------------------------
@@ -3046,10 +3357,25 @@ Options
 
 	 If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False
 
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix. Defaults to project__package__namespace
+
 ``-o profile_name PROFILENAME``
 	 *Optional*
 
-	 Name of the Profile to target for updates.
+	 Name of the Profile to target for updates (deprecated; use api_names to target multiple profiles).
+
+``-o include_packaged_objects INCLUDEPACKAGEDOBJECTS``
+	 *Optional*
+
+	 Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.9.0 and greater that don't use a custom package.xml, otherwise False.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of Profiles to affect
 
 **update_dependencies**
 ==========================================

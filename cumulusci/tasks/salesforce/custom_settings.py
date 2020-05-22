@@ -13,26 +13,29 @@ class LoadCustomSettings(BaseSalesforceApiTask):
     Each top-level YAML key should be the API name of a Custom Setting.
     List Custom Settings should contain a nested map of names to values.
     Hierarchy Custom settings should contain a list, each of which contains
-    a `data` key and a `location` key. The `location` key may contain either
-    `profile: <profile name>`, `user: name: <username>`, `user: email: <email>`,
-    or `org`. Example:
+    a ``data`` key and a ``location`` key. The ``location`` key may contain either
+    ``profile: <profile name>``, ``user: name: <username>``, ``user: email: <email>``,
+    or ``org``. Example:
 
-    List__c:
-        Test:
-            MyField__c: 1
-        Test 2:
-            MyField__c: 2
-    Hierarchy__c:
-        -
-            location: org
-            data:
+   .. code-block:: yaml
+
+        List__c:
+            Test:
                 MyField__c: 1
-        -
-            location:
-                user:
-                    name: test@example.com
-            data:
-                MyField__c: 2"""
+            Test 2:
+                MyField__c: 2
+        Hierarchy__c:
+            -
+                location: org
+                data:
+                    MyField__c: 1
+            -
+                location:
+                    user:
+                        name: test@example.com
+                data:
+                    MyField__c: 2
+    """
 
     task_options = {
         "settings_path": {

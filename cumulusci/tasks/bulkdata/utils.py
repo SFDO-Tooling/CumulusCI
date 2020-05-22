@@ -1,11 +1,4 @@
 import datetime
-import io
-import requests
-import tempfile
-import time
-import unicodecsv
-import xml.etree.ElementTree as ET
-from contextlib import contextmanager
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -15,34 +8,12 @@ from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
 
-from cumulusci.utils import convert_to_snake_case
 from cumulusci.core.exceptions import BulkDataException
-
-
-@contextmanager
-def download_file(uri, bulk_api):
-    """Download the bulk API result file for a single batch"""
-    resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
-    resp.raise_for_status()
-    with tempfile.TemporaryFile("w+b") as f:
-        for chunk in resp.iter_content(chunk_size=None):
-            f.write(chunk)
-        f.seek(0)
-        yield f
-
-
-def process_incoming_rows(f, record_type=None):
-    if record_type and not isinstance(record_type, bytes):
-        record_type = record_type.encode("utf-8")
-    for line in f:
-        if record_type:
-            yield line.rstrip() + b"," + record_type + b"\n"
-        else:
-            yield line
+from cumulusci.utils import convert_to_snake_case
 
 
 def get_lookup_key_field(lookup, sf_field):
-    return lookup.get("key_field", convert_to_snake_case(sf_field))
+    return lookup.get("key_field") or convert_to_snake_case(sf_field)
 
 
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
@@ -66,85 +37,21 @@ def setup_epoch(inspector, table, column_info):
         column_info["type"] = EpochType()
 
 
-class BulkJobTaskMixin(object):
-    def _job_state_from_batches(self, job_id):
-        uri = f"{self.bulk.endpoint}/job/{job_id}/batch"
-        response = requests.get(uri, headers=self.bulk.headers())
-        response.raise_for_status()
-        return self._parse_job_state(response.content)
+class SqlAlchemyMixin:
+    def _sql_bulk_insert_from_records(
+        self, *, connection, table, columns, record_iterable
+    ):
+        """Persist records from the given generator into the local database."""
+        table = self.metadata.tables[table]
 
-    def _parse_job_state(self, xml):
-        ns = self.bulk.jobNS
-        tree = ET.fromstring(xml)
-        statuses = [el.text for el in tree.iterfind(f".//{{{ns}}}state")]
-        state_messages = [el.text for el in tree.iterfind(f".//{{{ns}}}stateMessage")]
+        connection.execute(
+            table.insert(), [dict(zip(columns, row)) for row in record_iterable]
+        )
 
-        if "Not Processed" in statuses:
-            return "Aborted", None
-        elif "InProgress" in statuses or "Queued" in statuses:
-            return "InProgress", None
-        elif "Failed" in statuses:
-            return "Failed", state_messages
-
-        failures = tree.find(f".//{{{ns}}}numberRecordsFailed")
-        if failures is not None:
-            num_failures = int(failures.text)
-            if num_failures:
-                return "CompletedWithFailures", [f"Failures detected: {num_failures}"]
-
-        return "Completed", None
-
-    def _wait_for_job(self, job_id, error_behaviour: str = "raise") -> str:
-        """With for job_id to finish.
-
-        If there are any row errors, error_behaviour says what happens.
-
-        If its "raise" (the default), then throw an exception.
-
-        If its "return" then return "fail" and set an instance variable: self.error_messages
-        """
-        assert error_behaviour in ("raise", "return")
-        while True:
-            job_status = self.bulk.job_status(job_id)
-            self.logger.info(
-                f"    Waiting for job {job_id} ({job_status['numberBatchesCompleted']}/{job_status['numberBatchesTotal']})"
-            )
-            result, messages = self._job_state_from_batches(job_id)
-            if result != "InProgress":
-                break
-            time.sleep(10)
-        self.logger.info(f"Job {job_id} finished with result: {result}")
-        if "Fail" in result:
-            for state_message in messages:
-                self.logger.error(f"Batch failure message: {state_message}")
-            if error_behaviour == "raise":
-                raise BulkDataException("Job Error", messages)
-            else:
-                self.error_messages = messages
-
-        return result
-
-    def _sql_bulk_insert_from_csv(self, conn, table, columns, data_file):
-        if conn.dialect.name in ("postgresql", "psycopg2"):
-            # psycopg2 (the postgres driver) supports COPY FROM
-            # to efficiently bulk insert rows in CSV format
-            with conn.connection.cursor() as cursor:
-                cursor.copy_expert(
-                    f"COPY {table} ({','.join(columns)}) FROM STDIN WITH (FORMAT CSV)",
-                    data_file,
-                )
-        else:
-            # For other db drivers we need to use standard SQL
-            # -- this is optimized for ease of implementation
-            # rather than performance and may need more work.
-            reader = unicodecsv.DictReader(data_file, columns)
-            table = self.metadata.tables[table]
-            rows = list(reader)
-            if rows:
-                conn.execute(table.insert().values(rows))
         self.session.flush()
 
     def _create_record_type_table(self, table_name):
+        """Create a table to store mapping between Record Type Ids and Developer Names."""
         rt_map_model_name = f"{table_name}Model"
         self.models[table_name] = type(rt_map_model_name, (object,), {})
         rt_map_fields = [
@@ -155,24 +62,29 @@ class BulkJobTaskMixin(object):
         mapper(self.models[table_name], rt_map_table)
 
     def _extract_record_types(self, sobject, table, conn):
+        """Query for Record Type information and persist it in the database."""
         self.logger.info(f"Extracting Record Types for {sobject}")
         query = (
             f"SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='{sobject}'"
         )
-        data_file = io.BytesIO()
-        writer = unicodecsv.writer(data_file)
-        for rt in self.sf.query(query)["records"]:
-            writer.writerow([rt["Id"], rt["DeveloperName"]])
-        data_file.seek(0)
 
-        self._sql_bulk_insert_from_csv(
-            conn, table, ["record_type_id", "developer_name"], data_file
-        )
+        result = self.sf.query(query)
+
+        if result["totalSize"]:
+            self._sql_bulk_insert_from_records(
+                connection=conn,
+                table=table,
+                columns=["record_type_id", "developer_name"],
+                record_iterable=(
+                    [rt["Id"], rt["DeveloperName"]] for rt in result["records"]
+                ),
+            )
 
 
 def _handle_primary_key(mapping, fields):
-    # Provide support for legacy mappings which used the OID as the pk but
-    # default to using an autoincrementing int pk and a separate sf_id column
+    """Provide support for legacy mappings which used the OID as the pk but
+    default to using an autoincrementing int pk and a separate sf_id column"""
+
     mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
     if mapping["oid_as_pk"]:
         id_column = mapping["fields"]["Id"]
@@ -226,3 +138,24 @@ def generate_batches(num_records, batch_size):
             batch_size = num_records - (batch_size * i)  # leftovers
         if batch_size > 0:
             yield batch_size, i
+
+
+class RowErrorChecker:
+    def __init__(self, logger, ignore_row_errors, row_warning_limit):
+        self.logger = logger
+        self.ignore_row_errors = ignore_row_errors
+        self.row_warning_limit = row_warning_limit
+        self.row_error_count = 0
+
+    def check_for_row_error(self, result, row_id):
+        if not result.success:
+            msg = f"Error on record with id {row_id}: {result.error}"
+            if self.ignore_row_errors:
+                if self.row_error_count < self.row_warning_limit:
+                    self.logger.warning(msg)
+                elif self.row_error_count == self.row_warning_limit:
+                    self.logger.warning("Further warnings suppressed")
+                self.row_error_count += 1
+                return self.row_error_count
+            else:
+                raise BulkDataException(msg)

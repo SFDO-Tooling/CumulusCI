@@ -39,6 +39,7 @@ def get_github_api_for_repo(keychain, owner, repo):
     gh.session.mount("http://", adapter)
     gh.session.mount("https://", adapter)
 
+    GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
     APP_KEY = os.environ.get("GITHUB_APP_KEY", "").encode("utf-8")
     APP_ID = os.environ.get("GITHUB_APP_ID")
     if APP_ID and APP_KEY:
@@ -54,6 +55,8 @@ def get_github_api_for_repo(keychain, owner, repo):
                 )
             INSTALLATIONS[(owner, repo)] = installation
         gh.login_as_app_installation(APP_KEY, APP_ID, installation.id)
+    elif GITHUB_TOKEN:
+        gh.login(token=GITHUB_TOKEN)
     else:
         github_config = keychain.get_service("github")
         gh.login(github_config.username, github_config.password)

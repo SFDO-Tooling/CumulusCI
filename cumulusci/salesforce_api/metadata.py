@@ -28,9 +28,14 @@ from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.exceptions import MetadataParseError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 
-from urllib3.contrib import pyopenssl
-
-pyopenssl.extract_from_urllib3()
+# If pyOpenSSL is installed, make sure it's not used for requests
+# (it's not needed in the verisons of Python we support)
+try:
+    from urllib3.contrib import pyopenssl
+except ImportError:
+    pass
+else:
+    pyopenssl.extract_from_urllib3()
 
 retry_policy = Retry(backoff_factor=0.3)
 
@@ -65,6 +70,8 @@ class BaseMetadataApiCall(object):
                 raise MetadataParseError(
                     f"Could not process MDAPI response: {str(e)}", response=response
                 )
+        else:
+            raise MetadataApiError(response.text, response)
 
     def _build_endpoint_url(self):
         # Parse org id from id which ends in /ORGID/USERID
@@ -218,7 +225,15 @@ class BaseMetadataApiCall(object):
         done = resp_xml.getElementsByTagName("done")
         if done:
             if done[0].firstChild.nodeValue == "true":
-                self._set_status("Done")
+                errorMessage = resp_xml.getElementsByTagName("errorMessage")
+                if errorMessage:
+                    self._set_status(
+                        "Failed",
+                        errorMessage[0].firstChild.nodeValue,
+                        response=response,
+                    )
+                else:
+                    self._set_status("Done")
             else:
                 state_detail = resp_xml.getElementsByTagName("stateDetail")
                 if state_detail:

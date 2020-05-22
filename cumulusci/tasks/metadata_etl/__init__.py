@@ -3,9 +3,9 @@ from cumulusci.tasks.metadata_etl.base import (
     BaseMetadataSynthesisTask,
     BaseMetadataTransformTask,
     MetadataSingleEntityTransformTask,
-    get_new_tag_index,
-    MD,
+    MetadataOperation,
 )
+from cumulusci.tasks.metadata_etl.duplicate_rules import SetDuplicateRuleStatus
 from cumulusci.tasks.metadata_etl.layouts import AddRelatedLists
 from cumulusci.tasks.metadata_etl.permissions import AddPermissionSetPermissions
 from cumulusci.tasks.metadata_etl.value_sets import AddValueSetEntries
@@ -20,6 +20,6 @@ flake8 = (
     AddPermissionSetPermissions,
     AddValueSetEntries,
     SetOrgWideDefaults,
-    get_new_tag_index,
-    MD,
+    MetadataOperation,
+    SetDuplicateRuleStatus,
 )

@@ -12,7 +12,6 @@ from cumulusci.tasks.metadata_etl import (
     BaseMetadataSynthesisTask,
     BaseMetadataTransformTask,
     MetadataSingleEntityTransformTask,
-    get_new_tag_index,
 )
 
 
@@ -57,7 +56,7 @@ class TestBaseMetadataETLTask:
             task.retrieve_dir
         )
 
-    @mock.patch("cumulusci.tasks.metadata_etl.base.Deploy")
+    @mock.patch("cumulusci.tasks.salesforce.Deploy")
     def test_deploy(self, deploy_mock):
         with tempfile.TemporaryDirectory() as tmpdir:
             task = create_task(
@@ -207,7 +206,9 @@ class TestMetadataSingleEntityTransformTask:
         )
 
         task.entity = "CustomApplication"
-        task._transform_entity = mock.Mock()
+        fake_tree = mock.Mock()
+        fake_tree.tostring = mock.Mock(return_value="<pretend-xml/>")
+        task._transform_entity = mock.Mock(return_value=fake_tree)
 
         input_xml = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -378,22 +379,3 @@ class TestMetadataSingleEntityTransformTask:
             test_path.write_text(">>>>>NOT XML<<<<<")
             with pytest.raises(etree.ParseError):
                 task._transform()
-
-
-class TestUtilities:
-    XML_SAMPLE = b"""<?xml version="1.0" encoding="UTF-8"?>
-<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
-    <defaultLandingTab>standard-Account</defaultLandingTab>
-    <description>Application</description>
-    <label>Application</label>
-    <tabs>standard-Account</tabs>
-    <tabs>standard-Contact</tabs>
-    <formFactors>Large</formFactors>
-</CustomApplication>
-"""
-
-    def test_get_new_tag_index(self):
-        root = etree.fromstring(self.XML_SAMPLE).getroottree()
-
-        assert get_new_tag_index(root, "tabs") == 5
-        assert get_new_tag_index(root, "relatedList") == 6

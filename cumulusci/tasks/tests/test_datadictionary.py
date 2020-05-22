@@ -1,11 +1,11 @@
 import unittest
-import xml.etree.ElementTree as ET
 
 from unittest.mock import Mock, call, patch, mock_open
 
 from cumulusci.tasks.datadictionary import GenerateDataDictionary
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
+from cumulusci.utils.xml import metadata_tree
 from distutils.version import LooseVersion
 
 
@@ -53,7 +53,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.1"),
                         "label": "Test",
                         "help_text": "Text field",
-                        "picklist_values": "",
+                        "description": "",
+                        "valid_values": "",
                         "type": "Text",
                     }
                 }
@@ -64,13 +65,15 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.2"),
                         "label": "Parent",
                         "help_text": "Lookup",
-                        "picklist_values": "",
+                        "description": "",
+                        "valid_values": "",
                         "type": "Lookup",
                     }
                 },
                 "version": LooseVersion("1.0"),
                 "label": "Child",
                 "help_text": "Child object",
+                "description": "",
             },
         }
 
@@ -88,10 +91,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
                 call("Child__c,Child,Child object,1.0\r\n"),
                 call(
-                    "Object Name,Field Name,Field Label,Type,Field Help Text,Picklist Values,Version Introduced\r\n"
+                    "Object Name,Field Name,Field Label,Type,Field Help Text,Description,Allowed Values,Version Introduced\r\n"
                 ),
-                call("Account,Test__c,Test,Text,Text field,,1.1\r\n"),
-                call("Child__c,Parent__c,Parent,Lookup,Lookup,,1.2\r\n"),
+                call("Account,Test__c,Test,Text,Text field,,,1.1\r\n"),
+                call("Child__c,Parent__c,Parent,Lookup,Lookup,,,1.2\r\n"),
             ],
             any_order=True,
         )
@@ -102,6 +105,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <fullName>Account__c</fullName>
     <label>Account</label>
     <type>Lookup</type>
+    <referenceTo>Account</referenceTo>
 </CustomField>
 """
         task = create_task(
@@ -114,7 +118,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
-        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+        task._process_field_element(
+            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+        )
 
         assert "Test__c" in task.schema
         assert "Account__c" in task.schema["Test__c"]["fields"]
@@ -122,8 +128,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Account",
+            "description": "",
             "type": "Lookup",
-            "picklist_values": "",
+            "valid_values": "->Account",
         }
 
     def test_process_field_element__standard(self):
@@ -132,6 +139,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <fullName>Account</fullName>
     <label>Account</label>
     <type>Lookup</type>
+    <referenceTo>Account</referenceTo>
 </CustomField>
 """
         task = create_task(
@@ -144,7 +152,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
-        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+        task._process_field_element(
+            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+        )
 
         assert task.schema["Test__c"]["fields"]["Account"]["version"] is None
 
@@ -155,6 +165,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <inlineHelpText>{}</inlineHelpText>
     <label>Account</label>
     <type>Lookup</type>
+    <referenceTo>Account</referenceTo>
 </CustomField>
 """
         task = create_task(
@@ -168,29 +179,35 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._init_schema()
         task._process_field_element(
-            "Test__c", ET.fromstring(xml_source.format("Initial")), "1.1"
+            "Test__c",
+            metadata_tree.fromstring(xml_source.format("Initial").encode("utf-8")),
+            "1.1",
         )
 
         assert task.schema["Test__c"]["fields"]["Account__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "Initial",
+            "description": "",
             "label": "Account",
             "type": "Lookup",
-            "picklist_values": "",
+            "valid_values": "->Account",
         }
 
         task._process_field_element(
-            "Test__c", ET.fromstring(xml_source.format("New")), "1.2"
+            "Test__c",
+            metadata_tree.fromstring(xml_source.format("New").encode("utf-8")),
+            "1.2",
         )
         assert task.schema["Test__c"]["fields"]["Account__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "New",
+            "description": "",
             "label": "Account",
             "type": "Lookup",
-            "picklist_values": "",
+            "valid_values": "->Account",
         }
 
-    def test_process_field_element__picklist_values(self):
+    def test_process_field_element__valid_values(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Type__c</fullName>
@@ -220,17 +237,20 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
-        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+        task._process_field_element(
+            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+        )
 
         assert task.schema["Test__c"]["fields"]["Type__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "",
+            "description": "",
             "label": "Type",
             "type": "Picklist",
-            "picklist_values": "Test 1; Test 2",
+            "valid_values": "Test 1; Test 2",
         }
 
-    def test_process_field_element__picklist_values_old_format(self):
+    def test_process_field_element__valid_values_old_format(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Type__c</fullName>
@@ -258,17 +278,20 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
-        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+        task._process_field_element(
+            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+        )
 
         assert task.schema["Test__c"]["fields"]["Type__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Type",
+            "description": "",
             "type": "Picklist",
-            "picklist_values": "Test 1; Test 2",
+            "valid_values": "Test 1; Test 2",
         }
 
-    def test_process_field_element__picklist_values_global_value_set(self):
+    def test_process_field_element__valid_values_global_value_set(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Type__c</fullName>
@@ -289,14 +312,17 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
-        task._process_field_element("Test__c", ET.fromstring(xml_source), "1.1")
+        task._process_field_element(
+            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+        )
 
         assert task.schema["Test__c"]["fields"]["Type__c"] == {
             "version": LooseVersion("1.1"),
             "help_text": "",
             "label": "Type",
+            "description": "",
             "type": "Picklist",
-            "picklist_values": "Global Value Set Test Value Set",
+            "valid_values": "Global Value Set Test Value Set",
         }
 
     def test_process_object_element(self):
@@ -323,7 +349,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._init_schema()
         task._process_object_element(
-            "Test__c", ET.fromstring(xml_source), LooseVersion("1.1")
+            "Test__c",
+            metadata_tree.fromstring(xml_source.encode("utf-8")),
+            LooseVersion("1.1"),
         )
 
         assert task.schema == {
@@ -336,7 +364,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "version": LooseVersion("1.1"),
                         "label": "Type",
                         "help_text": "Type of field.",
-                        "picklist_values": "",
+                        "description": "",
+                        "valid_values": "",
                         "type": "Text",
                     }
                 },
@@ -361,12 +390,14 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
             task._init_schema()
             task._process_object_element(
-                "Account", ET.fromstring(xml_source), LooseVersion("1.1")
+                "Account",
+                metadata_tree.fromstring(xml_source.encode("utf-8")),
+                LooseVersion("1.1"),
             )
 
             assert task.schema["Account"]["version"] is None
 
-    @patch("cumulusci.tasks.datadictionary.ET.fromstring")
+    @patch("cumulusci.tasks.datadictionary.metadata_tree.fromstring")
     def test_process_sfdx_release(self, fromstring):
         task = create_task(
             GenerateDataDictionary,
@@ -402,15 +433,29 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._process_object_element.assert_has_calls(
             [
-                call("Child__c", ET.fromstring("<test></test>"), LooseVersion("1.1")),
-                call("Parent__c", ET.fromstring("<test></test>"), LooseVersion("1.1")),
+                call(
+                    "Child__c",
+                    metadata_tree.fromstring("<test></test>"),
+                    LooseVersion("1.1"),
+                ),
+                call(
+                    "Parent__c",
+                    metadata_tree.fromstring("<test></test>"),
+                    LooseVersion("1.1"),
+                ),
             ]
         )
         task._process_field_element.assert_has_calls(
-            [call("Child__c", ET.fromstring("<test></test>"), LooseVersion("1.1"))]
+            [
+                call(
+                    "Child__c",
+                    metadata_tree.fromstring("<test></test>"),
+                    LooseVersion("1.1"),
+                )
+            ]
         )
 
-    @patch("cumulusci.tasks.datadictionary.ET.fromstring")
+    @patch("cumulusci.tasks.datadictionary.metadata_tree.fromstring")
     def test_process_mdapi_release(self, fromstring):
         task = create_task(
             GenerateDataDictionary,
@@ -438,8 +483,16 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._process_object_element.assert_has_calls(
             [
-                call("Child__c", ET.fromstring("<test></test>"), LooseVersion("1.1")),
-                call("Parent__c", ET.fromstring("<test></test>"), LooseVersion("1.1")),
+                call(
+                    "Child__c",
+                    metadata_tree.fromstring("<test></test>"),
+                    LooseVersion("1.1"),
+                ),
+                call(
+                    "Parent__c",
+                    metadata_tree.fromstring("<test></test>"),
+                    LooseVersion("1.1"),
+                ),
             ]
         )
 
@@ -547,7 +600,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "src/objects/",
             "src/objects/Test__c.object",
         ]
-        extract_github.return_value.read.return_value = xml_source
+        extract_github.return_value.read.return_value = xml_source.encode("utf-8")
         m = mock_open()
 
         with patch("builtins.open", m):
@@ -567,9 +620,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
                 call("Test__c,Test,Description,1.1\r\n"),
                 call(
-                    "Object Name,Field Name,Field Label,Type,Field Help Text,Picklist Values,Version Introduced\r\n"
+                    "Object Name,Field Name,Field Label,Type,Field Help Text,Description,Allowed Values,Version Introduced\r\n"
                 ),
-                call("Test__c,Type__c,Type,Text,Type of field.,,1.1\r\n"),
+                call("Test__c,Type__c,Type,Text,Type of field.,,,1.1\r\n"),
             ],
             any_order=True,
         )

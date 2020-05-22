@@ -2,6 +2,7 @@ from salesforce_bulk import SalesforceBulk
 
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
+from cumulusci.core.exceptions import ConfigError
 
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
@@ -24,9 +25,13 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
         return rv
 
     def _init_bulk(self):
+        version = self.api_version or self.project_config.project__package__api_version
+        if not version:
+            raise ConfigError("Cannot find Salesforce version")
         return SalesforceBulk(
             host=self.org_config.instance_url.replace("https://", "").rstrip("/"),
             sessionId=self.org_config.access_token,
+            API_version=version,
         )
 
     def _init_class(self):

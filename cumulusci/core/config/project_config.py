@@ -1,9 +1,13 @@
 from distutils.version import LooseVersion
+import io
 import os
 import re
+from pathlib import Path
+from configparser import ConfigParser
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
+import github3
 import yaml
 
 from cumulusci.core.utils import merge_config
@@ -11,6 +15,7 @@ from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
     DependencyResolutionError,
+    GithubException,
     KeychainNotFound,
     NamespaceNotFoundError,
     NotInProject,
@@ -22,6 +27,8 @@ from cumulusci.core.github import find_previous_release
 from cumulusci.core.source import GitHubSource
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+
 from github3.exceptions import NotFoundError
 
 
@@ -59,9 +66,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def config_project_local_path(self):
-        path = os.path.join(self.project_local_dir, self.config_filename)
-        if os.path.isfile(path):
-            return path
+        path = Path(self.project_local_dir) / self.config_filename
+        if path.is_file():
+            return str(path)
 
     def _load_config(self):
         """ Loads the configuration from YAML, if no override config was passed in initially. """
@@ -86,7 +93,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Load the project's yaml config file
         with open(self.config_project_path, "r") as f_config:
-            project_config = yaml.safe_load(f_config)
+            project_config = cci_safe_load(f_config)
 
         if project_config:
             self.config_project.update(project_config)
@@ -94,7 +101,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
             with open(self.config_project_local_path, "r") as f_local_config:
-                local_config = yaml.safe_load(f_local_config)
+                local_config = cci_safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
 
@@ -227,13 +234,41 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self.logger.info("")
 
     def _split_repo_url(self, url):
-        url_parts = url.split("/")
+        url_parts = url.rstrip("/").split("/")
+
         name = url_parts[-1]
-        owner = url_parts[-2]
         if name.endswith(".git"):
             name = name[:-4]
-        git_info = {"url": url, "owner": owner, "name": name}
-        return git_info
+
+        owner = url_parts[-2]
+        if "git@github.com" in url:  # ssh url
+            owner = owner.split(":")[-1]
+
+        return {"url": url, "owner": owner, "name": name}
+
+    def git_path(self, tail=None):
+        """Returns a Path to the .git directory in self.repo_root
+        with tail appended (if present) or None if self.repo_root
+        is not set."""
+        path = None
+        if self.repo_root:
+            path = Path(self.repo_root) / ".git"
+            if tail is not None:
+                path = path / str(tail)
+        return path
+
+    def git_config_remote_origin_url(self):
+        """Returns the url under the [remote origin]
+        section of the .git/config file. Returns None
+        if .git/config file not present or no matching
+        line is found. """
+        config = ConfigParser(strict=False)
+        try:
+            config.read(self.git_path("config"))
+            url = config['remote "origin"']["url"]
+        except (KeyError, TypeError):
+            url = None
+        return url
 
     @property
     def repo_root(self):
@@ -241,15 +276,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if path:
             return path
 
-        path = os.path.splitdrive(os.getcwd())[1]
+        path = Path(os.path.splitdrive(Path.cwd())[1])
         while True:
-            if os.path.isdir(os.path.join(path, ".git")):
-                return path
+            if (path / ".git").is_dir():
+                return str(path)
             head, tail = os.path.split(path)
             if not tail:
                 # reached the root
                 break
-            path = head
+            path = Path(head)
 
     @property
     def repo_name(self):
@@ -260,15 +295,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        in_remote_origin = False
-        with open(os.path.join(self.repo_root, ".git", "config"), "r") as f:
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and line.find("url =") != -1:
-                    return self._split_repo_url(line)["name"]
+        url_line = self.git_config_remote_origin_url()
+        return self._split_repo_url(url_line)["name"]
 
     @property
     def repo_url(self):
@@ -279,16 +307,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        git_config_file = os.path.join(self.repo_root, ".git", "config")
-        with open(git_config_file, "r") as f:
-            in_remote_origin = False
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and "url = " in line:
-                    return line[len("url = ") :]
+        url = self.git_config_remote_origin_url()
+        return url
 
     @property
     def repo_owner(self):
@@ -299,16 +319,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        in_remote_origin = False
-        with open(os.path.join(self.repo_root, ".git", "config"), "r") as f:
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and line.find("url =") != -1:
-                    line_parts = line.split("/")
-                    return line_parts[-2].split(":")[-1]
+        url_line = self.git_config_remote_origin_url()
+        return self._split_repo_url(url_line)["owner"]
 
     @property
     def repo_branch(self):
@@ -319,7 +331,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        with open(os.path.join(self.repo_root, ".git", "HEAD"), "r") as f:
+        with open(self.git_path("HEAD"), "r") as f:
             branch_ref = f.read().strip()
         if branch_ref.startswith("ref: "):
             return "/".join(branch_ref[5:].split("/")[2:])
@@ -365,12 +377,23 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.keychain, owner or self.repo_owner, repo or self.repo_name
         )
 
-    def get_latest_tag(self, beta=False):
-        """ Query Github Releases to find the latest production or beta tag """
+    def _get_repo(self):
         gh = self.get_github_api()
         repo = gh.repository(self.repo_owner, self.repo_name)
+        if repo is None:
+            raise GithubException(
+                f"Github repository not found or not authorized. ({self.repo_url})"
+            )
+        return repo
+
+    def get_latest_tag(self, beta=False):
+        """ Query Github Releases to find the latest production or beta tag """
+        repo = self._get_repo()
         if not beta:
-            release = repo.latest_release()
+            try:
+                release = repo.latest_release()
+            except github3.exceptions.NotFoundError:
+                raise GithubException(f"No release found for repo {self.repo_url}")
             prefix = self.project__git__prefix_release
             if not release.tag_name.startswith(prefix):
                 return self._get_latest_tag_for_prefix(repo, prefix)
@@ -383,6 +406,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             if not release.tag_name.startswith(prefix):
                 continue
             return release.tag_name
+        raise GithubException(
+            f"No release found for {self.repo_url} with tag prefix {prefix}"
+        )
 
     def get_latest_version(self, beta=False):
         """ Query Github Releases to find the latest production or beta release """
@@ -393,8 +419,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_previous_version(self):
         """Query GitHub releases to find the previous production release"""
-        gh = self.get_github_api()
-        repo = gh.repository(self.repo_owner, self.repo_name)
+        repo = self._get_repo()
         release = find_previous_release(repo, self.project__git__prefix_release)
         if release is not None:
             return LooseVersion(self.get_version_for_tag(release.tag_name))
@@ -403,9 +428,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def config_project_path(self):
         if not self.repo_root:
             return
-        path = os.path.join(self.repo_root, self.config_filename)
-        if os.path.isfile(path):
-            return path
+        path = Path(self.repo_root) / self.config_filename
+        if path.is_file():
+            return str(path)
 
     @property
     def project_local_dir(self):
@@ -530,6 +555,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             repo_name = repo_name[:-4]
         gh = self.get_github_api(repo_owner, repo_name)
         repo = gh.repository(repo_owner, repo_name)
+        if repo is None:
+            raise DependencyResolutionError(
+                f"{indent}Github repository {dependency['github']} not found or not authorized."
+            )
 
         # Determine the commit
         release = None
@@ -558,7 +587,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
-        cumulusci_yml = yaml.safe_load(contents.decoded)
+        cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
 
         # Get the namespace from the cumulusci.yml if set
         package_config = cumulusci_yml.get("project", {}).get("package", {})
