@@ -3,16 +3,35 @@ import io
 from pathlib import PurePosixPath
 from collections import defaultdict, namedtuple
 
-from distutils.version import LooseVersion
+from distutils.version import StrictVersion
 
 from cumulusci.tasks.github.base import BaseGithubTask
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import download_extract_github_from_repo
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.core.exceptions import DependencyResolutionError
 
 Package = namedtuple("Package", ["repo", "package_name", "namespace", "prefix_release"])
+PackageVersion = namedtuple("PackageVersion", ["package", "version"])
+SObjectDetail = namedtuple(
+    "SObjectDetail", ["version", "api_name", "label", "description"]
+)
+
+FieldDetail = namedtuple(
+    "FieldDetail",
+    [
+        "version",
+        "sobject",
+        "api_name",
+        "label",
+        "type",
+        "help_text",
+        "description",
+        "valid_values",
+        "length",
+    ],
+)
 
 
 class GenerateDataDictionary(BaseGithubTask):
@@ -35,9 +54,12 @@ class GenerateDataDictionary(BaseGithubTask):
             "description": "Path to a CSV file to contain an field-level data dictionary."
         },
         "include_dependencies": {
-            "description": "Process all of the GitHub dependencies of this project and include "
-            "their schema in the data dictionary.",
+            "description": "Process all of the GitHub dependencies of this project and include their schema in the data dictionary.",
             "default": True,
+        },
+        "additional_dependencies": {
+            "description": "Include schema from additional GitHub repositories that "
+            "are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of URLs."
         },
     }
 
@@ -58,8 +80,11 @@ class GenerateDataDictionary(BaseGithubTask):
             self.options.get("include_dependencies", True)
         )
 
-    def _get_repo_dependencies(self, dependencies=None, include_beta=None):
+    def _get_repo_dependencies(
+        self, dependencies=None, include_beta=None, visited_repos=None
+    ):
         deps = []
+        visited = visited_repos or set()
 
         for dependency in dependencies:
             if "github" in dependency:
@@ -83,20 +108,25 @@ class GenerateDataDictionary(BaseGithubTask):
                 else:
                     namespace = ""
 
+                if f"{repo.owner}/{repo.name}" in visited:
+                    continue
+
                 deps.append(
                     Package(
                         repo,
                         project.get("package", {}).get(
-                            "name", ""
-                        ),  # FIXME: use owner/repo as default name
+                            "name", f"{repo.owner}/{repo.name}"
+                        ),
                         namespace,
                         project.get("git", {}).get("prefix_release", "release/"),
                     )
                 )
+                visited.add(f"{repo.owner}/{repo.name}")
 
                 deps.extend(
                     self._get_repo_dependencies(
-                        cumulusci_yml.get("project", {}).get("dependencies", [])
+                        cumulusci_yml.get("project", {}).get("dependencies", []),
+                        visited_repos=visited,
                     )
                 )
 
@@ -120,6 +150,13 @@ class GenerateDataDictionary(BaseGithubTask):
                 self.project_config.project__git__prefix_release,
             )
         ]
+        if "additional_dependencies" in self.options:
+            repos += self._get_repo_dependencies(
+                [
+                    {"github": url}
+                    for url in process_list_arg(self.options["additional_dependencies"])
+                ]
+            )
         if self.options["include_dependencies"]:
             repos += self._get_repo_dependencies(dependencies, include_beta=False)
 
@@ -130,9 +167,9 @@ class GenerateDataDictionary(BaseGithubTask):
 
     def _init_schema(self):
         """Initialize the structure used for schema storage."""
-        self.schema = defaultdict(
-            lambda: {"version": None, "fields": defaultdict(lambda: {"version": None})}
-        )
+        self.sobjects = defaultdict(lambda: [])
+        self.fields = defaultdict(lambda: [])
+        self.package_versions = {}
 
     def _walk_releases(self, package):
         """Traverse all of the releases in this project's repository and process
@@ -153,35 +190,42 @@ class GenerateDataDictionary(BaseGithubTask):
             zip_file = download_extract_github_from_repo(
                 package.repo, ref=release.tag_name
             )
-            version = self._version_from_tag_name(
-                release.tag_name, package.prefix_release
+            version = PackageVersion(
+                package,
+                self._version_from_tag_name(release.tag_name, package.prefix_release),
             )
-            self.logger.info(f"Analyzing {package.package_name} version {version}")
+            if (
+                package not in self.package_versions
+                or version.version > self.package_versions[package]
+            ):
+                self.package_versions[package] = version.version
+            self.logger.info(
+                f"Analyzing {package.package_name} version {version.version}"
+            )
 
             if "src/objects/" in zip_file.namelist():
                 # MDAPI format
-                self._process_mdapi_release(zip_file, version, package)
+                self._process_mdapi_release(zip_file, version)
 
             if "force-app/main/default/objects/" in zip_file.namelist():
                 # FIXME: check sfdx-project.json for directories to process.
                 # SFDX format
-                self._process_sfdx_release(zip_file, version, package)
+                self._process_sfdx_release(zip_file, version)
 
-    def _process_mdapi_release(self, zip_file, version, package):
+    def _process_mdapi_release(self, zip_file, version):
         """Process an MDAPI ZIP file for objects and fields"""
         for f in zip_file.namelist():
             path = PurePosixPath(f)
             if path.parent == PurePosixPath("src/objects") and path.suffix == ".object":
                 sobject_name = path.stem
+                if sobject_name.count("__") == 1:
+                    sobject_name = f"{version.package.namespace}{sobject_name}"
 
                 self._process_object_element(
-                    sobject_name,
-                    metadata_tree.fromstring(zip_file.read(f)),
-                    version,
-                    package,
+                    sobject_name, metadata_tree.fromstring(zip_file.read(f)), version
                 )
 
-    def _process_sfdx_release(self, zip_file, version, package):
+    def _process_sfdx_release(self, zip_file, version):
         """Process an SFDX ZIP file for objects and fields"""
         for f in zip_file.namelist():
             path = PurePosixPath(f)
@@ -189,63 +233,65 @@ class GenerateDataDictionary(BaseGithubTask):
                 if path.suffixes == [".object-meta", ".xml"]:
                     sobject_name = path.name[: -len(".object-meta.xml")]
                     if sobject_name.count("__") == 1:
-                        sobject_name = f"{package.namespace}{sobject_name}"
+                        sobject_name = f"{version.package.namespace}{sobject_name}"
 
                     self._process_object_element(
                         sobject_name,
                         metadata_tree.fromstring(zip_file.read(f)),
                         version,
-                        package,
                     )
                 elif path.suffixes == [".field-meta", ".xml"]:
                     # To get the sObject name, we need to remove the `/fields/SomeField.field-meta.xml`
                     # and take the last path component
+                    # FIXME: don't include fields on Platform Events, Custom Settings, and so on.
                     sobject_name = f"{path.parent.parent.stem}"
                     if sobject_name.count("__") == 1:
-                        sobject_name = f"{package.namespace}{sobject_name}"
+                        sobject_name = f"{version.package.namespace}{sobject_name}"
 
                     self._process_field_element(
                         sobject_name,
                         metadata_tree.fromstring(zip_file.read(f)),
                         version,
-                        package,
                     )
 
-    def _process_object_element(self, sobject_name, element, version, package):
+    def _process_object_element(self, sobject_name, element, version):
         """Process a <CustomObject> metadata entity, whether SFDX or MDAPI"""
         # If this is a custom object, register its presence in this version
-        # Don't process custom objects owned by other namespaces.
 
+        # Don't process Custom Settings.
+        if element.find("customSettingsType") is not None:
+            return
+
+        # Don't process custom objects owned by other namespaces.
         # It's fine for Package A to package fields on an object owned by Package B.
         # We'll record the fields on their owning package (B) and the object on its (A).
-        if sobject_name.startswith(package.namespace) and sobject_name.endswith("__c"):
+        if sobject_name.startswith(version.package.namespace) and sobject_name.endswith(
+            "__c"
+        ):
             description_elem = getattr(element, "description", None)
 
-            self._set_version_with_props(
-                self.schema[sobject_name],
-                {
-                    "version": version,
-                    "label": element.label.text,
-                    "description": description_elem.text
-                    if description_elem is not None
-                    else "",
-                    "owning_package": package.package_name,
-                },
+            self.sobjects[sobject_name].append(
+                SObjectDetail(
+                    version,
+                    sobject_name,
+                    element.label.text,
+                    description_elem.text if description_elem is not None else "",
+                )
             )
 
         # For MDAPI-format elements. No-op on SFDX.
-        # No Custom Metadata Types or Platform Events. FIXME: omit Custom Settings.
+        # No Custom Metadata Types or Platform Events.
         if sobject_name.endswith("__c"):
             for field in element.findall("fields"):
-                self._process_field_element(sobject_name, field, version, package)
+                self._process_field_element(sobject_name, field, version)
 
-    def _process_field_element(self, sobject_name, field, version, package):
+    def _process_field_element(self, sobject, field, version):
         """Process a field entity, which can be either a <fields> element
         in MDAPI format or a <CustomField> in SFDX"""
         # `element` may be either a `fields` element (in MDAPI)
         # or a `CustomField` (SFDX)
         # If this is a custom field, register its presence in this version
-        field_name = f"{package.namespace}{field.fullName.text}"
+        field_name = f"{version.package.namespace}{field.fullName.text}"
         # get field help text value
         help_text_elem = field.find("inlineHelpText")
         # get field description text value
@@ -267,7 +313,9 @@ class GenerateDataDictionary(BaseGithubTask):
                     else:
                         valueSetDefinition = value_set.valueSetDefinition
                         labels = [
-                            value.label.text
+                            value.find("label").text
+                            if value.find("label")
+                            else value.fullName.text
                             for value in valueSetDefinition.findall("value")
                         ]
 
@@ -283,7 +331,7 @@ class GenerateDataDictionary(BaseGithubTask):
             elif field_type == "Lookup":
                 valid_values = (
                     "->" + field.referenceTo.text
-                )  # Note: polymorphic custom fields are not allowed.
+                )  # Note: polymorphic custom fields are not allowed. FIXME: namespace this value
             else:
                 valid_values = ""
 
@@ -295,39 +343,52 @@ class GenerateDataDictionary(BaseGithubTask):
                 elif field_type == "Number":
                     length = f"{int(field.precision.text) - int(field.scale.text)}.{field.scale.text}"
 
-            self._set_version_with_props(
-                self.schema[sobject_name]["fields"][field_name],
-                {
-                    "version": version,
-                    "help_text": help_text_elem.text
-                    if help_text_elem is not None
-                    else "",
-                    "description": description_text_elem.text
-                    if description_text_elem is not None
-                    else "",
-                    "label": field.label.text,
-                    "valid_values": valid_values,
-                    "length": length,
-                    "type": field_type,
-                    "owning_package": package.package_name,
-                },
+            fd = FieldDetail(
+                version,
+                sobject,
+                field_name,
+                field.label.text,
+                field_type,
+                help_text_elem.text if help_text_elem else "",
+                description_text_elem.text if description_text_elem else "",
+                valid_values,
+                length,
             )
+            fully_qualified_name = f"{sobject}.{fd.api_name}"
+            self.fields[fully_qualified_name].append(fd)
 
     def _write_results(self):
         """Write the stored schema details to our destination CSVs"""
         with open(self.options["object_path"], "w") as object_file:
             writer = csv.writer(object_file)
 
-            writer.writerow(["Label", "API Name", "Description", "Version Introduced"])
+            writer.writerow(
+                [
+                    "Label",
+                    "API Name",
+                    "Description",
+                    "Version Introduced",
+                    "Version Deleted",
+                ]
+            )
 
-            for sobject_name in self.schema:
+            for sobject_name, versions in self.sobjects.items():
+                versions = sorted(
+                    versions, key=lambda ver: ver.version.version, reverse=True
+                )
+                first_version = versions[-1]
+                last_version = versions[0]
                 if sobject_name.endswith("__c"):
                     writer.writerow(
                         [
-                            self.schema[sobject_name]["label"],
+                            last_version.label,
                             sobject_name,
-                            self.schema[sobject_name]["description"],
-                            f"{self.schema[sobject_name]['owning_package']} {self.schema[sobject_name]['version']}",
+                            last_version.description,
+                            f"{first_version.version.package.package_name} {first_version.version.version}",
+                            ""
+                            if last_version.version.version
+                            == self.package_versions[last_version.version.package]
+                            else f"{first_version.version.package.package_name} {last_version.version.version}",
                         ]
                     )
 
@@ -347,62 +408,54 @@ class GenerateDataDictionary(BaseGithubTask):
                     "Version Introduced",
                     "Version Allowed Values Last Changed",
                     "Version Help Text Last Changed",
+                    "Version Deleted",
                 ]
             )
 
-            for sobject_name, sobject_data in self.schema.items():
-                for field_name, field_data in sobject_data["fields"].items():
-                    valid_values_version = field_data.get(
-                        "valid_values_version", field_data["version"]
-                    )
-                    help_text_version = field_data.get(
-                        "help_text_version", field_data["version"]
-                    )
-                    writer.writerow(
-                        [
-                            sobject_name,
-                            field_name,
-                            field_data["label"],
-                            field_data["type"],
-                            field_data["help_text"],
-                            field_data["description"],
-                            field_data["valid_values"],
-                            field_data["length"],
-                            f"{field_data['owning_package']} {field_data['version']}",
-                            f"{field_data['owning_package']} {valid_values_version}",
-                            f"{field_data['owning_package']} {help_text_version}",
-                        ]
-                    )
+            for field_name, field_versions in self.fields.items():
+                versions = sorted(
+                    field_versions, key=lambda ver: ver.version.version, reverse=True
+                )
+                first_version = versions[-1]
+                last_version = versions[0]
+
+                # Locate the last versions where the valid values and the help text changed.
+                valid_values_version = None
+                for (index, version) in enumerate(versions[1:]):
+                    if version.valid_values != last_version.valid_values:
+                        valid_values_version = versions[index - 1]
+                        break
+
+                help_text_version = None
+                for (index, version) in enumerate(versions[1:]):
+                    if version.help_text != last_version.help_text:
+                        help_text_version = versions[index - 1]
+                        break
+
+                writer.writerow(
+                    [
+                        last_version.sobject,
+                        last_version.api_name,
+                        last_version.label,
+                        last_version.type,
+                        last_version.help_text,
+                        last_version.description,
+                        last_version.valid_values,
+                        last_version.length,
+                        f"{first_version.version.package.package_name} {first_version.version.version}",
+                        f"{first_version.version.package.package_name} {valid_values_version.version.version}"
+                        if valid_values_version
+                        else "",
+                        f"{first_version.version.package.package_name} {help_text_version.version.version}"
+                        if help_text_version
+                        else "",
+                        ""
+                        if last_version.version.version
+                        == self.package_versions[last_version.version.package]
+                        else f"{first_version.version.package.package_name} {last_version.version.version}",
+                    ]
+                )
 
     def _version_from_tag_name(self, tag_name, prefix_release):
-        """Parse a release's tag and return a LooseVersion"""
-        return LooseVersion(tag_name[len(prefix_release) :])
-
-    def _set_version_with_props(self, in_dict, props):
-        """Update our schema storage with this release's details for an entity.
-        Preserve the oldest known version, but store the latest metadata for the entity."""
-        update_props = props.copy()
-
-        if in_dict["version"] is None:
-            pass
-        elif props["version"] is None:
-            return
-        elif in_dict["version"] < props["version"]:
-            # We track the last-modified-version of two properties: help_text and valid_values
-            # (which can change if the field is a picklist)
-            if (
-                in_dict.get("valid_values") != props.get("valid_values")
-                and props.get("type") == "Picklist"
-            ):
-                props["valid_values_version"] = update_props["version"]
-
-            if in_dict.get("help_text") != props.get("help_text"):
-                props["help_text_version"] = update_props["version"]
-
-            # Update the metadata but not the version.
-            del update_props["version"]
-        elif in_dict["version"] > props["version"]:
-            # Update the version but not the metadata.
-            update_props = {"version": update_props["version"]}
-
-        in_dict.update(update_props)
+        """Parse a release's tag and return a StrictVersion"""
+        return StrictVersion(tag_name[len(prefix_release) :])
