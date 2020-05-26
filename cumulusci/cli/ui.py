@@ -163,8 +163,8 @@ def _summarize(field):
     elif field["picklistValues"]:
         allowed = [value["value"] for value in field["picklistValues"]]
     else:
-        allowed = field["type"]
-    return (field["name"], allowed)
+        allowed = None
+    return {"name": field["name"], "type": field["type"], "allowed": allowed}
 
 
 class SimpleSalesforceUIHelpers:
@@ -180,7 +180,7 @@ class SimpleSalesforceUIHelpers:
                     SELECT Id FROM Lead WHERE Email = "waldo@somewhere.com"
             * include_deleted -- True if deleted records should be included
             * format -- one of these values:
-                - "table" -- printable ASCII table (the default)
+                - "table" -- simple display table (the default)
                 - "obj" -- ordinary Python objects
                 - "pprint" -- string in easily readable Python dict shape
                 - "json" -- JSON
@@ -227,7 +227,7 @@ class SimpleSalesforceUIHelpers:
 
         return rc
 
-    def describe(self, sobj_name, detailed=False, format="pprint"):
+    def describe(self, sobj_name, detailed=False, format="table"):
         """Describe an sobject.
 
         Arguments:
@@ -235,6 +235,7 @@ class SimpleSalesforceUIHelpers:
             sobj_name - sobject name to describe. e.g. "Account", "Contact"
             detailed - set to `True` to get detailed information about object
             format -- one of these values:
+            - "table" -- simple display table (the default)
             - "pprint" -- string in easily readable Python dict shape (default)
             - "obj" -- ordinary Python objects
 
@@ -243,18 +244,52 @@ class SimpleSalesforceUIHelpers:
             >>> describe("Account")
             >>> data = describe("Account", detailed=True, format=obj)
             """
-        from pprint import pprint
-
         data = getattr(self._sf, sobj_name).describe()
 
-        if detailed:
-            rc = data
+        if not detailed:
+            data = [_summarize(field) for field in data["fields"]]
+
+        return self._format(data, format)
+
+    def record_count(self, *sobject_list: str, format="table"):
+        """Get approximate record counts for sObjects
+
+        If the approximate count is 0, this function will return nothing.
+        If the sObject doesn't exist in the org, the same is true
+        (as per the Salesforce REST API)
+
+        Arguments:
+
+            sobject_list - list of sobjects to display, or a single sObject
+            format -- one of these values:
+            - "table" -- simple display table (the default)
+            - "pprint" -- string in easily readable Python dict shape (default)
+            - "obj" -- ordinary Python objects
+
+        For example:
+
+            >>> record_count("Account")
+            1138
+            """
+        if sobject_list:
+            params = {"sObjects": ",".join(sobject_list)}
+
         else:
-            rc = dict(_summarize(field) for field in data["fields"])
+            params = None
+        data = self._sf.restful("limits/recordCount", params=params)["sObjects"]
+
+        data = sorted(data, key=lambda v: -v["count"])
+
+        return self._format(data, format)
+
+    def _format(self, data, format):
+        from pprint import pprint
 
         if format == "pprint":
-            pprint(rc)
+            pprint(data)
+        elif format == "table":
+            print(_soql_table(data, False))
         elif format == "obj":
-            return rc
+            return data
         else:
             raise TypeError(f"Unknown format {format}")

@@ -207,9 +207,15 @@ PRETEND_DESCRIBE_DATA = {
     "name": "Blah",
     "updateable": False,
     "fields": [
-        {"name": "Foo", "referenceTo": ["Bar"], "picklistValues": []},
+        {
+            "name": "Foo",
+            "type": "reference",
+            "referenceTo": ["Bar"],
+            "picklistValues": [],
+        },
         {
             "name": "Bar",
+            "type": "pickList",
             "referenceTo": [],
             "picklistValues": [{"value": "a"}, {"value": "b"}],
         },
@@ -217,14 +223,18 @@ PRETEND_DESCRIBE_DATA = {
     ],
 }
 
-SUMMARIZED_DATA = {"Foo": ["Bar"], "Bar": ["a", "b"], "Baz": "string"}
+SUMMARIZED_DATA = [
+    {"name": "Foo", "type": "reference", "allowed": ["Bar"]},
+    {"name": "Bar", "type": "pickList", "allowed": ["a", "b"]},
+    {"name": "Baz", "type": "string", "allowed": None},
+]
 
 
 def test_summarize():
     fields = PRETEND_DESCRIBE_DATA["fields"]
-    assert _summarize(fields[0]) == ("Foo", ["Bar"])
-    assert _summarize(fields[1]) == ("Bar", ["a", "b"])
-    assert _summarize(fields[2]) == ("Baz", "string")
+    assert _summarize(fields[0]) == SUMMARIZED_DATA[0]
+    assert _summarize(fields[1]) == SUMMARIZED_DATA[1]
+    assert _summarize(fields[2]) == SUMMARIZED_DATA[2]
 
 
 def test_pretty_describe():
@@ -250,6 +260,15 @@ def test_pretty_describe_pprint(capsys):
     out = capsys.readouterr().out
     assert sf.Blah.describe.mock_calls
     assert out.strip() == pformat(SUMMARIZED_DATA), (out, pformat(SUMMARIZED_DATA))
+
+
+def test_pretty_describe_table(capsys):
+    sf = mock.MagicMock()
+    sf.Blah.describe.return_value = PRETEND_DESCRIBE_DATA
+    SimpleSalesforceUIHelpers(sf).describe("Blah", detailed=False, format="table")
+    out = capsys.readouterr().out
+    assert sf.Blah.describe.mock_calls
+    assert "Bar" in out
 
 
 def test_pretty_describe_format_error():
@@ -421,6 +440,54 @@ def test_pretty_soql_query_errors():
             format="punchcard",
             max_rows=100,
         )
+
+
+PRETEND_RECORD_COUNT_RESULTS = {
+    "sObjects": [
+        {"count": 6100, "name": "ObjectPermissions"},
+        {"count": 19, "name": "PermissionSetLicense"},
+    ]
+}
+
+
+def test_record_count_table(capsys):
+    sf = mock.MagicMock()
+    sf.restful.return_value = PRETEND_RECORD_COUNT_RESULTS
+    SimpleSalesforceUIHelpers(sf).record_count()
+    out = capsys.readouterr().out
+    assert "PermissionSetLicense" in out, out
+
+
+def test_record_count_filtered(capsys):
+    sf = mock.MagicMock()
+    sf.restful.return_value = PRETEND_RECORD_COUNT_RESULTS
+    SimpleSalesforceUIHelpers(sf).record_count("ObjectPermissions", format="table")
+    assert sf.restful.mock_calls == [
+        mock.call("limits/recordCount", params={"sObjects": "ObjectPermissions"})
+    ]
+
+
+def test_record_count_pprint(capsys):
+    sf = mock.MagicMock()
+    sf.restful.return_value = PRETEND_RECORD_COUNT_RESULTS
+    SimpleSalesforceUIHelpers(sf).record_count(format="pprint")
+    out = capsys.readouterr().out
+    assert out.strip() == pformat(PRETEND_RECORD_COUNT_RESULTS["sObjects"]), (
+        out,
+        " != ",
+        pformat(SUMMARIZED_DATA),
+    )
+
+
+def test_record_count_obj():
+    sf = mock.MagicMock()
+    sf.restful.return_value = PRETEND_RECORD_COUNT_RESULTS
+    objs = SimpleSalesforceUIHelpers(sf).record_count(format="obj")
+    assert objs == PRETEND_RECORD_COUNT_RESULTS["sObjects"], (
+        objs,
+        " != ",
+        PRETEND_RECORD_COUNT_RESULTS["sObjects"],
+    )
 
 
 @mock.patch("cumulusci.cli.ui.SimpleSalesforceUIHelpers.query")

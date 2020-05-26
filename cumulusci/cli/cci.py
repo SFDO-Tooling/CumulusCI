@@ -1227,6 +1227,7 @@ The cumulusci shell gives you access to the following objects and functions:
 * project_config - information about your project. [3]
 * query() - SOQL query. `help(query)` for more information
 * describe() - Inspect object fields. `help(describe)` for more information
+* record_count() - Approximate record counts for sObjects `help(record_count)` for more information
 * help() - for interactive help on Python
 * help(obj) - for help on any specific Python object or module
 
@@ -1265,6 +1266,7 @@ def org_shell(runtime, org_name, script=None, python=None):
         "help": CCIHelp(),
         "query": sf_helpers.query,
         "describe": sf_helpers.describe,
+        "record_count": sf_helpers.record_count,
     }
 
     if script:
