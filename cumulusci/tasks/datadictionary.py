@@ -69,12 +69,12 @@ class GenerateDataDictionary(BaseGithubTask):
         if self.options.get("object_path") is None:
             self.options[
                 "object_path"
-            ] = f"{self.project_config.project__name} sObject Data Dictionary.csv"
+            ] = f"{self.project_config.project__name} Objects.csv"
 
         if self.options.get("field_path") is None:
             self.options[
                 "field_path"
-            ] = f"{self.project_config.project__name} Field Data Dictionary.csv"
+            ] = f"{self.project_config.project__name} Fields.csv"
 
         self.options["include_dependencies"] = process_bool_arg(
             self.options.get("include_dependencies", True)
@@ -364,9 +364,9 @@ class GenerateDataDictionary(BaseGithubTask):
 
             writer.writerow(
                 [
-                    "Label",
+                    "Object Label",
                     "API Name",
-                    "Description",
+                    "Object Description",
                     "Version Introduced",
                     "Version Deleted",
                 ]
@@ -398,11 +398,11 @@ class GenerateDataDictionary(BaseGithubTask):
             writer.writerow(
                 [
                     "Object API Name",
+                    "Field Label",
                     "Field API Name",
-                    "Label",
                     "Type",
                     "Help Text",
-                    "Description",
+                    "Field Description",
                     "Allowed Values",
                     "Length",
                     "Version Introduced",
@@ -435,8 +435,8 @@ class GenerateDataDictionary(BaseGithubTask):
                 writer.writerow(
                     [
                         last_version.sobject,
-                        last_version.api_name,
                         last_version.label,
+                        last_version.api_name,
                         last_version.type,
                         last_version.help_text,
                         last_version.description,
