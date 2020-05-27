@@ -62,6 +62,10 @@ tasks:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
         group: Salesforce Packages
+    create_package_version:
+        description: Uploads a 2nd-generation package (2GP) version
+        class_path: cumulusci.tasks.salesforce.2gp.CreatePackageVersion
+        group: Salesforce Packages
     create_managed_src:
         description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
         class_path: cumulusci.tasks.metadata.managed_src.CreateManagedSrc
