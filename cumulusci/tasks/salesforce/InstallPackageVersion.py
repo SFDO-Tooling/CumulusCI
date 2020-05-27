@@ -31,6 +31,9 @@ class InstallPackageVersion(Deploy):
         "retry_interval_add": {
             "description": "Number of seconds to add before each retry (default=30),"
         },
+        "security_type": {
+            "description": "Which users to install package for (FULL = all users, NONE = admins only)"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -64,6 +67,7 @@ class InstallPackageVersion(Deploy):
             version=self.options["version"],
             activateRSS=self.options["activateRSS"],
             password=self.options.get("password"),
+            securityType=self.options.get("security_type", "FULL"),
         )
         return self.api_class(self, package_zip(), purge_on_delete=False)
 
