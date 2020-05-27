@@ -1,3 +1,4 @@
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
@@ -60,6 +61,11 @@ class InstallPackageVersion(Deploy):
         elif version == "previous":
             self.options["version"] = self.project_config.get_previous_version()
         self.options["activateRSS"] = process_bool_arg(self.options.get("activateRSS"))
+        self.options["security_type"] = self.options.get("security_type", "FULL")
+        if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
+            raise TaskOptionsError(
+                f"Unsupported value for security_type: {self.options['security_type']}"
+            )
 
     def _get_api(self, path=None):
         package_zip = InstallPackageZipBuilder(
