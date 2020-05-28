@@ -149,7 +149,7 @@ class TestBasePage(unittest.TestCase):
         selib.set_selenium_implicit_wait.reset_mock()
 
         page = BasePage()
-        with page.no_implicit_wait():
+        with page._no_implicit_wait():
             pass
 
         # The first call should pass in zero to turn off the
@@ -169,7 +169,7 @@ class TestBasePage(unittest.TestCase):
 
         page = BasePage()
         try:
-            with page.no_implicit_wait():
+            with page._no_implicit_wait():
                 raise Exception("Danger Will Robinson!")
         except Exception:
             pass

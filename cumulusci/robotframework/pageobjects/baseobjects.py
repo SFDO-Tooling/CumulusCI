@@ -10,7 +10,7 @@ class BasePage:
             self._object_name = object_name
 
     @contextmanager
-    def no_implicit_wait(self):
+    def _no_implicit_wait(self):
         """Context manager for running selenium commands without an implicit wait"""
         current_wait = self.selenium.set_selenium_implicit_wait(0)
         try:
