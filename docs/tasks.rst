@@ -132,7 +132,7 @@ Options
 
 **Description:** Adds specified picklist entries to a custom picklist field.
 
-**Class:** cumulusci.tasks.metadata_etl.AddPicklistEntries
+**Class:** cumulusci.tasks.metadata_etl.picklists.AddPicklistEntries
 
 Command Syntax
 ------------------------------------------
@@ -1632,6 +1632,11 @@ Options
 
 	 Number of seconds to add before each retry (default=30),
 
+``-o security_type SECURITYTYPE``
+	 *Optional*
+
+	 Which users to install package for (FULL = all users, NONE = admins only)
+
 **install_managed_beta**
 ==========================================
 
@@ -1692,6 +1697,11 @@ Options
 	 *Optional*
 
 	 Number of seconds to add before each retry (default=30),
+
+``-o security_type SECURITYTYPE``
+	 *Optional*
+
+	 Which users to install package for (FULL = all users, NONE = admins only)
 
 **list_communities**
 ==========================================
@@ -3423,6 +3433,11 @@ Options
 	 *Optional*
 
 	 Allow uninstalling a beta release or newer final release in order to install the requested version. Defaults to False. Warning: Enabling this may destroy data.
+
+``-o security_type SECURITYTYPE``
+	 *Optional*
+
+	 Which users to install packages for (FULL = all users, NONE = admins only)
 
 **update_package_xml**
 ==========================================

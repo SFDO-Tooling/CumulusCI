@@ -203,6 +203,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                             "retries": 5,
                             "retry_interval": 5,
                             "retry_interval_add": 30,
+                            "security_type": "FULL",
                             "version": "1.0",
                         },
                         "checks": [],

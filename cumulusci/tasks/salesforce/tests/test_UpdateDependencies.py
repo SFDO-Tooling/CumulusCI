@@ -207,6 +207,17 @@ class TestUpdateDependencies(unittest.TestCase):
         with self.assertRaises(TaskOptionsError):
             task()
 
+    def test_run_task__bad_security_type(self):
+        project_config = create_project_config()
+        project_config.config["project"]["dependencies"] = PROJECT_DEPENDENCIES
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                UpdateDependencies,
+                {"security_type": "BOGUS"},
+                project_config,
+                mock.Mock(),
+            )
+
     def test_run_task__metadata_bundle(self):
         project_config = create_project_config()
         project_config.get_github_api = mock.Mock()
@@ -283,6 +294,7 @@ class TestUpdateDependencies(unittest.TestCase):
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,
+                            "security_type": "FULL",
                         },
                         "checks": [],
                     },
@@ -310,6 +322,7 @@ class TestUpdateDependencies(unittest.TestCase):
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,
+                            "security_type": "FULL",
                         },
                         "checks": [],
                     },
