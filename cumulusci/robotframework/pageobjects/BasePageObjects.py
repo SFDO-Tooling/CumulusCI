@@ -10,6 +10,8 @@ file.
 """
 
 import re
+from selenium.webdriver.common.action_chains import ActionChains
+from SeleniumLibrary.errors import ElementNotFound
 from cumulusci.robotframework.pageobjects import pageobject
 from cumulusci.robotframework.pageobjects import BasePage
 from cumulusci.robotframework.utils import capture_screenshot_on_error
@@ -137,6 +139,37 @@ class ModalMixin:
         self.salesforce.populate_form(*args, **kwargs)
 
     @capture_screenshot_on_error
+    def select_dropdown_value(self, label, value):
+        """Sets the value of a dropdown form field from one of the values in the dropdown
+
+        ``label`` represents the label on the form field (eg: Lead Source)
+
+        If a modal is present, the modal will be searched for the dropdown. Otherwise
+        the first matching dropdown on the entire web page will be used.
+        """
+        input_element = self._get_form_element_for_label(label)
+        if input_element is None:
+            raise Exception(f"No form element found with the label '{label}'")
+
+        self.selenium.scroll_element_into_view(input_element)
+        trigger = input_element.find_element_by_class_name("uiPopupTrigger")
+        ac = ActionChains(self.selenium.driver)
+        ac.move_to_element(trigger).click().perform()
+        popup_locator = (
+            "//div[contains(@class, 'uiPopupTarget')][contains(@class, 'visible')]"
+        )
+        try:
+            popup = self.selenium.get_webelement(popup_locator)
+        except ElementNotFound:
+            raise ElementNotFound("Timed out waiting for the popup menu")
+        try:
+            value_element = popup.find_element_by_link_text(value)
+            ac = ActionChains(self.selenium.driver)
+            ac.move_to_element(value_element).click().perform()
+        except Exception:
+            raise Exception(f"Dropdown value '{value}' not found")
+
+    @capture_screenshot_on_error
     def wait_until_modal_is_closed(self, timeout=None):
         """Waits until the modal is no longer visible
 
@@ -145,6 +178,40 @@ class ModalMixin:
         locator = "//div[contains(@class, 'uiModal')]"
 
         self.selenium.wait_until_page_does_not_contain_element(locator)
+
+    def _get_form_element_for_label(self, label):
+        """Returns an element of class 'slds-form-element' which contains the given label.
+
+        If you use this to find an item on a modal, you're responsible for waiting for the
+        modal to appear before calling this function.
+        """
+        # search from the root of the document, unless a modal
+        # is open
+        root = self.selenium.driver.find_element_by_tag_name("body")
+        with self._no_implicit_wait():
+            # We don't want to wait, we just want to know if the
+            # modal is alredy there or not. The caller should have
+            # already waited for the modal.
+
+            # also, we use find_elements (plural) here because it will
+            # return an empty list rather than throwing an error
+            modals = root.find_elements_by_xpath("//div[contains(@class, 'uiModal')]")
+            # There should only ever be zero or one, but the Salesforce
+            # UI never ceases to surprise me.
+            modals = [m for m in modals if m.is_displayed()]
+            if modals:
+                root = modals[0]
+        try:
+            # gnarly, but effective.
+            # this finds an element with the class slds-form-element which
+            # has a child element with the class 'form-element__label' and
+            # text that matches the given label.
+            locator = f".//*[contains(@class, 'slds-form-element') and .//*[contains(@class, 'form-element__label')]/descendant-or-self::text()='{label}']"
+            element = root.find_element_by_xpath(locator)
+            return element
+
+        except ElementNotFound:
+            raise ElementNotFound(f"Form element with label '{label}' was not found")
 
 
 @pageobject("New")
