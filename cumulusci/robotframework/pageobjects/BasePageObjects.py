@@ -10,8 +10,8 @@ file.
 """
 
 import re
-from selenium.webdriver.common.action_chains import ActionChains
 from SeleniumLibrary.errors import ElementNotFound
+from selenium.common.exceptions import NoSuchElementException
 from cumulusci.robotframework.pageobjects import pageobject
 from cumulusci.robotframework.pageobjects import BasePage
 from cumulusci.robotframework.utils import capture_screenshot_on_error
@@ -151,22 +151,27 @@ class ModalMixin:
         if input_element is None:
             raise Exception(f"No form element found with the label '{label}'")
 
-        self.selenium.scroll_element_into_view(input_element)
-        trigger = input_element.find_element_by_class_name("uiPopupTrigger")
-        ac = ActionChains(self.selenium.driver)
-        ac.move_to_element(trigger).click().perform()
-        popup_locator = (
-            "//div[contains(@class, 'uiPopupTarget')][contains(@class, 'visible')]"
+        # SeleniumLibrary's scroll_element_into_view doesn't seem to work
+        # for elements in a scrollable div on Firefox. Javascript seems to
+        # work though.
+        self.selenium.driver.execute_script(
+            "arguments[0].scrollIntoView()", input_element
         )
+        trigger = input_element.find_element_by_class_name("uiPopupTrigger")
+        trigger.click()
+
         try:
+            popup_locator = (
+                "//div[contains(@class, 'uiPopupTarget')][contains(@class, 'visible')]"
+            )
             popup = self.selenium.get_webelement(popup_locator)
         except ElementNotFound:
             raise ElementNotFound("Timed out waiting for the popup menu")
+
         try:
             value_element = popup.find_element_by_link_text(value)
-            ac = ActionChains(self.selenium.driver)
-            ac.move_to_element(value_element).click().perform()
-        except Exception:
+            value_element.click()
+        except NoSuchElementException:
             raise Exception(f"Dropdown value '{value}' not found")
 
     @capture_screenshot_on_error
