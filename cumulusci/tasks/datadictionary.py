@@ -169,7 +169,7 @@ class GenerateDataDictionary(BaseGithubTask):
         """Initialize the structure used for schema storage."""
         self.sobjects = defaultdict(lambda: [])
         self.fields = defaultdict(lambda: [])
-        self.package_versions = {}
+        self.package_versions = defaultdict(lambda: [])
 
     def _walk_releases(self, package):
         """Traverse all of the releases in this project's repository and process
@@ -194,11 +194,7 @@ class GenerateDataDictionary(BaseGithubTask):
                 package,
                 self._version_from_tag_name(release.tag_name, package.prefix_release),
             )
-            if (
-                package not in self.package_versions
-                or version.version > self.package_versions[package]
-            ):
-                self.package_versions[package] = version.version
+            self.package_versions[package].append(version.version)
             self.logger.info(
                 f"Analyzing {package.package_name} version {version.version}"
             )
@@ -378,6 +374,18 @@ class GenerateDataDictionary(BaseGithubTask):
             )
             first_version = versions[-1]
             last_version = versions[0]
+
+            # Locate the version, if any, where this object was deleted.
+            package_versions = sorted(
+                self.package_versions[last_version.version.package]
+            )
+            if last_version.version.version != package_versions[-1]:
+                deleted_version = package_versions[
+                    package_versions.index(last_version.version.version) + 1
+                ]
+            else:
+                deleted_version = None
+
             if sobject_name.endswith("__c"):
                 writer.writerow(
                     [
@@ -386,9 +394,8 @@ class GenerateDataDictionary(BaseGithubTask):
                         last_version.description,
                         f"{first_version.version.package.package_name} {first_version.version.version}",
                         ""
-                        if last_version.version.version
-                        == self.package_versions[last_version.version.package]
-                        else f"{first_version.version.package.package_name} {last_version.version.version}",
+                        if deleted_version is None
+                        else f"{first_version.version.package.package_name} {deleted_version}",
                     ]
                 )
 
@@ -432,6 +439,17 @@ class GenerateDataDictionary(BaseGithubTask):
                     help_text_version = versions[index]
                     break
 
+            # Locate the version, if any, where this field was deleted.
+            package_versions = sorted(
+                self.package_versions[last_version.version.package]
+            )
+            if last_version.version.version != package_versions[-1]:
+                deleted_version = package_versions[
+                    package_versions.index(last_version.version.version) + 1
+                ]
+            else:
+                deleted_version = None
+
             writer.writerow(
                 [
                     last_version.sobject,
@@ -450,9 +468,8 @@ class GenerateDataDictionary(BaseGithubTask):
                     if help_text_version
                     else "",
                     ""
-                    if last_version.version.version
-                    == self.package_versions[last_version.version.package]
-                    else f"{first_version.version.package.package_name} {last_version.version.version}",
+                    if deleted_version is None
+                    else f"{first_version.version.package.package_name} {deleted_version}",
                 ]
             )
 

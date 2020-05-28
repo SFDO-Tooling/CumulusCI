@@ -37,7 +37,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(None, "Test", "test__", "rel/")
         v = PackageVersion(p, StrictVersion("1.1"))
         v2 = PackageVersion(p, StrictVersion("1.2"))
-        task.package_versions = {p: v2.version}
+        task.package_versions = {p: [v2.version, v.version]}
         task.sobjects = {
             "test__Test__c": [SObjectDetail(v, "test__Test__c", "Test", "Description")]
         }
@@ -46,9 +46,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
         task._write_object_results(f)
 
         f.seek(0)
+        result = f.read()
+        print(result)
         assert (
-            f.read()
-            == "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\nTest,test__Test__c,Description,Test 1.1,Test 1.1\r\n"
+            result
+            == "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\nTest,test__Test__c,Description,Test 1.1,Test 1.2\r\n"
         )
 
     def test_write_field_results(self):
@@ -64,7 +66,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(None, "Test", "test__", "rel/")
         v = PackageVersion(p, StrictVersion("1.1"))
         v2 = PackageVersion(p, StrictVersion("1.2"))
-        task.package_versions = {p: v2.version}
+        task.package_versions = {p: [v2.version, v.version]}
         task.fields = {
             "test__Test__c.test__Type__c": [
                 FieldDetail(
@@ -108,9 +110,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
         f = io.StringIO()
         task._write_field_results(f)
         f.seek(0)
-        assert f.read() == (
+        result = f.read()
+        print(result)
+        assert result == (
             "Object API Name,Field Label,Field API Name,Type,Help Text,Field Description,Allowed Values,Length,Version Introduced,Version Allowed Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
-            "test__Test__c,Type,test__Type__c,Picklist,Help,Description,Foo; Bar; New Value,,Test 1.1,Test 1.2,Test 1.2,\r\n"
+            "test__Test__c,Type,test__Type__c,Picklist,New Help,Description,Foo; Bar; New Value,,Test 1.1,Test 1.2,Test 1.2,\r\n"
             "test__Test__c,Account,test__Account__c,Lookup to Account,Help,Description,,,Test 1.1,,,Test 1.2\r\n"
         )
 
