@@ -138,7 +138,7 @@ class GenerateDataDictionary(BaseGithubTask):
         self._init_schema()
 
         # Find all of our dependencies, if we're processing dependencies.
-        dependencies = self.project_config.project__dependencies
+        dependencies = self.project_config.project__dependencies or []
         namespace = self.project_config.project__package__namespace
         if namespace:
             namespace = f"{namespace}__"
@@ -299,6 +299,8 @@ class GenerateDataDictionary(BaseGithubTask):
 
         if "__" in field_name:
             field_type = field.type.text
+            valid_values = ""
+
             if field_type in ("Picklist", "MultiselectPicklist"):
                 # There's two different ways of storing picklist values
                 # (exclusive of Global Value Sets).
@@ -329,11 +331,11 @@ class GenerateDataDictionary(BaseGithubTask):
 
                     valid_values = "; ".join(names)
             elif field_type == "Lookup":
-                valid_values = (
-                    "->" + field.referenceTo.text
-                )  # Note: polymorphic custom fields are not allowed. FIXME: namespace this value
-            else:
-                valid_values = ""
+                target_sobject = field.referenceTo.text
+                if target_sobject.count("__") == 1:
+                    target_sobject = f"{version.package.namespace}__{target_sobject}"
+                field_type = f"Lookup to {target_sobject}"
+                # Note: polymorphic custom fields are not allowed.
 
             length = ""
 
@@ -357,104 +359,110 @@ class GenerateDataDictionary(BaseGithubTask):
             fully_qualified_name = f"{sobject}.{fd.api_name}"
             self.fields[fully_qualified_name].append(fd)
 
-    def _write_results(self):
-        """Write the stored schema details to our destination CSVs"""
-        with open(self.options["object_path"], "w") as object_file:
-            writer = csv.writer(object_file)
+    def _write_object_results(self, file_handle):
+        writer = csv.writer(file_handle)
 
-            writer.writerow(
-                [
-                    "Object Label",
-                    "API Name",
-                    "Object Description",
-                    "Version Introduced",
-                    "Version Deleted",
-                ]
+        writer.writerow(
+            [
+                "Object Label",
+                "Object API Name",
+                "Object Description",
+                "Version Introduced",
+                "Version Deleted",
+            ]
+        )
+
+        for sobject_name, versions in self.sobjects.items():
+            versions = sorted(
+                versions, key=lambda ver: ver.version.version, reverse=True
             )
-
-            for sobject_name, versions in self.sobjects.items():
-                versions = sorted(
-                    versions, key=lambda ver: ver.version.version, reverse=True
-                )
-                first_version = versions[-1]
-                last_version = versions[0]
-                if sobject_name.endswith("__c"):
-                    writer.writerow(
-                        [
-                            last_version.label,
-                            sobject_name,
-                            last_version.description,
-                            f"{first_version.version.package.package_name} {first_version.version.version}",
-                            ""
-                            if last_version.version.version
-                            == self.package_versions[last_version.version.package]
-                            else f"{first_version.version.package.package_name} {last_version.version.version}",
-                        ]
-                    )
-
-        with open(self.options["field_path"], "w") as field_file:
-            writer = csv.writer(field_file)
-
-            writer.writerow(
-                [
-                    "Object API Name",
-                    "Field Label",
-                    "Field API Name",
-                    "Type",
-                    "Help Text",
-                    "Field Description",
-                    "Allowed Values",
-                    "Length",
-                    "Version Introduced",
-                    "Version Allowed Values Last Changed",
-                    "Version Help Text Last Changed",
-                    "Version Deleted",
-                ]
-            )
-
-            for field_name, field_versions in self.fields.items():
-                versions = sorted(
-                    field_versions, key=lambda ver: ver.version.version, reverse=True
-                )
-                first_version = versions[-1]
-                last_version = versions[0]
-
-                # Locate the last versions where the valid values and the help text changed.
-                valid_values_version = None
-                for (index, version) in enumerate(versions[1:]):
-                    if version.valid_values != last_version.valid_values:
-                        valid_values_version = versions[index]
-                        break
-
-                help_text_version = None
-                for (index, version) in enumerate(versions[1:]):
-                    if version.help_text != last_version.help_text:
-                        help_text_version = versions[index]
-                        break
-
+            first_version = versions[-1]
+            last_version = versions[0]
+            if sobject_name.endswith("__c"):
                 writer.writerow(
                     [
-                        last_version.sobject,
                         last_version.label,
-                        last_version.api_name,
-                        last_version.type,
-                        last_version.help_text,
+                        sobject_name,
                         last_version.description,
-                        last_version.valid_values,
-                        last_version.length,
                         f"{first_version.version.package.package_name} {first_version.version.version}",
-                        f"{first_version.version.package.package_name} {valid_values_version.version.version}"
-                        if valid_values_version
-                        else "",
-                        f"{first_version.version.package.package_name} {help_text_version.version.version}"
-                        if help_text_version
-                        else "",
                         ""
                         if last_version.version.version
                         == self.package_versions[last_version.version.package]
                         else f"{first_version.version.package.package_name} {last_version.version.version}",
                     ]
                 )
+
+    def _write_field_results(self, file_handle):
+        writer = csv.writer(file_handle)
+
+        writer.writerow(
+            [
+                "Object API Name",
+                "Field Label",
+                "Field API Name",
+                "Type",
+                "Help Text",
+                "Field Description",
+                "Allowed Values",
+                "Length",
+                "Version Introduced",
+                "Version Allowed Values Last Changed",
+                "Version Help Text Last Changed",
+                "Version Deleted",
+            ]
+        )
+
+        for field_name, field_versions in self.fields.items():
+            versions = sorted(
+                field_versions, key=lambda ver: ver.version.version, reverse=True
+            )
+            first_version = versions[-1]
+            last_version = versions[0]
+
+            # Locate the last versions where the valid values and the help text changed.
+            valid_values_version = None
+            for (index, version) in enumerate(versions[1:]):
+                if version.valid_values != last_version.valid_values:
+                    valid_values_version = versions[index]
+                    break
+
+            help_text_version = None
+            for (index, version) in enumerate(versions[1:]):
+                if version.help_text != last_version.help_text:
+                    help_text_version = versions[index]
+                    break
+
+            writer.writerow(
+                [
+                    last_version.sobject,
+                    last_version.label,
+                    last_version.api_name,
+                    last_version.type,
+                    last_version.help_text,
+                    last_version.description,
+                    last_version.valid_values,
+                    last_version.length,
+                    f"{first_version.version.package.package_name} {first_version.version.version}",
+                    f"{first_version.version.package.package_name} {valid_values_version.version.version}"
+                    if valid_values_version
+                    else "",
+                    f"{first_version.version.package.package_name} {help_text_version.version.version}"
+                    if help_text_version
+                    else "",
+                    ""
+                    if last_version.version.version
+                    == self.package_versions[last_version.version.package]
+                    else f"{first_version.version.package.package_name} {last_version.version.version}",
+                ]
+            )
+
+    def _write_results(self):
+        """Write the stored schema details to our destination CSVs"""
+        with open(self.options["object_path"], "w") as object_file:
+            self._write_object_results(object_file)
+
+        with open(self.options["field_path"], "w") as field_file:
+            self._write_field_results(field_file)
 
     def _version_from_tag_name(self, tag_name, prefix_release):
         """Parse a release's tag and return a StrictVersion"""

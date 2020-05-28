@@ -1,42 +1,30 @@
+import io
 import unittest
 
 from unittest.mock import Mock, call, patch, mock_open
 
-from cumulusci.tasks.datadictionary import GenerateDataDictionary
+from cumulusci.tasks.datadictionary import (
+    GenerateDataDictionary,
+    Package,
+    PackageVersion,
+    FieldDetail,
+    SObjectDetail,
+)
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils.xml import metadata_tree
-from distutils.version import LooseVersion
+from distutils.version import StrictVersion
 
 
 class test_GenerateDataDictionary(unittest.TestCase):
-    def test_set_version_with_props(self):
-        task = create_task(GenerateDataDictionary, {"release_prefix": "rel/"})
-
-        this_dict = {"version": LooseVersion("1.1"), "test": "test"}
-        task._set_version_with_props(this_dict, {"version": None, "test": "bad"})
-
-        assert this_dict["version"] == LooseVersion("1.1")
-        assert this_dict["test"] == "test"
-
-        this_dict = {"version": LooseVersion("1.1"), "test": "test"}
-        task._set_version_with_props(this_dict, {"version": "1.2", "test": "good"})
-
-        assert this_dict["version"] == LooseVersion("1.1")
-        assert this_dict["test"] == "good"
-
-        this_dict = {"version": LooseVersion("1.3"), "test": "test"}
-        task._set_version_with_props(this_dict, {"version": "1.2", "test": "bad"})
-
-        assert this_dict["version"] == LooseVersion("1.2")
-        assert this_dict["test"] == "test"
-
     def test_version_from_tag_name(self):
-        task = create_task(GenerateDataDictionary, {"release_prefix": "release/"})
+        task = create_task(GenerateDataDictionary, {})
 
-        assert task._version_from_tag_name("release/1.1") == LooseVersion("1.1")
+        assert task._version_from_tag_name("release/1.1", "release/") == StrictVersion(
+            "1.1"
+        )
 
-    def test_write_results(self):
+    def test_write_object_results(self):
         task = create_task(
             GenerateDataDictionary,
             {
@@ -46,57 +34,84 @@ class test_GenerateDataDictionary(unittest.TestCase):
             },
         )
 
-        task.schema = {
-            "Account": {
-                "fields": {
-                    "Test__c": {
-                        "version": LooseVersion("1.1"),
-                        "label": "Test",
-                        "help_text": "Text field",
-                        "description": "",
-                        "valid_values": "",
-                        "type": "Text",
-                    }
-                }
-            },
-            "Child__c": {
-                "fields": {
-                    "Parent__c": {
-                        "version": LooseVersion("1.2"),
-                        "label": "Parent",
-                        "help_text": "Lookup",
-                        "description": "",
-                        "valid_values": "",
-                        "type": "Lookup",
-                    }
-                },
-                "version": LooseVersion("1.0"),
-                "label": "Child",
-                "help_text": "Child object",
-                "description": "",
-            },
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+        v2 = PackageVersion(p, StrictVersion("1.2"))
+        task.package_versions = {p: v2.version}
+        task.sobjects = {
+            "test__Test__c": [SObjectDetail(v, "test__Test__c", "Test", "Description")]
         }
 
-        m = mock_open()
-        with patch("builtins.open", m):
-            task._write_results()
+        f = io.StringIO()
+        task._write_object_results(f)
 
-        m.assert_has_calls(
-            [call("object.csv", "w"), call("fields.csv", "w")], any_order=True
+        f.seek(0)
+        assert (
+            f.read()
+            == "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\nTest,test__Test__c,Description,Test 1.1,Test 1.1\r\n"
         )
-        m.return_value.write.assert_has_calls(
-            [
-                call(
-                    "Object Name,Object Label,Object Description,Version Introduced\r\n"
+
+    def test_write_field_results(self):
+        task = create_task(
+            GenerateDataDictionary,
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
+        )
+
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+        v2 = PackageVersion(p, StrictVersion("1.2"))
+        task.package_versions = {p: v2.version}
+        task.fields = {
+            "test__Test__c.test__Type__c": [
+                FieldDetail(
+                    v,
+                    "test__Test__c",
+                    "test__Type__c",
+                    "Type",
+                    "Picklist",
+                    "Help",
+                    "Description",
+                    "Foo; Bar",
+                    "",
                 ),
-                call("Child__c,Child,Child object,1.0\r\n"),
-                call(
-                    "Object Name,Field Name,Field Label,Type,Field Help Text,Description,Allowed Values,Version Introduced\r\n"
+                FieldDetail(
+                    v2,
+                    "test__Test__c",
+                    "test__Type__c",
+                    "Type",
+                    "Picklist",
+                    "New Help",
+                    "Description",
+                    "Foo; Bar; New Value",
+                    "",
                 ),
-                call("Account,Test__c,Test,Text,Text field,,,1.1\r\n"),
-                call("Child__c,Parent__c,Parent,Lookup,Lookup,,,1.2\r\n"),
             ],
-            any_order=True,
+            "test__Test__c.test__Account__c": [
+                FieldDetail(
+                    v,
+                    "test__Test__c",
+                    "test__Account__c",
+                    "Account",
+                    "Lookup to Account",
+                    "Help",
+                    "Description",
+                    "",
+                    "",
+                )
+            ],
+        }
+
+        f = io.StringIO()
+        task._write_field_results(f)
+        f.seek(0)
+        assert f.read() == (
+            "Object API Name,Field Label,Field API Name,Type,Help Text,Field Description,Allowed Values,Length,Version Introduced,Version Allowed Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
+            "test__Test__c,Type,test__Type__c,Picklist,Help,Description,Foo; Bar; New Value,,Test 1.1,Test 1.2,Test 1.2,\r\n"
+            "test__Test__c,Account,test__Account__c,Lookup to Account,Help,Description,,,Test 1.1,,,Test 1.2\r\n"
         )
 
     def test_process_field_element__new(self):
@@ -116,22 +131,28 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "release_prefix": "rel/",
             },
         )
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
 
         task._init_schema()
         task._process_field_element(
-            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
-        assert "Test__c" in task.schema
-        assert "Account__c" in task.schema["Test__c"]["fields"]
-        assert task.schema["Test__c"]["fields"]["Account__c"] == {
-            "version": LooseVersion("1.1"),
-            "help_text": "",
-            "label": "Account",
-            "description": "",
-            "type": "Lookup",
-            "valid_values": "->Account",
-        }
+        assert "test__Test__c.test__Account__c" in task.fields
+        assert task.fields["test__Test__c.test__Account__c"] == [
+            FieldDetail(
+                v,
+                "test__Test__c",
+                "test__Account__c",
+                "Account",
+                "Lookup to Account",
+                "",
+                "",
+                "",
+                "",
+            )
+        ]
 
     def test_process_field_element__standard(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
@@ -152,11 +173,14 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+
         task._process_field_element(
-            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
-        assert task.schema["Test__c"]["fields"]["Account"]["version"] is None
+        assert "test__Test__c.Account" not in task.fields
 
     def test_process_field_element__updated(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
@@ -178,34 +202,59 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+        v2 = PackageVersion(p, StrictVersion("1.2"))
+
         task._process_field_element(
-            "Test__c",
+            "test__Test__c",
             metadata_tree.fromstring(xml_source.format("Initial").encode("utf-8")),
-            "1.1",
+            v,
         )
 
-        assert task.schema["Test__c"]["fields"]["Account__c"] == {
-            "version": LooseVersion("1.1"),
-            "help_text": "Initial",
-            "description": "",
-            "label": "Account",
-            "type": "Lookup",
-            "valid_values": "->Account",
-        }
+        assert task.fields["test__Test__c.test__Account__c"] == [
+            FieldDetail(
+                v,
+                "test__Test__c",
+                "test__Account__c",
+                "Account",
+                "Lookup to Account",
+                "Initial",
+                "",
+                "",
+                "",
+            )
+        ]
 
         task._process_field_element(
-            "Test__c",
+            "test__Test__c",
             metadata_tree.fromstring(xml_source.format("New").encode("utf-8")),
-            "1.2",
+            v2,
         )
-        assert task.schema["Test__c"]["fields"]["Account__c"] == {
-            "version": LooseVersion("1.1"),
-            "help_text": "New",
-            "description": "",
-            "label": "Account",
-            "type": "Lookup",
-            "valid_values": "->Account",
-        }
+        assert task.fields["test__Test__c.test__Account__c"] == [
+            FieldDetail(
+                v,
+                "test__Test__c",
+                "test__Account__c",
+                "Account",
+                "Lookup to Account",
+                "Initial",
+                "",
+                "",
+                "",
+            ),
+            FieldDetail(
+                v2,
+                "test__Test__c",
+                "test__Account__c",
+                "Account",
+                "Lookup to Account",
+                "New",
+                "",
+                "",
+                "",
+            ),
+        ]
 
     def test_process_field_element__valid_values(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
@@ -237,18 +286,26 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+
         task._process_field_element(
-            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
-        assert task.schema["Test__c"]["fields"]["Type__c"] == {
-            "version": LooseVersion("1.1"),
-            "help_text": "",
-            "description": "",
-            "label": "Type",
-            "type": "Picklist",
-            "valid_values": "Test 1; Test 2",
-        }
+        assert task.fields["test__Test__c.test__Type__c"] == [
+            FieldDetail(
+                v,
+                "test__Test__c",
+                "test__Type__c",
+                "Type",
+                "Picklist",
+                "",
+                "",
+                "Test 1; Test 2",
+                "",
+            )
+        ]
 
     def test_process_field_element__valid_values_old_format(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
@@ -278,18 +335,26 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+
         task._process_field_element(
-            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
-        assert task.schema["Test__c"]["fields"]["Type__c"] == {
-            "version": LooseVersion("1.1"),
-            "help_text": "",
-            "label": "Type",
-            "description": "",
-            "type": "Picklist",
-            "valid_values": "Test 1; Test 2",
-        }
+        assert task.fields["test__Test__c.test__Type__c"] == [
+            FieldDetail(
+                v,
+                "test__Test__c",
+                "test__Type__c",
+                "Type",
+                "Picklist",
+                "",
+                "",
+                "Test 1; Test 2",
+                "",
+            )
+        ]
 
     def test_process_field_element__valid_values_global_value_set(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
@@ -312,18 +377,26 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+
         task._process_field_element(
-            "Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), "1.1"
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
-        assert task.schema["Test__c"]["fields"]["Type__c"] == {
-            "version": LooseVersion("1.1"),
-            "help_text": "",
-            "label": "Type",
-            "description": "",
-            "type": "Picklist",
-            "valid_values": "Global Value Set Test Value Set",
-        }
+        assert task.fields["test__Test__c.test__Type__c"] == [
+            FieldDetail(
+                v,
+                "test__Test__c",
+                "test__Type__c",
+                "Type",
+                "Picklist",
+                "",
+                "",
+                "Global Value Set Test Value Set",
+                "",
+            )
+        ]
 
     def test_process_object_element(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
@@ -333,8 +406,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <fields>
         <fullName>Type__c</fullName>
         <inlineHelpText>Type of field.</inlineHelpText>
+        <description>Desc</description>
         <label>Type</label>
         <type>Text</type>
+        <length>128</length>
     </fields>
 </CustomObject>"""
 
@@ -348,28 +423,29 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         task._init_schema()
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
         task._process_object_element(
-            "Test__c",
-            metadata_tree.fromstring(xml_source.encode("utf-8")),
-            LooseVersion("1.1"),
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
-        assert task.schema == {
-            "Test__c": {
-                "label": "Test",
-                "version": LooseVersion("1.1"),
-                "help_text": "Description",
-                "fields": {
-                    "Type__c": {
-                        "version": LooseVersion("1.1"),
-                        "label": "Type",
-                        "help_text": "Type of field.",
-                        "description": "",
-                        "valid_values": "",
-                        "type": "Text",
-                    }
-                },
-            }
+        assert task.sobjects == {
+            "test__Test__c": [SObjectDetail(v, "test__Test__c", "Test", "Description")]
+        }
+        assert task.fields == {
+            "test__Test__c.test__Type__c": [
+                FieldDetail(
+                    v,
+                    "test__Test__c",
+                    "test__Type__c",
+                    "Type",
+                    "Text",
+                    "Type of field.",
+                    "Desc",
+                    "",
+                    "128",
+                )
+            ]
         }
 
         def test_process_object_element__standard(self):
@@ -389,13 +465,13 @@ class test_GenerateDataDictionary(unittest.TestCase):
             )
 
             task._init_schema()
+            p = Package(None, "Test", "test__", "rel/")
+            v = PackageVersion(p, StrictVersion("1.1"))
             task._process_object_element(
-                "Account",
-                metadata_tree.fromstring(xml_source.encode("utf-8")),
-                LooseVersion("1.1"),
+                "Account", metadata_tree.fromstring(xml_source.encode("utf-8")), v
             )
 
-            assert task.schema["Account"]["version"] is None
+            assert "Account" not in task.sobjects
 
     @patch("cumulusci.tasks.datadictionary.metadata_tree.fromstring")
     def test_process_sfdx_release(self, fromstring):
@@ -408,6 +484,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
             },
         )
 
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+
         zip_file = Mock()
         zip_file.read.return_value = "<test></test>"
         zip_file.namelist.return_value = [
@@ -419,7 +498,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         ]
         task._process_object_element = Mock()
         task._process_field_element = Mock()
-        task._process_sfdx_release(zip_file, LooseVersion("1.1"))
+        task._process_sfdx_release(zip_file, v)
 
         zip_file.read.assert_has_calls(
             [
@@ -433,26 +512,12 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._process_object_element.assert_has_calls(
             [
-                call(
-                    "Child__c",
-                    metadata_tree.fromstring("<test></test>"),
-                    LooseVersion("1.1"),
-                ),
-                call(
-                    "Parent__c",
-                    metadata_tree.fromstring("<test></test>"),
-                    LooseVersion("1.1"),
-                ),
+                call("test__Child__c", metadata_tree.fromstring("<test></test>"), v),
+                call("test__Parent__c", metadata_tree.fromstring("<test></test>"), v),
             ]
         )
         task._process_field_element.assert_has_calls(
-            [
-                call(
-                    "Child__c",
-                    metadata_tree.fromstring("<test></test>"),
-                    LooseVersion("1.1"),
-                )
-            ]
+            [call("test__Child__c", metadata_tree.fromstring("<test></test>"), v)]
         )
 
     @patch("cumulusci.tasks.datadictionary.metadata_tree.fromstring")
@@ -466,6 +531,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
             },
         )
 
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
         zip_file = Mock()
         zip_file.namelist.return_value = [
             "src/objects/Child__c.object",
@@ -475,7 +542,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         ]
         zip_file.read.return_value = "<test></test>"
         task._process_object_element = Mock()
-        task._process_mdapi_release(zip_file, LooseVersion("1.1"))
+        task._process_mdapi_release(zip_file, v)
 
         zip_file.read.assert_has_calls(
             [call("src/objects/Child__c.object"), call("src/objects/Parent__c.object")]
@@ -483,16 +550,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._process_object_element.assert_has_calls(
             [
-                call(
-                    "Child__c",
-                    metadata_tree.fromstring("<test></test>"),
-                    LooseVersion("1.1"),
-                ),
-                call(
-                    "Parent__c",
-                    metadata_tree.fromstring("<test></test>"),
-                    LooseVersion("1.1"),
-                ),
+                call("test__Child__c", metadata_tree.fromstring("<test></test>"), v),
+                call("test__Parent__c", metadata_tree.fromstring("<test></test>"), v),
             ]
         )
 
@@ -510,20 +569,22 @@ class test_GenerateDataDictionary(unittest.TestCase):
             },
             project_config=project_config,
         )
+        task._init_schema()
 
-        task.get_repo = Mock()
+        repo = Mock()
         release = Mock()
         release.draft = False
         release.prerelease = False
         release.tag_name = "rel/1.1"
-        task.get_repo.return_value.releases.return_value = [release]
+        repo.releases.return_value = [release]
         task._process_mdapi_release = Mock()
         extract_github.return_value.namelist.return_value = ["src/objects/"]
+        p = Package(repo, "Test", "test__", "rel/")
 
-        task._walk_releases()
+        task._walk_releases(p)
 
         task._process_mdapi_release.assert_called_once_with(
-            extract_github.return_value, "1.1"
+            extract_github.return_value, PackageVersion(p, StrictVersion("1.1"))
         )
 
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
@@ -541,29 +602,32 @@ class test_GenerateDataDictionary(unittest.TestCase):
             },
             project_config=project_config,
         )
+        task._init_schema()
 
-        task.get_repo = Mock()
+        repo = Mock()
         release = Mock()
         release.draft = False
         release.prerelease = False
         release.tag_name = "rel/1.1"
-        task.get_repo.return_value.releases.return_value = [release]
+        repo.releases.return_value = [release]
         task._process_sfdx_release = Mock()
         extract_github.return_value.namelist.return_value = [
             "force-app/main/default/objects/"
         ]
+        p = Package(repo, "Test", "test__", "rel/")
 
-        task._walk_releases()
+        task._walk_releases(p)
 
         task._process_sfdx_release.assert_called_once_with(
-            extract_github.return_value, "1.1"
+            extract_github.return_value, PackageVersion(p, StrictVersion("1.1"))
         )
 
     def test_init_schema(self):
         task = create_task(GenerateDataDictionary, {"release_prefix": "rel/"})
         task._init_schema()
 
-        assert task.schema is not None
+        assert task.fields is not None
+        assert task.sobjects is not None
 
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
     def test_run_task(self, extract_github):
@@ -577,23 +641,22 @@ class test_GenerateDataDictionary(unittest.TestCase):
         <inlineHelpText>Type of field.</inlineHelpText>
         <label>Type</label>
         <type>Text</type>
+        <length>255</length>
     </fields>
 </CustomObject>"""
         project_config = create_project_config()
         project_config.keychain.get_service = Mock()
+        project_config.project__package__name = "Project"
         project_config.project__name = "Project"
+        project_config.project__package__namespace = "test"
 
-        task = create_task(
-            GenerateDataDictionary,
-            {"release_prefix": "rel/"},
-            project_config=project_config,
-        )
+        task = create_task(GenerateDataDictionary, project_config=project_config)
 
         task.get_repo = Mock()
         release = Mock()
         release.draft = False
         release.prerelease = False
-        release.tag_name = "rel/1.1"
+        release.tag_name = "release/1.1"
         task.get_repo.return_value.releases.return_value = [release]
 
         extract_github.return_value.namelist.return_value = [
@@ -607,22 +670,22 @@ class test_GenerateDataDictionary(unittest.TestCase):
             task()
 
         m.assert_has_calls(
-            [
-                call("Project sObject Data Dictionary.csv", "w"),
-                call("Project Field Data Dictionary.csv", "w"),
-            ],
+            [call("Project Objects.csv", "w"), call("Project Fields.csv", "w")],
             any_order=True,
         )
+        print(m.return_value.write.call_args_list)
         m.return_value.write.assert_has_calls(
             [
                 call(
-                    "Object Name,Object Label,Object Description,Version Introduced\r\n"
+                    "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\n"
                 ),
-                call("Test__c,Test,Description,1.1\r\n"),
+                call("Test,test__Test__c,Description,Project 1.1,\r\n"),
                 call(
-                    "Object Name,Field Name,Field Label,Type,Field Help Text,Description,Allowed Values,Version Introduced\r\n"
+                    "Object API Name,Field Label,Field API Name,Type,Help Text,Field Description,Allowed Values,Length,Version Introduced,Version Allowed Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
                 ),
-                call("Test__c,Type__c,Type,Text,Type of field.,,,1.1\r\n"),
+                call(
+                    "test__Test__c,Type,test__Type__c,Text,Type of field.,,,255,Project 1.1,,,\r\n"
+                ),
             ],
             any_order=True,
         )
@@ -635,8 +698,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
             GenerateDataDictionary, {"release_prefix": "rel/"}, project_config
         )
 
-        assert task.options["object_path"] == "Project sObject Data Dictionary.csv"
-        assert task.options["field_path"] == "Project Field Data Dictionary.csv"
+        assert task.options["object_path"] == "Project Objects.csv"
+        assert task.options["field_path"] == "Project Fields.csv"
 
     def test_init_options(self):
         task = create_task(
