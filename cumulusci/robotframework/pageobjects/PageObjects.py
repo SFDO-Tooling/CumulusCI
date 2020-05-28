@@ -271,22 +271,16 @@ class PageObjects(object):
     def wait_for_modal(self, page_type, object_name, expected_heading=None, **kwargs):
         """Wait for the given page object modal to appear.
 
-        This will both wait for the modal, and verify that the modal
-        has an expected heading. By default the expected heading will
-        be the page object type (eg "New") and object name (eg:
-        "Contact") separated by a space (eg: "New Contact").
-
-        You can override the expected heading with the expected_heading
-        parameter.
+        This will wait for modal to appear. If an expected heading
+        is provided, it will also validate that the modal has the
+        expected heading.
 
         Example:
 
-        | Wait for modal to appear    New    Contact
+        | Wait for modal to appear    New    Contact   expected_heading=New Contact
 
         """
         pobj = self.get_page_object(page_type, object_name)
-        if not expected_heading:
-            expected_heading = f"{pobj._page_type} {pobj._object_name}"
         pobj._wait_to_appear(expected_heading=expected_heading)
         self._set_current_page_object(pobj)
         # Ideally we would wait for something, but I can't figure out
