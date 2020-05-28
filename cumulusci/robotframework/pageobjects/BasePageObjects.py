@@ -215,7 +215,7 @@ class ModalMixin:
             element = root.find_element_by_xpath(locator)
             return element
 
-        except ElementNotFound:
+        except NoSuchElementException:
             raise ElementNotFound(f"Form element with label '{label}' was not found")
 
 

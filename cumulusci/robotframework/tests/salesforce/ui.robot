@@ -264,6 +264,7 @@ Populate Form
     Should Be Equal      ${value}  CASH
 
 Select Dropdown Value
+    [Documentation]  Select Dropdown Value happy path tests
     [Setup]   Run keywords
     ...  Go to page  Home  Contact
     ...  AND  Click object button   New
@@ -275,6 +276,7 @@ Select Dropdown Value
     # these two fields look and act identical, but they are
     # implemented differently in the DOM *sigh*
     Select dropdown value  Salutation   Mr.
+
     Select dropdown value  Lead Source  Purchased List
 
     Click Modal Button           Save
@@ -290,3 +292,20 @@ Select Dropdown Value
     ...    Object field should be  Contact  ${contact id}  LeadSource  Purchased List
     Wait until keyword succeeds  5 seconds  2 seconds
     ...    Object field should be  Contact  ${contact id}  Salutation  Mr.
+
+Select Dropdown Value exceptions
+    [Documentation]  Verify that the keyword throws appropriate errors
+    [Setup]   Run keywords
+    ...  Go to page  Home  Contact
+    ...  AND  Click object button   New
+    ...  AND  Wait for modal        New   Contact
+
+    # Bad input field name
+    Run keyword and continue on failure
+    ...  Run keyword and expect error  Form element with label 'Bogus' was not found
+    ...    Select dropdown value  Bogus   Mr.
+
+    # Bad value
+    Run keyword and continue on failure
+    ...  Run keyword and expect error  Dropdown value 'Bogus' not found
+    ...    Select dropdown value  Lead Source  Bogus
