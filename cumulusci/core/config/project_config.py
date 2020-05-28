@@ -593,7 +593,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
         # Determine the commit
-        release, ref = self.get_ref_for_dependency(repo, dependency)
+        release, ref = self.get_ref_for_dependency(repo, dependency, include_beta)
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
