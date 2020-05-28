@@ -191,6 +191,8 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         # If we're using Record Type mapping, `RecordTypeId` goes at the end.
         if "RecordTypeId" in columns:
             columns.remove("RecordTypeId")
+        if "RecordType" in columns:
+            columns.remove("RecordType")
 
         if mapping["action"] == "insert" and "Id" in columns:
             columns.remove("Id")
@@ -241,7 +243,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         columns = [getattr(model, id_column)]
 
         for name, f in fields.items():
-            if name != "RecordTypeId":
+            if name not in ("RecordTypeId", "RecordType"):
                 columns.append(model.__table__.columns[f])
 
         lookups = {

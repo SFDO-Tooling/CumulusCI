@@ -82,8 +82,9 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
         metadata = MetaData()
         metadata.bind = engine
         if mappings:
-            for mapping in mappings.values():
-                create_table(mapping, metadata)
+            for name, mapping in mappings.items():
+                if "table" in mapping and mapping["table"] not in metadata.tables:
+                    create_table(mapping, metadata)
         metadata.create_all()
         base = automap_base(bind=engine, metadata=metadata)
         base.prepare(engine, reflect=True)

@@ -178,9 +178,10 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
 
         # some generator tasks can generate the mapping file instead of reading it
         with TemporaryDirectory() as tempdir:
-            temp_mapping = Path(tempdir) / "temp_mapping.yml"
-            mapping_file = self.options.get("generate_mapping_file", temp_mapping)
-            subtask_options["generate_mapping_file"] = mapping_file
+            if not subtask_options.get("mapping"):
+                temp_mapping = Path(tempdir) / "temp_mapping.yml"
+                mapping_file = self.options.get("generate_mapping_file", temp_mapping)
+                subtask_options["generate_mapping_file"] = mapping_file
             self._datagen(subtask_options)
             if not subtask_options.get("mapping"):
                 subtask_options["mapping"] = mapping_file
