@@ -329,8 +329,14 @@ class GenerateDataDictionary(BaseGithubTask):
             elif field_type == "Lookup":
                 target_sobject = field.referenceTo.text
                 if target_sobject.count("__") == 1:
-                    target_sobject = f"{version.package.namespace}__{target_sobject}"
+                    target_sobject = f"{version.package.namespace}{target_sobject}"
                 field_type = f"Lookup to {target_sobject}"
+                # Note: polymorphic custom fields are not allowed.
+            elif field_type == "MasterDetail":
+                target_sobject = field.referenceTo.text
+                if target_sobject.count("__") == 1:
+                    target_sobject = f"{version.package.namespace}{target_sobject}"
+                field_type = f"Master-Detail Relationship to {target_sobject}"
                 # Note: polymorphic custom fields are not allowed.
 
             length = ""

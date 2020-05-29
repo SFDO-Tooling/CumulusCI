@@ -47,7 +47,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         f.seek(0)
         result = f.read()
-        print(result)
+
         assert (
             result
             == "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\nTest,test__Test__c,Description,Test 1.1,Test 1.2\r\n"
@@ -111,7 +111,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         task._write_field_results(f)
         f.seek(0)
         result = f.read()
-        print(result)
+
         assert result == (
             "Object API Name,Field Label,Field API Name,Type,Help Text,Field Description,Allowed Values,Length,Version Introduced,Version Allowed Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
             "test__Test__c,Type,test__Type__c,Picklist,New Help,Description,Foo; Bar; New Value,,Test 1.1,Test 1.2,Test 1.2,\r\n"
@@ -121,10 +121,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
     def test_process_field_element__new(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
-    <fullName>Account__c</fullName>
-    <label>Account</label>
+    <fullName>Lookup__c</fullName>
+    <label>Test</label>
     <type>Lookup</type>
-    <referenceTo>Account</referenceTo>
+    <referenceTo>Test__c</referenceTo>
 </CustomField>
 """
         task = create_task(
@@ -143,14 +143,55 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
-        assert "test__Test__c.test__Account__c" in task.fields
-        assert task.fields["test__Test__c.test__Account__c"] == [
+        assert "test__Test__c.test__Lookup__c" in task.fields
+
+        assert task.fields["test__Test__c.test__Lookup__c"] == [
             FieldDetail(
                 v,
                 "test__Test__c",
-                "test__Account__c",
-                "Account",
-                "Lookup to Account",
+                "test__Lookup__c",
+                "Test",
+                "Lookup to test__Test__c",
+                "",
+                "",
+                "",
+                "",
+            )
+        ]
+
+    def test_process_field_element__master_detail(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Lookup__c</fullName>
+    <label>Test</label>
+    <type>MasterDetail</type>
+    <referenceTo>Test__c</referenceTo>
+</CustomField>
+"""
+        task = create_task(
+            GenerateDataDictionary,
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
+        )
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+
+        task._init_schema()
+        task._process_field_element(
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
+        )
+
+        assert "test__Test__c.test__Lookup__c" in task.fields
+        assert task.fields["test__Test__c.test__Lookup__c"] == [
+            FieldDetail(
+                v,
+                "test__Test__c",
+                "test__Lookup__c",
+                "Test",
+                "Master-Detail Relationship to test__Test__c",
                 "",
                 "",
                 "",
@@ -402,6 +443,79 @@ class test_GenerateDataDictionary(unittest.TestCase):
             )
         ]
 
+    def test_process_field_element__text_length(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Type__c</fullName>
+    <label>Type</label>
+    <type>Text</type>
+    <length>128</length>
+</CustomField>
+"""
+        task = create_task(
+            GenerateDataDictionary,
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
+        )
+
+        task._init_schema()
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+
+        task._process_field_element(
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
+        )
+
+        assert task.fields["test__Test__c.test__Type__c"] == [
+            FieldDetail(
+                v, "test__Test__c", "test__Type__c", "Type", "Text", "", "", "", "128"
+            )
+        ]
+
+    def test_process_field_element__number_length(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Type__c</fullName>
+    <label>Type</label>
+    <type>Number</type>
+    <precision>18</precision>
+    <scale>2</scale>
+</CustomField>
+"""
+        task = create_task(
+            GenerateDataDictionary,
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
+        )
+
+        task._init_schema()
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+
+        task._process_field_element(
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
+        )
+
+        assert task.fields["test__Test__c.test__Type__c"] == [
+            FieldDetail(
+                v,
+                "test__Test__c",
+                "test__Type__c",
+                "Type",
+                "Number",
+                "",
+                "",
+                "",
+                "16.2",
+            )
+        ]
+
     def test_process_object_element(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -476,6 +590,32 @@ class test_GenerateDataDictionary(unittest.TestCase):
             )
 
             assert "Account" not in task.sobjects
+
+        def test_process_object_element__custom_setting(self):
+            xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customSettingsType>List</customSettingsType>
+    <description>Description</description>
+    <label>Test</label>
+</CustomObject>"""
+
+            task = create_task(
+                GenerateDataDictionary,
+                {
+                    "object_path": "object.csv",
+                    "field_path": "fields.csv",
+                    "release_prefix": "rel/",
+                },
+            )
+
+            task._init_schema()
+            p = Package(None, "Test", "test__", "rel/")
+            v = PackageVersion(p, StrictVersion("1.1"))
+            task._process_object_element(
+                "test__CS__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
+            )
+
+            assert "test__CS__c" not in task.sobjects
 
     @patch("cumulusci.tasks.datadictionary.metadata_tree.fromstring")
     def test_process_sfdx_release(self, fromstring):
@@ -626,6 +766,36 @@ class test_GenerateDataDictionary(unittest.TestCase):
             extract_github.return_value, PackageVersion(p, StrictVersion("1.1"))
         )
 
+    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    def test_walk_releases__draft(self, extract_github):
+        project_config = create_project_config()
+        project_config.project__git__prefix_release = "rel/"
+        project_config.project__name = "Project"
+        task = create_task(
+            GenerateDataDictionary,
+            {
+                "object_path": "object.csv",
+                "field_path": "fields.csv",
+                "release_prefix": "rel/",
+            },
+            project_config=project_config,
+        )
+        task._init_schema()
+
+        repo = Mock()
+        release = Mock()
+        release.draft = True
+        release.prerelease = False
+        release.tag_name = "rel/1.1"
+        repo.releases.return_value = [release]
+        task._process_mdapi_release = Mock()
+        extract_github.return_value.namelist.return_value = ["src/objects/"]
+        p = Package(repo, "Test", "test__", "rel/")
+
+        task._walk_releases(p)
+
+        task._process_mdapi_release.assert_not_called()
+
     def test_init_schema(self):
         task = create_task(GenerateDataDictionary, {"release_prefix": "rel/"})
         task._init_schema()
@@ -677,7 +847,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             [call("Project Objects.csv", "w"), call("Project Fields.csv", "w")],
             any_order=True,
         )
-        print(m.return_value.write.call_args_list)
+
         m.return_value.write.assert_has_calls(
             [
                 call(
