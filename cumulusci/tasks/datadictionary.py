@@ -83,6 +83,8 @@ class GenerateDataDictionary(BaseGithubTask):
     def _get_repo_dependencies(
         self, dependencies=None, include_beta=None, visited_repos=None
     ):
+        """Return a list of Package objects representing all of the GitHub repositories
+        in this project's dependency tree. Ignore all non-GitHub dependencies."""
         deps = []
         visited = visited_repos or set()
 
@@ -204,7 +206,7 @@ class GenerateDataDictionary(BaseGithubTask):
                 self._process_mdapi_release(zip_file, version)
 
             if "force-app/main/default/objects/" in zip_file.namelist():
-                # FIXME: check sfdx-project.json for directories to process.
+                # TODO: check sfdx-project.json for directories to process.
                 # SFDX format
                 self._process_sfdx_release(zip_file, version)
 
@@ -362,6 +364,7 @@ class GenerateDataDictionary(BaseGithubTask):
             self.fields[fully_qualified_name].append(fd)
 
     def _write_object_results(self, file_handle):
+        """Write to the given handle an output CSV containing the data dictionary for sObjects."""
         writer = csv.writer(file_handle)
 
         writer.writerow(
@@ -406,6 +409,7 @@ class GenerateDataDictionary(BaseGithubTask):
                 )
 
     def _write_field_results(self, file_handle):
+        """Write to the given handle an output CSV containing the data dictionary for fields."""
         writer = csv.writer(file_handle)
 
         writer.writerow(
