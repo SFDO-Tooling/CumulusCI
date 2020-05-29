@@ -562,8 +562,26 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
             assert "test__CS__c" not in task.sobjects
 
-    @patch("cumulusci.tasks.datadictionary.metadata_tree.fromstring")
-    def test_process_sfdx_release(self, fromstring):
+    def test_process_sfdx_release(self):
+        object_source = b"""<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Description</description>
+    <label>Test</label>
+</CustomObject>"""
+        field_source = b"""<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+        <fullName>Type__c</fullName>
+        <label>Type</label>
+        <type>Text</type>
+        <length>128</length>
+    </CustomField>
+"""
+
+        def zip_read(filename):
+            if filename.endswith(".object-meta.xml"):
+                return object_source
+
+            return field_source
+
         task = create_task(
             GenerateDataDictionary,
             {"object_path": "object.csv", "field_path": "fields.csv"},
@@ -573,11 +591,11 @@ class test_GenerateDataDictionary(unittest.TestCase):
         v = PackageVersion(p, StrictVersion("1.1"))
 
         zip_file = Mock()
-        zip_file.read.return_value = "<test></test>"
+        zip_file.read.side_effect = zip_read
         zip_file.namelist.return_value = [
-            "force-app/main/default/objects/Child__c.object-meta.xml",
+            "force-app/main/default/objects/Child__c/Child__c.object-meta.xml",
             "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml",
-            "force-app/main/default/objects/Parent__c.object-meta.xml",
+            "force-app/main/default/objects/Parent__c/Parent__c.object-meta.xml",
             ".gitignore",
             "test__c.object-meta.xml",
         ]
@@ -587,23 +605,85 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         zip_file.read.assert_has_calls(
             [
-                call("force-app/main/default/objects/Child__c.object-meta.xml"),
+                call(
+                    "force-app/main/default/objects/Child__c/Child__c.object-meta.xml"
+                ),
+                call(
+                    "force-app/main/default/objects/Child__c/Child__c.object-meta.xml"
+                ),
                 call(
                     "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml"
                 ),
-                call("force-app/main/default/objects/Parent__c.object-meta.xml"),
+                call(
+                    "force-app/main/default/objects/Parent__c/Parent__c.object-meta.xml"
+                ),
             ]
         )
 
-        task._process_object_element.assert_has_calls(
+        assert len(task._process_object_element.call_args_list) == 2
+        assert task._process_object_element.call_args_list[0][0][0] == "test__Child__c"
+        assert task._process_object_element.call_args_list[1][0][0] == "test__Parent__c"
+
+        assert len(task._process_field_element.call_args_list) == 1
+        assert task._process_object_element.call_args_list[0][0][0] == "test__Child__c"
+
+    def test_process_sfdx_release__skips_custom_settings_fields(self):
+        object_source = b"""<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customSettingsType>Hierarchy</customSettingsType>
+    <description>Description</description>
+    <label>Test</label>
+</CustomObject>"""
+        field_source = b"""<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+        <fullName>Type__c</fullName>
+        <label>Type</label>
+        <type>Text</type>
+        <length>128</length>
+    </CustomField>
+"""
+
+        def zip_read(filename):
+            if filename.endswith(".object-meta.xml"):
+                return object_source
+
+            return field_source
+
+        task = create_task(
+            GenerateDataDictionary,
+            {"object_path": "object.csv", "field_path": "fields.csv"},
+        )
+
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+
+        zip_file = Mock()
+        zip_file.read.side_effect = zip_read
+        zip_file.namelist.return_value = [
+            "force-app/main/default/objects/Child__c/Child__c.object-meta.xml",
+            "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml",
+            "force-app/main/default/objects/Parent__c/Parent__c.object-meta.xml",
+            ".gitignore",
+            "test__c.object-meta.xml",
+        ]
+        task._process_object_element = Mock()
+        task._process_field_element = Mock()
+        task._process_sfdx_release(zip_file, v)
+
+        zip_file.read.assert_has_calls(
             [
-                call("test__Child__c", metadata_tree.fromstring("<test></test>"), v),
-                call("test__Parent__c", metadata_tree.fromstring("<test></test>"), v),
+                call(
+                    "force-app/main/default/objects/Child__c/Child__c.object-meta.xml"
+                ),
+                call(
+                    "force-app/main/default/objects/Child__c/Child__c.object-meta.xml"
+                ),
+                call(
+                    "force-app/main/default/objects/Parent__c/Parent__c.object-meta.xml"
+                ),
             ]
         )
-        task._process_field_element.assert_has_calls(
-            [call("test__Child__c", metadata_tree.fromstring("<test></test>"), v)]
-        )
+
+        task._process_field_element.assert_not_called()
 
     @patch("cumulusci.tasks.datadictionary.metadata_tree.fromstring")
     def test_process_mdapi_release(self, fromstring):
@@ -729,7 +809,52 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.sobjects is not None
 
     def test_run_task__additional_dependencies(self):
-        raise NotImplementedError
+        project_config = create_project_config()
+        project_config.keychain.get_service = Mock()
+        project_config.project__package__name = "Project"
+        project_config.project__name = "Project"
+        project_config.project__package__namespace = "test"
+        project_config.project__dependencies = [{"github": "http://example"}]
+
+        task = create_task(
+            GenerateDataDictionary,
+            {"additional_dependencies": ["http://test/"]},
+            project_config=project_config,
+        )
+        task.get_repo = Mock()
+        release = Mock()
+        release.draft = False
+        release.prerelease = False
+        release.tag_name = "release/1.1"
+        task.get_repo.return_value.releases.return_value = [release]
+        task._get_repo_dependencies = Mock(return_value=[1, 2])
+        task._walk_releases = Mock()
+
+        task._run_task()
+
+        task._get_repo_dependencies.assert_has_calls(
+            [
+                call([{"github": "http://test/"}], include_beta=False),
+                call(project_config.project__dependencies, include_beta=False),
+            ]
+        )
+
+        task._walk_releases.assert_has_calls(
+            [
+                call(
+                    Package(
+                        task.get_repo.return_value,
+                        project_config.project__package__name,
+                        "test__",
+                        "release/",
+                    )
+                ),
+                call(1),
+                call(2),
+                call(1),
+                call(2),
+            ]
+        )
 
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
     def test_run_task(self, extract_github):

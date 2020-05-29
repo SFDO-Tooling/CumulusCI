@@ -157,7 +157,8 @@ class GenerateDataDictionary(BaseGithubTask):
                 [
                     {"github": url}
                     for url in process_list_arg(self.options["additional_dependencies"])
-                ]
+                ],
+                include_beta=False,
             )
         if self.options["include_dependencies"]:
             repos += self._get_repo_dependencies(dependencies, include_beta=False)
@@ -241,8 +242,24 @@ class GenerateDataDictionary(BaseGithubTask):
                 elif path.suffixes == [".field-meta", ".xml"]:
                     # To get the sObject name, we need to remove the `/fields/SomeField.field-meta.xml`
                     # and take the last path component
-                    # FIXME: don't include fields on Platform Events, Custom Settings, and so on.
+
+                    # Find the sObject metadata file
                     sobject_name = f"{path.parent.parent.stem}"
+                    sobject_file = str(
+                        path.parent.parent / f"{sobject_name}.object-meta.xml"
+                    )
+
+                    if sobject_name.endswith("__mdt") or sobject_name.endswith("__e"):
+                        continue
+
+                    # If the object-meta file is locatable, ensure that this is not a Custom Setting.
+                    if sobject_file in zip_file.namelist():
+                        object_entity = metadata_tree.fromstring(
+                            zip_file.read(sobject_file)
+                        )
+                        if object_entity.find("customSettingsType") is not None:
+                            continue
+
                     if sobject_name.count("__") == 1:
                         sobject_name = f"{version.package.namespace}{sobject_name}"
 
