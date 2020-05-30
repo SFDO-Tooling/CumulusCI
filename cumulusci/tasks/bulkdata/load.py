@@ -292,7 +292,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         for sf_field, lookup in lookups.items():
             # Outer join with lookup ids table:
             # returns main obj even if lookup is null
-            key_field = get_lookup_key_field(lookup, sf_field)
+            key_field = get_lookup_key_field(lookup, sf_field, model)
             value_column = getattr(model, key_field)
             query = query.outerjoin(
                 lookup["aliased_table"],

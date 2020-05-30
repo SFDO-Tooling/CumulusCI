@@ -12,8 +12,20 @@ from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils import convert_to_snake_case
 
 
-def get_lookup_key_field(lookup, sf_field):
-    return lookup.get("key_field") or convert_to_snake_case(sf_field)
+def get_lookup_key_field(lookup, sf_field, model=None):
+    guesses = []
+    if lookup.get("key_field"):
+        guesses.append(lookup.get("key_field"))
+
+    guesses.append(sf_field)
+
+    if not model:
+        return guesses[0]
+
+    snake_cased_guesses = list(map(convert_to_snake_case, guesses))
+    for guess in guesses + snake_cased_guesses:
+        if getattr(model, guess, None):
+            return guess
 
 
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time

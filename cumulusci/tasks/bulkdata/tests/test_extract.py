@@ -179,7 +179,7 @@ class TestExtractData(unittest.TestCase):
         task._sql_bulk_insert_from_records.assert_called_once_with(
             connection=task.session.connection.return_value,
             table="Opportunity",
-            columns=["sf_id", "Name", "account_id"],
+            columns=["sf_id", "Name", "AccountId"],
             record_iterable=log_mock.return_value,
         )
 
@@ -214,7 +214,7 @@ class TestExtractData(unittest.TestCase):
                 mock.call(
                     connection=task.session.connection.return_value,
                     table="Opportunity",
-                    columns=["Name", "account_id"],
+                    columns=["Name", "AccountId"],
                     record_iterable=csv_mock.return_value,
                 ),
                 mock.call(
@@ -310,7 +310,7 @@ class TestExtractData(unittest.TestCase):
         )
 
         task.session.query.return_value.filter.return_value.update.assert_called_once_with(
-            {task.models["Opportunity"].account_id: task.models["Account_sf_ids"].id},
+            {task.models["Opportunity"].AccountId: task.models["Account_sf_ids"].id},
             synchronize_session=False,
         )
         task.session.commit.assert_called_once_with()
@@ -353,7 +353,7 @@ class TestExtractData(unittest.TestCase):
         )
 
         task.session.bulk_update_mappings.assert_called_once_with(
-            task.models["Opportunity"], [{"id": item.id, "account_id": "1"}]
+            task.models["Opportunity"], [{"id": item.id, "AccountId": "1"}]
         )
         task.session.commit.assert_called_once_with()
 
