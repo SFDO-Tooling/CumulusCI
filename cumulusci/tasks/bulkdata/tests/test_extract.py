@@ -11,6 +11,7 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils import temporary_dir
+from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup
 
 
 class MockBulkQueryOperation(BaseQueryOperation):
@@ -166,7 +167,7 @@ class TestExtractData(unittest.TestCase):
             "table": "Opportunity",
             "oid_as_pk": True,
             "fields": {"Id": "sf_id", "Name": "Name"},
-            "lookups": {"AccountId": {"table": "Account"}},
+            "lookups": {"AccountId": MappingLookup(table="Account", name="AccountId")},
         }
         step = mock.Mock()
         task.session = mock.Mock()
@@ -196,7 +197,7 @@ class TestExtractData(unittest.TestCase):
             "sf_id_table": "Opportunity_sf_ids",
             "oid_as_pk": False,
             "fields": {"Name": "Name"},
-            "lookups": {"AccountId": {"table": "Account"}},
+            "lookups": {"AccountId": MappingLookup(table="Account", name="AccountId")},
         }
         step = mock.Mock()
         step.get_results.return_value = iter(
@@ -291,7 +292,7 @@ class TestExtractData(unittest.TestCase):
             "Opportunity": mock.Mock(),
             "Opportunity_sf_ids": mock.Mock(),
         }
-        task.mappings = {
+        task.mapping = {
             "Account": {"table": "Account", "sf_id_table": "Account_sf_ids"},
             "Opportunity": {
                 "table": "Opportunity",
@@ -304,7 +305,9 @@ class TestExtractData(unittest.TestCase):
                 "sf_object": "Opportunity",
                 "table": "Opportunity",
                 "sf_id_table": "Opportunity_sf_ids",
-                "lookups": {"AccountId": {"table": "Account"}},
+                "lookups": {
+                    "AccountId": MappingLookup(table="Account", name="AccountId")
+                },
             },
             ["AccountId"],
         )
@@ -327,7 +330,7 @@ class TestExtractData(unittest.TestCase):
             "Opportunity": mock.Mock(),
             "Opportunity_sf_ids": mock.Mock(),
         }
-        task.mappings = {
+        task.mapping = {
             "Account": {"table": "Account", "sf_id_table": "Account_sf_ids"},
             "Opportunity": {
                 "table": "Opportunity",
@@ -347,7 +350,9 @@ class TestExtractData(unittest.TestCase):
                 "sf_object": "Opportunity",
                 "table": "Opportunity",
                 "sf_id_table": "Opportunity_sf_ids",
-                "lookups": {"AccountId": {"table": "Account"}},
+                "lookups": {
+                    "AccountId": MappingLookup(table="Account", name="AccountId")
+                },
             },
             ["AccountId"],
         )
@@ -398,7 +403,7 @@ class TestExtractData(unittest.TestCase):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
-        task.mappings = {
+        task.mapping = {
             "Insert Accounts": {
                 "sf_object": "Account",
                 "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
@@ -454,7 +459,7 @@ class TestExtractData(unittest.TestCase):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
-        task.mappings = {1: "test", 2: "foo", 3: "bar"}
+        task.mapping = {1: "test", 2: "foo", 3: "bar"}
         task.metadata = mock.Mock()
         task._create_table = mock.Mock()
 
@@ -502,7 +507,7 @@ class TestExtractData(unittest.TestCase):
         )
 
         task._init_mapping()
-        assert "Insert Households" in task.mappings
+        assert "Insert Households" in task.mapping
 
     def test_fields_for_mapping(self):
         task = _make_task(
@@ -596,3 +601,36 @@ class TestExtractData(unittest.TestCase):
     def test_init_options__missing_output(self):
         with self.assertRaises(TaskOptionsError):
             _make_task(ExtractData, {"options": {}})
+
+    @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
+    def test_extract_respects_key_field(self, log_mock):
+        task = _make_task(
+            ExtractData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        mapping = {
+            "sf_object": "Opportunity",
+            "table": "Opportunity",
+            "oid_as_pk": True,
+            "fields": {"Id": "sf_id", "Name": "Name"},
+            "lookups": {
+                "AccountId": MappingLookup(
+                    table="Account", key_field="account_id", name="AccountId"
+                )
+            },
+        }
+        step = mock.Mock()
+        task.session = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+
+        task._import_results(mapping, step)
+
+        task.session.connection.assert_called_once_with()
+        step.get_results.assert_called_once_with()
+        task._sql_bulk_insert_from_records.assert_called_once_with(
+            connection=task.session.connection.return_value,
+            table="Opportunity",
+            columns=["sf_id", "Name", "account_id"],
+            record_iterable=log_mock.return_value,
+        )

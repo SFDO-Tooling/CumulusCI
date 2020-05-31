@@ -1,4 +1,5 @@
 import datetime
+import warnings
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -9,23 +10,16 @@ from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
 
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.utils import convert_to_snake_case
 
 
-def get_lookup_key_field(lookup, sf_field, model=None):
-    guesses = []
-    if lookup.get("key_field"):
-        guesses.append(lookup.get("key_field"))
-
-    guesses.append(sf_field)
-
-    if not model:
-        return guesses[0]
-
-    snake_cased_guesses = list(map(convert_to_snake_case, guesses))
-    for guess in guesses + snake_cased_guesses:
-        if getattr(model, guess, None):
-            return guess
+def get_lookup_key_field(lookup, model=None):
+    # This should be removed in late 2020.
+    # It just provides some temporary backwards-compatibility
+    # for Snowfakery
+    warnings.warn(
+        "get_lookup_key_field is a method, not a function", DeprecationWarning
+    )
+    return lookup.get_lookup_key_field(model=model)
 
 
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
@@ -135,7 +129,7 @@ def fields_for_mapping(mapping):
     for sf_field, db_field in mapping.get("fields", {}).items():
         fields.append({"sf": sf_field, "db": db_field})
     for sf_field, lookup in mapping.get("lookups", {}).items():
-        fields.append({"sf": sf_field, "db": get_lookup_key_field(lookup, sf_field)})
+        fields.append({"sf": sf_field, "db": lookup.get_lookup_key_field()})
     return fields
 
 

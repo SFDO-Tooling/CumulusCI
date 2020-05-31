@@ -9,18 +9,16 @@ from sqlalchemy.orm import create_session, mapper
 from sqlalchemy.ext.automap import automap_base
 import tempfile
 
-import yaml
-
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
     SqlAlchemyMixin,
-    get_lookup_key_field,
     create_table,
     fields_for_mapping,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata.step import BulkApiQueryOperation, DataOperationStatus
 from cumulusci.utils import os_friendly_path, log_progress
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -58,7 +56,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self._init_mapping()
         self._init_db()
 
-        for mapping in self.mappings.values():
+        for mapping in self.mapping.values():
             soql = self._soql_for_mapping(mapping)
             self._run_query(soql, mapping)
 
@@ -90,8 +88,11 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
-        with open(self.options["mapping"], "r") as f:
-            self.mappings = yaml.safe_load(f)
+        mapping_file_path = self.options["mapping"]
+        if not mapping_file_path:
+            raise TaskOptionsError("Mapping file path required")
+
+        self.mapping = parse_from_yaml(mapping_file_path)
 
     def _fields_for_mapping(self, mapping):
         """Return a flat list of fields for this mapping."""
@@ -138,13 +139,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         fields = self._fields_for_mapping(mapping)
         columns = []
         lookup_keys = []
-        for sf in fields:
-            column = mapping.get("fields", {}).get(sf)
+        for field_name in fields:
+            column = mapping.get("fields", {}).get(field_name)
             if not column:
-                lookup = mapping.get("lookups", {}).get(sf, {})
+                lookup = mapping.get("lookups", {}).get(field_name, {})
                 if lookup:
-                    lookup_keys.append(sf)
-                    column = get_lookup_key_field(lookup, sf)
+                    lookup_keys.append(field_name)
+                    column = lookup.get_lookup_key_field()
             if column:
                 columns.append(column)
 
@@ -200,7 +201,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _get_mapping_for_table(self, table):
         """Return the first mapping for a table name """
-        for mapping in self.mappings.values():
+        for mapping in self.mapping.values():
             if mapping["table"] == table:
                 return mapping
 
@@ -219,11 +220,11 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
         for lookup_key in lookup_keys:
-            lookup_dict = mapping["lookups"][lookup_key]
+            lookup_info = mapping["lookups"][lookup_key]
             model = self.models[mapping["table"]]
-            lookup_mapping = self._get_mapping_for_table(lookup_dict["table"])
+            lookup_mapping = self._get_mapping_for_table(lookup_info["table"])
             lookup_model = self.models[lookup_mapping["sf_id_table"]]
-            key_field = get_lookup_key_field(lookup_dict, lookup_key)
+            key_field = lookup_info.get_lookup_key_field()
             key_attr = getattr(model, key_field)
             try:
                 self.session.query(model).filter(
@@ -241,7 +242,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _create_tables(self):
         """Create a table for each mapping step."""
-        for mapping in self.mappings.values():
+        for mapping in self.mapping.values():
             self._create_table(mapping)
         self.metadata.create_all()
 
@@ -279,7 +280,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _drop_sf_id_columns(self):
         """Drop Salesforce Id storage tables after rewriting Ids to auto-PKs."""
-        for mapping in self.mappings.values():
+        for mapping in self.mapping.values():
             if mapping.get("oid_as_pk"):
                 continue
             self.metadata.tables[mapping["sf_id_table"]].drop()

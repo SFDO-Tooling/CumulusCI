@@ -5,10 +5,10 @@ from sqlalchemy import create_engine
 from sqlalchemy import MetaData
 from sqlalchemy.orm import create_session
 from sqlalchemy.ext.automap import automap_base
-import yaml
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 from .utils import create_table
 
@@ -73,8 +73,7 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
         if not mapping_file_path:
             raise TaskOptionsError("Mapping file path required")
 
-        with open(mapping_file_path, "r") as f:
-            return yaml.safe_load(f)
+        return parse_from_yaml(mapping_file_path)
 
     @staticmethod
     def init_db(db_url, mappings):

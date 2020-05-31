@@ -2,7 +2,8 @@ from datetime import datetime
 import os
 import unittest
 from unittest import mock
-import yaml
+
+import pytest
 
 import responses
 from sqlalchemy import create_engine, MetaData, Integer, types, Unicode, Column, Table
@@ -10,7 +11,12 @@ from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.tasks.bulkdata.utils import (
+    create_table,
+    generate_batches,
+    get_lookup_key_field,
+)
+from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, parse_from_yaml
 
 
 def create_db_file(filename):
@@ -121,9 +127,9 @@ class TestSqlAlchemyMixin(unittest.TestCase):
 class TestCreateTable(unittest.TestCase):
     def test_create_table_legacy_oid_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v1.yml")
-        with open(mapping_file, "r") as fh:
-            content = yaml.safe_load(fh)
-            account_mapping = content["Insert Contacts"]
+
+        content = parse_from_yaml(mapping_file)
+        account_mapping = content["Insert Contacts"]
 
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "temp.db")
@@ -138,9 +144,8 @@ class TestCreateTable(unittest.TestCase):
 
     def test_create_table_modern_id_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v2.yml")
-        with open(mapping_file, "r") as fh:
-            content = yaml.safe_load(fh)
-            account_mapping = content["Insert Contacts"]
+        content = parse_from_yaml(mapping_file)
+        account_mapping = content["Insert Contacts"]
 
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "temp.db")
@@ -171,3 +176,42 @@ class TestBatching(unittest.TestCase):
     def test_batching_with_remainder(self):
         batches = list(generate_batches(num_records=20, batch_size=7))
         assert batches == [(7, 0), (7, 1), (6, 2)]
+
+
+class TestGetLookupKeyField:
+    def test_lookup_no_model(self):
+        lookup = MappingLookup(table="contact", name="AccountId")
+        assert get_lookup_key_field(lookup) == "AccountId"
+
+    def test_lookup_snake_case_model(self):
+        class FakeModel:
+            account_id = mock.MagicMock()
+
+        lookup = MappingLookup(table="contact", name="AccountId")
+        assert get_lookup_key_field(lookup, FakeModel()) == "account_id"
+
+    def test_lookup_by_key_field(self):
+        class FakeModel:
+            foo = mock.MagicMock()
+
+        lookup = MappingLookup(table="contact", key_field="foo", name="AccountId")
+        assert get_lookup_key_field(lookup, FakeModel()) == "foo"
+
+    def test_lookup_by_key_field_wrong_case(self):
+        class FakeModel:
+            account_id = mock.MagicMock()
+
+        # we can correct mismatched mapping files if the mistake is just
+        # old-fashioned SQL with new Mapping File
+        lookup = MappingLookup(table="contact", key_field="AccountId", name="AccountId")
+        assert get_lookup_key_field(lookup, FakeModel()) == "account_id"
+
+    def test_lookup_by_key_field_mismatched_name(self):
+        class FakeModel:
+            account_id = mock.MagicMock()
+
+        # some mistakes can't be fixed.
+        lookup = MappingLookup(table="contact", key_field="Foo", name="Foo")
+
+        with pytest.raises(KeyError):
+            get_lookup_key_field(lookup, FakeModel())
