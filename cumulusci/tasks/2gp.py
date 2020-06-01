@@ -1,5 +1,6 @@
 from typing import Optional
 import base64
+import contextlib
 import enum
 import hashlib
 import io
@@ -9,19 +10,15 @@ import zipfile
 
 from pydantic import BaseModel
 
-from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import FlowCoordinator
+from cumulusci.core.sfdx import sfdx
+from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.tasks.sfdx import SFDXBaseTask
-from cumulusci.utils import cd
 from cumulusci.utils import download_extract_github
 from cumulusci.utils import temporary_dir
-from cumulusci.utils import inject_namespace
-from cumulusci.utils import strip_namespace
-from cumulusci.utils import tokenize_namespace
 
 
 class PackageTypeEnum(str, enum.Enum):
@@ -103,8 +100,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.return_values["package_id"] = self.package_id
 
         # submit request to create package version
+        package_zip = self._build_package_zip()
         self.request_id = self._create_version_request(
-            self.package_id, self.package_config
+            self.package_id, self.package_config, package_zip
         )
         self.return_values["request_id"] = self.request_id
 
@@ -166,41 +164,29 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         return package["id"]
 
-    def _create_version_request(self, package_id, package_config):
+    def _build_package_zip(self, path, package_config):
+        with contextlib.ExitStack() as stack:
+            # @@@ this should probably be the builder's responsibility
+            if package_config.source_format == SourceFormatEnum.sfdx:
+                self.logger.info("Converting from sfdx to mdapi format")
+                sfdx_path = path
+                path = stack.enter_context(temporary_dir(chdir=False))
+                sfdx(
+                    "force:source:convert",
+                    args=["-r", sfdx_path, "-d", path, "-n", package_config.name],
+                    capture_output=False,
+                    check_return=True,
+                )
+            return MetadataPackageZipBuilder(path=path, logger=self.logger).as_base64()
+
+    def _create_version_request(self, package_id, package_config, package_zip):
         # Prepare the VersionInfo file
         version_bytes = io.BytesIO()
         version_info = zipfile.ZipFile(version_bytes, "w", zipfile.ZIP_DEFLATED)
 
-        # Zip up the packaged metadata
-        package_bytes = io.BytesIO()
-        package_zip = zipfile.ZipFile(package_bytes, "w", zipfile.ZIP_DEFLATED)
-        if package_config.source_format == SourceFormatEnum.sfdx:
-            self.logger.info("Converting from sfdx to mdapi format")
-            with temporary_dir(chdir=False) as path:
-                # @@@ use sfdx helper instead of task
-                task_config = TaskConfig(
-                    {
-                        "options": {
-                            "command": f"force:source:convert -d {path} -r {package_config.source_path} -n '{package_config.name}'"
-                        }
-                    }
-                )
-                self.logger.info("cwd: {}".format(os.getcwd()))
-                task = SFDXBaseTask(self.project_config, task_config)
-                task()
-                self._add_files_to_package(package_zip, path)
-        else:
-            self._add_files_to_package(package_zip, package_config.source_path)
-        package_zip.close()
-        # @@@ refactor _process_zip_file out of Deploy
-        package_zip_processed = self._process_zip_file(zipfile.ZipFile(package_bytes))
-        package_zip_processed.close()
-
-        # Add the package.zip to version_info
-        version_info.writestr("package.zip", package_bytes.getvalue())
-
-        # Get a hash of the package.zip file
-        package_hash = hashlib.blake2b(package_bytes.getvalue()).hexdigest()
+        # Add the package.zip
+        package_hash = hashlib.blake2b(package_zip).hexdigest()
+        version_info.writestr("package.zip", package_zip)
 
         # Check for an existing package with the same contents
         res = self.tooling.query(
@@ -218,6 +204,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
         # Create the package2-descriptor.json contents and write to version_info
         # @@@ what if it's based on an older version?
+        # - specify base version
         version_number = self._get_next_version_number(
             package_id, package_config.version_type
         )
@@ -254,12 +241,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         }
         response = Package2CreateVersionRequest.create(request)
         return response["id"]
-
-    def _add_files_to_package(self, package_zip, path):
-        with cd(path):
-            # @@@ factor out of Deploy
-            for file_to_package in self._get_files_to_package():
-                package_zip.write(file_to_package)
 
     def _get_next_version_number(self, package_id, version_type: VersionTypeEnum):
         """Predict the next package version.
@@ -371,7 +352,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     "Creating a new scratch org with the name 2gp_dependencies to resolve dependencies"
                 )
 
-            # @@@ should use update_dependencies task
             self.logger.info(
                 "Running the dependencies flow against the 2gp_dependencies scratch org"
             )
@@ -381,7 +361,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             coordinator.run(org)
 
         return org
-        # @@@ delete org
 
     def _get_installed_dependencies(self, org):
         """Get subscriber package version ids from packages installed in an org.
@@ -450,7 +429,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         If we have a namespace and version, we can find the 04t from an org where the package is installed.
         If we have a github repo, we can build an unlocked package from that.
         """
-        # @@@ refactor so that getting installed packages happens from here?
         dependencies = []
         for dependency in project_dependencies:
             dependency_info = {}
@@ -478,7 +456,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             if dependency.get("repo_name"):
                 if dependency.get("subfolder", "").startswith("unpackaged/post"):
                     continue
-                version_id = self._create_package_from_github(dependency)
+                version_id = self._create_unlocked_package_from_github(dependency)
                 self.logger.info(
                     "Adding dependency {}/{} {} with id {}".format(
                         dependency["repo_owner"],
@@ -510,7 +488,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             item_path = os.path.join(path, item)
             if not os.path.isdir(item_path):
                 continue
-            version_id = self._create_package_from_local(item_path)
+            version_id = self._create_unlocked_package_from_local(item_path)
             self.logger.info(
                 "Adding dependency {}/{} {} with id {}".format(
                     self.project_config.repo_owner,
@@ -523,93 +501,44 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
         return dependencies
 
-    def _create_package_from_github(self, dependency):
-        # @@@ This is yanked and slightly modified from UpdateDependencies and should be refactored out to somewhere reusable between both tasks
+    def _create_unlocked_package_from_github(self, dependency):
         gh_for_repo = self.project_config.get_github_api(
             dependency["repo_owner"], dependency["repo_name"]
         )
-        package_zip = download_extract_github(
+        zip_src = download_extract_github(
             gh_for_repo,
             dependency["repo_owner"],
             dependency["repo_name"],
             dependency["subfolder"],
             ref=dependency.get("ref"),
         )
+        package_zip = MetadataPackageZipBuilder.from_zipfile(
+            zip_src, options=dependency, logger=self.logger
+        ).as_base64()
 
-        if dependency.get("namespace_tokenize"):
-            self.logger.info(
-                "Replacing namespace prefix {}__ in files and filenames with namespace token strings".format(
-                    "{}__".format(dependency["namespace_tokenize"])
-                )
+        package_config = {
+            "name": "{repo_owner}/{repo_name} {subfolder}".format(**dependency),
+            "version_name": "{repo_owner}/{repo_name} {subfolder} - ".format(
+                **dependency
             )
-            package_zip = zip_tokenize_namespace(
-                package_zip,
-                namespace=dependency["namespace_tokenize"],
-                logger=self.logger,
-            )
-
-        if dependency.get("namespace_inject"):
-            self.logger.info(
-                "Replacing namespace tokens with {}".format(
-                    "{}__".format(dependency["namespace_inject"])
-                )
-            )
-            package_zip = zip_inject_namespace(
-                package_zip,
-                namespace=dependency["namespace_inject"],
-                managed=not dependency.get("unmanaged"),
-                namespaced_org=self.options["namespaced_org"],
-                logger=self.logger,
-            )
-
-        if dependency.get("namespace_strip"):
-            self.logger.info(
-                "Removing namespace prefix {}__ from all files and filenames".format(
-                    "{}__".format(dependency["namespace_strip"])
-                )
-            )
-            package_zip = zip_strip_namespace(
-                package_zip, namespace=dependency["namespace_strip"], logger=self.logger
-            )
-
-        # @@@ make it possible to pass existing package zip into _create_version_request
-        # so we don't have to extract it
-        with temporary_dir() as path:
-            with cd(path):
-                package_zip.extractall(path)
-                package_config = {
-                    "name": "{repo_owner}/{repo_name} {subfolder}".format(**dependency),
-                    "version_name": "{repo_owner}/{repo_name} {subfolder} - ".format(
-                        **dependency
-                    )
-                    + "{{ version }}",
-                    "package_type": "unlocked",
-                    "path": os.path.join(path),
-                    # @@@ Ideally we'd do this without a namespace but that causes package creation errors
-                    "namespace": self.package_config.get("namespace"),
-                }
-                package_id = self._get_or_create_package(package_config)
-                self.request_id = self._create_version_request(
-                    package_id, package_config
-                )
+            + "{{ version }}",
+            "package_type": "unlocked",
+            "package_zip": package_zip,
+            # @@@ Ideally we'd do this without a namespace but that causes package creation errors
+            "namespace": self.package_config.get("namespace"),
+        }
+        package_id = self._get_or_create_package(package_config)
+        self.request_id = self._create_version_request(package_id, package_config)
 
         self._poll()
-        # @@@ don't need all these fields
         res = self.tooling.query(
-            "SELECT "
-            "MajorVersion, "
-            "MinorVersion, "
-            "PatchVersion, "
-            "BuildNumber, "
-            "SubscriberPackageVersionId "
-            "FROM Package2Version "
-            "WHERE Id='{}' ".format(self.package_version_id)
+            "SELECT SubscriberPackageVersionId FROM Package2Version "
+            f"WHERE Id='{self.package_version_id}'"
         )
         package2_version = res["records"][0]
-
         return package2_version["SubscriberPackageVersionId"]
 
-    def _create_package_from_local(self, path):
+    def _create_unlocked_package_from_local(self, path):
         """Create an unlocked package version from a local directory."""
         self.logger.info("Creating package for dependencies in {}".format(path))
         package_name = "{}/{} {}".format(
@@ -627,16 +556,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.request_id = self._create_version_request(package_id, package_config)
         self._poll()
         self.poll_complete = False
-        # @@@ don't need all these fields
         res = self.tooling.query(
-            "SELECT "
-            "MajorVersion, "
-            "MinorVersion, "
-            "PatchVersion, "
-            "BuildNumber, "
-            "SubscriberPackageVersionId "
-            "FROM Package2Version "
-            "WHERE Id='{}' ".format(self.package_version_id)
+            "SELECT SubscriberPackageVersionId FROM Package2Version "
+            f"WHERE Id='{self.package_version_id}'"
         )
         package2_version = res["records"][0]
         return package2_version["SubscriberPackageVersionId"]

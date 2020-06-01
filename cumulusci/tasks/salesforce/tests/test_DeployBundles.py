@@ -54,10 +54,13 @@ class TestDeployBundles(unittest.TestCase):
                             "options": {
                                 "dependencies": [
                                     {
+                                        "clean_meta_xml": True,
+                                        "namespaced_org": False,
                                         "ref": task.project_config.repo_commit,
                                         "repo_name": "TestRepo",
                                         "repo_owner": "TestOwner",
                                         "subfolder": "unpackaged/test",
+                                        "unmanaged": True,
                                     }
                                 ]
                             },
