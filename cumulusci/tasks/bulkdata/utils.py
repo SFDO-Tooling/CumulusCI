@@ -122,19 +122,6 @@ def fields_for_mapping(mapping):
     return fields
 
 
-def generate_batches(num_records, batch_size):
-    """Generate batch size list for splitting a number of tasks into batch jobs.
-
-    Given a number of records to split up, and a batch size, generate a
-    stream of batchsize, index pairs"""
-    num_batches = (num_records // batch_size) + 1
-    for i in range(0, num_batches):
-        if i == num_batches - 1:  # last batch
-            batch_size = num_records - (batch_size * i)  # leftovers
-        if batch_size > 0:
-            yield batch_size, i
-
-
 class RowErrorChecker:
     def __init__(self, logger, ignore_row_errors, row_warning_limit):
         self.logger = logger

@@ -1417,6 +1417,27 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
         runtime.alert(f"Task complete: {task_name}")
 
 
+@task.command(name="resume", help="Resume a task if one was stopped")
+@click.argument("resume_json", type=click.Path())
+@pass_runtime(require_keychain=True)
+def task_resume(runtime, resume_json):
+    from cumulusci.utils.json.resumption_parser import ResumptionFile
+
+    path = (
+        Path(resume_json)
+        if resume_json
+        else cumulusci_config_dir() / "task_resume.json"
+    )
+    with path.open() as f:
+        json_data = json.load(f)
+    resume_data = ResumptionFile(**json_data)
+    class_path = resume_data.task_class
+    task_class = import_global(class_path)
+    task_config = TaskConfig(resume_data.task_config.dict())
+    task = task_class(runtime.project_config, task_config)
+    task.resume(resume_data.state_data)
+
+
 # Commands for group: flow
 
 

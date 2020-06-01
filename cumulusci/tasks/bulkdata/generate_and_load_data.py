@@ -6,10 +6,17 @@ from sqlalchemy import MetaData, create_engine
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata import LoadData
-from cumulusci.tasks.bulkdata.utils import generate_batches
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import import_global
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.utils.json.task_state_model import TaskStateModel
+
+
+class GenerateAndLoadDataState(TaskStateModel):
+    """Persistent state for this model"""
+
+    current_batchnum: int = 0
+    rows_generated: int = 0
 
 
 class GenerateAndLoadData(BaseSalesforceApiTask):
@@ -122,22 +129,35 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
                     "but `replace_database` was not specified"
                 )
 
+        self.state.current_batchnum = 0
+        self.state.rows_generated
+
     def _run_task(self):
+        self.state = self.xxx
+        self._continue()
+
+    def _continue(self):
         with TemporaryDirectory() as tempdir:
-            for current_batch_size, index in generate_batches(
-                self.num_records, self.batch_size
-            ):
+            while self.generated_rows <= self.num_records:
+                self.state.current_batchnum += 1
+                rows_left = self.num_records - self.state.rows_generated
+                current_batch_size = min(self.batch_size, rows_left)
                 self.logger.info(
                     f"Generating a data batch, batch_size={current_batch_size} "
-                    f"index={index} total_records={self.num_records}"
+                    f"batchnum={self.state.current_batchnum} goal_records={self.num_records} "
                 )
                 self._generate_batch(
                     self.database_url,
                     self.debug_dir or tempdir,
                     self.mapping_file,
                     current_batch_size,
-                    index,
+                    self.state.current_batchnum,
                 )
+                self.state.rows_generated += current_batch_size
+                self.state.save()
+
+    def resume(self, state):
+        self.state = state
 
     def _datagen(self, subtask_options):
         task_config = TaskConfig({"options": subtask_options})
