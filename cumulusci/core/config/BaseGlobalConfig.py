@@ -1,11 +1,11 @@
 import os
 
 import yaml
+from pathlib import Path
 
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
-from cumulusci.core.utils import cumulusci_config_dir
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -23,8 +23,21 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
         self._load_config()
 
     @property
+    def cumulusci_config_dir(self):
+        return self.default_cumulusci_dir()
+
+    @staticmethod
+    def default_cumulusci_dir():
+        config_dir = Path(Path.home(), ".cumulusci")
+
+        if not config_dir.exists():
+            config_dir.mkdir(parents=True)
+
+        return config_dir
+
+    @property
     def config_global_local_path(self):
-        directory = cumulusci_config_dir()
+        directory = self.cumulusci_config_dir
         if not os.path.exists(directory):
             os.makedirs(directory)
 
