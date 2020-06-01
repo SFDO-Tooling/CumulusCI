@@ -32,7 +32,6 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.github import create_gist, get_github_api
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import CumulusCIException
@@ -41,7 +40,7 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
 
-from cumulusci.core.utils import import_global
+from cumulusci.core.utils import import_global, cumulusci_config_dir
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
@@ -58,14 +57,8 @@ from .logger import init_logger, get_tempfile_logger
 @contextlib.contextmanager
 def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
-    config_dir = os.path.join(
-        os.path.expanduser("~"), BaseGlobalConfig.config_local_dir
-    )
 
-    if not os.path.exists(config_dir):
-        os.mkdir(config_dir)
-
-    timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
+    timestamp_file = os.path.join(cumulusci_config_dir(), "cumulus_timestamp")
 
     try:
         with open(timestamp_file, "r+") as f:
