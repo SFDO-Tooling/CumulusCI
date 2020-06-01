@@ -224,6 +224,34 @@ class GenerateDataDictionary(BaseGithubTask):
                     sobject_name, metadata_tree.fromstring(zip_file.read(f)), version
                 )
 
+    def _should_process_object(self, namespace, sobject_name, element):
+        """Determine if we should track this object in the object dictionary.
+        Fields may be included regardless.
+
+        We don't process custom objects owned by other namespaces.
+        It's fine for Package A to package fields on an object owned by Package B.
+        We'll record the fields on their owning package (B) and the object on its (A).
+
+        We also do not process Custom Settings, Platform Events, or Custom Metadata Types."""
+
+        return (
+            sobject_name.endswith("__c")
+            and sobject_name.startswith(namespace)
+            and element.find("customSettingsType") is None
+            if element
+            else True
+        )
+
+    def _should_process_object_fields(self, sobject_name, element):
+        """Determine if we should track fields from this object in the field dictionary.
+        The object itself may or may not be included.
+
+        We will track any field on a custom object or standard entity. We will not track
+        fields on Custom Settings, Platform Events, or Custom Metadata Types."""
+        return (sobject_name.endswith("__c") or sobject_name.count("__") == 0) and (
+            element.find("customSettingsType") is None if element else True
+        )
+
     def _process_sfdx_release(self, zip_file, version):
         """Process an SFDX ZIP file for objects and fields"""
         for f in zip_file.namelist():
@@ -234,11 +262,12 @@ class GenerateDataDictionary(BaseGithubTask):
                     if sobject_name.count("__") == 1:
                         sobject_name = f"{version.package.namespace}{sobject_name}"
 
-                    self._process_object_element(
-                        sobject_name,
-                        metadata_tree.fromstring(zip_file.read(f)),
-                        version,
-                    )
+                    element = metadata_tree.fromstring(zip_file.read(f))
+
+                    if self._should_process_object(
+                        version.package.namespace, sobject_name, element
+                    ):
+                        self._process_object_element(sobject_name, element, version)
                 elif path.suffixes == [".field-meta", ".xml"]:
                     # To get the sObject name, we need to remove the `/fields/SomeField.field-meta.xml`
                     # and take the last path component
@@ -248,55 +277,42 @@ class GenerateDataDictionary(BaseGithubTask):
                     sobject_file = str(
                         path.parent.parent / f"{sobject_name}.object-meta.xml"
                     )
+                    if sobject_name.count("__") == 1:
+                        sobject_name = f"{version.package.namespace}{sobject_name}"
 
-                    if sobject_name.endswith("__mdt") or sobject_name.endswith("__e"):
-                        continue
-
-                    # If the object-meta file is locatable, ensure that this is not a Custom Setting.
+                    # If the object-meta file is locatable, load it so we can check if this is a Custom Setting.
                     if sobject_file in zip_file.namelist():
                         object_entity = metadata_tree.fromstring(
                             zip_file.read(sobject_file)
                         )
-                        if object_entity.find("customSettingsType") is not None:
-                            continue
+                    else:
+                        object_entity = None
 
-                    if sobject_name.count("__") == 1:
-                        sobject_name = f"{version.package.namespace}{sobject_name}"
+                    print(sobject_file)
+                    print(object_entity)
 
-                    self._process_field_element(
-                        sobject_name,
-                        metadata_tree.fromstring(zip_file.read(f)),
-                        version,
-                    )
+                    if self._should_process_object_fields(sobject_name, object_entity):
+                        self._process_field_element(
+                            sobject_name,
+                            metadata_tree.fromstring(zip_file.read(f)),
+                            version,
+                        )
 
     def _process_object_element(self, sobject_name, element, version):
         """Process a <CustomObject> metadata entity, whether SFDX or MDAPI"""
-        # If this is a custom object, register its presence in this version
+        description_elem = getattr(element, "description", None)
 
-        # Don't process Custom Settings.
-        if element.find("customSettingsType") is not None:
-            return
-
-        # Don't process custom objects owned by other namespaces.
-        # It's fine for Package A to package fields on an object owned by Package B.
-        # We'll record the fields on their owning package (B) and the object on its (A).
-        if sobject_name.startswith(version.package.namespace) and sobject_name.endswith(
-            "__c"
-        ):
-            description_elem = getattr(element, "description", None)
-
-            self.sobjects[sobject_name].append(
-                SObjectDetail(
-                    version,
-                    sobject_name,
-                    element.label.text,
-                    description_elem.text if description_elem is not None else "",
-                )
+        self.sobjects[sobject_name].append(
+            SObjectDetail(
+                version,
+                sobject_name,
+                element.label.text,
+                description_elem.text if description_elem is not None else "",
             )
+        )
 
         # For MDAPI-format elements. No-op on SFDX.
-        # No Custom Metadata Types or Platform Events.
-        if sobject_name.endswith("__c"):
+        if self._should_process_object_fields(sobject_name, element):
             for field in element.findall("fields"):
                 self._process_field_element(sobject_name, field, version)
 
@@ -437,10 +453,10 @@ class GenerateDataDictionary(BaseGithubTask):
                 "Type",
                 "Help Text",
                 "Field Description",
-                "Allowed Values",
+                "Picklist Values",
                 "Length",
                 "Version Introduced",
-                "Version Allowed Values Last Changed",
+                "Version Picklist Values Last Changed",
                 "Version Help Text Last Changed",
                 "Version Deleted",
             ]

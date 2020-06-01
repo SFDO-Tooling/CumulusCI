@@ -106,9 +106,72 @@ class test_GenerateDataDictionary(unittest.TestCase):
         result = f.read()
 
         assert result == (
-            "Object API Name,Field Label,Field API Name,Type,Help Text,Field Description,Allowed Values,Length,Version Introduced,Version Allowed Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
+            "Object API Name,Field Label,Field API Name,Type,Help Text,Field Description,Picklist Values,Length,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
             "test__Test__c,Type,test__Type__c,Picklist,New Help,Description,Foo; Bar; New Value,,Test 1.1,Test 1.2,Test 1.2,\r\n"
             "test__Test__c,Account,test__Account__c,Lookup to Account,Help,Description,,,Test 1.1,,,Test 1.2\r\n"
+        )
+
+    def test_should_process_object(self):
+        object_source_negative = b"""<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customSettingsType>Hierarchy</customSettingsType>
+    <description>Description</description>
+    <label>Test</label>
+</CustomObject>"""
+
+        object_source_positive = b"""<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Description</description>
+    <label>Test</label>
+</CustomObject>"""
+
+        task = create_task(GenerateDataDictionary, {})
+
+        assert task._should_process_object(
+            "test__", "test__Obj__c", metadata_tree.fromstring(object_source_positive)
+        )
+        assert task._should_process_object("test__", "test__Obj__c", None)
+        assert not task._should_process_object(
+            "test__", "test__Obj__e", metadata_tree.fromstring(object_source_positive)
+        )
+        assert not task._should_process_object(
+            "test__", "test__Obj__c", metadata_tree.fromstring(object_source_negative)
+        )
+        assert not task._should_process_object(
+            "test__", "foo__Obj__c", metadata_tree.fromstring(object_source_positive)
+        )
+        assert not task._should_process_object(
+            "test__", "Account", metadata_tree.fromstring(object_source_positive)
+        )
+
+    def test_should_process_object_fields(self):
+        object_source_negative = b"""<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customSettingsType>Hierarchy</customSettingsType>
+    <description>Description</description>
+    <label>Test</label>
+</CustomObject>"""
+
+        object_source_positive = b"""<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Description</description>
+    <label>Test</label>
+</CustomObject>"""
+
+        task = create_task(GenerateDataDictionary, {})
+
+        assert task._should_process_object_fields(
+            "test__Obj__c", metadata_tree.fromstring(object_source_positive)
+        )
+        assert task._should_process_object_fields("test__Obj__c", None)
+        assert task._should_process_object_fields(
+            "Account", metadata_tree.fromstring(object_source_positive)
+        )
+        assert not task._should_process_object_fields(
+            "test__Obj__e", metadata_tree.fromstring(object_source_positive)
+        )
+        assert not task._should_process_object_fields(
+            "test__Obj__c", metadata_tree.fromstring(object_source_negative)
         )
 
     def test_process_field_element__new(self):
@@ -669,6 +732,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
         task._process_field_element = Mock()
         task._process_sfdx_release(zip_file, v)
 
+        task._process_field_element.assert_not_called()
+
         zip_file.read.assert_has_calls(
             [
                 call(
@@ -680,39 +745,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 call(
                     "force-app/main/default/objects/Parent__c/Parent__c.object-meta.xml"
                 ),
-            ]
-        )
-
-        task._process_field_element.assert_not_called()
-
-    @patch("cumulusci.tasks.datadictionary.metadata_tree.fromstring")
-    def test_process_mdapi_release(self, fromstring):
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
-
-        p = Package(None, "Test", "test__", "rel/")
-        v = PackageVersion(p, StrictVersion("1.1"))
-        zip_file = Mock()
-        zip_file.namelist.return_value = [
-            "src/objects/Child__c.object",
-            "src/objects/Parent__c.object",
-            ".gitignore",
-            "test__c.object",
-        ]
-        zip_file.read.return_value = "<test></test>"
-        task._process_object_element = Mock()
-        task._process_mdapi_release(zip_file, v)
-
-        zip_file.read.assert_has_calls(
-            [call("src/objects/Child__c.object"), call("src/objects/Parent__c.object")]
-        )
-
-        task._process_object_element.assert_has_calls(
-            [
-                call("test__Child__c", metadata_tree.fromstring("<test></test>"), v),
-                call("test__Parent__c", metadata_tree.fromstring("<test></test>"), v),
             ]
         )
 
@@ -789,8 +821,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         repo = Mock()
         release = Mock()
-        release.draft = True
-        release.prerelease = False
+        release.draft = False
+        release.prerelease = True
         release.tag_name = "rel/1.1"
         repo.releases.return_value = [release]
         task._process_mdapi_release = Mock()
@@ -908,7 +940,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
                 call("Test,test__Test__c,Description,Project 1.1,\r\n"),
                 call(
-                    "Object API Name,Field Label,Field API Name,Type,Help Text,Field Description,Allowed Values,Length,Version Introduced,Version Allowed Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
+                    "Object API Name,Field Label,Field API Name,Type,Help Text,Field Description,Picklist Values,Length,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
                 ),
                 call(
                     "test__Test__c,Type,test__Type__c,Text,Type of field.,,,255,Project 1.1,,,\r\n"
