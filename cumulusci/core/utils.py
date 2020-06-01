@@ -9,6 +9,7 @@ import copy
 import glob
 import pytz
 import time
+from pathlib import Path
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 
@@ -178,3 +179,12 @@ def dictmerge(a, b, name=None):
             config_name=name,
         )
     return a
+
+
+def cumulusci_config_dir():
+    config_dir = Path(Path.home(), ".cumulusci")  # breaks unit tests
+
+    if not config_dir.exists():
+        config_dir.mkdir(parents=True)
+
+    return config_dir
