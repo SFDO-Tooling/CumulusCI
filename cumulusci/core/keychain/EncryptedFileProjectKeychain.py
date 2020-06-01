@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
@@ -15,7 +16,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         except AttributeError:
             # Handle a global config passed as project config
             config_local_dir = self.project_config.config_local_dir
-        return os.path.join(os.path.expanduser("~"), config_local_dir)
+        return str(Path(Path.home(), config_local_dir))
 
     @property
     def project_local_dir(self):
