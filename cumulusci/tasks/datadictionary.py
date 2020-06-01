@@ -288,9 +288,6 @@ class GenerateDataDictionary(BaseGithubTask):
                     else:
                         object_entity = None
 
-                    print(sobject_file)
-                    print(object_entity)
-
                     if self._should_process_object_fields(sobject_name, object_entity):
                         self._process_field_element(
                             sobject_name,
