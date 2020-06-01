@@ -33,8 +33,8 @@ def get_github_api(username=None, password=None):
 INSTALLATIONS = {}
 
 
-def get_github_api_for_repo(keychain, owner, repo):
-    gh = GitHub()
+def get_github_api_for_repo(keychain, owner, repo, session=None):
+    gh = GitHub(session=session)
     # Apply retry policy
     gh.session.mount("http://", adapter)
     gh.session.mount("https://", adapter)

@@ -4,6 +4,7 @@ from pathlib import PurePosixPath
 from collections import defaultdict, namedtuple
 
 from distutils.version import StrictVersion
+from github3.session import GitHubSession
 
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.core.utils import process_bool_arg, process_list_arg
@@ -62,6 +63,14 @@ class GenerateDataDictionary(BaseGithubTask):
             "are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of URLs."
         },
     }
+
+    def _init_task(self):
+        # Walking GitHub releases seems to be especially prone to API timeouts.
+        # Increase the defaults substantially to try to cope.
+        self.project_config.github_session = GitHubSession(
+            default_read_timeout=30, default_connect_timeout=30
+        )
+        super()._init_task()
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
@@ -299,14 +308,18 @@ class GenerateDataDictionary(BaseGithubTask):
         """Process a <CustomObject> metadata entity, whether SFDX or MDAPI"""
         description_elem = getattr(element, "description", None)
 
-        self.sobjects[sobject_name].append(
-            SObjectDetail(
-                version,
-                sobject_name,
-                element.label.text,
-                description_elem.text if description_elem is not None else "",
+        # SFDX release can check this before calling us, but MDAPI can't.
+        if self._should_process_object(
+            version.package.namespace, sobject_name, element
+        ):
+            self.sobjects[sobject_name].append(
+                SObjectDetail(
+                    version,
+                    sobject_name,
+                    element.label.text,
+                    description_elem.text if description_elem is not None else "",
+                )
             )
-        )
 
         # For MDAPI-format elements. No-op on SFDX.
         if self._should_process_object_fields(sobject_name, element):

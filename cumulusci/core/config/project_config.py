@@ -62,6 +62,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self.source = NullSource()
         self.included_sources = kwargs.pop("included_sources", {})
 
+        # initialize a null Github session, which can be overridden to set options
+        self.github_session = None
+
         super(BaseProjectConfig, self).__init__(config=config)
 
     @property
@@ -374,7 +377,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_github_api(self, owner=None, repo=None):
         return get_github_api_for_repo(
-            self.keychain, owner or self.repo_owner, repo or self.repo_name
+            self.keychain,
+            owner or self.repo_owner,
+            repo or self.repo_name,
+            session=self.github_session,
         )
 
     def _get_repo(self):

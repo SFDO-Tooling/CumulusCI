@@ -9,6 +9,7 @@ class BaseGithubTask(BaseTask):
             self.project_config.keychain,
             self.project_config.repo_owner,
             self.project_config.repo_name,
+            session=self.project_config.github_session,
         )
 
     def get_repo(self):
