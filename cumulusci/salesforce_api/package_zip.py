@@ -40,6 +40,7 @@ INSTALLED_PACKAGE = """<?xml version="1.0" encoding="UTF-8"?>
 <InstalledPackage xmlns="http://soap.sforce.com/2006/04/metadata">
   <versionNumber>{}</versionNumber>
   <activateRSS>{}</activateRSS>
+  <securityType>{}</securityType>
   {}
 </InstalledPackage>"""
 
@@ -265,7 +266,9 @@ class CreatePackageZipBuilder(BasePackageZipBuilder):
 class InstallPackageZipBuilder(BasePackageZipBuilder):
     api_version = "43.0"
 
-    def __init__(self, namespace, version, activateRSS=False, password=None):
+    def __init__(
+        self, namespace, version, activateRSS=False, password=None, securityType="FULL"
+    ):
         if not namespace:
             raise ValueError("You must provide a namespace to install a package")
         if not version:
@@ -274,6 +277,7 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
         self.version = version
         self.activateRSS = activateRSS
         self.password = password
+        self.securityType = securityType
 
         self._open_zip()
         self._populate_zip()
@@ -291,7 +295,7 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
             else ""
         )
         installed_package = INSTALLED_PACKAGE.format(
-            self.version, activateRSS, password
+            self.version, activateRSS, self.securityType, password
         )
         self._write_file(
             "installedPackages/{}.installedPackage".format(self.namespace),

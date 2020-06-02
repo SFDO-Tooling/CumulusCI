@@ -41,6 +41,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "in order to install the requested version. Defaults to False. "
             "Warning: Enabling this may destroy data."
         },
+        "security_type": {
+            "description": "Which users to install packages for (FULL = all users, NONE = admins only)"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -64,6 +67,11 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self.options["allow_uninstalls"] = process_bool_arg(
             self.options.get("allow_uninstalls", False)
         )
+        self.options["security_type"] = self.options.get("security_type", "FULL")
+        if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
+            raise TaskOptionsError(
+                f"Unsupported value for security_type: {self.options['security_type']}"
+            )
 
     def _run_task(self):
         if not self.options["dependencies"]:
@@ -254,7 +262,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     )
                 )
                 package_zip = InstallPackageZipBuilder(
-                    dependency["namespace"], dependency["version"]
+                    dependency["namespace"],
+                    dependency["version"],
+                    securityType=self.options["security_type"],
                 )()
 
         api = self.api_class(
