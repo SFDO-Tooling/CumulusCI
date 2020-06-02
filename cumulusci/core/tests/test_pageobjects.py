@@ -20,12 +20,14 @@ from cumulusci.robotframework import PageObjects
 from cumulusci.robotframework.CumulusCI import CumulusCI
 from cumulusci.robotframework.pageobjects.PageObjectLibrary import _PageObjectLibrary
 from cumulusci.robotframework.pageobjects import (
+    BasePage,
     ListingPage,
     EditModal,
     NewModal,
     HomePage,
     DetailPage,
 )
+from robot.libraries.BuiltIn import BuiltIn
 import robot.utils
 
 
@@ -49,7 +51,6 @@ BASE_REGISTRY = {
     ("Listing", ""): ListingPage,
     ("New", ""): NewModal,
 }
-
 
 # this is the importer used by the page objects, which makes it easy
 # peasy to import by file path
@@ -131,3 +132,52 @@ class TestPageObjects(unittest.TestCase):
 
             pobj = po.get_page_object("Test", "Foo__c")
             self.assertEqual(pobj.object_name, "Foo__c")
+
+
+@mock.patch(
+    "robot.libraries.BuiltIn.BuiltIn.get_library_instance",
+    side_effect=MockGetLibraryInstance(),
+)
+class TestBasePage(unittest.TestCase):
+    """Some low-level tests of page object classes"""
+
+    def test_no_implicit_wait(self, mock_get_library_instance):
+        """Verify the "implicit wait" context manager restores the value"""
+
+        selib = BuiltIn().get_library_instance("SeleniumLibrary")
+        selib.set_selenium_implicit_wait.return_value = 7
+        selib.set_selenium_implicit_wait.reset_mock()
+
+        page = BasePage()
+        with page._no_implicit_wait():
+            pass
+
+        # The first call should pass in zero to turn off the
+        # implicit wait.  We've configured the mocked function to
+        # return '7'. The second call should pass the return value
+        # of the first call
+        selib.set_selenium_implicit_wait.assert_has_calls(
+            (mock.call(0), mock.call(7)), any_order=False
+        )
+
+    def test_no_implicit_wait_with_exception(self, mock_get_library_instance):
+        """Verify the "implicit wait" context manager restores the value even if exception occurs"""
+
+        selib = BuiltIn().get_library_instance("SeleniumLibrary")
+        selib.set_selenium_implicit_wait.return_value = 42
+        selib.set_selenium_implicit_wait.reset_mock()
+
+        page = BasePage()
+        try:
+            with page._no_implicit_wait():
+                raise Exception("Danger Will Robinson!")
+        except Exception:
+            pass
+
+        # The first call should pass in zero to turn off the
+        # implicit wait.  We've configured the mocked function to
+        # return '42'. The second call should pass the return value
+        # of the first call
+        selib.set_selenium_implicit_wait.assert_has_calls(
+            (mock.call(0), mock.call(42)), any_order=False
+        )
