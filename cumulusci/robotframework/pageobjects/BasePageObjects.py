@@ -166,7 +166,7 @@ class ModalMixin:
             )
             popup = self.selenium.get_webelement(popup_locator)
         except ElementNotFound:
-            raise ElementNotFound("Timed out waiting for the popup menu")
+            raise ElementNotFound("Timed out waiting for the dropdown menu")
 
         try:
             value_element = popup.find_element_by_link_text(value)
