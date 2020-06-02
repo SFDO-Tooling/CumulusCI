@@ -492,13 +492,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
     def get_repo_from_url(self, url):
-        repo_owner, repo_name = url.split("/")[3:5]
-        if repo_name.endswith(".git"):
-            repo_name = repo_name[:-4]
-        gh = self.get_github_api(repo_owner, repo_name)
-        repo = gh.repository(repo_owner, repo_name)
+        splits = self._split_repo_url(url)
+        gh = self.get_github_api(splits["owner"], splits["name"])
+        repo = gh.repository(splits["owner"], splits["name"])
 
-        return (repo, repo_owner, repo_name)
+        return repo
 
     def get_ref_for_dependency(self, repo, dependency, include_beta=None):
         release = None
@@ -592,7 +590,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             skip = [skip]
 
         # Initialize github3.py API against repo
-        repo, repo_owner, repo_name = self.get_repo_from_url(dependency["github"])
+        repo = self.get_repo_from_url(dependency["github"])
+        repo_owner = repo.owner
+        repo_name = repo.name
         if repo is None:
             raise DependencyResolutionError(
                 f"{indent}Github repository {dependency['github']} not found or not authorized."

@@ -7,11 +7,11 @@ from distutils.version import StrictVersion
 from github3.session import GitHubSession
 
 from cumulusci.tasks.github.base import BaseGithubTask
-from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils import download_extract_github_from_repo
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
-from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.exceptions import DependencyResolutionError, TaskOptionsError
 
 Package = namedtuple("Package", ["repo", "package_name", "namespace", "prefix_release"])
 PackageVersion = namedtuple("PackageVersion", ["package", "version"])
@@ -24,7 +24,6 @@ FieldDetail = namedtuple(
     [
         "version",
         "sobject",
-        "sobject_label",
         "api_name",
         "label",
         "type",
@@ -60,7 +59,9 @@ class GenerateDataDictionary(BaseGithubTask):
         },
         "additional_dependencies": {
             "description": "Include schema from additional GitHub repositories that "
-            "are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of URLs."
+            "are not explicit dependencies of this project to build a unified data dictionary. "
+            "Specify as a list of dicts as in project__dependencies in cumulusci.yml. Note: only "
+            "repository dependencies are supported."
         },
     }
 
@@ -89,6 +90,11 @@ class GenerateDataDictionary(BaseGithubTask):
             self.options.get("include_dependencies", True)
         )
 
+        if "additional_dependencies" in self.options and not all(
+            ["github" in dep for dep in self.options["additional_dependencies"]]
+        ):
+            raise TaskOptionsError("Only GitHub dependencies are currently supported.")
+
     def _get_repo_dependencies(
         self, dependencies=None, include_beta=None, visited_repos=None
     ):
@@ -99,7 +105,7 @@ class GenerateDataDictionary(BaseGithubTask):
 
         for dependency in dependencies:
             if "github" in dependency:
-                repo = self.project_config.get_repo_from_url(dependency["github"])[0]
+                repo = self.project_config.get_repo_from_url(dependency["github"])
                 if repo is None:
                     raise DependencyResolutionError(
                         f"Github repository {dependency['github']} not found or not authorized."
@@ -163,11 +169,7 @@ class GenerateDataDictionary(BaseGithubTask):
         ]
         if "additional_dependencies" in self.options:
             repos += self._get_repo_dependencies(
-                [
-                    {"github": url}
-                    for url in process_list_arg(self.options["additional_dependencies"])
-                ],
-                include_beta=False,
+                self.options["additional_dependencies"], include_beta=False
             )
         if self.options["include_dependencies"]:
             repos += self._get_repo_dependencies(dependencies, include_beta=False)
@@ -179,9 +181,10 @@ class GenerateDataDictionary(BaseGithubTask):
 
     def _init_schema(self):
         """Initialize the structure used for schema storage."""
-        self.sobjects = defaultdict(lambda: [])
-        self.fields = defaultdict(lambda: [])
-        self.package_versions = defaultdict(lambda: [])
+        self.sobjects = defaultdict(list)
+        self.fields = defaultdict(list)
+        self.package_versions = defaultdict(list)
+        self.omit_sobjects = set()
 
     def _walk_releases(self, package):
         """Traverse all of the releases in this project's repository and process
@@ -277,6 +280,16 @@ class GenerateDataDictionary(BaseGithubTask):
                         version.package.namespace, sobject_name, element
                     ):
                         self._process_object_element(sobject_name, element, version)
+                    else:
+                        # If this is an object type from which we shouldn't process any fields,
+                        # track it in omit_sobjects so we can drop any fields later if we don't have
+                        # the right information at time of processing.
+
+                        # Note that the owning object may be in a dependency package, so we won't find it below.
+                        if not self._should_process_object_fields(
+                            sobject_name, element
+                        ):
+                            self.omit_sobjects.add(sobject_name)
                 elif path.suffixes == [".field-meta", ".xml"]:
                     # To get the sObject name, we need to remove the `/fields/SomeField.field-meta.xml`
                     # and take the last path component
@@ -290,20 +303,17 @@ class GenerateDataDictionary(BaseGithubTask):
                         sobject_name = f"{version.package.namespace}{sobject_name}"
 
                     # If the object-meta file is locatable, load it so we can check
-                    # if this is a Custom Setting and acquire its label.
+                    # if this is a Custom Setting.
                     if sobject_file in zip_file.namelist():
                         object_entity = metadata_tree.fromstring(
                             zip_file.read(sobject_file)
                         )
-                        sobject_label = object_entity.label.text
                     else:
                         object_entity = None
-                        sobject_label = sobject_name
 
                     if self._should_process_object_fields(sobject_name, object_entity):
                         self._process_field_element(
                             sobject_name,
-                            sobject_label,
                             metadata_tree.fromstring(zip_file.read(f)),
                             version,
                         )
@@ -328,11 +338,16 @@ class GenerateDataDictionary(BaseGithubTask):
         # For MDAPI-format elements. No-op on SFDX.
         if self._should_process_object_fields(sobject_name, element):
             for field in element.findall("fields"):
-                self._process_field_element(
-                    sobject_name, element.label.text, field, version
-                )
+                self._process_field_element(sobject_name, field, version)
+        else:
+            # If this is an object type from which we shouldn't process any fields,
+            # track it in omit_sobjects so we can drop any fields later if we don't have
+            # the right information at time of processing.
 
-    def _process_field_element(self, sobject, sobject_label, field, version):
+            # Note that the owning object may be in a dependency package, so we won't find it otherwise.
+            self.omit_sobjects.add(sobject_name)
+
+    def _process_field_element(self, sobject, field, version):
         """Process a field entity, which can be either a <fields> element
         in MDAPI format or a <CustomField> in SFDX"""
         # `element` may be either a `fields` element (in MDAPI)
@@ -351,7 +366,7 @@ class GenerateDataDictionary(BaseGithubTask):
             length = ""
 
             if not field.find("formula"):
-                if field_type in ["Text", "LongTextArea", "TextArea"]:
+                if field_type in ["Text", "LongTextArea"]:
                     length = f" ({field.length.text})"
                 elif field_type == "Number":
                     length = f" ({int(field.precision.text) - int(field.scale.text)}.{field.scale.text})"
@@ -401,7 +416,6 @@ class GenerateDataDictionary(BaseGithubTask):
             fd = FieldDetail(
                 version,
                 sobject,
-                sobject_label,
                 field_name,
                 field.label.text,
                 f"{field_type}{length}",
@@ -427,8 +441,11 @@ class GenerateDataDictionary(BaseGithubTask):
         )
 
         for sobject_name, versions in self.sobjects.items():
+            # object_version.version.version yields the StrictVersion of the package version of this object version.
             versions = sorted(
-                versions, key=lambda ver: ver.version.version, reverse=True
+                versions,
+                key=lambda object_version: object_version.version.version,
+                reverse=True,
             )
             first_version = versions[-1]
             last_version = versions[0]
@@ -479,11 +496,17 @@ class GenerateDataDictionary(BaseGithubTask):
         )
 
         for field_name, field_versions in self.fields.items():
+            # field_version.version.version yields the StrictVersion of the package version for this field version.
             versions = sorted(
-                field_versions, key=lambda ver: ver.version.version, reverse=True
+                field_versions,
+                key=lambda field_version: field_version.version.version,
+                reverse=True,
             )
             first_version = versions[-1]
             last_version = versions[0]
+
+            if last_version.sobject in self.omit_sobjects:
+                continue
 
             # Locate the last versions where the valid values and the help text changed.
             valid_values_version = None
@@ -509,9 +532,19 @@ class GenerateDataDictionary(BaseGithubTask):
             else:
                 deleted_version = None
 
+            # Find the sObject name, if possible, for this field.
+            if last_version.sobject in self.sobjects:
+                sobject_label = sorted(
+                    self.sobjects[last_version.sobject],
+                    key=lambda ver: ver.version.version,
+                    reverse=True,
+                )[0].label
+            else:
+                sobject_label = last_version.sobject
+
             writer.writerow(
                 [
-                    last_version.sobject_label,
+                    sobject_label,
                     last_version.sobject,
                     last_version.label,
                     last_version.api_name,

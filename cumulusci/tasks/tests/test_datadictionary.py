@@ -54,12 +54,18 @@ class test_GenerateDataDictionary(unittest.TestCase):
         v = PackageVersion(p, StrictVersion("1.1"))
         v2 = PackageVersion(p, StrictVersion("1.2"))
         task.package_versions = {p: [v2.version, v.version]}
+        task.omit_sobjects = set()
+        task.sobjects = {
+            "test__Test__c": [
+                SObjectDetail(v, "test__Test__c", "Test Object", "Desc"),
+                SObjectDetail(v2, "test__Test__c", "Test Object", "Desc"),
+            ]
+        }
         task.fields = {
             "test__Test__c.test__Type__c": [
                 FieldDetail(
                     v,
                     "test__Test__c",
-                    "Test Object",
                     "test__Type__c",
                     "Type",
                     "Picklist",
@@ -70,7 +76,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 FieldDetail(
                     v2,
                     "test__Test__c",
-                    "Test Object",
                     "test__Type__c",
                     "Type",
                     "Picklist",
@@ -83,7 +88,80 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 FieldDetail(
                     v,
                     "test__Test__c",
-                    "Test Object",
+                    "test__Account__c",
+                    "Account",
+                    "Lookup to Account",
+                    "Help",
+                    "Description",
+                    "",
+                )
+            ],
+        }
+
+        f = io.StringIO()
+        task._write_field_results(f)
+        f.seek(0)
+        result = f.read()
+
+        assert result == (
+            "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
+            "Test Object,test__Test__c,Type,test__Type__c,Picklist,Foo; Bar; New Value,New Help,Description,Test 1.1,Test 1.2,Test 1.2,\r\n"
+            "Test Object,test__Test__c,Account,test__Account__c,Lookup to Account,,Help,Description,Test 1.1,,,Test 1.2\r\n"
+        )
+
+    def test_write_field_results__omit_sobjects(self):
+        task = create_task(GenerateDataDictionary, {})
+
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+        v2 = PackageVersion(p, StrictVersion("1.2"))
+        task.package_versions = {p: [v2.version, v.version]}
+        task.omit_sobjects = set(["test__Test2__c"])
+        task.sobjects = {
+            "test__Test__c": [
+                SObjectDetail(v, "test__Test__c", "Test Object", "Desc"),
+                SObjectDetail(v2, "test__Test__c", "Test Object", "Desc"),
+            ]
+        }
+        task.fields = {
+            "test__Test2__c.test__Blah__c": [
+                FieldDetail(
+                    v,
+                    "test__Test2__c",
+                    "test__Blah__c",
+                    "Test Field",
+                    "Text",
+                    "Help",
+                    "Description",
+                    "",
+                )
+            ],
+            "test__Test__c.test__Type__c": [
+                FieldDetail(
+                    v,
+                    "test__Test__c",
+                    "test__Type__c",
+                    "Type",
+                    "Picklist",
+                    "Help",
+                    "Description",
+                    "Foo; Bar",
+                ),
+                FieldDetail(
+                    v2,
+                    "test__Test__c",
+                    "test__Type__c",
+                    "Type",
+                    "Picklist",
+                    "New Help",
+                    "Description",
+                    "Foo; Bar; New Value",
+                ),
+            ],
+            "test__Test__c.test__Account__c": [
+                FieldDetail(
+                    v,
+                    "test__Test__c",
                     "test__Account__c",
                     "Account",
                     "Lookup to Account",
@@ -183,10 +261,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._init_schema()
         task._process_field_element(
-            "test__Test__c",
-            "Test Object",
-            metadata_tree.fromstring(xml_source.encode("utf-8")),
-            v,
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
         assert "test__Test__c.test__Lookup__c" in task.fields
@@ -195,7 +270,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
             FieldDetail(
                 v,
                 "test__Test__c",
-                "Test Object",
                 "test__Lookup__c",
                 "Test",
                 "Lookup to test__Test__c",
@@ -220,10 +294,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._init_schema()
         task._process_field_element(
-            "test__Test__c",
-            "Test Object",
-            metadata_tree.fromstring(xml_source.encode("utf-8")),
-            v,
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
         assert "test__Test__c.test__Lookup__c" in task.fields
@@ -231,7 +302,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
             FieldDetail(
                 v,
                 "test__Test__c",
-                "Test Object",
                 "test__Lookup__c",
                 "Test",
                 "Master-Detail Relationship to test__Test__c",
@@ -257,10 +327,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         v = PackageVersion(p, StrictVersion("1.1"))
 
         task._process_field_element(
-            "test__Test__c",
-            "Test Object",
-            metadata_tree.fromstring(xml_source.encode("utf-8")),
-            v,
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
         assert "test__Test__c.Account" not in task.fields
@@ -284,7 +351,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._process_field_element(
             "test__Test__c",
-            "Test Object",
             metadata_tree.fromstring(xml_source.format("Initial").encode("utf-8")),
             v,
         )
@@ -293,7 +359,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
             FieldDetail(
                 v,
                 "test__Test__c",
-                "Test Object",
                 "test__Account__c",
                 "Account",
                 "Lookup to Account",
@@ -305,7 +370,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._process_field_element(
             "test__Test__c",
-            "Test Object",
             metadata_tree.fromstring(xml_source.format("New").encode("utf-8")),
             v2,
         )
@@ -313,7 +377,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
             FieldDetail(
                 v,
                 "test__Test__c",
-                "Test Object",
                 "test__Account__c",
                 "Account",
                 "Lookup to Account",
@@ -324,7 +387,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
             FieldDetail(
                 v2,
                 "test__Test__c",
-                "Test Object",
                 "test__Account__c",
                 "Account",
                 "Lookup to Account",
@@ -361,17 +423,13 @@ class test_GenerateDataDictionary(unittest.TestCase):
         v = PackageVersion(p, StrictVersion("1.1"))
 
         task._process_field_element(
-            "test__Test__c",
-            "Test Object",
-            metadata_tree.fromstring(xml_source.encode("utf-8")),
-            v,
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
         assert task.fields["test__Test__c.test__Type__c"] == [
             FieldDetail(
                 v,
                 "test__Test__c",
-                "Test Object",
                 "test__Type__c",
                 "Type",
                 "Picklist",
@@ -406,17 +464,13 @@ class test_GenerateDataDictionary(unittest.TestCase):
         v = PackageVersion(p, StrictVersion("1.1"))
 
         task._process_field_element(
-            "test__Test__c",
-            "Test Object",
-            metadata_tree.fromstring(xml_source.encode("utf-8")),
-            v,
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
         assert task.fields["test__Test__c.test__Type__c"] == [
             FieldDetail(
                 v,
                 "test__Test__c",
-                "Test Object",
                 "test__Type__c",
                 "Type",
                 "Picklist",
@@ -444,17 +498,13 @@ class test_GenerateDataDictionary(unittest.TestCase):
         v = PackageVersion(p, StrictVersion("1.1"))
 
         task._process_field_element(
-            "test__Test__c",
-            "Test Object",
-            metadata_tree.fromstring(xml_source.encode("utf-8")),
-            v,
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
         assert task.fields["test__Test__c.test__Type__c"] == [
             FieldDetail(
                 v,
                 "test__Test__c",
-                "Test Object",
                 "test__Type__c",
                 "Type",
                 "Picklist",
@@ -480,23 +530,12 @@ class test_GenerateDataDictionary(unittest.TestCase):
         v = PackageVersion(p, StrictVersion("1.1"))
 
         task._process_field_element(
-            "test__Test__c",
-            "Test Object",
-            metadata_tree.fromstring(xml_source.encode("utf-8")),
-            v,
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
         assert task.fields["test__Test__c.test__Type__c"] == [
             FieldDetail(
-                v,
-                "test__Test__c",
-                "Test Object",
-                "test__Type__c",
-                "Type",
-                "Text (128)",
-                "",
-                "",
-                "",
+                v, "test__Test__c", "test__Type__c", "Type", "Text (128)", "", "", ""
             )
         ]
 
@@ -517,23 +556,12 @@ class test_GenerateDataDictionary(unittest.TestCase):
         v = PackageVersion(p, StrictVersion("1.1"))
 
         task._process_field_element(
-            "test__Test__c",
-            "Test Object",
-            metadata_tree.fromstring(xml_source.encode("utf-8")),
-            v,
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
         assert task.fields["test__Test__c.test__Type__c"] == [
             FieldDetail(
-                v,
-                "test__Test__c",
-                "Test Object",
-                "test__Type__c",
-                "Type",
-                "Number (16.2)",
-                "",
-                "",
-                "",
+                v, "test__Test__c", "test__Type__c", "Type", "Number (16.2)", "", "", ""
             )
         ]
 
@@ -571,7 +599,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 FieldDetail(
                     v,
                     "test__Test__c",
-                    "Test Object",
                     "test__Type__c",
                     "Type",
                     "Text (128)",
@@ -618,6 +645,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             )
 
             assert "test__CS__c" not in task.sobjects
+            assert task.omit_sobjects == set(["test__CS__c"])
 
     def test_process_sfdx_release(self):
         object_source = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -703,6 +731,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             return field_source
 
         task = create_task(GenerateDataDictionary, {})
+        task._init_schema()
 
         p = Package(None, "Test", "test__", "rel/")
         v = PackageVersion(p, StrictVersion("1.1"))
@@ -735,6 +764,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
             ]
         )
+        assert task.omit_sobjects == set(["test__Child__c", "test__Parent__c"])
 
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
     def test_walk_releases__mdapi(self, extract_github):
@@ -826,7 +856,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task = create_task(
             GenerateDataDictionary,
-            {"additional_dependencies": ["http://test/"]},
+            {"additional_dependencies": [{"github": "http://test"}]},
             project_config=project_config,
         )
         task.get_repo = Mock()
@@ -842,7 +872,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._get_repo_dependencies.assert_has_calls(
             [
-                call([{"github": "http://test/"}], include_beta=False),
+                call([{"github": "http://test"}], include_beta=False),
                 call(project_config.project__dependencies, include_beta=False),
             ]
         )
@@ -971,7 +1001,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
         project_config.project__dependencies = [{"github": "test"}]
-        project_config.get_repo_from_url = Mock(return_value=(None,))
+        project_config.get_repo_from_url = Mock(return_value=None)
 
         with self.assertRaises(DependencyResolutionError):
             task._get_repo_dependencies(project_config.project__dependencies)
@@ -987,7 +1017,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         first_repo = Mock()
         second_repo = Mock()
         project_config.get_repo_from_url = Mock(
-            side_effect=[(first_repo,), (second_repo,), (first_repo,)]
+            side_effect=[first_repo, second_repo, first_repo]
         )
         project_config.get_ref_for_dependency = Mock(return_value=(Mock(), Mock()))
 
