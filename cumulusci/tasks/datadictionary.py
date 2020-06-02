@@ -24,6 +24,7 @@ FieldDetail = namedtuple(
     [
         "version",
         "sobject",
+        "sobject_label",
         "api_name",
         "label",
         "type",
@@ -288,17 +289,21 @@ class GenerateDataDictionary(BaseGithubTask):
                     if sobject_name.count("__") == 1:
                         sobject_name = f"{version.package.namespace}{sobject_name}"
 
-                    # If the object-meta file is locatable, load it so we can check if this is a Custom Setting.
+                    # If the object-meta file is locatable, load it so we can check
+                    # if this is a Custom Setting and acquire its label.
                     if sobject_file in zip_file.namelist():
                         object_entity = metadata_tree.fromstring(
                             zip_file.read(sobject_file)
                         )
+                        sobject_label = object_entity.label.text
                     else:
                         object_entity = None
+                        sobject_label = sobject_name
 
                     if self._should_process_object_fields(sobject_name, object_entity):
                         self._process_field_element(
                             sobject_name,
+                            sobject_label,
                             metadata_tree.fromstring(zip_file.read(f)),
                             version,
                         )
@@ -323,9 +328,11 @@ class GenerateDataDictionary(BaseGithubTask):
         # For MDAPI-format elements. No-op on SFDX.
         if self._should_process_object_fields(sobject_name, element):
             for field in element.findall("fields"):
-                self._process_field_element(sobject_name, field, version)
+                self._process_field_element(
+                    sobject_name, element.label.text, field, version
+                )
 
-    def _process_field_element(self, sobject, field, version):
+    def _process_field_element(self, sobject, sobject_label, field, version):
         """Process a field entity, which can be either a <fields> element
         in MDAPI format or a <CustomField> in SFDX"""
         # `element` may be either a `fields` element (in MDAPI)
@@ -394,6 +401,7 @@ class GenerateDataDictionary(BaseGithubTask):
             fd = FieldDetail(
                 version,
                 sobject,
+                sobject_label,
                 field_name,
                 field.label.text,
                 f"{field_type}{length}",
@@ -455,6 +463,7 @@ class GenerateDataDictionary(BaseGithubTask):
 
         writer.writerow(
             [
+                "Object Label",
                 "Object API Name",
                 "Field Label",
                 "Field API Name",
@@ -502,6 +511,7 @@ class GenerateDataDictionary(BaseGithubTask):
 
             writer.writerow(
                 [
+                    last_version.sobject_label,
                     last_version.sobject,
                     last_version.label,
                     last_version.api_name,
