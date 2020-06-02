@@ -476,11 +476,10 @@ class CustomDetailPage(BasePage):
                   
                 </td>
                 <td class="kwdoc"><p>Wait for the given page object modal to appear.</p>
-<p>This will both wait for the modal, and verify that the modal has an expected heading. By default the expected heading will be the page object type (eg "New") and object name (eg: "Contact") separated by a space (eg: "New Contact").</p>
-<p>You can override the expected heading with the expected_heading parameter.</p>
+<p>This will wait for modal to appear. If an expected heading is provided, it will also validate that the modal has the expected heading.</p>
 <p>Example:</p>
 <pre>
-Wait for modal to appear    New    Contact
+Wait for modal to appear    New    Contact   expected_heading=New Contact
 </pre></td>
               </tr>
               
@@ -554,7 +553,9 @@ Wait for modal to appear    New    Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>title</i>
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
                   
                 </td>
                 <td class="kwdoc"><p>Clicks a button in a Lightning modal.</p></td>
@@ -566,7 +567,9 @@ Wait for modal to appear    New    Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>title</i>
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
                   
                 </td>
                 <td class="kwdoc"><p>Clicks a button in an object's actions.</p></td>
@@ -751,7 +754,7 @@ Wait for modal to appear    New    Contact
 <p>This uses the <a href="https://faker.readthedocs.io/en/master/">Faker</a> library to provide fake data in a variety of formats (names, addresses, credit card numbers, dates, phone numbers, etc) and locales (en_US, fr_FR, etc).</p>
 <p>The <i>fake</i> argument is the name of a faker property such as <code>first_name</code>, <code>address</code>, <code>lorem</code>, etc. Additional arguments depend on type of data requested. For a comprehensive list of the types of fake data that can be generated see <a href="https://faker.readthedocs.io/en/master/providers.html">Faker providers</a> in the Faker documentation.</p>
 <p>The return value is typically a string, though in some cases some other type of object will be returned. For example, the <code>date_between</code> fake returns a <a href="https://docs.python.org/3/library/datetime.html#date-objects">datetime.date object</a>. Each time a piece of fake data is requested it will be regenerated, so that multiple calls will usually return different data.</p>
-<p>This keyword can also be called using robot's extend variable syntax using the variable <code>${faker}</code>. In such a case, the data being asked for is a method call and arguments must be enclosed in parenthesis and be quoted. Arguments should not be quoted when using the keyword.</p>
+<p>This keyword can also be called using robot's extended variable syntax using the variable <code>${faker}</code>. In such a case, the data being asked for is a method call and arguments must be enclosed in parentheses and be quoted. Arguments should not be quoted when using the keyword.</p>
 <p>To generate fake data for a locale other than en_US, use the keyword <code>Set Faker Locale</code> prior to calling this keyword.</p>
 <p>Examples</p>
 <pre>
@@ -1007,9 +1010,14 @@ Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
                 </td>
                 <td class="kwargs">
                   
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
                 </td>
                 <td class="kwdoc"><p>Opens the Saleforce App Launcher Modal</p>
-<p>Note: starting with Spring '20 the app launcher button opens a menu rather than a modal. To maintain backwards compatibility, this keyword will continue to open the modal rather than the menu. If you need to interact with the app launcher menu, you will need to create a custom keyword.</p></td>
+<p>Note: starting with Spring '20 the app launcher button opens a menu rather than a modal. To maintain backwards compatibility, this keyword will continue to open the modal rather than the menu. If you need to interact with the app launcher menu, you will need to create a custom keyword.</p>
+<p>If the retry parameter is true, the keyword will close and then re-open the app launcher if it times out while waiting for the dialog to open.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Populate Field">
@@ -1395,11 +1403,9 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                 </td>
                 <td class="kwargs">
                   
-                  <i>locator=None</i>, 
+                  <i>*args</i>, 
                   
-                  <i>timeout=None</i>, 
-                  
-                  <i>interval=5</i>
+                  <i>**kwargs</i>
                   
                 </td>
                 <td class="kwdoc"><p>Waits until we are able to render the initial salesforce landing page</p>
@@ -1525,13 +1531,15 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                   
                   <i>size=${DEFAULT BROWSER SIZE}</i>, 
                   
-                  <i>alias=${NONE}</i>
+                  <i>alias=${NONE}</i>, 
+                  
+                  <i>wait=True</i>
                   
                 </td>
                 <td class="kwdoc"><p>Opens a test browser to the org.</p>
 <p>The variable ${BROWSER} determines which browser should open. The following four browsers are explicitly supported: chrome, firefox, headlesschrome, and headlessfirefox. Any other value will be passed directly to the SeleniumLibrary 'Open Browser' keyword.</p>
 <p>Once the browser has been opened, it will be set to the given size (default=${DEFAULT BROWSER SIZE})</p>
-<p>The keyword `Log Browser Capabilities` will automatically be called.</p></td>
+<p>The keyword `Log Browser Capabilities` will automatically be called. The keyword will also call `Wait Until Salesforce is Ready` unless the `wait` parameter is set to False.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Open Test Browser Chrome">
@@ -1772,6 +1780,22 @@ Populate form
 </pre></td>
               </tr>
               
+              <tr class="kwrow" id="BasePageObjects.py.Select Dropdown Value">
+                <td class="kwname">
+                  Select Dropdown Value
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Sets the value of a dropdown form field from one of the values in the dropdown</p>
+<p><code>label</code> represents the label on the form field (eg: Lead Source)</p>
+<p>If a modal is present, the modal will be searched for the dropdown. Otherwise the first matching dropdown on the entire web page will be used.</p></td>
+              </tr>
+              
               <tr class="kwrow" id="BasePageObjects.py.Wait Until Modal Is Closed">
                 <td class="kwname">
                   Wait Until Modal Is Closed
@@ -2009,6 +2033,22 @@ Populate form
 </pre></td>
               </tr>
               
+              <tr class="kwrow" id="BasePageObjects.py.Select Dropdown Value">
+                <td class="kwname">
+                  Select Dropdown Value
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Sets the value of a dropdown form field from one of the values in the dropdown</p>
+<p><code>label</code> represents the label on the form field (eg: Lead Source)</p>
+<p>If a modal is present, the modal will be searched for the dropdown. Otherwise the first matching dropdown on the entire web page will be used.</p></td>
+              </tr>
+              
               <tr class="kwrow" id="BasePageObjects.py.Wait Until Modal Is Closed">
                 <td class="kwname">
                   Wait Until Modal Is Closed
@@ -2032,7 +2072,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Wednesday April 08, 06:48 PM - cumulusci v3.10.0
+      Generated on Friday May 29, 12:23 AM - cumulusci v3.12.2
     </div>
   </body>
 </html>
