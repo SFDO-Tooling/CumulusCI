@@ -26,10 +26,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
     def test_write_object_results(self):
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         p = Package(None, "Test", "test__", "rel/")
         v = PackageVersion(p, StrictVersion("1.1"))
@@ -51,10 +48,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
 
     def test_write_field_results(self):
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         p = Package(None, "Test", "test__", "rel/")
         v = PackageVersion(p, StrictVersion("1.1"))
@@ -71,7 +65,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                     "Help",
                     "Description",
                     "Foo; Bar",
-                    "",
                 ),
                 FieldDetail(
                     v2,
@@ -82,7 +75,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                     "New Help",
                     "Description",
                     "Foo; Bar; New Value",
-                    "",
                 ),
             ],
             "test__Test__c.test__Account__c": [
@@ -95,7 +87,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                     "Help",
                     "Description",
                     "",
-                    "",
                 )
             ],
         }
@@ -106,9 +97,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
         result = f.read()
 
         assert result == (
-            "Object API Name,Field Label,Field API Name,Type,Help Text,Field Description,Picklist Values,Length,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
-            "test__Test__c,Type,test__Type__c,Picklist,New Help,Description,Foo; Bar; New Value,,Test 1.1,Test 1.2,Test 1.2,\r\n"
-            "test__Test__c,Account,test__Account__c,Lookup to Account,Help,Description,,,Test 1.1,,,Test 1.2\r\n"
+            "Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
+            "test__Test__c,Type,test__Type__c,Picklist,Foo; Bar; New Value,New Help,Description,Test 1.1,Test 1.2,Test 1.2,\r\n"
+            "test__Test__c,Account,test__Account__c,Lookup to Account,,Help,Description,Test 1.1,,,Test 1.2\r\n"
         )
 
     def test_should_process_object(self):
@@ -183,10 +174,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <referenceTo>Test__c</referenceTo>
 </CustomField>
 """
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
         p = Package(None, "Test", "test__", "rel/")
         v = PackageVersion(p, StrictVersion("1.1"))
 
@@ -207,7 +195,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "",
                 "",
                 "",
-                "",
             )
         ]
 
@@ -220,10 +207,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <referenceTo>Test__c</referenceTo>
 </CustomField>
 """
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
         p = Package(None, "Test", "test__", "rel/")
         v = PackageVersion(p, StrictVersion("1.1"))
 
@@ -243,7 +227,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "",
                 "",
                 "",
-                "",
             )
         ]
 
@@ -256,10 +239,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <referenceTo>Account</referenceTo>
 </CustomField>
 """
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         task._init_schema()
         p = Package(None, "Test", "test__", "rel/")
@@ -281,10 +261,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <referenceTo>Account</referenceTo>
 </CustomField>
 """
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         task._init_schema()
         p = Package(None, "Test", "test__", "rel/")
@@ -307,7 +284,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "Initial",
                 "",
                 "",
-                "",
             )
         ]
 
@@ -326,7 +302,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "Initial",
                 "",
                 "",
-                "",
             ),
             FieldDetail(
                 v2,
@@ -335,7 +310,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "Account",
                 "Lookup to Account",
                 "New",
-                "",
                 "",
                 "",
             ),
@@ -361,10 +335,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     </valueSet>
 </CustomField>
 """
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         task._init_schema()
         p = Package(None, "Test", "test__", "rel/")
@@ -384,7 +355,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "",
                 "",
                 "Test 1; Test 2",
-                "",
             )
         ]
 
@@ -406,10 +376,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     </picklist>
 </CustomField>
 """
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         task._init_schema()
         p = Package(None, "Test", "test__", "rel/")
@@ -429,7 +396,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "",
                 "",
                 "Test 1; Test 2",
-                "",
             )
         ]
 
@@ -444,10 +410,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     </valueSet>
 </CustomField>
 """
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         task._init_schema()
         p = Package(None, "Test", "test__", "rel/")
@@ -467,7 +430,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 "",
                 "",
                 "Global Value Set Test Value Set",
-                "",
             )
         ]
 
@@ -480,10 +442,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <length>128</length>
 </CustomField>
 """
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         task._init_schema()
         p = Package(None, "Test", "test__", "rel/")
@@ -495,7 +454,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         assert task.fields["test__Test__c.test__Type__c"] == [
             FieldDetail(
-                v, "test__Test__c", "test__Type__c", "Type", "Text", "", "", "", "128"
+                v, "test__Test__c", "test__Type__c", "Type", "Text (128)", "", "", ""
             )
         ]
 
@@ -509,10 +468,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <scale>2</scale>
 </CustomField>
 """
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         task._init_schema()
         p = Package(None, "Test", "test__", "rel/")
@@ -524,15 +480,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         assert task.fields["test__Test__c.test__Type__c"] == [
             FieldDetail(
-                v,
-                "test__Test__c",
-                "test__Type__c",
-                "Type",
-                "Number",
-                "",
-                "",
-                "",
-                "16.2",
+                v, "test__Test__c", "test__Type__c", "Type", "Number (16.2)", "", "", ""
             )
         ]
 
@@ -551,10 +499,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     </fields>
 </CustomObject>"""
 
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         task._init_schema()
         p = Package(None, "Test", "test__", "rel/")
@@ -573,11 +518,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
                     "test__Test__c",
                     "test__Type__c",
                     "Type",
-                    "Text",
+                    "Text (128)",
                     "Type of field.",
                     "Desc",
                     "",
-                    "128",
                 )
             ]
         }
@@ -589,10 +533,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <label>Test</label>
 </CustomObject>"""
 
-            task = create_task(
-                GenerateDataDictionary,
-                {"object_path": "object.csv", "field_path": "fields.csv"},
-            )
+            task = create_task(GenerateDataDictionary, {})
 
             task._init_schema()
             p = Package(None, "Test", "test__", "rel/")
@@ -611,10 +552,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     <label>Test</label>
 </CustomObject>"""
 
-            task = create_task(
-                GenerateDataDictionary,
-                {"object_path": "object.csv", "field_path": "fields.csv"},
-            )
+            task = create_task(GenerateDataDictionary, {})
 
             task._init_schema()
             p = Package(None, "Test", "test__", "rel/")
@@ -645,10 +583,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
             return field_source
 
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         p = Package(None, "Test", "test__", "rel/")
         v = PackageVersion(p, StrictVersion("1.1"))
@@ -711,10 +646,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
             return field_source
 
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-        )
+        task = create_task(GenerateDataDictionary, {})
 
         p = Package(None, "Test", "test__", "rel/")
         v = PackageVersion(p, StrictVersion("1.1"))
@@ -753,11 +685,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config = create_project_config()
         project_config.project__git__prefix_release = "rel/"
         project_config.project__name = "Project"
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-            project_config=project_config,
-        )
+        task = create_task(GenerateDataDictionary, {}, project_config=project_config)
         task._init_schema()
 
         repo = Mock()
@@ -782,11 +710,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config.project__git__prefix_release = "rel/"
         project_config.project__name = "Project"
 
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-            project_config=project_config,
-        )
+        task = create_task(GenerateDataDictionary, {}, project_config=project_config)
         task._init_schema()
 
         repo = Mock()
@@ -812,11 +736,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config = create_project_config()
         project_config.project__git__prefix_release = "rel/"
         project_config.project__name = "Project"
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-            project_config=project_config,
-        )
+        task = create_task(GenerateDataDictionary, {}, project_config=project_config)
         task._init_schema()
 
         repo = Mock()
@@ -940,10 +860,10 @@ class test_GenerateDataDictionary(unittest.TestCase):
                 ),
                 call("Test,test__Test__c,Description,Project 1.1,\r\n"),
                 call(
-                    "Object API Name,Field Label,Field API Name,Type,Help Text,Field Description,Picklist Values,Length,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
+                    "Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
                 ),
                 call(
-                    "test__Test__c,Type,test__Type__c,Text,Type of field.,,,255,Project 1.1,,,\r\n"
+                    "test__Test__c,Type,test__Type__c,Text (255),,Type of field.,,Project 1.1,,,\r\n"
                 ),
             ],
             any_order=True,
@@ -961,11 +881,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     def test_init_options(self):
         task = create_task(
             GenerateDataDictionary,
-            {
-                "object_path": "objects.csv",
-                "field_path": "fields.csv",
-                "release_prefix": "rel/",
-            },
+            {"object_path": "objects.csv", "field_path": "fields.csv"},
         )
 
         assert task.options["object_path"] == "objects.csv"
@@ -1009,11 +925,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config.project__git__prefix_release = "rel/"
         project_config.project__name = "Project"
 
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "object.csv", "field_path": "fields.csv"},
-            project_config=project_config,
-        )
+        task = create_task(GenerateDataDictionary, {}, project_config=project_config)
 
         project_config.project__dependencies = [{"github": "test"}]
         first_repo = Mock()

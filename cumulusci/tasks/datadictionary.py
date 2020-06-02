@@ -30,7 +30,6 @@ FieldDetail = namedtuple(
         "help_text",
         "description",
         "valid_values",
-        "length",
     ],
 )
 
@@ -244,7 +243,7 @@ class GenerateDataDictionary(BaseGithubTask):
         We also do not process Custom Settings, Platform Events, or Custom Metadata Types."""
 
         return (
-            sobject_name.endswith("__c")
+            (sobject_name.endswith("__c") or sobject_name.count("__") == 0)
             and sobject_name.startswith(namespace)
             and element.find("customSettingsType") is None
             if element
@@ -342,6 +341,14 @@ class GenerateDataDictionary(BaseGithubTask):
             field_type = field.type.text
             valid_values = ""
 
+            length = ""
+
+            if not field.find("formula"):
+                if field_type in ["Text", "LongTextArea", "TextArea"]:
+                    length = f" ({field.length.text})"
+                elif field_type == "Number":
+                    length = f" ({int(field.precision.text) - int(field.scale.text)}.{field.scale.text})"
+
             if field_type in ("Picklist", "MultiselectPicklist"):
                 # There's two different ways of storing picklist values
                 # (exclusive of Global Value Sets).
@@ -384,24 +391,15 @@ class GenerateDataDictionary(BaseGithubTask):
                 field_type = f"Master-Detail Relationship to {target_sobject}"
                 # Note: polymorphic custom fields are not allowed.
 
-            length = ""
-
-            if not field.find("formula"):
-                if field_type == "Text":
-                    length = field.length.text
-                elif field_type == "Number":
-                    length = f"{int(field.precision.text) - int(field.scale.text)}.{field.scale.text}"
-
             fd = FieldDetail(
                 version,
                 sobject,
                 field_name,
                 field.label.text,
-                field_type,
+                f"{field_type}{length}",
                 help_text_elem.text if help_text_elem else "",
                 description_text_elem.text if description_text_elem else "",
                 valid_values,
-                length,
             )
             fully_qualified_name = f"{sobject}.{fd.api_name}"
             self.fields[fully_qualified_name].append(fd)
@@ -461,10 +459,9 @@ class GenerateDataDictionary(BaseGithubTask):
                 "Field Label",
                 "Field API Name",
                 "Type",
+                "Picklist Values",
                 "Help Text",
                 "Field Description",
-                "Picklist Values",
-                "Length",
                 "Version Introduced",
                 "Version Picklist Values Last Changed",
                 "Version Help Text Last Changed",
@@ -509,10 +506,9 @@ class GenerateDataDictionary(BaseGithubTask):
                     last_version.label,
                     last_version.api_name,
                     last_version.type,
+                    last_version.valid_values,
                     last_version.help_text,
                     last_version.description,
-                    last_version.valid_values,
-                    last_version.length,
                     f"{first_version.version.package.package_name} {first_version.version.version}",
                     f"{first_version.version.package.package_name} {valid_values_version.version.version}"
                     if valid_values_version
