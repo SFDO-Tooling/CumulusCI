@@ -392,7 +392,9 @@ class CustomDetailPage(BasePage):
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
+                  <i>page_type</i>, 
+                  
+                  <i>object_name</i>, 
                   
                   <i>**kwargs</i>
                   
@@ -425,6 +427,10 @@ class CustomDetailPage(BasePage):
                   Go To Page
                 </td>
                 <td class="kwargs">
+                  
+                  <i>page_type</i>, 
+                  
+                  <i>object_name</i>, 
                   
                   <i>*args</i>, 
                   
@@ -470,7 +476,11 @@ class CustomDetailPage(BasePage):
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
+                  <i>page_type</i>, 
+                  
+                  <i>object_name</i>, 
+                  
+                  <i>expected_heading=None</i>, 
                   
                   <i>**kwargs</i>
                   
@@ -490,7 +500,9 @@ Wait for modal to appear    New    Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
+                  <i>page_type</i>, 
+                  
+                  <i>object_name</i>, 
                   
                   <i>**kwargs</i>
                   
@@ -578,9 +590,9 @@ Wait for modal to appear    New    Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
+                  <i>heading</i>, 
                   
-                  <i>**kwargs</i>
+                  <i>title</i>
                   
                 </td>
                 <td class="kwdoc"><p>Clicks a link in the related list with the specified heading.</p>
@@ -751,7 +763,7 @@ Wait for modal to appear    New    Contact
 <p>This uses the <a href="https://faker.readthedocs.io/en/master/">Faker</a> library to provide fake data in a variety of formats (names, addresses, credit card numbers, dates, phone numbers, etc) and locales (en_US, fr_FR, etc).</p>
 <p>The <i>fake</i> argument is the name of a faker property such as <code>first_name</code>, <code>address</code>, <code>lorem</code>, etc. Additional arguments depend on type of data requested. For a comprehensive list of the types of fake data that can be generated see <a href="https://faker.readthedocs.io/en/master/providers.html">Faker providers</a> in the Faker documentation.</p>
 <p>The return value is typically a string, though in some cases some other type of object will be returned. For example, the <code>date_between</code> fake returns a <a href="https://docs.python.org/3/library/datetime.html#date-objects">datetime.date object</a>. Each time a piece of fake data is requested it will be regenerated, so that multiple calls will usually return different data.</p>
-<p>This keyword can also be called using robot's extend variable syntax using the variable <code>${faker}</code>. In such a case, the data being asked for is a method call and arguments must be enclosed in parenthesis and be quoted. Arguments should not be quoted when using the keyword.</p>
+<p>This keyword can also be called using robot's extended variable syntax using the variable <code>${faker}</code>. In such a case, the data being asked for is a method call and arguments must be enclosed in parentheses and be quoted. Arguments should not be quoted when using the keyword.</p>
 <p>To generate fake data for a locale other than en_US, use the keyword <code>Set Faker Locale</code> prior to calling this keyword.</p>
 <p>Examples</p>
 <pre>
@@ -1007,9 +1019,12 @@ Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
                 </td>
                 <td class="kwargs">
                   
+                  <i>retry=True</i>
+                  
                 </td>
                 <td class="kwdoc"><p>Opens the Saleforce App Launcher Modal</p>
-<p>Note: starting with Spring '20 the app launcher button opens a menu rather than a modal. To maintain backwards compatibility, this keyword will continue to open the modal rather than the menu. If you need to interact with the app launcher menu, you will need to create a custom keyword.</p></td>
+<p>Note: starting with Spring '20 the app launcher button opens a menu rather than a modal. To maintain backwards compatibility, this keyword will continue to open the modal rather than the menu. If you need to interact with the app launcher menu, you will need to create a custom keyword.</p>
+<p>If the retry parameter is true, the keyword will close and then re-open the app launcher if it times out while waiting for the dialog to open.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Populate Field">
@@ -1233,9 +1248,7 @@ Should be equal as numbers ${result}  204
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
+                  <i>app_name</i>
                   
                 </td>
                 <td class="kwdoc"><p>Navigates to a Salesforce App via the App Launcher</p></td>
@@ -1247,9 +1260,7 @@ Should be equal as numbers ${result}  204
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
+                  <i>tab_name</i>
                   
                 </td>
                 <td class="kwdoc"><p>Navigates to a tab via the App Launcher</p></td>
@@ -1381,10 +1392,6 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
-                  
                 </td>
                 <td class="kwdoc"><p>Wait for modal to open</p></td>
               </tr>
@@ -1446,7 +1453,8 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                   <i>options</i>
                   
                 </td>
-                <td class="kwdoc"></td>
+                <td class="kwdoc"><p>Sets the 'options.binary_location' value in the chrome options dictionary to the value of the environment variable CHROME_BINARY, if set.</p>
+<p>This keyword is not intended to be used by test scripts</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Chrome Set Headless">
@@ -1458,7 +1466,8 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                   <i>options</i>
                   
                 </td>
-                <td class="kwdoc"></td>
+                <td class="kwdoc"><p>This keyword is used to set the chrome options dictionary values required to run headless chrome.</p>
+<p>This keyword is not intended to be used by test scripts</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Delete Records and Close Browser">
@@ -1468,7 +1477,7 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                 <td class="kwargs">
                   
                 </td>
-                <td class="kwdoc"><p>This will close all open browser windows and then delete all records created with the Salesforce API during this testing session.</p></td>
+                <td class="kwdoc"><p>This will close all open browser windows and then delete all records that were created with the Salesforce API during this testing session.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Get Chrome Options">
@@ -1478,7 +1487,8 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                 <td class="kwargs">
                   
                 </td>
-                <td class="kwdoc"></td>
+                <td class="kwdoc"><p>Returns a dictionary of chrome options, for use by the keyword `Open Test Browser`.</p>
+<p>This keyword is not intended to be used by test scripts.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Locate Element By Text">
@@ -1496,7 +1506,11 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                   <i>constraints</i>
                   
                 </td>
-                <td class="kwdoc"></td>
+                <td class="kwdoc"><p>This is registered as a custom locator strategy named <code>text</code>. It is shorthand for the locator <code>//*[text()=...]</code></p>
+<p>Example:</p>
+<pre>
+Wait until page contains element text:Mobile Publisher
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Locate Element By Title">
@@ -1514,7 +1528,11 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                   <i>constraints</i>
                   
                 </td>
-                <td class="kwdoc"></td>
+                <td class="kwdoc"><p>This is registered as a custom locator strategy named <code>title</code>. It is shorthand for the locator <code>//*[@title=...]</code></p>
+<p>Example:</p>
+<pre>
+Wait until page contains element title:Object Manager
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Open Test Browser">
@@ -1525,13 +1543,15 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                   
                   <i>size=${DEFAULT BROWSER SIZE}</i>, 
                   
-                  <i>alias=${NONE}</i>
+                  <i>alias=${NONE}</i>, 
+                  
+                  <i>wait=True</i>
                   
                 </td>
                 <td class="kwdoc"><p>Opens a test browser to the org.</p>
 <p>The variable ${BROWSER} determines which browser should open. The following four browsers are explicitly supported: chrome, firefox, headlesschrome, and headlessfirefox. Any other value will be passed directly to the SeleniumLibrary 'Open Browser' keyword.</p>
 <p>Once the browser has been opened, it will be set to the given size (default=${DEFAULT BROWSER SIZE})</p>
-<p>The keyword `Log Browser Capabilities` will automatically be called.</p></td>
+<p>The keyword `Log Browser Capabilities` will automatically be called. The keyword will also call `Wait Until Salesforce is Ready` unless the `wait` parameter is set to False.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Open Test Browser Chrome">
@@ -1545,7 +1565,7 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                   <i>alias=${NONE}</i>
                   
                 </td>
-                <td class="kwdoc"></td>
+                <td class="kwdoc"><p>Opens a Chrome browser window and navigates to the org This keyword isn't normally called directly by a test. It is used by the `Open Test Browser` keyword.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Open Test Browser Firefox">
@@ -1559,7 +1579,7 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                   <i>alias=${NONE}</i>
                   
                 </td>
-                <td class="kwdoc"></td>
+                <td class="kwdoc"><p>Opens a Firefox browser window and navigates to the org This keyword isn't normally called directly by a test. It is used by the `Open Test Browser` keyword.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.robot.Open Test Browser Headless Firefox">
@@ -1573,7 +1593,7 @@ Should be equal  ${contact['Name']}  Eleanor Rigby
                   <i>alias=${NONE}</i>
                   
                 </td>
-                <td class="kwdoc"></td>
+                <td class="kwdoc"><p>Opens the firefox browser in headless mode This keyword isn't normally called directly by a test. It is used by the `Open Test Browser` keyword.</p></td>
               </tr>
               
             </tbody>
@@ -1683,9 +1703,7 @@ Wait for modal to appear   Edit  Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
+                  <i>button_label</i>
                   
                 </td>
                 <td class="kwdoc"><p>Click the named modal button (Save, Save &amp; New, Cancel, etc)</p></td>
@@ -1696,10 +1714,6 @@ Wait for modal to appear   Edit  Contact
                   Close The Modal
                 </td>
                 <td class="kwargs">
-                  
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
                   
                 </td>
                 <td class="kwdoc"><p>Closes the open modal</p></td>
@@ -1722,9 +1736,7 @@ Wait for modal to appear   Edit  Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
+                  <i>*messages</i>
                   
                 </td>
                 <td class="kwdoc"><p>Verify that the modal contains the following errors</p>
@@ -1737,9 +1749,9 @@ Wait for modal to appear   Edit  Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
+                  <i>name</i>, 
                   
-                  <i>**kwargs</i>
+                  <i>value</i>
                   
                 </td>
                 <td class="kwdoc"><p>Populate a field on the modal form</p>
@@ -1778,9 +1790,7 @@ Populate form
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
+                  <i>timeout=None</i>
                   
                 </td>
                 <td class="kwdoc"><p>Waits until the modal is no longer visible</p>
@@ -1920,9 +1930,7 @@ Wait for modal to appear   New  Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
+                  <i>button_label</i>
                   
                 </td>
                 <td class="kwdoc"><p>Click the named modal button (Save, Save &amp; New, Cancel, etc)</p></td>
@@ -1933,10 +1941,6 @@ Wait for modal to appear   New  Contact
                   Close The Modal
                 </td>
                 <td class="kwargs">
-                  
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
                   
                 </td>
                 <td class="kwdoc"><p>Closes the open modal</p></td>
@@ -1959,9 +1963,7 @@ Wait for modal to appear   New  Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
+                  <i>*messages</i>
                   
                 </td>
                 <td class="kwdoc"><p>Verify that the modal contains the following errors</p>
@@ -1974,9 +1976,9 @@ Wait for modal to appear   New  Contact
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
+                  <i>name</i>, 
                   
-                  <i>**kwargs</i>
+                  <i>value</i>
                   
                 </td>
                 <td class="kwdoc"><p>Populate a field on the modal form</p>
@@ -2015,9 +2017,7 @@ Populate form
                 </td>
                 <td class="kwargs">
                   
-                  <i>*args</i>, 
-                  
-                  <i>**kwargs</i>
+                  <i>timeout=None</i>
                   
                 </td>
                 <td class="kwdoc"><p>Waits until the modal is no longer visible</p>
@@ -2032,7 +2032,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Wednesday April 08, 06:48 PM - cumulusci v3.10.0
+      Generated on Monday June 01, 07:29 PM - cumulusci v3.12.2
     </div>
   </body>
 </html>
