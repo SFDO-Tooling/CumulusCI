@@ -609,43 +609,43 @@ class test_GenerateDataDictionary(unittest.TestCase):
             ]
         }
 
-        def test_process_object_element__standard(self):
-            xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+    def test_process_object_element__standard(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Description</description>
-    <label>Test</label>
+<description>Description</description>
+<label>Test</label>
 </CustomObject>"""
 
-            task = create_task(GenerateDataDictionary, {})
+        task = create_task(GenerateDataDictionary, {})
 
-            task._init_schema()
-            p = Package(None, "Test", "test__", "rel/")
-            v = PackageVersion(p, StrictVersion("1.1"))
-            task._process_object_element(
-                "Account", metadata_tree.fromstring(xml_source.encode("utf-8")), v
-            )
+        task._init_schema()
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+        task._process_object_element(
+            "Account", metadata_tree.fromstring(xml_source.encode("utf-8")), v
+        )
 
-            assert "Account" not in task.sobjects
+        assert "Account" not in task.sobjects
 
-        def test_process_object_element__custom_setting(self):
-            xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+    def test_process_object_element__custom_setting(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
-    <customSettingsType>List</customSettingsType>
-    <description>Description</description>
-    <label>Test</label>
+<customSettingsType>List</customSettingsType>
+<description>Description</description>
+<label>Test</label>
 </CustomObject>"""
 
-            task = create_task(GenerateDataDictionary, {})
+        task = create_task(GenerateDataDictionary, {})
 
-            task._init_schema()
-            p = Package(None, "Test", "test__", "rel/")
-            v = PackageVersion(p, StrictVersion("1.1"))
-            task._process_object_element(
-                "test__CS__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
-            )
+        task._init_schema()
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+        task._process_object_element(
+            "test__CS__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
+        )
 
-            assert "test__CS__c" not in task.sobjects
-            assert task.omit_sobjects == set(["test__CS__c"])
+        assert "test__CS__c" not in task.sobjects
+        assert task.omit_sobjects == set(["test__CS__c"])
 
     def test_process_sfdx_release(self):
         object_source = b"""<?xml version="1.0" encoding="UTF-8"?>
