@@ -14,7 +14,7 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils.xml import metadata_tree
 from distutils.version import StrictVersion
-from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.exceptions import DependencyResolutionError, TaskOptionsError
 
 
 class test_GenerateDataDictionary(unittest.TestCase):
@@ -766,6 +766,39 @@ class test_GenerateDataDictionary(unittest.TestCase):
         )
         assert task.omit_sobjects == set(["test__Child__c", "test__Parent__c"])
 
+    def test_process_sfdx_release__handles_object_not_found(self):
+        field_source = b"""<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+        <fullName>Type__c</fullName>
+        <label>Type</label>
+        <type>Text</type>
+        <length>128</length>
+    </CustomField>
+"""
+
+        def zip_read(filename):
+            return field_source
+
+        task = create_task(GenerateDataDictionary, {})
+        task._init_schema()
+
+        p = Package(None, "Test", "test__", "rel/")
+        v = PackageVersion(p, StrictVersion("1.1"))
+
+        zip_file = Mock()
+        zip_file.read.side_effect = zip_read
+        zip_file.namelist.return_value = [
+            "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml"
+        ]
+        task._process_object_element = Mock()
+        task._process_field_element = Mock()
+        task._should_process_object_fields = Mock(return_value=True)
+
+        task._process_sfdx_release(zip_file, v)
+
+        task._should_process_object_fields.assert_called_once_with(
+            "test__Child__c", None
+        )
+
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
     def test_walk_releases__mdapi(self, extract_github):
         project_config = create_project_config()
@@ -826,18 +859,23 @@ class test_GenerateDataDictionary(unittest.TestCase):
         task._init_schema()
 
         repo = Mock()
-        release = Mock()
-        release.draft = False
-        release.prerelease = True
-        release.tag_name = "rel/1.1"
-        repo.releases.return_value = [release]
+        release_draft = Mock()
+        release_draft.draft = False
+        release_draft.prerelease = True
+        release_draft.tag_name = "rel/1.1_Beta_1"
+        release_real = Mock()
+        release_real.draft = False
+        release_real.prerelease = False
+        release_real.tag_name = "rel/1.1"
+
+        repo.releases.return_value = [release_draft, release_real]
         task._process_mdapi_release = Mock()
         extract_github.return_value.namelist.return_value = ["src/objects/"]
         p = Package(repo, "Test", "test__", "rel/")
 
         task._walk_releases(p)
 
-        task._process_mdapi_release.assert_not_called()
+        task._process_mdapi_release.assert_called_once()
 
     def test_init_schema(self):
         task = create_task(GenerateDataDictionary, {})
@@ -955,6 +993,15 @@ class test_GenerateDataDictionary(unittest.TestCase):
             any_order=True,
         )
 
+    def test_init_options(self):
+        task = create_task(
+            GenerateDataDictionary,
+            {"object_path": "objects.csv", "field_path": "fields.csv"},
+        )
+
+        assert task.options["object_path"] == "objects.csv"
+        assert task.options["field_path"] == "fields.csv"
+
     def test_init_options__defaults(self):
         project_config = create_project_config()
         project_config.project__name = "Project"
@@ -964,14 +1011,16 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task.options["object_path"] == "Project Objects.csv"
         assert task.options["field_path"] == "Project Fields.csv"
 
-    def test_init_options(self):
-        task = create_task(
-            GenerateDataDictionary,
-            {"object_path": "objects.csv", "field_path": "fields.csv"},
-        )
+    def test_init_options__bad_deps(self):
+        project_config = create_project_config()
+        project_config.project__name = "Project"
 
-        assert task.options["object_path"] == "objects.csv"
-        assert task.options["field_path"] == "fields.csv"
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                GenerateDataDictionary,
+                {"additional_dependencies": [{"namespace": "foo"}]},
+                project_config,
+            )
 
     def test_get_repo_dependencies__none(self):
         task = create_task(
