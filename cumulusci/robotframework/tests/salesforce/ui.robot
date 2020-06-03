@@ -49,6 +49,25 @@ Create test data
     ...                 ContactId=${CONTACT ID}
     Set suite variable  ${OPPORTUNITY ID}
 
+Object field should be
+    [Arguments]       ${obj name}  ${obj id}  ${field}  ${expected_value}
+    [Documentation]
+    ...  Fetches the object using the API, and verifies that the
+    ...  given field has the expected value
+
+    # it may take salesforce a second or two for the data
+    # to be saved and visible to the API, so we'll try this
+    # in a short loop
+    FOR  ${i}  IN RANGE  3
+        &{obj} =          Salesforce Get  ${obj name}  ${obj id}
+        ${actual_value}=  Set variable  ${obj}[${field}]
+
+        Return from keyword if  $expected_value == $actual_value
+        log  Retrying API call...  WARN
+        Sleep  1 second
+    END
+    Fail  Expected ${obj name} field ${field} to be '${expected_value}' but it was '${actual_value}'
+
 *** Test Cases ***
 
 Click Modal Button
@@ -243,3 +262,50 @@ Populate Form
     ${locator}=          Get Locator  object.field  Ticker Symbol
     ${value} =           Get Value  ${locator}
     Should Be Equal      ${value}  CASH
+
+Select Dropdown Value
+    [Documentation]  Select Dropdown Value happy path tests
+    [Setup]   Run keywords
+    ...  Go to page  Home  Contact
+    ...  AND  Click object button   New
+    ...  AND  Wait for modal        New   Contact
+
+    # required field
+    populate field  Last Name   ${faker.last_name()}
+
+    # these two fields look and act identical, but they are
+    # implemented differently in the DOM *sigh*
+    Select dropdown value  Salutation   Mr.
+
+    Select dropdown value  Lead Source  Purchased List
+
+    Click Modal Button           Save
+    Wait Until Modal Is Closed
+
+    ${contact id} =       Get Current Record Id
+    Store Session Record  Contact  ${contact id}
+
+    # Without waiting, this will sometimes fail. I guess there can be
+    # a bit of a delay for the data to be saved such that the API
+    # can retrieve it.
+    Wait until keyword succeeds  5 seconds  2 seconds
+    ...    Object field should be  Contact  ${contact id}  LeadSource  Purchased List
+    Wait until keyword succeeds  5 seconds  2 seconds
+    ...    Object field should be  Contact  ${contact id}  Salutation  Mr.
+
+Select Dropdown Value exceptions
+    [Documentation]  Verify that the keyword throws appropriate errors
+    [Setup]   Run keywords
+    ...  Go to page  Home  Contact
+    ...  AND  Click object button   New
+    ...  AND  Wait for modal        New   Contact
+
+    # Bad input field name
+    Run keyword and continue on failure
+    ...  Run keyword and expect error  Form element with label 'Bogus' was not found
+    ...    Select dropdown value  Bogus   Mr.
+
+    # Bad value
+    Run keyword and continue on failure
+    ...  Run keyword and expect error  Dropdown value 'Bogus' not found
+    ...    Select dropdown value  Lead Source  Bogus
