@@ -24,10 +24,12 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
 
     @property
     def cumulusci_config_dir(self):
+        "The .cumulus directory for storing persistent data"
         return self.default_cumulusci_dir()
 
     @staticmethod
     def default_cumulusci_dir():
+        "The default .cumulus directory for storing persistent data"
         config_dir = Path(Path.home(), ".cumulusci")
 
         if not config_dir.exists():
