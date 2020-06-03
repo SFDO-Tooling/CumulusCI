@@ -591,12 +591,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Initialize github3.py API against repo
         repo = self.get_repo_from_url(dependency["github"])
-        repo_owner = repo.owner
-        repo_name = repo.name
         if repo is None:
             raise DependencyResolutionError(
                 f"{indent}Github repository {dependency['github']} not found or not authorized."
             )
+
+        repo_owner = repo.owner
+        repo_name = repo.name
 
         # Determine the commit
         release, ref = self.get_ref_for_dependency(repo, dependency, include_beta)
