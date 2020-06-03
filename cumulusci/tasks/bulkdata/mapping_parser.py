@@ -24,6 +24,7 @@ class MappingLookup(CCIDictModel):
     name: Optional[str] = None  # populated by parent
 
     def get_lookup_key_field(self, model=None):
+        "Find the field name for this lookup."
         guesses = []
         if self.get("key_field"):
             guesses.append(self.get("key_field"))
@@ -36,12 +37,13 @@ class MappingLookup(CCIDictModel):
         # CCI used snake_case until mid-2020.
         # At some point this code could probably be simplified.
         snake_cased_guesses = list(map(convert_to_snake_case, guesses))
-        for guess in guesses + snake_cased_guesses:
+        guesses = guesses + snake_cased_guesses
+        for guess in guesses:
             if hasattr(model, guess):
                 return guess
         raise KeyError(
             f"Could not find a key field for {self.name}.\n"
-            + f"Tried {', '.join(snake_cased_guesses)}"
+            + f"Tried {', '.join(guesses)}"
         )
 
 
@@ -77,6 +79,7 @@ class MappingStep(CCIDictModel):
 
     @root_validator  # not really a validator, more like a post-processor
     def fixup_lookup_names(cls, v):
+        "Allow lookup objects to know the key they were attached to in the mapping file."
         for name, lookup in v["lookups"].items():
             lookup.name = name
         return v
