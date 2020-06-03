@@ -4,7 +4,6 @@ from pathlib import PurePosixPath
 from collections import defaultdict, namedtuple
 
 from distutils.version import StrictVersion
-from github3.session import GitHubSession
 
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.core.utils import process_bool_arg
@@ -64,14 +63,6 @@ class GenerateDataDictionary(BaseGithubTask):
             "repository dependencies are supported."
         },
     }
-
-    def _init_task(self):
-        # Walking GitHub releases seems to be especially prone to API timeouts.
-        # Increase the defaults substantially to try to cope.
-        self.project_config.github_session = GitHubSession(
-            default_read_timeout=30, default_connect_timeout=30
-        )
-        super()._init_task()
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
