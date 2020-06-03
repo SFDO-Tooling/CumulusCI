@@ -9,14 +9,7 @@ from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import import_global
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.utils.json.task_state_model import TaskStateModel
-
-
-class GenerateAndLoadDataState(TaskStateModel):
-    """Persistent state for this model"""
-
-    current_batchnum: int = 0
-    rows_generated: int = 0
+from cumulusci.core.tasks import TaskStateModel
 
 
 class GenerateAndLoadData(BaseSalesforceApiTask):
@@ -89,6 +82,12 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
     }
     task_options["mapping"]["required"] = False
 
+    class StateData(TaskStateModel):
+        """Persistent state for this model"""
+
+        current_batchnum: int = 0
+        rows_generated: int = 0
+
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
         mapping_file = self.options.get("mapping", None)
@@ -129,35 +128,28 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
                     "but `replace_database` was not specified"
                 )
 
-        self.state.current_batchnum = 0
-        self.state.rows_generated
-
     def _run_task(self):
-        self.state = self.xxx
-        self._continue()
+        self.resume()
 
-    def _continue(self):
-        with TemporaryDirectory() as tempdir:
-            while self.generated_rows <= self.num_records:
-                self.state.current_batchnum += 1
-                rows_left = self.num_records - self.state.rows_generated
-                current_batch_size = min(self.batch_size, rows_left)
-                self.logger.info(
-                    f"Generating a data batch, batch_size={current_batch_size} "
-                    f"batchnum={self.state.current_batchnum} goal_records={self.num_records} "
-                )
-                self._generate_batch(
-                    self.database_url,
-                    self.debug_dir or tempdir,
-                    self.mapping_file,
-                    current_batch_size,
-                    self.state.current_batchnum,
-                )
-                self.state.rows_generated += current_batch_size
-                self.state.save()
-
-    def resume(self, state):
-        self.state = state
+    def resume(self):
+        tempdir = self.state_data.get_working_directory()
+        while self.state_data.rows_generated < self.num_records:
+            self.state_data.current_batchnum += 1
+            rows_left = self.num_records - self.state_data.rows_generated
+            current_batch_size = min(self.batch_size, rows_left)
+            self.logger.info(
+                f"Generating a data batch, batch_size={current_batch_size} "
+                f"batchnum={self.state_data.current_batchnum} generated_records={self.state_data.rows_generated} goal_records={self.num_records} "
+            )
+            self._generate_batch(
+                self.database_url,
+                self.debug_dir or tempdir,
+                self.mapping_file,
+                current_batch_size,
+                self.state_data.current_batchnum,
+            )
+            self.state_data.rows_generated += current_batch_size
+            self.state_data.save()
 
     def _datagen(self, subtask_options):
         task_config = TaskConfig({"options": subtask_options})

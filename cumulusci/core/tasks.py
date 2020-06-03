@@ -10,12 +10,26 @@ import threading
 
 from cumulusci import __version__
 from cumulusci.utils import cd
+from cumulusci.utils.yaml.model_parser import CCIModel
 from cumulusci.core.exceptions import ServiceNotValid, ServiceNotConfigured
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
 CURRENT_TASK = threading.local()
 CURRENT_TASK.stack = []
+
+
+class TaskStateModel(CCIModel):
+    _parent: object = None
+
+    def save(self):
+        self._parent.save()
+
+    def get_working_directory(self):
+        return self._parent.get_working_directory()
+
+    def cleanup(self):
+        return self._parent.cleanup()
 
 
 @contextlib.contextmanager
@@ -46,6 +60,7 @@ class BaseTask(object):
         flow=None,
         name=None,
         stepnum=None,
+        state_data=None,
         **kwargs
     ):
         self.project_config = project_config
@@ -70,6 +85,9 @@ class BaseTask(object):
 
         # the tasks stepnumber in the flow
         self.stepnum = stepnum
+
+        # resumption_file object, with a save() method
+        self.state_data = state_data
 
         self._init_logger()
         self._init_options(kwargs)
@@ -136,11 +154,16 @@ class BaseTask(object):
             with cd(self.project_config.repo_root):
                 self._log_begin()
                 self.result = self._run_task()
+                self.cleanup()
                 return self.return_values
 
     def _run_task(self):
         """ Subclasses should override to provide their implementation """
         raise NotImplementedError("Subclasses should provide their own implementation")
+
+    def cleanup(self):
+        if self.state_data:
+            self.state_data.cleanup()
 
     def _log_begin(self):
         """ Log the beginning of the task execution """

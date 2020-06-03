@@ -49,6 +49,7 @@ from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+from cumulusci.utils.json.resumption_file import ResumptionFile
 
 from .logger import init_logger, get_tempfile_logger
 
@@ -190,15 +191,15 @@ def main(args=None):
         if "--json" not in args and not is_version_command:
             check_latest_version()
 
-        # Load CCI config
-        global RUNTIME
-        RUNTIME = CliRuntime(load_keychain=False)
-        RUNTIME.check_cumulusci_version()
-
         # Configure logging
         debug = "--debug" in args
         if debug:
             args.remove("--debug")
+
+        # Load CCI config
+        global RUNTIME
+        RUNTIME = CliRuntime(load_keychain=False, debug=debug)
+        RUNTIME.check_cumulusci_version()
 
         # Only create logfiles for commands
         # that are not `cci error`
@@ -1396,10 +1397,27 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
             # Override the option in the task config
             task_config.config["options"][name] = value
 
+    # create the resumption file: centralize the path handling
+    if getattr(task_class, "StateData", None):
+        config = {"options": task_config.config.get("options", {})}
+        resumption_file = ResumptionFile(
+            cumulusci_config_dir() / "task_resume.json",
+            task_class=class_path,
+            task_config=config,
+            org=org,
+            state_data={},
+            version=1,
+        )
+        state_data = resumption_file.state_data
+    else:
+        state_data = None
     # Create and run the task
     try:
         task = task_class(
-            task_config.project_config, task_config, org_config=org_config
+            task_config.project_config,
+            task_config,
+            org_config=org_config,
+            state_data=state_data,
         )
 
         if debug_before:
@@ -1418,11 +1436,9 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
 
 
 @task.command(name="resume", help="Resume a task if one was stopped")
-@click.argument("resume_json", type=click.Path())
+@click.argument("resume_json", type=click.Path(), required=False)
 @pass_runtime(require_keychain=True)
 def task_resume(runtime, resume_json):
-    from cumulusci.utils.json.resumption_parser import ResumptionFile
-
     path = (
         Path(resume_json)
         if resume_json
@@ -1430,12 +1446,20 @@ def task_resume(runtime, resume_json):
     )
     with path.open() as f:
         json_data = json.load(f)
-    resume_data = ResumptionFile(**json_data)
+    resume_data = ResumptionFile(path, **json_data)
     class_path = resume_data.task_class
     task_class = import_global(class_path)
-    task_config = TaskConfig(resume_data.task_config.dict())
-    task = task_class(runtime.project_config, task_config)
-    task.resume(resume_data.state_data)
+    task_config = TaskConfig(resume_data.task_config)
+    org = resume_data.org
+    org, org_config = runtime.get_org(org)
+    task = task_class(
+        runtime.project_config,
+        task_config,
+        state_data=resume_data.state_data,
+        org_config=org_config,
+    )
+    task.resume()
+    task.cleanup()
 
 
 # Commands for group: flow

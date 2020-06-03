@@ -18,6 +18,3 @@ class GenerateAndLoadDataFromYaml(GenerateAndLoadData):
     def _init_options(self, kwargs):
         args = {"data_generation_task": bulkgen_task, **kwargs}
         super()._init_options(args)
-
-    def resume(self, state):
-        pass

@@ -4,7 +4,7 @@ import time
 import glob
 from xml.dom.minidom import parse
 
-from cumulusci.core.tasks import BaseTask
+from cumulusci.core.tasks import BaseTask, TaskStateModel
 from cumulusci.core.utils import process_list_arg
 from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
 
@@ -74,10 +74,25 @@ class Sleep(BaseTask):
         "seconds": {"description": "The number of seconds to sleep", "required": True}
     }
 
+    class StateData(TaskStateModel):
+        seconds: int = 0
+
     def _run_task(self):
-        self.logger.info("Sleeping for {} seconds".format(self.options["seconds"]))
-        time.sleep(float(self.options["seconds"]))
+        self.state_data.seconds = int(self.options["seconds"])
+        self.state_data.save()
+        self._continue()
+
+    def _continue(self):
+        seconds = self.state_data.seconds
+        self.logger.info(f"Sleeping for {seconds} seconds")
+        for i in range(0, seconds):
+            time.sleep(1)
+            self.state_data.seconds -= 1
+            self.state_data.save()
         self.logger.info("Done")
+
+    def resume(self):
+        self._continue()
 
 
 class Delete(BaseTask):
@@ -158,7 +173,7 @@ class FindReplace(BaseTask):
                 directory=self.options["path"],
                 filePattern=file_pattern,
                 logger=self.logger,
-                **kwargs
+                **kwargs,
             )
 
 
