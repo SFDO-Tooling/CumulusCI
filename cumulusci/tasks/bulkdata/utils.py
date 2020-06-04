@@ -1,5 +1,4 @@
 import datetime
-import warnings
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -10,16 +9,6 @@ from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
 
 from cumulusci.core.exceptions import BulkDataException
-
-
-def get_lookup_key_field(lookup, model=None):
-    # This should be removed in late 2020.
-    # It just provides some temporary backwards-compatibility
-    # for Snowfakery
-    warnings.warn(
-        "get_lookup_key_field is a method, not a function", DeprecationWarning
-    )
-    return lookup.get_lookup_key_field(model=model)
 
 
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
