@@ -1,12 +1,15 @@
 from base64 import b64encode
 from xml.sax.saxutils import escape
+import contextlib
 import html
 import functools
 import io
 import logging
 import os
+import pathlib
 import zipfile
 
+from cumulusci.core.sfdx import sfdx
 from cumulusci.utils import cd
 from cumulusci.utils import inject_namespace
 from cumulusci.utils import process_text_in_zipfile
@@ -53,7 +56,8 @@ class BasePackageZipBuilder(object):
 
     def _open_zip(self):
         """Start a new, empty zipfile"""
-        self.zf = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+        self.buffer = io.BytesIO()
+        self.zf = zipfile.ZipFile(self.buffer, "w", zipfile.ZIP_DEFLATED)
 
     def _write_package_xml(self, package_xml):
         self.zf.writestr("package.xml", package_xml)
@@ -61,10 +65,15 @@ class BasePackageZipBuilder(object):
     def _write_file(self, path, content):
         self.zf.writestr(path, content)
 
-    def as_base64(self):
+    def as_bytes(self):
         fp = self.zf.fp
         self.zf.close()
-        return b64encode(fp.getvalue()).decode("utf-8")
+        value = fp.getvalue()
+        fp.close()
+        return value
+
+    def as_base64(self):
+        return b64encode(self.as_bytes()).decode("utf-8")
 
     def __call__(self):
         # for backwards compatibility
@@ -75,7 +84,13 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
     """Build a package zip from a metadata folder."""
 
     def __init__(
-        self, *, path=None, zf: zipfile.ZipFile = None, options=None, logger=None
+        self,
+        *,
+        path=None,
+        zf: zipfile.ZipFile = None,
+        options=None,
+        logger=None,
+        name=None,
     ):
         self.options = options or {}
         self.logger = logger or DEFAULT_LOGGER
@@ -83,7 +98,8 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             self.zf = zf
         elif path is not None:
             self._open_zip()
-            self._add_files_to_package(path)
+            with self._convert_sfdx_format(path, name) as path:
+                self._add_files_to_package(path)
         else:
             self._open_zip()
         self._process()
@@ -92,6 +108,22 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
     def from_zipfile(cls, zf, *, options=None, logger=None):
         """Start with an existing zipfile rather than a filesystem folder."""
         return cls(zf=zf, options=options, logger=logger)
+
+    @contextlib.contextmanager
+    def _convert_sfdx_format(self, path, name):
+        orig_path = path
+        with contextlib.ExitStack() as stack:
+            if not pathlib.Path(path, "package.xml").exists():
+                self.logger.info("Converting from sfdx to mdapi format")
+                path = stack.enter_context(temporary_dir(chdir=False))
+                sfdx(
+                    "force:source:convert",
+                    args=["-r", orig_path, "-d", path, "-n", name],
+                    capture_output=False,
+                    check_return=True,
+                )
+
+            yield path
 
     def _add_files_to_package(self, path):
         for file_path in self._find_files_to_package(path):
@@ -182,7 +214,9 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         self.logger.info(
             "Cleaning meta.xml files of packageVersion elements for deploy"
         )
-        self.zf = zip_clean_metaxml(self.zf)
+        zf = zip_clean_metaxml(self.zf)
+        self.zf.close()
+        self.zf = zf
 
     def _bundle_staticresources(self):
         relpath = self.options.get("static_resource_path")
@@ -243,6 +277,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         package_xml = Package.tostring(xml_declaration=True)
         zip_dest.writestr("package.xml", package_xml)
 
+        self.zf.close()
         self.zf = zip_dest
 
 

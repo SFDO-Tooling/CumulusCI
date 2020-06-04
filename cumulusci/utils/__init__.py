@@ -261,6 +261,7 @@ def process_text_in_zipfile(zf, process_file):
             name, content = process_file(name, content)
         # writestr handles either bytes or text, and will implicitly encode text as utf-8
         new_zf.writestr(name, content)
+    zf.close()
     return new_zf
 
 
@@ -398,6 +399,7 @@ def zip_clean_metaxml(zip_src, logger=None):
         logger.info(
             "Cleaned package versions from {} meta.xml files".format(len(changed))
         )
+    zip_src.close()
     return zip_dest
 
 
@@ -492,9 +494,9 @@ def create_task_options_doc(task_options):
             doc.append(f"\n``{usage_str}``")
 
         if option.get("required"):
-            doc.append(f"\t *Required*")
+            doc.append("\t *Required*")
         else:
-            doc.append(f"\t *Optional*")
+            doc.append("\t *Optional*")
 
         description = option.get("description")
         if description:

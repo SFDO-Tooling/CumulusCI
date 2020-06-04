@@ -8,7 +8,7 @@ from cumulusci.cli.ui import CliTable
 
 class PackageUpload(BaseSalesforceApiTask):
     name = "PackageUpload"
-    api_version = "38.0"
+    api_version = "48.0"
     task_options = {
         "name": {"description": "The name of the package version.", "required": True},
         "production": {

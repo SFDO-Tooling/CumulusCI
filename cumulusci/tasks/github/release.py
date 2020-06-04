@@ -17,6 +17,9 @@ class CreateRelease(BaseGithubTask):
             "required": True,
         },
         "message": {"description": "The message to attach to the created git tag"},
+        "version_id": {
+            "description": "04t package version id to record in the tag message"
+        },
         "dependencies": {
             "description": "List of dependencies to record in the tag message."
         },
@@ -64,7 +67,16 @@ class CreateRelease(BaseGithubTask):
             or self.project_config.project__dependencies
         )
         if dependencies:
-            message += "\n\ndependencies: {}".format(json.dumps(dependencies, indent=4))
+            dependencies = self.org_config.resolve_04t_dependencies(dependencies)
+        release_info = {
+            "namespace": self.project_config.project__package__namespace,
+            "version": self.options["version"],
+        }
+        if "version_id" in self.options:
+            release_info["version_id"] = self.options["version_id"]
+        dependencies.append(release_info)
+        # @@@ add pre/post?
+        message += "\n\ndependencies: {}".format(json.dumps(dependencies, indent=4))
 
         try:
             repo.ref("tags/{}".format(tag_name))

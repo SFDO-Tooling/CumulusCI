@@ -64,7 +64,7 @@ tasks:
         group: Salesforce Packages
     create_package_version:
         description: Uploads a 2nd-generation package (2GP) version
-        class_path: cumulusci.tasks.salesforce.2gp.CreatePackageVersion
+        class_path: cumulusci.tasks.2gp.CreatePackageVersion
         group: Salesforce Packages
     create_managed_src:
         description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
@@ -824,6 +824,7 @@ flows:
                 task: github_release
                 options:
                     version: ^^upload_beta.version_number
+                    version_id: ^^upload_beta.version_id
             3:
                 task: github_release_notes
                 ignore_failure: True  # Attempt to generate release notes but don't fail build
@@ -844,6 +845,7 @@ flows:
                 task: github_release
                 options:
                     version: ^^upload_production.version_number
+                    version_id: ^^upload_production.version_id
             3:
                 task: github_release_notes
                 ignore_failure: True  # Attempt to generate release notes but don't fail build

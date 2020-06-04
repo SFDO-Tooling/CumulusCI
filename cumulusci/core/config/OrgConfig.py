@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections import namedtuple
 from distutils.version import StrictVersion
 import os
 
@@ -6,12 +7,17 @@ import requests
 from simple_salesforce import Salesforce
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.exceptions import SalesforceCredentialsException, CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.oauth.salesforce import jwt_session
 
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
+
+
+VersionInfo = namedtuple("VersionInfo", ["id", "number"])
 
 
 class OrgConfig(BaseConfig):
@@ -210,7 +216,8 @@ class OrgConfig(BaseConfig):
         Beta version of a package are represented as "1.2.3b5", where 5 is the build number."""
         if not self._installed_packages:
             response = self.salesforce_client.restful(
-                "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
+                "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
+                "SubscriberPackageVersion.Id, SubscriberPackageVersion.MajorVersion, "
                 "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
                 "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
                 "FROM InstalledSubscriberPackage"
@@ -220,18 +227,46 @@ class OrgConfig(BaseConfig):
             for package in response["records"]:
                 sp = package["SubscriberPackage"]
                 spv = package["SubscriberPackageVersion"]
-                # PatchVersion is a 0 on a non-patch version.
-                version = (
-                    f"{spv['MajorVersion']}.{spv['MinorVersion']}.{spv['PatchVersion']}"
-                )
+                version = f"{spv['MajorVersion']}.{spv['MinorVersion']}"
+                if spv["PatchVersion"]:
+                    version += f".{spv['PatchVersion']}"
                 if spv["IsBeta"]:
                     version += f"b{spv['BuildNumber']}"
-                self._installed_packages[sp["NamespacePrefix"]].append(
-                    StrictVersion(version)
-                )
-                self._installed_packages[sp["Id"]].append(StrictVersion(version))
+                version_info = VersionInfo(spv["Id"], StrictVersion(version))
+                namespace = sp["NamespacePrefix"]
+                self._installed_packages[namespace].append(version_info)
+                namespace_version = f"{namespace}@{version}"
+                self._installed_packages[namespace_version].append(version_info)
+                self._installed_packages[sp["Id"]].append(version_info)
 
         return self._installed_packages
 
     def reset_installed_packages(self):
         self._installed_packages = None
+
+    def resolve_04t_dependencies(self, dependencies, installed_packages=None):
+        """Look up 04t SubscriberPackageVersion ids for 1gp project dependencies
+        """
+        new_dependencies = []
+        for dependency in dependencies:
+            dependency = {**dependency}
+
+            if "namespace" in dependency:
+                # get the SubscriberPackageVersion id
+                key = f"{dependency['namespace']}@{dependency['version']}"
+                version_info = self.installed_packages.get(key)
+                if version_info:
+                    dependency["version_id"] = version_info[0].id
+                else:
+                    raise DependencyResolutionError(
+                        f"Could not find 04t id for package {key} in org {self.name}"
+                    )
+
+            # recurse
+            if "dependencies" in dependency:
+                dependency["dependencies"] = self.resolve_04t_dependencies(
+                    dependency["dependencies"]
+                )
+
+            new_dependencies.append(dependency)
+        return new_dependencies

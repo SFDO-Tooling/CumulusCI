@@ -204,6 +204,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.install_queue.append(dependency)
 
     def _get_installed(self):
+        # @@@ use org_config.installed_packages instead
         self.logger.info("Retrieving list of packages from target org")
         api = ApiRetrieveInstalledPackages(self)
         return api()

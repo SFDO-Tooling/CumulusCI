@@ -542,7 +542,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             indent = ""
 
         self.logger.info(
-            f"{indent}Processing dependencies from Github repo {dependency['github']}"
+            f"{indent}Collecting dependencies from Github repo {dependency['github']}"
         )
 
         skip = dependency.get("skip")
