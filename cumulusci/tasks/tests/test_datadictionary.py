@@ -62,6 +62,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
             ]
         }
         task.fields = {
+            "Account.test__Desc__c": [
+                FieldDetail(v2, "Account", "test__Desc__c", "Desc", "Text", "", "", "")
+            ],
             "test__Test__c.test__Type__c": [
                 FieldDetail(
                     v,
@@ -105,6 +108,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         assert result == (
             "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
+            "Account,Account,Desc,test__Desc__c,Text,,,,Test 1.2,,,\r\n"
             "Test Object,test__Test__c,Type,test__Type__c,Picklist,Foo; Bar; New Value,New Help,Description,Test 1.1,Test 1.2,Test 1.2,\r\n"
             "Test Object,test__Test__c,Account,test__Account__c,Lookup to Account,,Help,Description,Test 1.1,,,Test 1.2\r\n"
         )
