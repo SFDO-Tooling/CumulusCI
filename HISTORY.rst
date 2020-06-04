@@ -2,6 +2,57 @@
 History
 =======
 
+3.13.0 (2020-06-04)
+-------------------
+
+Changes:
+
+* A new Metadata ETL task, ``add_picklist_entries``, safely adds picklist values to an existing custom field.
+
+* Added the ``cci org prune`` command to automatically remove all expired scratch orgs from the CumulusCI keychain.
+
+* Improvements to the ``cci org shell`` command:
+
+  * Better inline help
+  * New ``query`` and ``describe`` functions
+
+* Scratch org creation will now wait up to 120 minutes for the org to be created
+  to avoid timeouts with more complex org shapes.
+
+* The ``generate_data_dictionary`` task now has more features for complex projects.
+  By default, the task will walk through all project dependencies and include them
+  in the generated data dictionaries. Other non-dependency projects can be included
+  with the ``additional_dependencies`` option. The output format has been extensively improved.
+
+* The ``run_tests`` task supports a new option, ``required_org_code_coverage_percent``.
+  If set, the task will fail if aggregate code coverage in the org is less than the configured value.
+  Code coverage verification is available only in unmanaged builds.
+
+* The ``install_managed`` and ``update_dependencies`` tasks now accept a ``security_type`` option
+  to specify whether the package should be installed for all users or for admins only.
+
+* ``when`` expressions can now use the ``has_minimum_package_version`` method
+  to check if a package is installed with a sufficient version. For example:
+  ``when: org_config.has_minimum_package_version("namespace", "1.0")``
+
+* Robot Framework:
+
+  * Added a new keyword in the modal page objects, ``Select dropdown value``.
+    This keyword will be available whenever you use the ``Wait for modal`` keyword
+    to pull in a modal page object.
+
+Issues closed:
+
+  * Limited the variables available in global scope for the ``cci shell`` command.
+  * Tasks based on ``BaseSalesforceApiTask`` which use the Bulk API now default
+    to using the project's API version rather than 40.0.
+  * Bulk data tasks:
+
+    * The ``extract_dataset`` task no longer converts to snake_case when picking a name for lookup columns.
+    * Improved error message when trying to use the ``load_dataset`` command with an incorrect record type.
+    * Fixed a bug with the ``generate_mapping_file`` option.
+
+
 3.12.2 (2020-05-07)
 -------------------
 
@@ -17,7 +68,7 @@ Changes:
 
 * The ``update_package_xml`` task now supports the ``NavigationMenu`` metadata type.
 
-Issued closed:
+Issues closed:
 
 * In the Salesforce library for Robot Framework,
   fixed locators for the actions ribbon and app launcher button in Summer '20.
