@@ -23,33 +23,6 @@ from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 
 
-MAPPING_FILE = """Insert Households:
-    sf_object: Account
-    table: households
-    fields:
-        Id: sf_id
-    static:
-        Name: TestHousehold
-    record_type: HH_Account
-Insert Contacts:
-    sf_object: Contact
-    table: contacts
-    filters:
-        - 'household_id is not null'
-    fields:
-        Id: sf_id
-        FirstName: first_name
-        LastName: last_name
-        Email: email
-    lookups:
-        AccountId:
-            key_field: household_id
-            table: households
-            join_field: household_id
-            value_field: sf_id
-"""
-
-
 class MockBulkApiDmlOperation(BaseDmlOperation):
     def __init__(
         self, *, context, sobject=None, operation=None, api_options=None, fields=None,
@@ -350,7 +323,9 @@ class TestLoadData(unittest.TestCase):
         )
         lookups = {}
         lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
-        lookups["Primary_Contact__c"] = MappingLookup(table="contacts")
+        lookups["Primary_Contact__c"] = MappingLookup(
+            table="contacts", name="Primary_Contact__c",
+        )
         self.assertEqual(
             {
                 "sf_object": "Account",
@@ -365,7 +340,7 @@ class TestLoadData(unittest.TestCase):
         )
         lookups = {}
         lookups["Id"] = {"table": "contacts", "key_field": "sf_id"}
-        lookups["ReportsToId"] = MappingLookup(table="contacts")
+        lookups["ReportsToId"] = MappingLookup(table="contacts", name="ReportsToId")
         self.assertEqual(
             {
                 "sf_object": "Contact",
@@ -384,7 +359,7 @@ class TestLoadData(unittest.TestCase):
         )
         lookups = {}
         lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
-        lookups["ParentId"] = MappingLookup(table="accounts")
+        lookups["ParentId"] = MappingLookup(table="accounts", name="ParentId")
         self.assertEqual(
             {
                 "sf_object": "Account",
@@ -409,7 +384,7 @@ class TestLoadData(unittest.TestCase):
             "action": "update",
             "fields": {},
             "lookups": {
-                "Id": {"table": "accounts", "key_field": "sf_id"},
+                "Id": {"table": "accounts", "key_field": "account_id"},
                 "ParentId": {"table": "accounts"},
             },
         }
@@ -540,7 +515,11 @@ class TestLoadData(unittest.TestCase):
             "action": "update",
             "oid_as_pk": True,
             "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {"ParentId": {"table": "accounts", "key_field": "sf_id"}},
+            "lookups": {
+                "ParentId": MappingLookup(
+                    table="accounts", key_field="parent_id", name="ParentId"
+                )
+            },
         }
 
         task._query_db(mapping)
@@ -1036,7 +1015,6 @@ class TestLoadData(unittest.TestCase):
         )
 
         task._init_mapping()
-        print(task.mapping)
         assert (
             task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
             == "Insert Accounts"
@@ -1048,4 +1026,44 @@ class TestLoadData(unittest.TestCase):
         assert (
             task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
             == "Insert Accounts"
+        )
+
+    def test_load__inferred_keyfield_camelcase(self):
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task._init_mapping()
+
+        class FakeModel:
+            ParentId = mock.MagicMock()
+
+        assert (
+            task.mapping["Insert Accounts"]["lookups"]["ParentId"].get_lookup_key_field(
+                FakeModel()
+            )
+            == "ParentId"
+        )
+
+    def test_load__inferred_keyfield_snakecase(self):
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task._init_mapping()
+
+        class FakeModel:
+            parent_id = mock.MagicMock()
+
+        assert (
+            task.mapping["Insert Accounts"]["lookups"]["ParentId"].get_lookup_key_field(
+                FakeModel()
+            )
+            == "parent_id"
         )

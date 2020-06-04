@@ -10,6 +10,7 @@ from cumulusci.core.utils import process_list_of_pairs_dict_arg
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 from snowfakery.output_streams import SqlOutputStream
 from snowfakery.data_generator import generate, StoppingCriteria
 from snowfakery.generate_mapping_from_factory import mapping_from_factory_templates
@@ -83,10 +84,9 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
     def _generate_data(self, db_url, mapping_file_path, num_records, current_batch_num):
         """Generate all of the data"""
         if mapping_file_path:
-            with open(mapping_file_path, "r") as f:
-                self.mappings = yaml.safe_load(f)
+            self.mapping = parse_from_yaml(mapping_file_path)
         else:
-            self.mappings = {}
+            self.mapping = {}
         self.logger.info(f"Generating batch {current_batch_num} with {num_records}")
         self.generate_data(db_url, num_records, current_batch_num)
 
@@ -135,7 +135,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         return new_continuation_file
 
     def generate_data(self, db_url, num_records, current_batch_num):
-        output_stream = SqlOutputStream.from_url(db_url, self.mappings)
+        output_stream = SqlOutputStream.from_url(db_url, self.mapping)
         old_continuation_file = self.get_old_continuation_file()
         if old_continuation_file:
             # reopen to ensure file pointer is at starting point
