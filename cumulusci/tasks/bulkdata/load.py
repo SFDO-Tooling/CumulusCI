@@ -10,7 +10,6 @@ from sqlalchemy.ext.automap import automap_base
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import (
-    get_lookup_key_field,
     SqlAlchemyMixin,
     RowErrorChecker,
 )
@@ -292,7 +291,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         for sf_field, lookup in lookups.items():
             # Outer join with lookup ids table:
             # returns main obj even if lookup is null
-            key_field = get_lookup_key_field(lookup, sf_field)
+            key_field = lookup.get_lookup_key_field(model)
             value_column = getattr(model, key_field)
             query = query.outerjoin(
                 lookup["aliased_table"],
@@ -431,9 +430,11 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
-        with open(self.options["mapping"], "r") as f:
-            # yaml.safe_load should also work here for now.
-            self.mapping = parse_from_yaml(f)
+        mapping_file_path = self.options["mapping"]
+        if not mapping_file_path:
+            raise TaskOptionsError("Mapping file path required")
+
+        self.mapping = parse_from_yaml(mapping_file_path)
 
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps

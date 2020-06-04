@@ -9,11 +9,6 @@ from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
 
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.utils import convert_to_snake_case
-
-
-def get_lookup_key_field(lookup, sf_field):
-    return lookup.get("key_field") or convert_to_snake_case(sf_field)
 
 
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
@@ -123,7 +118,7 @@ def fields_for_mapping(mapping):
     for sf_field, db_field in mapping.get("fields", {}).items():
         fields.append({"sf": sf_field, "db": db_field})
     for sf_field, lookup in mapping.get("lookups", {}).items():
-        fields.append({"sf": sf_field, "db": get_lookup_key_field(lookup, sf_field)})
+        fields.append({"sf": sf_field, "db": lookup.get_lookup_key_field()})
     return fields
 
 
