@@ -7,7 +7,7 @@ History
 
 Changes:
 
-* A new metadata ETL task, ``add_picklist_entries``, safely adds picklist values to an existing custom field.
+* A new Metadata ETL task, ``add_picklist_entries``, safely adds picklist values to an existing custom field.
 
 * Added the ``cci org prune`` command to automatically remove all expired scratch orgs from the CumulusCI keychain.
 
