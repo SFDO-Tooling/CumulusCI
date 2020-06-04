@@ -1111,13 +1111,6 @@ Options
 ------------------------------------------
 
 
-``-o release_prefix RELEASEPREFIX``
-	 *Required*
-
-	 The tag prefix used for releases.
-
-	 Default: $project_config.project__git__prefix_release
-
 ``-o object_path OBJECTPATH``
 	 *Optional*
 
@@ -1127,6 +1120,16 @@ Options
 	 *Optional*
 
 	 Path to a CSV file to contain an field-level data dictionary.
+
+``-o include_dependencies INCLUDEDEPENDENCIES``
+	 *Optional*
+
+	 Process all of the GitHub dependencies of this project and include their schema in the data dictionary.
+
+``-o additional_dependencies ADDITIONALDEPENDENCIES``
+	 *Optional*
+
+	 Include schema from additional GitHub repositories that are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of URLs.
 
 **generate_and_load_from_yaml**
 ==========================================
