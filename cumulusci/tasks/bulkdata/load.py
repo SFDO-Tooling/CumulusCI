@@ -22,7 +22,11 @@ from cumulusci.tasks.bulkdata.step import (
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
 
-from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, MappingStep
+from cumulusci.tasks.bulkdata.mapping_parser import (
+    parse_from_yaml,
+    MappingStep,
+    MappingLookup,
+)
 
 
 class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
@@ -469,12 +473,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                         "lookups": {},
                         "fields": {},
                     }
-                    mapping["lookups"]["Id"] = {
-                        "table": step["table"],
-                        "key_field": self.models[
+                    mapping["lookups"]["Id"] = MappingLookup(
+                        name="Id",
+                        table=step["table"],
+                        key_field=self.models[
                             step["table"]
                         ].__table__.primary_key.columns.keys()[0],
-                    }
+                    )
                     for l in lookups:
                         mapping["lookups"][l] = lookups[l].copy()
                         mapping["lookups"][l]["after"] = None
