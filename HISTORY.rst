@@ -2,7 +2,7 @@
 History
 =======
 
-3.13.1 (2020-06-04)
+3.13.1 (2020-06-08)
 -------------------
 
 Fix bugs relating to "after:" steps in data Load and record types in data Extract.
