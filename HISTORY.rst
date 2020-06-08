@@ -2,6 +2,11 @@
 History
 =======
 
+3.13.1 (2020-06-04)
+-------------------
+
+Fix bugs relating to "after:" steps in data Load and record types in data Extract.
+
 3.13.0 (2020-06-04)
 -------------------
 
