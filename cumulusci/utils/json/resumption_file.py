@@ -2,11 +2,10 @@ from typing import Optional
 import shutil
 from pathlib import Path
 
-from pydantic import validator, root_validator
+from pydantic import validator
 
 
 from ..yaml.model_parser import CCIModel
-from cumulusci.core.utils import import_global
 
 
 class ResumptionFile(CCIModel):
@@ -22,20 +21,10 @@ class ResumptionFile(CCIModel):
     def __init__(self, task_state_filename, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__dict__["_filename"] = task_state_filename
-        self.state_data.__dict__["_parent"] = self
 
     @validator("version")
     def validate_version(v):
         assert 1 <= v < 2, v
-        return v
-
-    @root_validator
-    def uplift_state_data(cls, v):
-        class_path = v["task_class"]
-        task_class = import_global(class_path)
-        task_state_class = task_class.StateData
-        state_data = v["state_data"]
-        v["state_data"] = task_state_class(**dict(state_data))
         return v
 
     # TODO: file locking
@@ -43,12 +32,7 @@ class ResumptionFile(CCIModel):
         with open(self._filename, "w") as f:
             f.write(
                 self.json(
-                    indent=2,
-                    exclude={
-                        "_filename": ...,
-                        "_working_directory": ...,
-                        "state_data": {"_parent"},
-                    },
+                    indent=2, exclude={"_filename": ..., "_working_directory": ...},
                 )
             )
 

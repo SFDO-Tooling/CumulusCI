@@ -1,12 +1,9 @@
-import os
 from typing import TextIO, Optional
-from pathlib import Path
-import shutil
 
 import yaml
 
-
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
+from cumulusci.utils.fileutils import FSResource
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
@@ -58,14 +55,14 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.yaml_file = os.path.abspath(self.options["generator_yaml"])
-        if not os.path.exists(self.yaml_file):
+        self.yaml_file = FSResource(self.options["generator_yaml"])
+        if not self.yaml_file.exists():
             raise TaskOptionsError(f"Cannot find {self.yaml_file}")
         if "vars" in self.options:
             self.vars = process_list_of_pairs_dict_arg(self.options["vars"])
         self.generate_mapping_file = self.options.get("generate_mapping_file")
         if self.generate_mapping_file:
-            self.generate_mapping_file = os.path.abspath(self.generate_mapping_file)
+            self.generate_mapping_file = FSResource(self.generate_mapping_file)
         num_records = self.options.get("num_records")
         if num_records is not None:
             num_records = int(num_records)
@@ -79,7 +76,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
             self.stopping_criteria = StoppingCriteria(
                 num_records_tablename, num_records
             )
-        self.working_directory = self.options.get("working_directory")
+        self.working_directory = FSResource(self.options.get("working_directory"))
 
     def _generate_data(self, db_url, mapping_file_path, num_records, current_batch_num):
         """Generate all of the data"""
@@ -90,10 +87,10 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         self.logger.info(f"Generating batch {current_batch_num} with {num_records}")
         self.generate_data(db_url, num_records, current_batch_num)
 
-    def default_continuation_file_path(self):
-        return Path(self.working_directory) / "continuation.yml"
+    def default_continuation_file_path(self) -> FSResource:
+        return FSResource(self.working_directory) / "continuation.yml"
 
-    def get_old_continuation_file(self) -> Optional[Path]:
+    def get_old_continuation_file(self) -> Optional[FSResource]:
         """Use a continuation file if specified or look for one in the working directory
 
         Return None if no file can be found.
@@ -104,7 +101,8 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         old_continuation_file = self.options.get("continuation_file")
 
         if old_continuation_file:
-            old_continuation_file = Path(old_continuation_file)
+            # TODO: THIS CODE DOESN'T SEEM TO BE EXECUTED
+            old_continuation_file = FSResource(old_continuation_file)
             if not old_continuation_file.exists():
                 raise TaskOptionsError(f"{old_continuation_file} does not exist")
         elif self.working_directory:
@@ -127,9 +125,10 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 self.options["generate_continuation_file"], "w+"
             )
         elif self.working_directory:
-            new_continuation_file = open(
-                Path(self.working_directory) / "continuation_next.yml", "w+"
+            new_continuation_file_path = (
+                self.working_directory / "continuation_next.yml"
             )
+            new_continuation_file = new_continuation_file_path.open("w+")
         else:
             new_continuation_file = None
         return new_continuation_file
@@ -139,11 +138,11 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         old_continuation_file = self.get_old_continuation_file()
         if old_continuation_file:
             # reopen to ensure file pointer is at starting point
-            old_continuation_file = open(old_continuation_file, "r")
+            old_continuation_file = old_continuation_file.open("r")
         new_continuation_file = self.open_new_continuation_file()
 
         try:
-            with open(self.yaml_file) as open_yaml_file:
+            with self.yaml_file.open() as open_yaml_file:
                 summary = generate(
                     open_yaml_file=open_yaml_file,
                     user_options=self.vars,
@@ -157,15 +156,14 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
 
         if (
             new_continuation_file
-            and Path(new_continuation_file.name).exists()
+            and FSResource(new_continuation_file.name.decode()).exists()
             and self.working_directory
         ):
-            shutil.copyfile(
-                new_continuation_file.name, self.default_continuation_file_path()
-            )
+            f = FSResource(new_continuation_file.name.decode())
+            f.copy_to(self.default_continuation_file_path())
 
         if self.generate_mapping_file:
-            with open(self.generate_mapping_file, "w+") as f:
+            with self.generate_mapping_file.open("w+") as f:
                 yaml.safe_dump(
                     mapping_from_factory_templates(summary), f, sort_keys=False
                 )

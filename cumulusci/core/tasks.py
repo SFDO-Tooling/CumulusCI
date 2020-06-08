@@ -7,6 +7,7 @@ import logging
 import os
 import time
 import threading
+from typing import Any
 
 from cumulusci import __version__
 from cumulusci.utils import cd
@@ -20,16 +21,17 @@ CURRENT_TASK.stack = []
 
 
 class TaskStateModel(CCIModel):
-    _parent: object = None
-
     def save(self):
-        self._parent.save()
+        self.persistence.save()
 
     def get_working_directory(self):
-        return self._parent.get_working_directory()
+        return self.persistence.get_working_directory()
 
     def cleanup(self):
-        return self._parent.cleanup()
+        return self.persistence.cleanup()
+
+    def __repr_args__(self):
+        return [(k, v) for k, v in super().__repr_args__() if k != "persistence"]
 
 
 @contextlib.contextmanager
@@ -61,8 +63,10 @@ class BaseTask(object):
         name=None,
         stepnum=None,
         state_data=None,
-        **kwargs
+        resuming=False,
+        **kwargs,
     ):
+        assert task_config
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
@@ -86,12 +90,12 @@ class BaseTask(object):
         # the tasks stepnumber in the flow
         self.stepnum = stepnum
 
-        # resumption_file object, with a save() method
-        self.state_data = state_data
-
         self._init_logger()
-        self._init_options(kwargs)
-        self._validate_options()
+        if resuming:
+            self.options = task_config.options
+        else:
+            self._init_options(kwargs)
+            self._validate_options()
 
     def _init_logger(self):
         """ Initializes self.logger """
@@ -154,7 +158,6 @@ class BaseTask(object):
             with cd(self.project_config.repo_root):
                 self._log_begin()
                 self.result = self._run_task()
-                self.cleanup()
                 return self.return_values
 
     def _run_task(self):
@@ -162,8 +165,7 @@ class BaseTask(object):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     def cleanup(self):
-        if self.state_data:
-            self.state_data.cleanup()
+        pass
 
     def _log_begin(self):
         """ Log the beginning of the task execution """
@@ -248,6 +250,88 @@ class BaseTask(object):
             }
         )
         return [ui_step]
+
+        def set_resumption_file(self):
+            pass
+
+
+class ResumableTask(BaseTask):
+    options: dict = {}
+    name: str = None
+    logger: Any = None
+    persistence: Any = None
+    project_config: dict = None
+    task_config: dict = None
+    org_config: dict = None
+    poll_count: int = None
+    poll_interval_level: int = None
+    poll_interval_s: int = None
+    poll_complete: bool = None
+    return_values: dict = None
+    result: Any = None
+    flow: Any = None
+    stepnum: Any = None
+
+    default_excluded_fields = (
+        "name",
+        "logger",
+        "task_options",
+        "project_config",
+        "task_config",
+        "org_config",
+        "poll_count",
+        "poll_interval_level",
+        "poll_interval_s",
+        "poll_complete",
+        "return_values",
+        "result",
+        "flow",
+        "stepnum",
+        "excluded_fields",
+        "working_path",
+        "sf",
+        "bulk",
+        "tooling",
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.__dict__["excluded_fields"] = set(self.default_excluded_fields)
+        super().__init__(*args, **kwargs)
+
+    def _run_task(self):
+        self._start()
+        self._run_steps()
+        self.persistence.cleanup()
+        self._after_finished()
+
+    def _start(self):
+        self.logger.info(f"Starting task {self.__class__.name}")
+
+    def _run_steps(self):
+        while not self._is_finished():
+            self._run_step()
+            self.persistence.state_data = self.dict()
+            self.persistence.save()
+
+    def resume(self):
+        self._resume()
+        self._run_steps()
+        self._after_finished()
+
+    def set_resumption_file(self, resumption_file):
+        self.set_nonpersistent_value("persistence", resumption_file)
+
+    def set_nonpersistent_value(self, key, value):
+        self.__dict__[key] = value
+        self.excluded_fields.add(key)
+
+    def dict(self):
+        return {k: v for k, v in self.__dict__.items() if k not in self.excluded_fields}
+
+    def __setattr__(self, name, value):
+        if name not in self.excluded_fields and not hasattr(self.__class__, name):
+            raise AttributeError(f"Undeclared attribute {name}")
+        self.__dict__[name] = value
 
 
 class BaseSalesforceTask(BaseTask):

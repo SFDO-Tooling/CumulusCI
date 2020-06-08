@@ -2,12 +2,14 @@ import doctest
 from io import BytesIO, UnsupportedOperation
 from pathlib import Path
 from unittest import mock
+import os
+from json import dumps
 
 import pytest
 import responses
 
 from cumulusci.utils import fileutils, temporary_dir
-from cumulusci.utils.fileutils import load_from_source
+from cumulusci.utils.fileutils import load_from_source, FSResource
 
 
 class TestFileutils:
@@ -61,3 +63,38 @@ class TestFileutils:
         p = Path(cumulusci.__file__).parent / "cumulusci.yml"
         with load_from_source(str(p)) as (filename, data):
             assert "tasks:" in data.read()
+
+
+class TestFSResource:
+    def test_resource_exists_abspath(self):
+        abspath = os.path.abspath(__file__)
+        assert FSResource(abspath).exists()
+
+    def test_resource_does_not_exist(self):
+        abspath = os.path.abspath(__file__)
+        assert not FSResource(abspath + "xyzzy").exists()
+
+    def test_resource_exists_relpath(self):
+        relpath = os.path.relpath(__file__)
+        assert FSResource(relpath).exists()
+
+    def test_resource_doesnt_exist_relpath(self):
+        relpath = os.path.relpath(__file__)
+        assert not FSResource(relpath + "xyzzy").exists()
+
+    def test_resource_exists_pathlib_abspath(self):
+        abspath = os.path.abspath(__file__)
+        assert FSResource(Path(abspath)).exists()
+
+    def test_resource_exists_pathlib_relpath(self):
+        relpath = os.path.relpath(__file__)
+        assert FSResource(Path(relpath)).exists()
+
+    def test_resource_as_str(self):
+        relpath = os.path.relpath(__file__)
+        assert str(FSResource(Path(relpath))).startswith("file://")
+
+    def test_resource_as_json(self):
+        relpath = os.path.relpath(__file__)
+        obj = FSResource(Path(relpath))
+        assert dumps(obj)[1:].startswith("file://"), dumps(obj)

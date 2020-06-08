@@ -1397,28 +1397,23 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
             # Override the option in the task config
             task_config.config["options"][name] = value
 
-    # create the resumption file: centralize the path handling
-    if getattr(task_class, "StateData", None):
+    # Create and run the task
+    try:
+        task = task_class(
+            task_config.project_config, task_config, org_config=org_config,
+        )
+
         config = {"options": task_config.config.get("options", {})}
         resumption_file = ResumptionFile(
-            cumulusci_config_dir() / "task_resume.json",
+            cumulusci_config_dir() / "task_resume_2.json",
             task_class=class_path,
             task_config=config,
             org=org,
             state_data={},
             version=1,
         )
-        state_data = resumption_file.state_data
-    else:
-        state_data = None
-    # Create and run the task
-    try:
-        task = task_class(
-            task_config.project_config,
-            task_config,
-            org_config=org_config,
-            state_data=state_data,
-        )
+        resumption_file.cleanup()  # clean up any obsolete data
+        task.set_resumption_file(resumption_file)
 
         if debug_before:
             import pdb
@@ -1442,7 +1437,7 @@ def task_resume(runtime, resume_json):
     path = (
         Path(resume_json)
         if resume_json
-        else cumulusci_config_dir() / "task_resume.json"
+        else cumulusci_config_dir() / "task_resume_2.json"
     )
     with path.open() as f:
         json_data = json.load(f)
@@ -1453,11 +1448,10 @@ def task_resume(runtime, resume_json):
     org = resume_data.org
     org, org_config = runtime.get_org(org)
     task = task_class(
-        runtime.project_config,
-        task_config,
-        state_data=resume_data.state_data,
-        org_config=org_config,
+        runtime.project_config, task_config, org_config=org_config, resuming=True,
     )
+    task.set_resumption_file(resume_data)
+    task.__dict__.update(resume_data.state_data)
     task.resume()
     task.cleanup()
 

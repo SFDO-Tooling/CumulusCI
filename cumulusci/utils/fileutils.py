@@ -1,9 +1,11 @@
 from typing import IO, ContextManager, Text, Tuple, Union
 from contextlib import contextmanager
 from pathlib import Path
-from io import TextIOWrapper
+from io import TextIOWrapper, StringIO
+import os
+
 import requests
-from io import StringIO
+from fs import open_fs, path as fspath, copy
 
 """Utilities for working with files"""
 
@@ -84,6 +86,60 @@ def load_from_source(
         path = source
         with open(path, "rt") as f:
             yield path, f
+
+
+class FSResource(str):
+    """Generalization of pathlib.Path to support S3, FTP, etc
+
+    Should work on Windows, but Windows-style paths are not supported:
+    * no backslashes
+    * no drive letters"""
+
+    def __new__(cls, resource_url_or_path: Union[str, Path]):
+        if isinstance(resource_url_or_path, FSResource):
+            fs = resource_url_or_path.fs
+            filename = resource_url_or_path.filename
+        elif isinstance(resource_url_or_path, Path):
+            fs = open_fs("/")
+            filename = str(resource_url_or_path.absolute())
+        # url
+        elif "://" in resource_url_or_path:
+            path, filename = resource_url_or_path.rsplit("/", 1)
+            fs = open_fs(path)
+        # abspath
+        elif resource_url_or_path.startswith("/"):
+            fs = open_fs("/")
+            filename = resource_url_or_path
+        # relpath
+        elif "/" in resource_url_or_path:
+            fs = open_fs("/")
+            filename = os.path.abspath(resource_url_or_path)
+        url = fs.geturl(filename)
+        self = str.__new__(cls, url)
+        self.fs = fs
+        self.filename = filename
+        return self
+
+    def exists(self):
+        return self.fs.exists(self.filename)
+
+    def open(self, mode="r"):
+        return self.fs.open(self.filename, mode)
+
+    def joinpath(self, other):
+        path = fspath.join(self.filename, other)
+        return FSResource(self.fs.geturl(path))
+
+    def copy_to(self, other):
+        if isinstance(other, (str, Path)):
+            other = FSResource(other)
+        copy.copy_file(self.fs, self.filename, other.fs, other.filename)
+
+    def __truediv__(self, other):
+        return self.joinpath(other)
+
+    def __rtruediv__(self, other):
+        return self.joinpath(other)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -1,5 +1,4 @@
 import os
-from tempfile import TemporaryDirectory
 from pathlib import Path
 
 from sqlalchemy import MetaData, create_engine
@@ -9,10 +8,10 @@ from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import import_global
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.tasks import TaskStateModel
+from cumulusci.core.tasks import ResumableTask
 
 
-class GenerateAndLoadData(BaseSalesforceApiTask):
+class GenerateAndLoadData(ResumableTask, BaseSalesforceApiTask):
     """ Orchestrate creating tempfiles, generating data, loading data, cleaning up tempfiles and batching."""
 
     task_docs = """
@@ -48,6 +47,14 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
     https://sfdc.co/bwKxDD
     """
 
+    current_batchnum: int = 0
+    rows_generated: int = 0
+    target_records: int = None
+    batch_size: int = None
+    working_dir: str = None
+    database_url: str = None
+    mapping_file: str = None
+
     task_options = {
         "num_records": {
             "description": "How many records to generate. Precise calcuation depends on the generator.",
@@ -82,39 +89,39 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
     }
     task_options["mapping"]["required"] = False
 
-    class StateData(TaskStateModel):
-        """Persistent state for this model"""
+    def _resume(self):
+        self.logger.info(f"Continuing dataload")
 
-        current_batchnum: int = 0
-        rows_generated: int = 0
+    def _is_finished(self):
+        return self.rows_generated >= self.target_records
+
+    def _after_finished(self):
+        self.logger.info("Done")
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        mapping_file = self.options.get("mapping", None)
-        if mapping_file:
-            self.mapping_file = os.path.abspath(mapping_file)
+        self.mapping_file = self.options.get("mapping", None)
+        if self.mapping_file:
             if not os.path.exists(self.mapping_file):
                 raise TaskOptionsError(f"{self.mapping_file} cannot be found.")
-        else:
-            self.mapping_file = None
 
-        self.database_url = self.options.get("database_url")
-        num_records = self.options.get("num_records")
-        if not num_records:
+        target_records = self.options.get("num_records")
+        if not target_records:
             raise TaskOptionsError(
                 "Please specify the number of records to generate with num_records"
             )
-        self.num_records = int(num_records)
-        self.batch_size = int(self.options.get("batch_size", self.num_records))
+        self.target_records = int(target_records)
+        self.batch_size = int(self.options.get("batch_size", self.target_records))
         if self.batch_size <= 0:
             raise TaskOptionsError("Batch size should be greater than zero")
         class_path = self.options.get("data_generation_task")
         if class_path:
-            self.data_generation_task = import_global(class_path)
+            # check it can be imported
+            import_global(class_path)
         else:
             raise TaskOptionsError("No data generation task specified")
 
-        self.debug_dir = self.options.get("debug_dir", None)
+        self.working_dir = self.options.get("debug_dir", None)
         self.database_url = self.options.get("database_url")
 
         if self.database_url:
@@ -128,32 +135,28 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
                     "but `replace_database` was not specified"
                 )
 
-    def _run_task(self):
-        self.resume()
-
-    def resume(self):
-        tempdir = self.state_data.get_working_directory()
-        while self.state_data.rows_generated < self.num_records:
-            self.state_data.current_batchnum += 1
-            rows_left = self.num_records - self.state_data.rows_generated
-            current_batch_size = min(self.batch_size, rows_left)
-            self.logger.info(
-                f"Generating a data batch, batch_size={current_batch_size} "
-                f"batchnum={self.state_data.current_batchnum} generated_records={self.state_data.rows_generated} goal_records={self.num_records} "
-            )
-            self._generate_batch(
-                self.database_url,
-                self.debug_dir or tempdir,
-                self.mapping_file,
-                current_batch_size,
-                self.state_data.current_batchnum,
-            )
-            self.state_data.rows_generated += current_batch_size
-            self.state_data.save()
+    def _run_step(self):
+        tempdir = self.persistence.get_working_directory()
+        self.current_batchnum += 1
+        rows_left = self.target_records - self.rows_generated
+        current_batch_size = min(self.batch_size, rows_left)
+        self.logger.info(
+            f"Generating a data batch, batch_size={current_batch_size} "
+            f"batchnum={self.current_batchnum} generated_records={self.rows_generated} goal_records={self.target_records} "
+        )
+        self._generate_batch(
+            self.database_url,
+            self.working_dir or tempdir,
+            self.mapping_file,
+            current_batch_size,
+            self.current_batchnum,
+        )
+        self.rows_generated += current_batch_size
 
     def _datagen(self, subtask_options):
         task_config = TaskConfig({"options": subtask_options})
-        data_gen_task = self.data_generation_task(
+        data_generation_task = import_global(self.options["data_generation_task"])
+        data_gen_task = data_generation_task(
             self.project_config, task_config, org_config=self.org_config
         )
         data_gen_task()
@@ -189,15 +192,17 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         }
 
         # some generator tasks can generate the mapping file instead of reading it
-        with TemporaryDirectory() as tempdir:
-            if not subtask_options.get("mapping"):
-                temp_mapping = Path(tempdir) / "temp_mapping.yml"
-                mapping_file = self.options.get("generate_mapping_file", temp_mapping)
-                subtask_options["generate_mapping_file"] = mapping_file
-            self._datagen(subtask_options)
-            if not subtask_options.get("mapping"):
-                subtask_options["mapping"] = mapping_file
-            self._dataload(subtask_options)
+        if not subtask_options.get("mapping"):
+            temp_mapping = Path(tempdir) / "temp_mapping.yml"
+            mapping_file = self.options.get("generate_mapping_file", temp_mapping)
+            subtask_options["generate_mapping_file"] = mapping_file
+
+        self._datagen(subtask_options)
+
+        if not subtask_options.get("mapping"):
+            subtask_options["mapping"] = mapping_file
+
+        self._dataload(subtask_options)
 
     def _setup_engine(self, database_url):
         """Set up the database engine"""

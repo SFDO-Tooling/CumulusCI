@@ -4,7 +4,7 @@ import time
 import glob
 from xml.dom.minidom import parse
 
-from cumulusci.core.tasks import BaseTask, TaskStateModel
+from cumulusci.core.tasks import BaseTask, ResumableTask
 from cumulusci.core.utils import process_list_arg
 from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
 
@@ -68,31 +68,34 @@ class ListMetadataTypes(BaseTask):
         )
 
 
-class Sleep(BaseTask):
+class Sleep(ResumableTask):
     name = "Sleep"
     task_options = {
         "seconds": {"description": "The number of seconds to sleep", "required": True}
     }
 
-    class StateData(TaskStateModel):
-        seconds: int = 0
+    seconds_remaining: int = -1
 
-    def _run_task(self):
-        self.state_data.seconds = int(self.options["seconds"])
-        self.state_data.save()
-        self._continue()
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.options["seconds"] = int(self.options["seconds"])
+        self.seconds_remaining = self.options["seconds"]
 
-    def _continue(self):
-        seconds = self.state_data.seconds
-        self.logger.info(f"Sleeping for {seconds} seconds")
-        for i in range(0, seconds):
-            time.sleep(1)
-            self.state_data.seconds -= 1
-            self.state_data.save()
+    def _start(self):
+        self.logger.info(f"Sleeping for {self.seconds_remaining} seconds")
+
+    def _resume(self):
+        self.logger.info(f"Continuing sleeping for {self.seconds_remaining} seconds")
+
+    def _run_step(self):
+        time.sleep(1)
+        self.seconds_remaining -= 1
+
+    def _is_finished(self):
+        return self.seconds_remaining <= 0
+
+    def _after_finished(self):
         self.logger.info("Done")
-
-    def resume(self):
-        self._continue()
 
 
 class Delete(BaseTask):
