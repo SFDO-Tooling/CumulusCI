@@ -7,6 +7,8 @@ from pydantic import validator
 
 from ..yaml.model_parser import CCIModel
 
+# TODO: redo this around fs and FSResource instead of pathlib
+
 
 class ResumptionFile(CCIModel):
     task_class: str
