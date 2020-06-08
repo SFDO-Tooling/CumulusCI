@@ -525,21 +525,17 @@ class TestExtractData(unittest.TestCase):
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
         mapping = MappingStep(
-            **{
-                "sf_object": "Contact",
-                "oid_as_pk": True,
-                "fields": {"Id": "sf_id", "Test__c": "Test"},
-            }
+            sf_object="Contact",
+            oid_as_pk=True,
+            fields={"Id": "sf_id", "Test__c": "Test"},
         )
         assert task._soql_for_mapping(mapping) == "SELECT Id, Test__c FROM Contact"
 
         mapping = MappingStep(
-            **{
-                "sf_object": "Contact",
-                "record_type": "Devel",
-                "oid_as_pk": True,
-                "fields": {"Id": "sf_id", "Test__c": "Test"},
-            }
+            sf_object="Contact",
+            record_type="Devel",
+            oid_as_pk=True,
+            fields={"Id": "sf_id", "Test__c": "Test"},
         )
         assert (
             task._soql_for_mapping(mapping)
