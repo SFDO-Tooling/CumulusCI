@@ -108,7 +108,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         sf_object = mapping["sf_object"]
         fields = self._fields_for_mapping(mapping)
         soql = f"SELECT {', '.join(fields)} FROM {sf_object}"
-        if "record_type" in mapping:
+        if mapping.record_type:
             soql += f" WHERE RecordType.DeveloperName = '{mapping['record_type']}'"
 
         return soql
