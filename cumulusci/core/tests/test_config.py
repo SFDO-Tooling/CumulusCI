@@ -593,6 +593,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         assert not config._should_ignore_dependency(
             {"github": "https://example/"}, ignore_deps
         )
+        assert not config._should_ignore_dependency({}, ignore_deps)
 
     def test_pretty_dependencies(self):
         dep = {
