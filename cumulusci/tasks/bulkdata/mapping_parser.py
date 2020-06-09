@@ -62,6 +62,7 @@ class MappingStep(CCIDictModel):
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
     sf_id_table: Optional[str] = None  # populated at runtime in extract.py
+    record_type_table: Optional[str] = None  # populated at runtime in extract.py
 
     @validator("record_type")
     def record_type_is_deprecated(cls, v):
