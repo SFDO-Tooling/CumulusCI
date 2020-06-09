@@ -108,7 +108,7 @@ After a couple minutes, check for the new release's appearance at https://pypi.o
 
 Next, head to the Release object that was autocreated in the GitHub repository, edit it, paste in the changelog notes and hit publish.
 
-You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because the former is the source for when CumulusCI checks to see if a new version is available)::
+You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because PyPI is the source CumulusCI checks to see if a new version is available)::
 
     $ git checkout master
     $ git pull
