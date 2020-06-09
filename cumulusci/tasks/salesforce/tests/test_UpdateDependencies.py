@@ -218,6 +218,17 @@ class TestUpdateDependencies(unittest.TestCase):
                 mock.Mock(),
             )
 
+    def test_run_task__bad_skip_dependencies(self):
+        project_config = create_project_config()
+        project_config.config["project"]["dependencies"] = PROJECT_DEPENDENCIES
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                UpdateDependencies,
+                {"skip_dependencies": [{"version": "1.3"}, {"namespace": "foo"}]},
+                project_config,
+                mock.Mock(),
+            )
+
     def test_run_task__metadata_bundle(self):
         project_config = create_project_config()
         project_config.get_github_api = mock.Mock()

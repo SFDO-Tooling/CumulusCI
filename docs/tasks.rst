@@ -1129,7 +1129,7 @@ Options
 ``-o additional_dependencies ADDITIONALDEPENDENCIES``
 	 *Optional*
 
-	 Include schema from additional GitHub repositories that are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of URLs.
+	 Include schema from additional GitHub repositories that are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of dicts as in project__dependencies in cumulusci.yml. Note: only repository dependencies are supported.
 
 **generate_and_load_from_yaml**
 ==========================================
@@ -3411,6 +3411,11 @@ Options
 	 *Optional*
 
 	 List of dependencies to update. Defaults to project__dependencies. Each dependency is a dict with either 'github' set to a github repository URL or 'namespace' set to a Salesforce package namespace. Github dependencies may include 'tag' to install a particular git ref. Package dependencies may include 'version' to install a particular version.
+
+``-o skip_dependencies SKIPDEPENDENCIES``
+	 *Optional*
+
+	 List of dependencies to be skipped, including if they are present as transitive dependencies. Dependencies can be specified using the 'github' or 'namespace' keys (all other keys are not used). Note that this can cause installations to fail if required prerequisites are not available.
 
 ``-o namespaced_org NAMESPACEDORG``
 	 *Optional*
