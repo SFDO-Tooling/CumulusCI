@@ -22,7 +22,7 @@ pytz==2020.1
 PyYAML==5.3.1
 raven==6.10.0
 requests==2.23.0
-robotframework==3.1.2
+robotframework==3.2.1
 robotframework-seleniumlibrary==4.4.0
 rst2ansi==0.1.5
 salesforce-bulk==2.1.0
