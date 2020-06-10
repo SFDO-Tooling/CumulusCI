@@ -38,5 +38,5 @@ unicodecsv==0.14.1
 uritemplate==3.0.1
 urllib3==1.25.9
 xmltodict==0.12.0
-robotframework-lint==1.0
+robotframework-lint==1.1
 factory-boy==2.12.0
