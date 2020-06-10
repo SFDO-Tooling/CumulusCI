@@ -1,10 +1,12 @@
 from pathlib import Path
-import logging
 from io import StringIO
+from unittest import mock
+import logging
 import pytest
 
 from yaml import safe_load, dump, YAMLError
 
+from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, ValidationError
 
 
@@ -21,7 +23,9 @@ class TestMappingParser:
         lookups = step["lookups"]
         assert lookups
         assert "after" in lookups["ParentId"]
-        after_list = {l["after"] for l in lookups.values() if "after" in l}
+        after_list = {
+            lookup["after"] for lookup in lookups.values() if "after" in lookup
+        }
         assert after_list
 
     def test_deprecation(self, caplog):
@@ -56,3 +60,42 @@ class TestMappingParser:
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "rb") as f:
             assert parse_from_yaml(f)
+
+
+class TestMappingLookup:
+    def test_get_lookup_key_field__no_model(self):
+        lookup = MappingLookup(table="contact", name="AccountId")
+        assert lookup.get_lookup_key_field() == "AccountId"
+
+    def test_get_lookup_key_field__snake_case_model(self):
+        class FakeModel:
+            account_id = mock.MagicMock()
+
+        lookup = MappingLookup(table="contact", name="AccountId")
+        assert lookup.get_lookup_key_field(FakeModel()) == "account_id"
+
+    def test_get_lookup_key_field__by_key_field(self):
+        class FakeModel:
+            foo = mock.MagicMock()
+
+        lookup = MappingLookup(table="contact", key_field="foo", name="AccountId")
+        assert lookup.get_lookup_key_field(FakeModel()) == "foo"
+
+    def test_get_lookup_key_field__by_key_field_wrong_case(self):
+        class FakeModel:
+            account_id = mock.MagicMock()
+
+        # we can correct mismatched mapping files if the mistake is just
+        # old-fashioned SQL with new Mapping File
+        lookup = MappingLookup(table="contact", key_field="AccountId", name="AccountId")
+        assert lookup.get_lookup_key_field(FakeModel()) == "account_id"
+
+    def test_get_lookup_key_field__mismatched_name(self):
+        class FakeModel:
+            account_id = mock.MagicMock()
+
+        # some mistakes can't be fixed.
+        lookup = MappingLookup(table="contact", key_field="Foo", name="Foo")
+
+        with pytest.raises(KeyError):
+            lookup.get_lookup_key_field(FakeModel())
