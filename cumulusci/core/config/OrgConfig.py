@@ -29,6 +29,7 @@ class OrgConfig(BaseConfig):
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
+        self.refresh_client()
         if not SKIP_REFRESH:
             SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
@@ -83,6 +84,9 @@ class OrgConfig(BaseConfig):
             )
 
         return self._client
+
+    def refresh_client(self):
+        self._client = None
 
     @property
     def latest_api_version(self):
