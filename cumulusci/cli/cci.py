@@ -1404,8 +1404,10 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
         )
 
         config = {"options": task_config.config.get("options", {})}
+        ppid = os.getppid()
         resumption_file = ResumptionFile(
-            cumulusci_config_dir() / "task_resume_2.json",
+            Path(runtime.project_config.repo_root)
+            / f".cumulusci/task_resume_{ppid}.json",
             task_class=class_path,
             task_config=config,
             org=org,
@@ -1434,10 +1436,11 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
 @click.argument("resume_json", type=click.Path(), required=False)
 @pass_runtime(require_keychain=True)
 def task_resume(runtime, resume_json):
+    ppid = os.getppid()
     path = (
         Path(resume_json)
         if resume_json
-        else cumulusci_config_dir() / "task_resume_2.json"
+        else Path(runtime.project_config.repo_root) / f"task_resume_{ppid}.json"
     )
     with path.open() as f:
         json_data = json.load(f)

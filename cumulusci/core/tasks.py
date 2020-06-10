@@ -251,8 +251,8 @@ class BaseTask(object):
         )
         return [ui_step]
 
-        def set_resumption_file(self):
-            pass
+    def set_resumption_file(self, file):
+        pass
 
 
 class ResumableTask(BaseTask):
