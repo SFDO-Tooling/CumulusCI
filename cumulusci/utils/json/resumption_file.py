@@ -48,6 +48,7 @@ class ResumptionFile(CCIModel):
         return self._working_directory
 
     def cleanup(self):
-        self._filename.unlink()
-        if self._working_directory:
+        if self._filename and self._filename.exists():
+            self._filename.unlink()
+        if self._working_directory and self._working_directory.exists():
             shutil.rmtree(self._working_directory, ignore_errors=True)
