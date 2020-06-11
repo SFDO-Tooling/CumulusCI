@@ -18,6 +18,7 @@ from cumulusci.utils import temporary_dir
 from cumulusci.utils import tokenize_namespace
 from cumulusci.utils import zip_clean_metaxml
 from cumulusci.utils.xml import metadata_tree
+from cumulusci.utils.ziputils import hash_zipfile_contents
 
 INSTALLED_PACKAGE_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -75,6 +76,9 @@ class BasePackageZipBuilder(object):
     def as_base64(self):
         return b64encode(self.as_bytes()).decode("utf-8")
 
+    def as_hash(self):
+        return hash_zipfile_contents(self.zf)
+
     def __call__(self):
         # for backwards compatibility
         return self.as_base64()
@@ -97,6 +101,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         if zf is not None:
             self.zf = zf
         elif path is not None:
+            path = str(path)
             self._open_zip()
             with self._convert_sfdx_format(path, name) as path:
                 self._add_files_to_package(path)

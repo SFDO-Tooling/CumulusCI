@@ -1,5 +1,6 @@
 from distutils.version import LooseVersion
 import io
+import json
 import os
 import re
 from pathlib import Path
@@ -450,6 +451,23 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not os.path.isdir(path):
             os.makedirs(path)
         return path
+
+    @property
+    def default_package_path(self):
+        if self.project__source_format == "sfdx":
+            relpath = "force-app"
+            for pkg in self.sfdx_project_config.get("packageDirectories", []):
+                if pkg.get("default"):
+                    relpath = pkg["path"]
+        else:
+            relpath = "src"
+        return (Path(self.repo_root) / relpath).resolve()
+
+    @property
+    def sfdx_project_config(self):
+        with open(Path(self.repo_root) / "sfdx-project.json", "r") as f:
+            config = json.load(f)
+        return config
 
     def get_tag_for_version(self, version):
         if "(Beta" in version:

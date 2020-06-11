@@ -1,7 +1,6 @@
 from typing import Optional
 import base64
 import enum
-import hashlib
 import io
 import json
 import os
@@ -9,6 +8,7 @@ import pathlib
 import zipfile
 
 from pydantic import BaseModel
+from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.core.exceptions import PackageUploadFailure
@@ -68,9 +68,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        source_format = self.project_config.project__package__source_format or "sfdx"
-        # @@@ use default package from sfdx-project.json
-        self.source_path = "src" if source_format == "mdapi" else "force-app"
         self.package_config = PackageConfig(
             name=self.options.get("name") or self.project_config.project__package__name,
             package_type=self.options.get("package_type")
@@ -98,11 +95,13 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.return_values["package_id"] = self.package_id
 
         # submit request to create package version
-        package_zip = MetadataPackageZipBuilder(
-            path=self.source_path, name=self.package_config.name, logger=self.logger
-        ).as_bytes()
+        package_zip_builder = MetadataPackageZipBuilder(
+            path=self.project_config.default_package_path,
+            name=self.package_config.name,
+            logger=self.logger,
+        )
         self.request_id = self._create_version_request(
-            self.package_id, self.package_config, package_zip
+            self.package_id, self.package_config, package_zip_builder
         )
         self.return_values["request_id"] = self.request_id
 
@@ -132,8 +131,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         subscriber_version = res["records"][0]
         self.return_values["dependencies"] = subscriber_version["Dependencies"]
 
-        # @@@ better output format
-        self.logger.info("Return Values: {}".format(self.return_values))
+        self.logger.info("Created package version:")
+        self.logger.info(f"  Package2 Id: {self.package_id}")
+        self.logger.info(f"  Package2Version Id: {self.package_version_id}")
+        self.logger.info(
+            f"  SubscriberPackageVersion Id: {self.return_values['subscriber_package_version_id']}"
+        )
+        self.logger.info(f"  Version Number: {self.return_values['version_number']}")
+        self.logger.info(f"  Dependencies: {self.return_values['dependencies']}")
 
     def _get_or_create_package(self, package_config: PackageConfig):
         """Find or create the Package2
@@ -149,8 +154,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         else:
             query += " AND NamespacePrefix=null"
         self.logger.info(message)
-        res = self.tooling.query(query)
-        # @@@ catch error if dev hub isn't enabled for 2gp
+        try:
+            res = self.tooling.query(query)
+        except SalesforceMalformedRequest as err:
+            if "Object type 'Package2' is not supported" in err.content[0]["message"]:
+                raise TaskOptionsError(
+                    "This org does not have a Dev Hub with 2nd-generation packaging enabled. "
+                    "Make sure you are using the correct org and/or check the Dev Hub settings in Setup."
+                )
         if res["size"] > 1:
             raise TaskOptionsError(
                 f"Found {res['size']} packages with the same name, namespace, and package_type"
@@ -172,23 +183,23 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         return package["id"]
 
-    def _create_version_request(self, package_id, package_config, package_zip):
+    def _create_version_request(self, package_id, package_config, package_zip_builder):
         # Prepare the VersionInfo file
         version_bytes = io.BytesIO()
         version_info = zipfile.ZipFile(version_bytes, "w", zipfile.ZIP_DEFLATED)
         try:
 
             # Add the package.zip
-            package_hash = hashlib.blake2b(package_zip).hexdigest()
-            version_info.writestr("package.zip", package_zip)
+            package_hash = package_zip_builder.as_hash()
+            version_info.writestr("package.zip", package_zip_builder.as_bytes())
 
             # Check for an existing package with the same contents
             res = self.tooling.query(
                 "SELECT Id "
                 "FROM Package2VersionCreateRequest "
-                "WHERE Package2Id = '{}' "
+                f"WHERE Package2Id = '{package_id}' "
                 "AND Status != 'Error' "
-                "AND Tag = 'hash:{}'".format(package_id, package_hash)
+                f"AND Tag = 'hash:{package_hash}'"
             )
             if res["size"] > 0:
                 self.logger.info(
@@ -197,8 +208,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 return res["records"][0]["Id"]
 
             # Create the package2-descriptor.json contents and write to version_info
-            # @@@ what if it's based on an older version?
-            # - specify base version
+            # @@@ we should support releasing a successor to an older version by specifying a base version
             version_number = self._get_next_version_number(
                 package_id, package_config.version_type
             )
@@ -235,7 +245,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "Tag": f"hash:{package_hash}",
             "VersionInfo": version_info,
         }
-        # @@@ log
+        self.logger.info(
+            f"Requesting creation of package version {version_number} "
+            f"for package {package_config.name} ({package_id})"
+        )
         response = Package2CreateVersionRequest.create(request)
         return response["id"]
 
@@ -333,17 +346,17 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             org = self.project_config.keychain.get_org("2gp_dependencies")
             if org.created and org.expired:
                 self.logger.info(
-                    "Recreating expired scratch org named 2gp_dependencies to resolve package dependencies"
+                    "Recreating expired scratch org named 2gp_dependencies to resolve dependency package version ids"
                 )
                 org.create_org()
-                self.project_config.keychain.set_org("2gp_dependencies", org)
+                self.project_config.keychain.set_org(org)
             elif org.created:
                 self.logger.info(
-                    "Using existing scratch org named 2gp_dependencies to resolve dependencies"
+                    "Using existing scratch org named 2gp_dependencies to resolve dependency package version ids"
                 )
             else:
                 self.logger.info(
-                    "Creating a new scratch org with the name 2gp_dependencies to resolve dependencies"
+                    "Creating a new scratch org with the name 2gp_dependencies to resolve dependency package version ids"
                 )
 
             self.logger.info(
@@ -362,7 +375,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         For dependencies expressed as a github repo subfolder, build an unlocked package from that.
         """
         new_dependencies = []
-        # @@@ why are unpackaged dependencies getting added first?
         for dependency in dependencies:
             if dependency.get("dependencies"):
                 new_dependencies.extend(
@@ -440,13 +452,13 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             dependency["subfolder"],
             ref=dependency.get("ref"),
         )
-        package_zip = MetadataPackageZipBuilder.from_zipfile(
+        package_zip_builder = MetadataPackageZipBuilder.from_zipfile(
             zip_src, options=dependency, logger=self.logger
-        ).as_bytes()
+        )
 
         package_config = PackageConfig(
             name="{repo_owner}/{repo_name} {subfolder}".format(**dependency),
-            version_name="{{ version }}",  # @@@ substitute
+            version_name="Auto",
             package_type="Unlocked",
             # Ideally we'd do this without a namespace,
             # but it needs to match the dependent package
@@ -454,11 +466,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         package_id = self._get_or_create_package(package_config)
         self.request_id = self._create_version_request(
-            package_id, package_config, package_zip
+            package_id, package_config, package_zip_builder
         )
 
         self._poll()
-        self.poll_complete = False  # @@@ also reset interval
+        self._reset_poll()
         res = self.tooling.query(
             "SELECT SubscriberPackageVersionId FROM Package2Version "
             f"WHERE Id='{self.package_version_id}'"
@@ -472,12 +484,12 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_name = (
             f"{self.project_config.repo_owner}/{self.project_config.repo_name} {path}"
         )
-        package_zip = MetadataPackageZipBuilder(
+        package_zip_builder = MetadataPackageZipBuilder(
             path=path, name=package_name, logger=self.logger
-        ).as_bytes()
+        )
         package_config = PackageConfig(
             name=package_name,
-            version_name="{{ version }}",  # @@@ substitute
+            version_name="Auto",
             package_type="Unlocked",
             # Ideally we'd do this without a namespace,
             # but it needs to match the dependent package
@@ -485,10 +497,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         package_id = self._get_or_create_package(package_config)
         self.request_id = self._create_version_request(
-            package_id, package_config, package_zip
+            package_id, package_config, package_zip_builder
         )
         self._poll()
-        self.poll_complete = False  # @@@ also reset interval
+        self._reset_poll()
         res = self.tooling.query(
             "SELECT SubscriberPackageVersionId FROM Package2Version "
             f"WHERE Id='{self.package_version_id}'"
@@ -518,7 +530,5 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     errors.append(error["Message"])
                     self.logger.error(error["Message"])
             raise PackageUploadFailure("\n".join(errors))
-        elif request["Status"] in ("Queued", "InProgress"):
-            self.logger.info(
-                f"[{request['Status']}: Checking status of Package2VersionCreateRequest {request['Id']}"
-            )
+        else:
+            self.logger.info(f"[{request['Status']}]")
