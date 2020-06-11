@@ -39,9 +39,9 @@ class OrgConfig(BaseConfig):
 
         Also refreshes user and org info that is cached in the org config.
         """
-
         # invalidate memoized simple-salesforce client with old token
-        self.refresh_client()
+        self._client = None
+
         if not SKIP_REFRESH:
             SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
@@ -96,10 +96,6 @@ class OrgConfig(BaseConfig):
             )
 
         return self._client
-
-    def refresh_client(self):
-        self._client = None
-        return self.salesforce_client
 
     @property
     def latest_api_version(self):

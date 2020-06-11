@@ -14,11 +14,10 @@ class BaseCumulusCI(object):
     keychain_class = BaseProjectKeychain
     callback_class = FlowCallback
 
-    def __init__(self, *args, load_keychain=True, debug=False, **kwargs):
+    def __init__(self, *args, load_keychain=True, **kwargs):
         self.global_config = None
         self.project_config = None
         self.keychain = None
-        self.debug = debug
 
         self._load_global_config()
 

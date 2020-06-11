@@ -5,7 +5,6 @@ import yaml
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
-from cumulusci.core.utils import cumulusci_config_dir
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -24,7 +23,7 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
 
     @property
     def config_global_local_path(self):
-        directory = cumulusci_config_dir()
+        directory = os.path.join(os.path.expanduser("~"), self.config_local_dir)
         if not os.path.exists(directory):
             os.makedirs(directory)
 

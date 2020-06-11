@@ -21,7 +21,7 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
-@mock.patch("pathlib.Path.home")
+@mock.patch("os.path.expanduser")
 class TestBaseGlobalConfig(unittest.TestCase):
     def setUp(self):
         self.tempdir_home = tempfile.mkdtemp()
@@ -71,7 +71,7 @@ class TestBaseGlobalConfig(unittest.TestCase):
         self.assertEqual(config.config, expected_config)
 
 
-@mock.patch("pathlib.Path.home")
+@mock.patch("os.path.expanduser")
 class TestBaseProjectConfig(unittest.TestCase):
     def _create_git_config(self):
 
