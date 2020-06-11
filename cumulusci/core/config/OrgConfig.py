@@ -35,6 +35,19 @@ class OrgConfig(BaseConfig):
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
+        """Get a fresh access token and store it in the org config.
+
+        If the SFDX_CLIENT_ID and SFDX_HUB_KEY environment variables are set,
+        this is done using the Oauth2 JWT flow.
+
+        Otherwise it is done using the Oauth2 Refresh Token flow using the connected app
+        configured in the keychain's connected_app service.
+
+        Also refreshes user and org info that is cached in the org config.
+        """
+        # invalidate memoized simple-salesforce client with old token
+        self._client = None
+
         if not SKIP_REFRESH:
             SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
