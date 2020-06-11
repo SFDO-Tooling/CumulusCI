@@ -50,6 +50,7 @@ from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from cumulusci.utils.json.resumption_file import ResumptionFile
+from cumulusci.utils.fileutils import FSResource
 
 from .logger import init_logger, get_tempfile_logger
 
@@ -1397,25 +1398,30 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
             # Override the option in the task config
             task_config.config["options"][name] = value
 
+    config = {"options": task_config.config.get("options", {})}
+
+    # set up the resumption data
+    parentpid = os.getppid()
+    Path(runtime.project_config.repo_root, ".cci").mkdir(exist_ok=True)
+    resumption_file = ResumptionFile(
+        FSResource(runtime.project_config.repo_root)
+        / f".cci/task_resume_{parentpid}.json",
+        task_class=class_path,
+        task_config=config,
+        org=org,
+        state_data={},
+        version=1,
+    )
+    resumption_file.cleanup()  # clean up any obsolete data
+
     # Create and run the task
     try:
         task = task_class(
-            task_config.project_config, task_config, org_config=org_config,
+            task_config.project_config,
+            task_config,
+            org_config=org_config,
+            resumption_fs_resource=resumption_file,
         )
-
-        config = {"options": task_config.config.get("options", {})}
-        ppid = os.getppid()
-        resumption_file = ResumptionFile(
-            Path(runtime.project_config.repo_root)
-            / f".cumulusci/task_resume_{ppid}.json",
-            task_class=class_path,
-            task_config=config,
-            org=org,
-            state_data={},
-            version=1,
-        )
-        resumption_file.cleanup()  # clean up any obsolete data
-        task.set_resumption_file(resumption_file)
 
         if debug_before:
             import pdb
@@ -1432,16 +1438,15 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
         runtime.alert(f"Task complete: {task_name}")
 
 
-@task.command(name="resume", help="Resume a task if one was stopped")
+@task.command(name="resume", help="Resume a task if one was stopped in this shell")
 @click.argument("resume_json", type=click.Path(), required=False)
 @pass_runtime(require_keychain=True)
 def task_resume(runtime, resume_json):
     ppid = os.getppid()
-    path = (
-        Path(resume_json)
-        if resume_json
-        else Path(runtime.project_config.repo_root) / f"task_resume_{ppid}.json"
+    default_resume_path = (
+        FSResource(runtime.project_config.repo_root) / f".cci/task_resume_{ppid}.json"
     )
+    path = FSResource(resume_json) if resume_json else default_resume_path
     with path.open() as f:
         json_data = json.load(f)
     resume_data = ResumptionFile(path, **json_data)
@@ -1451,9 +1456,12 @@ def task_resume(runtime, resume_json):
     org = resume_data.org
     org, org_config = runtime.get_org(org)
     task = task_class(
-        runtime.project_config, task_config, org_config=org_config, resuming=True,
+        runtime.project_config,
+        task_config,
+        org_config=org_config,
+        resuming=True,
+        resumption_fs_resource=resume_data,
     )
-    task.set_resumption_file(resume_data)
     task.__dict__.update(resume_data.state_data)
     task.resume()
     task.cleanup()

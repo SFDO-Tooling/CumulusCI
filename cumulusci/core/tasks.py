@@ -11,27 +11,12 @@ from typing import Any
 
 from cumulusci import __version__
 from cumulusci.utils import cd
-from cumulusci.utils.yaml.model_parser import CCIModel
 from cumulusci.core.exceptions import ServiceNotValid, ServiceNotConfigured
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
 CURRENT_TASK = threading.local()
 CURRENT_TASK.stack = []
-
-
-class TaskStateModel(CCIModel):
-    def save(self):
-        self.persistence.save()
-
-    def get_working_directory(self):
-        return self.persistence.get_working_directory()
-
-    def cleanup(self):
-        return self.persistence.cleanup()
-
-    def __repr_args__(self):
-        return [(k, v) for k, v in super().__repr_args__() if k != "persistence"]
 
 
 @contextlib.contextmanager
@@ -256,10 +241,26 @@ class BaseTask(object):
 
 
 class ResumableTask(BaseTask):
+    """A task which can be resumed
+
+    Resumable tasks have a different internal API and store
+    their state at a URL location instead of only on the
+    Python stack.
+
+    Attributes of resumable tasks are persisted by default.
+
+    __setattr__ is overriden to require you to declare values and types
+    in order to encourage you to think through what should be
+    persisted and what should not.
+
+    Add transient attributes through self.set_nonpersistent_value to
+    prevent them from being persisted.
+    """
+
     options: dict = {}
     name: str = None
     logger: Any = None
-    persistence: Any = None
+    resumption_fs_resource: Any = None
     project_config: dict = None
     task_config: dict = None
     org_config: dict = None
@@ -296,32 +297,39 @@ class ResumableTask(BaseTask):
 
     def __init__(self, *args, **kwargs):
         self.__dict__["excluded_fields"] = set(self.default_excluded_fields)
+
+        if "resumption_fs_resource" in kwargs:
+            self.set_nonpersistent_value(
+                "resumption_fs_resource", kwargs.pop("resumption_fs_resource")
+            )
+
         super().__init__(*args, **kwargs)
 
     def _run_task(self):
         self._start()
         self._run_steps()
-        self.persistence.cleanup()
+        self.resumption_fs_resource.cleanup()
         self._after_finished()
 
     def _start(self):
+        "Override this: Do any kind of task setup or logging that is necessary."
         self.logger.info(f"Starting task {self.__class__.name}")
 
     def _run_steps(self):
+        "Run multiple steps until finished. Usually do not override this."
         while not self._is_finished():
             self._run_step()
-            self.persistence.state_data = self.dict()
-            self.persistence.save()
+            self.resumption_fs_resource.state_data = self.dict()
+            self.resumption_fs_resource.save()
 
     def resume(self):
+        "Resume this task. Usually do not need to override this."
         self._resume()
         self._run_steps()
         self._after_finished()
 
-    def set_resumption_file(self, resumption_file):
-        self.set_nonpersistent_value("persistence", resumption_file)
-
     def set_nonpersistent_value(self, key, value):
+        "Save a value to memory but not to persistent storage"
         self.__dict__[key] = value
         self.excluded_fields.add(key)
 
@@ -332,6 +340,10 @@ class ResumableTask(BaseTask):
         if name not in self.excluded_fields and not hasattr(self.__class__, name):
             raise AttributeError(f"Undeclared attribute {name}")
         self.__dict__[name] = value
+
+    def _after_finished(self):
+        "Override to to any kind of cleanup post-execution"
+        pass
 
 
 class BaseSalesforceTask(BaseTask):

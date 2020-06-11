@@ -5,7 +5,7 @@ from io import TextIOWrapper, StringIO
 import os
 
 import requests
-from fs import open_fs, path as fspath, copy
+from fs import open_fs, path as fspath, copy, base
 
 """Utilities for working with files"""
 
@@ -88,6 +88,15 @@ def load_from_source(
             yield path, f
 
 
+def proxy(funcname):
+    def func(self, *args, **kwargs):
+        real_func = getattr(self.fs, funcname)
+        return real_func(self.filename, *args, **kwargs)
+
+    func.__doc__ = getattr(base.FS, funcname).__doc__
+    return func
+
+
 class FSResource(str):
     """Generalization of pathlib.Path to support S3, FTP, etc
 
@@ -96,6 +105,7 @@ class FSResource(str):
     * no drive letters"""
 
     def __new__(cls, resource_url_or_path: Union[str, Path]):
+        """Create a new fsresource from a URL or path (absolute or relative)"""
         if isinstance(resource_url_or_path, FSResource):
             fs = resource_url_or_path.fs
             filename = resource_url_or_path.filename
@@ -120,11 +130,10 @@ class FSResource(str):
         self.filename = filename
         return self
 
-    def exists(self):
-        return self.fs.exists(self.filename)
-
-    def open(self, mode="r"):
-        return self.fs.open(self.filename, mode)
+    exists = proxy("exists")
+    open = proxy("open")
+    remove = proxy("remove")
+    removedir = proxy("removedir")
 
     def joinpath(self, other):
         path = fspath.join(self.filename, other)
