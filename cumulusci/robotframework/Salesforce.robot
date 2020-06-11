@@ -60,7 +60,6 @@ Locate Element By Text
     [Return]  ${element}
 
 Locate Element By Title
-    # rflint: disable=TooFewSteps
     [Documentation]
     ...  This is registered as a custom locator strategy named ``title``.
     ...  It is shorthand for the locator ``//*[@title=...]``
