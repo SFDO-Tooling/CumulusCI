@@ -84,7 +84,7 @@ Click Object Button
 
 Click Related List Button
     &{contact} =               Create Contact
-    Go To Record Home          &{contact}[Id]
+    Go To Record Home          ${contact}[Id]
     Click Related List Button  Opportunities  New
     Wait Until Modal Is Open
     Page Should Contain        New Opportunity
@@ -158,16 +158,16 @@ Select App Launcher Tab
 
 Get Current Record Id
     &{contact} =       Create Contact
-    Go To Record Home  &{contact}[Id]
+    Go To Record Home  ${contact}[Id]
     ${contact_id} =    Get Current Record Id
-    Should Be Equal    &{contact}[Id]  ${contact_id}
+    Should Be Equal    ${contact}[Id]  ${contact_id}
 
 Get Related List Count
     &{account} =       Create Account
     &{fields} =        Create Dictionary
-    ...                  AccountId=&{account}[Id]
+    ...                  AccountId=${account}[Id]
     &{contact} =       Create Contact  &{fields}
-    Go To Record Home  &{account}[Id]
+    Go To Record Home  ${account}[Id]
     ${count} =         Get Related List Count  Contacts
     Should Be Equal    ${count}  ${1}
 
@@ -192,35 +192,35 @@ Go To Object List With Filter
 Go To Record Home
     [Tags]  smoke
     &{contact} =       Create Contact
-    Go To Record Home  &{contact}[Id]
+    Go To Record Home  ${contact}[Id]
 
 Header Field Should Have Value
     &{fields} =                     Create Dictionary
     ...                               Phone=1234567890
     &{account} =                    Create Account  &{fields}
-    Go To Record Home               &{account}[Id]
+    Go To Record Home               ${account}[Id]
     Header Field Should Have Value  Phone
 
 Header Field Should Not Have Value
     &{account} =                        Create Account
-    Go To Record Home                   &{account}[Id]
+    Go To Record Home                   ${account}[Id]
     Header Field Should Not Have Value  Phone
 
 Header Field Should Have Link
     &{fields} =                    Create Dictionary
     ...                              Website=http://www.test.com
     &{account} =                   Create Account  &{fields}
-    Go To Record Home              &{account}[Id]
+    Go To Record Home              ${account}[Id]
     Header Field Should Have Link  Website
 
 Header Field Should Not Have Link
     &{account} =                       Create Account
-    Go To Record Home                  &{account}[Id]
+    Go To Record Home                  ${account}[Id]
     Header Field Should Not Have Link  Website
 
 Click Header Field Link
     &{contact} =                       Create Contact
-    Go To Record Home                  &{contact}[Id]
+    Go To Record Home                  ${contact}[Id]
     Click Header Field Link            Contact Owner
 
 Open App Launcher
@@ -244,10 +244,10 @@ Populate Lookup Field
     &{account} =           Create Account
     Go To Object Home      Contact
     Click Object Button    New
-    Populate Lookup Field  Account Name  &{account}[Name]
+    Populate Lookup Field  Account Name  ${account}[Name]
     ${locator} =           Get Locator  object.field_lookup_value  Account Name
     ${value} =             Get Text  ${locator}
-    Should Be Equal        ${value}  &{account}[Name]
+    Should Be Equal        ${value}  ${account}[Name]
 
 Populate Form
     ${account_name} =    Get fake data  company
