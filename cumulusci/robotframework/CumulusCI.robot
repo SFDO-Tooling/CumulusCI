@@ -3,5 +3,5 @@
 Library  Collections
 Library  cumulusci.robotframework.CumulusCI  ${ORG}
 
-*** Variables *** 
+*** Variables ***
 ${ORG}  dev
