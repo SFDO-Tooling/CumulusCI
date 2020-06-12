@@ -17,9 +17,9 @@ Create Contact
 
 Salesforce Delete
     &{contact} =  Create Contact
-    Salesforce Delete  Contact  &{contact}[Id]
-    &{result} =  SOQL Query  Select Id from Contact WHERE Id = '&{contact}[Id]'
-    Should Be Equal  &{result}[totalSize]  ${0}
+    Salesforce Delete  Contact  ${contact}[Id]
+    &{result} =  SOQL Query  Select Id from Contact WHERE Id = '${contact}[Id]'
+    Should Be Equal  ${result}[totalSize]  ${0}
 
 Salesforce Insert
     ${first_name} =  Get fake data  first_name
@@ -28,34 +28,34 @@ Salesforce Insert
     ...  FirstName=${first_name}
     ...  LastName=${last_name}
     &{contact} =  Salesforce Get  Contact  ${contact_id}
-    Should Be Equal  &{contact}[FirstName]  ${first_name}
-    Should Be Equal  &{contact}[LastName]  ${last_name}
+    Should Be Equal  ${contact}[FirstName]  ${first_name}
+    Should Be Equal  ${contact}[LastName]  ${last_name}
 
 Salesforce Update
     &{contact} =  Create Contact
     ${new_last_name} =  Get fake data  last_name
-    Salesforce Update  Contact  &{contact}[Id]  LastName=${new_last_name}
-    &{contact} =  Salesforce Get  Contact  &{contact}[Id]
-    Should Be Equal  &{contact}[LastName]  ${new_last_name}
+    Salesforce Update  Contact  ${contact}[Id]  LastName=${new_last_name}
+    &{contact} =  Salesforce Get  Contact  ${contact}[Id]
+    Should Be Equal  ${contact}[LastName]  ${new_last_name}
 
 Salesforce Query
     &{new_contact} =  Create Contact
     @{records} =  Salesforce Query  Contact
     ...              select=Id,FirstName,LastName
-    ...              Id=&{new_contact}[Id]
+    ...              Id=${new_contact}[Id]
     &{contact} =  Get From List  ${records}  0
-    Should Be Equal  &{contact}[Id]  &{new_contact}[Id]
-    Should Be Equal  &{contact}[FirstName]  &{new_contact}[FirstName]
-    Should Be Equal  &{contact}[LastName]  &{new_contact}[LastName]
+    Should Be Equal  ${contact}[Id]  ${new_contact}[Id]
+    Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
+    Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
 
 SOQL Query
     &{new_contact} =  Create Contact
-    &{result} =  Soql Query  Select Id, FirstName, LastName from Contact WHERE Id = '&{new_contact}[Id]'
+    &{result} =  Soql Query  Select Id, FirstName, LastName from Contact WHERE Id = '${new_contact}[Id]'
     @{records} =  Get From Dictionary  ${result}  records
     &{contact} =  Get From List  ${records}  0
-    Should Be Equal  &{result}[totalSize]  ${1}
-    Should Be Equal  &{contact}[FirstName]  &{new_contact}[FirstName]
-    Should Be Equal  &{contact}[LastName]  &{new_contact}[LastName]
+    Should Be Equal  ${result}[totalSize]  ${1}
+    Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
+    Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
 
 Salesforce Delete Session Records
     [Documentation]
