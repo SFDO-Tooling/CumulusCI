@@ -2,6 +2,23 @@
 History
 =======
 
+3.13.2 (2020-06-10)
+-------------------
+
+Issues closed:
+
+* Fixed a regression introduced in CumulusCI 3.13.0 where connections to Salesforce could fail
+  with a ReadTimeout or other connection error if more than 10 minutes elapsed since a prior task
+  that interacted with the org.
+
+3.13.1 (2020-06-09)
+-------------------
+
+Issues closed:
+
+* Fixed a bug with "after:" steps in the `load_dataset` task.
+* Fixed a bug with record types in the `extract_dataset` task.
+
 3.13.0 (2020-06-04)
 -------------------
 

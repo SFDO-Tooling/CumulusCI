@@ -102,22 +102,29 @@ Make the necessary changes to prepare the new release:
     2. Update the release notes in ``HISTORY.rst``
 
 Commit the changes, open a Pull Request on GitHub and request approval from another committer.
-Once your PR has been merged, you can create the release tag and then push the artifacts to PyPI with twine::
+Once your PR has been merged, a GitHub action will automatically create the release tag and push the artifacts to PyPI.
+
+After a couple minutes, check for the new release's appearance at https://pypi.org/project/cumulusci/
+
+Next, head to the Release object that was autocreated in the GitHub repository, edit it, paste in the changelog notes and hit publish.
+
+You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because PyPI is the source CumulusCI checks to see if a new version is available)::
 
     $ git checkout master
     $ git pull
-    $ make tag release
-
-You can then create a pull request to update the `Homebrew Tap`_::
-
     $ make release-homebrew
 
-Finally, head to the Release object that was autocreated in the GitHub repository, paste in the changelog notes and hit publish. Tada! You've published a new version of CCI.
+That will create a new pull request in the SFDO-Tooling/homebrew-sfdo repository, which can be merged if its tests pass.
+
+Finally, post the release notes to our usual channels:
+
+- CumulusCI Release Announcements group in the Power of Us Hub https://powerofus.force.com/s/group/0F91E000000DHjTSAW/cumulusci-release-announcements
+- CumulusCI group in the Trailblazer community https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU
 
 Configuring Your Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To release CCI, you'll need twine, which is installed with the development requirements. You'll also need to configure your `pypirc`_ file with your PyPI credentials. The ``release-homebrew`` build step depends on the `jq`_ command line utility and is available via Homebrew or your package manager.
+The ``release-homebrew`` build step depends on the `jq`_ command line utility and is available via Homebrew or your package manager.
 
 .. _pypirc: https://docs.python.org/distutils/packageindex.html#the-pypirc-file
 .. _Homebrew Tap: https://github.com/SFDO-Tooling/homebrew-sfdo
