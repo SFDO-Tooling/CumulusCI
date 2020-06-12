@@ -72,9 +72,9 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         namespace_param = "null" if namespace is None else f"%27{namespace}%27"
         url = (
             self.base_tooling_url
-            + f"query/?q=SELECT+Id%2C+Name+"
+            + "query/?q=SELECT+Id%2C+Name+"
             + f"FROM+ApexClass+WHERE+NamespacePrefix+%3D+{namespace_param}"
-            + f"+AND+%28Name+LIKE+%27%25_TEST%27%29"
+            + "+AND+%28Name+LIKE+%27%25_TEST%27%29"
         )
         expected_response = {
             "done": True,
@@ -514,6 +514,48 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         task._check_code_coverage = Mock()
         task()
         task._check_code_coverage.assert_called_once()
+
+    def test_code_coverage_integer(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": 90,
+        }
+
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
+            "test",
+        )
+        task = RunApexTests(self.project_config, task_config, org_config)
+
+        assert task.code_coverage_level == 90
+
+    def test_code_coverage_percentage(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": "90%",
+        }
+
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
+            "test",
+        )
+        task = RunApexTests(self.project_config, task_config, org_config)
+
+        assert task.code_coverage_level == 90
 
     def test_exception_bad_code_coverage(self):
         task_config = TaskConfig()
