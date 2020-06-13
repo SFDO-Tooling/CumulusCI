@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from distutils.version import StrictVersion
 import os
 import unittest
 
@@ -13,6 +14,7 @@ from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import KeychainNotFound
@@ -1059,6 +1061,7 @@ class TestOrgConfig(unittest.TestCase):
     @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
     def test_refresh_oauth_token(self, SalesforceOAuth2):
         config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
+        config._client = mock.Mock()
         config._load_userinfo = mock.Mock()
         config._load_orginfo = mock.Mock()
         keychain = mock.Mock()
@@ -1069,6 +1072,7 @@ class TestOrgConfig(unittest.TestCase):
         config.refresh_oauth_token(keychain)
 
         oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
+        assert config._client is None
 
     def test_refresh_oauth_token_no_connected_app(self):
         config = OrgConfig({}, "test")
@@ -1134,9 +1138,7 @@ class TestOrgConfig(unittest.TestCase):
     @responses.activate
     def test_get_salesforce_version(self):
         responses.add(
-            "GET",
-            f"https://na01.salesforce.com/services/data",
-            json=[{"version": 42.0}],
+            "GET", "https://na01.salesforce.com/services/data", json=[{"version": 42.0}]
         )
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"
@@ -1171,8 +1173,12 @@ class TestOrgConfig(unittest.TestCase):
             "test",
         )
         responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        responses.add(
             "GET",
-            "https://example.com/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            "https://example.com/services/data/v48.0/sobjects/Organization/OODxxxxxxxxxxxx",
             json={"OrganizationType": "Enterprise Edition", "IsSandbox": False},
         )
 
@@ -1197,9 +1203,11 @@ class TestOrgConfig(unittest.TestCase):
         The cache should be refreshed automatically if the requested community
         is not in the cache.
         """
+        responses.add("GET", "https://test/services/data", json=[{"version": 48.0}])
+
         responses.add(
             "GET",
-            "https://test/services/data/v45.0/connect/communities",
+            "https://test/services/data/v48.0/connect/communities",
             json={"communities": [{"name": "Kōkua"}]},
         )
 
@@ -1233,3 +1241,103 @@ class TestOrgConfig(unittest.TestCase):
         expected_exception = "Unable to find community information for 'bogus'"
         with self.assertRaisesRegex(Exception, expected_exception):
             config.get_community_info("bogus")
+
+    MOCK_TOOLING_PACKAGE_RESULTS = {
+        "size": 2,
+        "totalSize": 2,
+        "done": True,
+        "records": [
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz4AAG",
+                    "NamespacePrefix": "GW_Volunteers",
+                },
+                "SubscriberPackageVersion": {
+                    "MajorVersion": 3,
+                    "MinorVersion": 119,
+                    "PatchVersion": 0,
+                    "BuildNumber": 5,
+                    "IsBeta": False,
+                },
+            },
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz5AAG",
+                    "NamespacePrefix": "GW_Volunteers",
+                },
+                "SubscriberPackageVersion": {
+                    "MajorVersion": 12,
+                    "MinorVersion": 0,
+                    "PatchVersion": 0,
+                    "BuildNumber": 1,
+                    "IsBeta": False,
+                },
+            },
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz7AAG",
+                    "NamespacePrefix": "TESTY",
+                },
+                "SubscriberPackageVersion": {
+                    "MajorVersion": 1,
+                    "MinorVersion": 10,
+                    "PatchVersion": 0,
+                    "BuildNumber": 5,
+                    "IsBeta": True,
+                },
+            },
+        ],
+    }
+
+    def test_installed_packages(self):
+        config = OrgConfig({}, "test")
+        config._client = mock.Mock()
+        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+
+        assert config.installed_packages == {
+            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
+            "TESTY": [StrictVersion("1.10.0b5")],
+            "03350000000DEz4AAG": [StrictVersion("3.119")],
+            "03350000000DEz5AAG": [StrictVersion("12.0")],
+            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        }
+        assert config.installed_packages == {
+            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
+            "TESTY": [StrictVersion("1.10.0b5")],
+            "03350000000DEz4AAG": [StrictVersion("3.119")],
+            "03350000000DEz5AAG": [StrictVersion("12.0")],
+            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        }
+        config._client.restful.assert_called_once_with(
+            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
+            "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
+            "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
+            "FROM InstalledSubscriberPackage"
+        )
+
+        config._client.restful.reset_mock()
+        config.reset_installed_packages()
+        assert config.installed_packages == {
+            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
+            "TESTY": [StrictVersion("1.10.0b5")],
+            "03350000000DEz4AAG": [StrictVersion("3.119")],
+            "03350000000DEz5AAG": [StrictVersion("12.0")],
+            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        }
+        config._client.restful.assert_called_once()
+
+    def test_has_minimum_package_version(self):
+        config = OrgConfig({}, "test")
+        config._client = mock.Mock()
+        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+
+        assert config.has_minimum_package_version("TESTY", "1.9")
+        assert config.has_minimum_package_version("TESTY", "1.10b5")
+        assert not config.has_minimum_package_version("TESTY", "1.10b6")
+        assert not config.has_minimum_package_version("TESTY", "1.10")
+        assert not config.has_minimum_package_version("npsp", "1.0")
+
+        assert config.has_minimum_package_version("03350000000DEz4AAG", "3.119")
+
+        with self.assertRaises(CumulusCIException):
+            config.has_minimum_package_version("GW_Volunteers", "1.0")

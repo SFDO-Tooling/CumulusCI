@@ -488,6 +488,40 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 + "config.set_keychain(keychain) before accessing orgs"
             )
 
+    def get_repo_from_url(self, url):
+        splits = self._split_repo_url(url)
+        gh = self.get_github_api(splits["owner"], splits["name"])
+        repo = gh.repository(splits["owner"], splits["name"])
+
+        return repo
+
+    def get_ref_for_dependency(self, repo, dependency, include_beta=None):
+        release = None
+        if "ref" in dependency:
+            ref = dependency["ref"]
+        else:
+            if "tag" in dependency:
+                try:
+                    # Find the github release corresponding to this tag.
+                    release = repo.release_from_tag(dependency["tag"])
+                except NotFoundError:
+                    raise DependencyResolutionError(
+                        f"No release found for tag {dependency['tag']}"
+                    )
+            else:
+                release = find_latest_release(repo, include_beta)
+            if release:
+                ref = repo.tag(
+                    repo.ref("tags/" + release.tag_name).object.sha
+                ).object.sha
+            else:
+                self.logger.info(
+                    f"No release found; using the latest commit from the {repo.default_branch} branch."
+                )
+                ref = repo.branch(repo.default_branch).commit.sha
+
+        return (release, ref)
+
     def get_static_dependencies(self, dependencies=None, include_beta=None):
         """Resolves the project -> dependencies section of cumulusci.yml
         to convert dynamic github dependencies into static dependencies
@@ -553,40 +587,17 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             skip = [skip]
 
         # Initialize github3.py API against repo
-        repo_owner, repo_name = dependency["github"].split("/")[3:5]
-        if repo_name.endswith(".git"):
-            repo_name = repo_name[:-4]
-        gh = self.get_github_api(repo_owner, repo_name)
-        repo = gh.repository(repo_owner, repo_name)
+        repo = self.get_repo_from_url(dependency["github"])
         if repo is None:
             raise DependencyResolutionError(
                 f"{indent}Github repository {dependency['github']} not found or not authorized."
             )
 
+        repo_owner = str(repo.owner)
+        repo_name = repo.name
+
         # Determine the commit
-        release = None
-        if "ref" in dependency:
-            ref = dependency["ref"]
-        else:
-            if "tag" in dependency:
-                try:
-                    # Find the github release corresponding to this tag.
-                    release = repo.release_from_tag(dependency["tag"])
-                except NotFoundError:
-                    raise DependencyResolutionError(
-                        f"{indent}No release found for tag {dependency['tag']}"
-                    )
-            else:
-                release = find_latest_release(repo, include_beta)
-            if release:
-                ref = repo.tag(
-                    repo.ref("tags/" + release.tag_name).object.sha
-                ).object.sha
-            else:
-                self.logger.info(
-                    f"{indent}No release found; using the latest commit from the {repo.default_branch} branch."
-                )
-                ref = repo.branch(repo.default_branch).commit.sha
+        release, ref = self.get_ref_for_dependency(repo, dependency, include_beta)
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)

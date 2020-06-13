@@ -83,8 +83,8 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
 
        # Validate via API
        &{contact} =     Salesforce Get  Contact  ${contact_id}
-       Should Be Equal  ${first_name}  &{contact}[FirstName]
-       Should Be Equal  ${last_name}  &{contact}[LastName]
+       Should Be Equal  ${first_name}  ${contact}[FirstName]
+       Should Be Equal  ${last_name}   ${contact}[LastName]
 
 
 Settings
@@ -257,10 +257,10 @@ The **Run Task Class** keyword is for use cases where you want to use one of Cum
 Full Documentation
 ------------------
 
-Use the following links to download generated documentation for the CumulusCI Library and Resource file:
+Use the following links to download generated documentation for both
+the CumulusCI and Salesforce keywords
 
-* :download:`CumulusCI Robot Library <../docs/robot/CumulusCI_Library.html>`
-* :download:`CumulusCI Robot Resource <../docs/robot/CumulusCI_Resource.html>`
+* :download:`CumulusCI Keyword Documentation <../docs/robot/Keywords.html>`
 
 .. _salesforce-library-overview:
 

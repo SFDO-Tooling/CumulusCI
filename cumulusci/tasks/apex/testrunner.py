@@ -160,6 +160,9 @@ class RunApexTests(BaseSalesforceApiTask):
             "description": "By default, all failures must match retry_failures to perform "
             "a retry. Set retry_always to True to retry all failed tests if any failure matches."
         },
+        "required_org_code_coverage_percent": {
+            "description": "Require at least X percent code coverage across the org following the test run."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -209,6 +212,18 @@ class RunApexTests(BaseSalesforceApiTask):
         )
 
         self.counts = {}
+
+        if "required_org_code_coverage_percent" in self.options:
+            try:
+                self.code_coverage_level = int(
+                    str(self.options["required_org_code_coverage_percent"]).rstrip("%")
+                )
+            except ValueError:
+                raise TaskOptionsError(
+                    f"Invalid code coverage level {self.options['required_org_code_coverage_percent']}"
+                )
+        else:
+            self.code_coverage_level = None
 
     # pylint: disable=W0201
     def _init_class(self):
@@ -511,6 +526,30 @@ class RunApexTests(BaseSalesforceApiTask):
                     self.counts.get("Fail"), self.counts.get("CompileFail")
                 )
             )
+
+        if self.code_coverage_level:
+            if self.options.get("namespace") not in self.org_config.installed_packages:
+                self._check_code_coverage()
+            else:
+                self.logger.info(
+                    "This org contains a managed installation; not checking code coverage."
+                )
+        else:
+            self.logger.info(
+                "No code coverage level specified; not checking code coverage."
+            )
+
+    def _check_code_coverage(self):
+        result = self.tooling.query("SELECT PercentCovered FROM ApexOrgWideCoverage")
+        coverage = result["records"][0]["PercentCovered"]
+        if coverage < self.code_coverage_level:
+            raise ApexTestException(
+                f"Organization-wide code coverage of {coverage}% is below required level of {self.code_coverage_level}"
+            )
+
+        self.logger.info(
+            f"Organization-wide code coverage of {coverage}% meets expectations."
+        )
 
     def _attempt_retries(self):
         total_method_retries = sum(

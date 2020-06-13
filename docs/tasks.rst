@@ -127,6 +127,61 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+**add_picklist_entries**
+==========================================
+
+**Description:** Adds specified picklist entries to a custom picklist field.
+
+**Class:** cumulusci.tasks.metadata_etl.picklists.AddPicklistEntries
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run add_picklist_entries``
+
+
+Options
+------------------------------------------
+
+
+``-o picklists PICKLISTS``
+	 *Required*
+
+	 List of picklists to affect, in Object__c.Field__c form.
+
+``-o entries ENTRIES``
+	 *Required*
+
+	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed).
+To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
+
+``-o record_types RECORDTYPES``
+	 *Optional*
+
+	 List of Record Type developer names for which the new values should be available. If any of the entries have `default: True`, they are also made default for these Record Types. Any Record Types not present in the target org will be ignored, and * is a wildcard. Default behavior is to do nothing.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **add_permission_set_perms**
 ==========================================
 
@@ -1056,13 +1111,6 @@ Options
 ------------------------------------------
 
 
-``-o release_prefix RELEASEPREFIX``
-	 *Required*
-
-	 The tag prefix used for releases.
-
-	 Default: $project_config.project__git__prefix_release
-
 ``-o object_path OBJECTPATH``
 	 *Optional*
 
@@ -1072,6 +1120,16 @@ Options
 	 *Optional*
 
 	 Path to a CSV file to contain an field-level data dictionary.
+
+``-o include_dependencies INCLUDEDEPENDENCIES``
+	 *Optional*
+
+	 Process all of the GitHub dependencies of this project and include their schema in the data dictionary.
+
+``-o additional_dependencies ADDITIONALDEPENDENCIES``
+	 *Optional*
+
+	 Include schema from additional GitHub repositories that are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of URLs.
 
 **generate_and_load_from_yaml**
 ==========================================
@@ -1577,6 +1635,11 @@ Options
 
 	 Number of seconds to add before each retry (default=30),
 
+``-o security_type SECURITYTYPE``
+	 *Optional*
+
+	 Which users to install package for (FULL = all users, NONE = admins only)
+
 **install_managed_beta**
 ==========================================
 
@@ -1637,6 +1700,11 @@ Options
 	 *Optional*
 
 	 Number of seconds to add before each retry (default=30),
+
+``-o security_type SECURITYTYPE``
+	 *Optional*
+
+	 Which users to install package for (FULL = all users, NONE = admins only)
 
 **list_communities**
 ==========================================
@@ -2814,6 +2882,11 @@ Options
 
 	 By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
 
+``-o required_org_code_coverage_percent REQUIREDORGCODECOVERAGEPERCENT``
+	 *Optional*
+
+	 Require at least X percent code coverage across the org following the test run.
+
 **set_duplicate_rule_status**
 ==========================================
 
@@ -3363,6 +3436,11 @@ Options
 	 *Optional*
 
 	 Allow uninstalling a beta release or newer final release in order to install the requested version. Defaults to False. Warning: Enabling this may destroy data.
+
+``-o security_type SECURITYTYPE``
+	 *Optional*
+
+	 Which users to install packages for (FULL = all users, NONE = admins only)
 
 **update_package_xml**
 ==========================================

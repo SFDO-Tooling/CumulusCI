@@ -1,4 +1,5 @@
 from robot.libraries.BuiltIn import BuiltIn
+from contextlib import contextmanager
 
 
 class BasePage:
@@ -7,6 +8,15 @@ class BasePage:
     def __init__(self, object_name=None):
         if object_name:
             self._object_name = object_name
+
+    @contextmanager
+    def _no_implicit_wait(self):
+        """Context manager for running selenium commands without an implicit wait"""
+        current_wait = self.selenium.set_selenium_implicit_wait(0)
+        try:
+            yield
+        finally:
+            self.selenium.set_selenium_implicit_wait(current_wait)
 
     def _wait_to_appear(self, timeout=None):
         """This function is called by the keyword 'wait for page object to appear'.

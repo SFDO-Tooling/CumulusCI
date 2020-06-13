@@ -55,5 +55,5 @@ Validate Contact
 
     # Validate via API
     &{contact} =     Salesforce Get  Contact  ${contact_id}
-    Should Be Equal  ${first_name}  &{contact}[FirstName]
-    Should Be Equal  ${last_name}  &{contact}[LastName]
+    Should Be Equal  ${first_name}  ${contact}[FirstName]
+    Should Be Equal  ${last_name}  ${contact}[LastName]
