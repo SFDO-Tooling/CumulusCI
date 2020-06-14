@@ -98,8 +98,8 @@ class BaseMetadataApiCall(object):
             return self.soap_envelope_result.format(process_id=self.process_id)
 
     def _build_envelope_start(self):
-        if self.soap_envelope_start:
-            return self.soap_envelope_start.format(api_version=self.api_version)
+        assert self.soap_envelope_start, "soap_envelope_start should be supplied"
+        return self.soap_envelope_start.format(api_version=self.api_version)
 
     def _build_envelope_status(self):
         if self.soap_envelope_status:
@@ -426,6 +426,10 @@ class ApiDeploy(BaseMetadataApiCall):
                 run_tests=run_tests,
                 api_version=self.api_version,
             )
+        else:
+            # if there is a valid use-case for this branch, please
+            # add a unit test
+            assert self.package_zip, "package_zip should be specified"
 
     def _process_response(self, response):
         resp_xml = parseString(response.content)
