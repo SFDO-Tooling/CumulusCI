@@ -14,6 +14,7 @@ from cumulusci.utils import cd
 from cumulusci.core.exceptions import ServiceNotValid, ServiceNotConfigured
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.utils.json.resumption_file import ResumptionFile
 
 CURRENT_TASK = threading.local()
 CURRENT_TASK.stack = []
@@ -47,8 +48,6 @@ class BaseTask(object):
         flow=None,
         name=None,
         stepnum=None,
-        state_data=None,
-        resuming=False,
         **kwargs,
     ):
         assert task_config
@@ -76,11 +75,8 @@ class BaseTask(object):
         self.stepnum = stepnum
 
         self._init_logger()
-        if resuming:
-            self.options = task_config.options
-        else:
-            self._init_options(kwargs)
-            self._validate_options()
+        self._init_options(kwargs)
+        self._validate_options()
 
     def _init_logger(self):
         """ Initializes self.logger """
@@ -293,23 +289,36 @@ class ResumableTask(BaseTask):
         "sf",
         "bulk",
         "tooling",
+        "resuming",
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args,
+        resumption_fs_resource: ResumptionFile = None,
+        resuming=False,
+        **kwargs,
+    ):
         self.__dict__["excluded_fields"] = set(self.default_excluded_fields)
 
-        if "resumption_fs_resource" in kwargs:
-            self.set_nonpersistent_value(
-                "resumption_fs_resource", kwargs.pop("resumption_fs_resource")
-            )
+        self.set_nonpersistent_value("resumption_fs_resource", resumption_fs_resource)
+        self.set_nonpersistent_value("resuming", resuming)
 
         super().__init__(*args, **kwargs)
+
+    def _init_options(self, kwargs):
+        if self.resuming:
+            self.options = self.resumption_fs_resource.state_data["options"]
+        else:
+            super()._init_options(kwargs)
+
+    def _validate_options(self):
+        if not self.resuming:
+            super()._validate_options()
 
     def _run_task(self):
         self._start()
         self._run_steps()
-        self.resumption_fs_resource.cleanup()
-        self._after_finished()
 
     def _start(self):
         "Override this: Do any kind of task setup or logging that is necessary."
@@ -321,12 +330,13 @@ class ResumableTask(BaseTask):
             self._run_step()
             self.resumption_fs_resource.state_data = self.dict()
             self.resumption_fs_resource.save()
+        self.resumption_fs_resource.cleanup()
+        self._after_finished()
 
     def resume(self):
         "Resume this task. Usually do not need to override this."
         self._resume()
         self._run_steps()
-        self._after_finished()
 
     def set_nonpersistent_value(self, key, value):
         "Save a value to memory but not to persistent storage"

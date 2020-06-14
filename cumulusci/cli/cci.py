@@ -1409,10 +1409,11 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
 
     # set up the resumption data
     parentpid = os.getppid()
-    Path(runtime.project_config.repo_root, ".cci").mkdir(exist_ok=True)
+    cci_cache_dir = runtime.project_config.cci_cache_dir
+    cci_cache_dir.mkdir(exist_ok=True)
+    resource_url_path = FSResource(cci_cache_dir) / f"task_resume_{parentpid}.json"
     resumption_file = ResumptionFile(
-        FSResource(runtime.project_config.repo_root)
-        / f".cci/task_resume_{parentpid}.json",
+        resource_url_path,
         task_class=class_path,
         task_config=config,
         org=org,
@@ -1446,14 +1447,35 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
 
 
 @task.command(name="resume", help="Resume a task if one was stopped in this shell")
-@click.argument("resume_json", type=click.Path(), required=False)
+@click.argument("resume_json", type=click.Path(exists=True), required=False)
 @pass_runtime(require_keychain=True)
 def task_resume(runtime, resume_json):
     ppid = os.getppid()
-    default_resume_path = (
-        FSResource(runtime.project_config.repo_root) / f".cci/task_resume_{ppid}.json"
-    )
+    cci_cache_dir = runtime.project_config.cci_cache_dir
+
+    default_resume_path = FSResource(cci_cache_dir) / f"task_resume_{ppid}.json"
     path = FSResource(resume_json) if resume_json else default_resume_path
+    if not path.exists():
+        likely_files = list(cci_cache_dir.glob("task_resume_*.json"))
+        print(likely_files)
+        if list(likely_files):
+            hints = [
+                "Cannot find a task to resume from this shell.",
+                "If you want to resume from another shell, find the .json file in your '.cci'",
+                f"directory {cci_cache_dir} and pass it as an argument to",
+                "`cci task resume`.",
+                "",
+                "For example:",
+                "",
+            ]
+
+            example_lines = [f"cci task resume {f}" for f in likely_files]
+
+            hint = "\n".join(hints + example_lines)
+        else:
+            hint = "Cannot find a task to resume from this project.\n"
+
+        raise click.UsageError(hint)
     with path.open() as f:
         json_data = json.load(f)
     resume_data = ResumptionFile(path, **json_data)
@@ -1461,7 +1483,10 @@ def task_resume(runtime, resume_json):
     task_class = import_global(class_path)
     task_config = TaskConfig(resume_data.task_config)
     org = resume_data.org
-    org, org_config = runtime.get_org(org)
+    if org:
+        org, org_config = runtime.get_org(org)
+    else:
+        org_config = None
     task = task_class(
         runtime.project_config,
         task_config,

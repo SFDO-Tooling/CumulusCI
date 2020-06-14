@@ -1,6 +1,7 @@
 from typing import Optional
 
 from pydantic import validator
+from fs.path import splitext
 
 from ..yaml.model_parser import CCIModel
 from cumulusci.utils.fileutils import FSResource
@@ -13,7 +14,7 @@ class ResumptionFile(CCIModel):
     state_data: dict
     flow_step: Optional[str]
     task_config: dict
-    org: str
+    org: Optional[str]
     version: float
     _fs_resource: Optional[FSResource]
     _working_directory: Optional[FSResource] = None
@@ -42,13 +43,14 @@ class ResumptionFile(CCIModel):
 
     def get_working_directory(self):
         if not self._working_directory:
-            dirname = FSResource(str(self.filename)[0 : -len(self.filename.suffix)])
+            basename, suffix = splitext(self.filename)
+            dirname = FSResource(str(self.filename)[0 : -len(suffix)])
             dirname.mkdir(parents=True, exist_ok=True)
             self.__dict__["_working_directory"] = dirname
         return self._working_directory
 
     def cleanup(self):
         if self._fs_resource and self._fs_resource.exists():
-            self._fs_resource.remove()
+            self._fs_resource.unlink()
         if self._working_directory and self._working_directory.exists():
-            self._fs_resource.removedir(self._working_directory, ignore_errors=True)
+            self._working_directory.removetree()

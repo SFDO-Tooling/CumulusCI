@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-
 from sqlalchemy import MetaData, create_engine
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -9,6 +8,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import import_global
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import ResumableTask
+from cumulusci.utils.fileutils import FSResource
 
 
 class GenerateAndLoadData(ResumableTask, BaseSalesforceApiTask):
@@ -90,7 +90,7 @@ class GenerateAndLoadData(ResumableTask, BaseSalesforceApiTask):
     task_options["mapping"]["required"] = False
 
     def _resume(self):
-        self.logger.info(f"Continuing dataload")
+        self.logger.info("Continuing dataload")
 
     def _is_finished(self):
         return self.rows_generated >= self.target_records
@@ -136,7 +136,7 @@ class GenerateAndLoadData(ResumableTask, BaseSalesforceApiTask):
                 )
 
     def _run_step(self):
-        tempdir = self.persistence.get_working_directory()
+        tempdir = self.resumption_fs_resource.get_working_directory()
         self.current_batchnum += 1
         rows_left = self.target_records - self.rows_generated
         current_batch_size = min(self.batch_size, rows_left)
@@ -176,7 +176,10 @@ class GenerateAndLoadData(ResumableTask, BaseSalesforceApiTask):
     def _generate_batch(self, database_url, tempdir, mapping_file, batch_size, index):
         """Generate a batch in database_url or a tempfile if it isn't specified."""
         if not database_url:
-            sqlite_path = Path(tempdir) / "generated_data.db"
+            # we use pathlib here because SQLite Databases can't be on virtual filesystems
+            localdir = os.fsdecode(tempdir.getospath())
+            assert Path(localdir).exists(), f"{localdir} does not exist"
+            sqlite_path = Path(localdir) / "generated_data.db"
             database_url = f"sqlite:///{sqlite_path}"
 
         self._cleanup_object_tables(*self._setup_engine(database_url))
@@ -193,7 +196,7 @@ class GenerateAndLoadData(ResumableTask, BaseSalesforceApiTask):
 
         # some generator tasks can generate the mapping file instead of reading it
         if not subtask_options.get("mapping"):
-            temp_mapping = Path(tempdir) / "temp_mapping.yml"
+            temp_mapping = FSResource(tempdir) / "temp_mapping.yml"
             mapping_file = self.options.get("generate_mapping_file", temp_mapping)
             subtask_options["generate_mapping_file"] = mapping_file
 

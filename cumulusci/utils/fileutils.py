@@ -124,6 +124,10 @@ class FSResource(str):
         elif "/" in resource_url_or_path:
             fs = open_fs("/")
             filename = os.path.abspath(resource_url_or_path)
+        else:
+            fs = open_fs(".")
+            filename = os.path.abspath(resource_url_or_path)
+
         url = fs.geturl(filename)
         self = str.__new__(cls, url)
         self.fs = fs
@@ -132,8 +136,12 @@ class FSResource(str):
 
     exists = proxy("exists")
     open = proxy("open")
-    remove = proxy("remove")
+    unlink = proxy("remove")
     removedir = proxy("removedir")
+    removetree = proxy("removetree")
+
+    def getospath(self):
+        return os.fsdecode(self.fs.getospath(self.filename))
 
     def joinpath(self, other):
         path = fspath.join(self.filename, other)
@@ -143,6 +151,12 @@ class FSResource(str):
         if isinstance(other, (str, Path)):
             other = FSResource(other)
         copy.copy_file(self.fs, self.filename, other.fs, other.filename)
+
+    def mkdir(self, *, parents=False, exist_ok=False):
+        if parents:
+            self.fs.makedirs(self.filename, recreate=exist_ok)
+        else:
+            self.fs.makedir(self.filename, recreate=exist_ok)
 
     def __truediv__(self, other):
         return self.joinpath(other)

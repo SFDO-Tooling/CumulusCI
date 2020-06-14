@@ -287,6 +287,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             path = Path(head)
 
     @property
+    def cci_cache_dir(self):
+        return Path(self.repo_root) / ".cci"
+
+    @property
     def repo_name(self):
         name = self.repo_info.get("name")
         if name:
