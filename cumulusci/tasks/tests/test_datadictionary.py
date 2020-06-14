@@ -1,6 +1,5 @@
 import io
 import unittest
-
 from unittest.mock import Mock, call, patch, mock_open
 
 from cumulusci.tasks.datadictionary import (
@@ -15,6 +14,7 @@ from cumulusci.tests.util import create_project_config
 from cumulusci.utils.xml import metadata_tree
 from distutils.version import StrictVersion
 from cumulusci.core.exceptions import DependencyResolutionError, TaskOptionsError
+from cumulusci.utils import temporary_dir
 
 
 class test_GenerateDataDictionary(unittest.TestCase):
@@ -910,7 +910,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
         task._get_repo_dependencies = Mock(return_value=[1, 2])
         task._walk_releases = Mock()
 
-        task._run_task()
+        with temporary_dir():
+            task._run_task()
 
         task._get_repo_dependencies.assert_has_calls(
             [
