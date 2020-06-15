@@ -22,6 +22,7 @@ class ScratchOrgConfig(OrgConfig):
     def scratch_info(self):
         if hasattr(self, "_scratch_info"):
             return self._scratch_info
+        self._client = None
 
         # Create the org if it hasn't already been created
         if not self.created:
