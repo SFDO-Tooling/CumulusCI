@@ -62,21 +62,9 @@ class CreateRelease(BaseGithubTask):
 
         # Build tag message
         message = self.options.get("message", "Release of version {}".format(version))
-        dependencies = self.project_config.get_static_dependencies(
-            self.options.get("dependencies")
-            or self.project_config.project__dependencies
-        )
+        dependencies = self.options.get("dependencies")
         if dependencies:
-            dependencies = self.org_config.resolve_04t_dependencies(dependencies)
-        release_info = {
-            "namespace": self.project_config.project__package__namespace,
-            "version": self.options["version"],
-        }
-        if "version_id" in self.options:
-            release_info["version_id"] = self.options["version_id"]
-        dependencies.append(release_info)
-        # @@@ add pre/post?
-        message += "\n\ndependencies: {}".format(json.dumps(dependencies, indent=4))
+            message += "\n\ndependencies: {}".format(json.dumps(dependencies, indent=4))
 
         try:
             repo.ref("tags/{}".format(tag_name))

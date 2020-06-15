@@ -49,15 +49,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
     def _init_options(self, kwargs):
         super(Deploy, self)._init_options(kwargs)
 
-        self.options["clean_meta_xml"] = process_bool_arg(
-            self.options.get("clean_meta_xml", True)
-        )
-        self.options["unmanaged"] = process_bool_arg(
-            self.options.get("unmanaged", True)
-        )
-        self.options["namespaced_org"] = process_bool_arg(
-            self.options.get("namespaced_org", False)
-        )
         self.check_only = process_bool_arg(self.options.get("check_only", False))
         self.test_level = self.options.get("test_level")
         if self.test_level and self.test_level not in [
@@ -94,8 +85,19 @@ class Deploy(BaseSalesforceMetadataApiTask):
         )
 
     def _get_package_zip(self, path):
+        options = {
+            **self.options,
+            "clean_meta_xml": process_bool_arg(
+                self.options.get("clean_meta_xml", True)
+            ),
+            "unmanaged": process_bool_arg(self.options.get("unmanaged", True)),
+            "namespaced_org": process_bool_arg(
+                self.options.get("namespaced_org", False)
+            ),
+        }
+
         return MetadataPackageZipBuilder(
-            path=path, options=self.options, logger=self.logger
+            path=path, options=options, logger=self.logger
         ).as_base64()
 
     def freeze(self, step):

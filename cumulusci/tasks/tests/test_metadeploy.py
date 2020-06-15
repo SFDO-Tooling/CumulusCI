@@ -61,6 +61,8 @@ class TestBaseMetaDeployTask(unittest.TestCase):
 
 
 class TestPublish(unittest.TestCase, GithubApiTestMixin):
+    maxDiff = None
+
     @responses.activate
     def test_run_task(self):
         project_config = create_project_config()

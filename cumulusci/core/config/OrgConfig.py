@@ -215,7 +215,7 @@ class OrgConfig(BaseConfig):
                 f"packages are installed that match this identifier."
             )
 
-        return installed_version[0] >= version_identifier
+        return installed_version[0].number >= version_identifier
 
     @property
     def installed_packages(self):

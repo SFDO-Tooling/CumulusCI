@@ -13,6 +13,7 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config.OrgConfig import VersionInfo
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import DependencyResolutionError
@@ -1253,6 +1254,7 @@ class TestOrgConfig(unittest.TestCase):
                     "NamespacePrefix": "GW_Volunteers",
                 },
                 "SubscriberPackageVersion": {
+                    "Id": "04t1T00000070yqQAA",
                     "MajorVersion": 3,
                     "MinorVersion": 119,
                     "PatchVersion": 0,
@@ -1266,6 +1268,7 @@ class TestOrgConfig(unittest.TestCase):
                     "NamespacePrefix": "GW_Volunteers",
                 },
                 "SubscriberPackageVersion": {
+                    "Id": "04t000000000001AAA",
                     "MajorVersion": 12,
                     "MinorVersion": 0,
                     "PatchVersion": 0,
@@ -1279,6 +1282,7 @@ class TestOrgConfig(unittest.TestCase):
                     "NamespacePrefix": "TESTY",
                 },
                 "SubscriberPackageVersion": {
+                    "Id": "04t000000000002AAA",
                     "MajorVersion": 1,
                     "MinorVersion": 10,
                     "PatchVersion": 0,
@@ -1294,22 +1298,37 @@ class TestOrgConfig(unittest.TestCase):
         config._client = mock.Mock()
         config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
 
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        expected = {
+            "GW_Volunteers": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119")),
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0")),
+            ],
+            "GW_Volunteers@3.119": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
+            ],
+            "GW_Volunteers@12.0": [
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0"))
+            ],
+            "TESTY": [VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))],
+            "TESTY@1.10b5": [
+                VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
+            ],
+            "03350000000DEz4AAG": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
+            ],
+            "03350000000DEz5AAG": [
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0"))
+            ],
+            "03350000000DEz7AAG": [
+                VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
+            ],
         }
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
-        }
+        # get it twice so we can make sure it is cached
+        assert config.installed_packages == expected
+        assert config.installed_packages == expected
         config._client.restful.assert_called_once_with(
-            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
+            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
+            "SubscriberPackageVersion.Id, SubscriberPackageVersion.MajorVersion, "
             "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
             "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
             "FROM InstalledSubscriberPackage"
@@ -1317,13 +1336,7 @@ class TestOrgConfig(unittest.TestCase):
 
         config._client.restful.reset_mock()
         config.reset_installed_packages()
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
-        }
+        assert config.installed_packages == expected
         config._client.restful.assert_called_once()
 
     def test_has_minimum_package_version(self):
