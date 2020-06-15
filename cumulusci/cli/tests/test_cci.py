@@ -63,13 +63,21 @@ def recursive_list_files(d="."):
 class TestCCI(unittest.TestCase):
     @classmethod
     def setUpClass(self):
+        self.global_tempdir = tempfile.gettempdir()
         self.tempdir = tempfile.mkdtemp()
-        os.environ["HOME"] = self.tempdir
-        os.environ["CUMULUSCI_KEY"] = ""
+        self.environ_mock = mock.patch.dict(
+            os.environ, {"HOME": tempfile.mkdtemp(), "CUMULUSCI_KEY": ""}
+        )
+        assert self.global_tempdir not in os.environ["HOME"]
+        self.environ_mock.start()
+        assert self.global_tempdir in os.environ["HOME"]
 
     @classmethod
     def tearDownClass(self):
+        assert self.global_tempdir in os.environ["HOME"]
+        self.environ_mock.stop()
         shutil.rmtree(self.tempdir)
+        assert self.global_tempdir not in os.environ["HOME"]
 
     def test_get_installed_version(self):
         result = cci.get_installed_version()

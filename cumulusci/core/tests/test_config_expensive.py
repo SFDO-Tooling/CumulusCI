@@ -5,6 +5,7 @@ import io
 import os
 import tempfile
 import unittest
+import shutil
 
 import yaml
 
@@ -23,8 +24,13 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 
 @mock.patch("os.path.expanduser")
 class TestBaseGlobalConfig(unittest.TestCase):
-    def setUp(self):
-        self.tempdir_home = tempfile.mkdtemp()
+    @classmethod
+    def setUp(cls):
+        cls.tempdir_home = tempfile.mkdtemp()
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tempdir_home)
 
     def _create_global_config_local(self, content):
         self.tempdir_home = tempfile.mkdtemp()
