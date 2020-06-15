@@ -223,14 +223,19 @@ class BaseMetadataApiCall(object):
             )
         resp_xml = parseString(response.content)
         done = resp_xml.getElementsByTagName("done")
+        state = resp_xml.getElementsByTagName("state")
         if done:
-            if done[0].firstChild.nodeValue == "true":
-                errorMessage = resp_xml.getElementsByTagName("errorMessage")
-                if errorMessage:
+            if done[0].firstChild.nodeValue == "true" or (
+                state and state[0] and state[0].firstChild.nodeValue == "Error"
+            ):
+                errorMessages = list(resp_xml.getElementsByTagName("errorMessage"))
+                errorMessages += list(resp_xml.getElementsByTagName("message"))
+                if errorMessages:
+                    messages = [
+                        message.firstChild.nodeValue for message in errorMessages
+                    ]
                     self._set_status(
-                        "Failed",
-                        errorMessage[0].firstChild.nodeValue,
-                        response=response,
+                        "Failed", "\n".join(messages), response=response,
                     )
                 else:
                     self._set_status("Done")
