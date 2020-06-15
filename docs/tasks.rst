@@ -882,6 +882,33 @@ Options
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
+**dx**
+==========================================
+
+**Description:** Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
+
+**Class:** cumulusci.tasks.sfdx.SFDXOrgTask
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run dx``
+
+
+Options
+------------------------------------------
+
+
+``-o command COMMAND``
+	 *Required*
+
+	 The full command to run with the sfdx cli.
+
+``-o extra EXTRA``
+	 *Optional*
+
+	 Append additional options to the command
+
 **dx_convert_to**
 ==========================================
 
@@ -1129,7 +1156,7 @@ Options
 ``-o additional_dependencies ADDITIONALDEPENDENCIES``
 	 *Optional*
 
-	 Include schema from additional GitHub repositories that are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of URLs.
+	 Include schema from additional GitHub repositories that are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of dicts as in project__dependencies in cumulusci.yml. Note: only repository dependencies are supported.
 
 **generate_and_load_from_yaml**
 ==========================================

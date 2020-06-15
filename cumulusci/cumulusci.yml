@@ -106,6 +106,10 @@ tasks:
             path: unpackaged/config/qa
             unmanaged: True
         group: Salesforce Metadata
+    dx:
+        description: Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
+        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+        group: Salesforce DX
     dx_convert_to:
         description: Converts src directory metadata format into sfdx format under force-app
         class_path: cumulusci.tasks.sfdx.SFDXBaseTask
