@@ -68,7 +68,7 @@ class TestCCI(unittest.TestCase):
         self.environ_mock = mock.patch.dict(
             os.environ, {"HOME": tempfile.mkdtemp(), "CUMULUSCI_KEY": ""}
         )
-        assert self.global_tempdir not in os.environ["HOME"]
+        assert self.global_tempdir not in os.environ.get("HOME", "")
         self.environ_mock.start()
         assert self.global_tempdir in os.environ["HOME"]
 
@@ -77,7 +77,7 @@ class TestCCI(unittest.TestCase):
         assert self.global_tempdir in os.environ["HOME"]
         self.environ_mock.stop()
         shutil.rmtree(self.tempdir)
-        assert self.global_tempdir not in os.environ["HOME"]
+        assert self.global_tempdir not in os.environ.get("HOME", "")
 
     def test_get_installed_version(self):
         result = cci.get_installed_version()
