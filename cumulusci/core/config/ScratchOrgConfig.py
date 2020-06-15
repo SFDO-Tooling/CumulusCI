@@ -22,7 +22,6 @@ class ScratchOrgConfig(OrgConfig):
     def scratch_info(self):
         if hasattr(self, "_scratch_info"):
             return self._scratch_info
-        self._client = None
 
         # Create the org if it hasn't already been created
         if not self.created:
@@ -322,6 +321,7 @@ class ScratchOrgConfig(OrgConfig):
 
     def refresh_oauth_token(self, keychain):
         """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
+        self._client = None
         if hasattr(self, "_scratch_info"):
             # Cache the scratch_info for 1 hour to avoid unnecessary calls out
             # to sfdx CLI
