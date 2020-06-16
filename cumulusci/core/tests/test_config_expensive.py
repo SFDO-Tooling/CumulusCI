@@ -25,15 +25,14 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 @mock.patch("os.path.expanduser")
 class TestBaseGlobalConfig(unittest.TestCase):
     @classmethod
-    def setUp(cls):
+    def setup_class(cls):
         cls.tempdir_home = tempfile.mkdtemp()
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         shutil.rmtree(cls.tempdir_home)
 
     def _create_global_config_local(self, content):
-        self.tempdir_home = tempfile.mkdtemp()
         global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
         os.makedirs(global_local_dir)
         filename = os.path.join(global_local_dir, BaseGlobalConfig.config_filename)
@@ -134,7 +133,8 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.current_branch = "master"
 
     def tearDown(self):
-        pass
+        shutil.rmtree(self.tempdir_home)
+        shutil.rmtree(self.tempdir_project)
 
     def test_load_project_config_not_repo(self, mock_class):
         mock_class.return_value = self.tempdir_home
