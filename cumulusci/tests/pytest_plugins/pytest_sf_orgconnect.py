@@ -1,6 +1,5 @@
 import pytest
 
-from cumulusci.cli.logger import init_logger
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.config import TaskConfig
@@ -10,10 +9,13 @@ def pytest_addoption(parser, pluginmanager):
     parser.addoption("--org", action="store", default=None, help="org to use")
 
 
+def sf_pytest_orgname(request):
+    return request.config.getoption("--org")
+
+
 @pytest.fixture(scope="session")
 def runtime():
     """Get the CumulusCI runtime for the current working directory."""
-    init_logger()
     return CliRuntime()
 
 
@@ -30,7 +32,8 @@ def org_config(request, runtime):
     Specify the org name using the --org option when running pytest.
     Or else it will use your default CCI org.
     """
-    org_name = request.config.getoption("--org")
+    org_name = sf_pytest_orgname(request)
+    assert org_name
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
     return org_config
