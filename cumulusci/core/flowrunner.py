@@ -349,41 +349,46 @@ class FlowCoordinator(object):
 
         try:
             for step in self.steps:
-                if step.skip:
-                    self._rule(fill="*")
-                    self.logger.info(f"Skipping task: {step.task_name}")
-                    self._rule(fill="*", new_line=True)
-                    continue
-
-                if step.when:
-                    jinja2_context = {
-                        "project_config": step.project_config,
-                        "org_config": self.org_config,
-                    }
-                    expr = jinja2_env.compile_expression(step.when)
-                    value = expr(**jinja2_context)
-                    if not value:
-                        self.logger.info(
-                            f"Skipping task {step.task_name} (skipped unless {step.when})"
-                        )
-                        continue
-
-                self._rule(fill="-")
-                self.logger.info(f"Running task: {step.task_name}")
-                self._rule(fill="-", new_line=True)
-
-                self.callbacks.pre_task(step)
-                result = TaskRunner.from_flow(self, step).run_step()
-                self.callbacks.post_task(step, result)
-
-                self.results.append(
-                    result
-                )  # add even a failed result to the result set for the post flow
-
-                if result.exception and not step.allow_failure:
-                    raise result.exception  # PY3: raise an exception type we control *from* this exception instead?
+                self._run_step(step)
+            flow_name = f"'{self.name}' " if self.name else ""
+            self.logger.info(f"Completed flow {flow_name}successfully!")
         finally:
             self.callbacks.post_flow(self)
+
+    def _run_step(self, step):
+        if step.skip:
+            self._rule(fill="*")
+            self.logger.info(f"Skipping task: {step.task_name}")
+            self._rule(fill="*", new_line=True)
+            return
+
+        if step.when:
+            jinja2_context = {
+                "project_config": step.project_config,
+                "org_config": self.org_config,
+            }
+            expr = jinja2_env.compile_expression(step.when)
+            value = expr(**jinja2_context)
+            if not value:
+                self.logger.info(
+                    f"Skipping task {step.task_name} (skipped unless {step.when})"
+                )
+                return
+
+        self._rule(fill="-")
+        self.logger.info(f"Running task: {step.task_name}")
+        self._rule(fill="-", new_line=True)
+
+        self.callbacks.pre_task(step)
+        result = TaskRunner.from_flow(self, step).run_step()
+        self.callbacks.post_task(step, result)
+
+        self.results.append(
+            result
+        )  # add even a failed result to the result set for the post flow
+
+        if result.exception and not step.allow_failure:
+            raise result.exception  # PY3: raise an exception type we control *from* this exception instead?
 
     def _init_logger(self):
         """
