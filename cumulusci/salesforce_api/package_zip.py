@@ -121,9 +121,12 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             if not pathlib.Path(path, "package.xml").exists():
                 self.logger.info("Converting from sfdx to mdapi format")
                 path = stack.enter_context(temporary_dir(chdir=False))
+                args = ["-r", orig_path, "-d", path]
+                if name:
+                    args += ["-n", name]
                 sfdx(
                     "force:source:convert",
-                    args=["-r", orig_path, "-d", path, "-n", name],
+                    args=args,
                     capture_output=False,
                     check_return=True,
                 )

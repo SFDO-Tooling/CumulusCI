@@ -1,9 +1,12 @@
 import base64
 import io
+import json
 import os
+import pathlib
 import unittest
 import zipfile
 
+from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
@@ -11,6 +14,23 @@ from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
+
+
+class TestBasePackageZipBuilder:
+    def test_as_hash(self):
+        builder = BasePackageZipBuilder()
+        builder.zf.writestr("1", "1")
+        hash1 = builder.as_hash()
+
+        builder = BasePackageZipBuilder()
+        builder.zf.writestr("1", "1")
+        hash2 = builder.as_hash()
+
+        assert hash2 == hash1
+
+        builder.zf.writestr("2", "2")
+        hash3 = builder.as_hash()
+        assert hash3 != hash2
 
 
 class TestMetadataPackageZipBuilder:
@@ -338,6 +358,28 @@ class TestMetadataPackageZipBuilder:
             # non_lwc_component_directories
             for d in non_lwc_component_directories:
                 assert builder._include_file(d, "file_name" + file_ending) is True
+
+    def test_convert_sfdx(self):
+        with temporary_dir() as path:
+            with open("sfdx-project.json", "w") as f:
+                json.dump(
+                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                )
+            pathlib.Path(path, "force-app", "main", "default", "classes").mkdir(
+                parents=True
+            )
+            pathlib.Path(
+                path, "force-app", "main", "default", "classes", "Sample.cls"
+            ).write_text("")
+            pathlib.Path(
+                path, "force-app", "main", "default", "classes", "Sample.cls-meta.xml"
+            ).write_text("<?xml version='1.0' ?>\n<ApexClass></ApexClass>\n")
+
+            builder = MetadataPackageZipBuilder(path="force-app", name="Test Package")
+
+        names = builder.zf.namelist()
+        assert "classes/Sample.cls" in names
+        assert "package.xml" in names
 
 
 class TestCreatePackageZipBuilder(unittest.TestCase):

@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from distutils.version import StrictVersion
+import json
 import os
+import pathlib
 import unittest
 
 import pytest
 from unittest import mock
 import responses
+import yaml
 
 from github3.exceptions import NotFoundError
 from cumulusci.core.config import BaseConfig
@@ -1004,6 +1007,25 @@ class TestBaseProjectConfig(unittest.TestCase):
         assert info["owner"] == owner
         assert info["url"] == ssh_url
 
+    def test_default_package_path(self):
+        config = BaseProjectConfig(BaseGlobalConfig())
+        assert os.path.relpath(config.default_package_path, config.repo_root) == "src"
+
+    def test_default_package_path__sfdx(self):
+        with temporary_dir() as path:
+            pathlib.Path(path, ".git").mkdir()
+            with pathlib.Path(path, "cumulusci.yml").open("w") as f:
+                yaml.dump({"project": {"source_format": "sfdx"}}, f)
+            with pathlib.Path(path, "sfdx-project.json").open("w") as f:
+                json.dump(
+                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                )
+            config = BaseProjectConfig(BaseGlobalConfig())
+            assert (
+                os.path.relpath(config.default_package_path, config.repo_root)
+                == "force-app"
+            )
+
 
 class TestBaseTaskFlowConfig(unittest.TestCase):
     def setUp(self):
@@ -1271,7 +1293,7 @@ class TestOrgConfig(unittest.TestCase):
                     "Id": "04t000000000001AAA",
                     "MajorVersion": 12,
                     "MinorVersion": 0,
-                    "PatchVersion": 0,
+                    "PatchVersion": 1,
                     "BuildNumber": 1,
                     "IsBeta": False,
                 },
@@ -1301,13 +1323,13 @@ class TestOrgConfig(unittest.TestCase):
         expected = {
             "GW_Volunteers": [
                 VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119")),
-                VersionInfo("04t000000000001AAA", StrictVersion("12.0")),
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1")),
             ],
             "GW_Volunteers@3.119": [
                 VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
             ],
-            "GW_Volunteers@12.0": [
-                VersionInfo("04t000000000001AAA", StrictVersion("12.0"))
+            "GW_Volunteers@12.0.1": [
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))
             ],
             "TESTY": [VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))],
             "TESTY@1.10b5": [
@@ -1317,7 +1339,7 @@ class TestOrgConfig(unittest.TestCase):
                 VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
             ],
             "03350000000DEz5AAG": [
-                VersionInfo("04t000000000001AAA", StrictVersion("12.0"))
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))
             ],
             "03350000000DEz7AAG": [
                 VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
@@ -1354,3 +1376,26 @@ class TestOrgConfig(unittest.TestCase):
 
         with self.assertRaises(CumulusCIException):
             config.has_minimum_package_version("GW_Volunteers", "1.0")
+
+    def test_resolve_04t_dependencies(self):
+        config = OrgConfig({}, "test")
+        config._installed_packages = {
+            "dep@1.0": [VersionInfo("04t000000000001AAA", "1.0")]
+        }
+        result = config.resolve_04t_dependencies(
+            [{"namespace": "dep", "version": "1.0", "dependencies": []}]
+        )
+        assert result == [
+            {
+                "namespace": "dep",
+                "version": "1.0",
+                "version_id": "04t000000000001AAA",
+                "dependencies": [],
+            }
+        ]
+
+    def test_resolve_04t_dependencies__not_installed(self):
+        config = OrgConfig({}, "test")
+        config._installed_packages = {}
+        with pytest.raises(DependencyResolutionError):
+            config.resolve_04t_dependencies([{"namespace": "dep", "version": "1.0"}])

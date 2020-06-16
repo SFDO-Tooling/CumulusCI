@@ -3,7 +3,6 @@ import base64
 import enum
 import io
 import json
-import os
 import pathlib
 import zipfile
 
@@ -46,6 +45,8 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
     If a package named ``package_name`` does not yet exist in the Dev Hub, it will be created.
     """
+
+    api_version = "48.0"
 
     task_options = {
         "package_name": {"description": "Name of package"},
@@ -209,8 +210,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
             # Create the package2-descriptor.json contents and write to version_info
             # @@@ we should support releasing a successor to an older version by specifying a base version
+            last_version_parts = self._get_highest_version_parts(package_id)
             version_number = self._get_next_version_number(
-                package_id, package_config.version_type
+                last_version_parts, package_config.version_type
             )
             package_descriptor = {
                 "ancestorId": "",  # @@@ need to add this for Managed 2gp
@@ -252,12 +254,8 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         response = Package2CreateVersionRequest.create(request)
         return response["id"]
 
-    def _get_next_version_number(self, package_id, version_type: VersionTypeEnum):
-        """Predict the next package version.
-
-        Given a package id and version type (major/minor/patch),
-        we query the Dev Hub org for the highest version, then increment.
-        """
+    def _get_highest_version_parts(self, package_id):
+        """Get the version parts for the highest existing version of the specified package."""
         res = self.tooling.query(
             "SELECT MajorVersion, MinorVersion, PatchVersion, BuildNumber, IsReleased "
             "FROM Package2Version "
@@ -265,32 +263,39 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "ORDER BY MajorVersion DESC, MinorVersion DESC, PatchVersion DESC, BuildNumber DESC "
             "LIMIT 1"
         )
-        if res["size"] == 0:  # No existing version
-            version_parts = {
-                "MajorVersion": 1 if version_type == VersionTypeEnum.major else 0,
-                "MinorVersion": 1 if version_type == VersionTypeEnum.minor else 0,
-                "PatchVersion": 1 if version_type == VersionTypeEnum.patch else 0,
-                "BuildNumber": "NEXT",
-            }
-            return self._get_version_number(version_parts)
-        last_version = res["records"][0]
-        version_parts = {
-            "MajorVersion": last_version["MajorVersion"],
-            "MinorVersion": last_version["MinorVersion"],
-            "PatchVersion": last_version["PatchVersion"],
+        if res["size"]:
+            return res["records"][0]
+        return {
+            "MajorVersion": 0,
+            "MinorVersion": 0,
+            "PatchVersion": 0,
+            "BuildNumber": 0,
+            "IsReleased": False,
+        }
+
+    def _get_next_version_number(self, version_parts, version_type: VersionTypeEnum):
+        """Predict the next package version.
+
+        Given existing version parts (major/minor/patch) and a version type,
+        determine the number to request for the next version.
+        """
+        new_version_parts = {
+            "MajorVersion": version_parts["MajorVersion"],
+            "MinorVersion": version_parts["MinorVersion"],
+            "PatchVersion": version_parts["PatchVersion"],
             "BuildNumber": "NEXT",
         }
-        if last_version["IsReleased"] is True:
+        if version_parts["IsReleased"]:
             if version_type == VersionTypeEnum.major:
-                version_parts["MajorVersion"] += 1
-                version_parts["MinorVersion"] = 0
-                version_parts["PatchVersion"] = 0
+                new_version_parts["MajorVersion"] += 1
+                new_version_parts["MinorVersion"] = 0
+                new_version_parts["PatchVersion"] = 0
             if version_type == VersionTypeEnum.minor:
-                version_parts["MinorVersion"] += 1
-                version_parts["PatchVersion"] = 0
+                new_version_parts["MinorVersion"] += 1
+                new_version_parts["PatchVersion"] = 0
             elif version_type == VersionTypeEnum.patch:
-                version_parts["PatchVersion"] += 1
-        return self._get_version_number(version_parts)
+                new_version_parts["PatchVersion"] += 1
+        return self._get_version_number(new_version_parts)
 
     def _get_version_number(self, version):
         """Format version fields from Package2Version as a version number."""
@@ -383,20 +388,16 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
             new_dependency = {}
             if dependency.get("version_id"):
-                if "namespace" in dependency:
-                    self.logger.info(
-                        f"Adding dependency {dependency['namespace']}@{dependency['version']} "
-                        f"with id {dependency['version_id']}"
-                    )
-                else:
-                    self.logger.info(
-                        f"Adding dependency with id {dependency['version_id']}"
-                    )
-                new_dependency["subscriberPackageVersionId"] = dependency["version_id"]
+                name = (
+                    f"{dependency['namespace']}@{dependency['version']} "
+                    if "namespace" in dependency
+                    else ""
+                )
+                self.logger.info(
+                    f"Adding dependency {name}with id {dependency['version_id']}"
+                )
 
             elif dependency.get("repo_name"):
-                if dependency.get("subfolder", "").startswith("unpackaged/post"):
-                    continue
                 version_id = self._create_unlocked_package_from_github(dependency)
                 self.logger.info(
                     "Adding dependency {}/{} {} with id {}".format(
@@ -424,20 +425,18 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         if not path.exists():
             return dependencies
 
-        for item in path.iterdir():
-            if not item.is_dir():
-                continue
-        for item_path in sorted(os.listdir(path)):
-            version_id = self._create_unlocked_package_from_local(item_path)
-            self.logger.info(
-                "Adding dependency {}/{} {} with id {}".format(
-                    self.project_config.repo_owner,
-                    self.project_config.repo_name,
-                    item_path,
-                    version_id,
+        for item_path in sorted(path.iterdir(), key=str):
+            if item_path.is_dir():
+                version_id = self._create_unlocked_package_from_local(item_path)
+                self.logger.info(
+                    "Adding dependency {}/{} {} with id {}".format(
+                        self.project_config.repo_owner,
+                        self.project_config.repo_name,
+                        item_path,
+                        version_id,
+                    )
                 )
-            )
-            dependencies.append({"subscriberPackageVersionId": version_id})
+                dependencies.append({"subscriberPackageVersionId": version_id})
 
         return dependencies
 

@@ -227,7 +227,7 @@ class OrgConfig(BaseConfig):
         namespace or 033 Id of the desired package and its version, in 1.2.3 format.
 
         Beta version of a package are represented as "1.2.3b5", where 5 is the build number."""
-        if not self._installed_packages:
+        if self._installed_packages is None:
             response = self.salesforce_client.restful(
                 "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
                 "SubscriberPackageVersion.Id, SubscriberPackageVersion.MajorVersion, "
@@ -257,7 +257,7 @@ class OrgConfig(BaseConfig):
     def reset_installed_packages(self):
         self._installed_packages = None
 
-    def resolve_04t_dependencies(self, dependencies, installed_packages=None):
+    def resolve_04t_dependencies(self, dependencies):
         """Look up 04t SubscriberPackageVersion ids for 1gp project dependencies
         """
         new_dependencies = []
