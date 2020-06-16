@@ -90,6 +90,16 @@ class MappingSteps(CCIDictModel):
     "Mapping of named steps"
     __root__: Dict[str, MappingStep]
 
+    @root_validator
+    def validate_mapping(cls, values):
+        if values:
+            oids = ["Id" in s.fields_ for s in values["__root__"].values()]
+            assert all(oids) or not any(
+                oids
+            ), "Id must be mapped in all steps or in no steps."
+
+        return values
+
 
 ValidationError = ValidationError  # export Pydantic's Validation Error under an alias
 

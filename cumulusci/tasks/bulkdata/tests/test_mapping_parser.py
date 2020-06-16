@@ -49,10 +49,17 @@ class TestMappingParser:
             with pytest.raises(YAMLError):
                 parse_from_yaml(StringIO(data))
 
-    def test_bad_mapping_grammer(self):
+    def test_bad_mapping_grammar(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
             data = f.read().replace("record_type", "xyzzy")
+            with pytest.raises(ValidationError):
+                parse_from_yaml(StringIO(data))
+
+    def test_bad_mapping_id_mode(self):
+        base_path = Path(__file__).parent / "mapping_v2.yml"
+        with open(base_path, "r") as f:
+            data = f.read().replace("Name: name", "Id: sf_id")
             with pytest.raises(ValidationError):
                 parse_from_yaml(StringIO(data))
 
