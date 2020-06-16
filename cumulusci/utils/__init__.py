@@ -242,8 +242,12 @@ def inject_namespace(
         namespace_token = "%%%NAMESPACE%%%"
     if managed is True and namespace:
         namespace_prefix = namespace + "__"
+        namespace_dot_prefix = namespace + "."
     else:
         namespace_prefix = ""
+        namespace_dot_prefix = ""
+
+    namespace_dot_token = "%%%NAMESPACE_DOT%%%"
 
     # Handle tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___
     namespaced_org_token = "%%%NAMESPACED_ORG%%%"
@@ -263,6 +267,13 @@ def inject_namespace(
     content = content.replace(namespace_token, namespace_prefix)
     if logger and content != prev_content:
         logger.info(f'  {name}: Replaced {namespace_token} with "{namespace_prefix}"')
+
+    prev_content = content
+    content = content.replace(namespace_dot_token, namespace_dot_prefix)
+    if logger and content != prev_content:
+        logger.info(
+            f'  {name}: Replaced {namespace_dot_token} with "{namespace_dot_prefix}"'
+        )
 
     prev_content = content
     content = content.replace(namespace_or_c_token, namespace_or_c)
