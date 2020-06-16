@@ -11,3 +11,18 @@ Insert Contacts:
     lookups:
         AccountId:
             table: Account
+Insert Junction Objects:
+    sf_object: AccountContactRelation
+    lookups:
+        AccountId:
+            table: Account
+        ContactId:
+            table: Contact
+Insert Other Junction Objects:
+    sf_object: AccountContactRelation
+    fields:
+    lookups:
+        AccountId:
+            table: Account
+        ContactId:
+            table: Contact

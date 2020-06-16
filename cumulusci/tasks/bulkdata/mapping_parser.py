@@ -51,7 +51,7 @@ class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
     table: Optional[str] = None
-    fields_: Union[Dict[str, str], List[str]] = Field(..., alias="fields")
+    fields_: Optional[Union[Dict[str, str], List[str]]] = Field({}, alias="fields")
     lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
@@ -79,7 +79,9 @@ class MappingStep(CCIDictModel):
         return v
 
     @validator("fields_")
-    def convert_field_list_to_dict(cls, values):
+    def standardize_fields_to_dict(cls, values):
+        if values is None:
+            values = {}
         if type(values) is list:
             return {elem: elem for elem in values}
 
@@ -87,9 +89,9 @@ class MappingStep(CCIDictModel):
 
     @root_validator
     def set_default_table(cls, values):
-        """Automatically populate the `table` key with `sf_object` or `object`, if not present."""
+        """Automatically populate the `table` key with `sf_object`, if not present."""
         if values["table"] is None:
-            values["table"] = values.get("sf_object") or values.get("object")
+            values["table"] = values.get("sf_object")
 
         return values
 
