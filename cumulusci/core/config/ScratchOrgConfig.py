@@ -321,6 +321,7 @@ class ScratchOrgConfig(OrgConfig):
 
     def refresh_oauth_token(self, keychain):
         """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
+        self._client = None
         if hasattr(self, "_scratch_info"):
             # Cache the scratch_info for 1 hour to avoid unnecessary calls out
             # to sfdx CLI
