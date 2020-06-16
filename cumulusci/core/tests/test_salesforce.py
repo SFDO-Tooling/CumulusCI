@@ -66,7 +66,7 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
                 # one loop iteration, but less than the retry interval
                 # of 5 seconds. Making it longer should still pass the
                 # test, it just makes the test run longer than necessary.
-                self.sflib.wait_until_salesforce_is_ready(timeout=0.05)
+                self.sflib.wait_until_salesforce_is_ready(timeout=0.1)
 
             self.sflib.selenium.capture_page_screenshot.assert_called()
 
