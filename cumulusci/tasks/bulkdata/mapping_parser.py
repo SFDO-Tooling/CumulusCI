@@ -51,7 +51,7 @@ class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
     table: Optional[str] = None
-    fields_: Dict[str, str] = Field(..., alias="fields")
+    fields_: Union[Dict[str, str], List[str]] = Field(..., alias="fields")
     lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
@@ -78,6 +78,21 @@ class MappingStep(CCIDictModel):
         )
         return v
 
+    @validator("fields_")
+    def convert_field_list_to_dict(cls, values):
+        if type(values) is list:
+            return {elem: elem for elem in values}
+
+        return values
+
+    @root_validator
+    def set_default_table(cls, values):
+        """Automatically populate the `table` key with `sf_object` or `object`, if not present."""
+        if values["table"] is None:
+            values["table"] = values.get("sf_object") or values.get("object")
+
+        return values
+
     @root_validator  # not really a validator, more like a post-processor
     def fixup_lookup_names(cls, v):
         "Allow lookup objects to know the key they were attached to in the mapping file."
@@ -90,7 +105,7 @@ class MappingSteps(CCIDictModel):
     "Mapping of named steps"
     __root__: Dict[str, MappingStep]
 
-    @root_validator
+    @root_validator(pre=False)
     def validate_mapping(cls, values):
         if values:
             oids = ["Id" in s.fields_ for s in values["__root__"].values()]

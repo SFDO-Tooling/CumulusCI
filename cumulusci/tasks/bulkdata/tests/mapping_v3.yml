@@ -1,0 +1,13 @@
+Insert Accounts:
+    sf_object: Account
+    fields:
+        - Name
+Insert Contacts:
+    sf_object: Contact
+    fields:
+        - FirstName
+        - LastName
+        - Email
+    lookups:
+        AccountId:
+            table: Account
