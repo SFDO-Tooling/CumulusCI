@@ -28,6 +28,21 @@ def get_github_api(username=None, password=None):
     gh = login(username, password)
     gh.session.mount("http://", adapter)
     gh.session.mount("https://", adapter)
+
+    return gh
+
+
+def get_enterprise_github_api(enterprise_url=None, username=None, password=None):
+    """Old API that only handles logging in as a user.
+    
+    Here for backwards-compatibility during the transition.
+    """
+
+    gh = github3.enterprise_login(
+        url=enterprise_url, username=username, password=password
+    )
+    gh.session.mount("http://", adapter)
+    gh.session.mount("https://", adapter)
     return gh
 
 
@@ -63,13 +78,27 @@ def get_github_api_for_repo(keychain, owner, repo, session=None):
         gh.login(token=GITHUB_TOKEN)
     else:
         github_config = keychain.get_service("github")
-        gh.login(github_config.username, github_config.password)
+        if (
+            github_config.enterprise_url != None
+            and type(github_config.enterprise_url) is str
+        ):
+            gh = get_enterprise_github_api(
+                github_config.enterprise_url,
+                github_config.username,
+                github_config.password,
+            )
+        else:
+            gh = get_github_api(github_config.username, github_config.password)
     return gh
 
 
 def validate_service(options):
     username = options["username"]
     password = options["password"]
+    if hasattr(options, "enterprise_url") and options["enterprise_url"] != None:
+        enteprise_url = options["enterprise_url"]
+        gh = get_enterprise_github_api(enterprise_url, username, password)
+    else:
     gh = get_github_api(username, password)
     try:
         gh.rate_limit()
