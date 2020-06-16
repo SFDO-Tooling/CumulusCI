@@ -3,6 +3,7 @@ import pytest
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.config import TaskConfig
+from cumulusci.tests.util import DummyOrgConfig
 
 
 def pytest_addoption(parser, pluginmanager):
@@ -33,9 +34,18 @@ def org_config(request, runtime):
     Or else it will use your default CCI org.
     """
     org_name = sf_pytest_orgname(request)
-    assert org_name
-    org_name, org_config = runtime.get_org(org_name)
-    org_config.refresh_oauth_token(runtime.keychain)
+    if org_name:
+        org_name, org_config = runtime.get_org(org_name)
+        org_config.refresh_oauth_token(runtime.keychain)
+    else:
+        org_config = DummyOrgConfig(
+            {
+                "instance_url": "https://podname.salesforce.com",
+                "access_token": "pytest_sf_orgconnect_abc123",
+                "id": "ORGID/ORGID",
+            },
+            "pytest_sf_orgconnect_dummy_orgconfig",
+        )
     return org_config
 
 

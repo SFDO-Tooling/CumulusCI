@@ -14,10 +14,14 @@ def sf_before_record_cb(request):
         "//.*.my.salesforce.com", "//orgname.salesforce.com", request.uri
     )
     request.uri = re.sub(
-        "//cs.*.salesforce.com", "//podname.salesforce.com", request.uri
+        "//cs.*.salesforce.com/", "//podname.salesforce.com/", request.uri
     )
+    request.uri = re.sub("Organization/00.*", "Organization/ORGID", request.uri)
+
+    # note that this line has a leading slash in one place and not the other
+    # this is the only way it seems to work. I don't know why.
     request.uri = re.sub(
-        "Organization/00D3B000000F7hh", "Organization/ORGID", request.uri
+        "/services/Soap/m/48.0/00.*", "services/Soap/m/48.0/ORGID", request.uri
     )
 
     request.headers = {"Request-Headers": "Elided"}
@@ -56,3 +60,16 @@ def vcr_config(request):
             "Last-Modified",
         ],
     }
+
+
+def salesforce_matcher(r1, r2):
+    summary1 = (r1.method, r1.uri, r1.body)
+    summary2 = (r2.method, r2.uri, r2.body)
+    print(summary1, summary2, summary1 == summary2)
+    assert summary1 == summary2
+
+
+def salesforce_vcr(vcr):
+    vcr.register_matcher("Salesforce Matcher", salesforce_matcher)
+    vcr.match_on = ["Salesforce Matcher"]
+    return vcr

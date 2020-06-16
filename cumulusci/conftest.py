@@ -5,7 +5,7 @@ from unittest import mock
 
 from pytest import fixture
 from cumulusci.core.github import get_github_api
-from cumulusci.tests.pytest_plugins.pytest_sf_vcr import vcr_config
+from cumulusci.tests.pytest_plugins.pytest_sf_vcr import vcr_config, salesforce_vcr
 
 
 @fixture(scope="session", autouse=True)
@@ -55,3 +55,4 @@ def mock_http_response():
 
 
 vcr_config = fixture(vcr_config, scope="module")
+vcr = fixture(salesforce_vcr, scope="module")
