@@ -2,6 +2,14 @@
 History
 =======
 
+3.13.3 (2020-06-16)
+-------------------
+
+Issues closed:
+
+* Added support for Github Enterprise connection with a new parameter enteprise_url
+
+
 3.13.2 (2020-06-10)
 -------------------
 
