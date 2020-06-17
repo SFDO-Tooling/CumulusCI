@@ -47,6 +47,10 @@ INSTALLED_PACKAGES = {
 }
 
 
+def make_fake_zipfile(*args, **kw):
+    return zipfile.ZipFile(io.BytesIO(), "w")
+
+
 class TestUpdateDependencies(unittest.TestCase):
     @mock.patch(
         "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
@@ -59,9 +63,8 @@ class TestUpdateDependencies(unittest.TestCase):
         task = create_task(UpdateDependencies, project_config=project_config)
         ApiRetrieveInstalledPackages.return_value = INSTALLED_PACKAGES
         task.api_class = mock.Mock()
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        task._download_extract_github = mock.Mock(return_value=zf)
-        task._download_extract_zip = mock.Mock(return_value=zf)
+        task._download_extract_github = make_fake_zipfile
+        task._download_extract_zip = make_fake_zipfile
         # Beta needs to be uninstalled to upgrade, but uninstalls are not allowed
         with self.assertRaises(TaskOptionsError):
             task()
@@ -80,9 +83,8 @@ class TestUpdateDependencies(unittest.TestCase):
         )
         ApiRetrieveInstalledPackages.return_value = INSTALLED_PACKAGES
         task.api_class = mock.Mock()
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        task._download_extract_github = mock.Mock(return_value=zf)
-        task._download_extract_zip = mock.Mock(return_value=zf)
+        task._download_extract_github = make_fake_zipfile
+        task._download_extract_zip = make_fake_zipfile
         task()
         self.assertEqual(
             [
@@ -159,9 +161,8 @@ class TestUpdateDependencies(unittest.TestCase):
         ApiRetrieveInstalledPackages.return_value = {"package": "1.1"}
 
         task.api_class = mock.Mock()
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        task._download_extract_github = mock.Mock(return_value=zf)
-        task._download_extract_zip = mock.Mock(return_value=zf)
+        task._download_extract_github = make_fake_zipfile
+        task._download_extract_zip = make_fake_zipfile
         task()
         self.assertEqual([], task.install_queue)
         self.assertEqual([], task.uninstall_queue)
@@ -184,9 +185,8 @@ class TestUpdateDependencies(unittest.TestCase):
         ApiRetrieveInstalledPackages.return_value = {"package": "1.1"}
 
         task.api_class = mock.Mock()
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        task._download_extract_github = mock.Mock(return_value=zf)
-        task._download_extract_zip = mock.Mock(return_value=zf)
+        task._download_extract_github = make_fake_zipfile
+        task._download_extract_zip = make_fake_zipfile
         with self.assertRaises(TaskOptionsError):
             task()
 
@@ -236,8 +236,7 @@ class TestUpdateDependencies(unittest.TestCase):
             },
             project_config=project_config,
         )
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        task._download_extract_github = mock.Mock(return_value=zf)
+        task._download_extract_github = make_fake_zipfile
         api = mock.Mock()
         task.api_class = mock.Mock(return_value=api)
         task()
