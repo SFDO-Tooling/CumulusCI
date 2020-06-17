@@ -1,8 +1,7 @@
+from unittest import mock
 import base64
 import io
-import json
 import os
-import pathlib
 import unittest
 import zipfile
 
@@ -361,25 +360,11 @@ class TestMetadataPackageZipBuilder:
 
     def test_convert_sfdx(self):
         with temporary_dir() as path:
-            with open("sfdx-project.json", "w") as f:
-                json.dump(
-                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
-                )
-            pathlib.Path(path, "force-app", "main", "default", "classes").mkdir(
-                parents=True
-            )
-            pathlib.Path(
-                path, "force-app", "main", "default", "classes", "Sample.cls"
-            ).write_text("")
-            pathlib.Path(
-                path, "force-app", "main", "default", "classes", "Sample.cls-meta.xml"
-            ).write_text("<?xml version='1.0' ?>\n<ApexClass></ApexClass>\n")
-
-            builder = MetadataPackageZipBuilder(path="force-app", name="Test Package")
-
-        names = builder.zf.namelist()
-        assert "classes/Sample.cls" in names
-        assert "package.xml" in names
+            with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
+                builder = MetadataPackageZipBuilder()
+                with builder._convert_sfdx_format(path, "Test Package"):
+                    pass
+        sfdx.assert_called_once()
 
 
 class TestCreatePackageZipBuilder(unittest.TestCase):
