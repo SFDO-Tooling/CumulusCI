@@ -135,8 +135,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
 
     def _add_files_to_package(self, path):
         for file_path in self._find_files_to_package(path):
-            relpath = os.path.relpath(file_path, path)
-            self.zf.write(file_path, arcname=relpath.replace(os.sep, "/"))
+            self.zf.write(file_path, arcname=str(file_path.relative_to(path)))
 
     def _find_files_to_package(self, path):
         """Generator of paths to include in the package.
@@ -149,7 +148,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             if self._include_directory(root_parts):
                 for f in files:
                     if self._include_file(root_parts, f):
-                        yield os.path.join(root, f)
+                        yield pathlib.Path(root, f)
 
     def _include_directory(self, root_parts):
         """Return boolean for whether this directory should be included in the package."""
