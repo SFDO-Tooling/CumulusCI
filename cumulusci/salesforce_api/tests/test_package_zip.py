@@ -137,7 +137,7 @@ class TestMetadataPackageZipBuilder:
             # make sure result can be read as a zipfile
             result = builder.as_base64()
             zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(result)), "r")
-            assert zf.namelist() == [
+            assert set(zf.namelist()) == {
                 "package.xml",
                 "lwc/myComponent/myComponent.html",
                 "lwc/myComponent/myComponent.js",
@@ -150,7 +150,7 @@ class TestMetadataPackageZipBuilder:
                 "objects/Contact.object",
                 "objects/CustomObject__c",
                 "objects/does-not-exist-in-schema/some.file",
-            ]
+            }
 
     def test_add_files_to_package(self):
         with temporary_dir() as path:
