@@ -9,10 +9,7 @@ from sqlalchemy.ext.automap import automap_base
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import (
-    SqlAlchemyMixin,
-    RowErrorChecker,
-)
+from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, RowErrorChecker
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
     DataOperationStatus,
@@ -57,6 +54,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         "bulk_mode": {
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
+        "inject_namespaces": {
+            "description": "Set to True to have CumulusCI automatically inject the project's namespace."
+        },
+        "drop_missing_schema": {
+            "description": "Set to True to have CumulusCI transparently drop any missing schema elements."
+            "This can support mappings that include data for optional packages."
+        },
     }
     row_warning_limit = 10
 
@@ -82,6 +86,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         )
         if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
+
+        self.options["inject_namespaces"] = process_bool_arg(
+            self.options.get("inject_namespaces", False)
+        )
+        self.options["drop_missing"] = process_bool_arg(
+            self.options.get("drop_missing", False)
+        )
 
     def _run_task(self):
         self._init_mapping()
@@ -440,6 +451,19 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         self.mapping = parse_from_yaml(mapping_file_path)
 
+        should_continue = self.mapping.validate_and_inject_namespace(
+            self.org_config,
+            self.project_config.project__package__namespace,
+            DataOperationType.INSERT,
+            self.options["inject_namespaces"],
+            self.options["drop_missing"],
+        )
+
+        if not should_continue:
+            raise BulkDataException(
+                "One or more permissions errors blocked the operation."
+            )
+
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps
         to handle dependent and self-lookups."""
@@ -449,14 +473,16 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         for step in self.mapping.values():
             step["action"] = step.get("action", "insert")
             if step.get("lookups") and any(
-                [l.get("after") for l in step["lookups"].values()]
+                [lookup.get("after") for lookup in step["lookups"].values()]
             ):
                 # We have deferred/dependent lookups.
                 # Synthesize mapping steps for them.
 
                 sobject = step["sf_object"]
                 after_list = {
-                    l["after"] for l in step["lookups"].values() if l.get("after")
+                    lookup["after"]
+                    for lookup in step["lookups"].values()
+                    if lookup.get("after")
                 }
 
                 for after in after_list:
@@ -480,8 +506,8 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                             step["table"]
                         ].__table__.primary_key.columns.keys()[0],
                     )
-                    for l in lookups:
-                        mapping["lookups"][l] = lookups[l].copy()
-                        mapping["lookups"][l]["after"] = None
+                    for lookup in lookups:
+                        mapping["lookups"][lookup] = lookups[lookup].copy()
+                        mapping["lookups"][lookup]["after"] = None
 
                     self.after_steps[after][name] = mapping
