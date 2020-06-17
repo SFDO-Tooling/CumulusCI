@@ -6,6 +6,7 @@ from unittest import mock
 from pytest import fixture
 from cumulusci.core.github import get_github_api
 from cumulusci.tests.pytest_plugins.pytest_sf_vcr import vcr_config, salesforce_vcr
+from cumulusci.tests.util import DummyOrgConfig
 
 
 @fixture(scope="session", autouse=True)
@@ -52,6 +53,21 @@ def mock_http_response():
         return MockHttpResponse(status)
 
     return _make_response
+
+
+@fixture(scope="session")
+def fallback_orgconfig(request):
+    def fallback_orgconfig():
+        return DummyOrgConfig(
+            {
+                "instance_url": "https://podname.salesforce.com",
+                "access_token": "pytest_sf_orgconnect_abc123",
+                "id": "ORGID/ORGID",
+            },
+            "pytest_sf_orgconnect_dummy_orgconfig",
+        )
+
+    return fallback_orgconfig
 
 
 vcr_config = fixture(vcr_config, scope="module")
