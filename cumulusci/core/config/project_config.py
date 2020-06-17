@@ -461,7 +461,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     relpath = pkg["path"]
         else:
             relpath = "src"
-        return (Path(self.repo_root) / relpath).resolve()
+        return Path(self.repo_root, relpath).resolve()
 
     @property
     def sfdx_project_config(self):

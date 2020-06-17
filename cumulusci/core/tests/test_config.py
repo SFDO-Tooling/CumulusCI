@@ -1009,7 +1009,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_default_package_path(self):
         config = BaseProjectConfig(BaseGlobalConfig())
-        assert os.path.relpath(config.default_package_path, config.repo_root) == "src"
+        assert str(config.default_package_path.relative_to(config.repo_root)) == "src"
 
     def test_default_package_path__sfdx(self):
         with temporary_dir() as path:
@@ -1022,7 +1022,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 )
             config = BaseProjectConfig(BaseGlobalConfig())
             assert (
-                os.path.relpath(config.default_package_path, config.repo_root)
+                str(config.default_package_path.relative_to(config.repo_root))
                 == "force-app"
             )
 
