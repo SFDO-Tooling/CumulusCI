@@ -135,7 +135,8 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
 
     def _add_files_to_package(self, path):
         for file_path in self._find_files_to_package(path):
-            self.zf.write(file_path, arcname=str(file_path.relative_to(path)))
+            relpath = str(file_path.relative_to(path)).replace(os.sep, "/")
+            self.zf.write(file_path, arcname=relpath)
 
     def _find_files_to_package(self, path):
         """Generator of paths to include in the package.
