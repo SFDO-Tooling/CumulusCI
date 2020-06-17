@@ -164,6 +164,11 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         return True
 
     def _process(self):
+        # We have to close the existing zipfile and reopen it before processing;
+        # otherwise we hit a bug in Windows where ZipInfo objects have the wrong path separators.
+        self.zf.close()
+        self.zf = zipfile.ZipFile(self.buffer, "r")
+
         self._process_namespace_tokens()
         self._clean_meta_xml()
         self._bundle_staticresources()

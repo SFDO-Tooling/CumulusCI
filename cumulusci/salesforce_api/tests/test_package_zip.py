@@ -167,7 +167,6 @@ class TestMetadataPackageZipBuilder:
 
             # add lwc
             lwc_path = os.path.join(path, "lwc")
-            rel_lwc_path = "lwc"
             os.mkdir(lwc_path)
 
             # add lwc linting files (not included in zip)
@@ -177,7 +176,6 @@ class TestMetadataPackageZipBuilder:
 
             # add lwc component
             lwc_component_path = os.path.join(lwc_path, "myComponent")
-            rel_lwc_component_path = os.path.join(rel_lwc_path, "myComponent")
             os.mkdir(lwc_component_path)
 
             # add lwc component files included in zip (in alphabetical order)
@@ -202,9 +200,7 @@ class TestMetadataPackageZipBuilder:
                 ) as f:
                     if lwc_component_file.get("body") is not None:
                         f.write(lwc_component_file.get("body"))
-                    expected.append(
-                        f"{rel_lwc_component_path}/{lwc_component_file.get('name')}"
-                    )
+                    expected.append(f"lwc/myComponent/{lwc_component_file.get('name')}")
 
             # add lwc component files not included in zip
             for lwc_ignored_file in lwc_ignored_files:
@@ -217,7 +213,6 @@ class TestMetadataPackageZipBuilder:
 
             # add classes
             classes_path = os.path.join(path, "classes")
-            rel_classes_path = "classes"
             os.mkdir(classes_path)
             class_files = [
                 {
@@ -235,25 +230,22 @@ class TestMetadataPackageZipBuilder:
                 with open(os.path.join(classes_path, class_file.get("name")), "w") as f:
                     if class_file.get("body") is not None:
                         f.write(class_file.get("body"))
-                    expected.append(f"{rel_classes_path}/{class_file.get('name')}")
+                    expected.append(f"classes/{class_file.get('name')}")
 
             # add objects
             objects_path = os.path.join(path, "objects")
-            rel_objects_path = "objects"
             os.mkdir(objects_path)
             object_file_names = ["Account.object", "Contact.object", "CustomObject__c"]
             object_file_names.sort()
             for object_file_name in object_file_names:
                 with open(os.path.join(objects_path, object_file_name), "w"):
-                    expected.append(f"{rel_objects_path}/{object_file_name}")
+                    expected.append(f"objects/{object_file_name}")
 
             # add sub-directory of objects (that doesn't really exist)
             objects_sub_path = os.path.join(objects_path, "does-not-exist-in-schema")
             os.mkdir(objects_sub_path)
             with open(os.path.join(objects_sub_path, "some.file"), "w"):
-                expected.append(
-                    f"{rel_objects_path}/does-not-exist-in-schema/some.file"
-                )
+                expected.append("objects/does-not-exist-in-schema/some.file")
 
             # test
             builder = MetadataPackageZipBuilder()
