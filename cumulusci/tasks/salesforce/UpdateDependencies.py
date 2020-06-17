@@ -222,6 +222,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
     _download_extract_zip = staticmethod(download_extract_zip)
 
     def _install_dependency(self, dependency):
+        package_zip = None
         if "zip_url" or "repo_name" in dependency:
             zip_src = None
             if "zip_url" in dependency:
