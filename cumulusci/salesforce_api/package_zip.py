@@ -101,7 +101,6 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         if zf is not None:
             self.zf = zf
         elif path is not None:
-            path = str(path)
             self._open_zip()
             with self._convert_sfdx_format(path, name) as path:
                 self._add_files_to_package(path)
@@ -121,7 +120,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             if not pathlib.Path(path, "package.xml").exists():
                 self.logger.info("Converting from sfdx to mdapi format")
                 path = stack.enter_context(temporary_dir(chdir=False))
-                args = ["-r", orig_path, "-d", path]
+                args = ["-r", str(orig_path), "-d", path]
                 if name:
                     args += ["-n", name]
                 sfdx(
@@ -145,7 +144,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         filtering using _include_directory and _include_file
         """
         for root, dirs, files in os.walk(path):
-            root_parts = root[len(path) :].split(os.sep)[1:]
+            root_parts = pathlib.Path(root).relative_to(path).parts
             if self._include_directory(root_parts):
                 for f in files:
                     if self._include_file(root_parts, f):

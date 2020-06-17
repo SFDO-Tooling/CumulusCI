@@ -203,9 +203,7 @@ class TestMetadataPackageZipBuilder:
                     if lwc_component_file.get("body") is not None:
                         f.write(lwc_component_file.get("body"))
                     expected.append(
-                        os.path.join(
-                            rel_lwc_component_path, lwc_component_file.get("name")
-                        )
+                        f"{rel_lwc_component_path}/{lwc_component_file.get('name')}"
                     )
 
             # add lwc component files not included in zip
@@ -237,9 +235,7 @@ class TestMetadataPackageZipBuilder:
                 with open(os.path.join(classes_path, class_file.get("name")), "w") as f:
                     if class_file.get("body") is not None:
                         f.write(class_file.get("body"))
-                    expected.append(
-                        os.path.join(rel_classes_path, class_file.get("name"))
-                    )
+                    expected.append(f"{rel_classes_path}/{class_file.get('name')}")
 
             # add objects
             objects_path = os.path.join(path, "objects")
@@ -249,16 +245,15 @@ class TestMetadataPackageZipBuilder:
             object_file_names.sort()
             for object_file_name in object_file_names:
                 with open(os.path.join(objects_path, object_file_name), "w"):
-                    expected.append(os.path.join(rel_objects_path, object_file_name))
+                    expected.append(f"{rel_objects_path}/{object_file_name}")
 
             # add sub-directory of objects (that doesn't really exist)
             objects_sub_path = os.path.join(objects_path, "does-not-exist-in-schema")
-            rel_objects_sub_path = os.path.join(
-                rel_objects_path, "does-not-exist-in-schema"
-            )
             os.mkdir(objects_sub_path)
             with open(os.path.join(objects_sub_path, "some.file"), "w"):
-                expected.append(os.path.join(rel_objects_sub_path, "some.file"))
+                expected.append(
+                    f"{rel_objects_path}/does-not-exist-in-schema/some.file"
+                )
 
             # test
             builder = MetadataPackageZipBuilder()
