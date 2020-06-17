@@ -62,22 +62,22 @@ def recursive_list_files(d="."):
 
 class TestCCI(unittest.TestCase):
     @classmethod
-    def setUpClass(self):
-        self.global_tempdir = tempfile.gettempdir()
-        self.tempdir = tempfile.mkdtemp()
-        self.environ_mock = mock.patch.dict(
+    def setUpClass(cls):
+        cls.global_tempdir = tempfile.gettempdir()
+        cls.tempdir = tempfile.mkdtemp()
+        cls.environ_mock = mock.patch.dict(
             os.environ, {"HOME": tempfile.mkdtemp(), "CUMULUSCI_KEY": ""}
         )
-        assert self.global_tempdir not in os.environ.get("HOME", "")
-        self.environ_mock.start()
-        assert self.global_tempdir in os.environ["HOME"]
+        assert cls.global_tempdir not in os.environ.get("HOME", "")
+        cls.environ_mock.start()
+        assert cls.global_tempdir in os.environ["HOME"]
 
     @classmethod
-    def tearDownClass(self):
-        assert self.global_tempdir in os.environ["HOME"]
-        self.environ_mock.stop()
-        shutil.rmtree(self.tempdir)
-        assert self.global_tempdir not in os.environ.get("HOME", "")
+    def tearDownClass(cls):
+        assert cls.global_tempdir in os.environ["HOME"]
+        cls.environ_mock.stop()
+        shutil.rmtree(cls.tempdir)
+        assert cls.global_tempdir not in os.environ.get("HOME", "")
 
     def test_get_installed_version(self):
         result = cci.get_installed_version()
@@ -299,7 +299,7 @@ class TestCCI(unittest.TestCase):
         cci_open.__enter__.return_value = mock.Mock()
 
         cci.handle_exception(click.ClickException("oops"), False, logfile_path)
-        style.call_args_list[0][0] == f"Error: oops"
+        style.call_args_list[0][0] == "Error: oops"
 
         os.remove(logfile_path)
 
@@ -318,7 +318,7 @@ class TestCCI(unittest.TestCase):
         cci.connection_error_message()
         style.assert_called_once_with(
             (
-                f"We encountered an error with your internet connection. "
+                "We encountered an error with your internet connection. "
                 "Please check your connection and try the last cci command again."
             ),
             fg="red",
@@ -1194,10 +1194,7 @@ Environment Info: Rossian / x68_46
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {
-            "shape1": True,
-            "shape2": True,
-        }
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
@@ -1303,10 +1300,7 @@ Environment Info: Rossian / x68_46
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {
-            "shape1": True,
-            "shape2": True,
-        }
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
@@ -1384,10 +1378,7 @@ Environment Info: Rossian / x68_46
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {
-            "shape1": True,
-            "shape2": True,
-        }
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
