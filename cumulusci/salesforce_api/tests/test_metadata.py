@@ -1,12 +1,13 @@
 import http.client
 import io
 import unittest
-
 from collections import defaultdict
-from requests import Response
 from xml.dom.minidom import parseString
-import responses
 import datetime
+
+from requests import Response
+import responses
+import pytest
 
 from cumulusci.tests.util import create_project_config
 from cumulusci.tests.util import DummyOrgConfig
@@ -537,7 +538,8 @@ class TestBaseMetadataApiCall(BaseTestMetadataApi):
     def test_build_envelope_start_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual(api._build_envelope_start(), None)
+        with pytest.raises(AssertionError):
+            api._build_envelope_start()
 
     def test_build_envelope_status_no_envelope(self):
         task = self._create_task()
