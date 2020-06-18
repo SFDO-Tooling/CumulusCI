@@ -29,8 +29,3 @@ For more information, read the `full documentation`_.
 
 If you just want a quick intro, watch this screencast demo of using CumulusCI to configure a Salesforce project from a GitHub repository:
 https://asciinema.org/a/91555
-
-CumulusCI 1.0 (Ant based) Users, **PLEASE READ**
-================================================
-
-The master branch now contains CumulusCI 2 which is not backwards compatible with the previous CumulusCI that was based on Ant. If you are using the Ant targets, please switch to using the `legacy-1.0` branch of the repository which contains the Ant based version. Or, consider upgrading to CumulusCI 2.

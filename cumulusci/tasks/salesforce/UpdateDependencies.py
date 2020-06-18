@@ -317,7 +317,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     dependency["version"],
                     securityType=self.options["security_type"],
                 )()
-
+        if not package_zip:
+            raise TaskOptionsError(f"Could not find package for {dependency}")
         api = self.api_class(
             self, package_zip, purge_on_delete=self.options["purge_on_delete"]
         )
