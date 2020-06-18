@@ -124,7 +124,7 @@ class MappingStep(CCIDictModel):
         or otherwise) from the target org.
 
         Return True if this object should be processed. If drop_missing is True, a False return
-        value indicates we should skip this object. If drop_missing is False, a Fakse return
+        value indicates we should skip this object. If drop_missing is False, a False return
         value indicates that one or more schema elements couldn't be validated."""
 
         ret = True
