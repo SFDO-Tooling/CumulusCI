@@ -9,7 +9,7 @@ import shutil
 
 import yaml
 
-from cumulusci.utils import temporary_dir
+from cumulusci.utils import temporary_dir, cd
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -24,16 +24,13 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 
 @mock.patch("os.path.expanduser")
 class TestBaseGlobalConfig(unittest.TestCase):
-    @classmethod
-    def setUp(cls):
-        cls.tempdir_home = tempfile.mkdtemp()
+    def setup_method(self, method):
+        self.tempdir_home = tempfile.mkdtemp()
 
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(cls.tempdir_home)
+    def teardown_method(self, method):
+        shutil.rmtree(self.tempdir_home)
 
     def _create_global_config_local(self, content):
-        self.tempdir_home = tempfile.mkdtemp()
         global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
         os.makedirs(global_local_dir)
         filename = os.path.join(global_local_dir, BaseGlobalConfig.config_filename)
@@ -126,30 +123,31 @@ class TestBaseProjectConfig(unittest.TestCase):
         with open(filename, "w") as f:
             f.write(content)
 
-    def setUp(self):
+    def setup_method(self, method):
         self.tempdir_home = tempfile.mkdtemp()
         self.tempdir_project = tempfile.mkdtemp()
         self.project_name = "TestRepo"
         self.current_commit = "abcdefg1234567890"
         self.current_branch = "master"
 
-    def tearDown(self):
-        pass
+    def teardown_method(self, method):
+        shutil.rmtree(self.tempdir_home)
+        shutil.rmtree(self.tempdir_project)
 
     def test_load_project_config_not_repo(self, mock_class):
         mock_class.return_value = self.tempdir_home
-        os.chdir(self.tempdir_project)
-        global_config = BaseGlobalConfig()
-        with self.assertRaises(NotInProject):
-            BaseProjectConfig(global_config)
+        with cd(self.tempdir_project):
+            global_config = BaseGlobalConfig()
+            with self.assertRaises(NotInProject):
+                BaseProjectConfig(global_config)
 
     def test_load_project_config_no_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.mkdir(os.path.join(self.tempdir_project, ".git"))
-        os.chdir(self.tempdir_project)
-        global_config = BaseGlobalConfig()
-        with self.assertRaises(ProjectConfigNotFound):
-            BaseProjectConfig(global_config)
+        with cd(self.tempdir_project):
+            global_config = BaseGlobalConfig()
+            with self.assertRaises(ProjectConfigNotFound):
+                BaseProjectConfig(global_config)
 
     def test_load_project_config_empty_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -160,10 +158,10 @@ class TestBaseProjectConfig(unittest.TestCase):
         content = ""
         self._write_file(filename, content)
 
-        os.chdir(self.tempdir_project)
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
-        self.assertEqual(config.config_project, {})
+        with cd(self.tempdir_project):
+            global_config = BaseGlobalConfig()
+            config = BaseProjectConfig(global_config)
+            self.assertEqual(config.config_project, {})
 
     def test_load_project_config_valid_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -175,11 +173,11 @@ class TestBaseProjectConfig(unittest.TestCase):
         # create valid project config file
         self._create_project_config()
 
-        os.chdir(self.tempdir_project)
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
-        self.assertEqual(config.project__package__name, "TestProject")
-        self.assertEqual(config.project__package__namespace, "testproject")
+        with cd(self.tempdir_project):
+            global_config = BaseGlobalConfig()
+            config = BaseProjectConfig(global_config)
+            self.assertEqual(config.project__package__name, "TestProject")
+            self.assertEqual(config.project__package__namespace, "testproject")
 
     def test_repo_owner(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -189,10 +187,10 @@ class TestBaseProjectConfig(unittest.TestCase):
         # create valid project config file
         self._create_project_config()
 
-        os.chdir(self.tempdir_project)
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
-        self.assertEqual(config.repo_owner, "TestOwner")
+        with cd(self.tempdir_project):
+            global_config = BaseGlobalConfig()
+            config = BaseProjectConfig(global_config)
+            self.assertEqual(config.repo_owner, "TestOwner")
 
     def test_repo_branch(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -202,10 +200,10 @@ class TestBaseProjectConfig(unittest.TestCase):
         # create valid project config file
         self._create_project_config()
 
-        os.chdir(self.tempdir_project)
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
-        self.assertEqual(config.repo_branch, self.current_branch)
+        with cd(self.tempdir_project):
+            global_config = BaseGlobalConfig()
+            config = BaseProjectConfig(global_config)
+            self.assertEqual(config.repo_branch, self.current_branch)
 
     def test_repo_commit(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -215,10 +213,10 @@ class TestBaseProjectConfig(unittest.TestCase):
         # create valid project config file
         self._create_project_config()
 
-        os.chdir(self.tempdir_project)
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
-        self.assertEqual(config.repo_commit, self.current_commit)
+        with cd(self.tempdir_project):
+            global_config = BaseGlobalConfig()
+            config = BaseProjectConfig(global_config)
+            self.assertEqual(config.repo_commit, self.current_commit)
 
     def test_load_project_config_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -232,11 +230,11 @@ class TestBaseProjectConfig(unittest.TestCase):
         content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
         self._create_project_config_local(content)
 
-        os.chdir(self.tempdir_project)
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
-        self.assertNotEqual(config.config_project_local, {})
-        self.assertEqual(config.project__package__api_version, 45.0)
+        with cd(self.tempdir_project):
+            global_config = BaseGlobalConfig()
+            config = BaseProjectConfig(global_config)
+            self.assertNotEqual(config.config_project_local, {})
+            self.assertEqual(config.project__package__api_version, 45.0)
 
     def test_load_additional_yaml(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -249,11 +247,11 @@ class TestBaseProjectConfig(unittest.TestCase):
         # create local project config file
         content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
 
-        os.chdir(self.tempdir_project)
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config, additional_yaml=content)
-        self.assertNotEqual(config.config_additional_yaml, {})
-        self.assertEqual(config.project__package__api_version, 45.0)
+        with cd(self.tempdir_project):
+            global_config = BaseGlobalConfig()
+            config = BaseProjectConfig(global_config, additional_yaml=content)
+            self.assertNotEqual(config.config_additional_yaml, {})
+            self.assertEqual(config.project__package__api_version, 45.0)
 
 
 @mock.patch("sarge.Command")

@@ -1194,10 +1194,7 @@ Environment Info: Rossian / x68_46
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {
-            "shape1": True,
-            "shape2": True,
-        }
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
@@ -1303,10 +1300,7 @@ Environment Info: Rossian / x68_46
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {
-            "shape1": True,
-            "shape2": True,
-        }
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
@@ -1384,10 +1378,7 @@ Environment Info: Rossian / x68_46
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {
-            "shape1": True,
-            "shape2": True,
-        }
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
