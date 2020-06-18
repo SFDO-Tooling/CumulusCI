@@ -67,6 +67,7 @@ class MappingStep(CCIDictModel):
     record_type_table: Optional[str] = None  # populated at runtime in extract.py
 
     @validator("record_type")
+    @classmethod
     def record_type_is_deprecated(cls, v):
         logger.warning(
             "record_type is deprecated. Just supply a RecordTypeId column declaration and it will be inferred"
@@ -74,6 +75,7 @@ class MappingStep(CCIDictModel):
         return v
 
     @validator("oid_as_pk")
+    @classmethod
     def oid_as_pk_is_deprecated(cls, v):
         logger.warning(
             "oid_as_pk is deprecated. Just supply an Id column declaration and it will be inferred."
@@ -81,6 +83,7 @@ class MappingStep(CCIDictModel):
         return v
 
     @validator("fields_")
+    @classmethod
     def standardize_fields_to_dict(cls, values):
         if values is None:
             values = {}
@@ -90,6 +93,7 @@ class MappingStep(CCIDictModel):
         return values
 
     @root_validator
+    @classmethod
     def set_default_table(cls, values):
         """Automatically populate the `table` key with `sf_object`, if not present."""
         if values["table"] is None:
@@ -98,6 +102,7 @@ class MappingStep(CCIDictModel):
         return values
 
     @root_validator  # not really a validator, more like a post-processor
+    @classmethod
     def fixup_lookup_names(cls, v):
         "Allow lookup objects to know the key they were attached to in the mapping file."
         for name, lookup in v["lookups"].items():
@@ -259,6 +264,7 @@ class MappingSteps(CCIDictModel):
     __root__: Dict[str, MappingStep]
 
     @root_validator(pre=False)
+    @classmethod
     def validate_mapping(cls, values):
         if values:
             oids = ["Id" in s.fields_ for s in values["__root__"].values()]
