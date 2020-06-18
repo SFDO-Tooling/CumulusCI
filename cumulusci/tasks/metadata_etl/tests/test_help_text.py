@@ -2,7 +2,7 @@ import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tasks.metadata_etl.help_text import AddHelpText
+from cumulusci.tasks.metadata_etl.help_text import SetFieldHelpText
 from cumulusci.utils.xml import metadata_tree
 
 # Custom Object with 2 custom fields with all elements present
@@ -143,12 +143,10 @@ STANDARD_OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 class TestAddPicklistValues:
     def test_add_single_object_help_text(self):
         task = create_task(
-            AddHelpText,
+            SetFieldHelpText,
             {
                 "api_version": "47.0",
-                "entries": [
-                    {"object_field": "MyObject.Buster__c", "help_text": "buster"}
-                ],
+                "fields": [{"api_name": "MyObject.Buster__c", "help_text": "buster"}],
             },
         )
 
@@ -169,15 +167,12 @@ class TestAddPicklistValues:
 
     def test_add_multi_object_help_text(self):
         task = create_task(
-            AddHelpText,
+            SetFieldHelpText,
             {
                 "api_version": "47.0",
-                "entries": [
-                    {"object_field": "MyObject.Buster__c", "help_text": "buster"},
-                    {
-                        "object_field": "MyObject2.Tobias__c",
-                        "help_text": "george_michael",
-                    },
+                "fields": [
+                    {"api_name": "MyObject.Buster__c", "help_text": "buster"},
+                    {"api_name": "MyObject2.Tobias__c", "help_text": "george_michael"},
                 ],
             },
         )
@@ -210,12 +205,12 @@ class TestAddPicklistValues:
 
     def test_add_single_object_multi_help_text(self):
         task = create_task(
-            AddHelpText,
+            SetFieldHelpText,
             {
                 "api_version": "47.0",
-                "entries": [
-                    {"object_field": "MyObject.Buster__c", "help_text": "buster"},
-                    {"object_field": "MyObject.Bluth__c", "help_text": "bluth"},
+                "fields": [
+                    {"api_name": "MyObject.Buster__c", "help_text": "buster"},
+                    {"api_name": "MyObject.Bluth__c", "help_text": "bluth"},
                 ],
             },
         )
@@ -233,12 +228,12 @@ class TestAddPicklistValues:
 
     def test_add_single_object_no_help_text(self):
         task = create_task(
-            AddHelpText,
+            SetFieldHelpText,
             {
                 "api_version": "47.0",
-                "entries": [
-                    {"object_field": "MyObject3.Buster__c", "help_text": "buster"},
-                    {"object_field": "MyObject3.Bluth__c", "help_text": "bluth"},
+                "fields": [
+                    {"api_name": "MyObject3.Buster__c", "help_text": "buster"},
+                    {"api_name": "MyObject3.Bluth__c", "help_text": "bluth"},
                 ],
             },
         )
@@ -256,12 +251,12 @@ class TestAddPicklistValues:
 
     def test_add_single_object_multi_field_no_help_text(self):
         task = create_task(
-            AddHelpText,
+            SetFieldHelpText,
             {
                 "api_version": "47.0",
-                "entries": [
-                    {"object_field": "MyObject4.Buster__c", "help_text": "buster"},
-                    {"object_field": "MyObject4.Bluth__c", "help_text": "bluth"},
+                "fields": [
+                    {"api_name": "MyObject4.Buster__c", "help_text": "buster"},
+                    {"api_name": "MyObject4.Bluth__c", "help_text": "bluth"},
                 ],
             },
         )
@@ -277,53 +272,48 @@ class TestAddPicklistValues:
         assert test_elem is not None
         assert test_elem.inlineHelpText.text == "bluth"
 
-    def test_raises_for_no_entries(self):
+    def test_raises_for_no_fields(self):
         with pytest.raises(TaskOptionsError):
-            task = create_task(AddHelpText, {"api_version": "47.0"})
+            task = create_task(SetFieldHelpText, {"api_version": "47.0"})
 
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
 
-    def test_raises_for_empty_entries(self):
+    def test_raises_for_empty_fields(self):
         with pytest.raises(TaskOptionsError):
-            task = create_task(AddHelpText, {"api_version": "47.0", "entries": []})
+            task = create_task(SetFieldHelpText, {"api_version": "47.0", "fields": []})
 
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
 
-    def test_raises_for_non_list_entries(self):
+    def test_raises_for_non_list_fields(self):
         with pytest.raises(TaskOptionsError):
             task = create_task(
-                AddHelpText,
+                SetFieldHelpText,
                 {
                     "api_version": "47.0",
-                    "entries": {
-                        "object_field": "MyObject.Buster__c",
-                        "help_text": "buster",
-                    },
+                    "fields": {"api_name": "MyObject.Buster__c", "help_text": "buster"},
                 },
             )
 
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
 
-    def test_raises_no_entries_help_text(self):
+    def test_raises_no_fields_help_text(self):
         with pytest.raises(TaskOptionsError):
             task = create_task(
-                AddHelpText,
-                {
-                    "api_version": "47.0",
-                    "entries": [{"object_field": "MyObject.Buster__c"}],
-                },
+                SetFieldHelpText,
+                {"api_version": "47.0", "fields": [{"api": "MyObject.Buster__c"}]},
             )
 
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
 
-    def test_raises_no_entries_object_field(self):
+    def test_raises_no_fields_api(self):
         with pytest.raises(TaskOptionsError):
             task = create_task(
-                AddHelpText, {"api_version": "47.0", "entries": [{"help_text": "help"}]}
+                SetFieldHelpText,
+                {"api_version": "47.0", "fields": [{"help_text": "help"}]},
             )
 
             tree = metadata_tree.fromstring(OBJECT_XML)
@@ -332,27 +322,38 @@ class TestAddPicklistValues:
     def test_raises_invalid_api_value(self):
         with pytest.raises(TaskOptionsError):
             task = create_task(
-                AddHelpText,
+                SetFieldHelpText,
                 {
                     "api_version": "buster_bluth",
-                    "entries": [
-                        {"object_field": "MyObject.Buster__c", "help_text": "help"}
-                    ],
+                    "fields": [{"api": "MyObject.Buster__c", "help_text": "help"}],
                 },
             )
 
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
 
-    def test_raises_for_standard_field_entries(self):
+    def test_raises_for_standard_field_fields(self):
         with pytest.raises(TaskOptionsError):
             task = create_task(
-                AddHelpText,
+                SetFieldHelpText,
                 {
                     "api_version": "47.0",
-                    "entries": [
-                        {"object_field": "MyObject.Buster", "help_text": "buster"}
+                    "fields": [
+                        {"api_name": "MyObject.Buster", "help_text": "buster_name"}
                     ],
+                },
+            )
+
+            tree = metadata_tree.fromstring(STANDARD_OBJECT_XML)
+            task._transform_entity(tree, "MyObject")
+
+    def test_raises_for_no_help_text_field(self):
+        with pytest.raises(TaskOptionsError):
+            task = create_task(
+                SetFieldHelpText,
+                {
+                    "api_version": "47.0",
+                    "fields": [{"api_name": "MyObject.Buster", "bar": "buster_name"}],
                 },
             )
 
@@ -362,44 +363,41 @@ class TestAddPicklistValues:
     def test_raises_invalid_object(self):
         with pytest.raises(TaskOptionsError):
             task = create_task(
-                AddHelpText,
+                SetFieldHelpText,
                 {
                     "api_version": "48.0",
-                    "entries": [
-                        {"object_field": "Buster.b.Bust__c", "help_text": "help"}
-                    ],
+                    "fields": [{"api_name": "Buster.b.Bust__c", "help_text": "help"}],
                 },
             )
 
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
 
-    def test_raises_api_version(self):
-        with pytest.raises(TaskOptionsError):
-            task = create_task(
-                AddHelpText,
-                {
-                    "api_version": "33.0",
-                    "entries": [
-                        {"object_field": "MyObject.Buster__c", "help_text": "help"}
-                    ],
-                },
-            )
+    # def test_raises_api_version(self):
+    #     with pytest.raises(TaskOptionsError):
+    #         task = create_task(
+    #             SetFieldHelpText,
+    #             {
+    #                 "api_version": "33.0",
+    #                 "fields": [{"api_name": "MyObject.Buster__c", "help_text": "help"}],
+    #             },
+    #         )
 
-            tree = metadata_tree.fromstring(OBJECT_XML)
-            task._transform_entity(tree, "MyObject")
+    #         tree = metadata_tree.fromstring(OBJECT_XML)
+    #         task._transform_entity(tree, "MyObject")
 
     def test_raises_missing_object(self):
         with pytest.raises(TaskOptionsError):
             task = create_task(
-                AddHelpText,
+                SetFieldHelpText,
                 {
                     "api_version": "48.0",
-                    "entries": [
-                        {"object_field": "MyObject.sherlock__c", "help_text": "help"}
+                    "fields": [
+                        {"api_name": "MyObject.sherlock__c", "help_text": "help"}
                     ],
                 },
             )
 
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
+
