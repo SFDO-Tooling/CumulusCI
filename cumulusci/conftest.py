@@ -56,7 +56,7 @@ def mock_http_response():
 
 
 @fixture(scope="session")
-def fallback_orgconfig(request):
+def fallback_orgconfig():
     def fallback_orgconfig():
         return DummyOrgConfig(
             {

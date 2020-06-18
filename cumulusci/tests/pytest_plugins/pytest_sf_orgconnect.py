@@ -35,8 +35,14 @@ def org_config(request, runtime, fallback_orgconfig):
     org_name = sf_pytest_orgname(request)
     if org_name:
         org_name, org_config = runtime.get_org(org_name)
+        assert org_config.scratch, "You should only run tests against scratch orgs."
         org_config.refresh_oauth_token(runtime.keychain)
     else:
+        # fallback_orgconfig can be defined in "conftest" based
+        # on the needs of the test suite. For example, for
+        # fast running test suites it might return a hardcoded
+        # org and for integration test suites it might return
+        # a specific default org or throw an exception.
         return fallback_orgconfig()
 
     return org_config

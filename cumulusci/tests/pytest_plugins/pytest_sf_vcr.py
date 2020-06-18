@@ -1,3 +1,11 @@
+"""Salesforce customizations of VCR
+
+Hides session IDs and OrgIDs.
+Generally hides all request and response headers to save space in our repo.
+
+Records transactions if there is an org specified and does not if there is not.
+"""
+
 import re
 
 from .pytest_sf_orgconnect import sf_pytest_orgname
@@ -6,23 +14,17 @@ from .pytest_sf_orgconnect import sf_pytest_orgname
 def sf_before_record_cb(request):
     if request.body and "<sessionId>" in request.body.decode():
         request.body = re.sub(
-            "<sessionId>.*</sessionId>",
+            r"<sessionId>.*</sessionId>",
             "<sessionId>**Elided**</sessionId>",
             request.body.decode(),
         ).encode()
     request.uri = re.sub(
-        "//.*.my.salesforce.com", "//orgname.salesforce.com", request.uri
+        r"//.*.my.salesforce.com", "//orgname.salesforce.com", request.uri
     )
     request.uri = re.sub(
-        "//cs.*.salesforce.com/", "//podname.salesforce.com/", request.uri
+        r"//.*\d+.*.salesforce.com/", "//podname.salesforce.com/", request.uri
     )
-    request.uri = re.sub("Organization/00.*", "Organization/ORGID", request.uri)
-
-    # note that this line has a leading slash in one place and not the other
-    # this is the only way it seems to work. I don't know why.
-    request.uri = re.sub(
-        "/services/Soap/m/48.0/00.*", "services/Soap/m/48.0/ORGID", request.uri
-    )
+    request.uri = re.sub(r"00D[\w\d]{15,18}", "Organization/ORGID", request.uri)
 
     request.headers = {"Request-Headers": "Elided"}
 
@@ -31,9 +33,6 @@ def sf_before_record_cb(request):
 
 # junk_headers = ["Public-Key-Pins-Report-Only", ]
 def sf_before_record_response(response):
-    # for header in junk_headers:
-    #     if response["headers"].get(header):
-    #         del response["headers"][header]
     response["headers"] = {"Response-Headers": "Elided"}
     return response
 
@@ -53,6 +52,8 @@ def vcr_config(request):
         "decode_compressed_response": True,
         "before_record_response": sf_before_record_response,
         "before_record_request": sf_before_record_cb,
+        # this is redundant, but I guess its a from of
+        # security in-depth
         "filter_headers": [
             "Authorization",
             "Cookie",
@@ -73,3 +74,6 @@ def salesforce_vcr(vcr):
     vcr.register_matcher("Salesforce Matcher", salesforce_matcher)
     vcr.match_on = ["Salesforce Matcher"]
     return vcr
+
+
+salesforce_vcr.__doc__ = __doc__
