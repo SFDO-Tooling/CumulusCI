@@ -132,13 +132,13 @@ class MappingStep(CCIDictModel):
         def inject(element: str):
             return f"{namespace}__{element}"
 
+        global_describe = {
+            entry["name"]: entry
+            for entry in org_config.salesforce_client.describe()["sobjects"]
+        }
+
         # Determine whether we need to inject our sObject.
         if inject_namespaces and self._is_injectable(self.sf_object):
-            global_describe = {
-                entry["name"]: entry
-                for entry in org_config.salesforce_client.global_describe()["sobjects"]
-            }
-
             if (
                 self.sf_object in global_describe
                 and inject(self.sf_object) in global_describe
@@ -174,6 +174,9 @@ class MappingStep(CCIDictModel):
         orig_fields = self.fields.copy()
         for f, db in orig_fields.items():
             # Do we need to inject this field?
+            if f == "Id":
+                continue
+
             if inject_namespaces and self._is_injectable(f):
                 if f in describe and inject(self.sf_object) in describe:
                     logger.warning(
@@ -187,7 +190,7 @@ class MappingStep(CCIDictModel):
 
             # Do we have the right permissions for this field, or do we need to drop it?
             if f not in describe or (
-                not describe[f]["createable"] and operation is DataOperationType.LOAD
+                not describe[f]["createable"] and operation is DataOperationType.INSERT
             ):
                 logger.warning(
                     f"Field {self.sf_object}.{f} is not present or does not have the correct permissions."
@@ -201,6 +204,9 @@ class MappingStep(CCIDictModel):
         orig_lookups = self.lookups.copy()
         for f, db in orig_lookups.items():
             # Do we need to inject this field?
+            if f == "Id":
+                continue
+
             if inject_namespaces and self._is_injectable(f):
                 if f in describe and inject(self.sf_object) in describe:
                     logger.warning(
@@ -214,7 +220,7 @@ class MappingStep(CCIDictModel):
 
             # Do we have the right permissions for this field, or do we need to drop it?
             if f not in describe or (
-                not describe[f]["createable"] and operation is DataOperationType.LOAD
+                not describe[f]["createable"] and operation is DataOperationType.INSERT
             ):
                 logger.warning(
                     f"Field {self.sf_object}.{f} is not present or does not have the correct permissions."

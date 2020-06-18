@@ -451,12 +451,17 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         self.mapping = parse_from_yaml(mapping_file_path)
 
-        should_continue = self.mapping.validate_and_inject_namespace(
-            self.org_config,
-            self.project_config.project__package__namespace,
-            DataOperationType.INSERT,
-            self.options["inject_namespaces"],
-            self.options["drop_missing"],
+        should_continue = all(
+            [
+                m.validate_and_inject_namespace(
+                    self.org_config,
+                    self.project_config.project__package__namespace,
+                    DataOperationType.INSERT,
+                    self.options["inject_namespaces"],
+                    self.options["drop_missing"],
+                )
+                for m in self.mapping.values()
+            ]
         )
 
         if not should_continue:
