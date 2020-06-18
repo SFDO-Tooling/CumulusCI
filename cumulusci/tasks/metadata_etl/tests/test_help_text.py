@@ -390,4 +390,3 @@ class TestAddPicklistValues:
 
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
-
