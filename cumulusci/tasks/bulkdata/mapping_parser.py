@@ -1,4 +1,4 @@
-from typing import Dict, List, Union, IO, Optional
+from typing import Dict, List, Union, IO, Optional, Any, Callable
 from logging import getLogger
 from pathlib import Path
 
@@ -107,6 +107,99 @@ class MappingStep(CCIDictModel):
     def _is_injectable(self, element: str) -> bool:
         return element.count("__") == 1
 
+    def _get_permission_type(self, operation: DataOperationType) -> str:
+        if operation is DataOperationType.INSERT and self.action == "insert":
+            return "createable"
+        elif operation is DataOperationType.UPDATE or self.action == "update":
+            return "updateable"
+        elif operation is DataOperationType.QUERY:
+            return "accessible"
+
+    def _check_object_permission(
+        self, global_describe: Dict, sobject: str, operation: DataOperationType
+    ):
+        perm = self._get_permission_type(operation)
+        return sobject in global_describe and global_describe[sobject][perm]
+
+    def _check_field_permission(
+        self, describe: Dict, field: str, operation: DataOperationType
+    ):
+        perm = self._get_permission_type(operation)
+        return field in describe and (describe[field][perm])
+
+    def _validate_field_dict(
+        self,
+        describe: Dict,
+        field_dict: Dict[str, Any],
+        inject: Callable[[str], str],
+        drop_missing: bool,
+        data_operation_type: DataOperationType,
+    ) -> bool:
+        ret = True
+
+        orig_fields = field_dict.copy()
+        for f, entry in orig_fields.items():
+            # Do we need to inject this field?
+            if f == "Id":
+                continue
+
+            if inject and self._is_injectable(f):
+                if f in describe and inject(f) in describe:
+                    logger.warning(
+                        f"Both {self.sf_object}.{f} and {self.sf_object}.{inject(f)} are present in the target org. Using {f}."
+                    )
+
+                if f not in describe and inject(f) in describe:
+                    field_dict[inject(f)] = entry
+                    del field_dict[f]
+                    f = inject(f)
+
+            # Do we have the right permissions for this field, or do we need to drop it?
+            if not self._check_field_permission(describe, f, data_operation_type):
+                logger.warning(
+                    f"Field {self.sf_object}.{f} is not present or does not have the correct permissions."
+                )
+                if drop_missing:
+                    del field_dict[f]
+                else:
+                    ret = False
+
+        return ret
+
+    def _validate_sobject(
+        self,
+        global_describe: Dict,
+        inject: Callable[[str], str],
+        drop_missing: bool,
+        data_operation_type: DataOperationType,
+    ) -> bool:
+        # Determine whether we need to inject our sObject.
+        if inject and self._is_injectable(self.sf_object):
+            if (
+                self.sf_object in global_describe
+                and inject(self.sf_object) in global_describe
+            ):
+                logger.warning(
+                    f"Both {self.sf_object} and {inject(self.sf_object)} are present in the target org. Using {self.sf_object}."
+                )
+
+            if (
+                self.sf_object not in global_describe
+                and inject(self.sf_object) in global_describe
+            ):
+                self.sf_object = inject(self.sf_object)
+
+        # Validate our access to this sObject.
+        if not self._check_object_permission(
+            global_describe, self.sf_object, data_operation_type
+        ):
+            logger.warning(
+                f"sObject {self.sf_object} is not present or does not have the correct permissions."
+            )
+            return False
+
+        return True
+
     def validate_and_inject_namespace(
         self,
         org_config: OrgConfig,
@@ -124,113 +217,41 @@ class MappingStep(CCIDictModel):
         or otherwise) from the target org.
 
         Return True if this object should be processed. If drop_missing is True, a False return
-        value indicates we should skip this object. If drop_missing is False, a Fakse return
+        value indicates we should skip this object. If drop_missing is False, a False return
         value indicates that one or more schema elements couldn't be validated."""
 
-        ret = True
+        if inject_namespaces:
 
-        def inject(element: str):
-            return f"{namespace}__{element}"
+            def inject(element: str):
+                return f"{namespace}__{element}"
+
+        else:
+            inject = None
 
         global_describe = {
             entry["name"]: entry
             for entry in org_config.salesforce_client.describe()["sobjects"]
         }
 
-        # Determine whether we need to inject our sObject.
-        if inject_namespaces and self._is_injectable(self.sf_object):
-            if (
-                self.sf_object in global_describe
-                and inject(self.sf_object) in global_describe
-            ):
-                logger.warning(
-                    f"Both {self.sf_object} and {inject(self.sf_object)} are present in the target org. Using {self.sf_object}."
-                )
-
-            if (
-                self.sf_object not in global_describe
-                and inject(self.sf_object) in global_describe
-            ):
-                self.sf_object = inject(self.sf_object)
-
-        # Validate our access to this sObject.
-        if self.sf_object not in global_describe or (
-            not global_describe[self.sf_object]["createable"]
-            and operation is DataOperationType.INSERT
-        ):
-            logger.warning(
-                f"sObject {self.sf_object} is not present or does not have the correct permissions."
-            )
-            ret = False
-
-        if not ret:
+        if not self._validate_sobject(global_describe, inject, drop_missing, operation):
             # Don't attempt to validate field permissions if the object doesn't exist.
-            return ret
+            return False
 
         # Validate, inject, and drop (if configured) fields.
+        # By this point, we know the attribute is valid.
         describe = getattr(org_config.salesforce_client, self.sf_object).describe()
         describe = {entry["name"]: entry for entry in describe["fields"]}
 
-        orig_fields = self.fields.copy()
-        for f, db in orig_fields.items():
-            # Do we need to inject this field?
-            if f == "Id":
-                continue
+        if not self._validate_field_dict(
+            describe, self.fields, inject, drop_missing, operation
+        ):
+            return False
+        if not self._validate_field_dict(
+            describe, self.lookups, inject, drop_missing, operation
+        ):
+            return False
 
-            if inject_namespaces and self._is_injectable(f):
-                if f in describe and inject(self.sf_object) in describe:
-                    logger.warning(
-                        f"Both {self.sf_object}.{f} and {self.sf_object}.{inject(f)} are present in the target org. Using {f}."
-                    )
-
-                if f not in describe and inject(f) in describe:
-                    self.fields[inject(f)] = db
-                    del self.fields[f]
-                    f = inject(f)
-
-            # Do we have the right permissions for this field, or do we need to drop it?
-            if f not in describe or (
-                not describe[f]["createable"] and operation is DataOperationType.INSERT
-            ):
-                logger.warning(
-                    f"Field {self.sf_object}.{f} is not present or does not have the correct permissions."
-                )
-                if drop_missing:
-                    del self.fields[f]
-                else:
-                    ret = False
-
-        # Validate, inject, and drop (if configured) lookups.
-        orig_lookups = self.lookups.copy()
-        for f, db in orig_lookups.items():
-            # Do we need to inject this field?
-            if f == "Id":
-                continue
-
-            if inject_namespaces and self._is_injectable(f):
-                if f in describe and inject(self.sf_object) in describe:
-                    logger.warning(
-                        f"Both {self.sf_object}.{f} and {self.sf_object}.{inject(f)} are present in the target org. Using {f}."
-                    )
-
-                if f not in describe and inject(f) in describe:
-                    self.lookups[inject(f)] = db
-                    del self.lookups[f]
-                    f = inject(f)
-
-            # Do we have the right permissions for this field, or do we need to drop it?
-            if f not in describe or (
-                not describe[f]["createable"] and operation is DataOperationType.INSERT
-            ):
-                logger.warning(
-                    f"Field {self.sf_object}.{f} is not present or does not have the correct permissions."
-                )
-                if drop_missing:
-                    del self.lookups[f]
-                else:
-                    ret = False
-
-        return ret
+        return True
 
 
 class MappingSteps(CCIDictModel):
