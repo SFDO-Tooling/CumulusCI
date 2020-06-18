@@ -1,4 +1,4 @@
-TMPDIR=/tmp/cci-animation-demo-directory
+TMPDIR=/tmp/cci-demo
 REPO=`pwd`
 rm -rf $TMPDIR
 mkdir $TMPDIR
