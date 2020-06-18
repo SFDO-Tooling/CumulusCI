@@ -17,9 +17,6 @@ class CreateRelease(BaseGithubTask):
             "required": True,
         },
         "message": {"description": "The message to attach to the created git tag"},
-        "version_id": {
-            "description": "04t package version id to record in the tag message"
-        },
         "dependencies": {
             "description": "List of dependencies to record in the tag message."
         },
