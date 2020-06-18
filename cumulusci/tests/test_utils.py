@@ -365,31 +365,31 @@ Options\n------------------------------------------\n\n
     def test_inject_namespace__managed(self):
         logger = mock.Mock()
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(
             name, content, namespace="ns", managed=True, logger=logger
         )
         assert name == "ns__test"
-        assert content == "ns__||ns|c"
+        assert content == "ns__|ns.||ns|c"
 
     def test_inject_namespace__unmanaged(self):
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(name, content, namespace="ns")
         assert name == "test"
-        assert content == "||c|c"
+        assert content == "|||c|c"
 
     def test_inject_namespace__namespaced_org(self):
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(
             name, content, namespace="ns", managed=True, namespaced_org=True
         )
         assert name == "ns__test"
-        assert content == "ns__|ns__|ns|ns"
+        assert content == "ns__|ns.|ns__|ns|ns"
 
     def test_strip_namespace(self):
         logger = mock.Mock()

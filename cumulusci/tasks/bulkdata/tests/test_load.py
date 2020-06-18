@@ -322,7 +322,7 @@ class TestLoadData(unittest.TestCase):
             list(task.after_steps["Insert Contacts"].keys()),
         )
         lookups = {}
-        lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
+        lookups["Id"] = MappingLookup(name="Id", table="accounts", key_field="sf_id")
         lookups["Primary_Contact__c"] = MappingLookup(
             table="contacts", name="Primary_Contact__c",
         )
@@ -339,7 +339,7 @@ class TestLoadData(unittest.TestCase):
             ],
         )
         lookups = {}
-        lookups["Id"] = {"table": "contacts", "key_field": "sf_id"}
+        lookups["Id"] = MappingLookup(name="Id", table="contacts", key_field="sf_id")
         lookups["ReportsToId"] = MappingLookup(table="contacts", name="ReportsToId")
         self.assertEqual(
             {
@@ -358,7 +358,7 @@ class TestLoadData(unittest.TestCase):
             list(task.after_steps["Insert Accounts"].keys()),
         )
         lookups = {}
-        lookups["Id"] = {"table": "accounts", "key_field": "sf_id"}
+        lookups["Id"] = MappingLookup(name="Id", table="accounts", key_field="sf_id")
         lookups["ParentId"] = MappingLookup(table="accounts", name="ParentId")
         self.assertEqual(
             {
@@ -1022,6 +1022,10 @@ class TestLoadData(unittest.TestCase):
         task.models = {}
         task.models["accounts"] = mock.MagicMock()
         task.models["accounts"].__table__ = mock.MagicMock()
+        task.models["accounts"].__table__.primary_key.columns = mock.MagicMock()
+        task.models["accounts"].__table__.primary_key.columns.keys = mock.Mock(
+            return_value=["Id"]
+        )
         task._expand_mapping()
         assert (
             task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
