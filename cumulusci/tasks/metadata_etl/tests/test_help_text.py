@@ -13,7 +13,7 @@ OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
-        <inlineHelpText>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</inlineHelpText>
+        <inlineHelpText>Foo</inlineHelpText>
         <label>FERPA Approved</label>
         <trackHistory>false</trackHistory>
         <trackTrending>false</trackTrending>
@@ -24,7 +24,7 @@ OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
-        <inlineHelpText>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</inlineHelpText>
+        <inlineHelpText>Bar</inlineHelpText>
         <label>HIPPA Approved</label>
         <trackHistory>false</trackHistory>
         <trackTrending>false</trackTrending>
@@ -131,6 +131,7 @@ STANDARD_OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
+        <inlineHelpText>Foo</inlineHelpText>
         <label>HIPPA Approved</label>
         <trackHistory>false</trackHistory>
         <trackTrending>false</trackTrending>
@@ -160,10 +161,7 @@ class TestAddPicklistValues:
         # Validate that the sObject alters only the custom field listed
         test_elem = result.find("fields", fullName="Bluth__c")
         assert test_elem is not None
-        assert (
-            test_elem.inlineHelpText.text
-            == "Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies."
-        )
+        assert test_elem.inlineHelpText.text == "Bar"
 
     def test_add_multi_object_help_text(self):
         task = create_task(
@@ -187,10 +185,7 @@ class TestAddPicklistValues:
         # Validate that the first sObject alters only the custom field listed
         test_elem = result.find("fields", fullName="Bluth__c")
         assert test_elem is not None
-        assert (
-            test_elem.inlineHelpText.text
-            == "Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies."
-        )
+        assert test_elem.inlineHelpText.text == "Bar"
         tree = metadata_tree.fromstring(OBJECT_XML_2)
         result = task._transform_entity(tree, "MyObject2")
         test_elem = result.find("fields", fullName="Tobias__c")
@@ -332,20 +327,28 @@ class TestAddPicklistValues:
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
 
-    def test_raises_for_standard_field_fields(self):
-        with pytest.raises(TaskOptionsError):
-            task = create_task(
-                SetFieldHelpText,
-                {
-                    "api_version": "47.0",
-                    "fields": [
-                        {"api_name": "MyObject.Buster", "help_text": "buster_name"}
-                    ],
-                },
-            )
+    def test_sets_helptext_for_standard_field_fields(self):
 
-            tree = metadata_tree.fromstring(STANDARD_OBJECT_XML)
-            task._transform_entity(tree, "MyObject")
+        task = create_task(
+            SetFieldHelpText,
+            {
+                "api_version": "47.0",
+                "fields": [
+                    {"api_name": "MyObject.Buster", "help_text": "buster_name"},
+                    {"api_name": "MyObject.Bluth", "help_text": "Bar"},
+                ],
+            },
+        )
+
+        tree = metadata_tree.fromstring(STANDARD_OBJECT_XML)
+        result = task._transform_entity(tree, "MyObject")
+        test_elem = result.find("fields", fullName="Buster")
+        assert test_elem is not None
+        assert test_elem.inlineHelpText.text == "buster_name"
+
+        test_elem = result.find("fields", fullName="Bluth")
+        assert test_elem is not None
+        assert test_elem.inlineHelpText.text == "Bar"
 
     def test_raises_for_no_help_text_field(self):
         with pytest.raises(TaskOptionsError):
@@ -372,19 +375,6 @@ class TestAddPicklistValues:
 
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
-
-    # def test_raises_api_version(self):
-    #     with pytest.raises(TaskOptionsError):
-    #         task = create_task(
-    #             SetFieldHelpText,
-    #             {
-    #                 "api_version": "33.0",
-    #                 "fields": [{"api_name": "MyObject.Buster__c", "help_text": "help"}],
-    #             },
-    #         )
-
-    #         tree = metadata_tree.fromstring(OBJECT_XML)
-    #         task._transform_entity(tree, "MyObject")
 
     def test_raises_missing_object(self):
         with pytest.raises(TaskOptionsError):

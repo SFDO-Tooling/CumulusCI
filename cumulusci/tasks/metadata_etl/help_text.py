@@ -10,7 +10,7 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
     entity = "CustomObject"
     task_options = {
         "fields": {
-            "description": "List of custom object fields to affect, in Object__c.Field__c form.",
+            "description": "List of object fields to affect, in Object__c.Field__c form.",
             "required": True,
         },
         **MetadataSingleEntityTransformTask.task_options,
@@ -45,11 +45,7 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
         for entry in process_list_arg(self.options["fields"]):
             try:
                 obj, field = entry["api_name"].split(".")
-                if not field.endswith("__c"):
-                    raise TaskOptionsError(
-                        "This task only supports custom fields. To modify "
-                        "Standard Value Sets, use the add_standard_value_set_entries task."
-                    )
+
                 self.api_name_list[self._inject_namespace(obj)].append(
                     (self._inject_namespace(field), entry["help_text"])
                 )

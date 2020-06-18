@@ -9,7 +9,7 @@ tasks:
     add_field_help_text:
         group: Metadata Transformations
         description: Adds/sets specified field help text values.
-        class_path: cumulusci.tasks.metadata_etl.SetFieldHelpText
+        class_path: cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
         options:
             namespace_inject: $project_config.project__package__namespace
     add_page_layout_related_lists:
