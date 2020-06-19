@@ -136,10 +136,15 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                     sql = f"""BEGIN TRANSACTION;
 UPDATE {table_name}
     SET {column_name} = ''
-    WHERE IsPersonAccount = true;
+    WHERE IsPersonAccount = 'true';
 COMMIT;
 """
-                    self.session.connection().cursor().executescript(sql)
+                    self.session.connection().connection.cursor().executescript(sql)
+                    self.logger.debug("")
+                    self.logger.debug(
+                        f"Set Account.Name to blank for Person Account records"
+                    )
+                    self.logger.debug("")
 
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
@@ -322,6 +327,11 @@ COMMIT;
             # by trying to keep lookup targets in the same batch
             lookup_column = getattr(model, key_field)
             query = query.order_by(lookup_column)
+
+        # Filter out non-person account Contact records.
+        # Contact records for person accounts were already created by the system.
+        if self._is_person_accounts_enabled and mapping["table"].lower() == "contact":
+            query = query.filter(text("IsPersonAccount == 'false'"))
 
         return query
 
