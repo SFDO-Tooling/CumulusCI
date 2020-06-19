@@ -19,4 +19,4 @@ cci org scratch_delete qa
 cd ..
 echo "Recording script in '$TMPDIR'"
 sleep 5
-time asciinema rec demo.cast -c "bash $TMPDIR/animation.sh"
+time asciinema rec demo.cast -i 2.5 -c "bash $TMPDIR/animation.sh"
