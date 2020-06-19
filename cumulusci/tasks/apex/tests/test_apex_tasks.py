@@ -476,7 +476,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_tests_processing()
-        self._mock_get_failed_test_classes() # this returns all passes
+        self._mock_get_failed_test_classes()  # this returns all passes
         self._mock_tests_complete()
         self._mock_get_test_results()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)

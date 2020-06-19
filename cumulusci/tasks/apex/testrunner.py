@@ -165,7 +165,7 @@ class RunApexTests(BaseSalesforceApiTask):
         },
         "verbose": {
             "description": "By default, only failures get detailed output. "
-            "Set verbose to True to see all passed test methods." 
+            "Set verbose to True to see all passed test methods."
         },
     }
 
@@ -214,9 +214,7 @@ class RunApexTests(BaseSalesforceApiTask):
         self.options["retry_always"] = process_bool_arg(
             self.options.get("retry_always", False)
         )
-        self.verbose = process_bool_arg(
-            self.options.get("verbose", False)
-        )
+        self.verbose = process_bool_arg(self.options.get("verbose", False))
 
         self.counts = {}
 
@@ -403,7 +401,11 @@ class RunApexTests(BaseSalesforceApiTask):
         class_names = list(self.results_by_class_name.keys())
         class_names.sort()
         for class_name in class_names:
-            has_failures = [result for result in self.results_by_class_name[class_name].values() if result['Outcome'] in ["Fail", "CompileFail"]]
+            has_failures = [
+                result
+                for result in self.results_by_class_name[class_name].values()
+                if result["Outcome"] in ["Fail", "CompileFail"]
+            ]
             if has_failures or self.verbose:
                 message = f"Class: {class_name}"
                 self.logger.info(message)
