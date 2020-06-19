@@ -163,8 +163,8 @@ run_flow(){
 secretly_deploy_from_other_repo(){
     # deploy from another repo to simulate user edits
     pushd ../CCI-Food-Bank > ../pushd.log
-    cci flow run deploy_unmanaged > ../qa_org.log
-    cci task run load_dataset
+    cci flow run dev_org > ../deploy.log
+    cci task run load_dataset >> ../load.log
     popd > ../popd.log
 }
 
@@ -205,7 +205,7 @@ extract_dataset_from_org(){
     typedo 'cci task info generate_dataset_mapping'
     typedo 'cci task run generate_dataset_mapping'
     typedo 'cci task run extract_dataset'
-    typedo 'git status'
+    typedo 'ls datasets'
     typedo 'cat datasets/sample.sql'
     typedo 'git add datasets'
     typedo 'git commit -m "Add sample data"'
@@ -220,6 +220,7 @@ change_qa_org_flow(){
     faketype "vim"
     sleep $shortpause
     vim cumulusci.yml -c "source ../append_task_script.vim"
+    typedo "git add cumulusci.yml"
     typedo "cci flow info qa_org"
 }
 

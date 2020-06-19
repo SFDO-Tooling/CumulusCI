@@ -15,6 +15,7 @@ git clone https://github.com/prescod/CCI-Food-Bank.git
 cd CCI-Food-Bank
 cci org default --unset dev
 cci org scratch_delete dev
+cci org scratch_delete qa
 cd ..
 echo "Recording script in '$TMPDIR'"
 sleep 5
