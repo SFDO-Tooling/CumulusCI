@@ -9,6 +9,7 @@ from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
 
 from cumulusci.core.exceptions import BulkDataException
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
@@ -154,3 +155,12 @@ class RowErrorChecker:
                 return self.row_error_count
             else:
                 raise BulkDataException(msg)
+
+
+def is_person_accounts_enabled(self: BaseSalesforceApiTask) -> bool:
+    is_person_account_field = "IsPersonAccount".lower()
+    for field in self.sf.Account.describe()["fields"]:
+        # TODO: Is calling lower too pandantic?
+        if field["name"].lower() == is_person_account_field:
+            return True
+    return False

@@ -14,6 +14,7 @@ from cumulusci.tasks.bulkdata.utils import (
     SqlAlchemyMixin,
     create_table,
     fields_for_mapping,
+    is_person_accounts_enabled,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata.step import BulkApiQueryOperation, DataOperationStatus
@@ -53,6 +54,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             )
 
     def _run_task(self):
+        self._is_person_accounts_enabled = is_person_accounts_enabled(self)
         self._init_mapping()
         self._init_db()
 
@@ -251,6 +253,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         model_name = f"{mapping['table']}Model"
         mapper_kwargs = {}
         self.models[mapping["table"]] = type(model_name, (object,), {})
+
+        # Track IsPersonAccount for Account and Contact tables if person accounts is enabled.
+        # IsPersonAccount field should never exist in a mapping because the field is not creatable.
+        if self._is_person_accounts_enabled and (
+            mapping["table"].lower() in ["account", "contact"]
+        ):
+            mapping["fields"]["IsPersonAccount"] = "IsPersonAccount"
 
         t = create_table(mapping, self.metadata)
 
