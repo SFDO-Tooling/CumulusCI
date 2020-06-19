@@ -163,6 +163,10 @@ class RunApexTests(BaseSalesforceApiTask):
         "required_org_code_coverage_percent": {
             "description": "Require at least X percent code coverage across the org following the test run."
         },
+        "verbose": {
+            "description": "By default, only failures get detailed output. "
+            "Set verbose to True to see all passed test methods." 
+        },
     }
 
     def _init_options(self, kwargs):
@@ -209,6 +213,9 @@ class RunApexTests(BaseSalesforceApiTask):
         self.options["retry_failures"] = compiled_res
         self.options["retry_always"] = process_bool_arg(
             self.options.get("retry_always", False)
+        )
+        self.verbose = process_bool_arg(
+            self.options.get("verbose", False)
         )
 
         self.counts = {}
@@ -391,22 +398,24 @@ class RunApexTests(BaseSalesforceApiTask):
                             ).append(test_result["MethodName"])
 
     def _process_test_results(self):
+        print(f"verbose mode is {self.verbose}")
         test_results = []
         class_names = list(self.results_by_class_name.keys())
         class_names.sort()
         for class_name in class_names:
-            message = "Class: {}".format(class_name)
-            self.logger.info(message)
+            has_failures = [result for result in self.results_by_class_name[class_name].values() if result['Outcome'] in ["Fail", "CompileFail"]]
+            if has_failures or self.verbose:
+                message = f"Class: {class_name}"
+                self.logger.info(message)
             method_names = list(self.results_by_class_name[class_name].keys())
             method_names.sort()
             for method_name in method_names:
                 result = self.results_by_class_name[class_name][method_name]
-                message = "\t{}: {}".format(result["Outcome"], result["MethodName"])
+                message = f"\t{result['Outcome']}: {result['MethodName']}"
                 duration = result["RunTime"]
                 result["stats"] = self._get_stats_from_result(result)
                 if duration:
-                    message += " ({}s)".format(duration)
-                self.logger.info(message)
+                    message += f" ({duration}ms)"
                 test_results.append(
                     {
                         "Children": result.get("children", None),
@@ -420,8 +429,11 @@ class RunApexTests(BaseSalesforceApiTask):
                     }
                 )
                 if result["Outcome"] in ["Fail", "CompileFail"]:
-                    self.logger.info("\tMessage: {}".format(result["Message"]))
-                    self.logger.info("\tStackTrace: {}".format(result["StackTrace"]))
+                    self.logger.info(message)
+                    self.logger.info(f"\tMessage: {result['Message']}")
+                    self.logger.info(f"\tStackTrace: {result['StackTrace']}")
+                elif self.verbose:
+                    self.logger.info(message)
         self.logger.info("-" * 80)
         self.logger.info(
             "Pass: {}  Retried: {}  Fail: {}  CompileFail: {}  Skip: {}".format(
@@ -449,8 +461,8 @@ class RunApexTests(BaseSalesforceApiTask):
                             result["Outcome"],
                         )
                     )
-                    self.logger.error("\tMessage: {}".format(result["Message"]))
-                    self.logger.error("\tStackTrace: {}".format(result["StackTrace"]))
+                    self.logger.error(f"\tMessage: {result['Message']}")
+                    self.logger.error(f"\tStackTrace: {result['StackTrace']}")
 
         return test_results
 
