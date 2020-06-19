@@ -12,6 +12,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import (
     SqlAlchemyMixin,
     RowErrorChecker,
+    is_person_accounts_enabled,
 )
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
@@ -84,6 +85,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
     def _run_task(self):
+        self._is_person_accounts_enabled = is_person_accounts_enabled(self)
         self._init_mapping()
         self._init_db()
         self._expand_mapping()
@@ -123,6 +125,21 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             conn = self.session.connection()
             self._load_record_types([mapping["sf_object"]], conn)
             self.session.commit()
+
+        if self._is_person_accounts_enabled and mapping["table"].lower() == "account":
+            name_field = "Name".lower()
+            for api_name, column_name in mapping["fields"].items():
+                if api_name.lower() == name_field:
+                    table_name = mapping["table"]
+                    # Update Account.Name to be blank if IsPersonAccount is true
+                    # FIXME: This doesn't use sqlalchemy
+                    sql = f"""BEGIN TRANSACTION;
+UPDATE {table_name}
+    SET {column_name} = ''
+    WHERE IsPersonAccount = true;
+COMMIT;
+"""
+                    self.session.connection().cursor().executescript(sql)
 
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
