@@ -1,6 +1,5 @@
 import pytest
 
-from cumulusci.cli.logger import init_logger
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.config import TaskConfig
@@ -10,10 +9,13 @@ def pytest_addoption(parser, pluginmanager):
     parser.addoption("--org", action="store", default=None, help="org to use")
 
 
+def sf_pytest_orgname(request):
+    return request.config.getoption("--org")
+
+
 @pytest.fixture(scope="session")
 def runtime():
     """Get the CumulusCI runtime for the current working directory."""
-    init_logger()
     return CliRuntime()
 
 
@@ -24,15 +26,25 @@ def project_config(runtime):
 
 
 @pytest.fixture(scope="session")
-def org_config(request, runtime):
+def org_config(request, runtime, fallback_orgconfig):
     """Get an org config with an active access token.
 
     Specify the org name using the --org option when running pytest.
-    Or else it will use your default CCI org.
+    Or else it will use a dummy org.
     """
-    org_name = request.config.getoption("--org")
-    org_name, org_config = runtime.get_org(org_name)
-    org_config.refresh_oauth_token(runtime.keychain)
+    org_name = sf_pytest_orgname(request)
+    if org_name:
+        org_name, org_config = runtime.get_org(org_name)
+        assert org_config.scratch, "You should only run tests against scratch orgs."
+        org_config.refresh_oauth_token(runtime.keychain)
+    else:
+        # fallback_orgconfig can be defined in "conftest" based
+        # on the needs of the test suite. For example, for
+        # fast running test suites it might return a hardcoded
+        # org and for integration test suites it might return
+        # a specific default org or throw an exception.
+        return fallback_orgconfig()
+
     return org_config
 
 

@@ -6,9 +6,10 @@ a different directory.
 
 You can invoke these tests with the command:
 
-    pytest tests/integration --org <orgname>
+    pytest integration_tests/integration --org <orgname>
 
-You can leave out the ``--org`` option if you have an org defaulted.
+--org should be a garbage org that you do not care about because it may be
+      changed.
 
 Tests have access to several fixtures:
 
