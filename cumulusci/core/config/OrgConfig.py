@@ -248,3 +248,6 @@ class OrgConfig(BaseConfig):
 
     def reset_installed_packages(self):
         self._installed_packages = None
+
+    def save(self, global_org: bool = False):
+        self.keychain.set_org(self, global_org)

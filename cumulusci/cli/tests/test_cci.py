@@ -825,7 +825,7 @@ Environment Info: Rossian / x68_46
 
         org_config.refresh_oauth_token.assert_called_once()
         browser_open.assert_called_once()
-        runtime.keychain.set_org.assert_called_once_with(org_config)
+        org_config.save.assert_called_once_with()
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
     @responses.activate
@@ -1030,7 +1030,7 @@ Environment Info: Rossian / x68_46
                 wrap_cols=["Value"],
             )
 
-        runtime.keychain.set_org.assert_called_once_with(org_config)
+        org_config.save.assert_called_once_with()
 
     def test_org_info_json(self):
         class Unserializable(object):
@@ -1054,7 +1054,7 @@ Environment Info: Rossian / x68_46
             '{\n    "test": "test",\n    "unserializable": "<unserializable>"\n}',
             "".join(out),
         )
-        runtime.keychain.set_org.assert_called_once_with(org_config)
+        org_config.save.assert_called_once_with()
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_org_list(self, cli_tbl):
@@ -1598,7 +1598,7 @@ Environment Info: Rossian / x68_46
         run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
 
         org_config.delete_org.assert_called_once()
-        runtime.keychain.set_org.assert_called_once_with(org_config)
+        org_config.save.assert_called_once_with()
 
     def test_org_scratch_delete_not_scratch(self):
         org_config = mock.Mock(scratch=False)
@@ -1630,7 +1630,7 @@ Environment Info: Rossian / x68_46
 
         org_config.refresh_oauth_token.assert_called_once()
         mock_sf.assert_called_once_with(runtime.project_config, org_config)
-        runtime.keychain.set_org.assert_called_once_with(org_config)
+        org_config.save.assert_called_once_with()
 
         mock_code.assert_called_once()
         self.assertIn("sf", mock_code.call_args[1]["local"])

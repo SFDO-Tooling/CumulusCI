@@ -848,7 +848,7 @@ def org_browser(runtime, org_name):
 
     webbrowser.open(org_config.start_url)
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 @org.command(
@@ -1009,7 +1009,7 @@ def org_info(runtime, org_name, print_json):
             click.echo("Org expires on {:%c}".format(org_config.expires))
 
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 @org.command(name="list", help="Lists the connected orgs for the current project")
@@ -1210,7 +1210,7 @@ def org_scratch_delete(runtime, org_name):
 
     org_config.delete_org()
 
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 org_shell_cci_help_message = """
@@ -1275,7 +1275,7 @@ def org_shell(runtime, org_name, script=None, python=None):
         )
 
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 # Commands for group: task
