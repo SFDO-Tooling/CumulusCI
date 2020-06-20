@@ -133,6 +133,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                     table_name = mapping["table"]
                     # Update Account.Name to be blank if IsPersonAccount is true
                     # FIXME: This doesn't use sqlalchemy
+                    # FIXME: only do this is IsPersonAccount is a column
                     sql = f"""BEGIN TRANSACTION;
 UPDATE {table_name}
     SET {column_name} = ''
@@ -330,7 +331,11 @@ COMMIT;
 
         # Filter out non-person account Contact records.
         # Contact records for person accounts were already created by the system.
-        if self._is_person_accounts_enabled and mapping["table"].lower() == "contact":
+        # FIXME: Only do this is IsPersonAccount is a column.
+        if (
+            self._is_person_accounts_enabled
+            and mapping["sf_object"].lower() == "contact"
+        ):
             query = query.filter(text("IsPersonAccount == 'false'"))
 
         return query
