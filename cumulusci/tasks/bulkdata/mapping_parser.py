@@ -51,7 +51,7 @@ class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
     table: Optional[str] = None
-    fields_: Optional[Dict[str, str]] = Field({}, alias="fields")
+    fields_: Dict[str, str] = Field({}, alias="fields")
     lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
