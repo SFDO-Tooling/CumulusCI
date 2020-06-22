@@ -126,27 +126,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             self._load_record_types([mapping["sf_object"]], conn)
             self.session.commit()
 
-        if self._is_person_accounts_enabled and mapping["table"].lower() == "account":
-            name_field = "Name".lower()
-            for api_name, column_name in mapping["fields"].items():
-                if api_name.lower() == name_field:
-                    table_name = mapping["table"]
-                    # Update Account.Name to be blank if IsPersonAccount is true
-                    # FIXME: This doesn't use sqlalchemy
-                    # FIXME: only do this is IsPersonAccount is a column
-                    sql = f"""BEGIN TRANSACTION;
-UPDATE {table_name}
-    SET {column_name} = ''
-    WHERE IsPersonAccount = 'true';
-COMMIT;
-"""
-                    self.session.connection().connection.cursor().executescript(sql)
-                    self.logger.debug("")
-                    self.logger.debug(
-                        f"Set Account.Name to blank for Person Account records"
-                    )
-                    self.logger.debug("")
-
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
         bulk_mode = mapping.get("bulk_mode") or self.bulk_mode or "Parallel"
@@ -251,6 +230,20 @@ COMMIT;
 
         return statics
 
+    def _update_person_account_name_as_blank(self, mapping: MappingStep):
+        # Check if Account.Name is in mapping
+        for api_name, column_name in mapping.fields.items():
+            if api_name.lower() == "name":
+                # Update table
+                table = self.models[mapping["table"]].__table__
+                self.session.connection().execute(
+                    table.update()
+                    .where(table.columns.IsPersonAccount == "true")
+                    .values(**{column_name: ""})
+                )
+                self.session.flush()
+                return
+
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
 
@@ -259,6 +252,14 @@ COMMIT;
         for lookups.
         """
         model = self.models[mapping.get("table")]
+
+        # Update Account.Name as blank for IsPersonAccount Account records.
+        if (
+            self._is_person_accounts_enabled
+            and mapping["sf_object"].lower() == "account"
+            and model.__table__.columns.get("IsPersonAccount") is not None
+        ):
+            self._update_person_account_name_as_blank(mapping)
 
         # Use primary key instead of the field mapped to SF Id
         fields = mapping.get("fields", {}).copy()
@@ -331,12 +332,12 @@ COMMIT;
 
         # Filter out non-person account Contact records.
         # Contact records for person accounts were already created by the system.
-        # FIXME: Only do this is IsPersonAccount is a column.
         if (
             self._is_person_accounts_enabled
             and mapping["sf_object"].lower() == "contact"
+            and model.__table__.columns.get("IsPersonAccount") is not None
         ):
-            query = query.filter(text("IsPersonAccount == 'false'"))
+            query = query.filter(model.__table__.columns.IsPersonAccount == "false")
 
         return query
 
