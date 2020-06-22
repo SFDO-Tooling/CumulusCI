@@ -30,6 +30,50 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
 )
 
 
+def debug(value, title=None, indent=0, tab="  ", show_list_index=True, logger=print):
+    indentation = tab * (indent)
+    prefix = "" if title is None else str(title) + " : "
+    if isinstance(value, dict):
+        logger(indentation + prefix + "{")
+        for key, dict_value in value.items():
+            debug(
+                dict_value,
+                title=key,
+                indent=(indent + 1),
+                tab=tab,
+                show_list_index=show_list_index,
+                logger=logger,
+            )
+        logger(indentation + "}" + ("," if indent else ""))
+    elif isinstance(value, list):
+        logger(indentation + prefix + "[")
+        for index, list_item in enumerate(value):
+            title = index if show_list_index else None
+            debug(
+                list_item,
+                title=title,
+                indent=(indent + 1),
+                tab=tab,
+                show_list_index=show_list_index,
+                logger=logger,
+            )
+        logger(indentation + "]" + ("," if indent else ""))
+    elif isinstance(value, set):
+        logger(indentation + prefix + "set(")
+        for index, list_item in enumerate(value):
+            debug(
+                list_item,
+                title=index,
+                indent=(indent + 1),
+                tab=tab,
+                show_list_index=show_list_index,
+                logger=logger,
+            )
+        logger(indentation + ")" + ("," if indent else ""))
+    else:
+        logger(indentation + prefix + str(value) + ("," if indent else ""))
+
+
 class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
     """Perform Bulk API operations to load data defined by a mapping from a local store into an org."""
 
@@ -151,6 +195,14 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             self._process_job_results(mapping, step, local_ids)
 
         return step.job_result
+
+    def _get_person_account_contact_ids_by_account_id(self):
+        return {
+            record["AccountId"]: record["Id"]
+            for record in self.sf.query(
+                "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true"
+            )["records"]
+        }
 
     def _stream_queried_data(self, mapping, local_ids):
         """Get data from the local db"""
@@ -372,8 +424,76 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             for r in results_generator:
                 pass  # Drain generator to validate results
 
+        if (
+            mapping["action"] == "insert"
+            and self._is_person_accounts_enabled
+            and mapping["sf_object"].lower() == "contact"
+        ):
+            self._add_person_account_contact_ids_to_id_table(mapping, id_table_name)
+
+            self._sql_bulk_insert_from_records(
+                connection=conn,
+                table=id_table_name,
+                columns=("id", "sf_id"),
+                # FIXME
+                record_iterable=None,
+            )
+
         if mapping["action"] == "insert":
             self.session.commit()
+
+    def _get_person_account_contact_local_id_by_account_sf_id(self, mapping):
+        # FIXME:  Hijack to add Person Account Ids here?
+        # Add Contacts related to person accounts to the Contact's ID table.
+        for api_name, lookup in mapping.get("lookups", {}).items():
+            if api_name.lower() == "accountid":
+                model = self.models[mapping.get("table")]
+                table = model.__table__
+                id_column = table.primary_key.columns.keys()[0]
+                lookup_sf_id_column = lookup["aliased_table"].columns.sf_id
+
+                query = self.session.query(
+                    *[getattr(model, id_column), lookup_sf_id_column]
+                ).filter(table.columns.IsPersonAccount == "false")
+
+                # Outer join with lookup ids table:
+                # returns main obj even if lookup is null
+                key_field = lookup.get_lookup_key_field(model)
+                value_column = getattr(model, key_field)
+                query = query.outerjoin(
+                    lookup["aliased_table"],
+                    lookup["aliased_table"].columns.id == value_column,
+                )
+                """
+                # Order by foreign key to minimize lock contention
+                # by trying to keep lookup targets in the same batch
+                lookup_column = getattr(model, key_field)
+                query = query.order_by(lookup_column)
+                """
+
+                records = query.statement.execute().fetchall()
+
+                debug(records, title="records")
+
+                return {record[1]: record[0] for record in records}
+
+    def _add_person_account_contact_ids_to_id_table(self, mapping, id_table_name):
+        # FIXME:
+        contact_local_id_by_account_sf_id = self._get_person_account_contact_local_id_by_account_sf_id(
+            mapping
+        )
+        contact_ids_by_account_id = self._get_person_account_contact_ids_by_account_id()
+
+        debug(
+            {
+                "contact_local_id_by_account_sf_id": contact_local_id_by_account_sf_id,
+                "contact_ids_by_account_id": contact_ids_by_account_id,
+            },
+            title="_add_person_account_contact_ids_to_id_table",
+        )
+
+        if True:
+            raise BulkDataException("_add_person_account_contact_ids_to_id_table")
 
     def _generate_results_id_map(self, step, local_ids):
         """Consume results from load and prepare rows for id table.
