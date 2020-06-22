@@ -51,7 +51,7 @@ class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
     table: Optional[str] = None
-    fields_: Optional[Union[Dict[str, str], List[str]]] = Field({}, alias="fields")
+    fields_: Optional[Dict[str, str]] = Field({}, alias="fields")
     lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
@@ -78,7 +78,7 @@ class MappingStep(CCIDictModel):
         )
         return v
 
-    @validator("fields_")
+    @validator("fields_", pre=True)
     def standardize_fields_to_dict(cls, values):
         if values is None:
             values = {}
