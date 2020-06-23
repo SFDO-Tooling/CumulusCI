@@ -288,6 +288,12 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 self.session.flush()
                 return
 
+    def _is_person_account_column_exists(self, mapping):
+        return (
+            self.models[mapping.get("table")].__table__.columns.get("IsPersonAccount")
+            is not None
+        )
+
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
 
@@ -301,7 +307,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         if (
             self._is_person_accounts_enabled
             and mapping["sf_object"].lower() == "account"
-            and model.__table__.columns.get("IsPersonAccount") is not None
+            and self._is_person_account_column_exists(mapping)
         ):
             self._update_person_account_name_as_blank(mapping)
 
@@ -379,7 +385,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         if (
             self._is_person_accounts_enabled
             and mapping["sf_object"].lower() == "contact"
-            and model.__table__.columns.get("IsPersonAccount") is not None
+            and self._is_person_account_column_exists(mapping)
         ):
             query = query.filter(model.__table__.columns.IsPersonAccount == "false")
 
@@ -420,126 +426,78 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             mapping["action"] == "insert"
             and self._is_person_accounts_enabled
             and mapping["sf_object"].lower() == "contact"
-            and self.models[mapping.get("table")].__table__.columns.get(
-                "IsPersonAccount"
-            )
-            is not None
+            and self._is_person_account_column_exists(mapping) is not None
         ):
-            self._sql_bulk_insert_from_records(
-                connection=conn,
-                table=id_table_name,
-                columns=("id", "sf_id"),
-                record_iterable=self._generate_contact_id_map_for_person_accounts(
-                    mapping, conn
-                ),
-            )
+            account_id_lookup = self._get_account_id_lookup(mapping)
+            if account_id_lookup:
+                self._sql_bulk_insert_from_records(
+                    connection=conn,
+                    table=id_table_name,
+                    columns=("id", "sf_id"),
+                    record_iterable=self._generate_contact_id_map_for_person_accounts(
+                        mapping, account_id_lookup, conn
+                    ),
+                )
 
         if mapping["action"] == "insert":
             self.session.commit()
 
-    def _generate_contact_id_map_for_person_accounts(self, mapping, conn):
-        """
-        Yields (local_id, sf_id) for Contact records where IsPersonAccount
-        is true.
-
-        TODO: Do we need better memory management and iterate over a
-        potentially large number of person account records?
-
-        sqlalchemy queries that are
-        """
-
+    def _get_account_id_lookup(self, mapping):
         for api_name, lookup in mapping.get("lookups", {}).items():
             if api_name.lower() == "accountid":
-                model = self.models[mapping.get("table")]
-                table = model.__table__
+                return lookup
 
-                query = self.session.query(
-                    getattr(model, table.primary_key.columns.keys()[0]),
-                    lookup["aliased_table"].columns.sf_id,
-                ).filter(table.columns.IsPersonAccount == "true")
+    def _generate_contact_id_map_for_person_accounts(self, mapping, lookup, conn):
+        """
+        Yields (local_id, sf_id) for Contact records where IsPersonAccount
+        is true that can handle large data volumes.
+        """
+        model = self.models[mapping.get("table")]
+        table = model.__table__
 
-                # Outer join with lookup ids table:
-                # returns main obj even if lookup is null
-                key_field = lookup.get_lookup_key_field(model)
-                value_column = getattr(model, key_field)
-                query = query.outerjoin(
-                    lookup["aliased_table"],
-                    lookup["aliased_table"].columns.id == value_column,
-                )
+        query = self.session.query(
+            getattr(model, table.primary_key.columns.keys()[0]),
+            lookup["aliased_table"].columns.sf_id,
+        ).filter(table.columns.IsPersonAccount == "true")
 
-                result = conn.execution_options(stream_results=True).execute(
-                    query.statement
-                )
-                while True:  # batch not empty
-                    chunk = result.fetchmany(200)
-                    if not chunk:
-                        break
+        # Outer join with lookup ids table:
+        # returns main obj even if lookup is null
+        key_field = lookup.get_lookup_key_field(model)
+        value_column = getattr(model, key_field)
+        query = query.outerjoin(
+            lookup["aliased_table"], lookup["aliased_table"].columns.id == value_column
+        )
 
-                    contact_local_ids_by_account_sf_id = {
-                        record[1]: record[0] for record in chunk
-                    }
+        result = conn.execution_options(stream_results=True).execute(query.statement)
+        while True:  # batch not empty
+            chunk = result.fetchmany(200)
+            if not chunk:
+                break
 
-                    contact_sf_ids_by_account_sf_id = self._get_person_account_contact_sf_ids_by_account_sf_id(
-                        contact_local_ids_by_account_sf_id.keys()
-                    )
+            contact_local_ids_by_account_sf_id = {
+                record[1]: record[0] for record in chunk
+            }
 
-                    for (
-                        account_sf_id,
-                        local_id,
-                    ) in contact_local_ids_by_account_sf_id.items():
-                        debug(
-                            {
-                                "local_id": local_id,
-                                "sf_id": contact_sf_ids_by_account_sf_id.get(
-                                    account_sf_id
-                                ),
-                            },
-                            title="Contact ID map for Person Account",
-                        )
-                        yield (
-                            local_id,
-                            contact_sf_ids_by_account_sf_id.get(account_sf_id),
-                        )
-
-    def _get_person_account_contact_sf_ids_by_account_sf_id(self, account_sf_ids):
-        records = {
-            record["AccountId"]: record["Id"]
-            for record in self.sf.query_all(
+            # Get Contact Salesforce IDs by Account ID for this chunk.
+            records = self.sf.query_all_iter(
                 "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true AND AccountId IN ('{}')".format(
-                    "','".join(account_sf_ids)
+                    "','".join(contact_local_ids_by_account_sf_id.keys())
                 )
-            )["records"]
-        }
-        debug(
-            {"account_sf_ids": account_sf_ids, "records": records},
-            title="_get_person_account_contact_sf_ids_by_account_sf_id",
-        )
-        return records
+            )
 
-    """
-    def _generate_person_account_contact_id_map(self, mapping):
-        # FIXME:
-        contact_id_by_account_sf_id = self._get_person_account_contact_id_by_account_sf_id(
-            mapping
-        )
-        contact_sf_ids_by_account_sf_id = (
-            self._get_person_account_contact_ids_by_account_id()
-        )
-
-        debug(
-            {
-                "contact_id_by_account_sf_id": contact_id_by_account_sf_id,
-                "contact_sf_ids_by_account_sf_id": contact_sf_ids_by_account_sf_id,
-            },
-            title="_add_person_account_contact_ids_to_id_table",
-        )
-
-        if contact_id_by_account_sf_id and contact_sf_ids_by_account_sf_id:
-            for account_sf_id, contact_local_id in contact_id_by_account_sf_id.items():
-                contact_sf_id = contact_sf_ids_by_account_sf_id.get(account_sf_id)
-                if contact_sf_id:
-                    yield (contact_local_id, contact_sf_id)
-    """
+            for record in records:
+                account_sf_id = record["AccountId"]
+                contact_sf_id = record["Id"]
+                contact_local_id = contact_local_ids_by_account_sf_id.get(account_sf_id)
+                debug(
+                    {
+                        "account_sf_id": account_sf_id,
+                        "local_id": contact_local_id,
+                        "sf_id": contact_sf_id,
+                    },
+                    title="Contact ID map for Person Account",
+                )
+                yield (contact_local_id, contact_sf_id)
 
     def _generate_results_id_map(self, step, local_ids):
         """Consume results from load and prepare rows for id table.
