@@ -378,11 +378,15 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             for r in results_generator:
                 pass  # Drain generator to validate results
 
+        # Contact records for Person Accounts are inserted during an Account
+        # sf_object step.  Insert records into the Contact ID table for
+        # person account Contact records, so lookups to
+        # person account Contact records get populated downstream as expected.
         if (
             mapping["action"] == "insert"
             and self._is_person_accounts_enabled
             and mapping["sf_object"].lower() == "contact"
-            and self._is_person_account_column_exists(mapping) is not None
+            and self._is_person_account_column_exists(mapping)
         ):
             account_id_lookup = self._get_account_id_lookup(mapping)
             if account_id_lookup:
