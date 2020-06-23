@@ -158,7 +158,9 @@ class RowErrorChecker:
 
 
 def is_person_accounts_enabled(self: BaseSalesforceApiTask) -> bool:
-    is_person_account_field = "IsPersonAccount".lower()
+    """
+    Returns if Account has an "IsPersonAccount" field.
+    """
     for field in self.sf.Account.describe()["fields"]:
-        if field["name"].lower() == is_person_account_field:
+        if field["name"].lower() == "ispersonaccount":
             return True
