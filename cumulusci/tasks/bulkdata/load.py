@@ -436,13 +436,14 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         # Add Contacts related to person accounts to the Contact's ID table.
         for api_name, lookup in mapping.get("lookups", {}).items():
             if api_name.lower() == "accountid":
+
                 model = self.models[mapping.get("table")]
                 table = model.__table__
 
                 query = self.session.query(
                     getattr(model, table.primary_key.columns.keys()[0]),
                     lookup["aliased_table"].columns.sf_id,
-                ).filter(table.columns.IsPersonAccount == "false")
+                ).filter(table.columns.IsPersonAccount == "true")
 
                 # Outer join with lookup ids table:
                 # returns main obj even if lookup is null
