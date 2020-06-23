@@ -420,24 +420,36 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             mapping["action"] == "insert"
             and self._is_person_accounts_enabled
             and mapping["sf_object"].lower() == "contact"
-            # FIXME: IsPersonAccount needs to exist as a Column
+            and self.models[mapping.get("table")].__table__.columns.get(
+                "IsPersonAccount"
+            )
+            is not None
         ):
             self._sql_bulk_insert_from_records(
                 connection=conn,
                 table=id_table_name,
                 columns=("id", "sf_id"),
-                record_iterable=self._generate_person_account_contact_id_map(mapping),
+                record_iterable=self._generate_contact_id_map_for_person_accounts(
+                    mapping, conn
+                ),
             )
 
         if mapping["action"] == "insert":
             self.session.commit()
 
-    def _get_person_account_contact_id_by_account_sf_id(self, mapping):
-        # FIXME:  Hijack to add Person Account Ids here?
-        # Add Contacts related to person accounts to the Contact's ID table.
+    def _generate_contact_id_map_for_person_accounts(self, mapping, conn):
+        """
+        Yields (local_id, sf_id) for Contact records where IsPersonAccount
+        is true.
+
+        TODO: Do we need better memory management and iterate over a
+        potentially large number of person account records?
+
+        sqlalchemy queries that are
+        """
+
         for api_name, lookup in mapping.get("lookups", {}).items():
             if api_name.lower() == "accountid":
-
                 model = self.models[mapping.get("table")]
                 table = model.__table__
 
@@ -455,20 +467,56 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                     lookup["aliased_table"].columns.id == value_column,
                 )
 
-                records = query.statement.execute().fetchall()
+                result = conn.execution_options(stream_results=True).execute(
+                    query.statement
+                )
+                while True:  # batch not empty
+                    chunk = result.fetchmany(200)
+                    if not chunk:
+                        break
 
-                debug(records, title="records")
+                    contact_local_ids_by_account_sf_id = {
+                        record[1]: record[0] for record in chunk
+                    }
 
-                return {record[1]: record[0] for record in records}
+                    contact_sf_ids_by_account_sf_id = self._get_person_account_contact_sf_ids_by_account_sf_id(
+                        contact_local_ids_by_account_sf_id.keys()
+                    )
 
-    def _get_person_account_contact_ids_by_account_id(self):
-        return {
+                    for (
+                        account_sf_id,
+                        local_id,
+                    ) in contact_local_ids_by_account_sf_id.items():
+                        debug(
+                            {
+                                "local_id": local_id,
+                                "sf_id": contact_sf_ids_by_account_sf_id.get(
+                                    account_sf_id
+                                ),
+                            },
+                            title="Contact ID map for Person Account",
+                        )
+                        yield (
+                            local_id,
+                            contact_sf_ids_by_account_sf_id.get(account_sf_id),
+                        )
+
+    def _get_person_account_contact_sf_ids_by_account_sf_id(self, account_sf_ids):
+        records = {
             record["AccountId"]: record["Id"]
-            for record in self.sf.query(
-                "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true"
+            for record in self.sf.query_all(
+                "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true AND AccountId IN ('{}')".format(
+                    "','".join(account_sf_ids)
+                )
             )["records"]
         }
+        debug(
+            {"account_sf_ids": account_sf_ids, "records": records},
+            title="_get_person_account_contact_sf_ids_by_account_sf_id",
+        )
+        return records
 
+    """
     def _generate_person_account_contact_id_map(self, mapping):
         # FIXME:
         contact_id_by_account_sf_id = self._get_person_account_contact_id_by_account_sf_id(
@@ -491,6 +539,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 contact_sf_id = contact_sf_ids_by_account_sf_id.get(account_sf_id)
                 if contact_sf_id:
                     yield (contact_local_id, contact_sf_id)
+    """
 
     def _generate_results_id_map(self, step, local_ids):
         """Consume results from load and prepare rows for id table.
