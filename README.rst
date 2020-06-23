@@ -23,9 +23,15 @@ Key Features
 * Flexible and pluggable system for running tasks (single actions) and flows (sequences of tasks)
 * OAuth based org keychain allowing easy connection to Salesforce orgs and stored in local files using AES encryption
 
+For a tutorial introduction to CumulusCI, please see our `Trailhead Trail <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_
+
 For more information, read the `full documentation`_.
 
 .. _`full documentation`: https://cumulusci.readthedocs.io/en/latest/
 
-If you just want a quick intro, watch this screencast demo of using CumulusCI to configure a Salesforce project from a GitHub repository:
-https://asciinema.org/a/91555
+If you just want a quick intro, watch `these screencast demos <https://cumulusci.readthedocs.io/en/latest/demos.html>`_ of using CumulusCI to configure a Salesforce project from a GitHub repository.
+
+For a live demo with voiceover, please see Jason Lantz's 
+`Pycon 2020 presentation <https://www.youtube.com/watch?v=XL77lRTVF3g>`_
+from minute 36 through minute 54.
+
