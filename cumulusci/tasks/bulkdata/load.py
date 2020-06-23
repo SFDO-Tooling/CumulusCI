@@ -467,7 +467,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             )["records"]
         }
 
-    def _generate_person_account_contact_id_map(self, mapping, id_table_name):
+    def _generate_person_account_contact_id_map(self, mapping):
         # FIXME:
         contact_id_by_account_sf_id = self._get_person_account_contact_id_by_account_sf_id(
             mapping
