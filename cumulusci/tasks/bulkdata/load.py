@@ -420,6 +420,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             mapping["action"] == "insert"
             and self._is_person_accounts_enabled
             and mapping["sf_object"].lower() == "contact"
+            # FIXME: IsPersonAccount needs to exist as a Column
         ):
             self._sql_bulk_insert_from_records(
                 connection=conn,
