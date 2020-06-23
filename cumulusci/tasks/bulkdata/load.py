@@ -434,6 +434,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         )
 
         result = conn.execution_options(stream_results=True).execute(query.statement)
+
         while True:  # batch not empty
             chunk = result.fetchmany(200)
             if not chunk:
@@ -449,13 +450,12 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                     "','".join(contact_local_ids_by_account_sf_id.keys())
                 )
             )["records"]:
-                account_sf_id = record["AccountId"]
-                contact_sf_id = record["Id"]
-                contact_local_id = contact_local_ids_by_account_sf_id.get(account_sf_id)
-                self.logger.warn(
-                    f'"account_sf_id": {account_sf_id}; "local_id": {contact_local_id}; "sf_id": {contact_sf_id}'
+                yield (
+                    contact_local_ids_by_account_sf_id.get(
+                        record["AccountId"]
+                    ),  # local_id
+                    record["Id"],  # sf_id
                 )
-                yield (contact_local_id, contact_sf_id)
 
     def _generate_results_id_map(self, step, local_ids):
         """Consume results from load and prepare rows for id table.
