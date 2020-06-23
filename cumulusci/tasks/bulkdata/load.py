@@ -380,7 +380,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         # Contact records for Person Accounts are inserted during an Account
         # sf_object step.  Insert records into the Contact ID table for
-        # person account Contact records, so lookups to
+        # person account Contact records so lookups to
         # person account Contact records get populated downstream as expected.
         if (
             mapping["action"] == "insert"
