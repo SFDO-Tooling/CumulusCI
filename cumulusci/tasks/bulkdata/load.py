@@ -30,50 +30,6 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
 )
 
 
-def debug(value, title=None, indent=0, tab="  ", show_list_index=True, logger=print):
-    indentation = tab * (indent)
-    prefix = "" if title is None else str(title) + " : "
-    if isinstance(value, dict):
-        logger(indentation + prefix + "{")
-        for key, dict_value in value.items():
-            debug(
-                dict_value,
-                title=key,
-                indent=(indent + 1),
-                tab=tab,
-                show_list_index=show_list_index,
-                logger=logger,
-            )
-        logger(indentation + "}" + ("," if indent else ""))
-    elif isinstance(value, list):
-        logger(indentation + prefix + "[")
-        for index, list_item in enumerate(value):
-            title = index if show_list_index else None
-            debug(
-                list_item,
-                title=title,
-                indent=(indent + 1),
-                tab=tab,
-                show_list_index=show_list_index,
-                logger=logger,
-            )
-        logger(indentation + "]" + ("," if indent else ""))
-    elif isinstance(value, set):
-        logger(indentation + prefix + "set(")
-        for index, list_item in enumerate(value):
-            debug(
-                list_item,
-                title=index,
-                indent=(indent + 1),
-                tab=tab,
-                show_list_index=show_list_index,
-                logger=logger,
-            )
-        logger(indentation + ")" + ("," if indent else ""))
-    else:
-        logger(indentation + prefix + str(value) + ("," if indent else ""))
-
-
 class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
     """Perform Bulk API operations to load data defined by a mapping from a local store into an org."""
 
@@ -451,6 +407,15 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         """
         Yields (local_id, sf_id) for Contact records where IsPersonAccount
         is true that can handle large data volumes.
+
+        We know a Person Account record is related to one and only one Contact
+        record.  Therefore, we can map local Contact IDs to Salesforce IDs
+        by previously inserted Account records:
+        - Query the DB to get the map: Salesforce Account ID ->
+          local Contact ID
+        - Query Salesforce to get the map: Salesforce Account ID ->
+          Salesforce Contact ID
+        - Merge the maps
         """
         model = self.models[mapping.get("table")]
         table = model.__table__
@@ -478,24 +443,17 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 record[1]: record[0] for record in chunk
             }
 
-            # Get Contact Salesforce IDs by Account ID for this chunk.
-            records = self.sf.query_all_iter(
+            # It's safe to use query_all since the chunk size to 200.
+            for record in self.sf.query_all(
                 "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true AND AccountId IN ('{}')".format(
                     "','".join(contact_local_ids_by_account_sf_id.keys())
                 )
-            )
-
-            for record in records:
+            )["records"]:
                 account_sf_id = record["AccountId"]
                 contact_sf_id = record["Id"]
                 contact_local_id = contact_local_ids_by_account_sf_id.get(account_sf_id)
-                debug(
-                    {
-                        "account_sf_id": account_sf_id,
-                        "local_id": contact_local_id,
-                        "sf_id": contact_sf_id,
-                    },
-                    title="Contact ID map for Person Account",
+                self.logger.warn(
+                    f'"account_sf_id": {account_sf_id}; "local_id": {contact_local_id}; "sf_id": {contact_sf_id}'
                 )
                 yield (contact_local_id, contact_sf_id)
 

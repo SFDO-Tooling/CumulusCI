@@ -160,7 +160,5 @@ class RowErrorChecker:
 def is_person_accounts_enabled(self: BaseSalesforceApiTask) -> bool:
     is_person_account_field = "IsPersonAccount".lower()
     for field in self.sf.Account.describe()["fields"]:
-        # TODO: Is calling lower too pandantic?
         if field["name"].lower() == is_person_account_field:
             return True
-    return False
