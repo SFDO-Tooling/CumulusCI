@@ -196,14 +196,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         return step.job_result
 
-    def _get_person_account_contact_ids_by_account_id(self):
-        return {
-            record["AccountId"]: record["Id"]
-            for record in self.sf.query(
-                "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true"
-            )["records"]
-        }
-
     def _stream_queried_data(self, mapping, local_ids):
         """Get data from the local db"""
 
@@ -429,31 +421,27 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             and self._is_person_accounts_enabled
             and mapping["sf_object"].lower() == "contact"
         ):
-            self._add_person_account_contact_ids_to_id_table(mapping, id_table_name)
-
             self._sql_bulk_insert_from_records(
                 connection=conn,
                 table=id_table_name,
                 columns=("id", "sf_id"),
-                # FIXME
-                record_iterable=None,
+                record_iterable=self._generate_person_account_contact_id_map(mapping),
             )
 
         if mapping["action"] == "insert":
             self.session.commit()
 
-    def _get_person_account_contact_local_id_by_account_sf_id(self, mapping):
+    def _get_person_account_contact_id_by_account_sf_id(self, mapping):
         # FIXME:  Hijack to add Person Account Ids here?
         # Add Contacts related to person accounts to the Contact's ID table.
         for api_name, lookup in mapping.get("lookups", {}).items():
             if api_name.lower() == "accountid":
                 model = self.models[mapping.get("table")]
                 table = model.__table__
-                id_column = table.primary_key.columns.keys()[0]
-                lookup_sf_id_column = lookup["aliased_table"].columns.sf_id
 
                 query = self.session.query(
-                    *[getattr(model, id_column), lookup_sf_id_column]
+                    getattr(model, table.primary_key.columns.keys()[0]),
+                    lookup["aliased_table"].columns.sf_id,
                 ).filter(table.columns.IsPersonAccount == "false")
 
                 # Outer join with lookup ids table:
@@ -464,12 +452,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                     lookup["aliased_table"],
                     lookup["aliased_table"].columns.id == value_column,
                 )
-                """
-                # Order by foreign key to minimize lock contention
-                # by trying to keep lookup targets in the same batch
-                lookup_column = getattr(model, key_field)
-                query = query.order_by(lookup_column)
-                """
 
                 records = query.statement.execute().fetchall()
 
@@ -477,23 +459,36 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
                 return {record[1]: record[0] for record in records}
 
-    def _add_person_account_contact_ids_to_id_table(self, mapping, id_table_name):
+    def _get_person_account_contact_ids_by_account_id(self):
+        return {
+            record["AccountId"]: record["Id"]
+            for record in self.sf.query(
+                "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true"
+            )["records"]
+        }
+
+    def _generate_person_account_contact_id_map(self, mapping, id_table_name):
         # FIXME:
-        contact_local_id_by_account_sf_id = self._get_person_account_contact_local_id_by_account_sf_id(
+        contact_id_by_account_sf_id = self._get_person_account_contact_id_by_account_sf_id(
             mapping
         )
-        contact_ids_by_account_id = self._get_person_account_contact_ids_by_account_id()
+        contact_sf_ids_by_account_sf_id = (
+            self._get_person_account_contact_ids_by_account_id()
+        )
 
         debug(
             {
-                "contact_local_id_by_account_sf_id": contact_local_id_by_account_sf_id,
-                "contact_ids_by_account_id": contact_ids_by_account_id,
+                "contact_id_by_account_sf_id": contact_id_by_account_sf_id,
+                "contact_sf_ids_by_account_sf_id": contact_sf_ids_by_account_sf_id,
             },
             title="_add_person_account_contact_ids_to_id_table",
         )
 
-        if True:
-            raise BulkDataException("_add_person_account_contact_ids_to_id_table")
+        if contact_id_by_account_sf_id and contact_sf_ids_by_account_sf_id:
+            for account_sf_id, contact_local_id in contact_id_by_account_sf_id.items():
+                contact_sf_id = contact_sf_ids_by_account_sf_id.get(account_sf_id)
+                if contact_sf_id:
+                    yield (contact_local_id, contact_sf_id)
 
     def _generate_results_id_map(self, step, local_ids):
         """Consume results from load and prepare rows for id table.
