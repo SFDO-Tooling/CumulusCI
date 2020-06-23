@@ -230,7 +230,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         return statics
 
-    def _update_person_account_name_as_blank(self, mapping: MappingStep):
+    def _update_person_account_name_as_blank(self, mapping: MappingStep) -> None:
         # Check if Account.Name is in mapping
         for api_name, column_name in mapping.fields.items():
             if api_name.lower() == "name":
@@ -244,7 +244,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 self.session.flush()
                 return
 
-    def _is_person_account_column_exists(self, mapping):
+    def _is_person_account_column_exists(self, mapping: MappingStep) -> bool:
         return (
             self.models[mapping.get("table")].__table__.columns.get("IsPersonAccount")
             is not None
@@ -402,12 +402,14 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         if mapping["action"] == "insert":
             self.session.commit()
 
-    def _get_account_id_lookup(self, mapping):
+    def _get_account_id_lookup(self, mapping: MappingStep) -> MappingLookup:
         for api_name, lookup in mapping.get("lookups", {}).items():
             if api_name.lower() == "accountid":
                 return lookup
 
-    def _generate_contact_id_map_for_person_accounts(self, mapping, lookup, conn):
+    def _generate_contact_id_map_for_person_accounts(
+        self, mapping: MappingStep, lookup: MappingLookup, conn
+    ):
         """
         Yields (local_id, sf_id) for Contact records where IsPersonAccount
         is true that can handle large data volumes.
