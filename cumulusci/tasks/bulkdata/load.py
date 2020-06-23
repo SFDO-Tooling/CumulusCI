@@ -231,6 +231,11 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         return statics
 
     def _update_person_account_name_as_blank(self, mapping: MappingStep) -> None:
+        """
+        If a "Name" Salesforce Field is mapped to a column, updates mapping's
+        table records where IsPersonAccount is "true" setting "Name" field as
+        blank.
+        """
         # Check if Account.Name is in mapping
         for api_name, column_name in mapping.fields.items():
             if api_name.lower() == "name":
@@ -245,6 +250,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 return
 
     def _is_person_account_column_exists(self, mapping: MappingStep) -> bool:
+        """
+        Returns if "IsPersonAccount" is a column in mapping's table.
+        """
         return (
             self.models[mapping.get("table")].__table__.columns.get("IsPersonAccount")
             is not None
@@ -403,6 +411,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             self.session.commit()
 
     def _get_account_id_lookup(self, mapping: MappingStep) -> MappingLookup:
+        """
+        Returns "AccountId" lookup if it exists.
+        """
         for api_name, lookup in mapping.get("lookups", {}).items():
             if api_name.lower() == "accountid":
                 return lookup
