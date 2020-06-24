@@ -15,6 +15,7 @@ class TestMappingGenerator(unittest.TestCase):
 
         self.assertEqual([], t.options["ignore"])
         self.assertEqual("", t.options["namespace_prefix"])
+        self.assertEqual("ask", t.options["break_cycles"])
 
     def test_postfixes_underscores_to_namespace(self):
         t = _make_task(
@@ -592,6 +593,56 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         prompt.return_value = "Account"
+
+        self.assertEqual(
+            ["Custom__c", "Account", "Contact", "Opportunity"],
+            t._split_dependencies(
+                set(["Account", "Contact", "Opportunity", "Custom__c"]),
+                {
+                    "Account": {"Contact": set(["Primary_Contact__c"])},
+                    "Contact": {"Account": set(["AccountId"])},
+                    "Opportunity": {
+                        "Account": set(["AccountId"]),
+                        "Contact": set(["Primary_Contact__c"]),
+                    },
+                },
+            ),
+        )
+
+    @mock.patch("click.prompt")
+    @mock.patch("random.choice")
+    def test_split_dependencies__auto_pick_cycles_mocked_random(self, choice, prompt):
+        t = _make_task(
+            GenerateMapping, {"options": {"path": "t", "break_cycles": "auto"}}
+        )
+
+        prompt.side_effect = AssertionError("Shouldn't be called")
+        choice.return_value = "Account"
+
+        self.assertEqual(
+            ["Custom__c", "Account", "Contact", "Opportunity"],
+            t._split_dependencies(
+                set(["Account", "Contact", "Opportunity", "Custom__c"]),
+                {
+                    "Account": {"Contact": set(["Primary_Contact__c"])},
+                    "Contact": {"Account": set(["AccountId"])},
+                    "Opportunity": {
+                        "Account": set(["AccountId"]),
+                        "Contact": set(["Primary_Contact__c"]),
+                    },
+                },
+            ),
+        )
+        choice.assert_called_once()
+        choice.fjioejfio()
+
+    @mock.patch("click.prompt")
+    def test_split_dependencies__auto_pick_cycles(self, prompt):
+        t = _make_task(
+            GenerateMapping, {"options": {"path": "t", "break_cycles": "auto"}}
+        )
+
+        prompt.return_value = AssertionError("Shouldn't be called")
 
         self.assertEqual(
             ["Custom__c", "Account", "Contact", "Opportunity"],

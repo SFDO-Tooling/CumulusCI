@@ -1,10 +1,12 @@
 from collections import defaultdict
+import random
 
 import click
 import yaml
 
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 class GenerateMapping(BaseSalesforceApiTask):
@@ -17,6 +19,9 @@ class GenerateMapping(BaseSalesforceApiTask):
     Mappings must be serializable, and hence must resolve reference cycles - situations
     where Object A refers to B, and B also refers to A. Mapping generation will stop
     and request user input to resolve such cycles by identifying the correct load order.
+    If you would rather the mapping generator break such a cycle randomly, set the
+    `break_cycles` option to `auto`.
+
     Alternately, specify the `ignore` option with the name of one of the
     lookup fields to suppress it and break the cycle. `ignore` can be specified as a list in
     `cumulusci.yml` or as a comma-separated string at the command line.
@@ -33,6 +38,10 @@ class GenerateMapping(BaseSalesforceApiTask):
         "ignore": {
             "description": "Object API names, or fields in Object.Field format, to ignore"
         },
+        "break_cycles": {
+            "description": "If the generator is unsure of the order to load, what to do? "
+            "Set to `ask` (the default) to allow the user to choose or `auto` to pick randomly."
+        },
     }
 
     core_fields = ["Id", "Name", "FirstName", "LastName"]
@@ -48,6 +57,11 @@ class GenerateMapping(BaseSalesforceApiTask):
             self.options["namespace_prefix"] += "__"
 
         self.options["ignore"] = process_list_arg(self.options.get("ignore", []))
+        break_cycles = self.options.setdefault("break_cycles", "ask")
+        if break_cycles not in ["ask", "auto"]:
+            raise TaskOptionsError(
+                f"`break_cycles` should be `ask` or `auto`, not {break_cycles}"
+            )
 
     def _run_task(self):
         self.logger.info("Collecting sObject information")
@@ -230,11 +244,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                         self.logger.info(
                             f"   references {other_obj} via: {', '.join(dependencies[obj][other_obj])}"
                         )
-                choice = click.prompt(
-                    "Which object should we load first?",
-                    type=click.Choice(list(objs_remaining)),
-                    show_choices=True,
-                )
+                choice = self.choose_next_object(objs_remaining)
                 objs_without_deps = [choice]
 
             for obj in objs_without_deps:
@@ -249,6 +259,16 @@ class GenerateMapping(BaseSalesforceApiTask):
                 objs_remaining.remove(obj)
 
         return stack
+
+    def choose_next_object(self, objs_remaining):
+        if self.options["break_cycles"] == "ask":
+            return click.prompt(
+                "Which object should we load first?",
+                type=click.Choice(tuple(objs_remaining)),
+                show_choices=True,
+            )
+        elif self.options["break_cycles"] == "auto":
+            return random.choice(tuple(objs_remaining))
 
     def _is_any_custom_api_name(self, api_name):
         """True if the entity name is custom (including any package)."""
