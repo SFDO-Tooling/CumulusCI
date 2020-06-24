@@ -645,16 +645,18 @@ class TestMappingGenerator(unittest.TestCase):
         prompt.return_value = AssertionError("Shouldn't be called")
 
         self.assertEqual(
-            ["Custom__c", "Account", "Contact", "Opportunity"],
-            t._split_dependencies(
-                set(["Account", "Contact", "Opportunity", "Custom__c"]),
-                {
-                    "Account": {"Contact": set(["Primary_Contact__c"])},
-                    "Contact": {"Account": set(["AccountId"])},
-                    "Opportunity": {
-                        "Account": set(["AccountId"]),
-                        "Contact": set(["Primary_Contact__c"]),
+            set(["Custom__c", "Account", "Contact", "Opportunity"]),
+            set(
+                t._split_dependencies(
+                    set(["Account", "Contact", "Opportunity", "Custom__c"]),
+                    {
+                        "Account": {"Contact": set(["Primary_Contact__c"])},
+                        "Contact": {"Account": set(["AccountId"])},
+                        "Opportunity": {
+                            "Account": set(["AccountId"]),
+                            "Contact": set(["Primary_Contact__c"]),
+                        },
                     },
-                },
+                ),
             ),
         )
