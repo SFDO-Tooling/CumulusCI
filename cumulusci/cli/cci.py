@@ -886,6 +886,12 @@ def org_browser(runtime, org_name):
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     runtime.check_org_overwrite(org_name)
 
+    if "lightning.force.com" in login_url:
+        raise click.UsageError(
+            "Connecting an org with a lightning.force.com URL does not work. "
+            "Use the my.salesforce.com version instead"
+        )
+
     connected_app = runtime.keychain.get_service("connected_app")
     if sandbox:
         login_url = "https://test.salesforce.com"

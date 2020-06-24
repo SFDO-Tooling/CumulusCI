@@ -963,6 +963,21 @@ Environment Info: Rossian / x68_46
                 global_org=False,
             )
 
+    def test_org_connect_lightning_url(self):
+        runtime = mock.Mock()
+
+        with self.assertRaises(click.UsageError) as e:
+            run_click_command(
+                cci.org_connect,
+                runtime=runtime,
+                org_name="test",
+                sandbox=True,
+                login_url="https://test1.lightning.force.com/",
+                default=True,
+                global_org=False,
+            )
+            assert "lightning" in str(e.exception)
+
     def test_org_default(self):
         runtime = mock.Mock()
 
