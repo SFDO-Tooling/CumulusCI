@@ -4,6 +4,7 @@ from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 import http.client
 import jwt
+import os
 import re
 import requests
 from urllib.parse import quote
@@ -18,6 +19,10 @@ HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
 SANDBOX_DOMAIN_RE = re.compile(
     r"^https://([\w\d-]+\.)?(test|cs\d+)(\.my)?\.salesforce\.com/?$"
 )
+SANDBOX_LOGIN_URL = (
+    os.environ.get("SF_SANDBOX_LOGIN_URL") or "https://test.salesforce.com"
+)
+PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
 
 
 def jwt_session(client_id, private_key, username, url=None):
@@ -28,14 +33,14 @@ def jwt_session(client_id, private_key, username, url=None):
     :param username: Username to authenticate as
     :param url: Org's instance_url
     """
-    aud = "https://login.salesforce.com"
+    aud = PROD_LOGIN_URL
     if url is None:
-        url = "https://login.salesforce.com"
+        url = PROD_LOGIN_URL
     else:
         m = SANDBOX_DOMAIN_RE.match(url)
         if m is not None:
             # sandbox
-            aud = "https://test.salesforce.com"
+            aud = SANDBOX_LOGIN_URL
             # There can be a delay in syncing scratch org credentials
             # between instances, so let's use the specific one for this org.
             instance = m.group(2)
