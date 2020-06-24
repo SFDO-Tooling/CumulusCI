@@ -33,6 +33,9 @@ class GenerateMapping(BaseSalesforceApiTask):
         "ignore": {
             "description": "Object API names, or fields in Object.Field format, to ignore"
         },
+        "include": {
+            "description": "Object names to include even if they might not otherwise be included."
+        },
     }
 
     core_fields = ["Id", "Name", "FirstName", "LastName"]
@@ -48,6 +51,7 @@ class GenerateMapping(BaseSalesforceApiTask):
             self.options["namespace_prefix"] += "__"
 
         self.options["ignore"] = process_list_arg(self.options.get("ignore", []))
+        self.options["include"] = process_list_arg(self.options.get("include", []))
 
     def _run_task(self):
         self.logger.info("Collecting sObject information")
@@ -61,7 +65,7 @@ class GenerateMapping(BaseSalesforceApiTask):
 
     def _collect_objects(self):
         """Walk the global describe and identify the sObjects we need to include in a minimal operation."""
-        self.mapping_objects = []
+        self.mapping_objects = self.options["include"]
 
         # Cache the global describe, which we'll walk.
         self.global_describe = self.sf.describe()
@@ -76,7 +80,10 @@ class GenerateMapping(BaseSalesforceApiTask):
             if self._is_our_custom_api_name(obj["name"]) or self._has_our_custom_fields(
                 self.describes[obj["name"]]
             ):
-                if self._is_object_mappable(obj):
+                if (
+                    self._is_object_mappable(obj)
+                    and obj["name"] not in self.mapping_objects
+                ):
                     self.mapping_objects.append(obj["name"])
 
         # Add any objects that are required by our own,
