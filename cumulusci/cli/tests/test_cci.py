@@ -204,6 +204,38 @@ class TestCCI(unittest.TestCase):
         get_tempfile_logger.assert_called_once()
         tee.assert_called_once()
 
+    @mock.patch.dict(os.environ, {"CCI_SHOW_EXCEPTIONS": "True"})
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.init_logger")
+    @mock.patch("cumulusci.cli.cci.check_latest_version")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.cli.cci.cli")
+    @mock.patch("pdb.post_mortem")
+    @mock.patch("sys.exit")
+    def test_main__CCI_SHOW_EXCEPTIONS(
+        self,
+        sys_exit,
+        post_mortem,
+        cli,
+        CliRuntime,
+        check_latest_version,
+        init_logger,
+        get_tempfile_logger,
+        tee,
+    ):
+        cli.side_effect = Exception
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
+
+        with self.assertRaises(Exception):
+            cci.main(["cci"])
+
+        check_latest_version.assert_called_once()
+        init_logger.assert_called_once_with(log_requests=False)
+        CliRuntime.assert_called_once()
+        cli.assert_called_once()
+        post_mortem.assert_not_called()
+
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
