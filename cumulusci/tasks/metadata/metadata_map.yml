@@ -113,7 +113,7 @@ cspTrustedSites:
     - type: CspTrustedSite
       class: MetadataFilenameParser
       extension: cspTrustedSite
-CustomHelpMenuSections:
+customHelpMenuSections:
     - type: CustomHelpMenuSection
       class: MetadataFilenameParser
       extension: customHelpMenuSection
