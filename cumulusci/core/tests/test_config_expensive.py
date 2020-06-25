@@ -611,9 +611,13 @@ class TestScratchOrgConfig(unittest.TestCase):
             stdout=io.BytesIO(b"info"), stderr=io.BytesIO(b""), returncode=0
         )
 
-        config = ScratchOrgConfig({"username": "test", "created": True}, "test")
+        config = ScratchOrgConfig(
+            {"username": "test", "created": True, "instance_url": "https://blah"},
+            "test",
+        )
         config.delete_org()
 
+        self.assertFalse(config.config.get("instance_url"))
         self.assertFalse(config.config["created"])
         self.assertIs(config.config["username"], None)
 
