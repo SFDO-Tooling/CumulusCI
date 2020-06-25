@@ -262,6 +262,10 @@ matchingRules:
       extension: matchingRule
       options:
             item_xpath: './sf:matchingRules'
+messageChannels:
+    - type: LightningMessageChannel
+      class: MetadataFilenameParser
+      extension: messageChannel
 MobileApplicationDetails:
     - type: MobileApplicationDetail
       class: MetadataFilenameParser
