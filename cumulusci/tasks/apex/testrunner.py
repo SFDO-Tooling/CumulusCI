@@ -400,7 +400,10 @@ class RunApexTests(BaseSalesforceApiTask):
         class_names = list(self.results_by_class_name.keys())
         class_names.sort()
         for class_name in class_names:
-            has_failures = any(result["Outcome"] in ["Fail", "CompileFail"] for result in self.results_by_class_name[class_name].values())
+            has_failures = any(
+                result["Outcome"] in ["Fail", "CompileFail"]
+                for result in self.results_by_class_name[class_name].values()
+            )
             if has_failures or self.verbose:
                 self.logger.info(f"Class: {class_name}")
             method_names = list(self.results_by_class_name[class_name].keys())
