@@ -13,7 +13,7 @@ from cumulusci.oauth.salesforce import jwt_session
 
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
-MYDOMAIN_RE = re.compile(r"my\.(.*)salesforce\.com")
+MYDOMAIN_RE = re.compile(r"[^\d]\.my\.(.*)salesforce\.com")
 
 
 class OrgConfig(BaseConfig):
