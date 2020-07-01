@@ -1,6 +1,7 @@
 from collections import defaultdict
 from distutils.version import StrictVersion
 import os
+import re
 
 import requests
 from simple_salesforce import Salesforce
@@ -12,6 +13,7 @@ from cumulusci.oauth.salesforce import jwt_session
 
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
+MYDOMAIN_RE = re.compile(r"([^\d])\.my\.(.*)salesforce\.com")
 
 
 class OrgConfig(BaseConfig):
@@ -84,7 +86,10 @@ class OrgConfig(BaseConfig):
 
     @property
     def lightning_base_url(self):
-        return self.instance_url.split(".")[0] + ".lightning.force.com"
+        if MYDOMAIN_RE.search(self.instance_url):
+            return MYDOMAIN_RE.sub(r"\1.lightning.\2force.com", self.instance_url)
+        else:
+            return self.instance_url.split(".")[0] + ".lightning.force.com"
 
     @property
     def salesforce_client(self):

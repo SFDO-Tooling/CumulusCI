@@ -304,6 +304,7 @@ class ScratchOrgConfig(OrgConfig):
         self.config["created"] = False
         self.config["username"] = None
         self.config["date_created"] = None
+        self.config["instance_url"] = None
 
     def force_refresh_oauth_token(self):
         # Call force:org:display and parse output to get instance_url and
