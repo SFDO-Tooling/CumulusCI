@@ -98,8 +98,8 @@ class BaseMetadataApiCall(object):
             return self.soap_envelope_result.format(process_id=self.process_id)
 
     def _build_envelope_start(self):
-        if self.soap_envelope_start:
-            return self.soap_envelope_start.format(api_version=self.api_version)
+        assert self.soap_envelope_start, "soap_envelope_start should be supplied"
+        return self.soap_envelope_start.format(api_version=self.api_version)
 
     def _build_envelope_status(self):
         if self.soap_envelope_status:
@@ -388,6 +388,7 @@ class ApiDeploy(BaseMetadataApiCall):
         run_tests=None,
     ):
         super(ApiDeploy, self).__init__(task, api_version)
+        assert package_zip, "Package zip should not be None"
         if purge_on_delete is None:
             purge_on_delete = True
         self._set_purge_on_delete(purge_on_delete)
@@ -409,23 +410,22 @@ class ApiDeploy(BaseMetadataApiCall):
             self.purge_on_delete = "false"
 
     def _build_envelope_start(self):
-        if self.package_zip:
-            test_level = (
-                f"<testLevel>{self.test_level}</testLevel>" if self.test_level else ""
-            )
-            run_tests = (
-                "\n".join(f"<runTests>{x}</runTests>" for x in self.run_tests)
-                if self.test_level == "RunSpecifiedTests"
-                else ""
-            )
-            return self.soap_envelope_start.format(
-                package_zip=self.package_zip,
-                check_only=self.check_only,
-                purge_on_delete=self.purge_on_delete,
-                test_level=test_level,
-                run_tests=run_tests,
-                api_version=self.api_version,
-            )
+        test_level = (
+            f"<testLevel>{self.test_level}</testLevel>" if self.test_level else ""
+        )
+        run_tests = (
+            "\n".join(f"<runTests>{x}</runTests>" for x in self.run_tests)
+            if self.test_level == "RunSpecifiedTests"
+            else ""
+        )
+        return self.soap_envelope_start.format(
+            package_zip=self.package_zip,
+            check_only=self.check_only,
+            purge_on_delete=self.purge_on_delete,
+            test_level=test_level,
+            run_tests=run_tests,
+            api_version=self.api_version,
+        )
 
     def _process_response(self, response):
         resp_xml = parseString(response.content)

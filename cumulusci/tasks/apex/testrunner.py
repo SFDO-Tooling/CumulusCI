@@ -216,7 +216,7 @@ class RunApexTests(BaseSalesforceApiTask):
         if "required_org_code_coverage_percent" in self.options:
             try:
                 self.code_coverage_level = int(
-                    self.options["required_org_code_coverage_percent"].rstrip("%")
+                    str(self.options["required_org_code_coverage_percent"]).rstrip("%")
                 )
             except ValueError:
                 raise TaskOptionsError(

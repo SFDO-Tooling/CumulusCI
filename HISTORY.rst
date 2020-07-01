@@ -2,6 +2,36 @@
 History
 =======
 
+3.14.0 (2020-06-18)
+-------------------
+
+Changes:
+
+* Added a generic ``dx`` task which makes it easy to run Salesforce CLI commands against orgs in CumulusCI's keychain. Use the ``command`` option to specify the sfdx command.
+
+* Tasks which do namespace injection now support the ``%%%NAMESPACE_DOT%%%`` injection token, which can be used to support references to packaged Apex classes and Record Types. The token is replaced with ``ns.`` rather than ``ns__`` (for namespace ``ns``).
+
+* Updated to Robot Framework 3.2.1. Robot Framework has a new parser with a few backwards incompatible changes. For details see the `release notes <https://github.com/robotframework/robotframework/blob/master/doc/releasenotes/rf-3.2.rst>`_.
+
+* The ``run_tests`` task now gracefully handles the ``required_org_code_coverage_percent`` option as a string or an integer.
+
+* CumulusCI now logs a success message when a flow finishes running.
+
+Issues closed:
+
+* Fixed a regression introduced in CumulusCI 3.13.0 where connections to a scratch org could fail with a ReadTimeout or other connection error if more than 10 minutes elapsed since a prior task that interacted with the org. This is similar to the fix from 3.13.2, but for scratch orgs.
+
+* Show a clearer error message if dependencies are configured in an unrecognized format.
+
+3.13.2 (2020-06-10)
+-------------------
+
+Issues closed:
+
+* Fixed a regression introduced in CumulusCI 3.13.0 where connections to Salesforce could fail
+  with a ReadTimeout or other connection error if more than 10 minutes elapsed since a prior task
+  that interacted with the org.
+
 3.13.1 (2020-06-09)
 -------------------
 
