@@ -1131,9 +1131,13 @@ class TestOrgConfig(unittest.TestCase):
             config.refresh_oauth_token(None)
             assert config.access_token == "TOKEN"
 
-    def test_lightning_base_url(self):
+    def test_lightning_base_url__instance(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         self.assertEqual("https://na01.lightning.force.com", config.lightning_base_url)
+
+    def test_lightning_base_url__mydomain(self):
+        config = OrgConfig({"instance_url": "https://foo.my.salesforce.com"}, "test")
+        self.assertEqual("https://foo.lightning.force.com", config.lightning_base_url)
 
     @responses.activate
     def test_get_salesforce_version(self):
