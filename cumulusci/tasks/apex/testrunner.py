@@ -396,19 +396,13 @@ class RunApexTests(BaseSalesforceApiTask):
                             ).append(test_result["MethodName"])
 
     def _process_test_results(self):
-        print(f"verbose mode is {self.verbose}")
         test_results = []
         class_names = list(self.results_by_class_name.keys())
         class_names.sort()
         for class_name in class_names:
-            has_failures = [
-                result
-                for result in self.results_by_class_name[class_name].values()
-                if result["Outcome"] in ["Fail", "CompileFail"]
-            ]
+            has_failures = any(result["Outcome"] in ["Fail", "CompileFail"] for result in self.results_by_class_name[class_name].values())
             if has_failures or self.verbose:
-                message = f"Class: {class_name}"
-                self.logger.info(message)
+                self.logger.info(f"Class: {class_name}")
             method_names = list(self.results_by_class_name[class_name].keys())
             method_names.sort()
             for method_name in method_names:

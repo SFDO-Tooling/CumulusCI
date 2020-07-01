@@ -472,7 +472,6 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
 
     @responses.activate
     def test_run_task__not_verbose(self):
-        # self._task_log_handler.reset()
         self._mock_apex_class_query()
         self._mock_run_tests()
         self._mock_tests_processing()
@@ -482,7 +481,6 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
         task()
         log = self._task_log_handler.messages
-        print(log["info"])
         assert "Class: TestClass_TEST" not in log["info"]
 
     @responses.activate
