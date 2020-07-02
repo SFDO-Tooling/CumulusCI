@@ -24,13 +24,16 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
 
     @property
     def cumulusci_config_dir(self):
-        "The .cumulus directory for storing persistent data"
+        """Get the root directory for storing persistent data, as an instance property"""
         return self.default_cumulusci_dir()
 
     @staticmethod
     def default_cumulusci_dir():
-        "The default .cumulus directory for storing persistent data"
-        config_dir = Path(Path.home(), ".cumulusci")
+        """Get the root directory for storing persistent data (~/.cumulusci)
+        
+        Creates it if it doesn't exist yet.
+        """
+        config_dir = Path.home() / ".cumulusci"
 
         if not config_dir.exists():
             config_dir.mkdir(parents=True)
