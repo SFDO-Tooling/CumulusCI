@@ -128,6 +128,10 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
     def _init_parsers(self):
         """Invoked from Super Class"""
         for cfg in self.parser_config:
+            if cfg["class_path"] is None:
+                continue
+            if cfg.get("skip_parent_pr") is True:
+                continue
             parser_class = import_global(cfg["class_path"])
             self.parsers.append(parser_class(self, cfg["title"]))
 
@@ -184,6 +188,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         publish=False,
         has_issues=True,
         include_empty=False,
+        version_id=None,
     ):
         self.github = github
         self.github_info = github_info
@@ -194,6 +199,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.do_publish = publish
         self.has_issues = has_issues
         self.include_empty_pull_requests = include_empty
+        self.version_id = version_id
         self.lines_parser_class = None
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
@@ -208,6 +214,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _init_parsers(self):
         for cfg in self.parser_config:
+            if cfg["class_path"] is None:
+                continue
             parser_class = import_global(cfg["class_path"])
             self.parsers.append(parser_class(self, cfg["title"]))
 

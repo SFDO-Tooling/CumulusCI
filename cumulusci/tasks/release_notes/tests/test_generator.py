@@ -39,6 +39,7 @@ PARSER_CONFIG = [
         "class_path": "cumulusci.tasks.release_notes.parser.GithubIssuesParser",
         "title": "Issues Closed",
     },
+    {"class_path": None,},
 ]
 
 

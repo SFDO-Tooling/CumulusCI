@@ -11,6 +11,7 @@ from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
 from cumulusci.tasks.release_notes.parser import GithubIssuesParser
 from cumulusci.tasks.release_notes.parser import GithubLinesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
+from cumulusci.tasks.release_notes.parser import InstallLinkParser
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import get_github_api
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
@@ -549,3 +550,26 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         if link_pr:
             render += " [[PR{}]({})]".format(self.pr_number, self.pr_url)
         return render
+
+
+class TestGithubLinesParser(unittest.TestCase):
+    def setUp(self):
+        self.title = "Title"
+
+    def test_no_package_version(self):
+        generator = mock.Mock(link_pr=True)
+        generator.version_id = None
+        parser = InstallLinkParser(generator, self.title)
+        parser.parse("abc")
+        self.assertEqual(None, parser.render())
+
+    def test_package_version(self):
+        generator = mock.Mock(link_pr=True)
+        generator.version_id = "foo bar"
+        parser = InstallLinkParser(generator, self.title)
+        parser.parse("abc")
+        prod_url = parser.prod_url_template.format("foo+bar")
+        test_url = parser.test_url_template.format("foo+bar")
+        output = parser.render()
+        assert prod_url in output
+        assert test_url in output

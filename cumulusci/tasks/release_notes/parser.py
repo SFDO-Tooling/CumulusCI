@@ -1,4 +1,5 @@
 import re
+import urllib
 
 import github3.exceptions
 
@@ -119,20 +120,20 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
             content.append(self._render_content())
         if self.h2:
             content.append(self._render_h2())
-        return u"\r\n".join(content)
+        return "\r\n".join(content)
 
     def _render_header(self):
-        return u"# {}\r\n".format(self.title)
+        return "# {}\r\n".format(self.title)
 
     def _render_content(self):
-        return u"\r\n".join(self.content)
+        return "\r\n".join(self.content)
 
     def _render_h2(self):
         content = []
         for h2_title in self.h2.keys():
-            content.append(u"\r\n## {}\r\n".format(h2_title))
-            content.append(u"\r\n".join(self.h2[h2_title]))
-        return u"\r\n".join(content)
+            content.append("\r\n## {}\r\n".format(h2_title))
+            content.append("\r\n".join(self.h2[h2_title]))
+        return "\r\n".join(content)
 
 
 class GithubLinesParser(ChangeNotesLinesParser):
@@ -171,7 +172,7 @@ class IssuesParser(ChangeNotesLinesParser):
         issues = []
         for issue in sorted(self.content):
             issues.append("#{}".format(issue))
-        return u"\r\n".join(issues)
+        return "\r\n".join(issues)
 
 
 class GithubIssuesParser(IssuesParser):
@@ -231,7 +232,7 @@ class GithubIssuesParser(IssuesParser):
             content.append(txt)
             if self.publish:
                 self._add_issue_comment(issue)
-        return u"\r\n".join(content)
+        return "\r\n".join(content)
 
     def _get_issue(self, issue_number):
         try:
@@ -283,3 +284,35 @@ class GithubIssuesParser(IssuesParser):
                 break
         if not has_comment:
             issue.create_comment("{} {}".format(comment_prefix, version_str))
+
+
+class InstallLinkParser(BaseChangeNotesParser):
+    prod_url_template = (
+        "https://login.salesforce.com/packaging/installPackage.apexp?p0={}"
+    )
+
+    test_url_template = (
+        "https://test.salesforce.com/packaging/installPackage.apexp?p0={}"
+    )
+
+    def __init__(self, release_notes_generator, title):
+        super().__init__(title)
+        self.release_notes_generator = release_notes_generator
+
+    def parse(self, change_note):
+        # There's no need to parse lines, this parser gets its values from task options
+        pass
+
+    def render(self):
+        pv_id = self.release_notes_generator.version_id
+        if pv_id is not None:
+            pv_id = urllib.parse.quote_plus(pv_id)
+            return "\n\r".join(
+                (
+                    f"# {self.title}\r\n",
+                    "Production & Developer Edition Orgs:",
+                    "   " + self.prod_url_template.format(pv_id),
+                    "Sandbox & Scratch Orgs:",
+                    "   " + self.test_url_template.format(pv_id),
+                )
+            )
