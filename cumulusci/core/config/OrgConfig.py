@@ -87,10 +87,11 @@ class OrgConfig(BaseConfig):
 
     @property
     def lightning_base_url(self):
-        if SANDBOX_MYDOMAIN_RE.search(self.instance_url):
-            return SANDBOX_MYDOMAIN_RE.sub(r".lightning.\1force.com", self.instance_url)
-        elif MYDOMAIN_RE.search(self.instance_url):
-            return MYDOMAIN_RE.sub(r".lightning.\1force.com", self.instance_url)
+        instance_url = self.instance_url.rstrip("/")
+        if SANDBOX_MYDOMAIN_RE.search(instance_url):
+            return SANDBOX_MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
+        elif MYDOMAIN_RE.search(instance_url):
+            return MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
         else:
             return self.instance_url.split(".")[0] + ".lightning.force.com"
 
