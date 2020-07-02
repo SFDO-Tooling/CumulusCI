@@ -97,6 +97,7 @@ class TestMetadataPacakage:
         assert package.namespace is None
 
         package = MetadataPackage(self.PUSH_API, self.NAME, self.SF_ID, self.NAMESPACE)
+        print(package.get_package_versions())
         assert package.push_api == self.PUSH_API
         assert package.sf_id == self.SF_ID
         assert package.name == self.NAME
