@@ -11,7 +11,7 @@ from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_glob_list_arg
 from cumulusci.robotframework import PageObjects
 
-from robot.libdocpkg import DocumentationBuilder
+from robot.libdocpkg.builder import DocumentationBuilder
 from robot.libraries.BuiltIn import RobotNotRunningError
 from robot.libdocpkg.robotbuilder import LibraryDocBuilder
 from robot.utils import Importer

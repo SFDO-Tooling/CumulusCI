@@ -1,6 +1,7 @@
 from collections import defaultdict
 from distutils.version import StrictVersion
 import os
+import re
 
 import requests
 from simple_salesforce import Salesforce
@@ -12,6 +13,8 @@ from cumulusci.oauth.salesforce import jwt_session
 
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
+SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
+MYDOMAIN_RE = re.compile(r"\.my\.(.*)salesforce\.com")
 
 
 class OrgConfig(BaseConfig):
@@ -29,6 +32,19 @@ class OrgConfig(BaseConfig):
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
+        """Get a fresh access token and store it in the org config.
+
+        If the SFDX_CLIENT_ID and SFDX_HUB_KEY environment variables are set,
+        this is done using the Oauth2 JWT flow.
+
+        Otherwise it is done using the Oauth2 Refresh Token flow using the connected app
+        configured in the keychain's connected_app service.
+
+        Also refreshes user and org info that is cached in the org config.
+        """
+        # invalidate memoized simple-salesforce client with old token
+        self._client = None
+
         if not SKIP_REFRESH:
             SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
@@ -71,7 +87,13 @@ class OrgConfig(BaseConfig):
 
     @property
     def lightning_base_url(self):
-        return self.instance_url.split(".")[0] + ".lightning.force.com"
+        instance_url = self.instance_url.rstrip("/")
+        if SANDBOX_MYDOMAIN_RE.search(instance_url):
+            return SANDBOX_MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
+        elif MYDOMAIN_RE.search(instance_url):
+            return MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
+        else:
+            return self.instance_url.split(".")[0] + ".lightning.force.com"
 
     @property
     def salesforce_client(self):

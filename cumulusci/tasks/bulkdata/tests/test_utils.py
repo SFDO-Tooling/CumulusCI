@@ -2,7 +2,6 @@ from datetime import datetime
 import os
 import unittest
 from unittest import mock
-import yaml
 
 import responses
 from sqlalchemy import create_engine, MetaData, Integer, types, Unicode, Column, Table
@@ -11,6 +10,7 @@ from sqlalchemy.orm import create_session, mapper
 from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
 def create_db_file(filename):
@@ -121,9 +121,9 @@ class TestSqlAlchemyMixin(unittest.TestCase):
 class TestCreateTable(unittest.TestCase):
     def test_create_table_legacy_oid_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v1.yml")
-        with open(mapping_file, "r") as fh:
-            content = yaml.safe_load(fh)
-            account_mapping = content["Insert Contacts"]
+
+        content = parse_from_yaml(mapping_file)
+        account_mapping = content["Insert Contacts"]
 
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "temp.db")
@@ -138,9 +138,8 @@ class TestCreateTable(unittest.TestCase):
 
     def test_create_table_modern_id_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v2.yml")
-        with open(mapping_file, "r") as fh:
-            content = yaml.safe_load(fh)
-            account_mapping = content["Insert Contacts"]
+        content = parse_from_yaml(mapping_file)
+        account_mapping = content["Insert Contacts"]
 
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "temp.db")

@@ -2,6 +2,95 @@
 History
 =======
 
+3.14.0 (2020-06-18)
+-------------------
+
+Changes:
+
+* Added a generic ``dx`` task which makes it easy to run Salesforce CLI commands against orgs in CumulusCI's keychain. Use the ``command`` option to specify the sfdx command.
+
+* Tasks which do namespace injection now support the ``%%%NAMESPACE_DOT%%%`` injection token, which can be used to support references to packaged Apex classes and Record Types. The token is replaced with ``ns.`` rather than ``ns__`` (for namespace ``ns``).
+
+* Updated to Robot Framework 3.2.1. Robot Framework has a new parser with a few backwards incompatible changes. For details see the `release notes <https://github.com/robotframework/robotframework/blob/master/doc/releasenotes/rf-3.2.rst>`_.
+
+* The ``run_tests`` task now gracefully handles the ``required_org_code_coverage_percent`` option as a string or an integer.
+
+* CumulusCI now logs a success message when a flow finishes running.
+
+Issues closed:
+
+* Fixed a regression introduced in CumulusCI 3.13.0 where connections to a scratch org could fail with a ReadTimeout or other connection error if more than 10 minutes elapsed since a prior task that interacted with the org. This is similar to the fix from 3.13.2, but for scratch orgs.
+
+* Show a clearer error message if dependencies are configured in an unrecognized format.
+
+3.13.2 (2020-06-10)
+-------------------
+
+Issues closed:
+
+* Fixed a regression introduced in CumulusCI 3.13.0 where connections to Salesforce could fail
+  with a ReadTimeout or other connection error if more than 10 minutes elapsed since a prior task
+  that interacted with the org.
+
+3.13.1 (2020-06-09)
+-------------------
+
+Issues closed:
+
+* Fixed a bug with "after:" steps in the `load_dataset` task.
+* Fixed a bug with record types in the `extract_dataset` task.
+
+3.13.0 (2020-06-04)
+-------------------
+
+Changes:
+
+* A new Metadata ETL task, ``add_picklist_entries``, safely adds picklist values to an existing custom field.
+
+* Added the ``cci org prune`` command to automatically remove all expired scratch orgs from the CumulusCI keychain.
+
+* Improvements to the ``cci org shell`` command:
+
+  * Better inline help
+  * New ``query`` and ``describe`` functions
+
+* Scratch org creation will now wait up to 120 minutes for the org to be created
+  to avoid timeouts with more complex org shapes.
+
+* The ``generate_data_dictionary`` task now has more features for complex projects.
+  By default, the task will walk through all project dependencies and include them
+  in the generated data dictionaries. Other non-dependency projects can be included
+  with the ``additional_dependencies`` option. The output format has been extensively improved.
+
+* The ``run_tests`` task supports a new option, ``required_org_code_coverage_percent``.
+  If set, the task will fail if aggregate code coverage in the org is less than the configured value.
+  Code coverage verification is available only in unmanaged builds.
+
+* The ``install_managed`` and ``update_dependencies`` tasks now accept a ``security_type`` option
+  to specify whether the package should be installed for all users or for admins only.
+
+* ``when`` expressions can now use the ``has_minimum_package_version`` method
+  to check if a package is installed with a sufficient version. For example:
+  ``when: org_config.has_minimum_package_version("namespace", "1.0")``
+
+* Robot Framework:
+
+  * Added a new keyword in the modal page objects, ``Select dropdown value``.
+    This keyword will be available whenever you use the ``Wait for modal`` keyword
+    to pull in a modal page object.
+
+Issues closed:
+
+  * Limited the variables available in global scope for the ``cci shell`` command.
+  * Tasks based on ``BaseSalesforceApiTask`` which use the Bulk API now default
+    to using the project's API version rather than 40.0.
+  * Bulk data tasks:
+
+    * The ``extract_dataset`` task no longer converts to snake_case when picking a name for lookup columns.
+    * Improved error message when trying to use the ``load_dataset`` command with an incorrect record type.
+    * Fixed a bug with the ``generate_mapping_file`` option.
+
+
 3.12.2 (2020-05-07)
 -------------------
 
@@ -17,7 +106,7 @@ Changes:
 
 * The ``update_package_xml`` task now supports the ``NavigationMenu`` metadata type.
 
-Issued closed:
+Issues closed:
 
 * In the Salesforce library for Robot Framework,
   fixed locators for the actions ribbon and app launcher button in Summer '20.

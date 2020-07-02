@@ -1061,6 +1061,7 @@ class TestOrgConfig(unittest.TestCase):
     @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
     def test_refresh_oauth_token(self, SalesforceOAuth2):
         config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
+        config._client = mock.Mock()
         config._load_userinfo = mock.Mock()
         config._load_orginfo = mock.Mock()
         keychain = mock.Mock()
@@ -1071,6 +1072,7 @@ class TestOrgConfig(unittest.TestCase):
         config.refresh_oauth_token(keychain)
 
         oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
+        assert config._client is None
 
     def test_refresh_oauth_token_no_connected_app(self):
         config = OrgConfig({}, "test")
@@ -1129,16 +1131,24 @@ class TestOrgConfig(unittest.TestCase):
             config.refresh_oauth_token(None)
             assert config.access_token == "TOKEN"
 
-    def test_lightning_base_url(self):
+    def test_lightning_base_url__instance(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         self.assertEqual("https://na01.lightning.force.com", config.lightning_base_url)
+
+    def test_lightning_base_url__scratch_org(self):
+        config = OrgConfig(
+            {"instance_url": "https://foo.cs42.my.salesforce.com"}, "test"
+        )
+        self.assertEqual("https://foo.lightning.force.com", config.lightning_base_url)
+
+    def test_lightning_base_url__mydomain(self):
+        config = OrgConfig({"instance_url": "https://foo.my.salesforce.com"}, "test")
+        self.assertEqual("https://foo.lightning.force.com", config.lightning_base_url)
 
     @responses.activate
     def test_get_salesforce_version(self):
         responses.add(
-            "GET",
-            f"https://na01.salesforce.com/services/data",
-            json=[{"version": 42.0}],
+            "GET", "https://na01.salesforce.com/services/data", json=[{"version": 42.0}]
         )
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"

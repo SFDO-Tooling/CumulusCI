@@ -62,14 +62,22 @@ def recursive_list_files(d="."):
 
 class TestCCI(unittest.TestCase):
     @classmethod
-    def setUpClass(self):
-        self.tempdir = tempfile.mkdtemp()
-        os.environ["HOME"] = self.tempdir
-        os.environ["CUMULUSCI_KEY"] = ""
+    def setUpClass(cls):
+        cls.global_tempdir = tempfile.gettempdir()
+        cls.tempdir = tempfile.mkdtemp()
+        cls.environ_mock = mock.patch.dict(
+            os.environ, {"HOME": tempfile.mkdtemp(), "CUMULUSCI_KEY": ""}
+        )
+        assert cls.global_tempdir not in os.environ.get("HOME", "")
+        cls.environ_mock.start()
+        assert cls.global_tempdir in os.environ["HOME"]
 
     @classmethod
-    def tearDownClass(self):
-        shutil.rmtree(self.tempdir)
+    def tearDownClass(cls):
+        assert cls.global_tempdir in os.environ["HOME"]
+        cls.environ_mock.stop()
+        shutil.rmtree(cls.tempdir)
+        assert cls.global_tempdir not in os.environ.get("HOME", "")
 
     def test_get_installed_version(self):
         result = cci.get_installed_version()
@@ -291,7 +299,7 @@ class TestCCI(unittest.TestCase):
         cci_open.__enter__.return_value = mock.Mock()
 
         cci.handle_exception(click.ClickException("oops"), False, logfile_path)
-        style.call_args_list[0][0] == f"Error: oops"
+        style.call_args_list[0][0] == "Error: oops"
 
         os.remove(logfile_path)
 
@@ -310,7 +318,7 @@ class TestCCI(unittest.TestCase):
         cci.connection_error_message()
         style.assert_called_once_with(
             (
-                f"We encountered an error with your internet connection. "
+                "We encountered an error with your internet connection. "
                 "Please check your connection and try the last cci command again."
             ),
             fg="red",
@@ -923,6 +931,21 @@ Environment Info: Rossian / x68_46
                 global_org=False,
             )
 
+    def test_org_connect_lightning_url(self):
+        runtime = mock.Mock()
+
+        with self.assertRaises(click.UsageError) as e:
+            run_click_command(
+                cci.org_connect,
+                runtime=runtime,
+                org_name="test",
+                sandbox=True,
+                login_url="https://test1.lightning.force.com/",
+                default=True,
+                global_org=False,
+            )
+            assert "lightning" in str(e.exception)
+
     def test_org_default(self):
         runtime = mock.Mock()
 
@@ -1186,10 +1209,7 @@ Environment Info: Rossian / x68_46
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {
-            "shape1": True,
-            "shape2": True,
-        }
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
@@ -1295,10 +1315,7 @@ Environment Info: Rossian / x68_46
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {
-            "shape1": True,
-            "shape2": True,
-        }
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
@@ -1376,10 +1393,7 @@ Environment Info: Rossian / x68_46
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {
-            "shape1": True,
-            "shape2": True,
-        }
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
