@@ -3,6 +3,7 @@ import os
 import tempfile
 import unittest
 from unittest import mock
+from pathlib import Path
 
 import pytest
 
@@ -395,7 +396,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
         self._mk_temp_home()
         self._home_patch = mock.patch(
-            "pathlib.Path.home", return_value=self.tempdir_home
+            "pathlib.Path.home", return_value=Path(self.tempdir_home)
         )
         self._home_patch.__enter__()
         self._mk_temp_project()
