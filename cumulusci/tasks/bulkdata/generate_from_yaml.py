@@ -13,7 +13,7 @@ from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTas
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 from snowfakery.output_streams import SqlOutputStream
 from snowfakery.data_generator import generate, StoppingCriteria
-from snowfakery.generate_mapping_from_factory import mapping_from_factory_templates
+from snowfakery.generate_mapping_from_recipe import mapping_from_recipe_templates
 
 
 class GenerateDataFromYaml(BaseGenerateDataTask):
@@ -73,7 +73,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
 
             if not num_records_tablename:
                 raise TaskOptionsError(
-                    f"Cannot specify num_records without num_records_tablename."
+                    "Cannot specify num_records without num_records_tablename."
                 )
 
             self.stopping_criteria = StoppingCriteria(
@@ -167,5 +167,5 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         if self.generate_mapping_file:
             with open(self.generate_mapping_file, "w+") as f:
                 yaml.safe_dump(
-                    mapping_from_factory_templates(summary), f, sort_keys=False
+                    mapping_from_recipe_templates(summary), f, sort_keys=False
                 )
