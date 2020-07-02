@@ -209,7 +209,7 @@ def main(args=None):
         debug = "--debug" in args
         if debug:
             args.remove("--debug")
-        should_show_exceptions = os.environ.get("CCI_SHOW_EXCEPTIONS", False)
+        should_show_exceptions = RUNTIME.global_config.cli__show_exceptions
 
         # Only create logfiles for commands
         # that are not `cci error`
@@ -380,9 +380,10 @@ def error():
     you can use the `cci error gist` command. Just make sure
     that your GitHub access token has the 'create gist' scope.
 
-    If you'd like to regularly see stack traces, set the `CCI_SHOW_EXCEPTIONS`
-    environment variable to `True`, or to see a stack-trace (and other debugging
-    information) just once, use the `--debug` command line option.
+    If you'd like to regularly see stack traces, set the `show_exceptions`
+    option to `True` in the "cli" section of `~/.cumulusci/cumulusci.yml`, or to
+    see a stack-trace (and other debugging information) just once, use the `--debug`
+    command line option.
 
     For more information on working with errors in CumulusCI visit:
     https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors

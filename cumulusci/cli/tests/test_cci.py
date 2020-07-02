@@ -204,7 +204,6 @@ class TestCCI(unittest.TestCase):
         get_tempfile_logger.assert_called_once()
         tee.assert_called_once()
 
-    @mock.patch.dict(os.environ, {"CCI_SHOW_EXCEPTIONS": "True"})
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
@@ -213,7 +212,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.cli")
     @mock.patch("pdb.post_mortem")
     @mock.patch("sys.exit")
-    def test_main__CCI_SHOW_EXCEPTIONS(
+    def test_main__cci_show_exceptions(
         self,
         sys_exit,
         post_mortem,
@@ -224,6 +223,9 @@ class TestCCI(unittest.TestCase):
         get_tempfile_logger,
         tee,
     ):
+        runtime = mock.Mock()
+        runtime.global_config.cli__show_exceptions = True
+        CliRuntime.return_value = runtime
         cli.side_effect = Exception
         get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
 
@@ -271,6 +273,10 @@ class TestCCI(unittest.TestCase):
         logfile_path,
         tee,
     ):
+        runtime = mock.Mock()
+        runtime.global_config.cli__show_exceptions = False
+        CliRuntime.return_value = runtime
+
         expected_logfile_content = "Hello there, I'm a logfile."
         logfile_path.is_file.return_value = True
         logfile_path.read_text.return_value = expected_logfile_content

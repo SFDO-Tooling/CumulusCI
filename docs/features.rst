@@ -763,6 +763,10 @@ The URL for the gist is displayed on the terminal of the user as output, and a w
 
 Seeing Stack Traces Automatically
 ---------------------------------
-If you would like to investigate bugs in CumulusCI when you find them, you can set the environment variable `CCI_SHOW_EXCEPTIONS` to True and exceptions will no longer be surpressed when they are thrown within CumulusCI. Usage Errors (wrong command line arguments, missing files, etc.) will not show you exception tracebacks because they are seldom helpful in that case.
+If you would like to investigate bugs in CumulusCI when you find them, you can set the config 
+option `show_exceptions` to `True` in the `cli` section of `~/.cumulusci/cumulusci.yml` and exceptions will no 
+longer be surpressed when they are thrown within CumulusCI. Usage Errors (wrong command 
+line arguments, missing files, etc.) will not show you exception tracebacks because they 
+are seldom helpful in that case.
 
 CumulusCI also has a `--debug` command line argument that may help you investigate bugs.
