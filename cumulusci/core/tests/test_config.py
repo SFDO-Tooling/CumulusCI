@@ -1135,6 +1135,12 @@ class TestOrgConfig(unittest.TestCase):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         self.assertEqual("https://na01.lightning.force.com", config.lightning_base_url)
 
+    def test_lightning_base_url__scratch_org(self):
+        config = OrgConfig(
+            {"instance_url": "https://foo.cs42.my.salesforce.com"}, "test"
+        )
+        self.assertEqual("https://foo.lightning.force.com", config.lightning_base_url)
+
     def test_lightning_base_url__mydomain(self):
         config = OrgConfig({"instance_url": "https://foo.my.salesforce.com"}, "test")
         self.assertEqual("https://foo.lightning.force.com", config.lightning_base_url)
