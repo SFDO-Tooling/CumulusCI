@@ -5,6 +5,7 @@ import yaml
 
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 class GenerateMapping(BaseSalesforceApiTask):
@@ -69,6 +70,13 @@ class GenerateMapping(BaseSalesforceApiTask):
 
         # Cache the global describe, which we'll walk.
         self.global_describe = self.sf.describe()
+
+        sobject_names = set(obj["name"] for obj in self.global_describe["sobjects"])
+
+        unknown_objects = set(self.mapping_objects) - sobject_names
+
+        if unknown_objects:
+            raise TaskOptionsError(f"{unknown_objects} cannot be found in the org.")
 
         # First, we'll get a list of all objects that are either
         # (a) custom, no namespace
