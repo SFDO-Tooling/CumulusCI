@@ -13,7 +13,8 @@ from cumulusci.oauth.salesforce import jwt_session
 
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
-MYDOMAIN_RE = re.compile(r"([^\d])\.my\.(.*)salesforce\.com")
+SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
+MYDOMAIN_RE = re.compile(r"\.my\.(.*)salesforce\.com")
 
 
 class OrgConfig(BaseConfig):
@@ -86,8 +87,11 @@ class OrgConfig(BaseConfig):
 
     @property
     def lightning_base_url(self):
-        if MYDOMAIN_RE.search(self.instance_url):
-            return MYDOMAIN_RE.sub(r"\1.lightning.\2force.com", self.instance_url)
+        instance_url = self.instance_url.rstrip("/")
+        if SANDBOX_MYDOMAIN_RE.search(instance_url):
+            return SANDBOX_MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
+        elif MYDOMAIN_RE.search(instance_url):
+            return MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
         else:
             return self.instance_url.split(".")[0] + ".lightning.force.com"
 
