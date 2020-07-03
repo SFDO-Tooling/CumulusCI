@@ -1,5 +1,4 @@
 from collections import defaultdict
-import random
 from typing import Dict
 
 import click
@@ -250,17 +249,6 @@ class GenerateMapping(BaseSalesforceApiTask):
             ]
 
             if not objs_without_deps:
-                self.logger.info(
-                    "CumulusCI needs help to complete the mapping; the schema contains reference cycles and unresolved dependencies."
-                )
-                self.logger.info(f"Mapped objects: {', '.join(stack)}")
-                self.logger.info("Remaining objects:")
-                for obj in objs_remaining:
-                    self.logger.info(obj)
-                    for other_obj in dependencies[obj]:
-                        self.logger.info(
-                            f"   references {other_obj} via: {', '.join(dependencies[obj][other_obj])}"
-                        )
                 choice = self.choose_next_object(objs_remaining, dependencies)
                 objs_without_deps = [choice]
 
@@ -291,14 +279,26 @@ class GenerateMapping(BaseSalesforceApiTask):
         free_obj = self.find_free_object(objs_remaining, dependencies)
         if free_obj:
             return free_obj
-        elif self.options["break_cycles"] == "ask":
+
+        self.logger.info(
+            "CumulusCI needs help to complete the mapping; the schema contains reference cycles and unresolved dependencies."
+        )
+        self.logger.info("Remaining objects:")
+        for obj in objs_remaining:
+            self.logger.info(obj)
+            for other_obj in dependencies[obj]:
+                self.logger.info(
+                    f"   references {other_obj} via: {', '.join(dependencies[obj][other_obj])}"
+                )
+
+        if self.options["break_cycles"] == "ask":
             return click.prompt(
                 "Which object should we load first?",
                 type=click.Choice(tuple(objs_remaining)),
                 show_choices=True,
             )
         elif self.options["break_cycles"] == "auto":
-            return random.choice(tuple(objs_remaining))
+            return tuple(objs_remaining)[0]
 
     def _is_any_custom_api_name(self, api_name):
         """True if the entity name is custom (including any package)."""

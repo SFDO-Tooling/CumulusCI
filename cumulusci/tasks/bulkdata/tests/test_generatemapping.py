@@ -813,7 +813,6 @@ class TestMappingGenerator(unittest.TestCase):
 
 @pytest.mark.skip()  # this is slow even with VCR
 class TestIntegrationGenerateMapping:
-    @pytest.mark.skip()
     @pytest.mark.vcr()
     def test_simple_generate(self, create_task):
         with TemporaryDirectory() as t:
@@ -824,7 +823,6 @@ class TestIntegrationGenerateMapping:
             task()
             assert Path(tempfile).exists()
 
-    @pytest.mark.skip()
     @pytest.mark.vcr()
     def test_generate_with_cycles(self, create_task):
         with TemporaryDirectory() as t:
