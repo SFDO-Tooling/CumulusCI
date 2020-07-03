@@ -1,5 +1,6 @@
 from unittest import mock
 import pytest
+import simple_salesforce
 
 from cumulusci.tasks.push.push_api import BasePushApiObject
 from cumulusci.tasks.push.push_api import SalesforcePushApi
@@ -82,7 +83,14 @@ class TestMetadataPacakage:
 
     NAME = "Chewbacca"
     SF_ID = "sf_id"
-    PUSH_API = "push_api"
+    PUSH_API = SalesforcePushApi(
+        simple_salesforce.Salesforce(
+            instance_url="https://login.salesforce.com/",
+            session_id="cute_animaals",
+            version="48.0",
+        ),
+        mock.Mock(),
+    )
     NAMESPACE = "namespace"
 
     @pytest.fixture
