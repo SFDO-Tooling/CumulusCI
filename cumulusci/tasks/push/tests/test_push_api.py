@@ -78,6 +78,7 @@ class TestBasePushApiObject:
         assert "{} = '{}'".format(field_name, sf_id) == returned
 
 
+@mock.patch("cumulusci.tasks.push.push_api.SalesforcePushApi")
 class TestMetadataPacakage:
     """Provides coverage for MetadataPackage"""
 
