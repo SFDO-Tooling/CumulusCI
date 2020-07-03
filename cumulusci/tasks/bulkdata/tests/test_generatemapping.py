@@ -3,8 +3,13 @@ import unittest
 from unittest import mock
 import responses
 import yaml
+from tempfile import TemporaryDirectory
+from pathlib import Path
+
+import pytest
 
 from cumulusci.tasks.bulkdata import GenerateMapping
+from cumulusci.tasks.bulkdata.generate_mapping import FieldData
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
@@ -448,7 +453,11 @@ class TestMappingGenerator(unittest.TestCase):
         }
 
         t._build_schema()
-        self.assertEqual({"Opportunity": {"Account": set(["AccountId"])}}, t.refs)
+
+        self.assertEqual(
+            {"Opportunity": {"Account": {"AccountId": FieldData({"nillable": True})}}},
+            dict(t.refs),
+        )
 
     def test_build_schema__includes_recordtypeid(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
@@ -500,8 +509,8 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
         t.refs = {
-            "Child__c": {"Account": set(["Account__c"])},
-            "Account": {"Child__c": set(["Dependent__c"])},
+            "Child__c": {"Account": {"Account__c": FieldData({})}},
+            "Account": {"Child__c": {"Dependent__c": FieldData({})}},
         }
 
         t._build_mapping()
@@ -556,8 +565,8 @@ class TestMappingGenerator(unittest.TestCase):
         }
         t.refs = {
             "Custom__c": {
-                "Account": set(["PolyLookup__c"]),
-                "Contact": set(["PolyLookup__c"]),
+                "Account": {"PolyLookup__c": FieldData({})},
+                "Contact": {"PolyLookup__c": FieldData({})},
             }
         }
         t.logger = mock.Mock()
@@ -571,17 +580,17 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         stack = t._split_dependencies(
-            set(["Account", "Contact", "Opportunity", "Custom__c"]),
+            ["Account", "Contact", "Opportunity", "Custom__c"],
             {
-                "Contact": {"Account": set(["AccountId"])},
+                "Contact": {"Account": {"AccountId": FieldData({})}},
                 "Opportunity": {
-                    "Account": set(["AccountId"]),
-                    "Contact": set(["Primary_Contact__c"]),
+                    "Account": {"AccountId": FieldData({})},
+                    "Contact": {"Primary_Contact__c": FieldData({})},
                 },
                 "Custom__c": {
-                    "Account": set(["Account__c"]),
-                    "Contact": set(["Contact__c"]),
-                    "Opportunity": set(["Opp__c"]),
+                    "Account": {"Account__c": FieldData({})},
+                    "Contact": {"Contact__c": FieldData({})},
+                    "Opportunity": {"Opp__c": FieldData({})},
                 },
             },
         )
@@ -597,13 +606,13 @@ class TestMappingGenerator(unittest.TestCase):
         self.assertEqual(
             ["Custom__c", "Account", "Contact", "Opportunity"],
             t._split_dependencies(
-                set(["Account", "Contact", "Opportunity", "Custom__c"]),
+                ["Account", "Contact", "Opportunity", "Custom__c"],
                 {
-                    "Account": {"Contact": set(["Primary_Contact__c"])},
-                    "Contact": {"Account": set(["AccountId"])},
+                    "Account": {"Contact": {"Primary_Contact__c": FieldData({})}},
+                    "Contact": {"Account": {"AccountId": FieldData({})}},
                     "Opportunity": {
-                        "Account": set(["AccountId"]),
-                        "Contact": set(["Primary_Contact__c"]),
+                        "Account": {"AccountId": FieldData({})},
+                        "Contact": {"Primary_Contact__c": FieldData({})},
                     },
                 },
             ),
@@ -611,30 +620,99 @@ class TestMappingGenerator(unittest.TestCase):
 
     @mock.patch("click.prompt")
     @mock.patch("random.choice")
-    def test_split_dependencies__auto_pick_cycles_mocked_random(self, choice, prompt):
+    def test_split_dependencies__auto_pick_cycles_priortize_Account(
+        self, choice, prompt
+    ):
         t = _make_task(
             GenerateMapping, {"options": {"path": "t", "break_cycles": "auto"}}
         )
 
         prompt.side_effect = AssertionError("Shouldn't be called")
-        choice.return_value = "Account"
+        choice.side_effect = AssertionError("Shouldn't be called")
+        split_dependencies = t._split_dependencies(
+            ["Account", "Contact", "Opportunity", "Custom__c"],
+            {
+                "Account": {
+                    "Contact": {"Primary_Contact__c": FieldData({"nillable": False})}
+                },
+                "Contact": {"Account": {"AccountId": FieldData({"nillable": False})}},
+                "Opportunity": {
+                    "Account": {"AccountId": FieldData({"nillable": False})},
+                    "Contact": {"Primary_Contact__c": FieldData({"nillable": False})},
+                },
+            },
+        )
 
         self.assertEqual(
-            ["Custom__c", "Account", "Contact", "Opportunity"],
-            t._split_dependencies(
-                set(["Account", "Contact", "Opportunity", "Custom__c"]),
-                {
-                    "Account": {"Contact": set(["Primary_Contact__c"])},
-                    "Contact": {"Account": set(["AccountId"])},
-                    "Opportunity": {
-                        "Account": set(["AccountId"]),
-                        "Contact": set(["Primary_Contact__c"]),
+            ["Custom__c", "Account", "Contact", "Opportunity"], split_dependencies,
+        )
+        assert not choice.mock_calls
+
+    @mock.patch("click.prompt")
+    @mock.patch("random.choice")
+    def test_split_dependencies__auto_pick_cycles_randomly(self, choice, prompt):
+        t = _make_task(
+            GenerateMapping, {"options": {"path": "t", "break_cycles": "auto"}}
+        )
+
+        prompt.side_effect = AssertionError("Shouldn't be called")
+        choice.return_value = "Custom__c"
+        split_dependencies = t._split_dependencies(
+            ["Account", "Contact", "Opportunity", "Custom__c"],
+            {
+                "Account": {
+                    "Custom__c": {
+                        "Non_Nillable_Custom__c": FieldData({"nillable": False})
+                    }
+                },
+                "Custom__c": {"Account": {"AccountId": FieldData({"nillable": False})}},
+            },
+        )
+
+        self.assertEqual(
+            ["Contact", "Opportunity", "Custom__c", "Account"], split_dependencies,
+        )
+        choice.assert_called_once_with(("Account", "Custom__c"))
+
+    @mock.patch("click.prompt")
+    @mock.patch("random.choice")
+    def test_split_dependencies__auto_pick_cycles_by_relationship_type(
+        self, random_choice, prompt
+    ):
+        t = _make_task(
+            GenerateMapping, {"options": {"path": "t", "break_cycles": "auto"}}
+        )
+
+        prompt.side_effect = AssertionError("Shouldn't be called")
+        random_choice.side_effect = AssertionError("Shouldn't be called")
+
+        split_dependencies = t._split_dependencies(
+            ["AccountLike__c", "ContactLike__c", "OpportunityLike__c", "Custom__c"],
+            {
+                # Primary_Contact__c is not nillable, so ContactLike__c must be loaded before
+                # AccountLike__c despite the cycle
+                "AccountLike__c": {
+                    "ContactLike__c": {
+                        "Primary_Contact__c": FieldData({"nillable": False})
+                    }
+                },
+                "ContactLike__c": {
+                    "AccountLike__c": {"AccountId": FieldData({"nillable": True})}
+                },
+                "OpportunityLike__c": {
+                    "AccountLike__c": {"AccountId": FieldData({"nillable": True})},
+                    "ContactLike__c": {
+                        "Primary_Contact__c": FieldData({"nillable": True})
                     },
                 },
-            ),
+            },
         )
-        choice.assert_called_once()
-        choice.fjioejfio()
+
+        self.assertEqual(
+            ["Custom__c", "ContactLike__c", "AccountLike__c", "OpportunityLike__c"],
+            split_dependencies,
+        )
+        random_choice.assert_not_called()
 
     @mock.patch("click.prompt")
     def test_split_dependencies__auto_pick_cycles(self, prompt):
@@ -648,15 +726,72 @@ class TestMappingGenerator(unittest.TestCase):
             set(["Custom__c", "Account", "Contact", "Opportunity"]),
             set(
                 t._split_dependencies(
-                    set(["Account", "Contact", "Opportunity", "Custom__c"]),
+                    ["Account", "Contact", "Opportunity", "Custom__c"],
                     {
-                        "Account": {"Contact": set(["Primary_Contact__c"])},
-                        "Contact": {"Account": set(["AccountId"])},
+                        "Account": {
+                            "Contact": {
+                                "Primary_Contact__c": FieldData({"nillable": True})
+                            }
+                        },
+                        "Contact": {
+                            "Account": {"AccountId": FieldData({"nillable": True})}
+                        },
                         "Opportunity": {
-                            "Account": set(["AccountId"]),
-                            "Contact": set(["Primary_Contact__c"]),
+                            "Account": {"AccountId": FieldData({"nillable": True})},
+                            "Contact": {
+                                "Primary_Contact__c": FieldData({"nillable": True})
+                            },
                         },
                     },
                 ),
             ),
         )
+
+
+@pytest.mark.skip()  # this is slow even with VCR
+class TestIntegrationGenerateMapping:
+    @pytest.mark.skip()
+    @pytest.mark.vcr()
+    def test_simple_generate(self, create_task):
+        with TemporaryDirectory() as t:
+            tempfile = Path(t) / "tempfile.mapping.yml"
+
+            task = create_task(GenerateMapping, {"path": tempfile})
+            assert not Path(tempfile).exists()
+            task()
+            assert Path(tempfile).exists()
+
+    @pytest.mark.skip()
+    @pytest.mark.vcr()
+    def test_generate_with_cycles(self, create_task):
+        with TemporaryDirectory() as t:
+            tempfile = Path(t) / "tempfile.mapping.yml"
+
+            task = create_task(
+                GenerateMapping,
+                {
+                    "path": tempfile,
+                    "include": [
+                        "Account",
+                        "Contact",
+                        "Opportunity",
+                        "OpportunityContactRole",
+                    ],
+                },
+            )
+            assert not Path(tempfile).exists()
+            task()
+            assert Path(tempfile).exists()
+
+    def test_big_generate(self, create_task, sf):
+        with TemporaryDirectory() as t:
+            tempfile = Path(t) / "tempfile.mapping.yml"
+
+            every_obj = sf.describe["sobjects"].keys()
+
+            task = create_task(
+                GenerateMapping, {"path": tempfile, "include": every_obj},
+            )
+            assert not Path(tempfile).exists()
+            task()
+            assert Path(tempfile).exists()

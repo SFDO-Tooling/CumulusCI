@@ -1,5 +1,6 @@
 from collections import defaultdict
 import random
+from typing import Dict
 
 import click
 import yaml
@@ -126,7 +127,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         # and master-detail relationships. Required means createable and not nillable.
         # In all cases, ensure that RecordTypeId is included if and only if there are Record Types
         self.schema = {}
-        self.refs = defaultdict(lambda: defaultdict(set))
+        self.refs = defaultdict(lambda: defaultdict(dict))
         for obj in self.mapping_objects:
             self.schema[obj] = {}
 
@@ -147,7 +148,9 @@ class GenerateMapping(BaseSalesforceApiTask):
                                 # We've already vetted that this field is referencing
                                 # included objects, via `_is_field_mappable()`
                                 if target != obj:
-                                    self.refs[obj][target].add(field["name"])
+                                    self.refs[obj][target][field["name"]] = FieldData(
+                                        field
+                                    )
                 if (
                     field["name"] == "RecordTypeId"
                     and len(self.describes[obj]["recordTypeInfos"]) > 1
@@ -157,7 +160,7 @@ class GenerateMapping(BaseSalesforceApiTask):
 
     def _build_mapping(self):
         """Output self.schema in mapping file format by constructing a dict and serializing to YAML"""
-        objs = set(self.schema.keys())
+        objs = list(self.schema.keys())
         stack = self._split_dependencies(objs, self.refs)
 
         field_sort = (
@@ -244,7 +247,7 @@ class GenerateMapping(BaseSalesforceApiTask):
                         self.logger.info(
                             f"   references {other_obj} via: {', '.join(dependencies[obj][other_obj])}"
                         )
-                choice = self.choose_next_object(objs_remaining)
+                choice = self.choose_next_object(objs_remaining, dependencies)
                 objs_without_deps = [choice]
 
             for obj in objs_without_deps:
@@ -260,8 +263,21 @@ class GenerateMapping(BaseSalesforceApiTask):
 
         return stack
 
-    def choose_next_object(self, objs_remaining):
-        if self.options["break_cycles"] == "ask":
+    def find_free_object(self, objs_remaining: list, dependencies: dict):
+        free_objs = (
+            sobj
+            for sobj in objs_remaining
+            if only_has_soft_dependencies(sobj, dependencies[sobj])
+        )
+        first_free_obj = next(free_objs, None)
+
+        return first_free_obj
+
+    def choose_next_object(self, objs_remaining: list, dependencies: dict):
+        free_obj = self.find_free_object(objs_remaining, dependencies)
+        if free_obj:
+            return free_obj
+        elif self.options["break_cycles"] == "ask":
             return click.prompt(
                 "Which object should we load first?",
                 type=click.Choice(tuple(objs_remaining)),
@@ -360,3 +376,36 @@ class GenerateMapping(BaseSalesforceApiTask):
         return field["type"] == "reference" and self._are_lookup_targets_in_operation(
             field
         )
+
+
+class FieldData:
+    nillable: bool
+
+    def __init__(self, describe_data: dict):
+        self.nillable = describe_data.get("nillable")
+
+    def __eq__(self, other: "FieldData"):
+        return self.__dict__ == other.__dict__
+
+
+def is_standard(obj: str):
+    return not obj.endswith("__c")
+
+
+def soft_dependency(sobj, target_obj: str, field_data: FieldData):
+    return field_data.nillable or (sobj == "Account" and is_standard(target_obj))
+
+
+def only_has_soft_dependencies(
+    sobj: str, obj_dependencies: Dict[str, Dict[str, FieldData]]
+):
+    for target_obj, field_deps in obj_dependencies.items():
+        for field_name, field_data in field_deps.items():
+            # all references from Account are considered soft dependencies.
+            # all nillable references are considered soft dependencies.
+            #
+            # A single hard dependency renders an object "not yet free"
+            if not soft_dependency(sobj, target_obj, field_data):
+                return False
+
+    return True
