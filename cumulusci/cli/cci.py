@@ -1225,6 +1225,7 @@ The cumulusci shell gives you access to the following objects and functions:
 * sf - simple_salesforce connected to your org. [1]
 * org_config - local information about your org. [2]
 * project_config - information about your project. [3]
+* tooling - simple_salesforce connected to the tooling API on your org.
 * query() - SOQL query. `help(query)` for more information
 * describe() - Inspect object fields. `help(describe)` for more information
 * help() - for interactive help on Python
