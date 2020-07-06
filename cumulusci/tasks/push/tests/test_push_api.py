@@ -1,13 +1,18 @@
 from unittest import mock
 
 import pytest
+
 from cumulusci.tasks.push.push_api import (
-    BasePushApiObject,
+    memoize,
+    batch_list,
     MetadataPackage,
     MetadataPackageVersion,
+    BasePushApiObject,
+    PackageSubscriber,
+    PackagePushError,
+    PackagePushJob,
+    PackagePushRequest,
     SalesforcePushApi,
-    batch_list,
-    memoize,
 )
 
 NAME = "Chewbacca"
@@ -302,3 +307,156 @@ def test_version_get_older(metadata_package_version):
     metadata_package_version.package.get_package_version_objs.assert_called_with(
         expected.strip()
     )
+
+
+class TestPackageSubscriber:
+    """Provides coverage for PackageSubscriber"""
+
+    NAME = "foo"
+    PUSH_API = "push_api"
+    SF_ID = "006000000XXX000"
+    VERSION = "1.2.3"
+    STATUS = "Complete"
+    ORG_NAME = "foo"
+    ORG_KEY = "bar"
+    ORG_STATUS = "Complete"
+    ORG_TYPE = "Sandbox"
+
+    @pytest.fixture
+    def package(self):
+        return PackageSubscriber(
+            self.PUSH_API,
+            self.VERSION,
+            self.STATUS,
+            self.ORG_NAME,
+            self.ORG_KEY,
+            self.ORG_STATUS,
+            self.ORG_TYPE,
+            self.SF_ID,
+        )
+
+    def test_init(self):
+        package = PackageSubscriber(
+            self.PUSH_API,
+            self.VERSION,
+            self.STATUS,
+            self.ORG_NAME,
+            self.ORG_KEY,
+            self.ORG_STATUS,
+            self.ORG_TYPE,
+            self.SF_ID,
+        )
+
+        assert package.push_api == self.PUSH_API
+        assert package.sf_id == self.SF_ID
+        assert package.org_name == self.ORG_NAME
+        assert package.version == self.VERSION
+
+        assert package.org_key == self.ORG_KEY
+        assert package.org_status == self.ORG_STATUS
+        assert package.org_type == self.ORG_TYPE
+
+        assert package.format_where("foo") == "foo = 'bar'"
+        assert package.format_where("foo", "foobar") == "foo = 'bar' AND (foobar)"
+
+
+class TestPackagePushJob:
+    """Provides coverage for PackagePushError"""
+
+    PUSH_API = "push_api"
+    SF_ID = "006000000XXX000"
+    JOB = "foo"
+    SEVERITY = "Low"
+    ERROR_TYPE = "Exception Error"
+    TITLE = "BAR"
+    MESSAGE = "Message Here"
+    DETAILS = "Details Here"
+
+    @pytest.fixture
+    def package(self):
+        return PackagePushError(
+            self.PUSH_API,
+            self.JOB,
+            self.SEVERITY,
+            self.ERROR_TYPE,
+            self.TITLE,
+            self.MESSAGE,
+            self.DETAILS,
+            self.SF_ID,
+        )
+
+    def test_init(self):
+        package = PackagePushError(
+            self.PUSH_API,
+            self.JOB,
+            self.SEVERITY,
+            self.ERROR_TYPE,
+            self.TITLE,
+            self.MESSAGE,
+            self.DETAILS,
+            self.SF_ID,
+        )
+
+        assert package.push_api == self.PUSH_API
+        assert package.sf_id == self.SF_ID
+        assert package.job == self.JOB
+        assert package.severity == self.SEVERITY
+
+        assert package.error_type == self.ERROR_TYPE
+        assert package.title == self.TITLE
+        assert package.message == self.MESSAGE
+        assert package.details == self.DETAILS
+
+
+class TestPackagePushRequest:
+    """Provides coverage for PackagePushRequest"""
+
+    PUSH_API = "push_api"
+    VERSION = "1.2.3"
+    START_TIME = "12:03"
+    STATUS = "Complete"
+    SF_ID = "006000000XXX000"
+
+    @pytest.fixture
+    def package(self):
+        return PackagePushRequest(
+            self.PUSH_API, self.VERSION, self.START_TIME, self.STATUS, self.SF_ID
+        )
+
+    def test_init(self):
+        package = PackagePushRequest(
+            self.PUSH_API, self.VERSION, self.START_TIME, self.STATUS
+        )
+
+        assert package.push_api == self.PUSH_API
+        assert package.sf_id is None
+        assert package.version == self.VERSION
+
+        assert package.start_time == self.START_TIME
+        assert package.status == self.STATUS
+
+
+class TestPackagePushError:
+    """Provides coverage for PackagePushJob"""
+
+    PUSH_API = "push_api"
+    REQUEST = "foo"
+    ORG = "Low"
+    STATUS = "Complete"
+    SF_ID = "006000000XXX000"
+
+    @pytest.fixture
+    def package(self):
+        return PackagePushJob(
+            self.PUSH_API, self.REQUEST, self.ORG, self.STATUS, self.SF_ID
+        )
+
+    def test_init(self):
+        package = PackagePushJob(self.PUSH_API, self.REQUEST, self.ORG, self.STATUS)
+
+        assert package.push_api == self.PUSH_API
+        assert package.sf_id is None
+        assert package.request == self.REQUEST
+
+        assert package.org == self.ORG
+        assert package.status == self.STATUS
