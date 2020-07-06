@@ -29,8 +29,8 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "Github dependencies may include 'tag' to install a particular git ref. "
             "Package dependencies may include 'version' to install a particular version."
         },
-        "skip_dependencies": {
-            "description": "List of dependencies to be skipped, including if they are present as transitive "
+        "ignore_dependencies": {
+            "description": "List of dependencies to be ignored, including if they are present as transitive "
             "dependencies. Dependencies can be specified using the 'github' or 'namespace' keys (all other keys "
             "are not used). Note that this can cause installations to fail if required prerequisites are not available."
         },
@@ -83,15 +83,13 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 f"Unsupported value for security_type: {self.options['security_type']}"
             )
 
-        if "skip_dependencies" in self.options:
+        if "ignore_dependencies" in self.options:
             if any(
-                [
-                    "github" not in dep and "namespace" not in dep
-                    for dep in self.options["skip_dependencies"]
-                ]
+                "github" not in dep and "namespace" not in dep
+                for dep in self.options["ignore_dependencies"]
             ):
                 raise TaskOptionsError(
-                    "An invalid dependency was specified for skip_dependencies."
+                    "An invalid dependency was specified for ignore_dependencies."
                 )
 
     def _run_task(self):
@@ -110,7 +108,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         dependencies = self.project_config.get_static_dependencies(
             self.options["dependencies"],
             include_beta=self.options["include_beta"],
-            ignore_deps=self.options.get("skip_dependencies"),
+            ignore_deps=self.options.get("ignore_dependencies"),
         )
 
         self.installed = None
@@ -355,7 +353,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
     def freeze(self, step):
         ui_options = self.task_config.config.get("ui_options", {})
         dependencies = self.project_config.get_static_dependencies(
-            self.options["dependencies"], include_beta=self.options["include_beta"]
+            self.options["dependencies"],
+            include_beta=self.options["include_beta"],
+            ignore_deps=self.options.get("ignore_dependencies"),
         )
         steps = []
         for i, dependency in enumerate(self._flatten(dependencies), start=1):

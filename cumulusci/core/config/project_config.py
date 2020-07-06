@@ -529,6 +529,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         Keyword arguments:
         :param dependencies: a list of dependencies to resolve
         :param include_beta: when true, return the latest github release, even if pre-release; else return the latest stable release
+        :param ignore_deps: if provided, ignore the specified dependencies wherever found.
         """
         if not dependencies:
             dependencies = self.project__dependencies
