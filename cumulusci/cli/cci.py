@@ -1255,11 +1255,15 @@ def org_shell(runtime, org_name, script=None, python=None):
     org_config.refresh_oauth_token(runtime.keychain)
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
+    tooling = get_simple_salesforce_connection(
+        runtime.project_config, org_config, api_name="tooling"
+    )
 
     sf_helpers = SimpleSalesforceUIHelpers(sf)
 
     globals = {
         "sf": sf,
+        "tooling": tooling,
         "org_config": org_config,
         "project_config": runtime.project_config,
         "help": CCIHelp(),
