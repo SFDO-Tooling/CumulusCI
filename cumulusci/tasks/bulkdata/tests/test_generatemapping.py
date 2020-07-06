@@ -712,14 +712,12 @@ class TestMappingGenerator(unittest.TestCase):
         assert not choice.mock_calls
 
     @mock.patch("click.prompt")
-    @mock.patch("random.choice")
-    def test_split_dependencies__auto_pick_cycles_randomly(self, choice, prompt):
+    def test_split_dependencies__auto_pick_cycles_randomly(self, prompt):
         t = _make_task(
             GenerateMapping, {"options": {"path": "t", "break_cycles": "auto"}}
         )
 
         prompt.side_effect = AssertionError("Shouldn't be called")
-        choice.return_value = "Custom__c"
         split_dependencies = t._split_dependencies(
             ["Account", "Contact", "Opportunity", "Custom__c"],
             {
@@ -733,9 +731,8 @@ class TestMappingGenerator(unittest.TestCase):
         )
 
         self.assertEqual(
-            ["Contact", "Opportunity", "Custom__c", "Account"], split_dependencies,
+            ["Contact", "Opportunity", "Account", "Custom__c"], split_dependencies,
         )
-        choice.assert_called_once_with(("Account", "Custom__c"))
 
     @mock.patch("click.prompt")
     @mock.patch("random.choice")
