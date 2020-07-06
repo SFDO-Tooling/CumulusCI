@@ -148,7 +148,7 @@ class MappingStep(CCIDictModel):
             if f == "Id":
                 continue
 
-            if inject and self._is_injectable(f):
+            if inject and self._is_injectable(f) and inject(f) not in orig_fields:
                 if f in describe and inject(f) in describe:
                     logger.warning(
                         f"Both {self.sf_object}.{f} and {self.sf_object}.{inject(f)} are present in the target org. Using {f}."
@@ -208,7 +208,7 @@ class MappingStep(CCIDictModel):
     def validate_and_inject_namespace(
         self,
         org_config: OrgConfig,
-        namespace: str,
+        namespace: Optional[str],
         operation: DataOperationType,
         inject_namespaces: bool = False,
         drop_missing: bool = False,
@@ -225,7 +225,7 @@ class MappingStep(CCIDictModel):
         value indicates we should skip this object. If drop_missing is False, a False return
         value indicates that one or more schema elements couldn't be validated."""
 
-        if inject_namespaces:
+        if namespace and inject_namespaces:
 
             def inject(element: str):
                 return f"{namespace}__{element}"
