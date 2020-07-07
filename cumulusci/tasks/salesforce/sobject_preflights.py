@@ -59,16 +59,14 @@ class CheckSobjectOWDs(BaseSalesforceApiTask):
                 if any(owd[1] is not None for owd in self.owds.values())
                 else ""
             )
+            object_list = ", ".join(f"'{obj}'" for obj in self.owds.keys())
+            results = self.sf.query(
+                f"SELECT QualifiedApiName, InternalSharingModel{ext} "
+                "FROM EntityDefinition "
+                f"WHERE QualifiedApiName IN ({object_list})"
+            )["records"]
             self.return_values = all(
-                self._check_owds(
-                    obj,
-                    self.sf.query(
-                        f"SELECT InternalSharingModel{ext} "
-                        "FROM EntityDefinition "
-                        f"WHERE QualifiedApiName = '{obj}'"
-                    )["records"][0],
-                )
-                for obj in self.owds.keys()
+                self._check_owds(rec["QualifiedApiName"], rec) for rec in results
             )
         except (IndexError, KeyError, SalesforceMalformedRequest):
             self.return_values = False

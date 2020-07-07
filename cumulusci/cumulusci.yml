@@ -34,6 +34,10 @@ tasks:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
+    check_communities_enabled:
+        description: Checks whether Communities are enabled.
+        class_path: cumulusci.tasks.salesforce.communities_preflights.IsCommunitiesEnabled
+        group: Salesforce Preflight Checks
     check_org_wide_defaults:
         description: Runs as a preflight check to validate Organization-Wide Defaults.
         class_path: cumulusci.tasks.salesforce.sobject_preflights.CheckSobjectOWDs
@@ -168,10 +172,6 @@ tasks:
     get_available_permission_set_licenses:
         description: Retrieves a list of the currently available Permission Set License definition keys
         class_path: cumulusci.tasks.salesforce.license_preflights.GetAvailablePermissionSetLicenses
-        group: Salesforce Preflight Checks
-    get_is_communities_enabled:
-        description: Checks whether Communities are enabled.
-        class_path: cumulusci.tasks.salesforce.communities_preflights.IsCommunitiesEnabled
         group: Salesforce Preflight Checks
     github_parent_pr_notes:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).

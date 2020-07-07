@@ -1,41 +1,30 @@
 import unittest
+from unittest.mock import Mock
 
 from cumulusci.tasks.salesforce.communities_preflights import IsCommunitiesEnabled
 from .util import create_task
 
-import responses
-
 
 class TestCommunitiesPreflights(unittest.TestCase):
-    @responses.activate
     def test_community_preflight__positive(self):
         task = create_task(IsCommunitiesEnabled, {})
 
-        responses.add("GET", task.org_config.start_url, status=200)
-        responses.add(
-            "GET",
-            "{}/sites/servlet.SitePrerequisiteServlet".format(
-                task.org_config.instance_url
-            ),
-            status=200,
-        )
+        task._init_task = Mock()
+        task.sf = Mock()
+        task.sf.describe.return_value = {
+            "sobjects": [{"name": "Network"}, {"name": "Account"}]
+        }
 
         task()
 
         assert task.return_values is True
 
-    @responses.activate
     def test_community_preflight__negative(self):
         task = create_task(IsCommunitiesEnabled, {})
 
-        responses.add("GET", task.org_config.start_url, status=200)
-        responses.add(
-            "GET",
-            "{}/sites/servlet.SitePrerequisiteServlet".format(
-                task.org_config.instance_url
-            ),
-            status=500,
-        )
+        task._init_task = Mock()
+        task.sf = Mock()
+        task.sf.describe.return_value = {"sobjects": [{"name": "Account"}]}
 
         task()
 

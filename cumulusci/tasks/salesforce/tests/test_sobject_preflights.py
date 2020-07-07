@@ -14,14 +14,19 @@ class TestLicensePreflights(unittest.TestCase):
             CheckSobjectOWDs,
             {
                 "org_wide_defaults": [
-                    {"api_name": "Account", "internal_sharing_model": "Private"}
+                    {"api_name": "Account", "internal_sharing_model": "Private"},
+                    {"api_name": "Contact", "internal_sharing_model": "ReadWrite"},
                 ]
             },
         )
-        task._init_api = Mock()
-        task._init_api.return_value.query.return_value = {
-            "totalSize": 1,
-            "records": [{"InternalSharingModel": "Private"}],
+        task._init_task = Mock()
+        task.sf = Mock()
+        task.sf.query.return_value = {
+            "totalSize": 2,
+            "records": [
+                {"QualifiedApiName": "Account", "InternalSharingModel": "Private"},
+                {"QualifiedApiName": "Contact", "InternalSharingModel": "ReadWrite"},
+            ],
         }
         task()
 
@@ -36,10 +41,13 @@ class TestLicensePreflights(unittest.TestCase):
                 ]
             },
         )
-        task._init_api = Mock()
-        task._init_api.return_value.query.return_value = {
+        task._init_task = Mock()
+        task.sf = Mock()
+        task.sf.query.return_value = {
             "totalSize": 1,
-            "records": [{"InternalSharingModel": "ReadWrite"}],
+            "records": [
+                {"QualifiedApiName": "Account", "InternalSharingModel": "ReadWrite"}
+            ],
         }
         task()
 
@@ -54,11 +62,16 @@ class TestLicensePreflights(unittest.TestCase):
                 ]
             },
         )
-        task._init_api = Mock()
-        task._init_api.return_value.query.return_value = {
+        task._init_task = Mock()
+        task.sf = Mock()
+        task.sf.query.return_value = {
             "totalSize": 1,
             "records": [
-                {"InternalSharingModel": "Private", "ExternalSharingModel": "Private"}
+                {
+                    "QualifiedApiName": "Account",
+                    "InternalSharingModel": "Private",
+                    "ExternalSharingModel": "Private",
+                }
             ],
         }
         task()
@@ -78,11 +91,16 @@ class TestLicensePreflights(unittest.TestCase):
                 ]
             },
         )
-        task._init_api = Mock()
-        task._init_api.return_value.query.return_value = {
+        task._init_task = Mock()
+        task.sf = Mock()
+        task.sf.query.return_value = {
             "totalSize": 1,
             "records": [
-                {"InternalSharingModel": "ReadWrite", "ExternalSharingModel": "Private"}
+                {
+                    "QualifiedApiName": "Account",
+                    "InternalSharingModel": "ReadWrite",
+                    "ExternalSharingModel": "Private",
+                }
             ],
         }
         task()
@@ -98,8 +116,9 @@ class TestLicensePreflights(unittest.TestCase):
                 ]
             },
         )
-        task._init_api = Mock()
-        task._init_api.return_value.query.side_effect = SalesforceMalformedRequest(
+        task._init_task = Mock()
+        task.sf = Mock()
+        task.sf.query.side_effect = SalesforceMalformedRequest(
             "url", 400, "resource_name", "content"
         )
         task()
