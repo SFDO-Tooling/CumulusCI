@@ -2,16 +2,42 @@ from cumulusci.core.exceptions import TaskOptionsError
 from unittest.mock import Mock
 import unittest
 
-from cumulusci.tasks.salesforce.sobject_preflights import CheckSobjectOWDs
-from .util import create_task
+from cumulusci.tasks.preflight.sobjects import CheckSObjectOWDs, CheckSObjectsAvailable
+from cumulusci.tasks.salesforce.tests.util import create_task
 
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 
-class TestLicensePreflights(unittest.TestCase):
+class TestCheckSObjectsAvailable(unittest.TestCase):
+    def test_sobject_preflight__positive(self):
+        task = create_task(CheckSObjectsAvailable, {"sobjects": "Network,Account"})
+
+        task._init_task = Mock()
+        task.sf = Mock()
+        task.sf.describe.return_value = {
+            "sobjects": [{"name": "Network"}, {"name": "Account"}]
+        }
+
+        task()
+
+        assert task.return_values is True
+
+    def test_sobject_preflight__negative(self):
+        task = create_task(CheckSObjectsAvailable, {"sobjects": "Network"})
+
+        task._init_task = Mock()
+        task.sf = Mock()
+        task.sf.describe.return_value = {"sobjects": [{"name": "Account"}]}
+
+        task()
+
+        assert task.return_values is False
+
+
+class TestSobjectPreflights(unittest.TestCase):
     def test_sobject_preflight__positive(self):
         task = create_task(
-            CheckSobjectOWDs,
+            CheckSObjectOWDs,
             {
                 "org_wide_defaults": [
                     {"api_name": "Account", "internal_sharing_model": "Private"},
@@ -34,7 +60,7 @@ class TestLicensePreflights(unittest.TestCase):
 
     def test_sobject_preflight__negative(self):
         task = create_task(
-            CheckSobjectOWDs,
+            CheckSObjectOWDs,
             {
                 "org_wide_defaults": [
                     {"api_name": "Account", "internal_sharing_model": "Private"}
@@ -55,7 +81,7 @@ class TestLicensePreflights(unittest.TestCase):
 
     def test_sobject_preflight__external(self):
         task = create_task(
-            CheckSobjectOWDs,
+            CheckSObjectOWDs,
             {
                 "org_wide_defaults": [
                     {"api_name": "Account", "external_sharing_model": "Private"}
@@ -80,7 +106,7 @@ class TestLicensePreflights(unittest.TestCase):
 
     def test_sobject_preflight__both(self):
         task = create_task(
-            CheckSobjectOWDs,
+            CheckSObjectOWDs,
             {
                 "org_wide_defaults": [
                     {
@@ -109,7 +135,7 @@ class TestLicensePreflights(unittest.TestCase):
 
     def test_sobject_preflight__external_not_enabled(self):
         task = create_task(
-            CheckSobjectOWDs,
+            CheckSObjectOWDs,
             {
                 "org_wide_defaults": [
                     {"api_name": "Account", "external_sharing_model": "Private"}
@@ -127,13 +153,13 @@ class TestLicensePreflights(unittest.TestCase):
 
     def test_sobject_preflight__task_options(self):
         with self.assertRaises(TaskOptionsError):
-            create_task(CheckSobjectOWDs, {})
+            create_task(CheckSObjectOWDs, {})
         with self.assertRaises(TaskOptionsError):
             create_task(
-                CheckSobjectOWDs,
+                CheckSObjectOWDs,
                 {"org_wide_defaults": [{"internal_sharing_model": "Private"}]},
             )
         with self.assertRaises(TaskOptionsError):
             create_task(
-                CheckSobjectOWDs, {"org_wide_defaults": [{"api_name": "Account"}]}
+                CheckSObjectOWDs, {"org_wide_defaults": [{"api_name": "Account"}]}
             )
