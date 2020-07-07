@@ -118,7 +118,7 @@ class MappingStep(CCIDictModel):
         elif operation is DataOperationType.UPDATE or self.action == "update":
             return "updateable"
         elif operation is DataOperationType.QUERY:
-            return "accessible"
+            return "queryable"
 
     def _check_object_permission(
         self, global_describe: Dict, sobject: str, operation: DataOperationType
@@ -130,13 +130,15 @@ class MappingStep(CCIDictModel):
         self, describe: Dict, field: str, operation: DataOperationType
     ):
         perm = self._get_permission_type(operation)
-        return field in describe and (describe[field][perm])
+        # Fields don't have "queryable" permission.
+        access = describe[field].get(perm) or True
+        return field in describe and access
 
     def _validate_field_dict(
         self,
         describe: Dict,
         field_dict: Dict[str, Any],
-        inject: Callable[[str], str],
+        inject: Optional[Callable[[str], str]],
         drop_missing: bool,
         data_operation_type: DataOperationType,
     ) -> bool:
@@ -174,7 +176,7 @@ class MappingStep(CCIDictModel):
     def _validate_sobject(
         self,
         global_describe: Dict,
-        inject: Callable[[str], str],
+        inject: Optional[Callable[[str], str]],
         drop_missing: bool,
         data_operation_type: DataOperationType,
     ) -> bool:
