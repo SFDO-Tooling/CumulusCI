@@ -1,4 +1,3 @@
-Checking the version!
 ==========================================
 Tasks Reference
 ==========================================
@@ -259,5 +258,51 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
-Error: No module named 'cumulusci.tasks.preflights'
+**check_communities_enabled**
+==========================================
+
+**Description:** Runs as a preflight check to determine whether Communities are enabled.
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_communities_enabled``
+
+
+Options
+------------------------------------------
+
+
+``-o sobjects SOBJECTS``
+	 *Required*
+
+	 A list of sObjects whose presence needs to be verified.
+
+	 Default: Network
+
+**check_sobjects_available**
+==========================================
+
+**Description:** Runs as a preflight check to determine whether specific sObjects are available.
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_sobjects_available``
+
+
+Options
+------------------------------------------
+
+
+``-o sobjects SOBJECTS``
+	 *Required*
+
+	 A list of sObjects whose presence needs to be verified.
+
+Error: module 'cumulusci.tasks.preflight.sobjects' has no attribute 'CheckSobjectOWDs'
 Run this command for more information about debugging errors: cci error --help
