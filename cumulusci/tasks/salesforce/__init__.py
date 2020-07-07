@@ -21,11 +21,22 @@ from cumulusci.tasks.salesforce.PublishCommunity import PublishCommunity
 from cumulusci.tasks.salesforce.custom_settings import LoadCustomSettings
 from cumulusci.tasks.salesforce.trigger_handlers import SetTDTMHandlerStatus
 
+# Backwards-compatibility for license preflights
+from cumulusci.tasks.preflight import licenses as license_preflights
+
+sys.modules["cumulusci.tasks.salesforce.license_preflights"] = license_preflights
+
 # inherit from BaseSalesforceMetadataApiTask
 from cumulusci.tasks.salesforce.BaseRetrieveMetadata import BaseRetrieveMetadata
 from cumulusci.tasks.salesforce.Deploy import Deploy
-from cumulusci.tasks.salesforce.GetInstalledPackages import GetInstalledPackages
 from cumulusci.tasks.salesforce.UpdateDependencies import UpdateDependencies
+
+# Backwards-compatibility for package preflights
+from cumulusci.tasks.preflight.packages import GetInstalledPackages
+from cumulusci.tasks.preflight import packages as package_preflights
+
+sys.modules["cumulusci.tasks.salesforce.GetInstalledPackages"] = package_preflights
+
 
 # inherit from BaseSalesforceApiTask and use Deploy
 from cumulusci.tasks.salesforce.EnsureRecordTypes import EnsureRecordTypes
