@@ -3732,6 +3732,11 @@ Options
 
 	 Object API names, or fields in Object.Field format, to ignore
 
+``-o include INCLUDE``
+	 *Optional*
+
+	 Object names to include even if they might not otherwise be included.
+
 **extract_dataset**
 ==========================================
 
