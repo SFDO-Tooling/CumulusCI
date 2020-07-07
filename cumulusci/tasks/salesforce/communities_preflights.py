@@ -13,11 +13,7 @@ class IsCommunitiesEnabled(BaseSalesforceApiTask):
                 self.org_config.instance_url
             )
         )
-        if r.status_code != 200:
-            self.return_values = False
-        else:
-            self.return_values = True
-
+        self.return_values = r.status_code == 200
         self.logger.info(
             "Completed Communities preflight check with result {}".format(
                 self.return_values
