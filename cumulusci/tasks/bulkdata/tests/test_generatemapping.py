@@ -7,6 +7,7 @@ import yaml
 from cumulusci.tasks.bulkdata import GenerateMapping
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.utils.schema_utils import SObjectField, Defaults, Filters
 
 
 class TestMappingGenerator(unittest.TestCase):
@@ -150,7 +151,6 @@ class TestMappingGenerator(unittest.TestCase):
     def test_has_our_custom_fields(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
-        self.assertTrue(t._has_our_custom_fields({"fields": [{"name": "Custom__c"}]}))
         self.assertTrue(
             t._has_our_custom_fields(
                 {"fields": [{"name": "Custom__c"}, {"name": "Standard"}]}
@@ -181,6 +181,13 @@ class TestMappingGenerator(unittest.TestCase):
         )
 
     def _prepare_describe_mock(self, task, describe_data):
+        def serialize(obj):
+            """JSON serializer for objects not serializable by default json code"""
+            if isinstance(obj, SObjectField):
+                return obj.to_dict()
+
+            assert 0, obj
+
         responses.add(
             method="GET",
             url=f"{task.org_config.instance_url}/services/data/v45.0/sobjects",
@@ -199,11 +206,13 @@ class TestMappingGenerator(unittest.TestCase):
             responses.add(
                 method="GET",
                 url=f"{task.org_config.instance_url}/services/data/v45.0/sobjects/{s}/describe",
-                body=json.dumps(body),
+                body=json.dumps(body, default=serialize),
                 status=200,
             )
 
     def _mock_field(self, name, field_type="string", **kwargs):
+        filters = Filters()
+        defaults = Defaults(filters)
         field_data = {
             "name": name,
             "type": field_type,
@@ -212,7 +221,7 @@ class TestMappingGenerator(unittest.TestCase):
             "label": name,
         }
         field_data.update(kwargs)
-        return field_data
+        return SObjectField.field_from_dict(name, field_data, defaults, filters)
 
     @responses.activate
     def test_run_task(self):
@@ -220,23 +229,28 @@ class TestMappingGenerator(unittest.TestCase):
         t.project_config.project__package__api_version = "45.0"
         describe_data = {
             "Parent": {
-                "fields": [self._mock_field("Id"), self._mock_field("Custom__c")]
+                "fields": fieldlist(
+                    [self._mock_field("Id"), self._mock_field("Custom__c")]
+                )
             },
             "Child__c": {
-                "fields": [
-                    self._mock_field("Id"),
-                    self._mock_field(
-                        "Account__c",
-                        field_type="reference",
-                        referenceTo=["Parent"],
-                        relationshipOrder=None,
-                    ),
-                ]
+                "fields": fieldlist(
+                    [
+                        self._mock_field("Id"),
+                        self._mock_field(
+                            "Account__c",
+                            field_type="reference",
+                            referenceTo=["Parent"],
+                            relationshipOrder=None,
+                        ),
+                    ]
+                )
             },
         }
 
         self._prepare_describe_mock(t, describe_data)
-        with temporary_dir():
+        with temporary_dir() as temp:
+            t.project_config.repo_root = str(temp)
             t()
 
             with open("mapping.yaml", "r") as fh:
@@ -273,11 +287,15 @@ class TestMappingGenerator(unittest.TestCase):
 
         describe_data = {
             "Account": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+                "fields": fieldlist(
+                    [self._mock_field("Name"), self._mock_field("Custom__c")]
+                )
             },
-            "Contact": {"fields": [self._mock_field("Name")]},
+            "Contact": {"fields": fieldlist([self._mock_field("Name")])},
             "Custom__c": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+                "fields": fieldlist(
+                    [self._mock_field("Name"), self._mock_field("Custom__c")]
+                )
             },
         }
 
@@ -395,19 +413,24 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         t.mapping_objects = ["Account", "Opportunity", "Child__c"]
-        stage_name = self._mock_field("StageName")
-        stage_name["nillable"] = False
+        stage_name = self._mock_field("StageName", nillable=False)
         t.describes = {
             "Account": {
-                "fields": [self._mock_field("Name"), self._mock_field("Industry")]
+                "fields": fieldlist(
+                    [self._mock_field("Name"), self._mock_field("Industry")]
+                )
             },
-            "Opportunity": {"fields": [self._mock_field("Name"), stage_name]},
+            "Opportunity": {
+                "fields": fieldlist([self._mock_field("Name"), stage_name])
+            },
             "Child__c": {
-                "fields": [
-                    self._mock_field("Name"),
-                    self._mock_field("Test__c"),
-                    self._mock_field("Attachment__c", field_type="base64"),
-                ]
+                "fields": fieldlist(
+                    [
+                        self._mock_field("Name"),
+                        self._mock_field("Test__c"),
+                        self._mock_field("Attachment__c", field_type="base64"),
+                    ]
+                )
             },
         }
 
@@ -432,17 +455,19 @@ class TestMappingGenerator(unittest.TestCase):
 
         t.mapping_objects = ["Account", "Opportunity"]
         t.describes = {
-            "Account": {"fields": [self._mock_field("Name")]},
+            "Account": {"fields": fieldlist([self._mock_field("Name")])},
             "Opportunity": {
-                "fields": [
-                    self._mock_field("Name"),
-                    self._mock_field(
-                        "AccountId",
-                        field_type="reference",
-                        referenceTo=["Account"],
-                        relationshipOrder=1,
-                    ),
-                ]
+                "fields": fieldlist(
+                    [
+                        self._mock_field("Name"),
+                        self._mock_field(
+                            "AccountId",
+                            field_type="reference",
+                            referenceTo=["Account"],
+                            relationshipOrder=1,
+                        ),
+                    ]
+                )
             },
         }
 
@@ -454,18 +479,20 @@ class TestMappingGenerator(unittest.TestCase):
 
         t.mapping_objects = ["Account", "Opportunity"]
         t.describes = {
-            "Account": {"fields": [self._mock_field("Name")]},
+            "Account": {"fields": fieldlist([self._mock_field("Name")])},
             "Opportunity": {
-                "fields": [
-                    self._mock_field("Name"),
-                    self._mock_field(
-                        "AccountId",
-                        field_type="reference",
-                        referenceTo=["Account"],
-                        relationshipOrder=1,
-                    ),
-                    self._mock_field("RecordTypeId"),
-                ],
+                "fields": fieldlist(
+                    [
+                        self._mock_field("Name"),
+                        self._mock_field(
+                            "AccountId",
+                            field_type="reference",
+                            referenceTo=["Account"],
+                            relationshipOrder=1,
+                        ),
+                        self._mock_field("RecordTypeId"),
+                    ]
+                ),
                 "recordTypeInfos": [{"Name": "Master"}, {"Name": "Donation"}],
             },
         }
@@ -607,3 +634,7 @@ class TestMappingGenerator(unittest.TestCase):
                 },
             ),
         )
+
+
+def fieldlist(list_of_fields):
+    return {field.name: field for field in list_of_fields}

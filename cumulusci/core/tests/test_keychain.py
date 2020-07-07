@@ -32,6 +32,8 @@ class ProjectKeychainTestMixin(unittest.TestCase):
     keychain_class = BaseProjectKeychain
 
     def setUp(self):
+        self.cache_dirs = mock.patch("cumulusci.utils.fileutils.cleanup_org_cache_dirs")
+        self.cache_dirs.start()
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(
             self.global_config, config={"no_yaml": True}
@@ -51,6 +53,9 @@ class ProjectKeychainTestMixin(unittest.TestCase):
             {"foo": "bar", "scratch": True}, "test_scratch"
         )
         self.key = "0123456789123456"
+
+    def tearDown(self):
+        self.cache_dirs.stop()
 
     def test_init(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -244,6 +249,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
         )
 
     def tearDown(self):
+        super().tearDown()
         self.env.__exit__()
 
     def _clean_env(self, env):
@@ -372,26 +378,8 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     keychain_class = EncryptedFileProjectKeychain
 
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
-        )
-        self.project_config.config["services"] = {
-            "connected_app": {"attributes": {"test": {"required": True}}},
-            "github": {"attributes": {"git": {"required": True}, "password": {}}},
-            "not_configured": {"attributes": {"foo": {"required": True}}},
-        }
-        self.project_config.project__name = "TestProject"
+        super().setUp()
         self.project_name = "TestProject"
-        self.org_config = OrgConfig({"foo": "bar"}, "test")
-        self.scratch_org_config = ScratchOrgConfig(
-            {"foo": "bar", "scratch": True}, "test_scratch"
-        )
-        self.services = {
-            "connected_app": ServiceConfig({"test": "value"}),
-            "github": ServiceConfig({"git": "hub"}),
-        }
-        self.key = "0123456789123456"
 
         self._mk_temp_home()
         self._expanduser_patch = mock.patch(
@@ -402,6 +390,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         os.chdir(self.tempdir_project)
 
     def tearDown(self):
+        super().tearDown()
         self._expanduser_patch.__exit__(None, None, None)
 
     def _mk_temp_home(self):
@@ -418,7 +407,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     def _create_git_config(self):
         filename = os.path.join(self.tempdir_project, ".git", "config")
         content = (
-            f'[remote "origin"]\n'
+            '[remote "origin"]\n'
             + f"  url = git@github.com:TestOwner/{self.project_name}"
         )
         self._write_file(filename, content)

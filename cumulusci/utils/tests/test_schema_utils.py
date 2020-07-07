@@ -3,25 +3,14 @@ import json
 from cumulusci.utils.schema_utils import Schema
 
 
-class MockSF:
-    def describe(self):
-        return {
-            "encoding": "UTF-8",
-            "maxBatchSize": 200,
-            "sobjects": [
-                {"createable": False, "deletable": True, "name": "Account"},
-                {"createable": False, "deletable": True, "name": "Contact"},
-                {"createable": False, "deletable": True, "name": "BFG"},
-            ],
-        }
-
-    @staticmethod
-    def restful(sobj, method):
+class MockSObject:
+    @classmethod
+    def describe(cls):
         return {
             "actionOverrides": [],
             "createable": "OVERRIDDEN",
             "deletable": False,
-            "name": sobj,
+            "name": cls.__name__,
             "fields": [
                 {
                     "name": "Id",
@@ -40,20 +29,35 @@ class MockSF:
             ],
         }
 
-    class Account:
-        @staticmethod
-        def describe():
-            return MockSF.restful("Account", "GET")
 
-    class Contact:
-        @staticmethod
-        def describe():
-            return MockSF.restful("Contact", "GET")
+class MockSF:
+    def describe(self):
+        return {
+            "encoding": "UTF-8",
+            "maxBatchSize": 200,
+            "sobjects": [
+                {"createable": False, "deletable": True, "name": "Account"},
+                {"createable": False, "deletable": True, "name": "Contact"},
+                {"createable": False, "deletable": True, "name": "BFG"},
+            ],
+        }
 
-    class BFG:
-        @staticmethod
-        def describe():
-            return MockSF.restful("BFG", "GET")
+    def restful(self, path, kwargs):
+        if (path, kwargs) == (
+            "tooling/query",
+            {"q": "select Max(RevisionNum) from SourceMember"},
+        ):
+            return {"records": [{"expr0": 42}]}
+        assert False, f"No matching restful call: {(path, kwargs)}"
+
+    class Account(MockSObject):
+        pass
+
+    class Contact(MockSObject):
+        pass
+
+    class BFG(MockSObject):
+        pass
 
 
 class TestDescribeOrg:
@@ -69,20 +73,23 @@ class TestDescribeOrg:
 
         assert "deleteable" not in desc["Account"].properties
 
-        assert "aggregatable" in desc["Account"]["Id"].properties
-        assert "aggregatable" in desc["Account"]["Id"].properties.non_default_properties
-        assert "aggregatable" in desc["Account"]["IsDeleted"].properties
+        assert "aggregatable" in desc["Account"].fields["Id"].properties
         assert (
             "aggregatable"
-            not in desc["Account"]["IsDeleted"].properties.non_default_properties
+            in desc["Account"].fields["Id"].properties.non_default_properties
+        )
+        assert "aggregatable" in desc["Account"].fields["IsDeleted"].properties
+        assert (
+            "aggregatable"
+            not in desc["Account"].fields["IsDeleted"].properties.non_default_properties
         )
 
         assert (
             desc["Account"].properties.non_default_properties["createable"]
             == "OVERRIDDEN"
         )
-        assert desc["Account"]["Id"].properties["aggregatable"] is True
-        assert desc["Account"]["Id"].aggregatable is True
+        assert desc["Account"].fields["Id"].properties["aggregatable"] is True
+        assert desc["Account"].fields["Id"].aggregatable is True
 
     def test_filtering(self):
         desc = Schema.from_api(
@@ -111,14 +118,17 @@ class TestDescribeOrg:
         assert "IsDeleted" in schema["Account"]
 
         assert "Id" not in schema["Account"].fields
-        assert schema["Account"]["IsDeleted"].properties["nillable"] == "OVERRIDDEN"
-        assert schema["Account"]["IsDeleted"].nillable == "OVERRIDDEN"
+        assert (
+            schema["Account"].fields["IsDeleted"].properties["nillable"] == "OVERRIDDEN"
+        )
+        assert schema["Account"].fields["IsDeleted"].nillable == "OVERRIDDEN"
         assert "isSubtype" not in schema["Account"].properties
 
-        assert set(schema["Account"]["IsDeleted"].properties.keys()) == set(
+        assert set(schema["Account"].fields["IsDeleted"].properties.keys()) == set(
             ["nillable", "nameField", "createable", "name"],
         )
         assert schema.to_dict() == {
+            "schema_revision": 42,
             "sobjects": [
                 {
                     "createable": "OVERRIDDEN",
@@ -145,7 +155,12 @@ class TestDescribeOrg:
 
         as_dict = desc.to_dict()
         assert set(as_dict.keys()) == set(
-            ["sobjects", "sobject_property_defaults", "field_property_defaults"]
+            [
+                "sobjects",
+                "schema_revision",
+                "sobject_property_defaults",
+                "field_property_defaults",
+            ]
         )
 
         assert set(obj["name"] for obj in as_dict["sobjects"]) == {

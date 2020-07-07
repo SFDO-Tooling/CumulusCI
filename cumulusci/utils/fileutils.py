@@ -4,6 +4,7 @@ from pathlib import Path
 from io import TextIOWrapper
 import requests
 from io import StringIO
+from urllib.parse import urlparse
 
 """Utilities for working with files"""
 
@@ -84,6 +85,22 @@ def load_from_source(
         path = source
         with open(path, "rt") as f:
             yield path, f
+
+
+# TODO: Test this
+def cleanup_org_cache_dirs(keychain, project_config):
+    "Cleanup directories that are not associated with a connected/live org."
+    domains = set()
+    for org in keychain.list_orgs():
+        org_config = keychain.get_org(org)
+        instance_url = org_config.config.get("instance_url", "")
+        domain = urlparse(instance_url).hostname or ""
+        if domain:
+            domains.add(domain)
+    directories = (project_config.project_cache_dir / "orgs").glob("*")
+    for directory in directories:
+        if directory.name not in domains:
+            directory.rmdir()
 
 
 if __name__ == "__main__":  # pragma: no cover

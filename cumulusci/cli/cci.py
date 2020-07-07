@@ -50,6 +50,7 @@ from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+from cumulusci.utils.fileutils import cleanup_org_cache_dirs
 
 from .logger import init_logger, get_tempfile_logger
 
@@ -1068,6 +1069,7 @@ def org_list(runtime, plain):
         bool_cols=["Default"],
     )
     persistent_table.echo(plain)
+    cleanup_org_cache_dirs(runtime.keychain, runtime.project_config)
 
 
 @org.command(
@@ -1260,6 +1262,7 @@ def org_shell(runtime, org_name, script=None, python=None):
 
     globals = {
         "sf": sf,
+        "runtime": runtime,
         "org_config": org_config,
         "project_config": runtime.project_config,
         "help": CCIHelp(),

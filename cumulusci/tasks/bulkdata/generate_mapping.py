@@ -5,6 +5,7 @@ import yaml
 
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils.schema_utils import get_org_schema
 
 
 class GenerateMapping(BaseSalesforceApiTask):
@@ -64,15 +65,15 @@ class GenerateMapping(BaseSalesforceApiTask):
         self.mapping_objects = []
 
         # Cache the global describe, which we'll walk.
-        self.global_describe = self.sf.describe()
+        self.global_describe = get_org_schema(self.sf, self.project_config, self.logger)
 
         # First, we'll get a list of all objects that are either
         # (a) custom, no namespace
         # (b) custom, with our namespace
         # (c) not ours (standard or other package), but have fields with our namespace or no namespace
         self.describes = {}  # Cache per-object describes for efficiency
-        for obj in self.global_describe["sobjects"]:
-            self.describes[obj["name"]] = getattr(self.sf, obj["name"]).describe()
+        for obj in self.global_describe.sobjects.values():
+            self.describes[obj.name] = obj
             if self._is_our_custom_api_name(obj["name"]) or self._has_our_custom_fields(
                 self.describes[obj["name"]]
             ):
@@ -85,7 +86,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         index = 0
         while index < len(self.mapping_objects):
             obj = self.mapping_objects[index]
-            for field in self.describes[obj]["fields"]:
+            for field in self.describes[obj]["fields"].values():
                 if field["type"] == "reference":
                     if field["relationshipOrder"] == 1 or self._is_any_custom_api_name(
                         field["name"]
@@ -116,7 +117,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         for obj in self.mapping_objects:
             self.schema[obj] = {}
 
-            for field in self.describes[obj]["fields"]:
+            for field in self.describes[obj]["fields"].values():
                 if any(
                     [
                         self._is_any_custom_api_name(field["name"]),
@@ -254,7 +255,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         """True if the entity name is custom (including any package)."""
         return api_name.endswith("__c")
 
-    def _is_our_custom_api_name(self, api_name):
+    def _is_our_custom_api_name(self, api_name: str):
         """True if the entity name is custom and has our namespace prefix (if we have one)
         or if the entity does not have a namespace"""
         return self._is_any_custom_api_name(api_name) and (
@@ -326,7 +327,10 @@ class GenerateMapping(BaseSalesforceApiTask):
     def _has_our_custom_fields(self, obj):
         """True if the object is owned by us or contains any field owned by us."""
         return any(
-            [self._is_our_custom_api_name(field["name"]) for field in obj["fields"]]
+            [
+                self._is_our_custom_api_name(field["name"])
+                for field in obj["fields"].values()
+            ]
         )
 
     def _are_lookup_targets_in_operation(self, field):
