@@ -258,6 +258,28 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
+**check_org_wide_defaults**
+==========================================
+
+**Description:** Runs as a preflight check to validate Organization-Wide Defaults.
+
+**Class:** cumulusci.tasks.salesforce.sobject_preflights.CheckSobjectOWDs
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_org_wide_defaults``
+
+
+Options
+------------------------------------------
+
+
+``-o org_wide_defaults ORGWIDEDEFAULTS``
+	 *Required*
+
+	 The Organization-Wide Defaults to check, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature. Checking External Sharing Model when it is turned off will fail the preflight.
+
 **custom_settings_value_wait**
 ==========================================
 
@@ -1314,6 +1336,20 @@ Command Syntax
 ------------------------------------------
 
 ``$ cci task run get_available_permission_set_licenses``
+
+
+
+**get_is_communities_enabled**
+==========================================
+
+**Description:** Checks whether Communities are enabled.
+
+**Class:** cumulusci.tasks.salesforce.communities_preflights.IsCommunitiesEnabled
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run get_is_communities_enabled``
 
 
 
@@ -2913,6 +2949,11 @@ Options
 	 *Optional*
 
 	 Require at least X percent code coverage across the org following the test run.
+
+``-o verbose VERBOSE``
+	 *Optional*
+
+	 By default, only failures get detailed output. Set verbose to True to see all passed test methods.
 
 **set_duplicate_rule_status**
 ==========================================
