@@ -103,7 +103,8 @@ class RobotLint(BaseTask):
         result = 0
 
         if self.options["list"]:
-            linter.run(["--list"])
+            args = self._get_args()
+            linter.run(args + ["--list"])
 
         else:
             files = self._get_files()
