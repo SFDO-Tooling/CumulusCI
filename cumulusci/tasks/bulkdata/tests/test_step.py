@@ -36,9 +36,10 @@ class TestDownloadFile(unittest.TestCase):
         bulk_mock = mock.Mock()
         bulk_mock.headers.return_value = {}
 
-        responses.add(method="GET", url=url, body="TEST")
+        responses.add(method="GET", url=url, body=b"TEST\xe2\x80\x94")
         with download_file(url, bulk_mock) as f:
-            assert f.read() == "TEST"
+            # make sure it was decoded as utf-8
+            assert f.read() == "TEST\u2014"
 
 
 class TestBulkDataJobTaskMixin(unittest.TestCase):
@@ -285,7 +286,7 @@ class TestBulkApiQueryOperation(unittest.TestCase):
             "BATCH", job_id="JOB"
         )
         download_mock.assert_called_once_with(
-            f"https://test/job/JOB/batch/BATCH/result/RESULT", context.bulk
+            "https://test/job/JOB/batch/BATCH/result/RESULT", context.bulk
         )
 
         assert list(results) == [
@@ -321,7 +322,7 @@ class TestBulkApiQueryOperation(unittest.TestCase):
             "BATCH", job_id="JOB"
         )
         download_mock.assert_called_once_with(
-            f"https://test/job/JOB/batch/BATCH/result/RESULT", context.bulk
+            "https://test/job/JOB/batch/BATCH/result/RESULT", context.bulk
         )
 
         assert list(results) == []
