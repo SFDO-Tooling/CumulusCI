@@ -24,7 +24,7 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
         # define base_args, which are arguments that the task adds
         # before any user-supplied arguments
         here = Path(__file__).parent.parent
-        lint_defaults = str(here / "lint_defaults.args")
+        lint_defaults = str((here / "lint_defaults.args").resolve())
         self.base_args = ["--argumentfile", lint_defaults]
 
     def tearDown(self):
