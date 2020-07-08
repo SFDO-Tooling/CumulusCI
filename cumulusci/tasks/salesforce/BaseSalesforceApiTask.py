@@ -15,12 +15,12 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
         self.tooling = self._init_api("tooling")
         self._init_class()
 
-    def _init_api(self, api_name=None):
+    def _init_api(self, base_url=None):
         rv = get_simple_salesforce_connection(
             self.project_config,
             self.org_config,
             api_version=self.api_version,
-            api_name=api_name,
+            base_url=base_url,
         )
 
         return rv

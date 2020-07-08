@@ -1257,7 +1257,7 @@ def org_shell(runtime, org_name, script=None, python=None):
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
     tooling = get_simple_salesforce_connection(
-        runtime.project_config, org_config, api_name="tooling"
+        runtime.project_config, org_config, base_url="tooling"
     )
 
     sf_helpers = SimpleSalesforceUIHelpers(sf)
