@@ -1,3 +1,4 @@
+from pathlib import Path
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
@@ -143,7 +144,9 @@ class RobotLint(BaseTask):
     def _get_args(self):
         """Return rflint-style args based on the task options"""
 
-        args = []
+        here = Path(__file__).parent
+        args = ["--argumentfile", str(here / "lint_defaults.args")]
+
         for rule in self.options["ignore"]:
             args.extend(["--ignore", rule])
         for rule in self.options["warning"]:
