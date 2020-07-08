@@ -236,13 +236,11 @@ def main(args=None):
             sys.exit(1)
 
 
-def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces):
+def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=False):
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
-    if should_show_stacktraces and not isinstance(error, UsageErrors):
-        raise error
-    elif isinstance(error, exceptions.ConnectionError):
+    if isinstance(error, exceptions.ConnectionError):
         connection_error_message()
     elif isinstance(error, click.ClickException):
         click.echo(click.style(f"Error: {error.format_message()}", fg="red"))
@@ -257,6 +255,9 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces)
     if logfile_path:
         with open(logfile_path, "a") as log_file:
             traceback.print_exc(file=log_file)  # log stacktrace silently
+
+    if should_show_stacktraces and not isinstance(error, USAGE_ERRORS):
+        raise error
 
 
 def connection_error_message():
