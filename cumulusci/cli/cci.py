@@ -1225,6 +1225,7 @@ The cumulusci shell gives you access to the following objects and functions:
 * sf - simple_salesforce connected to your org. [1]
 * org_config - local information about your org. [2]
 * project_config - information about your project. [3]
+* tooling - simple_salesforce connected to the tooling API on your org.
 * query() - SOQL query. `help(query)` for more information
 * describe() - Inspect object fields. `help(describe)` for more information
 * help() - for interactive help on Python
@@ -1255,11 +1256,15 @@ def org_shell(runtime, org_name, script=None, python=None):
     org_config.refresh_oauth_token(runtime.keychain)
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
+    tooling = get_simple_salesforce_connection(
+        runtime.project_config, org_config, base_url="tooling"
+    )
 
     sf_helpers = SimpleSalesforceUIHelpers(sf)
 
     globals = {
         "sf": sf,
+        "tooling": tooling,
         "org_config": org_config,
         "project_config": runtime.project_config,
         "help": CCIHelp(),

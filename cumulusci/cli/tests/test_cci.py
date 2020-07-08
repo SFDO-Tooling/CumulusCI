@@ -1644,11 +1644,13 @@ Environment Info: Rossian / x68_46
         run_click_command(cci.org_shell, runtime=runtime, org_name="test")
 
         org_config.refresh_oauth_token.assert_called_once()
-        mock_sf.assert_called_once_with(runtime.project_config, org_config)
+        mock_sf.assert_any_call(runtime.project_config, org_config)
+        mock_sf.assert_any_call(runtime.project_config, org_config, base_url="tooling")
         runtime.keychain.set_org.assert_called_once_with(org_config)
 
         mock_code.assert_called_once()
         self.assertIn("sf", mock_code.call_args[1]["local"])
+        self.assertIn("tooling", mock_code.call_args[1]["local"])
 
     @mock.patch("runpy.run_path")
     def test_org_shell_script(self, runpy):
