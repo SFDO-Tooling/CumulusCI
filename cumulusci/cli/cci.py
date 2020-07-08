@@ -179,7 +179,7 @@ SUGGEST_ERROR_COMMAND = (
     """Run this command for more information about debugging errors: cci error --help"""
 )
 
-UsageErrors = (CumulusCIUsageError, click.UsageError)
+USAGE_ERRORS = (CumulusCIUsageError, click.UsageError)
 
 
 #
