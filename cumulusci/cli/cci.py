@@ -36,6 +36,7 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.github import create_gist, get_github_api
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
@@ -178,6 +179,8 @@ SUGGEST_ERROR_COMMAND = (
     """Run this command for more information about debugging errors: cci error --help"""
 )
 
+USAGE_ERRORS = (CumulusCIUsageError, click.UsageError)
+
 
 #
 # Root command
@@ -206,6 +209,7 @@ def main(args=None):
         debug = "--debug" in args
         if debug:
             args.remove("--debug")
+        should_show_stacktraces = RUNTIME.global_config.cli__show_stacktraces
 
         # Only create logfiles for commands
         # that are not `cci error`
@@ -223,13 +227,16 @@ def main(args=None):
             show_debug_info() if debug else click.echo("\nAborted!")
             sys.exit(1)
         except Exception as e:
-            show_debug_info() if debug else handle_exception(
-                e, is_error_command, tempfile_path
-            )
+            if debug:
+                show_debug_info()
+            else:
+                handle_exception(
+                    e, is_error_command, tempfile_path, should_show_stacktraces
+                )
             sys.exit(1)
 
 
-def handle_exception(error, is_error_cmd, logfile_path):
+def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=False):
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
@@ -248,6 +255,9 @@ def handle_exception(error, is_error_cmd, logfile_path):
     if logfile_path:
         with open(logfile_path, "a") as log_file:
             traceback.print_exc(file=log_file)  # log stacktrace silently
+
+    if should_show_stacktraces and not isinstance(error, USAGE_ERRORS):
+        raise error
 
 
 def connection_error_message():
@@ -372,6 +382,11 @@ def error():
     If you'd like to submit it to a developer for conversation,
     you can use the `cci error gist` command. Just make sure
     that your GitHub access token has the 'create gist' scope.
+
+    If you'd like to regularly see stack traces, set the `show_stacktraces`
+    option to `True` in the "cli" section of `~/.cumulusci/cumulusci.yml`, or to
+    see a stack-trace (and other debugging information) just once, use the `--debug`
+    command line option.
 
     For more information on working with errors in CumulusCI visit:
     https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors
