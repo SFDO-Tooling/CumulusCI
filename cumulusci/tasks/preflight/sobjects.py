@@ -1,6 +1,5 @@
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.utils import process_list_arg
 
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
@@ -8,19 +7,8 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 class CheckSObjectsAvailable(BaseSalesforceApiTask):
     api_version = "48.0"
 
-    task_options = {
-        "sobjects": {
-            "description": "A list of sObjects whose presence needs to be verified.",
-            "required": True,
-        }
-    }
-
     def _run_task(self):
-        all_objects = {entry["name"] for entry in self.sf.describe()["sobjects"]}
-        self.return_values = all(
-            sobject in all_objects
-            for sobject in process_list_arg(self.options["sobjects"])
-        )
+        self.return_values = {entry["name"] for entry in self.sf.describe()["sobjects"]}
 
         self.logger.info(
             "Completed sObjects preflight check with result {}".format(

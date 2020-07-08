@@ -34,12 +34,6 @@ tasks:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
-    check_communities_enabled:
-        description: Runs as a preflight check to determine whether Communities are enabled.
-        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
-        options:
-            sobjects: Network
-        group: Salesforce Preflight Checks
     check_sobjects_available:
         description: Runs as a preflight check to determine whether specific sObjects are available.
         class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable

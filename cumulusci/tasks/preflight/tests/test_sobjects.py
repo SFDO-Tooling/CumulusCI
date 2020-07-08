@@ -9,8 +9,8 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 
 class TestCheckSObjectsAvailable(unittest.TestCase):
-    def test_sobject_preflight__positive(self):
-        task = create_task(CheckSObjectsAvailable, {"sobjects": "Network,Account"})
+    def test_sobject_preflight(self):
+        task = create_task(CheckSObjectsAvailable, {})
 
         task._init_task = Mock()
         task.sf = Mock()
@@ -20,21 +20,10 @@ class TestCheckSObjectsAvailable(unittest.TestCase):
 
         task()
 
-        assert task.return_values is True
-
-    def test_sobject_preflight__negative(self):
-        task = create_task(CheckSObjectsAvailable, {"sobjects": "Network"})
-
-        task._init_task = Mock()
-        task.sf = Mock()
-        task.sf.describe.return_value = {"sobjects": [{"name": "Account"}]}
-
-        task()
-
-        assert task.return_values is False
+        assert task.return_values == {"Network", "Account"}
 
 
-class TestSobjectPreflights(unittest.TestCase):
+class TestCheckSObjectOWDs(unittest.TestCase):
     def test_sobject_preflight__positive(self):
         task = create_task(
             CheckSObjectOWDs,
