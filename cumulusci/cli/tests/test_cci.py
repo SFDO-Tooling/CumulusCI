@@ -207,6 +207,40 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
+    @mock.patch("cumulusci.cli.cci.check_latest_version")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.cli.cci.cli")
+    @mock.patch("pdb.post_mortem")
+    @mock.patch("sys.exit")
+    def test_main__cci_show_stacktraces(
+        self,
+        sys_exit,
+        post_mortem,
+        cli,
+        CliRuntime,
+        check_latest_version,
+        init_logger,
+        get_tempfile_logger,
+        tee,
+    ):
+        runtime = mock.Mock()
+        runtime.global_config.cli__show_stacktraces = True
+        CliRuntime.return_value = runtime
+        cli.side_effect = Exception
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
+
+        with self.assertRaises(Exception):
+            cci.main(["cci"])
+
+        check_latest_version.assert_called_once()
+        init_logger.assert_called_once_with(log_requests=False)
+        CliRuntime.assert_called_once()
+        cli.assert_called_once()
+        post_mortem.assert_not_called()
+
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.cli")
     @mock.patch("sys.exit")
     def test_main__abort(
@@ -239,6 +273,10 @@ class TestCCI(unittest.TestCase):
         logfile_path,
         tee,
     ):
+        runtime = mock.Mock()
+        runtime.global_config.cli__show_stacktraces = False
+        CliRuntime.return_value = runtime
+
         expected_logfile_content = "Hello there, I'm a logfile."
         logfile_path.is_file.return_value = True
         logfile_path.read_text.return_value = expected_logfile_content
@@ -1644,11 +1682,13 @@ Environment Info: Rossian / x68_46
         run_click_command(cci.org_shell, runtime=runtime, org_name="test")
 
         org_config.refresh_oauth_token.assert_called_once()
-        mock_sf.assert_called_once_with(runtime.project_config, org_config)
+        mock_sf.assert_any_call(runtime.project_config, org_config)
+        mock_sf.assert_any_call(runtime.project_config, org_config, base_url="tooling")
         runtime.keychain.set_org.assert_called_once_with(org_config)
 
         mock_code.assert_called_once()
         self.assertIn("sf", mock_code.call_args[1]["local"])
+        self.assertIn("tooling", mock_code.call_args[1]["local"])
 
     @mock.patch("runpy.run_path")
     def test_org_shell_script(self, runpy):
