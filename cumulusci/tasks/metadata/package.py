@@ -145,7 +145,7 @@ class BaseMetadataParser(object):
 
     def get_delete_excludes(self):
         filename = os.path.join(
-            __location__, "..", "..", "files", "metadata_whitelist.txt"
+            __location__, "..", "..", "files", "delete_excludes.txt"
         )
         excludes = []
         with open(filename, "r") as f:
