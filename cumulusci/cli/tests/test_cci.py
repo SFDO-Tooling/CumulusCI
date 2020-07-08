@@ -212,7 +212,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.cli")
     @mock.patch("pdb.post_mortem")
     @mock.patch("sys.exit")
-    def test_main__cci_show_exceptions(
+    def test_main__cci_show_stacktraces(
         self,
         sys_exit,
         post_mortem,
@@ -224,7 +224,7 @@ class TestCCI(unittest.TestCase):
         tee,
     ):
         runtime = mock.Mock()
-        runtime.global_config.cli__show_exceptions = True
+        runtime.global_config.cli__show_stacktraces = True
         CliRuntime.return_value = runtime
         cli.side_effect = Exception
         get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
@@ -274,7 +274,7 @@ class TestCCI(unittest.TestCase):
         tee,
     ):
         runtime = mock.Mock()
-        runtime.global_config.cli__show_exceptions = False
+        runtime.global_config.cli__show_stacktraces = False
         CliRuntime.return_value = runtime
 
         expected_logfile_content = "Hello there, I'm a logfile."

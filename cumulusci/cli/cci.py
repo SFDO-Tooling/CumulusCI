@@ -209,7 +209,7 @@ def main(args=None):
         debug = "--debug" in args
         if debug:
             args.remove("--debug")
-        should_show_exceptions = RUNTIME.global_config.cli__show_exceptions
+        should_show_stacktraces = RUNTIME.global_config.cli__show_stacktraces
 
         # Only create logfiles for commands
         # that are not `cci error`
@@ -229,18 +229,20 @@ def main(args=None):
         except Exception as e:
             if debug:
                 show_debug_info()
-            elif should_show_exceptions and not isinstance(e, UsageErrors):
-                raise
             else:
-                handle_exception(e, is_error_command, tempfile_path)
+                handle_exception(
+                    e, is_error_command, tempfile_path, should_show_stacktraces
+                )
             sys.exit(1)
 
 
-def handle_exception(error, is_error_cmd, logfile_path):
+def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces):
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
-    if isinstance(error, exceptions.ConnectionError):
+    if should_show_stacktraces and not isinstance(error, UsageErrors):
+        raise error
+    elif isinstance(error, exceptions.ConnectionError):
         connection_error_message()
     elif isinstance(error, click.ClickException):
         click.echo(click.style(f"Error: {error.format_message()}", fg="red"))
@@ -380,7 +382,7 @@ def error():
     you can use the `cci error gist` command. Just make sure
     that your GitHub access token has the 'create gist' scope.
 
-    If you'd like to regularly see stack traces, set the `show_exceptions`
+    If you'd like to regularly see stack traces, set the `show_stacktraces`
     option to `True` in the "cli" section of `~/.cumulusci/cumulusci.yml`, or to
     see a stack-trace (and other debugging information) just once, use the `--debug`
     command line option.
