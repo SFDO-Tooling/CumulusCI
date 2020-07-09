@@ -15,7 +15,7 @@ Changes:
 
   * Fields can now be specified as a simple list of Salesforce API names, instead of a mapping. CumulusCI will infer the database column names.
   * Mappings may omit the ``table`` key and CumulusCI will use the object name.
-  * The tasks will check and show an error if mappings do not use a consisted object Id mode.
+  * The tasks will check and show an error if mappings do not use a consistent object Id mode.
   * Mappings can now include junction objects with no additional fields.
 
 * The ``generate_dataset_mapping`` task now has an ``include`` option to specify additional objects to include in the mapping if they aren't found by the default heuristics.
@@ -45,7 +45,7 @@ Issues closed:
 
 * If you try to use ``cci org connect`` with a login URL containing ``lightning.force.com``, CumulusCI will explain that you should use the ``.my.salesforce.com`` domain instead.
 
-* Fixed an issue with deriving the lightning domain from the instance URL for some orgs.
+* Fixed an issue with deriving the Lightning domain from the instance URL for some orgs.
 
 3.14.0 (2020-06-18)
 -------------------
