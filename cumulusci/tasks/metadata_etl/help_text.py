@@ -60,8 +60,8 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
         self.api_names = set(self.api_name_list.keys())
 
     def _transform_entity(self, metadata: MetadataElement, api_name: str):
-        for entry in self.api_name_list[api_name]:
-            self._modify_help_text(metadata, api_name, entry[0], entry[1])
+        for field, help_text in self.api_name_list[api_name]:
+            self._modify_help_text(metadata, api_name, field, help_text)
         return metadata
 
     def _modify_help_text(
