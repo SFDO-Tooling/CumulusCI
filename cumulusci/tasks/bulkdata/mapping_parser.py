@@ -51,7 +51,7 @@ class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
     table: Optional[str] = None
-    fields_: Dict[str, str] = Field(..., alias="fields")
+    fields_: Dict[str, str] = Field({}, alias="fields")
     lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
@@ -78,6 +78,23 @@ class MappingStep(CCIDictModel):
         )
         return v
 
+    @validator("fields_", pre=True)
+    def standardize_fields_to_dict(cls, values):
+        if values is None:
+            values = {}
+        if type(values) is list:
+            return {elem: elem for elem in values}
+
+        return values
+
+    @root_validator
+    def set_default_table(cls, values):
+        """Automatically populate the `table` key with `sf_object`, if not present."""
+        if values["table"] is None:
+            values["table"] = values.get("sf_object")
+
+        return values
+
     @root_validator  # not really a validator, more like a post-processor
     def fixup_lookup_names(cls, v):
         "Allow lookup objects to know the key they were attached to in the mapping file."
@@ -89,6 +106,16 @@ class MappingStep(CCIDictModel):
 class MappingSteps(CCIDictModel):
     "Mapping of named steps"
     __root__: Dict[str, MappingStep]
+
+    @root_validator(pre=False)
+    def validate_mapping(cls, values):
+        if values:
+            oids = ["Id" in s.fields_ for s in values["__root__"].values()]
+            assert all(oids) or not any(
+                oids
+            ), "Id must be mapped in all steps or in no steps."
+
+        return values
 
 
 ValidationError = ValidationError  # export Pydantic's Validation Error under an alias
