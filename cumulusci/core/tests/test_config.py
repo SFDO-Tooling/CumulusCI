@@ -563,6 +563,38 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(BaseGlobalConfig())
         self.assertEqual([], config.get_static_dependencies())
 
+    def test_get_static_dependencies__skipped_dependencies(self):
+        config = BaseProjectConfig(BaseGlobalConfig())
+        deps = [
+            {"namespace": "npsp", "version": "3"},
+            {"namespace": "foo", "version": "1"},
+        ]
+        config = BaseProjectConfig(
+            BaseGlobalConfig(), {"project": {"dependencies": deps}}
+        )
+        self.assertEqual(
+            deps[1:],
+            config.get_static_dependencies(ignore_deps=[{"namespace": "npsp"}]),
+        )
+
+    def test_should_ignore_dependency(self):
+        ignore_deps = [{"namespace": "npsp"}, {"github": "https://test/"}]
+        config = BaseProjectConfig(BaseGlobalConfig(), {})
+
+        assert config._should_ignore_dependency(
+            {"namespace": "npsp", "version": "3"}, ignore_deps
+        )
+        assert not config._should_ignore_dependency(
+            {"namespace": "foo", "version": "1"}, ignore_deps
+        )
+        assert config._should_ignore_dependency(
+            {"github": "https://test/"}, ignore_deps
+        )
+        assert not config._should_ignore_dependency(
+            {"github": "https://example/"}, ignore_deps
+        )
+        assert not config._should_ignore_dependency({}, ignore_deps)
+
     def test_pretty_dependencies(self):
         dep = {
             "namespace": "npsp",
@@ -816,6 +848,61 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "repo_owner": "SFDO-Tooling",
                     "repo_name": "CumulusCI-Test",
                     "ref": "other_commit_sha",
+                    "subfolder": "unpackaged/post/post",
+                    "unmanaged": True,
+                    "namespace_inject": "ccitest",
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
+                },
+            ],
+        )
+
+    def test_process_github_dependency__with_skipped_deps(self):
+        global_config = BaseGlobalConfig()
+        config = BaseProjectConfig(global_config)
+        config.get_github_api = mock.Mock(return_value=self._make_github())
+        config.keychain = DummyKeychain()
+
+        result = config.process_github_dependency(
+            {
+                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
+                "unmanaged": True,
+                "skip": ["unpackaged/pre/skip", "unpackaged/post/skip"],
+            },
+            ignore_deps=[
+                {"github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep"}
+            ],
+        )
+        self.assertEqual(
+            result,
+            [
+                {
+                    "name": "Deploy unpackaged/pre/pre",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "unpackaged/pre/pre",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
+                },
+                {
+                    "name": "Deploy CumulusCI-Test",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "src",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                    "namespace_tokenize": None,
+                },
+                {
+                    "name": "Deploy unpackaged/post/post",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
                     "subfolder": "unpackaged/post/post",
                     "unmanaged": True,
                     "namespace_inject": "ccitest",

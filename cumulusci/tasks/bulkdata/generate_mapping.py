@@ -5,6 +5,7 @@ import yaml
 
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 class GenerateMapping(BaseSalesforceApiTask):
@@ -33,6 +34,9 @@ class GenerateMapping(BaseSalesforceApiTask):
         "ignore": {
             "description": "Object API names, or fields in Object.Field format, to ignore"
         },
+        "include": {
+            "description": "Object names to include even if they might not otherwise be included."
+        },
     }
 
     core_fields = ["Id", "Name", "FirstName", "LastName"]
@@ -48,6 +52,7 @@ class GenerateMapping(BaseSalesforceApiTask):
             self.options["namespace_prefix"] += "__"
 
         self.options["ignore"] = process_list_arg(self.options.get("ignore", []))
+        self.options["include"] = process_list_arg(self.options.get("include", []))
 
     def _run_task(self):
         self.logger.info("Collecting sObject information")
@@ -61,10 +66,17 @@ class GenerateMapping(BaseSalesforceApiTask):
 
     def _collect_objects(self):
         """Walk the global describe and identify the sObjects we need to include in a minimal operation."""
-        self.mapping_objects = []
+        self.mapping_objects = self.options["include"]
 
         # Cache the global describe, which we'll walk.
         self.global_describe = self.sf.describe()
+
+        sobject_names = set(obj["name"] for obj in self.global_describe["sobjects"])
+
+        unknown_objects = set(self.mapping_objects) - sobject_names
+
+        if unknown_objects:
+            raise TaskOptionsError(f"{unknown_objects} cannot be found in the org.")
 
         # First, we'll get a list of all objects that are either
         # (a) custom, no namespace
@@ -76,7 +88,10 @@ class GenerateMapping(BaseSalesforceApiTask):
             if self._is_our_custom_api_name(obj["name"]) or self._has_our_custom_fields(
                 self.describes[obj["name"]]
             ):
-                if self._is_object_mappable(obj):
+                if (
+                    self._is_object_mappable(obj)
+                    and obj["name"] not in self.mapping_objects
+                ):
                     self.mapping_objects.append(obj["name"])
 
         # Add any objects that are required by our own,
