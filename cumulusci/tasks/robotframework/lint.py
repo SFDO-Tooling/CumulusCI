@@ -146,7 +146,7 @@ class RobotLint(BaseTask):
         """Return rflint-style args based on the task options"""
 
         here = Path(__file__).parent
-        args = ["--argumentfile", str((here / "lint_defaults.args").resolve())]
+        args = ["--argumentfile", str((here / "lint_defaults.txt").resolve())]
 
         for rule in self.options["ignore"]:
             args.extend(["--ignore", rule])
