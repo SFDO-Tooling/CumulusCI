@@ -552,6 +552,58 @@ Options
 
 	 The api version to use when creating the package.  Defaults to project__package__api_version
 
+**create_package_version**
+==========================================
+
+**Description:** Uploads a 2nd-generation package (2GP) version
+
+**Class:** cumulusci.tasks.package_2gp.CreatePackageVersion
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run create_package_version``
+
+
+Options
+------------------------------------------
+
+
+``-o package_type PACKAGETYPE``
+	 *Required*
+
+	 Package type (Unlocked or Managed)
+
+``-o package_name PACKAGENAME``
+	 *Optional*
+
+	 Name of package
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 Package namespace
+
+``-o version_name VERSIONNAME``
+	 *Optional*
+
+	 Version name
+
+``-o version_type VERSIONTYPE``
+	 *Optional*
+
+	 The part of the version number to increment. Options are major, minor, patch.  Defaults to minor
+
+``-o dependency_org DEPENDENCYORG``
+	 *Optional*
+
+	 The org name of the org to use for project dependencies lookup. If not provided, a scratch org will be created with the org name 2gp_dependencies.
+
+``-o skip_validation SKIPVALIDATION``
+	 *Optional*
+
+	 If true, skip validation of the package version. Default: false. Skipping validation creates packages more quickly, but they cannot be promoted for release.
+
 **create_managed_src**
 ==========================================
 
@@ -634,7 +686,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 

@@ -795,6 +795,8 @@ Create a package version
 
 To create a new unlocked package version, run the ``create_package_version`` task against the Dev Hub org:
 
+.. code-block:: console
+
     $ cci task run create_package_version --org devhub -o package_type Unlocked
 
 This task will look for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of ``cumulusci.yml``). If a matching package doesn't exist yet, it will be created. Then the task will start creating a new version of this package.

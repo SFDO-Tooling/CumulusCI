@@ -204,6 +204,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 f"WHERE Package2Id = '{package_id}' "
                 "AND Status != 'Error' "
                 f"AND Tag = 'hash:{package_hash}'"
+                # @@@ order by created
             )
             if res["size"] > 0:
                 self.logger.info(
