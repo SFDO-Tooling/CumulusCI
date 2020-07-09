@@ -3,7 +3,7 @@ from collections import defaultdict
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
-from cumulusci.core.utils import process_list_arg
+from cumulusci.core.utils import process_list_arg, process_bool_arg
 
 
 class SetFieldHelpText(MetadataSingleEntityTransformTask):
@@ -13,6 +13,9 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
             "description": "List of object fields to affect, in Object__c.Field__c form.",
             "required": True,
         },
+        "overwrite": {
+            "description": "List of object fields to affect, in Object__c.Field__c form."
+        },
         **MetadataSingleEntityTransformTask.task_options,
     }
 
@@ -20,15 +23,15 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
         self.task_config.options["api_names"] = "dummy"
         super()._init_options(kwargs)
 
+        self.options["overwrite"] = process_bool_arg(
+            self.options.get("overwrite", False)
+        )
+
         try:
             float(self.api_version)
         except ValueError:
             raise TaskOptionsError(f"Invalid API version {self.api_version}")
 
-        if "fields" not in self.options:
-            raise TaskOptionsError(
-                "The 'fields' option is required, please pass a dictionary with the api_name and help_text keys."
-            )
         if type(self.options["fields"]) != list or len(self.options["fields"]) == 0:
             raise TaskOptionsError(
                 "Please populate the fields field with a list of dictionaries containing at minimum one entry with an 'api_name' and 'help_text' keys"
@@ -75,6 +78,11 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
                 f"The field {api_name}.{custom_field} was not found."
             )
         try:
-            field.inlineHelpText.text = help_text
+            if self.options["overwrite"] is True:
+                field.inlineHelpText.text = help_text
+            else:
+                raise TaskOptionsError(
+                    f"Please set the overwrite option to True to overwrite this help text field"
+                )
         except AttributeError:
             field.append("inlineHelpText", text=help_text)
