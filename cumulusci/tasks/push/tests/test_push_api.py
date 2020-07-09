@@ -19,6 +19,7 @@ NAME = "Chewbacca"
 SF_ID = "033xxxxxxxxx"
 PUSH_API = "push_api"
 NAMESPACE = "namespace"
+ORG_KEY = "bar"
 
 
 @pytest.fixture
@@ -34,9 +35,20 @@ def metadata_package():
 
 
 @pytest.fixture
+def metadata_package_package_push_job():
+    return PackagePushJob(
+        push_api=mock.MagicMock(),
+        request=mock.Mock(),
+        org="00D63000000ApoXEAS",
+        status="Succeeded",
+        sf_id=SF_ID,
+    )
+
+
+@pytest.fixture
 def metadata_package_version(metadata_package):
     return MetadataPackageVersion(
-        push_api=PUSH_API,
+        push_api=mock.MagicMock(),
         package=metadata_package,
         name=NAME,
         sf_id=SF_ID,
@@ -96,8 +108,7 @@ def test_metadata_package_get_version_objs(metadata_package):
 def test_metadata_package_get_versions_by_id(metadata_package):
     expected = f"MetadataPackageId = '{SF_ID}'"
     metadata_package.get_package_versions_by_id()
-    metadata_package.push_api.get_package_versions_by_id.assert_called_once()
-    metadata_package.push_api.get_package_versions_by_id.assert_called_with(
+    metadata_package.push_api.get_package_versions_by_id.assert_called_once_with(
         expected, None
     )
 
@@ -154,6 +165,20 @@ def test_sf_push_add_query_limit(sf_push_api):
     limit = 100
     returned = sf_push_api.add_query_limit(query, limit)
     assert "{} LIMIT {}".format(query, limit) == returned
+
+
+def test_sf_push_add_query_no_limit(sf_push_api):
+    query = "SELECT Id FROM Account"
+    returned = sf_push_api.add_query_limit(query, None)
+    assert f"{query}" == returned
+
+
+def test_sf_push_get_where_last_version(sf_push_api):
+    assert (
+        sf_push_api.get_where_last_version(major="1", minor="2", beta="3")
+        == "ReleaseState = 'Beta' AND MajorVersion=1 AND MinorVersion=2"
+    )
+    assert sf_push_api.get_where_last_version() == "ReleaseState = 'Released'"
 
 
 def test_push_memoize():
@@ -227,6 +252,62 @@ def test_version_number(metadata_package_version):
     actual = metadata_package_version.version_number
     expected = "1.2.3 (Beta 4)"
     assert actual == expected
+
+
+def test_metadata_package_get_subscribers(metadata_package_version):
+    expected = f"MetadataPackageVersionId = '{SF_ID}'"
+    metadata_package_version.get_subscribers()
+    metadata_package_version.push_api.get_subscribers.assert_called_once_with(
+        expected, None
+    )
+
+
+def test_metadata_package_get_subscriber_objects(metadata_package_version):
+    expected = f"MetadataPackageVersionId = '{SF_ID}'"
+    metadata_package_version.get_subscriber_objs()
+    metadata_package_version.push_api.get_subscriber_objs.assert_called_once_with(
+        expected, None
+    )
+
+
+def test_metadata_package_get_subscriber_objects(metadata_package_version):
+    expected = f"MetadataPackageVersionId = '{SF_ID}'"
+    metadata_package_version.get_subscriber_objs()
+    metadata_package_version.push_api.get_subscriber_objs.assert_called_once_with(
+        expected, None
+    )
+
+
+def test_metadata_package_get_subscribers_by_org_key(metadata_package_version):
+    expected = f"MetadataPackageVersionId = '{SF_ID}'"
+    metadata_package_version.get_subscribers_by_org_key()
+    metadata_package_version.push_api.get_subscribers_by_org_key.assert_called_once_with(
+        expected, None
+    )
+
+
+def test_metadata_package_push_requests(metadata_package_version):
+    expected = f"PackageVersionId = '{SF_ID}'"
+    metadata_package_version.get_push_requests()
+    metadata_package_version.push_api.get_push_requests.assert_called_once_with(
+        expected, None
+    )
+
+
+def test_metadata_package_push_request_objs(metadata_package_version):
+    expected = f"PackageVersionId = '{SF_ID}'"
+    metadata_package_version.get_push_request_objs()
+    metadata_package_version.push_api.get_push_request_objs.assert_called_once_with(
+        expected, None
+    )
+
+
+def test_metadata_package_push_requests_by_id(metadata_package_version):
+    expected = f"PackageVersionId = '{SF_ID}'"
+    metadata_package_version.get_push_requests_by_id()
+    metadata_package_version.push_api.get_push_requests_by_id.assert_called_once_with(
+        expected, None
+    )
 
 
 def test_version_get_newer_query(metadata_package_version):
@@ -318,131 +399,266 @@ def test_version_get_older(metadata_package_version):
     )
 
 
-class TestPackageSubscriber:
-    """Provides coverage for PackageSubscriber"""
-
-    NAME = "foo"
-    PUSH_API = "push_api"
-    SF_ID = "006000000XXX000"
-    VERSION = "1.2.3"
-    STATUS = "Complete"
-    ORG_NAME = "foo"
-    ORG_KEY = "bar"
-    ORG_STATUS = "Complete"
-    ORG_TYPE = "Sandbox"
-
-    @pytest.fixture
-    def package(self):
-        return PackageSubscriber(
-            self.PUSH_API,
-            self.VERSION,
-            self.STATUS,
-            self.ORG_NAME,
-            self.ORG_KEY,
-            self.ORG_STATUS,
-            self.ORG_TYPE,
-            self.SF_ID,
-        )
-
-    def test_init(self):
-        package = PackageSubscriber(
-            self.PUSH_API,
-            self.VERSION,
-            self.STATUS,
-            self.ORG_NAME,
-            self.ORG_KEY,
-            self.ORG_STATUS,
-            self.ORG_TYPE,
-            self.SF_ID,
-        )
-
-        assert package.push_api == self.PUSH_API
-        assert package.sf_id == self.SF_ID
-        assert package.org_name == self.ORG_NAME
-        assert package.version == self.VERSION
-
-        assert package.org_key == self.ORG_KEY
-        assert package.org_status == self.ORG_STATUS
-        assert package.org_type == self.ORG_TYPE
-
-        assert package.format_where("foo") == "foo = 'bar'"
-        assert package.format_where("foo", "foobar") == "foo = 'bar' AND (foobar)"
+@pytest.fixture
+def package_push_job():
+    return PackagePushJob(
+        push_api=mock.MagicMock(),
+        request="",
+        org="00DS0000003TJJ6MAO",
+        status="Succeeded",
+        sf_id=SF_ID,
+    )
 
 
-class TestPackagePushJob:
-    """Provides coverage for PackagePushError"""
-
-    PUSH_API = "push_api"
-    SF_ID = "006000000XXX000"
-    JOB = "foo"
-    SEVERITY = "Low"
-    ERROR_TYPE = "Exception Error"
-    TITLE = "BAR"
-    MESSAGE = "Message Here"
-    DETAILS = "Details Here"
-
-    @pytest.fixture
-    def package(self):
-        return PackagePushError(
-            self.PUSH_API,
-            self.JOB,
-            self.SEVERITY,
-            self.ERROR_TYPE,
-            self.TITLE,
-            self.MESSAGE,
-            self.DETAILS,
-            self.SF_ID,
-        )
-
-    def test_init(self):
-        package = PackagePushError(
-            self.PUSH_API,
-            self.JOB,
-            self.SEVERITY,
-            self.ERROR_TYPE,
-            self.TITLE,
-            self.MESSAGE,
-            self.DETAILS,
-            self.SF_ID,
-        )
-
-        assert package.push_api == self.PUSH_API
-        assert package.sf_id == self.SF_ID
-        assert package.job == self.JOB
-        assert package.severity == self.SEVERITY
-
-        assert package.error_type == self.ERROR_TYPE
-        assert package.title == self.TITLE
-        assert package.message == self.MESSAGE
-        assert package.details == self.DETAILS
+def test_package_push_job_get_push_errors(package_push_job):
+    expected = f"PackagePushJobId = '{SF_ID}'"
+    package_push_job.get_push_errors()
+    package_push_job.push_api.get_push_errors.assert_called_once_with(expected, None)
 
 
-class TestPackagePushRequest:
-    """Provides coverage for PackagePushRequest"""
+def test_package_push_job_get_push_error_objects(package_push_job):
+    expected = f"PackagePushJobId = '{SF_ID}'"
+    package_push_job.get_push_error_objs()
+    package_push_job.push_api.get_push_error_objs.assert_called_once_with(
+        expected, None
+    )
 
-    PUSH_API = "push_api"
-    VERSION = "1.2.3"
-    START_TIME = "12:03"
-    STATUS = "Complete"
-    SF_ID = "006000000XXX000"
 
-    @pytest.fixture
-    def package(self):
-        return PackagePushRequest(
-            self.PUSH_API, self.VERSION, self.START_TIME, self.STATUS, self.SF_ID
-        )
+def test_package_push_job_get_push_errors_by_id(package_push_job):
+    expected = f"PackagePushJobId = '{SF_ID}'"
+    package_push_job.get_push_errors_by_id()
+    package_push_job.push_api.get_push_errors_by_id.assert_called_once_with(
+        expected, None
+    )
 
-    def test_init(self):
-        package = PackagePushRequest(
-            self.PUSH_API, self.VERSION, self.START_TIME, self.STATUS
-        )
 
-        assert package.push_api == self.PUSH_API
-        assert package.sf_id is None
-        assert package.version == self.VERSION
+@pytest.fixture
+def package_push_error():
+    return PackagePushError(
+        push_api="foo",
+        sf_id=SF_ID,
+        job="Foo",
+        severity="high",
+        error_type="bar",
+        title="foo_bar",
+        message="The foo hit the bar",
+        details="foo bar, foo, foo bar",
+    )
 
-        assert package.start_time == self.START_TIME
-        assert package.status == self.STATUS
+
+def test_package_push_errors(package_push_error):
+    assert package_push_error.push_api == "foo"
+    assert package_push_error.sf_id == SF_ID
+    assert package_push_error.job == "Foo"
+    assert package_push_error.severity == "high"
+
+    assert package_push_error.error_type == "bar"
+    assert package_push_error.title == "foo_bar"
+    assert package_push_error.message == "The foo hit the bar"
+    assert package_push_error.details == "foo bar, foo, foo bar"
+
+
+@pytest.fixture
+def package_push_request():
+    return PackagePushRequest(
+        push_api=mock.MagicMock(),
+        version="1.2.3",
+        start_time="12:03",
+        status="Succeeded",
+        sf_id=SF_ID,
+    )
+
+
+def test_package_push_request_get_push_jobs(package_push_request):
+    expected = f"PackagePushRequestId = '{SF_ID}'"
+    package_push_request.get_push_jobs()
+    package_push_request.push_api.get_push_jobs.assert_called_once_with(expected, None)
+
+
+def test_package_push_request_get_push_job_objects(package_push_request):
+    expected = f"PackagePushRequestId = '{SF_ID}'"
+    package_push_request.get_push_job_objs()
+    package_push_request.push_api.get_push_job_objs.assert_called_once_with(
+        expected, None
+    )
+
+
+def test_package_push_request_get_push_jobs_by_id(package_push_request):
+    expected = f"PackagePushRequestId = '{SF_ID}'"
+    package_push_request.get_push_jobs_by_id()
+    package_push_request.push_api.get_push_jobs_by_id.assert_called_once_with(
+        expected, None
+    )
+
+
+@pytest.fixture
+def package_subscriber():
+    return PackageSubscriber(
+        push_api=mock.MagicMock(),
+        version="1.2.3",
+        status="Succeeded",
+        org_name="foo",
+        org_key="bar",
+        org_status="Succeeded",
+        org_type="Sandbox",
+        sf_id=SF_ID,
+    )
+
+
+def test_format_where(package_subscriber):
+    assert package_subscriber.format_where("foo") == "foo = 'bar'"
+    assert (
+        package_subscriber.format_where("foo", "foobar") == "foo = 'bar' AND (foobar)"
+    )
+
+
+def test_package_subscriber_get_push_jobs(package_subscriber):
+    expected = f"SubscriberOrganizationKey = '{ORG_KEY}'"
+    package_subscriber.get_push_jobs()
+    package_subscriber.push_api.get_push_jobs.assert_called_once_with(expected, None)
+
+
+def test_package_subscriber_get_push_job_objects(package_subscriber):
+    expected = f"SubscriberOrganizationKey = '{ORG_KEY}'"
+    package_subscriber.get_push_job_objs()
+    package_subscriber.push_api.get_push_job_objs.assert_called_once_with(
+        expected, None
+    )
+
+
+def test_package_subscriber_get_push_jobs_by_id(package_subscriber):
+    expected = f"SubscriberOrganizationKey = '{ORG_KEY}'"
+    package_subscriber.get_push_jobs_by_id()
+    package_subscriber.push_api.get_push_jobs_by_id.assert_called_once_with(
+        expected, None
+    )
+
+
+# class TestPackageSubscriber:
+#     """Provides coverage for PackageSubscriber"""
+
+#     NAME = "foo"
+#     PUSH_API = "push_api"
+#     SF_ID = "006000000XXX000"
+#     VERSION = "1.2.3"
+#     STATUS = "Complete"
+#     ORG_NAME = "foo"
+#     ORG_KEY = "bar"
+#     ORG_STATUS = "Complete"
+#     ORG_TYPE = "Sandbox"
+
+#     @pytest.fixture
+#     def package(self):
+#         return PackageSubscriber(
+#             self.PUSH_API,
+#             self.VERSION,
+#             self.STATUS,
+#             self.ORG_NAME,
+#             self.ORG_KEY,
+#             self.ORG_STATUS,
+#             self.ORG_TYPE,
+#             self.SF_ID,
+#         )
+
+#     def test_init(self):
+#         package = PackageSubscriber(
+#             self.PUSH_API,
+#             self.VERSION,
+#             self.STATUS,
+#             self.ORG_NAME,
+#             self.ORG_KEY,
+#             self.ORG_STATUS,
+#             self.ORG_TYPE,
+#             self.SF_ID,
+#         )
+
+#         assert package.push_api == self.PUSH_API
+#         assert package.sf_id == self.SF_ID
+#         assert package.org_name == self.ORG_NAME
+#         assert package.version == self.VERSION
+
+#         assert package.org_key == self.ORG_KEY
+#         assert package.org_status == self.ORG_STATUS
+#         assert package.org_type == self.ORG_TYPE
+
+#         assert package.format_where("foo") == "foo = 'bar'"
+#         assert package.format_where("foo", "foobar") == "foo = 'bar' AND (foobar)"
+
+
+# class TestPackagePushJob:
+#     """Provides coverage for PackagePushError"""
+
+#     PUSH_API = "push_api"
+#     SF_ID = "006000000XXX000"
+#     JOB = "foo"
+#     SEVERITY = "Low"
+#     ERROR_TYPE = "Exception Error"
+#     TITLE = "BAR"
+#     MESSAGE = "Message Here"
+#     DETAILS = "Details Here"
+
+#     @pytest.fixture
+#     def package(self):
+#         return PackagePushError(
+#             self.PUSH_API,
+#             self.JOB,
+#             self.SEVERITY,
+#             self.ERROR_TYPE,
+#             self.TITLE,
+#             self.MESSAGE,
+#             self.DETAILS,
+#             self.SF_ID,
+#         )
+
+#     def test_init(self):
+#         package = PackagePushError(
+#             self.PUSH_API,
+#             self.JOB,
+#             self.SEVERITY,
+#             self.ERROR_TYPE,
+#             self.TITLE,
+#             self.MESSAGE,
+#             self.DETAILS,
+#             self.SF_ID,
+#         )
+
+#         assert package.push_api == self.PUSH_API
+#         assert package.sf_id == self.SF_ID
+#         assert package.job == self.JOB
+#         assert package.severity == self.SEVERITY
+
+#         assert package.error_type == self.ERROR_TYPE
+#         assert package.title == self.TITLE
+#         assert package.message == self.MESSAGE
+#         assert package.details == self.DETAILS
+
+
+# class TestPackagePushRequest:
+#     """Provides coverage for PackagePushRequest"""
+
+#     PUSH_API = "push_api"
+#     VERSION = "1.2.3"
+#     START_TIME = "12:03"
+#     STATUS = "Complete"
+#     SF_ID = "006000000XXX000"
+
+#     @pytest.fixture
+#     def package(self):
+#         return PackagePushRequest(
+#             self.PUSH_API, self.VERSION, self.START_TIME, self.STATUS, self.SF_ID
+#         )
+
+#     def test_init(self):
+#         package = PackagePushRequest(
+#             self.PUSH_API, self.VERSION, self.START_TIME, self.STATUS
+#         )
+
+#         assert package.push_api == self.PUSH_API
+#         assert package.sf_id is None
+#         assert package.version == self.VERSION
+
+#         assert package.start_time == self.START_TIME
+#         assert package.status == self.STATUS
 
 
 class TestPackagePushError:
