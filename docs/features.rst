@@ -761,3 +761,14 @@ The gist command creates a gist comprised of:
 
 The URL for the gist is displayed on the terminal of the user as output, and a web browser will automatically open a tab to the gist.
 
+Seeing Stack Traces Automatically
+---------------------------------
+If you would like to investigate bugs in CumulusCI when you find
+them, you can set the config option `show_stacktraces` to `True`
+in the `cli` section of `~/.cumulusci/cumulusci.yml` and stacktraces
+will no longer be suppressed when they are thrown within CumulusCI.
+Usage Errors (wrong command line arguments, missing files, etc.)
+will not show you exception tracebacks because they are seldom
+helpful in that case.
+
+CumulusCI also has a `--debug` command line argument that may help you investigate bugs.
