@@ -243,6 +243,138 @@ class TestMappingParser:
         )
         assert ms.sf_object == "Test__c"
 
+    def test_validate_and_inject_namespace__base(self):
+        ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
+
+        org_config = mock.Mock()
+        org_config.salesforce_client.describe.return_value = {
+            "sobjects": [{"name": "Test__c"}]
+        }
+        org_config.salesforce_client.Test__c.describe.return_value = {
+            "fields": [{"name": "Name"}]
+        }
+        type(ms)._validate_sobject = mock.Mock(return_value=True)
+        type(ms)._validate_field_dict = mock.Mock(return_value=True)
+        assert ms.validate_and_inject_namespace(
+            org_config, "ns", DataOperationType.INSERT
+        )
+
+        ms._validate_sobject.assert_called_once_with(
+            {"Test__c": {"name": "Test__c"}}, None, DataOperationType.INSERT
+        )
+
+        ms._validate_field_dict.assert_has_calls(
+            [
+                mock.call(
+                    {"Name": {"name": "Name"}},
+                    {"Name": "Name"},
+                    None,
+                    False,
+                    DataOperationType.INSERT,
+                ),
+                mock.call(
+                    {"Name": {"name": "Name"}},
+                    {},
+                    None,
+                    False,
+                    DataOperationType.INSERT,
+                ),
+            ]
+        )
+
+    def test_validate_and_inject_namespace__sobject_failure(self):
+        ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
+
+        org_config = mock.Mock()
+        org_config.salesforce_client.describe.return_value = {
+            "sobjects": [{"name": "Test__c"}]
+        }
+        org_config.salesforce_client.Test__c.describe.return_value = {
+            "fields": [{"name": "Name"}]
+        }
+        type(ms)._validate_sobject = mock.Mock(return_value=False)
+        type(ms)._validate_field_dict = mock.Mock(return_value=False)
+        assert not ms.validate_and_inject_namespace(
+            org_config, "ns", DataOperationType.INSERT
+        )
+
+        ms._validate_sobject.assert_called_once_with(
+            {"Test__c": {"name": "Test__c"}}, None, DataOperationType.INSERT
+        )
+
+        ms._validate_field_dict.assert_not_called()
+
+    def test_validate_and_inject_namespace__fields_failure(self):
+        ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
+
+        org_config = mock.Mock()
+        org_config.salesforce_client.describe.return_value = {
+            "sobjects": [{"name": "Test__c"}]
+        }
+        org_config.salesforce_client.Test__c.describe.return_value = {
+            "fields": [{"name": "Name"}]
+        }
+        type(ms)._validate_sobject = mock.Mock(return_value=True)
+        type(ms)._validate_field_dict = mock.Mock(return_value=False)
+        assert not ms.validate_and_inject_namespace(
+            org_config, "ns", DataOperationType.INSERT
+        )
+
+        ms._validate_sobject.assert_called_once_with(
+            {"Test__c": {"name": "Test__c"}}, None, DataOperationType.INSERT
+        )
+
+        ms._validate_field_dict.assert_has_calls(
+            [
+                mock.call(
+                    {"Name": {"name": "Name"}},
+                    {"Name": "Name"},
+                    None,
+                    False,
+                    DataOperationType.INSERT,
+                )
+            ]
+        )
+
+    def test_validate_and_inject_namespace__lookups_failure(self):
+        ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
+
+        org_config = mock.Mock()
+        org_config.salesforce_client.describe.return_value = {
+            "sobjects": [{"name": "Test__c"}]
+        }
+        org_config.salesforce_client.Test__c.describe.return_value = {
+            "fields": [{"name": "Name"}]
+        }
+        type(ms)._validate_sobject = mock.Mock(return_value=True)
+        type(ms)._validate_field_dict = mock.Mock(side_effect=[True, False])
+        assert not ms.validate_and_inject_namespace(
+            org_config, "ns", DataOperationType.INSERT
+        )
+
+        ms._validate_sobject.assert_called_once_with(
+            {"Test__c": {"name": "Test__c"}}, None, DataOperationType.INSERT
+        )
+
+        ms._validate_field_dict.assert_has_calls(
+            [
+                mock.call(
+                    {"Name": {"name": "Name"}},
+                    {"Name": "Name"},
+                    None,
+                    False,
+                    DataOperationType.INSERT,
+                ),
+                mock.call(
+                    {"Name": {"name": "Name"}},
+                    {},
+                    None,
+                    False,
+                    DataOperationType.INSERT,
+                ),
+            ]
+        )
+
 
 class TestMappingLookup:
     def test_get_lookup_key_field__no_model(self):
