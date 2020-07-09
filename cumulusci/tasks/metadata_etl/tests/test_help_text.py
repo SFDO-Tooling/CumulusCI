@@ -9,7 +9,7 @@ from cumulusci.utils.xml import metadata_tree
 OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <fields>
-        <fullName>Buster__c</fullName>
+        <fullName>Foo__c</fullName>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
@@ -20,7 +20,7 @@ OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
         <type>Checkbox</type>
     </fields>
     <fields>
-        <fullName>Bluth__c</fullName>
+        <fullName>Bar__c</fullName>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
@@ -37,18 +37,18 @@ OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 OBJECT_XML_2 = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <fields>
-        <fullName>Tobias__c</fullName>
+        <fullName>Foo__c</fullName>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
-        <inlineHelpText>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</inlineHelpText>
+        <inlineHelpText>Foo</inlineHelpText>
         <label>FERPA Approved</label>
         <trackHistory>false</trackHistory>
         <trackTrending>false</trackTrending>
         <type>Checkbox</type>
     </fields>
     <fields>
-        <fullName>Bluth__c</fullName>
+        <fullName>Bar__c</fullName>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
@@ -65,7 +65,7 @@ OBJECT_XML_2 = b"""<?xml version="1.0" encoding="UTF-8"?>
 OBJECT_XML_3 = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <fields>
-        <fullName>Buster__c</fullName>
+        <fullName>Foo__c</fullName>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
@@ -75,7 +75,7 @@ OBJECT_XML_3 = b"""<?xml version="1.0" encoding="UTF-8"?>
         <type>Checkbox</type>
     </fields>
     <fields>
-        <fullName>Bluth__c</fullName>
+        <fullName>Bar__c</fullName>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
@@ -92,7 +92,7 @@ OBJECT_XML_3 = b"""<?xml version="1.0" encoding="UTF-8"?>
 OBJECT_XML_4 = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <fields>
-        <fullName>Buster__c</fullName>
+        <fullName>Foo__c</fullName>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
@@ -102,7 +102,7 @@ OBJECT_XML_4 = b"""<?xml version="1.0" encoding="UTF-8"?>
         <type>Checkbox</type>
     </fields>
     <fields>
-        <fullName>Bluth__c</fullName>
+        <fullName>Bar__c</fullName>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
@@ -117,7 +117,7 @@ OBJECT_XML_4 = b"""<?xml version="1.0" encoding="UTF-8"?>
 STANDARD_OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <fields>
-        <fullName>Buster</fullName>
+        <fullName>Foo</fullName>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
@@ -127,7 +127,7 @@ STANDARD_OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
         <type>Checkbox</type>
     </fields>
     <fields>
-        <fullName>Bluth</fullName>
+        <fullName>Bar</fullName>
         <defaultValue>false</defaultValue>
         <description>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</description>
         <externalId>false</externalId>
@@ -147,19 +147,19 @@ class TestAddPicklistValues:
             SetFieldHelpText,
             {
                 "api_version": "47.0",
-                "fields": [{"api_name": "MyObject.Buster__c", "help_text": "buster"}],
+                "fields": [{"api_name": "MyObject.Foo__c", "help_text": "foo"}],
             },
         )
 
         # Validate that the first sObject has one picklist changed
         tree = metadata_tree.fromstring(OBJECT_XML)
         result = task._transform_entity(tree, "MyObject")
-        test_elem = result.find("fields", fullName="Buster__c")
+        test_elem = result.find("fields", fullName="Foo__c")
 
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "buster"
+        assert test_elem.inlineHelpText.text == "foo"
         # Validate that the sObject alters only the custom field listed
-        test_elem = result.find("fields", fullName="Bluth__c")
+        test_elem = result.find("fields", fullName="Bar__c")
         assert test_elem is not None
         assert test_elem.inlineHelpText.text == "Bar"
 
@@ -169,8 +169,8 @@ class TestAddPicklistValues:
             {
                 "api_version": "47.0",
                 "fields": [
-                    {"api_name": "MyObject.Buster__c", "help_text": "buster"},
-                    {"api_name": "MyObject2.Tobias__c", "help_text": "george_michael"},
+                    {"api_name": "MyObject.Foo__c", "help_text": "foo"},
+                    {"api_name": "MyObject2.Bar__c", "help_text": "bar"},
                 ],
             },
         )
@@ -178,25 +178,25 @@ class TestAddPicklistValues:
         # Validate that the first sObject has one picklist changed
         tree = metadata_tree.fromstring(OBJECT_XML)
         result = task._transform_entity(tree, "MyObject")
-        test_elem = result.find("fields", fullName="Buster__c")
+        test_elem = result.find("fields", fullName="Foo__c")
 
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "buster"
+        assert test_elem.inlineHelpText.text == "foo"
         # Validate that the first sObject alters only the custom field listed
-        test_elem = result.find("fields", fullName="Bluth__c")
+        test_elem = result.find("fields", fullName="Bar__c")
         assert test_elem is not None
         assert test_elem.inlineHelpText.text == "Bar"
         tree = metadata_tree.fromstring(OBJECT_XML_2)
         result = task._transform_entity(tree, "MyObject2")
-        test_elem = result.find("fields", fullName="Tobias__c")
+        test_elem = result.find("fields", fullName="Bar__c")
 
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "george_michael"
+        assert test_elem.inlineHelpText.text == "bar"
 
-        test_elem = result.find("fields", fullName="Bluth__c")
+        test_elem = result.find("fields", fullName="Foo__c")
         # Validate that the second sObject alters only the custom field listed: Tobias__c
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "Indicates arrested development."
+        assert test_elem.inlineHelpText.text == "Foo"
 
     def test_add_single_object_multi_help_text(self):
         task = create_task(
@@ -204,8 +204,8 @@ class TestAddPicklistValues:
             {
                 "api_version": "47.0",
                 "fields": [
-                    {"api_name": "MyObject.Buster__c", "help_text": "buster"},
-                    {"api_name": "MyObject.Bluth__c", "help_text": "bluth"},
+                    {"api_name": "MyObject.Foo__c", "help_text": "foo"},
+                    {"api_name": "MyObject.Bar__c", "help_text": "bar"},
                 ],
             },
         )
@@ -213,13 +213,13 @@ class TestAddPicklistValues:
         tree = metadata_tree.fromstring(OBJECT_XML)
         result = task._transform_entity(tree, "MyObject")
         # Validate that the first sObject has one picklist changed
-        test_elem = result.find("fields", fullName="Buster__c")
+        test_elem = result.find("fields", fullName="Foo__c")
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "buster"
+        assert test_elem.inlineHelpText.text == "foo"
         # Validate that the first sObject alters only the custom field listed
-        test_elem = result.find("fields", fullName="Bluth__c")
+        test_elem = result.find("fields", fullName="Bar__c")
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "bluth"
+        assert test_elem.inlineHelpText.text == "bar"
 
     def test_add_single_object_no_help_text(self):
         task = create_task(
@@ -227,8 +227,8 @@ class TestAddPicklistValues:
             {
                 "api_version": "47.0",
                 "fields": [
-                    {"api_name": "MyObject3.Buster__c", "help_text": "buster"},
-                    {"api_name": "MyObject3.Bluth__c", "help_text": "bluth"},
+                    {"api_name": "MyObject3.Foo__c", "help_text": "foo"},
+                    {"api_name": "MyObject3.Bar__c", "help_text": "bar"},
                 ],
             },
         )
@@ -236,13 +236,13 @@ class TestAddPicklistValues:
         tree = metadata_tree.fromstring(OBJECT_XML_3)
         result = task._transform_entity(tree, "MyObject3")
         # Validate that the first sObject has one picklist changed
-        test_elem = result.find("fields", fullName="Buster__c")
+        test_elem = result.find("fields", fullName="Foo__c")
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "buster"
+        assert test_elem.inlineHelpText.text == "foo"
         # Validate that the first sObject alters only the custom field listed
-        test_elem = result.find("fields", fullName="Bluth__c")
+        test_elem = result.find("fields", fullName="Bar__c")
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "bluth"
+        assert test_elem.inlineHelpText.text == "bar"
 
     def test_add_single_object_multi_field_no_help_text(self):
         task = create_task(
@@ -250,8 +250,8 @@ class TestAddPicklistValues:
             {
                 "api_version": "47.0",
                 "fields": [
-                    {"api_name": "MyObject4.Buster__c", "help_text": "buster"},
-                    {"api_name": "MyObject4.Bluth__c", "help_text": "bluth"},
+                    {"api_name": "MyObject4.Foo__c", "help_text": "foo"},
+                    {"api_name": "MyObject4.Bar__c", "help_text": "bar"},
                 ],
             },
         )
@@ -259,13 +259,13 @@ class TestAddPicklistValues:
         tree = metadata_tree.fromstring(OBJECT_XML_4)
         result = task._transform_entity(tree, "MyObject4")
         # Validate that the first sObject has one picklist changed
-        test_elem = result.find("fields", fullName="Buster__c")
+        test_elem = result.find("fields", fullName="Foo__c")
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "buster"
+        assert test_elem.inlineHelpText.text == "foo"
         # Validate that the first sObject alters only the custom field listed
-        test_elem = result.find("fields", fullName="Bluth__c")
+        test_elem = result.find("fields", fullName="Bar__c")
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "bluth"
+        assert test_elem.inlineHelpText.text == "bar"
 
     def test_raises_for_no_fields(self):
         with pytest.raises(TaskOptionsError):
@@ -287,7 +287,7 @@ class TestAddPicklistValues:
                 SetFieldHelpText,
                 {
                     "api_version": "47.0",
-                    "fields": {"api_name": "MyObject.Buster__c", "help_text": "buster"},
+                    "fields": {"api_name": "MyObject.Foo__c", "help_text": "foo"},
                 },
             )
 
@@ -298,7 +298,7 @@ class TestAddPicklistValues:
         with pytest.raises(TaskOptionsError):
             task = create_task(
                 SetFieldHelpText,
-                {"api_version": "47.0", "fields": [{"api": "MyObject.Buster__c"}]},
+                {"api_version": "47.0", "fields": [{"api": "MyObject.Foo__c"}]},
             )
 
             tree = metadata_tree.fromstring(OBJECT_XML)
@@ -320,7 +320,7 @@ class TestAddPicklistValues:
                 SetFieldHelpText,
                 {
                     "api_version": "buster_bluth",
-                    "fields": [{"api": "MyObject.Buster__c", "help_text": "help"}],
+                    "fields": [{"api": "MyObject.Foo__c", "help_text": "help"}],
                 },
             )
 
@@ -334,21 +334,21 @@ class TestAddPicklistValues:
             {
                 "api_version": "47.0",
                 "fields": [
-                    {"api_name": "MyObject.Buster", "help_text": "buster_name"},
-                    {"api_name": "MyObject.Bluth", "help_text": "Bar"},
+                    {"api_name": "MyObject.Foo", "help_text": "foo"},
+                    {"api_name": "MyObject.Bar", "help_text": "bar"},
                 ],
             },
         )
 
         tree = metadata_tree.fromstring(STANDARD_OBJECT_XML)
         result = task._transform_entity(tree, "MyObject")
-        test_elem = result.find("fields", fullName="Buster")
+        test_elem = result.find("fields", fullName="Foo")
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "buster_name"
+        assert test_elem.inlineHelpText.text == "foo"
 
-        test_elem = result.find("fields", fullName="Bluth")
+        test_elem = result.find("fields", fullName="Bar")
         assert test_elem is not None
-        assert test_elem.inlineHelpText.text == "Bar"
+        assert test_elem.inlineHelpText.text == "bar"
 
     def test_raises_for_no_help_text_field(self):
         with pytest.raises(TaskOptionsError):
@@ -356,7 +356,7 @@ class TestAddPicklistValues:
                 SetFieldHelpText,
                 {
                     "api_version": "47.0",
-                    "fields": [{"api_name": "MyObject.Buster", "bar": "buster_name"}],
+                    "fields": [{"api_name": "MyObject.Foo", "bar": "buster_name"}],
                 },
             )
 

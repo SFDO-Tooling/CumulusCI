@@ -6,12 +6,6 @@ tasks:
         group: Metadata Transformations
         description: Activates Flows identified by a given list of Developer Names
         class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
-    add_field_help_text:
-        group: Metadata Transformations
-        description: Adds/sets specified field help text values.
-        class_path: cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
-        options:
-            namespace_inject: $project_config.project__package__namespace
     add_page_layout_related_lists:
         group: Metadata Transformations
         description: Adds specified Related List to one or more Page Layouts.
@@ -320,6 +314,12 @@ tasks:
             path: unpackaged/config/qa
             namespace_tokenize: $project_config.project__package__namespace
         group: Salesforce Metadata
+    set_field_help_text:
+        group: Metadata Transformations
+        description: Adds/sets specified field help text values.
+        class_path: cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
+        options:
+            namespace_inject: $project_config.project__package__namespace
     snapshot_changes:
         description: Tell SFDX source tracking to ignore previous changes in a scratch org
         class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
