@@ -6,8 +6,9 @@ import pytest
 
 from yaml import safe_load, dump, YAMLError
 
-from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup
+from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, ValidationError
+from cumulusci.tasks.bulkdata.step import DataOperationType
 
 
 class TestMappingParser:
@@ -100,6 +101,147 @@ class TestMappingParser:
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "rb") as f:
             assert parse_from_yaml(f)
+
+    def test_is_injectable(self):
+        assert MappingStep._is_injectable("Test__c")
+        assert not MappingStep._is_injectable("npsp__Test__c")
+        assert not MappingStep._is_injectable("Account")
+
+    def test_get_permission_type(self):
+        ms = MappingStep(sf_object="Account", fields=["Name"], action="insert")
+        assert ms._get_permission_type(DataOperationType.INSERT) == "createable"
+        assert ms._get_permission_type(DataOperationType.QUERY) == "queryable"
+
+        ms = MappingStep(sf_object="Account", fields=["Name"], action="update")
+        assert ms._get_permission_type(DataOperationType.INSERT) == "updateable"
+
+    def test_check_field_permission(self):
+        ms = MappingStep(sf_object="Account", fields=["Name"], action="insert")
+
+        assert ms._check_field_permission(
+            {"Name": {"createable": True}}, "Name", DataOperationType.INSERT
+        )
+
+        assert ms._check_field_permission(
+            {"Name": {"createable": True}}, "Name", DataOperationType.QUERY
+        )
+
+        ms = MappingStep(sf_object="Account", fields=["Name"], action="update")
+
+        assert not ms._check_field_permission(
+            {"Name": {"updateable": False}}, "Name", DataOperationType.INSERT
+        )
+
+        assert not ms._check_field_permission(
+            {"Name": {"updateable": False}}, "Website", DataOperationType.INSERT
+        )
+
+    def test_validate_field_dict__fls_checks(self):
+        ms = MappingStep(
+            sf_object="Account", fields=["Id", "Name", "Website"], action="insert"
+        )
+
+        assert ms._validate_field_dict(
+            {"Name": {"createable": True}, "Website": {"createable": True}},
+            ms.fields_,
+            None,
+            False,
+            DataOperationType.INSERT,
+        )
+
+        assert not ms._validate_field_dict(
+            {"Name": {"createable": True}, "Website": {"createable": False}},
+            ms.fields_,
+            None,
+            False,
+            DataOperationType.INSERT,
+        )
+
+    def test_validate_field_dict__injection(self):
+        ms = MappingStep(
+            sf_object="Account", fields=["Id", "Name", "Test__c"], action="insert"
+        )
+
+        assert ms._validate_field_dict(
+            {"Name": {"createable": True}, "npsp__Test__c": {"createable": True}},
+            ms.fields_,
+            lambda field: f"npsp__{field}",
+            False,
+            DataOperationType.INSERT,
+        )
+
+        assert ms.fields_ == {"Id": "Id", "Name": "Name", "npsp__Test__c": "Test__c"}
+
+    def test_validate_field_dict__injection_duplicate_fields(self):
+        ms = MappingStep(
+            sf_object="Account", fields=["Id", "Name", "Test__c"], action="insert"
+        )
+
+        assert ms._validate_field_dict(
+            {
+                "Name": {"createable": True},
+                "npsp__Test__c": {"createable": True},
+                "Test__c": {"createable": True},
+            },
+            ms.fields_,
+            lambda field: f"npsp__{field}",
+            False,
+            DataOperationType.INSERT,
+        )
+
+        assert ms.fields_ == {"Id": "Id", "Name": "Name", "Test__c": "Test__c"}
+
+    def test_validate_field_dict__drop_missing(self):
+        ms = MappingStep(
+            sf_object="Account", fields=["Id", "Name", "Website"], action="insert"
+        )
+
+        assert ms._validate_field_dict(
+            {"Name": {"createable": True}, "Website": {"createable": False}},
+            ms.fields_,
+            None,
+            True,
+            DataOperationType.INSERT,
+        )
+
+        assert ms.fields_ == {"Id": "Id", "Name": "Name"}
+
+    def test_validate_sobject(self):
+        ms = MappingStep(sf_object="Account", fields=["Name"], action="insert")
+
+        assert ms._validate_sobject(
+            {"Account": {"createable": True}}, None, DataOperationType.INSERT
+        )
+
+        assert ms._validate_sobject(
+            {"Account": {"queryable": True}}, None, DataOperationType.QUERY
+        )
+
+        ms = MappingStep(sf_object="Account", fields=["Name"], action="update")
+
+        assert not ms._validate_sobject(
+            {"Account": {"updateable": False}}, None, DataOperationType.INSERT
+        )
+
+    def test_validate_sobject__injection(self):
+        ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
+
+        assert ms._validate_sobject(
+            {"npsp__Test__c": {"createable": True}},
+            lambda obj: f"npsp__{obj}",
+            DataOperationType.INSERT,
+        )
+        assert ms.sf_object == "npsp__Test__c"
+
+    def test_validate_sobject__injection_duplicate(self):
+        ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
+
+        assert ms._validate_sobject(
+            {"npsp__Test__c": {"createable": True}, "Test__c": {"createable": True}},
+            lambda obj: f"npsp__{obj}",
+            DataOperationType.INSERT,
+        )
+        assert ms.sf_object == "Test__c"
 
 
 class TestMappingLookup:

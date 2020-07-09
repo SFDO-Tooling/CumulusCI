@@ -109,16 +109,17 @@ class MappingStep(CCIDictModel):
             lookup.name = name
         return v
 
-    def _is_injectable(self, element: str) -> bool:
+    @staticmethod
+    def _is_injectable(element: str) -> bool:
         return element.count("__") == 1
 
     def _get_permission_type(self, operation: DataOperationType) -> str:
-        if operation is DataOperationType.INSERT and self.action == "insert":
-            return "createable"
-        elif operation is DataOperationType.UPDATE or self.action == "update":
-            return "updateable"
-        elif operation is DataOperationType.QUERY:
+        if operation is DataOperationType.QUERY:
             return "queryable"
+        elif operation is DataOperationType.INSERT and self.action == "insert":
+            return "createable"
+        elif operation is DataOperationType.INSERT and self.action == "update":
+            return "updateable"
 
     def _check_object_permission(
         self, global_describe: Dict, sobject: str, operation: DataOperationType
@@ -131,8 +132,9 @@ class MappingStep(CCIDictModel):
     ):
         perm = self._get_permission_type(operation)
         # Fields don't have "queryable" permission.
-        access = describe[field].get(perm) or True
-        return field in describe and access
+        return field in describe and (
+            describe[field].get(perm) if perm in describe[field] else True
+        )
 
     def _validate_field_dict(
         self,
@@ -177,7 +179,6 @@ class MappingStep(CCIDictModel):
         self,
         global_describe: Dict,
         inject: Optional[Callable[[str], str]],
-        drop_missing: bool,
         data_operation_type: DataOperationType,
     ) -> bool:
         # Determine whether we need to inject our sObject.
@@ -240,7 +241,7 @@ class MappingStep(CCIDictModel):
             for entry in org_config.salesforce_client.describe()["sobjects"]
         }
 
-        if not self._validate_sobject(global_describe, inject, drop_missing, operation):
+        if not self._validate_sobject(global_describe, inject, operation):
             # Don't attempt to validate field permissions if the object doesn't exist.
             return False
 
