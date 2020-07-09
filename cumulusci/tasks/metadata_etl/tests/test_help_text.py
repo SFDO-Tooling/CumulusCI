@@ -408,4 +408,3 @@ class TestAddPicklistValues:
 
             assert test_elem is not None
             assert test_elem.inlineHelpText.text == "foo"
-
