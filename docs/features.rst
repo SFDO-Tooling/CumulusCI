@@ -761,3 +761,63 @@ The gist command creates a gist comprised of:
 
 The URL for the gist is displayed on the terminal of the user as output, and a web browser will automatically open a tab to the gist.
 
+Seeing Stack Traces Automatically
+---------------------------------
+If you would like to investigate bugs in CumulusCI when you find
+them, you can set the config option `show_stacktraces` to `True`
+in the `cli` section of `~/.cumulusci/cumulusci.yml` and stacktraces
+will no longer be suppressed when they are thrown within CumulusCI.
+Usage Errors (wrong command line arguments, missing files, etc.)
+will not show you exception tracebacks because they are seldom
+helpful in that case.
+
+CumulusCI also has a `--debug` command line argument that may help you investigate bugs.
+
+
+Creating an Unlocked Package
+=============================
+
+While CumulusCI was originally created with a focus on developing managed packages,
+it can also be used to develop and release `unlocked packages <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_intro.htm>`_.
+
+Prerequisites
+-------------
+
+In order to create unlocked package versions, you need to have a few things set up:
+
+1. `Enable Dev Hub in Your Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_devhub.htm>`_
+2. `Enable Unlocked and Second-Generation Managed Packaging <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_secondgen_pkg.htm>`_
+3. Connect the Dev Hub org to the CumulusCI keychain by running ``cci org connect devhub`` (this is necessary even if sfdx has already authenticated to the Dev Hub).
+4. If you want to create an unlocked package with a namespace, you must also create a new Developer Edition org to `Create and Register Your Namespace <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_namespace.htm>`_, and link the namespace to your Dev Hub.
+
+Create a package version
+------------------------
+
+To create a new unlocked package version, run the ``create_package_version`` task against the Dev Hub org:
+
+    $ cci task run create_package_version --org devhub -o package_type Unlocked
+
+This task will look for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of ``cumulusci.yml``). If a matching package doesn't exist yet, it will be created. Then the task will start creating a new version of this package.
+
+Once creation of the package version has completed (which can take some time), the task will output some information including the SubscriberPackageVersion Id, which can be used to install the package in another org.
+
+If a package version already exists with the exact same contents, its Id will be returned instead of creating a new package version.
+
+Handling dependencies
+---------------------
+
+If your project has dependencies configured in the ``project`` section of ``cumulusci.yml``, CumulusCI will try to convert them into a Subscriber Package Version Id (``04t`` key prefix), which is the format required for dependencies in the API for creating a package version.
+
+For dependencies that are specified as a managed package namespace and version, or dependencies specified as a GitHub repository with releases that can be resolved to a namespace and version, CumulusCI needs an org with the dependencies installed in order to do this conversion. By default, it will create a new scratch org named ``2gp_dependencies`` and run the ``dependencies`` flow in order to get an org where these ids can be looked up. If you want to use an existing scratch org rather than creating a new one, set the ``dependency_org`` option for the ``create_package_version`` task.
+
+For dependencies that are an unpackaged bundle of metadata, CumulusCI will create an additional unlocked package to contain them.
+
+Promote a package version
+-------------------------
+
+In order to be installed in a production org, an unlocked package version must be
+`promoted <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_pkg_ver_promote.htm>`_
+to mark it as released.
+
+CumulusCI does not yet provide any tools to help with this, so for now you must use the ``sfdx force:package:version:promote`` command.
+If additional unlocked packages were created to hold unpackaged dependencies, they must be promoted as well.

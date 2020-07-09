@@ -33,7 +33,7 @@ class VersionTypeEnum(str, enum.Enum):
 class PackageConfig(BaseModel):
     name: str
     description: str = ""
-    package_type: PackageTypeEnum = PackageTypeEnum.managed
+    package_type: PackageTypeEnum
     namespace: Optional[str]
     branch: str = None
     version_name: str
@@ -50,7 +50,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
     task_options = {
         "package_name": {"description": "Name of package"},
-        "package_type": {"description": "Package type (unlocked or managed)"},
+        "package_type": {
+            "description": "Package type (Unlocked or Managed)",
+            "required": True,
+        },
         "namespace": {"description": "Package namespace"},
         "version_name": {"description": "Version name"},
         "version_type": {
