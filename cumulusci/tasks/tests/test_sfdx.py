@@ -49,7 +49,7 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
             pass
 
         self.assertEqual("force:org", task.options["command"])
-        self.assertEqual("sfdx force:org", task._get_command())
+        self.assertEqual("sfdx force:org --help", task._get_command())
 
     @patch(
         "cumulusci.tasks.sfdx.SFDXOrgTask._update_credentials",

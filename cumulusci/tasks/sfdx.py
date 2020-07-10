@@ -34,15 +34,9 @@ class SFDXBaseTask(Command):
         command = "{SFDX_CLI} {command}".format(
             command=self.options["command"], SFDX_CLI=SFDX_CLI
         )
-        return command
-
-    def _run_task(self):
-        env = self._get_env()
-        command = self._get_command()
         if self.options.get("extra"):
             command += " {}".format(self.options["extra"])
-        self.logger.info(f"Running command:  {command}")
-        self._run_command(env, command)
+        return command
 
 
 class SFDXOrgTask(SFDXBaseTask):
@@ -69,9 +63,13 @@ class SFDXOrgTask(SFDXBaseTask):
 class SFDXJsonTask(SFDXOrgTask):
     command = "force:mdapi:deploy --json"
 
-    def _init_options(self, kwargs):
-        super()._init_options(kwargs)
+    task_options = {
+        "extra": {"description": "Append additional options to the command"}
+    }
+
+    def _get_command(self):
         self.options["command"] = self.command
+        return super()._get_command()
 
     def _process_output(self, line):
         try:
