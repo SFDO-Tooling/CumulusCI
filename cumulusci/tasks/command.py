@@ -100,11 +100,14 @@ class Command(BaseTask):
             self.logger.error(message)
             raise CommandException(message)
 
+    def _get_command(self):
+        return self.options["command"]
+
     def _run_command(
         self, env, command=None, output_handler=None, return_code_handler=None
     ):
         if not command:
-            command = self.options["command"]
+            command = self._get_command()
 
         interactive_mode = process_bool_arg(self.options["interactive"])
 
