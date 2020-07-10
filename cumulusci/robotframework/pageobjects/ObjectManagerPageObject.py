@@ -4,24 +4,26 @@ from cumulusci.robotframework.pageobjects import BasePage
 from cumulusci.robotframework.pageobjects import pageobject
 from selenium.webdriver.common.keys import Keys
 
-object_manager = {"button":"//input[@title='{}']",
-				  "input":"//input[@id='{}']",
-				  "select_related":"//select[@id = '{}']",
-				  "select_related_option":"//select[@id = 'DomainEnumOrId']/option[@value='{}']",
-				  "search_result": "//tbody/tr/td/a/span[contains(text(),'{}')]",
-				  "formula_txtarea": "//textarea[@id = '{}']",
-				  "object_result": "//th/a[text()='{}']",
-				  "link-text":"//a[contains(text(),'{}')]",
-				  "button-with-text":"//button[contains(text(),'{}')]",
-				  "frame_new":"//iframe[contains(@name, '{}') or contains(@title, '{}')]"
-				  }
+object_manager = {
+    "button": "//input[@title='{}']",
+    "input": "//input[@id='{}']",
+    "select_related": "//select[@id = '{}']",
+    "select_related_option": "//select[@id = 'DomainEnumOrId']/option[@value='{}']",
+    "search_result": "//tbody/tr/td/a/span[contains(text(),'{}')]",
+    "formula_txtarea": "//textarea[@id = '{}']",
+    "object_result": "//th/a[text()='{}']",
+    "link-text": "//a[contains(text(),'{}')]",
+    "button-with-text": "//button[contains(text(),'{}')]",
+    "frame_new": "//iframe[contains(@name, '{}') or contains(@title, '{}')]",
+}
+
 
 @pageobject(page_type="ObjectManager")
 class ObjectManagerPage(BasePage):
     """A page object representing the Object Manager of an object.
-	Example
-	| Go to page   ObjectManager  Contact
-	"""
+        Example
+        | Go to page   ObjectManager  Contact
+        """
 
     def _go_to_page(self):
         url_template = "{root}/lightning/setup/ObjectManager/home"
@@ -39,23 +41,17 @@ class ObjectManagerPage(BasePage):
         self.selenium.wait_until_page_contains_element(object)
         self.selenium.click_element(object)
         self.selenium.wait_until_location_contains("Details/view", timeout=90)
-        
 
-	def _is_current_page(self):
-		self.selenium.location_should_contain(
-		"Detail/view"
-		)
-	
-	@capture_screenshot_on_error
-	def _switch_tab_to(self,tab):
-		leftnavoption = object_manager["link-text"].format(tab)
-		self.selenium.click_element(leftnavoption)
+    def _is_current_page(self):
+        self.selenium.location_should_contain("Detail/view")
 
-	def _is_current_tab(self,tab):
-		self.selenium.location_should_contain(
-			"Detail/view"
-		)
+    @capture_screenshot_on_error
+    def switch_tab_to(self, tab):
+        leftnavoption = object_manager["link-text"].format(tab)
+        self.selenium.click_element(leftnavoption)
 
+    def _is_current_tab(self, tab):
+        self.selenium.location_should_contain("Detail/view")
 
     @capture_screenshot_on_error
     def create_currency_field(self, field_name):
