@@ -61,10 +61,7 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         self.task_config.config["options"]["connect"] = True
         self.task_config.config["options"]["overwrite"] = True
         task = CreateConnectedApp(self.project_config, self.task_config)
-        self.assertEqual(
-            task.options["command"],
-            self.task_config.options__command
-        )
+        self.assertEqual(task.options["command"], self.task_config.options__command)
         self.assertEqual(task.options["label"], self.label)
         self.assertEqual(task.options["username"], self.username)
         self.assertEqual(task.options["email"], self.email)
