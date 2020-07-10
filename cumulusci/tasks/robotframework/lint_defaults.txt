@@ -1,0 +1,25 @@
+# Default arguments for the rflint task
+# These can be overridden from command line or in
+# cumulusci.yml
+--ignore TooManyTestSteps
+--warning DuplicateVariablesInResource
+--warning DuplicateVariablesInSuite
+--warning FileTooLong
+--warning LineTooLong
+--warning RequireSuiteDocumentation
+--warning TooManyTestCases
+--error DuplicateKeywordNames
+--error DuplicateSettingsInResource
+--error DuplicateSettingsInSuite
+--error DuplicateTestNames
+--error InvalidTable
+--error InvalidTableInResource
+--error PeriodInSuiteName
+--error PeriodInTestName
+--error RequireKeywordDocumentation
+--error RequireTestDocumentation
+--error TagWithSpaces
+--error TooFewKeywordSteps
+--error TooFewTestSteps
+--error TrailingBlankLines
+--error TrailingWhitespace
