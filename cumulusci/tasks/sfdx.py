@@ -30,18 +30,19 @@ class SFDXBaseTask(Command):
         "extra": {"description": "Append additional options to the command"},
     }
 
-    def _init_options(self, kwargs):
-        super(SFDXBaseTask, self)._init_options(kwargs)
-        self.options["command"] = self._get_command()
-        # Add extra command args from
-        if self.options.get("extra"):
-            self.options["command"] += " {}".format(self.options["extra"])
-
     def _get_command(self):
         command = "{SFDX_CLI} {command}".format(
             command=self.options["command"], SFDX_CLI=SFDX_CLI
         )
         return command
+
+    def _run_task(self):
+        env = self._get_env()
+        command = self._get_command()
+        if self.options.get("extra"):
+            command += " {}".format(self.options["extra"])
+        self.logger.info(f"Running command:  {command}")
+        self._run_command(env, command)
 
 
 class SFDXOrgTask(SFDXBaseTask):
@@ -49,15 +50,8 @@ class SFDXOrgTask(SFDXBaseTask):
 
     salesforce_task = True
 
-    def _init_options(self, kwargs):
-        super(SFDXOrgTask, self)._init_options(kwargs)
-
-        # Add username to command if needed
-        self.options["command"] = self._add_username(self.options["command"])
-
-        self.logger.info("Running command:  {}".format(self.options["command"]))
-
-    def _add_username(self, command):
+    def _get_command(self):
+        command = super()._get_command()
         # For scratch orgs, just pass the username in the command line
         if isinstance(self.org_config, ScratchOrgConfig):
             command += " -u {username}".format(username=self.org_config.username)
@@ -83,10 +77,6 @@ class SFDXJsonTask(SFDXOrgTask):
             return
 
         self._process_data(data)
-
-    def _init_options(self, kwargs):
-        kwargs["command"] = self._get_command()
-        super(SFDXJsonTask, self)._init_options(kwargs)
 
     def _get_command(self):
         command = "{SFDX_CLI} {command}".format(command=self.command, SFDX_CLI=SFDX_CLI)
