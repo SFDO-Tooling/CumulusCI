@@ -69,6 +69,10 @@ class SFDXOrgTask(SFDXBaseTask):
 class SFDXJsonTask(SFDXOrgTask):
     command = "force:mdapi:deploy --json"
 
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.options["command"] = self.command
+
     def _process_output(self, line):
         try:
             data = json.loads(line)
@@ -77,11 +81,6 @@ class SFDXJsonTask(SFDXOrgTask):
             return
 
         self._process_data(data)
-
-    def _get_command(self):
-        command = "{SFDX_CLI} {command}".format(command=self.command, SFDX_CLI=SFDX_CLI)
-        command = self._add_username(command)
-        return command
 
     def _process_data(self, data):
         self.logger.info("JSON = {}".format(data))

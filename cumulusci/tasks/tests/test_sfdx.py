@@ -48,7 +48,8 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
         except CommandException:
             pass
 
-        self.assertEqual("sfdx force:org --help", task.options["command"])
+        self.assertEqual("force:org", task.options["command"])
+        self.assertEqual("sfdx force:org", task._get_command())
 
     @patch(
         "cumulusci.tasks.sfdx.SFDXOrgTask._update_credentials",
@@ -85,7 +86,7 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
         org_config = ScratchOrgConfig({"username": "test@example.com"}, "test")
 
         task = SFDXOrgTask(self.project_config, self.task_config, org_config)
-        self.assertIn("-u test@example.com", task.options["command"])
+        self.assertIn("-u test@example.com", task._get_command())
 
 
 class TestSFDXJsonTask(unittest.TestCase):
