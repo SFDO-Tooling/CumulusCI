@@ -258,6 +258,42 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
+**check_sobjects_available**
+==========================================
+
+**Description:** Runs as a preflight check to determine whether specific sObjects are available.
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_sobjects_available``
+
+
+
+**check_org_wide_defaults**
+==========================================
+
+**Description:** Runs as a preflight check to validate Organization-Wide Defaults.
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_org_wide_defaults``
+
+
+Options
+------------------------------------------
+
+
+``-o org_wide_defaults ORGWIDEDEFAULTS``
+	 *Required*
+
+	 The Organization-Wide Defaults to check, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature. Checking External Sharing Model when it is turned off will fail the preflight.
+
 **custom_settings_value_wait**
 ==========================================
 
@@ -1280,7 +1316,7 @@ Options
 
 **Description:** Retrieves a list of the currently installed managed package namespaces and their versions
 
-**Class:** cumulusci.tasks.salesforce.GetInstalledPackages
+**Class:** cumulusci.tasks.preflight.packages.GetInstalledPackages
 
 Command Syntax
 ------------------------------------------
@@ -1294,7 +1330,7 @@ Command Syntax
 
 **Description:** Retrieves a list of the currently available license definition keys
 
-**Class:** cumulusci.tasks.salesforce.license_preflights.GetAvailableLicenses
+**Class:** cumulusci.tasks.preflight.licenses.GetAvailableLicenses
 
 Command Syntax
 ------------------------------------------
@@ -1308,7 +1344,7 @@ Command Syntax
 
 **Description:** Retrieves a list of the currently available Permission Set License definition keys
 
-**Class:** cumulusci.tasks.salesforce.license_preflights.GetAvailablePermissionSetLicenses
+**Class:** cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
 
 Command Syntax
 ------------------------------------------
@@ -2913,6 +2949,11 @@ Options
 	 *Optional*
 
 	 Require at least X percent code coverage across the org following the test run.
+
+``-o verbose VERBOSE``
+	 *Optional*
+
+	 By default, only failures get detailed output. Set verbose to True to see all passed test methods.
 
 **set_duplicate_rule_status**
 ==========================================
