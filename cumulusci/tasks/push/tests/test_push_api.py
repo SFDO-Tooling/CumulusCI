@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+import datetime
 
 from cumulusci.tasks.push.push_api import (
     memoize,
@@ -179,6 +180,173 @@ def test_sf_push_get_where_last_version(sf_push_api):
         == "ReleaseState = 'Beta' AND MajorVersion=1 AND MinorVersion=2"
     )
     assert sf_push_api.get_where_last_version() == "ReleaseState = 'Released'"
+
+
+def test_sf_push_get_packages(sf_push_api):
+    query = "SELECT id, name, namespaceprefix FROM MetadataPackage WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_packages("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_once_with(query)
+
+
+def test_sf_push_get_package_objs(sf_push_api):
+    query = "SELECT id, name, namespaceprefix FROM MetadataPackage WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_package_objs("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_once_with(query)
+
+
+def test_sf_push_get_packages_by_id(sf_push_api):
+    query = "SELECT id, name, namespaceprefix FROM MetadataPackage WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_packages_by_id("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_once_with(query)
+
+
+def test_sf_push_get_package_versions(sf_push_api):
+    query = "SELECT Id, Name, MetadataPackageId, ReleaseState, MajorVersion, MinorVersion, PatchVersion, BuildNumber FROM MetadataPackageVersion WHERE Name='foo' ORDER BY MajorVersion DESC, MinorVersion DESC, PatchVersion, BuildNumber DESC"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_package_versions("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_once_with(query)
+
+
+def test_sf_push_get_package_version_objs(sf_push_api):
+    query = "SELECT Id, Name, MetadataPackageId, ReleaseState, MajorVersion, MinorVersion, PatchVersion, BuildNumber FROM MetadataPackageVersion WHERE Name='foo' ORDER BY MajorVersion DESC, MinorVersion DESC, PatchVersion, BuildNumber DESC"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_package_version_objs("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_package_version_by_id(sf_push_api):
+    query = "SELECT Id, Name, MetadataPackageId, ReleaseState, MajorVersion, MinorVersion, PatchVersion, BuildNumber FROM MetadataPackageVersion WHERE Name='foo' ORDER BY MajorVersion DESC, MinorVersion DESC, PatchVersion, BuildNumber DESC"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_package_versions_by_id("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_subscribers(sf_push_api):
+    query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_subscribers("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_subscriber_objs(sf_push_api):
+    query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_subscriber_objs("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_subscribers_by_org_key(sf_push_api):
+    query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_subscribers_by_org_key("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_push_requests(sf_push_api):
+    query = "SELECT Id, PackageVersionId, ScheduledStartTime, Status FROM PackagePushRequest WHERE Name='foo' ORDER BY ScheduledStartTime DESC"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_push_requests("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_push_request_objs(sf_push_api):
+    query = "SELECT Id, PackageVersionId, ScheduledStartTime, Status FROM PackagePushRequest WHERE Name='foo' ORDER BY ScheduledStartTime DESC"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_push_request_objs("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_push_requests_by_id(sf_push_api):
+    query = "SELECT Id, PackageVersionId, ScheduledStartTime, Status FROM PackagePushRequest WHERE Name='foo' ORDER BY ScheduledStartTime DESC"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_push_requests_by_id("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_push_jobs(sf_push_api):
+    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_push_jobs("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_push_job_objs(sf_push_api):
+    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_push_job_objs("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_push_jobs_by_id(sf_push_api):
+    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_push_jobs_by_id("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_push_errors(sf_push_api):
+    query = "SELECT Id, PackagePushJobId, ErrorSeverity, ErrorType, ErrorTitle, ErrorMessage, ErrorDetails FROM PackagePushError WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_push_errors("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_push_error_objs(sf_push_api):
+    query = "SELECT Id, PackagePushJobId, ErrorSeverity, ErrorType, ErrorTitle, ErrorMessage, ErrorDetails FROM PackagePushError WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_push_error_objs("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_push_errors_by_id(sf_push_api):
+    query = "SELECT Id, PackagePushJobId, ErrorSeverity, ErrorType, ErrorTitle, ErrorMessage, ErrorDetails FROM PackagePushError WHERE Name='foo'"
+    sf_push_api.return_query_records = mock.MagicMock()
+    sf_push_api.get_push_errors_by_id("Name='foo'", None)
+    sf_push_api.return_query_records.assert_called_with(query)
+
+
+def test_sf_push_get_org_id(sf_push_api):
+    assert sf_push_api._get_org_id(
+        [
+            {
+                "attributes": {"referenceId": "12"},
+                "SubscriberOrganizationKey": {"id": "hello"},
+            },
+            {
+                "attributes": {"referenceId": "13"},
+                "SubscriberOrganizationKey": {"id": "world"},
+            },
+        ],
+        "13",
+    ) == {"id": "world"}
+
+
+# def test_sf_push_cancel_push_request(sf_push_api):
+#     ref_id = "12"
+#     sf_push_api.cancel_push_request(ref_id)
+#     sf_push_api.cancel_push_request.assert_called_once_with(ref_id)
+
+
+# def test_sf_push_create_push_request(sf_push_api):
+#     query = "SELECT Id, PackagePushJobId, ErrorSeverity, ErrorType, ErrorTitle, ErrorMessage, ErrorDetails FROM PackagePushError WHERE Name='foo'"
+#     # sf_push_api.return_query_records = mock.MagicMock()
+#     sf_push_api.res = mock.MagicMock()
+#     sf_push_api.request_id = {"id": "abe"}
+#     sf_push_api.create_push_request(
+#         PackagePushRequest(
+#             push_api=mock.MagicMock(),
+#             version="1.2.3",
+#             start_time="12:03",
+#             status="Succeeded",
+#             sf_id=SF_ID,
+#         ),
+#         ["00D63000000ApoXEAS"],
+#         datetime.datetime.now(),
+#     )
+#     sf_push_api.return_query_records.assert_called_with(query)
 
 
 def test_push_memoize():
@@ -532,156 +700,3 @@ def test_package_subscriber_get_push_jobs_by_id(package_subscriber):
     package_subscriber.push_api.get_push_jobs_by_id.assert_called_once_with(
         expected, None
     )
-
-
-# class TestPackageSubscriber:
-#     """Provides coverage for PackageSubscriber"""
-
-#     NAME = "foo"
-#     PUSH_API = "push_api"
-#     SF_ID = "006000000XXX000"
-#     VERSION = "1.2.3"
-#     STATUS = "Complete"
-#     ORG_NAME = "foo"
-#     ORG_KEY = "bar"
-#     ORG_STATUS = "Complete"
-#     ORG_TYPE = "Sandbox"
-
-#     @pytest.fixture
-#     def package(self):
-#         return PackageSubscriber(
-#             self.PUSH_API,
-#             self.VERSION,
-#             self.STATUS,
-#             self.ORG_NAME,
-#             self.ORG_KEY,
-#             self.ORG_STATUS,
-#             self.ORG_TYPE,
-#             self.SF_ID,
-#         )
-
-#     def test_init(self):
-#         package = PackageSubscriber(
-#             self.PUSH_API,
-#             self.VERSION,
-#             self.STATUS,
-#             self.ORG_NAME,
-#             self.ORG_KEY,
-#             self.ORG_STATUS,
-#             self.ORG_TYPE,
-#             self.SF_ID,
-#         )
-
-#         assert package.push_api == self.PUSH_API
-#         assert package.sf_id == self.SF_ID
-#         assert package.org_name == self.ORG_NAME
-#         assert package.version == self.VERSION
-
-#         assert package.org_key == self.ORG_KEY
-#         assert package.org_status == self.ORG_STATUS
-#         assert package.org_type == self.ORG_TYPE
-
-#         assert package.format_where("foo") == "foo = 'bar'"
-#         assert package.format_where("foo", "foobar") == "foo = 'bar' AND (foobar)"
-
-
-# class TestPackagePushJob:
-#     """Provides coverage for PackagePushError"""
-
-#     PUSH_API = "push_api"
-#     SF_ID = "006000000XXX000"
-#     JOB = "foo"
-#     SEVERITY = "Low"
-#     ERROR_TYPE = "Exception Error"
-#     TITLE = "BAR"
-#     MESSAGE = "Message Here"
-#     DETAILS = "Details Here"
-
-#     @pytest.fixture
-#     def package(self):
-#         return PackagePushError(
-#             self.PUSH_API,
-#             self.JOB,
-#             self.SEVERITY,
-#             self.ERROR_TYPE,
-#             self.TITLE,
-#             self.MESSAGE,
-#             self.DETAILS,
-#             self.SF_ID,
-#         )
-
-#     def test_init(self):
-#         package = PackagePushError(
-#             self.PUSH_API,
-#             self.JOB,
-#             self.SEVERITY,
-#             self.ERROR_TYPE,
-#             self.TITLE,
-#             self.MESSAGE,
-#             self.DETAILS,
-#             self.SF_ID,
-#         )
-
-#         assert package.push_api == self.PUSH_API
-#         assert package.sf_id == self.SF_ID
-#         assert package.job == self.JOB
-#         assert package.severity == self.SEVERITY
-
-#         assert package.error_type == self.ERROR_TYPE
-#         assert package.title == self.TITLE
-#         assert package.message == self.MESSAGE
-#         assert package.details == self.DETAILS
-
-
-# class TestPackagePushRequest:
-#     """Provides coverage for PackagePushRequest"""
-
-#     PUSH_API = "push_api"
-#     VERSION = "1.2.3"
-#     START_TIME = "12:03"
-#     STATUS = "Complete"
-#     SF_ID = "006000000XXX000"
-
-#     @pytest.fixture
-#     def package(self):
-#         return PackagePushRequest(
-#             self.PUSH_API, self.VERSION, self.START_TIME, self.STATUS, self.SF_ID
-#         )
-
-#     def test_init(self):
-#         package = PackagePushRequest(
-#             self.PUSH_API, self.VERSION, self.START_TIME, self.STATUS
-#         )
-
-#         assert package.push_api == self.PUSH_API
-#         assert package.sf_id is None
-#         assert package.version == self.VERSION
-
-#         assert package.start_time == self.START_TIME
-#         assert package.status == self.STATUS
-
-
-class TestPackagePushError:
-    """Provides coverage for PackagePushJob"""
-
-    PUSH_API = "push_api"
-    REQUEST = "foo"
-    ORG = "Low"
-    STATUS = "Complete"
-    SF_ID = "006000000XXX000"
-
-    @pytest.fixture
-    def package(self):
-        return PackagePushJob(
-            self.PUSH_API, self.REQUEST, self.ORG, self.STATUS, self.SF_ID
-        )
-
-    def test_init(self):
-        package = PackagePushJob(self.PUSH_API, self.REQUEST, self.ORG, self.STATUS)
-
-        assert package.push_api == self.PUSH_API
-        assert package.sf_id is None
-        assert package.request == self.REQUEST
-
-        assert package.org == self.ORG
-        assert package.status == self.STATUS
