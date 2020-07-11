@@ -8,6 +8,7 @@ from cumulusci.tasks.bulkdata.step import (
     BaseQueryOperation,
     DataOperationStatus,
     DataOperationJobResult,
+    DataOperationType,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
@@ -521,6 +522,33 @@ class TestExtractData(unittest.TestCase):
 
         task._init_mapping()
         assert "Insert Households" in task.mapping
+
+    @mock.patch("cumulusci.tasks.bulkdata.extract.validate_mapping")
+    def test_init_mapping_passes_options_to_validate(self, validate_mapping):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        t = _make_task(
+            ExtractData,
+            {
+                "options": {
+                    "database_url": "sqlite:///",
+                    "mapping": mapping_path,
+                    "inject_namespaces": True,
+                    "drop_missing": True,
+                }
+            },
+        )
+
+        t._init_mapping()
+
+        validate_mapping.assert_called_once_with(
+            mapping=t.mapping,
+            org_config=t.org_config,
+            namespace=t.project_config.project__package__namespace,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=True,
+            drop_missing=True,
+        )
 
     def test_fields_for_mapping(self):
         task = _make_task(
