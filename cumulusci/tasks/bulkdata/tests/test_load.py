@@ -300,21 +300,6 @@ class TestLoadData(unittest.TestCase):
         assert t.options["database_url"] is None
 
     @responses.activate
-    def test_init_mapping_enforces_fls(self):
-        t = _make_task(
-            LoadData,
-            {"options": {"sql_path": "test.sql", "mapping": "bad_mapping.yml"}},
-        )
-
-        mock_describe_calls()
-
-        bad_yaml = "Insert Accounts:\n  sf_object: Account\n  table: Account\n  fields:\n    - Nonsense__c"
-
-        with mock.patch("builtins.open", mock.mock_open(read_data=bad_yaml)):
-            with self.assertRaises(BulkDataException):
-                t._init_mapping()
-
-    @responses.activate
     def test_expand_mapping_creates_after_steps(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "mapping_after.yml")

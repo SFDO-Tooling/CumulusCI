@@ -21,6 +21,7 @@ from cumulusci.utils import os_friendly_path
 
 from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
+    validate_mapping,
     MappingStep,
     MappingLookup,
 )
@@ -88,7 +89,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
         self.options["inject_namespaces"] = process_bool_arg(
-            self.options.get("inject_namespaces", False)
+            self.options.get("inject_namespaces", True)
         )
         self.options["drop_missing"] = process_bool_arg(
             self.options.get("drop_missing", False)
@@ -451,23 +452,14 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         self.mapping = parse_from_yaml(mapping_file_path)
 
-        should_continue = all(
-            [
-                m.validate_and_inject_namespace(
-                    self.org_config,
-                    self.project_config.project__package__namespace,
-                    DataOperationType.INSERT,
-                    self.options["inject_namespaces"],
-                    self.options["drop_missing"],
-                )
-                for m in self.mapping.values()
-            ]
+        validate_mapping(
+            mapping=self.mapping,
+            org_config=self.org_config,
+            namespace=self.project_config.project__package__namespace,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=self.options["inject_namespaces"],
+            drop_missing=self.options["drop_missing"],
         )
-
-        if not should_continue:
-            raise BulkDataException(
-                "One or more permissions errors blocked the operation."
-            )
 
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps

@@ -5,6 +5,7 @@ from pathlib import Path
 from pydantic import Field, validator, root_validator, ValidationError
 
 from cumulusci.core.config.OrgConfig import OrgConfig
+from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.step import DataOperationType
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 from cumulusci.utils import convert_to_snake_case
@@ -254,6 +255,8 @@ class MappingStep(CCIDictModel):
             describe, self.fields, inject, drop_missing, operation
         ):
             return False
+
+        # FIXME: filter out `after` steps and check for updateable permissions.
         if not self._validate_field_dict(
             describe, self.lookups, inject, drop_missing, operation
         ):
@@ -284,3 +287,36 @@ ValidationError = ValidationError  # export Pydantic's Validation Error under an
 def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
     "Parse from a path, url, path-like or file-like"
     return MappingSteps.parse_from_yaml(source)
+
+
+def validate_mapping(
+    *,
+    mapping: Dict,
+    org_config: OrgConfig,
+    namespace: str,
+    data_operation: DataOperationType,
+    inject_namespaces: bool,
+    drop_missing: bool,
+):
+    should_continue = [
+        m.validate_and_inject_namespace(
+            org_config, namespace, data_operation, inject_namespaces, drop_missing
+        )
+        for m in mapping.values()
+    ]
+
+    if not drop_missing and not all(should_continue):
+        raise BulkDataException("One or more permissions errors blocked the operation.")
+
+    if drop_missing:
+        # Drop any steps with sObjects that are not present.
+        for (include, step_name) in zip(should_continue, list(mapping.keys())):
+            if not include:
+                del mapping[step_name]
+
+        # Remove any remaining lookups to dropped objects.
+        for m in mapping.values():
+            for field in list(m.lookups.keys()):
+                lookup = m.lookups[field]
+                if lookup.table not in [step.table for step in mapping.values()]:
+                    del m.lookups[field]

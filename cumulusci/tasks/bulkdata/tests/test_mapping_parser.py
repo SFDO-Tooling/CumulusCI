@@ -4,11 +4,20 @@ from unittest import mock
 import logging
 import pytest
 
+import responses
 from yaml import safe_load, dump, YAMLError
 
-from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
-from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, ValidationError
+from cumulusci.core.exceptions import BulkDataException
+from cumulusci.tasks.bulkdata.mapping_parser import (
+    MappingLookup,
+    MappingStep,
+    parse_from_yaml,
+    validate_mapping,
+    ValidationError,
+)
 from cumulusci.tasks.bulkdata.step import DataOperationType
+from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
+from cumulusci.tests.util import DummyOrgConfig
 
 
 class TestMappingParser:
@@ -243,7 +252,15 @@ class TestMappingParser:
         )
         assert ms.sf_object == "Test__c"
 
-    def test_validate_and_inject_namespace__base(self):
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
+        return_value=True,
+    )
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
+        return_value=True,
+    )
+    def test_validate_and_inject_namespace__base(self, mock_field, mock_sobject):
         ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
 
         org_config = mock.Mock()
@@ -253,8 +270,6 @@ class TestMappingParser:
         org_config.salesforce_client.Test__c.describe.return_value = {
             "fields": [{"name": "Name"}]
         }
-        type(ms)._validate_sobject = mock.Mock(return_value=True)
-        type(ms)._validate_field_dict = mock.Mock(return_value=True)
         assert ms.validate_and_inject_namespace(
             org_config, "ns", DataOperationType.INSERT
         )
@@ -282,7 +297,17 @@ class TestMappingParser:
             ]
         )
 
-    def test_validate_and_inject_namespace__sobject_failure(self):
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
+        return_value=False,
+    )
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
+        return_value=True,
+    )
+    def test_validate_and_inject_namespace__sobject_failure(
+        self, mock_field, mock_sobject
+    ):
         ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
 
         org_config = mock.Mock()
@@ -292,8 +317,6 @@ class TestMappingParser:
         org_config.salesforce_client.Test__c.describe.return_value = {
             "fields": [{"name": "Name"}]
         }
-        type(ms)._validate_sobject = mock.Mock(return_value=False)
-        type(ms)._validate_field_dict = mock.Mock(return_value=False)
         assert not ms.validate_and_inject_namespace(
             org_config, "ns", DataOperationType.INSERT
         )
@@ -304,7 +327,17 @@ class TestMappingParser:
 
         ms._validate_field_dict.assert_not_called()
 
-    def test_validate_and_inject_namespace__fields_failure(self):
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
+        return_value=True,
+    )
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
+        return_value=False,
+    )
+    def test_validate_and_inject_namespace__fields_failure(
+        self, mock_field, mock_sobject
+    ):
         ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
 
         org_config = mock.Mock()
@@ -314,8 +347,6 @@ class TestMappingParser:
         org_config.salesforce_client.Test__c.describe.return_value = {
             "fields": [{"name": "Name"}]
         }
-        type(ms)._validate_sobject = mock.Mock(return_value=True)
-        type(ms)._validate_field_dict = mock.Mock(return_value=False)
         assert not ms.validate_and_inject_namespace(
             org_config, "ns", DataOperationType.INSERT
         )
@@ -336,7 +367,17 @@ class TestMappingParser:
             ]
         )
 
-    def test_validate_and_inject_namespace__lookups_failure(self):
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
+        return_value=True,
+    )
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
+        side_effect=[True, False],
+    )
+    def test_validate_and_inject_namespace__lookups_failure(
+        self, mock_field, mock_sobject
+    ):
         ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
 
         org_config = mock.Mock()
@@ -346,8 +387,6 @@ class TestMappingParser:
         org_config.salesforce_client.Test__c.describe.return_value = {
             "fields": [{"name": "Name"}]
         }
-        type(ms)._validate_sobject = mock.Mock(return_value=True)
-        type(ms)._validate_field_dict = mock.Mock(side_effect=[True, False])
         assert not ms.validate_and_inject_namespace(
             org_config, "ns", DataOperationType.INSERT
         )
@@ -374,6 +413,79 @@ class TestMappingParser:
                 ),
             ]
         )
+
+    @responses.activate
+    def test_validate_mapping_enforces_fls(self):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                "Insert Accounts:\n  sf_object: Account\n  table: Account\n  fields:\n    - Nonsense__c"
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        with pytest.raises(BulkDataException):
+            validate_mapping(
+                mapping=mapping,
+                org_config=org_config,
+                namespace=None,
+                data_operation=DataOperationType.INSERT,
+                inject_namespaces=False,
+                drop_missing=False,
+            )
+
+    @responses.activate
+    def test_validate_mapping_removes_steps_with_drop_missing(self):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c"
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_mapping(
+            mapping=mapping,
+            org_config=org_config,
+            namespace=None,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=False,
+            drop_missing=True,
+        )
+
+        assert "Insert Accounts" not in mapping
+
+    @responses.activate
+    def test_validate_mapping_removes_lookups_with_drop_missing(self):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_mapping(
+            mapping=mapping,
+            org_config=org_config,
+            namespace=None,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=False,
+            drop_missing=True,
+        )
+
+        assert "Insert Accounts" not in mapping
+        assert "Insert Contacts" in mapping
+        assert "AccountId" not in mapping["Insert Contacts"].lookups
 
 
 class TestMappingLookup:

@@ -24,7 +24,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
 )
 from cumulusci.utils import os_friendly_path, log_progress
-from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, validate_mapping
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -114,23 +114,14 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         self.mapping = parse_from_yaml(mapping_file_path)
 
-        should_continue = all(
-            [
-                m.validate_and_inject_namespace(
-                    self.org_config,
-                    self.project_config.project__package__namespace,
-                    DataOperationType.QUERY,
-                    self.options["inject_namespaces"],
-                    self.options["drop_missing"],
-                )
-                for m in self.mapping.values()
-            ]
+        validate_mapping(
+            mapping=self.mapping,
+            org_config=self.org_config,
+            namespace=self.project_config.project__package__namespace,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=self.options["inject_namespaces"],
+            drop_missing=self.options["drop_missing"],
         )
-
-        if not should_continue:
-            raise BulkDataException(
-                "One or more permissions errors blocked the operation."
-            )
 
     def _fields_for_mapping(self, mapping):
         """Return a flat list of fields for this mapping."""
