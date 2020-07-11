@@ -139,8 +139,22 @@ class ObjectManagerPage(BasePage):
         )
 
     @capture_screenshot_on_error
+    def is_field_present(self, field_name):
+        """Creates a Lookpup field by taking in the inputs field_name and related field"""
+        search_button = object_manager['object_manager']['input'].format("globalQuickfind")
+        self.selenium.wait_until_page_contains_element(search_button, 60)
+        self.selenium.get_webelement(search_button).send_keys(field_name)
+        self.selenium.get_webelement(search_button).send_keys(Keys.ENTER)
+        time.sleep(1)
+        self.salesforce.wait_until_loading_is_complete()
+        search_results = object_manager['object_manager']['search_result'].format(field_name)
+        self.assertEqual(1, len(self.selenium.get_webelements(search_results)))
+
+    @capture_screenshot_on_error
     def create_custom_field(self, **kwargs):
-        """Ensure that the custom field does not exist prior and Creates a custom field based          on type paramenter and the field_name if the custom field exists it will not create the         custom field and exits out of object manager"""
+        """Ensure that the custom field does not exist prior and Creates a custom field based
+        on type paramenter and the field_name if the custom field exists it will not create the
+        custom field and exits out of object manager"""
         search_button = object_manager["input"].format("globalQuickfind")
         self.selenium.wait_until_page_contains_element(search_button, 60)
         self.selenium.get_webelement(search_button).send_keys(kwargs["Field_Name"])
