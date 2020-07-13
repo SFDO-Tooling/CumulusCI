@@ -26,6 +26,7 @@ from cumulusci.robotframework.pageobjects import (
     NewModal,
     HomePage,
     DetailPage,
+    ObjectManagerPage
 )
 from robot.libraries.BuiltIn import BuiltIn
 import robot.utils
@@ -50,6 +51,7 @@ BASE_REGISTRY = {
     ("Home", ""): HomePage,
     ("Listing", ""): ListingPage,
     ("New", ""): NewModal,
+    ("ObjectManager", ""): ObjectManagerPage,
 }
 
 # this is the importer used by the page objects, which makes it easy
