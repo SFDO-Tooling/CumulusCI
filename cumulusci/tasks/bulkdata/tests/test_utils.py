@@ -9,8 +9,15 @@ from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.tasks.bulkdata.utils import (
+    create_table,
+    generate_batches,
+    is_person_accounts_enabled,
+)
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
+
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
 
 def create_db_file(filename):
@@ -170,3 +177,29 @@ class TestBatching(unittest.TestCase):
     def test_batching_with_remainder(self):
         batches = list(generate_batches(num_records=20, batch_size=7))
         assert batches == [(7, 0), (7, 1), (6, 2)]
+
+
+class TestIsPersonAccountsEnabled(unittest.TestCase):
+    def test_is_person_accounts_enabled__person_accounts_disabled(self):
+        task = _make_task(BaseSalesforceApiTask, {})
+        task.sf = mock.Mock()
+        task.sf.Account = mock.Mock()
+        task.sf.Account.describe = mock.Mock(
+            return_value={"fields": [{"name": "Name"}]}
+        )
+
+        assert is_person_accounts_enabled(task) is False
+
+        task.sf.Account.describe.assert_called_once_with()
+
+    def test_is_person_accounts_enabled__person_accounts_enabled(self):
+        task = _make_task(BaseSalesforceApiTask, {})
+        task.sf = mock.Mock()
+        task.sf.Account = mock.Mock()
+        task.sf.Account.describe = mock.Mock(
+            return_value={"fields": [{"name": "Name"}, {"name": "IsPersonAccount"}]}
+        )
+
+        assert is_person_accounts_enabled(task) is True
+
+        task.sf.Account.describe.assert_called_once_with()
