@@ -26,7 +26,7 @@ from cumulusci.robotframework.pageobjects import (
     NewModal,
     HomePage,
     DetailPage,
-    ObjectManagerPage
+    ObjectManagerPage,
 )
 from robot.libraries.BuiltIn import BuiltIn
 import robot.utils
