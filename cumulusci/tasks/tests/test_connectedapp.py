@@ -61,9 +61,7 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         self.task_config.config["options"]["connect"] = True
         self.task_config.config["options"]["overwrite"] = True
         task = CreateConnectedApp(self.project_config, self.task_config)
-        self.assertEqual(
-            task.options["command"], "{} -u {}".format(self.base_command, self.username)
-        )
+        self.assertEqual(task.options["command"], self.task_config.options__command)
         self.assertEqual(task.options["label"], self.label)
         self.assertEqual(task.options["username"], self.username)
         self.assertEqual(task.options["email"], self.email)
@@ -94,16 +92,6 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         self.project_config.config["services"] = {"github": {"attributes": {}}}
         with pytest.raises(TaskOptionsError, match="github"):
             CreateConnectedApp(self.project_config, self.task_config)
-
-    @mock.patch("cumulusci.tasks.connectedapp.CreateConnectedApp._set_default_username")
-    def test_init_options_default_username(self, set_mock):
-        """ Not passing username calls _get_default_username """
-        del self.task_config.config["options"]["username"]
-        try:
-            CreateConnectedApp(self.project_config, self.task_config)
-        except Exception:
-            pass
-        set_mock.assert_called_once()
 
     @mock.patch("cumulusci.tasks.connectedapp.CreateConnectedApp._run_command")
     def test_set_default_username(self, run_command_mock):
@@ -237,10 +225,6 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         task._run_task()
         run_task_mock.assert_called_once()
         self.assertFalse(os.path.isdir(task.tempdir))
-        self.assertEqual(
-            task.options["command"],
-            self.base_command + " -u {} -d {}".format(self.username, task.tempdir),
-        )
         connected_app = self.project_config.keychain.get_service("connected_app")
         assert connected_app is DEFAULT_CONNECTED_APP
 

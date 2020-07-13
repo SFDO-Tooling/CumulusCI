@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from cumulusci.tasks.salesforce import SOQLQuery
-from cumulusci.tasks.salesforce import GetInstalledPackages
+from cumulusci.tasks.preflight.packages import GetInstalledPackages
 
 
 class TestFoo:

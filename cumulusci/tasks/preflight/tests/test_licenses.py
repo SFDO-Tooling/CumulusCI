@@ -1,11 +1,11 @@
 from unittest.mock import Mock
 import unittest
 
-from cumulusci.tasks.salesforce.license_preflights import (
+from cumulusci.tasks.preflight.licenses import (
     GetAvailableLicenses,
     GetAvailablePermissionSetLicenses,
 )
-from .util import create_task
+from cumulusci.tasks.salesforce.tests.util import create_task
 
 
 class TestLicensePreflights(unittest.TestCase):
