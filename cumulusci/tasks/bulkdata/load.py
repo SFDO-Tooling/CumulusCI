@@ -85,7 +85,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
     def _run_task(self):
-        self._is_person_accounts_enabled = is_person_accounts_enabled(self)
+        # Initialize attributes that will be cached.
+        self._person_accounts_enabled = None
+
         self._init_mapping()
         self._init_db()
         self._expand_mapping()
@@ -269,9 +271,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         # Update Account.Name as blank for IsPersonAccount Account records.
         if (
-            self._is_person_accounts_enabled
-            and mapping["sf_object"].lower() == "account"
+            mapping["sf_object"].lower() == "account"
             and self._is_person_account_column_exists(mapping)
+            and self._is_person_accounts_enabled()
         ):
             self._update_person_account_name_as_blank(mapping)
 
@@ -347,9 +349,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         # Filter out non-person account Contact records.
         # Contact records for person accounts were already created by the system.
         if (
-            self._is_person_accounts_enabled
-            and mapping["sf_object"].lower() == "contact"
+            mapping["sf_object"].lower() == "contact"
             and self._is_person_account_column_exists(mapping)
+            and self._is_person_accounts_enabled()
         ):
             query = query.filter(model.__table__.columns.IsPersonAccount == "false")
 
@@ -392,9 +394,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         # person account Contact records get populated downstream as expected.
         if (
             mapping["action"] == "insert"
-            and self._is_person_accounts_enabled
             and mapping["sf_object"].lower() == "contact"
             and self._is_person_account_column_exists(mapping)
+            and self._is_person_accounts_enabled()
         ):
             account_id_lookup = self._get_account_id_lookup(mapping)
             if account_id_lookup:
@@ -617,3 +619,12 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                         mapping["lookups"][l]["after"] = None
 
                     self.after_steps[after][name] = mapping
+
+    def _is_person_accounts_enabled(self):
+        """
+        Caches is_person_accounts_enabled response which consumes a describe
+        call.
+        """
+        if self._person_accounts_enabled is None:
+            self._person_accounts_enabled = is_person_accounts_enabled(self)
+        return self._person_accounts_enabled

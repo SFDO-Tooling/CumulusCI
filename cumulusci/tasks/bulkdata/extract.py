@@ -54,7 +54,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             )
 
     def _run_task(self):
-        self._is_person_accounts_enabled = is_person_accounts_enabled(self)
+        # Initialize attributes that will be cached.
+        self._person_accounts_enabled = None
+
         self._init_mapping()
         self._init_db()
 
@@ -258,9 +260,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # Track IsPersonAccount for Account and Contact tables if person accounts is enabled.
         # IsPersonAccount field should never exist in a mapping because the field is not creatable.
-        if self._is_person_accounts_enabled and (
-            mapping["table"].lower() in ["account", "contact"]
-        ):
+        if (
+            mapping["sf_object"].lower() in ["account", "contact"]
+        ) and self._is_person_accounts_enabled():
             mapping["fields"]["IsPersonAccount"] = "IsPersonAccount"
 
         t = create_table(mapping, self.metadata)
@@ -302,3 +304,12 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         with open(path, "w") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")
+
+    def _is_person_accounts_enabled(self):
+        """
+        Caches is_person_accounts_enabled response which consumes a describe
+        call.
+        """
+        if self._person_accounts_enabled is None:
+            self._person_accounts_enabled = is_person_accounts_enabled(self)
+        return self._person_accounts_enabled
