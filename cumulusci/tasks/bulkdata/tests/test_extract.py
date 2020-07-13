@@ -37,7 +37,7 @@ class TestExtractData(unittest.TestCase):
     mapping_file_v2 = "mapping_v2.yml"
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
-    def test_run(self, step_mock):
+    def test_run__person_accounts_disabled(self, step_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
 
@@ -52,6 +52,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
+        task._is_person_accounts_enabled = mock.Mock(return_value=False)
 
         mock_query_households = MockBulkQueryOperation(
             sobject="Account",
@@ -72,12 +73,84 @@ class TestExtractData(unittest.TestCase):
 
         task()
 
+        self.assertEqual(
+            None,
+            task._person_accounts_enabled,
+            "_person_accounts_enabled should be initialized",
+        )
+
         household = task.session.query(task.models["households"]).one()
         self.assertEqual("1", household.sf_id)
+        self.assertFalse(hasattr(household, "IsPersonAccount"))
         self.assertEqual("HH_Account", household.record_type)
+
         contact = task.session.query(task.models["contacts"]).one()
         self.assertEqual("2", contact.sf_id)
+        self.assertFalse(hasattr(contact, "IsPersonAccount"))
         self.assertEqual("1", contact.household_id)
+
+        task._is_person_accounts_enabled.assert_has_calls(
+            [mock.call(), mock.call()]  # Account and Contact
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
+    def test_run__person_accounts_enabled(self, step_mock):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+
+        task = _make_task(
+            ExtractData,
+            {
+                "options": {
+                    "database_url": "sqlite://",  # in memory
+                    "mapping": mapping_path,
+                }
+            },
+        )
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._is_person_accounts_enabled = mock.Mock(return_value=True)
+
+        mock_query_households = MockBulkQueryOperation(
+            sobject="Account",
+            api_options={},
+            context=task,
+            query="SELECT Id, IsPersonAccount FROM Account",
+        )
+        mock_query_contacts = MockBulkQueryOperation(
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id, FirstName, LastName, Email, IsPersonAccount, AccountId FROM Contact",
+        )
+        mock_query_households.results = [["1", "false"]]
+        mock_query_contacts.results = [
+            ["2", "First", "Last", "test@example.com", "true", "1"]
+        ]
+
+        step_mock.side_effect = [mock_query_households, mock_query_contacts]
+
+        task()
+
+        self.assertEqual(
+            None,
+            task._person_accounts_enabled,
+            "_person_accounts_enabled should be initialized",
+        )
+
+        household = task.session.query(task.models["households"]).one()
+        self.assertEqual("1", household.sf_id)
+        self.assertEqual("false", household.IsPersonAccount)
+        self.assertEqual("HH_Account", household.record_type)
+
+        contact = task.session.query(task.models["contacts"]).one()
+        self.assertEqual("2", contact.sf_id)
+        self.assertEqual("true", contact.IsPersonAccount)
+        self.assertEqual("1", contact.household_id)
+
+        task._is_person_accounts_enabled.assert_has_calls(
+            [mock.call(), mock.call()]  # Account and Contact
+        )
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
     def test_run__sql(self, step_mock):
@@ -91,6 +164,7 @@ class TestExtractData(unittest.TestCase):
             )
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
+            task._is_person_accounts_enabled = mock.Mock(return_value=False)
 
             mock_query_households = MockBulkQueryOperation(
                 sobject="Account",
@@ -115,7 +189,7 @@ class TestExtractData(unittest.TestCase):
             assert os.path.exists("testdata.sql")
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
-    def test_run__v2(self, step_mock):
+    def test_run__v2__person_accounts_disabled(self, step_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v2)
 
@@ -130,6 +204,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
+        task._is_person_accounts_enabled = mock.Mock(return_value=False)
 
         mock_query_households = MockBulkQueryOperation(
             sobject="Account",
@@ -151,9 +226,59 @@ class TestExtractData(unittest.TestCase):
         task()
         household = task.session.query(task.models["households"]).one()
         assert household.name == "TestHousehold"
+        assert not hasattr(household, "IsPersonAccount")
         assert household.record_type == "HH_Account"
+
         contact = task.session.query(task.models["contacts"]).one()
         assert contact.household_id == "1"
+        assert not hasattr(contact, "IsPersonAccount")
+
+    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
+    def test_run__v2__person_accounts_enabled(self, step_mock):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v2)
+
+        task = _make_task(
+            ExtractData,
+            {
+                "options": {
+                    "database_url": "sqlite://",  # in memory
+                    "mapping": mapping_path,
+                }
+            },
+        )
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._is_person_accounts_enabled = mock.Mock(return_value=True)
+
+        mock_query_households = MockBulkQueryOperation(
+            sobject="Account",
+            api_options={},
+            context=task,
+            query="SELECT Id, Name, IsPersonAccount FROM Account",
+        )
+        mock_query_contacts = MockBulkQueryOperation(
+            sobject="Contact",
+            api_options={},
+            context=task,
+            query="SELECT Id, FirstName, LastName, Email, IsPersonAccount, AccountId FROM Contact",
+        )
+        mock_query_households.results = [["1", "TestHousehold", "false"]]
+        mock_query_contacts.results = [
+            ["2", "First", "Last", "test@example.com", "true", "1"]
+        ]
+
+        step_mock.side_effect = [mock_query_households, mock_query_contacts]
+
+        task()
+        household = task.session.query(task.models["households"]).one()
+        assert household.name == "TestHousehold"
+        assert household.IsPersonAccount == "false"
+        assert household.record_type == "HH_Account"
+
+        contact = task.session.query(task.models["contacts"]).one()
+        assert contact.household_id == "1"
+        assert contact.IsPersonAccount == "true"
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
     def test_import_results__oid_as_pk(self, log_mock):
@@ -364,24 +489,112 @@ class TestExtractData(unittest.TestCase):
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.create_table")
     @mock.patch("cumulusci.tasks.bulkdata.extract.mapper")
-    def test_create_table(self, mapper_mock, create_mock):
-        task = _make_task(
-            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
-        )
-        mapping = {
-            "sf_object": "Account",
-            "fields": {"Name": "Name"},
-            "lookups": {},
-            "table": "accounts",
-            "sf_id_table": "test_ids",
-            "oid_as_pk": True,
-        }
-        task.models = {}
-        task.metadata = mock.Mock()
-        task._create_table(mapping)
-        create_mock.assert_called_once_with(mapping, task.metadata)
+    def test_create_table__account_or_contact__person_accounts_disabled(
+        self, mapper_mock, create_mock
+    ):
+        for sf_object, table in [
+            ("Account", "accounts"),
+            ("ACCOUNT", "accounts"),
+            ("account", "accounts"),
+            ("Contact", "contacts"),
+            ("CONTACT", "contacts"),
+            ("contact", "contacts"),
+        ]:
+            create_mock.reset_mock()
+            mapper_mock.reset_mock()
 
-        assert "accounts" in task.models
+            task = _make_task(
+                ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
+            )
+            mapping = {
+                "sf_object": sf_object,
+                "fields": {"Name": "Name"},
+                "lookups": {},
+                "table": table,
+                "sf_id_table": "test_ids",
+                "oid_as_pk": True,
+            }
+            task.models = {}
+            task.metadata = mock.Mock()
+            task._is_person_accounts_enabled = mock.Mock(return_value=False)
+
+            task._create_table(mapping)
+            create_mock.assert_called_once_with(mapping, task.metadata)
+            task._is_person_accounts_enabled.assert_called_once_with()
+
+            assert table in task.models
+            assert "IsPersonAccount" not in mapping["fields"]
+
+    @mock.patch("cumulusci.tasks.bulkdata.extract.create_table")
+    @mock.patch("cumulusci.tasks.bulkdata.extract.mapper")
+    def test_create_table__account_or_contact__person_accounts_enabled(
+        self, mapper_mock, create_mock
+    ):
+        for sf_object, table in [
+            ("Account", "accounts"),
+            ("ACCOUNT", "accounts"),
+            ("account", "accounts"),
+            ("Contact", "contacts"),
+            ("CONTACT", "contacts"),
+            ("contact", "contacts"),
+        ]:
+            create_mock.reset_mock()
+            mapper_mock.reset_mock()
+
+            task = _make_task(
+                ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
+            )
+            mapping = {
+                "sf_object": sf_object,
+                "fields": {"Name": "Name"},
+                "lookups": {},
+                "table": table,
+                "sf_id_table": "test_ids",
+                "oid_as_pk": True,
+            }
+            task.models = {}
+            task.metadata = mock.Mock()
+            task._is_person_accounts_enabled = mock.Mock(return_value=True)
+
+            task._create_table(mapping)
+            create_mock.assert_called_once_with(mapping, task.metadata)
+            task._is_person_accounts_enabled.assert_called_once_with()
+
+            assert table in task.models
+            assert "IsPersonAccount" in mapping["fields"]
+
+    @mock.patch("cumulusci.tasks.bulkdata.extract.create_table")
+    @mock.patch("cumulusci.tasks.bulkdata.extract.mapper")
+    def test_create_table__not_account_nor_contact(self, mapper_mock, create_mock):
+        for sf_object, table in [
+            ("Opportunity", "opportunities"),
+            ("OPPORTUNITY", "opportunities"),
+            ("opportunity", "opportunities"),
+        ]:
+            create_mock.reset_mock()
+            mapper_mock.reset_mock()
+
+            task = _make_task(
+                ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
+            )
+            mapping = {
+                "sf_object": sf_object,
+                "fields": {"Name": "Name"},
+                "lookups": {},
+                "table": table,
+                "sf_id_table": "test_ids",
+                "oid_as_pk": True,
+            }
+            task.models = {}
+            task.metadata = mock.Mock()
+            task._is_person_accounts_enabled = mock.Mock(return_value=False)
+
+            task._create_table(mapping)
+            create_mock.assert_called_once_with(mapping, task.metadata)
+            task._is_person_accounts_enabled.assert_not_called()
+
+            assert table in task.models
+            assert "IsPersonAccount" not in mapping["fields"]
 
     def test_create_table__already_exists(self):
         base_path = os.path.dirname(__file__)
@@ -396,6 +609,8 @@ class TestExtractData(unittest.TestCase):
                 }
             },
         )
+        task._is_person_accounts_enabled = mock.Mock(return_value=False)
+
         with self.assertRaises(BulkDataException):
             task()
 
@@ -421,6 +636,7 @@ class TestExtractData(unittest.TestCase):
                 "oid_as_pk": False,
             },
         }
+        task._is_person_accounts_enabled = mock.Mock(return_value=False)
 
         def create_table_mock(table_name):
             task.models[table_name] = mock.Mock()
@@ -446,6 +662,8 @@ class TestExtractData(unittest.TestCase):
         }
         task.models = {}
         task.metadata = mock.Mock()
+        task._is_person_accounts_enabled = mock.Mock(return_value=False)
+
         task._create_table(mapping)
 
         assert mapping["sf_id_table"] == "accounts_sf_id"
@@ -634,3 +852,48 @@ class TestExtractData(unittest.TestCase):
             columns=["sf_id", "Name", "account_id"],
             record_iterable=log_mock.return_value,
         )
+
+    @mock.patch("cumulusci.tasks.bulkdata.extract.is_person_accounts_enabled")
+    def test_is_person_accounts_enabled__call_gets_cached(
+        self, is_person_accounts_enabled
+    ):
+        """
+        Asserts _is_person_accounts_enabled caches the response of
+        is_person_accounts_enabled.
+        """
+        for return_value in [True, False]:
+            is_person_accounts_enabled.reset_mock()
+
+            self.assertTrue(return_value is not None)
+            is_person_accounts_enabled.return_value = return_value
+
+            task = _make_task(
+                ExtractData,
+                {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+            )
+            task._person_accounts_enabled = None
+
+            expected = return_value
+
+            # Execute test.
+            actual = task._is_person_accounts_enabled()
+
+            # Assert expected happend.
+            self.assertEqual(expected, actual)
+
+            self.assertEqual(
+                is_person_accounts_enabled.return_value, task._person_accounts_enabled
+            )
+
+            is_person_accounts_enabled.assert_called_once_with(task)
+
+            # Call again and assert is_person_accounts_enabled not called again.
+            self.assertFalse(task._person_accounts_enabled is None)
+
+            self.assertEqual(expected, task._is_person_accounts_enabled())
+
+            self.assertEqual(
+                is_person_accounts_enabled.return_value, task._person_accounts_enabled
+            )
+
+            is_person_accounts_enabled.assert_called_once_with(task)
