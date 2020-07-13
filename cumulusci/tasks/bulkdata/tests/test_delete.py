@@ -1,3 +1,4 @@
+import pytest
 import unittest
 from unittest import mock
 
@@ -293,6 +294,59 @@ class TestDeleteData(unittest.TestCase):
         )
         with self.assertRaises(BulkDataException):
             task()
+
+    @responses.activate
+    def test_validate_and_inject_namespace__standard(self):
+        mock_describe_calls()
+
+        task = _make_task(DeleteData, {"options": {"objects": "Contact,Account"}})
+
+        task._validate_and_inject_namespace()
+
+        assert task.sobjects == ["Contact", "Account"]
+
+    @responses.activate
+    def test_validate_and_inject_namespace__missing_object(self):
+        mock_describe_calls()
+        task = _make_task(
+            DeleteData, {"options": {"objects": "ApexTestQueueItem,Account"}}
+        )
+        # ApexTestQueueItem is not deletable
+
+        with pytest.raises(BulkDataException):
+            task._validate_and_inject_namespace()
+
+    def test_validate_and_inject_namespace__packaged(self):
+        task = _make_task(DeleteData, {"options": {"objects": "Contact,Test__c"}})
+        task.project_config.project__package__namespace = "ns"
+        task.org_config = mock.Mock()
+        task.org_config.salesforce_client.describe.return_value = {
+            "sobjects": [
+                {"name": "ns__Test__c", "deletable": True},
+                {"name": "Contact", "deletable": True},
+            ]
+        }
+
+        task._validate_and_inject_namespace()
+
+        assert task.sobjects == ["Contact", "ns__Test__c"]
+
+    def test_validate_and_inject_namespace__packaged_and_not(self):
+        task = _make_task(DeleteData, {"options": {"objects": "Contact,Test__c"}})
+        task.project_config.project__package__namespace = "ns"
+        task.org_config = mock.Mock()
+        task.org_config.salesforce_client.describe.return_value = {
+            "sobjects": [
+                {"name": "Test__c", "deletable": True},
+                {"name": "Contact", "deletable": True},
+                {"name": "ns__Test__c", "deletable": True},
+            ]
+        }
+
+        task._validate_and_inject_namespace()
+
+        # Prefer the user entry where there is ambiguity.
+        assert task.sobjects == ["Contact", "Test__c"]
 
     def test_object_description(self):
         t = _make_task(DeleteData, {"options": {"objects": "a", "where": "Id != null"}})

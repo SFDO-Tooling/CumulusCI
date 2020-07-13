@@ -58,7 +58,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         "inject_namespaces": {
             "description": "Set to True to have CumulusCI automatically inject the project's namespace."
         },
-        "drop_missing_schema": {
+        "drop_missing": {
             "description": "Set to True to have CumulusCI transparently drop any missing schema elements."
             "This can support mappings that include data for optional packages."
         },

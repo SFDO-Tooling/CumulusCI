@@ -69,22 +69,19 @@ class DeleteData(BaseSalesforceApiTask):
 
             self.sobjects = []
             for sobject in self.options["objects"]:
-                if inject and self._is_injectable(sobject):
-                    if (
-                        sobject in global_describe
-                        and inject(sobject) in global_describe
-                    ):
+                if self._is_injectable(sobject):
+                    injected = inject(sobject)
+                    if sobject in global_describe and injected in global_describe:
                         self.logger.warning(
-                            f"Both {sobject} and {inject(sobject)} are present in the target org. Using {sobject}."
+                            f"Both {sobject} and {injected} are present in the target org. Using {sobject}."
                         )
 
-                    if (
-                        sobject not in global_describe
-                        and inject(sobject) in global_describe
-                    ):
-                        self.sobjects.append(inject(sobject))
+                    if sobject not in global_describe and injected in global_describe:
+                        self.sobjects.append(injected)
                     else:
                         self.sobjects.append(sobject)
+                else:
+                    self.sobjects.append(sobject)
         else:
             self.sobjects = self.options["objects"]
 
