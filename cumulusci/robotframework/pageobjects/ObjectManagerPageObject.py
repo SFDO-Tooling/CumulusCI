@@ -51,7 +51,8 @@ class ObjectManagerPage(BasePage):
         self.selenium.click_element(leftnavoption)
 
     def _is_current_tab(self, tab):
-        self.selenium.location_should_contain("Detail/view")
+        tab_view = f"{tab}/view"
+        self.selenium.location_should_contain(tab_view)
 
     @capture_screenshot_on_error
     def create_currency_field(self, field_name):
@@ -61,7 +62,7 @@ class ObjectManagerPage(BasePage):
         save_button = object_manager["button"].format("Save")
         self.selenium.wait_until_page_contains_element(currency_locator, timeout=60)
         self.selenium.click_element(currency_locator)
-        time.sleep(1)
+        self.selenium.wait_until_page_contains_element(next_button, 60)
         self.selenium.click_element(next_button)
         self.salesforce.populate_field("Field Label", field_name)
         self.salesforce.populate_field("Length", "16")
@@ -89,7 +90,7 @@ class ObjectManagerPage(BasePage):
         check_syntax = object_manager["button"].format("Check Syntax")
         self.selenium.wait_until_page_contains_element(formula_locator, 60)
         self.selenium.click_element(formula_locator)
-        time.sleep(1)
+        self.selenium.wait_until_page_contains_element(next_button, 60)
         self.selenium.click_element(next_button)
         self.salesforce.populate_field("Field Label", field_name)
         self.selenium.wait_until_page_contains_element(checkbox_option, 60)
@@ -116,13 +117,13 @@ class ObjectManagerPage(BasePage):
         related = object_manager["select_related"].format("DomainEnumOrId")
         self.selenium.wait_until_page_contains_element(lookup_locator, 60)
         self.selenium.click_element(lookup_locator)
-        time.sleep(1)
+        self.selenium.wait_until_page_contains_element(next_button, 60)
         self.selenium.click_element(next_button)
         self.selenium.wait_until_page_contains_element(related, 60)
         self.selenium.scroll_element_into_view(related)
         self.selenium.get_webelement(related).click()
         self.selenium.click_element(option)
-        time.sleep(2)
+        self.selenium.wait_until_page_contains_element(next_button, 60)
         self.selenium.click_element(next_button)
         self.salesforce.populate_field("Field Label", field_name)
         self.salesforce.populate_field(
@@ -140,15 +141,19 @@ class ObjectManagerPage(BasePage):
 
     @capture_screenshot_on_error
     def is_field_present(self, field_name):
-        """Creates a Lookpup field by taking in the inputs field_name and related field"""
-        search_button = object_manager['object_manager']['input'].format("globalQuickfind")
+        """Verifies and asserts the field got created """
+        search_button = object_manager["input"].format("globalQuickfind")
         self.selenium.wait_until_page_contains_element(search_button, 60)
         self.selenium.get_webelement(search_button).send_keys(field_name)
         self.selenium.get_webelement(search_button).send_keys(Keys.ENTER)
         time.sleep(1)
         self.salesforce.wait_until_loading_is_complete()
-        search_results = object_manager['object_manager']['search_result'].format(field_name)
-        self.assertEqual(1, len(self.selenium.get_webelements(search_results)))
+        search_results = object_manager["search_result"].format(field_name)
+        assert (
+            len(self.selenium.get_webelements(search_results)) == 1
+        ), "Expected result count to be 1 but found {}".format(
+            len(self.selenium.get_webelements(search_results))
+        )
 
     @capture_screenshot_on_error
     def create_custom_field(self, **kwargs):

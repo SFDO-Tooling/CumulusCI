@@ -28,7 +28,7 @@ Create Customfield In Object Manager
 *** Test Cases ***
 
 Create Custom Lookup Field Using Object Manager
-    [Documentation]     To test the ability of creating a custom lookup field
+    [Documentation]     To test the ability of creating a custom lookup field and verify field got created
 
     Create Customfield In Object Manager
     ...                                                    Object=Contact
