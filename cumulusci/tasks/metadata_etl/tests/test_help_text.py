@@ -390,21 +390,20 @@ class TestAddPicklistValues:
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
 
-    def test_overwrite_not_set(self):
-        with pytest.raises(TaskOptionsError):
-            task = create_task(
-                SetFieldHelpText,
-                {
-                    "api_version": "47.0",
-                    "overwrite": False,
-                    "fields": [{"api_name": "MyObject.Foo__c", "help_text": "foo"}],
-                },
-            )
+    def test_overwrite_false(self):
+        task = create_task(
+            SetFieldHelpText,
+            {
+                "api_version": "47.0",
+                "overwrite": False,
+                "fields": [{"api_name": "MyObject.Foo__c", "help_text": "foo"}],
+            },
+        )
 
-            # Validate that the first sObject has one picklist changed
-            tree = metadata_tree.fromstring(OBJECT_XML)
-            result = task._transform_entity(tree, "MyObject")
-            test_elem = result.find("fields", fullName="Foo__c")
+        # Validate that the first sObject has one picklist changed
+        tree = metadata_tree.fromstring(OBJECT_XML)
+        result = task._transform_entity(tree, "MyObject")
+        test_elem = result.find("fields", fullName="Foo__c")
 
-            assert test_elem is not None
-            assert test_elem.inlineHelpText.text == "foo"
+        assert test_elem is not None
+        assert test_elem.inlineHelpText.text == "Foo"

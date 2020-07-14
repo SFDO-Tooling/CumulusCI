@@ -1,5 +1,4 @@
 from collections import defaultdict
-
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
@@ -81,8 +80,8 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
             if self.options["overwrite"] is True:
                 field.inlineHelpText.text = help_text
             else:
-                raise TaskOptionsError(
-                    f"Please set the overwrite option to True to overwrite this help text field"
+                self.logger.warning(
+                    f"Skipping over help text field: {field.inlineHelpText.text}. Please set the overwrite option to True to overwrite this help text field."
                 )
         except AttributeError:
             field.append("inlineHelpText", text=help_text)
