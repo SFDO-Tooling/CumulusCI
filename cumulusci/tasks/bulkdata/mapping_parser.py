@@ -117,10 +117,10 @@ class MappingStep(CCIDictModel):
     def _get_permission_type(self, operation: DataOperationType) -> str:
         if operation is DataOperationType.QUERY:
             return "queryable"
-        elif operation is DataOperationType.INSERT and self.action == "insert":
-            return "createable"
-        elif operation is DataOperationType.INSERT and self.action == "update":
+        if operation is DataOperationType.INSERT and self.action == "update":
             return "updateable"
+
+        return "createable"
 
     def _check_object_permission(
         self, global_describe: Dict, sobject: str, operation: DataOperationType
@@ -165,7 +165,14 @@ class MappingStep(CCIDictModel):
                     f = inject(f)
 
             # Do we have the right permissions for this field, or do we need to drop it?
-            if not self._check_field_permission(describe, f, data_operation_type):
+            is_after_lookup = hasattr(field_dict[f], "after")
+            if not self._check_field_permission(
+                describe,
+                f,
+                data_operation_type
+                if not is_after_lookup
+                else DataOperationType.UPDATE,
+            ):
                 logger.warning(
                     f"Field {self.sf_object}.{f} is not present or does not have the correct permissions."
                 )
@@ -256,7 +263,7 @@ class MappingStep(CCIDictModel):
         ):
             return False
 
-        # FIXME: filter out `after` steps and check for updateable permissions.
+        # FIXME: handle key_field (may not be required)
         if not self._validate_field_dict(
             describe, self.lookups, inject, drop_missing, operation
         ):

@@ -43,7 +43,8 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             + "This is useful for keeping data in the repository and allowing diffs."
         },
         "inject_namespaces": {
-            "description": "Set to True to have CumulusCI automatically inject the project's namespace."
+            "description": "If set, CumulusCI automatically injects the project's namespace if schema is managed in the org. "
+            "Defaults to True. Set to False to deactivate automatic namespace injection."
         },
         "drop_missing_schema": {
             "description": "Set to True to have CumulusCI transparently drop any missing schema elements."
@@ -66,7 +67,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             )
 
         self.options["inject_namespaces"] = process_bool_arg(
-            self.options.get("inject_namespaces", False)
+            self.options.get("inject_namespaces", True)
         )
         self.options["drop_missing"] = process_bool_arg(
             self.options.get("drop_missing", False)

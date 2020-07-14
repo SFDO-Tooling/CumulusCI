@@ -28,6 +28,10 @@ class DeleteData(BaseSalesforceApiTask):
         "ignore_row_errors": {
             "description": "If True, allow the operation to continue even if individual rows fail to delete."
         },
+        "inject_namespaces": {
+            "description": "If set, CumulusCI automatically injects the project's namespace if schema is managed in the org. "
+            "Defaults to True. Set to False to deactivate automatic namespace injection."
+        },
     }
     row_warning_limit = 10
 
@@ -48,6 +52,9 @@ class DeleteData(BaseSalesforceApiTask):
         self.options["ignore_row_errors"] = process_bool_arg(
             self.options.get("ignore_row_errors")
         )
+        self.options["inject_namespaces"] = process_bool_arg(
+            self.options.get("inject_namespaces", True)
+        )
 
     @staticmethod
     def _is_injectable(element: str) -> bool:
@@ -62,7 +69,10 @@ class DeleteData(BaseSalesforceApiTask):
         }
 
         # Namespace injection
-        if self.project_config.project__package__namespace:
+        if (
+            self.options["inject_namespaces"]
+            and self.project_config.project__package__namespace
+        ):
 
             def inject(element: str):
                 return f"{self.project_config.project__package__namespace}__{element}"
