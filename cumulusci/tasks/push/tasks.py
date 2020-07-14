@@ -135,11 +135,12 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
             # get_push_request_objs
             self.push_report.get_push_requests.cache.clear()
             self.push_report.get_push_request_objs.cache.clear()
-
+            print("Before second call")
             # Get the push_request again
             push_request = self.push_report.get_push_request_objs(
                 "Id = '{}'".format(request_id), limit=1
             )[0]
+            print("After second call")
 
             self.logger.info(push_request.status)
 
