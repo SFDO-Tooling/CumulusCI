@@ -11,7 +11,7 @@ from cumulusci.tasks.bulkdata.utils import RowErrorChecker
 
 
 class DeleteData(BaseSalesforceApiTask):
-    """Query existing data for a specific sObject and perform a Bulk API delete of all responsive records."""
+    """Query existing data for a specific sObject and perform a Bulk API delete of all matching records."""
 
     task_options = {
         "objects": {
