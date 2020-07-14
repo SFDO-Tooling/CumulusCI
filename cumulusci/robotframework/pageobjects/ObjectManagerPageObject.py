@@ -15,6 +15,9 @@ object_manager = {
     "link-text": "//a[contains(text(),'{}')]",
     "button-with-text": "//button[contains(text(),'{}')]",
     "frame_new": "//iframe[contains(@name, '{}') or contains(@title, '{}')]",
+    "action_menu": "//a[contains(@class,'rowActionsPlaceHolder')]",
+    "action_menu_item": "//span[text() = '{}']",
+    "delete_confirm_btn": "//button[contains(@class,'forceActionButton')]",
 }
 
 
@@ -154,6 +157,19 @@ class ObjectManagerPage(BasePage):
         ), "Expected result count to be 1 but found {}".format(
             len(self.selenium.get_webelements(search_results))
         )
+
+    @capture_screenshot_on_error
+    def delete_custom_field(self):
+        """Deletes the added custom field"""
+        actions_menu = object_manager["action_menu"]
+        action_item_delete = object_manager["action_menu_item"].format("Delete")
+        confirm_delete = object_manager["delete_confirm_btn"]
+        self.selenium.click_element(actions_menu)
+        self.selenium.wait_until_page_contains_element(action_item_delete, 60)
+        self.selenium.click_element(action_item_delete)
+        self.selenium.wait_until_page_contains_element(confirm_delete, 60)
+        self.selenium.click_element(confirm_delete)
+        self.selenium.wait_until_location_contains("/view", timeout=90)
 
     @capture_screenshot_on_error
     def create_custom_field(self, **kwargs):
