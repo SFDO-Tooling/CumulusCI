@@ -7,7 +7,9 @@ from requests.packages.urllib3.util.retry import Retry
 CALL_OPTS_HEADER_KEY = "Sforce-Call-Options"
 
 
-def get_simple_salesforce_connection(project_config, org_config, api_version=None):
+def get_simple_salesforce_connection(
+    project_config, org_config, api_version=None, base_url: str = None
+):
     # Retry on long-running metadeploy jobs
     retries = Retry(total=5, status_forcelist=(502, 503, 504), backoff_factor=0.3)
     adapter = HTTPAdapter(max_retries=retries)
@@ -26,5 +28,11 @@ def get_simple_salesforce_connection(project_config, org_config, api_version=Non
     sf.headers.setdefault(CALL_OPTS_HEADER_KEY, "client={}".format(client_name))
     sf.session.mount("http://", adapter)
     sf.session.mount("https://", adapter)
+
+    if base_url:
+        base_url = (
+            base_url.strip("/") + "/"
+        )  # exactly one training slash and no leading slashes
+        sf.base_url += base_url
 
     return sf
