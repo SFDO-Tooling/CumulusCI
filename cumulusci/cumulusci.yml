@@ -84,6 +84,10 @@ tasks:
             path: src
             revert_path: src.orig
         group: Salesforce Metadata
+    delete_data:
+        description: Delete matching records in an org
+        class_path: cumulusci.tasks.bulkdata.DeleteData
+        group: Test Data
     deploy:
         description: Deploys the src directory of the repository to the org
         class_path: cumulusci.tasks.salesforce.Deploy

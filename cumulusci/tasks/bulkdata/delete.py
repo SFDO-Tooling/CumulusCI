@@ -23,7 +23,7 @@ class DeleteData(BaseSalesforceApiTask):
             "required": False,
         },
         "hardDelete": {
-            "description": "If True, perform a hard delete, bypassing the Recycle Bin. Default: False"
+            "description": "If True, perform a hard delete, bypassing the Recycle Bin. Note that this requires the Bulk API Hard Delete permission. Default: False"
         },
         "ignore_row_errors": {
             "description": "If True, allow the operation to continue even if individual rows fail to delete."
