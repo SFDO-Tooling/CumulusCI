@@ -124,6 +124,10 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
 
     def _run_task(self):
         with TemporaryDirectory() as tempdir:
+            working_directory = self.options.get("working_directory")
+            if working_directory:
+                tempdir = Path(working_directory)
+                tempdir.mkdir(exist_ok=True)
             for current_batch_size, index in generate_batches(
                 self.num_records, self.batch_size
             ):
@@ -177,15 +181,14 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         }
 
         # some generator tasks can generate the mapping file instead of reading it
-        with TemporaryDirectory() as tempdir:
-            if not subtask_options.get("mapping"):
-                temp_mapping = Path(tempdir) / "temp_mapping.yml"
-                mapping_file = self.options.get("generate_mapping_file", temp_mapping)
-                subtask_options["generate_mapping_file"] = mapping_file
-            self._datagen(subtask_options)
-            if not subtask_options.get("mapping"):
-                subtask_options["mapping"] = mapping_file
-            self._dataload(subtask_options)
+        if not subtask_options.get("mapping"):
+            temp_mapping = Path(tempdir) / "temp_mapping.yml"
+            mapping_file = self.options.get("generate_mapping_file", temp_mapping)
+            subtask_options["generate_mapping_file"] = mapping_file
+        self._datagen(subtask_options)
+        if not subtask_options.get("mapping"):
+            subtask_options["mapping"] = mapping_file
+        self._dataload(subtask_options)
 
     def _setup_engine(self, database_url):
         """Set up the database engine"""
