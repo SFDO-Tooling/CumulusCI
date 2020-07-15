@@ -15,6 +15,7 @@ class TestMappingGenerator(unittest.TestCase):
 
         self.assertEqual([], t.options["ignore"])
         self.assertEqual("", t.options["namespace_prefix"])
+        self.assertEqual([], t.options["include"])
 
     def test_postfixes_underscores_to_namespace(self):
         t = _make_task(
@@ -37,6 +38,13 @@ class TestMappingGenerator(unittest.TestCase):
         )
 
         self.assertEqual(["Account", "Contact"], t.options["ignore"])
+
+    def test_accepts_include_list(self):
+        t = _make_task(
+            GenerateMapping, {"options": {"include": ["Foo", "Bar"], "path": "t"}},
+        )
+
+        self.assertEqual(["Foo", "Bar"], t.options["include"])
 
     def test_is_any_custom_api_name(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
@@ -279,6 +287,7 @@ class TestMappingGenerator(unittest.TestCase):
             "Custom__c": {
                 "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
             },
+            "User": {"fields": [self._mock_field("Name")]},
         }
 
         self._prepare_describe_mock(t, describe_data)
@@ -286,6 +295,60 @@ class TestMappingGenerator(unittest.TestCase):
         t._collect_objects()
 
         self.assertEqual(set(["Account", "Custom__c"]), set(t.mapping_objects))
+
+    @responses.activate
+    def test_collect_objects__force_include_objects(self):
+        t = _make_task(
+            GenerateMapping, {"options": {"path": "t", "include": ["Contact", "User"]}}
+        )
+        t.project_config.project__package__api_version = "45.0"
+
+        describe_data = {
+            "Account": {
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            },
+            "Contact": {"fields": [self._mock_field("Name")]},
+            "Custom__c": {
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            },
+            "User": {"fields": [self._mock_field("Name")]},
+        }
+
+        self._prepare_describe_mock(t, describe_data)
+        t._init_task()
+        t._collect_objects()
+
+        self.assertEqual(
+            set(["Account", "Custom__c", "Contact", "User"]), set(t.mapping_objects)
+        )
+
+    @responses.activate
+    def test_collect_objects__force_include_objects__already_included(self):
+        t = _make_task(
+            GenerateMapping,
+            {"options": {"path": "t", "include": ["Contact", "Custom__c"]}},
+        )
+        t.project_config.project__package__api_version = "45.0"
+
+        describe_data = {
+            "Account": {
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            },
+            "Contact": {"fields": [self._mock_field("Name")]},
+            "Custom__c": {
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            },
+            "User": {"fields": [self._mock_field("Name")]},
+        }
+
+        self._prepare_describe_mock(t, describe_data)
+        t._init_task()
+        t._collect_objects()
+        assert len(t.mapping_objects) == 3
+
+        self.assertEqual(
+            set(["Account", "Custom__c", "Contact"]), set(t.mapping_objects)
+        )
 
     @responses.activate
     def test_collect_objects__custom_lookup_fields(self):
