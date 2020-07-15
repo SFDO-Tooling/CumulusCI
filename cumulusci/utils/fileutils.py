@@ -97,8 +97,14 @@ def cleanup_org_cache_dirs(keychain, project_config):
         domain = urlparse(instance_url).hostname or ""
         if domain:
             domains.add(domain)
-    directories = (project_config.project_cache_dir / "orgs").glob("*")
-    for directory in directories:
+
+    assert project_config.project_cache_dir
+    assert keychain.config_local_dir
+
+    project_org_directories = (project_config.project_cache_dir / "orginfo").glob("*")
+    global_org_directories = (keychain.config_local_dir / "orginfo").glob("*")
+
+    for directory in list(project_org_directories) + list(global_org_directories):
         if directory.name not in domains:
             rmtree(directory)
 

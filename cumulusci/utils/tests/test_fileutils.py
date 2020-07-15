@@ -64,6 +64,13 @@ class TestFileutils:
             assert "tasks:" in data.read()
 
 
+def _touch_test_org_file(directory):
+    org_dir = directory / "orginfo/something.something.saleforce.com"
+    org_dir.mkdir(parents=True)
+    (org_dir / "testfile.json").touch()
+    return org_dir
+
+
 class TestCleanupCacheDir:
     def test_cleanup_cache_dir(self):
         keychain = mock.Mock()
@@ -72,14 +79,18 @@ class TestCleanupCacheDir:
         org.config.get.return_value = "http://foo.my.salesforce.com/"
         keychain.get_org.return_value = org
         project_config = mock.Mock()
-        with TemporaryDirectory() as temp:
-            cache_dir = project_config.project_cache_dir = Path(temp)
-            org_dir = cache_dir / "orgs/bar.my.salesforce.com"
-            org_dir.mkdir(parents=True)
-            (org_dir / "schema.json").touch()
-            with mock.patch("cumulusci.utils.fileutils.rmtree") as rmtree:
-                cleanup_org_cache_dirs(keychain, project_config)
-                rmtree.assert_called_once_with(org_dir)
+        with TemporaryDirectory() as temp_for_global:
+            keychain.config_local_dir = Path(temp_for_global)
+            global_org_dir = _touch_test_org_file(keychain.config_local_dir)
+            with TemporaryDirectory() as temp_for_project:
+                cache_dir = project_config.project_cache_dir = Path(temp_for_project)
+                project_org_dir = _touch_test_org_file(cache_dir)
+                with mock.patch("cumulusci.utils.fileutils.rmtree") as rmtree:
+                    cleanup_org_cache_dirs(keychain, project_config)
+                    rmtree.assert_has_calls(
+                        [mock.call(global_org_dir), mock.call(project_org_dir)],
+                        any_order=True,
+                    )
 
     def test_cleanup_cache_dir_nothing_to_cleanup(self):
         keychain = mock.Mock()
@@ -88,11 +99,13 @@ class TestCleanupCacheDir:
         org.config.get.return_value = "http://foo.my.salesforce.com/"
         keychain.get_org.return_value = org
         project_config = mock.Mock()
-        with TemporaryDirectory() as temp:
-            cache_dir = project_config.project_cache_dir = Path(temp)
-            org_dir = cache_dir / "orgs/foo.my.salesforce.com"
-            org_dir.mkdir(parents=True)
-            (org_dir / "schema.json").touch()
-            with mock.patch("cumulusci.utils.fileutils.rmtree") as rmtree:
-                cleanup_org_cache_dirs(keychain, project_config)
-                rmtree.assert_not_called()
+        with TemporaryDirectory() as temp_for_global:
+            keychain.config_local_dir = Path(temp_for_global)
+            with TemporaryDirectory() as temp_for_project:
+                cache_dir = project_config.project_cache_dir = Path(temp_for_project)
+                org_dir = cache_dir / "orginfo/foo.my.salesforce.com"
+                org_dir.mkdir(parents=True)
+                (org_dir / "schema.json").touch()
+                with mock.patch("cumulusci.utils.fileutils.rmtree") as rmtree:
+                    cleanup_org_cache_dirs(keychain, project_config)
+                    rmtree.assert_not_called()
