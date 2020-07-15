@@ -74,14 +74,6 @@ This example defines two steps: ``Accounts`` and ``Contacts``. (The names of ste
 are arbitrary). Each step governs the  extraction or load of records in the sObject denoted 
 in its ``sf_object`` property.
 
-Those fields which are named in ``fields`` are included. Each field entry has the form 
-``API Name: Stored Name``; that is, the first component is the Salesforce API name of the
-field, and the second is the name under which that data is stored in the extracted version of
-the dataset. In most cases, these values can be the same; users need to use a distinct stored
-name only if the data is stored in a SQL database under a column other than its Salesforce API
-name.
-
-
 Relationships are defined in the ``lookups`` section. Each key within ``lookups`` is the API
 name of the relationship field. Beneath, the ``table`` key defines the stored table to which
 this relationship refers.
@@ -105,7 +97,7 @@ Salesforce objects may be assigned to arbitrary database tables, and Salesforce 
 mapped to arbitrary columns.
 
 For new mappings, it's recommended to allow CumulusCI to use sensible defaults by specifying
-only the Salesforce entities. Existing datasets are likely to include explicit database mappings,
+only the Salesforce entities. Legacy datasets are likely to include explicit database mappings,
 which would look like this for the same data model as above: 
 
 .. code-block:: yaml
@@ -164,7 +156,7 @@ This feature limits extraction to records possessing that specific Record Type, 
 the same Record Type upon load.
 
 It's recommended that new datasets use Record Type mapping by including the ``RecordTypeId`` 
-field.
+field. Using ``record_type`` will result in CumulusCI issuing a warning.
 
 Advanced Features
 -------------------
@@ -210,16 +202,21 @@ the automatic primary key.
 Handling Namespaces
 +++++++++++++++++++
 
-In many cases, the same dataset can be cleanly deployed to both namespaced (or managed)
-and non-namespaced orgs. Data will be stored in the form corresponding to the org from
-which it was captured - that is, data captured from a namespaced scratch org, or a managed
-installation, will be stored with a namespace, and data captured from an unmanaged and 
-non-namespaced scratch org without.
+All CumulusCI bulk data tasks support automatic namespace injection. When you build a
+mapping file for a managed package product, it is recommended to start with a non-namespaced,
+unmanaged scratch org, resulting in a mapping that does not contain any references to the
+product's namespace. 
 
-An additional definition file can be customized to permit loading the same data into the
-opposite type of org. This example shows two versions of the same step, adapting an originally
-non-namespaced definition to deploy non-namespaced data into a namespaced org with the 
-namespace prefix ``MyNS``. 
+CumulusCI by default will automatically resolve these fields to their namespaced versions 
+when data operations are run against an org that contains the project in managed form. In the
+extremely rare circumstance that an org contains the same mapped schema element in both
+namespaced and non-namespaced form, CumulusCI does not perform namespace injection for that element.
+
+Namespace injection can be deactivated by setting the ``inject_namespaces`` option to ``False``.
+
+It's also possible, and common in existing managed package products, to use multiple mapping files
+to achieve loading the same data set in both namespaced and non-namespaced contexts. A mapping file
+that is converted to use explicit namespacing might look like this:
 
 Original version: ::
 
@@ -257,6 +254,26 @@ pattern, but in reverse.
 
 Note that mappings which use the flat list style of field specification must use mapping style to convert
 between namespaced and non-namespaced deployment.
+
+It's recommended that all new mappings use flat list field specifications and allow CumulusCI to manage
+namespace injection. This capability typically results in significant simplication in automation.
+
+Optional Data Elements
+++++++++++++++++++++++
+
+Some projects need to build datasets that include optional data elements for managed packages and features
+that are included in some, but not all, orgs. For example, a managed package A that does not require another
+managed package B but is designed to work with it may wish to include data for managed package B in its
+data sets, but load that data if and only if B is installed.
+
+To support this use case, the ``load_dataset`` and ``extract_dataset`` tasks offer a ``drop_missing_schema``
+option. When enabled, this option results in CumulusCI ignoring any mapped fields, sObjects, or lookups that
+correspond to schema that is not present in the org.
+
+Projects that require this type of conditional behavior can build their datasets in an org that contains managed
+package B, capture it, and then load it safely in orgs that both do and do not contain B. However, it's important
+to always capture from an org with B present, or B data will not be preserved in the dataset.
+
 
 Custom Settings
 ===============
