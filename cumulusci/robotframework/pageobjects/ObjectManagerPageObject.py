@@ -200,3 +200,4 @@ class ObjectManagerPage(BasePage):
                 self.create_currency_field(kwargs["Field_Name"])
             elif type.lower() == "formula":
                 self.create_formula_field(kwargs["Field_Name"], kwargs["Formula"])
+            self.selenium.unselect_frame()
