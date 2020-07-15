@@ -58,13 +58,8 @@ from .logger import init_logger, get_tempfile_logger
 @contextlib.contextmanager
 def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
-    config_dir = os.path.join(
-        os.path.expanduser("~"), BaseGlobalConfig.config_local_dir
-    )
 
-    if not os.path.exists(config_dir):
-        os.mkdir(config_dir)
-
+    config_dir = BaseGlobalConfig.default_cumulusci_dir()
     timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
 
     try:
