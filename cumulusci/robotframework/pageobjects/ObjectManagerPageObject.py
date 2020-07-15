@@ -28,13 +28,42 @@ class ObjectManagerPage(BasePage):
         | Go to page   ObjectManager  Contact
         """
 
+    global search_button
+    global currency_locator
+    global next_button
+    global save_button
+    global text_locator
+    global formula_locator
+    global checkbox_option
+    global formula_txtarea
+    global check_syntax
+    global actions_menu
+    global action_item_delete
+    global confirm_delete
+    global lookup_locator
+    global option
+    global related
+
+    search_button = object_manager["input"].format("globalQuickfind")
+    currency_locator = object_manager["input"].format("dtypeC")
+    next_button = object_manager["button"].format("Next")
+    save_button = object_manager["button"].format("Save")
+    text_locator = object_manager["input"].format("dtypeS")
+    formula_locator = object_manager["input"].format("dtypeZ")
+    checkbox_option = object_manager["input"].format("fdtypeB")
+    formula_txtarea = object_manager["formula_txtarea"].format("CalculatedFormula")
+    check_syntax = object_manager["button"].format("Check Syntax")
+    actions_menu = object_manager["action_menu"]
+    action_item_delete = object_manager["action_menu_item"].format("Delete")
+    confirm_delete = object_manager["delete_confirm_btn"]
+    lookup_locator = object_manager["input"].format("dtypeY")
+
     def _go_to_page(self):
         url_template = "{root}/lightning/setup/ObjectManager/home"
         url = url_template.format(
             root=self.cumulusci.org.lightning_base_url, object_name=self.object_name
         )
         self.selenium.go_to(url)
-        search_button = object_manager["input"].format("globalQuickfind")
         object_name = self.object_name
         self.salesforce.wait_until_loading_is_complete()
         self.selenium.wait_until_page_contains_element(search_button)
@@ -50,6 +79,7 @@ class ObjectManagerPage(BasePage):
 
     @capture_screenshot_on_error
     def switch_tab_to(self, tab):
+        """Switches tab to a specified tab"""
         leftnavoption = object_manager["link-text"].format(tab)
         self.selenium.click_element(leftnavoption)
 
@@ -60,9 +90,6 @@ class ObjectManagerPage(BasePage):
     @capture_screenshot_on_error
     def create_currency_field(self, field_name):
         """Creates a currency field by taking in the field name"""
-        currency_locator = object_manager["input"].format("dtypeC")
-        next_button = object_manager["button"].format("Next")
-        save_button = object_manager["button"].format("Save")
         self.selenium.wait_until_page_contains_element(currency_locator, timeout=60)
         self.selenium.click_element(currency_locator)
         self.selenium.wait_until_page_contains_element(next_button, 60)
@@ -83,14 +110,29 @@ class ObjectManagerPage(BasePage):
         )
 
     @capture_screenshot_on_error
+    def create_text_field(self, field_name):
+        """Creates a text field by taking in the field name"""
+        self.selenium.wait_until_page_contains_element(text_locator, timeout=60)
+        self.selenium.click_element(text_locator)
+        self.selenium.wait_until_page_contains_element(next_button, 60)
+        self.selenium.click_element(next_button)
+        self.salesforce.populate_field("Field Label", field_name)
+        self.salesforce.populate_field("Length", "255")
+        self.salesforce.populate_field(
+            "Description", "This is a custom field generated during automation"
+        )
+        self.selenium.click_element(next_button)
+        self.selenium.click_element(next_button)
+        self.selenium.click_element(save_button)
+        self.selenium.wait_until_location_contains(
+            "FieldsAndRelationships/view",
+            timeout=90,
+            message="Fields And Relationships page did not load in 1 min",
+        )
+
+    @capture_screenshot_on_error
     def create_formula_field(self, field_name, formula):
         """ Creates a formula field by providing the field_name, formula and forumla fields"""
-        formula_locator = object_manager["input"].format("dtypeZ")
-        next_button = object_manager["button"].format("Next")
-        save_button = object_manager["button"].format("Save")
-        checkbox_option = object_manager["input"].format("fdtypeB")
-        formula_txtarea = object_manager["formula_txtarea"].format("CalculatedFormula")
-        check_syntax = object_manager["button"].format("Check Syntax")
         self.selenium.wait_until_page_contains_element(formula_locator, 60)
         self.selenium.click_element(formula_locator)
         self.selenium.wait_until_page_contains_element(next_button, 60)
@@ -113,9 +155,6 @@ class ObjectManagerPage(BasePage):
 
     def create_lookup_field(self, field_name, related):
         """Creates a Lookpup field by taking in the inputs field_name and related field"""
-        lookup_locator = object_manager["input"].format("dtypeY")
-        next_button = object_manager["button"].format("Next")
-        save_button = object_manager["button"].format("Save")
         option = object_manager["select_related_option"].format(related)
         related = object_manager["select_related"].format("DomainEnumOrId")
         self.selenium.wait_until_page_contains_element(lookup_locator, 60)
@@ -145,7 +184,6 @@ class ObjectManagerPage(BasePage):
     @capture_screenshot_on_error
     def is_field_present(self, field_name):
         """Verifies and asserts the field got created """
-        search_button = object_manager["input"].format("globalQuickfind")
         self.selenium.wait_until_page_contains_element(search_button, 60)
         self.selenium.get_webelement(search_button).send_keys(field_name)
         self.selenium.get_webelement(search_button).send_keys(Keys.ENTER)
@@ -161,9 +199,6 @@ class ObjectManagerPage(BasePage):
     @capture_screenshot_on_error
     def delete_custom_field(self):
         """Deletes the added custom field"""
-        actions_menu = object_manager["action_menu"]
-        action_item_delete = object_manager["action_menu_item"].format("Delete")
-        confirm_delete = object_manager["delete_confirm_btn"]
         self.selenium.click_element(actions_menu)
         self.selenium.wait_until_page_contains_element(action_item_delete, 60)
         self.selenium.click_element(action_item_delete)
@@ -176,7 +211,6 @@ class ObjectManagerPage(BasePage):
         """Ensure that the custom field does not exist prior and Creates a custom field based
         on type paramenter and the field_name if the custom field exists it will not create the
         custom field and exits out of object manager"""
-        search_button = object_manager["input"].format("globalQuickfind")
         self.selenium.wait_until_page_contains_element(search_button, 60)
         self.selenium.get_webelement(search_button).send_keys(kwargs["Field_Name"])
         self.selenium.get_webelement(search_button).send_keys(Keys.ENTER)
@@ -200,4 +234,6 @@ class ObjectManagerPage(BasePage):
                 self.create_currency_field(kwargs["Field_Name"])
             elif type.lower() == "formula":
                 self.create_formula_field(kwargs["Field_Name"], kwargs["Formula"])
+            elif type.lower() == "text":
+                self.create_text_field(kwargs["Field_Name"])
             self.selenium.unselect_frame()
