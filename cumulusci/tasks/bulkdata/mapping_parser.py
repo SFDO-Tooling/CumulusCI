@@ -263,7 +263,6 @@ class MappingStep(CCIDictModel):
         ):
             return False
 
-        # FIXME: handle key_field (may not be required)
         if not self._validate_field_dict(
             describe, self.lookups, inject, drop_missing, operation
         ):
