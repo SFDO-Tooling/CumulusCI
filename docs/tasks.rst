@@ -617,7 +617,7 @@ Options
 **delete_data**
 ==========================================
 
-**Description:** Delete matching records in an org
+**Description:** Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
 
 **Class:** cumulusci.tasks.bulkdata.DeleteData
 
