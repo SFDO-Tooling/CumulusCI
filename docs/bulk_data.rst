@@ -418,9 +418,9 @@ Options
 ---------------
 
 You can also delete records using CumulusCI. You can either delete every record of a
-particular Object, certain records based on a  ``where`` clause or every record of
-multiple Object. Because ``where`` clauses seldom make logical sense when applied
-to multiple Object, you cannot use a ``where`` clause when specifying multiple
+particular object, certain records based on a  ``where`` clause or every record of
+multiple objects. Because ``where`` clauses seldom make logical sense when applied
+to multiple objects, you cannot use a ``where`` clause when specifying multiple
 objects.
 
 Details are available with ``cci org info delete_data``
