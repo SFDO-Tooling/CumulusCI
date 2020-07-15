@@ -75,7 +75,7 @@ class ObjectManagerPage(BasePage):
         self.selenium.wait_until_location_contains("Details/view", timeout=90)
 
     def _is_current_page(self):
-        self.selenium.location_should_contain("Detail/view")
+        self.selenium.location_should_contain("Details/view")
 
     @capture_screenshot_on_error
     def switch_tab_to(self, tab):

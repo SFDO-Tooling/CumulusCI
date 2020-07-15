@@ -28,6 +28,13 @@ Create Customfield In Object Manager
 
 *** Test Cases ***
 
+Navigate To The Object Manager page For Specified Object
+    [Documentation]     Smoke Test For validating Object's ObjectManager Page Navigation
+
+    Go To Page                                             ObjectManager                               Contact
+    Current page should be                                 ObjectManager                              Contact
+
+
 Create Custom Lookup Field Using Object Manager
     [Documentation]     To test the ability of creating a custom lookup field using object manager and verify field got created
 
