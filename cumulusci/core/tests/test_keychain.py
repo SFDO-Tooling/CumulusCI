@@ -3,6 +3,7 @@ import os
 import tempfile
 import unittest
 from unittest import mock
+from pathlib import Path
 
 import pytest
 
@@ -394,15 +395,15 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         self.key = "0123456789123456"
 
         self._mk_temp_home()
-        self._expanduser_patch = mock.patch(
-            "os.path.expanduser", return_value=self.tempdir_home
+        self._home_patch = mock.patch(
+            "pathlib.Path.home", return_value=Path(self.tempdir_home)
         )
-        self._expanduser_patch.__enter__()
+        self._home_patch.__enter__()
         self._mk_temp_project()
         os.chdir(self.tempdir_project)
 
     def tearDown(self):
-        self._expanduser_patch.__exit__(None, None, None)
+        self._home_patch.__exit__(None, None, None)
 
     def _mk_temp_home(self):
         self.tempdir_home = tempfile.mkdtemp()
@@ -418,7 +419,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     def _create_git_config(self):
         filename = os.path.join(self.tempdir_project, ".git", "config")
         content = (
-            f'[remote "origin"]\n'
+            '[remote "origin"]\n'
             + f"  url = git@github.com:TestOwner/{self.project_name}"
         )
         self._write_file(filename, content)
