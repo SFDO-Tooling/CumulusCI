@@ -79,6 +79,22 @@ class TestCCI(unittest.TestCase):
         shutil.rmtree(cls.tempdir)
         assert cls.global_tempdir not in os.environ.get("HOME", "")
 
+    def setUp(self):
+        self.cleanup_org_cache_dirs = mock.Mock(name="cleanup_org_cache_dirs")
+        self.cleanup_org_cache_dirs_cli_patch = mock.patch(
+            "cumulusci.cli.cci.cleanup_org_cache_dirs", self.cleanup_org_cache_dirs
+        )
+        self.cleanup_org_cache_dirs_fileutils_patch = mock.patch(
+            "cumulusci.utils.fileutils.cleanup_org_cache_dirs",
+            self.cleanup_org_cache_dirs,
+        )
+        self.cleanup_org_cache_dirs_cli_patch.start()
+        self.cleanup_org_cache_dirs_fileutils_patch.start()
+
+    def tearDown(self):
+        self.cleanup_org_cache_dirs_cli_patch.stop()
+        self.cleanup_org_cache_dirs_fileutils_patch.stop()
+
     def test_get_installed_version(self):
         result = cci.get_installed_version()
         self.assertEqual(cumulusci.__version__, str(result))
@@ -1113,17 +1129,8 @@ Environment Info: Rossian / x68_46
     def test_org_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.global_config.cli__plain_output = None
-        runtime.keychain.list_orgs.return_value = [
-            "test0",
-            "test1",
-            "test2",
-            "test3",
-            "test4",
-            "test5",
-            "test6",
-        ]
-        runtime.keychain.get_org.side_effect = [
-            ScratchOrgConfig(
+        org_configs = {
+            "test0": ScratchOrgConfig(
                 {
                     "default": True,
                     "scratch": True,
@@ -1134,7 +1141,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test0",
             ),
-            ScratchOrgConfig(
+            "test1": ScratchOrgConfig(
                 {
                     "default": False,
                     "scratch": True,
@@ -1146,7 +1153,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test1",
             ),
-            OrgConfig(
+            "test2": OrgConfig(
                 {
                     "default": False,
                     "scratch": False,
@@ -1158,7 +1165,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test2",
             ),
-            OrgConfig(
+            "test3": OrgConfig(
                 {
                     "default": False,
                     "scratch": False,
@@ -1170,7 +1177,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test3",
             ),
-            OrgConfig(
+            "test4": OrgConfig(
                 {
                     "default": False,
                     "scratch": False,
@@ -1181,7 +1188,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test4",
             ),
-            OrgConfig(
+            "test5": OrgConfig(
                 {
                     "default": False,
                     "scratch": True,
@@ -1193,7 +1200,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test5",
             ),
-            OrgConfig(
+            "test6": OrgConfig(
                 {
                     "default": False,
                     "scratch": True,
@@ -1204,7 +1211,11 @@ Environment Info: Rossian / x68_46
                 },
                 "test6",
             ),
-        ]
+        }
+
+        runtime.keychain.list_orgs.return_value = list(org_configs.keys())
+        runtime.keychain.get_org = lambda orgname: org_configs[orgname]
+        runtime.project_config.project_cache_dir = Path("does_not_possibly_exist")
 
         run_click_command(cci.org_list, runtime=runtime, plain=False)
 
@@ -1234,6 +1245,7 @@ Environment Info: Rossian / x68_46
 
         self.assertIn(scratch_table_call, cli_tbl.call_args_list)
         self.assertIn(connected_table_call, cli_tbl.call_args_list)
+        self.cleanup_org_cache_dirs.assert_called_once()
 
     @mock.patch("click.echo")
     def test_org_prune(self, echo):

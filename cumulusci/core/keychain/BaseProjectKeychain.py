@@ -8,7 +8,7 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.sfdx import sfdx
-
+from cumulusci.utils import fileutils
 
 DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
     {
@@ -135,6 +135,7 @@ class BaseProjectKeychain(BaseConfig):
     def remove_org(self, name, global_org=None):
         if name in self.orgs.keys():
             self._remove_org(name, global_org)
+        fileutils.cleanup_org_cache_dirs(self, self.project_config)
 
     def _remove_org(self, name, global_org):
         del self.orgs[name]

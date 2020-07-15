@@ -33,6 +33,8 @@ class ProjectKeychainTestMixin(unittest.TestCase):
     keychain_class = BaseProjectKeychain
 
     def setUp(self):
+        self.cache_dirs = mock.patch("cumulusci.utils.fileutils.cleanup_org_cache_dirs")
+        self.cache_dirs.start()
         self.global_config = BaseGlobalConfig()
         self.project_config = BaseProjectConfig(
             self.global_config, config={"no_yaml": True}
@@ -52,6 +54,9 @@ class ProjectKeychainTestMixin(unittest.TestCase):
             {"foo": "bar", "scratch": True}, "test_scratch"
         )
         self.key = "0123456789123456"
+
+    def tearDown(self):
+        self.cache_dirs.stop()
 
     def test_init(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -217,11 +222,13 @@ class TestBaseProjectKeychain(ProjectKeychainTestMixin):
         org_config = keychain.set_org.call_args[0][0]
         self.assertEqual(3, org_config.days)
 
-    def test_remove_org(self):
+    @mock.patch("cumulusci.utils.fileutils.cleanup_org_cache_dirs")
+    def test_remove_org(self, cleanup_org_cache_dirs):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)
         keychain.remove_org("test")
         self.assertNotIn("test", keychain.orgs)
+        assert cleanup_org_cache_dirs.called_once_with(keychain, self.project_config)
 
 
 class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
@@ -245,6 +252,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
         )
 
     def tearDown(self):
+        super().tearDown()
         self.env.__exit__()
 
     def _clean_env(self, env):
@@ -373,26 +381,8 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     keychain_class = EncryptedFileProjectKeychain
 
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
-        )
-        self.project_config.config["services"] = {
-            "connected_app": {"attributes": {"test": {"required": True}}},
-            "github": {"attributes": {"git": {"required": True}, "password": {}}},
-            "not_configured": {"attributes": {"foo": {"required": True}}},
-        }
-        self.project_config.project__name = "TestProject"
+        super().setUp()
         self.project_name = "TestProject"
-        self.org_config = OrgConfig({"foo": "bar"}, "test")
-        self.scratch_org_config = ScratchOrgConfig(
-            {"foo": "bar", "scratch": True}, "test_scratch"
-        )
-        self.services = {
-            "connected_app": ServiceConfig({"test": "value"}),
-            "github": ServiceConfig({"git": "hub"}),
-        }
-        self.key = "0123456789123456"
 
         self._mk_temp_home()
         self._home_patch = mock.patch(
@@ -403,6 +393,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         os.chdir(self.tempdir_project)
 
     def tearDown(self):
+        super().tearDown()
         self._home_patch.__exit__(None, None, None)
 
     def _mk_temp_home(self):
@@ -463,11 +454,13 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain._load_file(self.tempdir_home, "config", "from_file")
         self.assertEqual("foo", keychain.config["from_file"])
 
-    def test_remove_org(self):
+    @mock.patch("cumulusci.utils.fileutils.cleanup_org_cache_dirs")
+    def test_remove_org(self, cleanup_org_cache_dirs):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)
         keychain.remove_org("test")
         self.assertNotIn("test", keychain.orgs)
+        assert cleanup_org_cache_dirs.called_once_with(keychain, self.project_config)
 
     def test_remove_org__not_found(self):
         keychain = self.keychain_class(self.project_config, self.key)

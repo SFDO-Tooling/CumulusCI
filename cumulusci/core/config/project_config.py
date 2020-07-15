@@ -835,3 +835,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def relpath(self, path):
         """Convert path to be relative to the project repo root."""
         return os.path.relpath(os.path.join(self.repo_root, path))
+
+    @property
+    def project_cache_dir(self):
+        return Path(self.repo_root, ".cci")
