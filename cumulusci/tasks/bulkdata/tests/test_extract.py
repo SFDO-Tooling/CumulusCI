@@ -534,7 +534,7 @@ class TestExtractData(unittest.TestCase):
                     "database_url": "sqlite:///",
                     "mapping": mapping_path,
                     "inject_namespaces": True,
-                    "drop_missing": True,
+                    "drop_missing_schema": True,
                 }
             },
         )

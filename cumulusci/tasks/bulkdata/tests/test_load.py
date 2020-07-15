@@ -310,7 +310,7 @@ class TestLoadData(unittest.TestCase):
                     "sql_path": "test.sql",
                     "mapping": os.path.join(base_path, self.mapping_file),
                     "inject_namespaces": True,
-                    "drop_missing": True,
+                    "drop_missing_schema": True,
                 }
             },
         )

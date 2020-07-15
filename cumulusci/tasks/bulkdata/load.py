@@ -59,7 +59,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             "description": "If set, CumulusCI automatically injects the project's namespace if schema is managed in the org. "
             "Defaults to True. Set to False to deactivate automatic namespace injection."
         },
-        "drop_missing": {
+        "drop_missing_schema": {
             "description": "Set to True to have CumulusCI transparently drop any missing schema elements."
             "This can support mappings that include data for optional packages."
         },
@@ -92,8 +92,8 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         self.options["inject_namespaces"] = process_bool_arg(
             self.options.get("inject_namespaces", True)
         )
-        self.options["drop_missing"] = process_bool_arg(
-            self.options.get("drop_missing", False)
+        self.options["drop_missing_schema"] = process_bool_arg(
+            self.options.get("drop_missing_schema", False)
         )
 
     def _run_task(self):
@@ -459,7 +459,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             namespace=self.project_config.project__package__namespace,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=self.options["inject_namespaces"],
-            drop_missing=self.options["drop_missing"],
+            drop_missing=self.options["drop_missing_schema"],
         )
 
     def _expand_mapping(self):
