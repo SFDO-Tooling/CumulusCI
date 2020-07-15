@@ -430,3 +430,28 @@ Options
 +++++++
 
 * ``settings_path``: Location of the YAML settings file.
+
+``delete_data``
+---------------
+
+You can also delete records using CumulusCI. You can either delete every record of a
+particular object, certain records based on a  ``where`` clause or every record of
+multiple objects. Because ``where`` clauses seldom make logical sense when applied
+to multiple objects, you cannot use a ``where`` clause when specifying multiple
+objects.
+
+Details are available with ``cci org info delete_data``
+and `in the task reference <./tasks.html#delete-data>`_.
+
+Examples
+++++++++
+
+.. code-block::
+
+    cci task run delete_data -o objects Opportunity,Contact,Account --org qa
+
+    cci task run delete_data -o objects Opportunity -o where "StageName = 'Active' "
+
+    cci task run delete_data -o objects Account -o ignore_row_errors True
+
+    cci task run delete_data -o objects Account -o hardDelete True
