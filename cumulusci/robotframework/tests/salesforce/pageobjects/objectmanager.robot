@@ -20,7 +20,8 @@ Create Customfield In Object Manager
     ...  | ...  Field_Type=Formula
     ...  | ...  Field_Name=Is Opportunity From Prior Year
     ...  | ...  Formula=YEAR( npe01__Opportunity__r.CloseDate ) < YEAR( npe01__Payment_Date__c )
-    [Arguments]            &{fields}
+
+    [Arguments]                                    &{fields}
     Go To Page                                     ObjectManager                           &{fields}[Object]
     Switch Tab To                                  Fields & Relationships
     Create Custom Field                            &{fields}
@@ -35,5 +36,19 @@ Create Custom Lookup Field Using Object Manager
     ...                                                    Field_Type=Lookup
     ...                                                    Field_Name=Last Soft Credit Opportunity
     ...                                                    Related_To=Opportunity
+    Go To Page                                             ObjectManager                               Contact
+    Switch Tab To                                          Fields & Relationships
     Is Field Present                                       Last Soft Credit Opportunity
+    Delete Custom Field
 
+Create Custom Currency Field Using Object Manager
+    [Documentation]     To test the ability of creating a custom currency field and verify field got created
+
+    Create Customfield In Object Manager
+    ...                                                    Object=Account
+    ...                                                    Field_Type=Currency
+    ...                                                    Field_Name=This Year Payments on Past Year Pledges
+    Go To Page                                             ObjectManager                               Account
+    Switch Tab To                                          Fields & Relationships
+    Is Field Present                                       This Year Payments on Past Year Pledges
+    Delete Custom Field
