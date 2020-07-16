@@ -236,141 +236,67 @@ def test_base_push_task_raises_err():
         task()
 
 
-def test_report_push_status():
+def test_report_push_status_error():
     query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
     task = create_task(BaseSalesforcePushTask, options={})
     task.sf = mock.MagicMock()
     task.push_report = mock.MagicMock()
-    # task.push_report.get_push_request_objs.return_value = None
-    get_package_objs_result = {
-        "totalSize": 1,
-        "done": True,
-        "records": [
-            {
-                "attributes": {
-                    "type": "PackagePushRequest",
-                    "url": "/services/data/v48.0/sobjects/PackagePushRequest/0DV1R000000k9dEWAQ",
-                },
-                "Id": "0DV1R000000k9dEWAQ",
-                "NamespacePrefix": "2020-07-02T08:03:49.000+0000",
-                "Name": "cci",
-                "MetadataPackageId": "0DV1R000000k9dEWAQ",
-                "PackageVersionId": "0DV1R000000k9dEWAQ",
-                "ReleaseState": "Failed",
-                "ScheduledStartTime": "2020-07-02T08:03:49.000+0000",
-                "MajorVersion": "1",
-                "MinorVersion": "2",
-                "PatchVersion": "3",
-                "BuildNumber": "4",
-                "Status": "Failed",
-                "SubscriberOrganizationKey": "00DS0000003TJJ6MAO",
-                "MetadataPackageVersionId": "0DV1R000000k9dEWAQ",
-                "InstalledStatus": "Success",
-                "PackagePushRequestId": "0DV1R000000k9dEWAQ",
-                "OrgName": "foo",
-                "OrgKey": "foo",
-                "OrgStatus": "foo",
-                "OrgType": "Sandbox",
-                "PackagePushJobId": "0DV1R000000k9dEWAQ",
-                "ErrorSeverity": "",
-                "ErrorType": "",
-                "ErrorTitle": "",
-                "ErrorMessage": "",
-                "ErrorDetails": "",
-            }
-        ],
-    }
-    push_request_result_succeded = copy.deepcopy(push_request_result)
-    push_request_result_inprogress = copy.deepcopy(push_request_result)
-    push_request_result_succeded["records"][0]["Status"] = "Succeeded"
-    push_request_result_inprogress["records"][0]["Status"] = "In Progress"
-    task.sf.query_all.return_value = None
-    task.push_report.get_package_objs.side_effect = [
-        push_request_result_inprogress,
-        push_request_result_succeded,
-    ]
-
-    # task.get_packages = mock.MagicMock(return_value={"Name": NAME})
+    task.sf.query_all.return_value = {"totalSize": 1, "records": []}
     with pytest.raises(PushApiObjectNotFound):
         task._report_push_status("0DV1R000000k9dEWAQ")
-    # task.sf.query_all.assert_called_with(query)
 
 
 #######WIP################
+
+
+def test_get_push_request_job_results():
+    query1 = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
+    query2 = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE OrgKey = '00DS0000003TJJ6MAO'"
+    task = create_task(BaseSalesforcePushTask, options={})
+    task.sf = mock.MagicMock()
+    task.push_report = mock.MagicMock()
+    task.push_request = mock.MagicMock()
+    assert task._get_push_request_job_results() == None
+
+
 def test_report_push_status():
-    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
+    query1 = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
+    query2 = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE OrgKey = '00DS0000003TJJ6MAO'"
     task = create_task(BaseSalesforcePushTask, options={})
     task.sf = mock.MagicMock()
     task.push_report = mock.MagicMock()
 
-    task.push_report.get_push_request_objs.return_value = None
-    push_request_result = {
-        "totalSize": 1,
-        "done": True,
-        "records": [
-            {
-                "attributes": {
-                    "type": "PackagePushRequest",
-                    "url": "/services/data/v48.0/sobjects/PackagePushRequest/0DV1R000000k9dEWAQ",
-                },
-                "Id": "0DV1R000000k9dEWAQ",
-                "PackageVersionId": "04t1R000000s4PJQAY",
-                "ScheduledStartTime": "2020-07-02T08:03:49.000+0000",
-                "Status": "Failed",
-            }
-        ],
-    }
-    get_package_objs_result = {
-        "totalSize": 1,
-        "done": True,
-        "records": [
-            {
-                "attributes": {
-                    "type": "PackagePushRequest",
-                    "url": "/services/data/v48.0/sobjects/PackagePushRequest/0DV1R000000k9dEWAQ",
-                },
-                "Id": "0DV1R000000k9dEWAQ",
-                "NamespacePrefix": "2020-07-02T08:03:49.000+0000",
-                "Name": "cci",
-                "MetadataPackageId": "0DV1R000000k9dEWAQ",
-                "PackageVersionId": "0DV1R000000k9dEWAQ",
-                "ReleaseState": "Failed",
-                "ScheduledStartTime": "2020-07-02T08:03:49.000+0000",
-                "MajorVersion": "1",
-                "MinorVersion": "2",
-                "PatchVersion": "3",
-                "BuildNumber": "4",
-                "Status": "Failed",
-                "SubscriberOrganizationKey": "00DS0000003TJJ6MAO",
-                "MetadataPackageVersionId": "0DV1R000000k9dEWAQ",
-                "InstalledStatus": "Success",
-                "PackagePushRequestId": "0DV1R000000k9dEWAQ",
-                "OrgName": "foo",
-                "OrgKey": "foo",
-                "OrgStatus": "foo",
-                "OrgType": "Sandbox",
-                "PackagePushJobId": "0DV1R000000k9dEWAQ",
-                "ErrorSeverity": "",
-                "ErrorType": "",
-                "ErrorTitle": "",
-                "ErrorMessage": "",
-                "ErrorDetails": "",
-            }
-        ],
-    }
-    push_request_result_succeded = copy.deepcopy(push_request_result)
-    push_request_result_inprogress = copy.deepcopy(push_request_result)
-    push_request_result_succeded["records"][0]["Status"] = "Succeeded"
-    push_request_result_inprogress["records"][0]["Status"] = "In Progress"
-    task.sf.query_all.return_value = get_package_objs_result
-    task.push_report.get_package_objs.side_effect = [
-        push_request_result_inprogress,
-        push_request_result_succeded,
-    ]
+    # push_request_result = {
+    #     "totalSize": 1,
+    #     "done": True,
+    #     "records": [
+    #         {
+    #             "attributes": {
+    #                 "type": "PackagePushRequest",
+    #                 "url": "/services/data/v48.0/sobjects/PackagePushRequest/0DV1R000000k9dEWAQ",
+    #             },
+    #             "Id": "0DV1R000000k9dEWAQ",
+    #             "PackageVersionId": "04t1R000000s4PJQAY",
+    #             "ScheduledStartTime": "2020-07-02T08:03:49.000+0000",
+    #             "Status": "Failed",
+    #         }
+    #     ],
+    # }
+    push_request_result_succeded = copy.deepcopy(PACKAGE_OBJS)
+    # push_request_result_inprogress = copy.deepcopy(push_request_result)
+    push_request_result_succeded["records"][0]["Status"] = "X-GAMES"
+    # push_request_result_succeded["Name"] = push_request_result_succeded
+    # get_package_objs_result["Name"] = "cci"
+    task.sf.query_all.return_value = PACKAGE_OBJS
+    task.push_report.get_push_request_objs.return_value = task.sf.query_all.return_value
 
-    # task.get_packages = mock.MagicMock(return_value={"Name": NAME})
+    # task.push_report.get_push_request_objs.side_effect = [
+    #     push_request_result_succeded,
+    #     PACKAGE_OBJS,
+    # ]
+
     task._report_push_status("0DV1R000000k9dEWAQ")
-    task.sf.query_all.assert_called_with(query)
+    task.sf.query_all.assert_called_with(query1)
 
 
 ###########WIP################
@@ -422,23 +348,86 @@ def test_schedule_push_org_query_get_org():
     assert task._get_orgs() == [NAME]
 
 
-# def test_schedule_push_org_list_run_task():
-#     with open("output.txt", "w") as file:
-#         file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
-#     task = create_task(
-#         SchedulePushOrgList,
-#         options={
-#             "orgs": "output.txt",
-#             "version": "1.2.3",
-#             "start_time": "now",
-#             "namespace": "foo",
-#         },
-#     )
-#     task.push = mock.MagicMock()
-#     task.sf = mock.MagicMock()
-#     task.push.create_push_request.return_value = ("033xxxxxxxxx", 1)
-#     task._run_task()
-#     task._run_task.assert_called_once_with(task.options)
+def test_schedule_push_org_list_run_task_with_time():
+    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
+
+    with open("output.txt", "w") as file:
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    task = create_task(
+        SchedulePushOrgList,
+        options={
+            "orgs": "output.txt",
+            "version": "1.2.3",
+            "start_time": "now",
+            "namespace": "foo",
+        },
+    )
+    task.push = mock.MagicMock()
+    task.sf = mock.MagicMock()
+    task.sf.query_all.return_value = PACKAGE_OBJS
+    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1)
+    task._run_task()
+    task.sf.query_all.assert_called_with(query)
+
+
+def test_schedule_push_org_list_run_task_without_time():
+    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
+
+    with open("output.txt", "w") as file:
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    task = create_task(
+        SchedulePushOrgList,
+        options={"orgs": "output.txt", "version": "1.2.3", "namespace": "foo"},
+    )
+    task.push = mock.MagicMock()
+    task.sf = mock.MagicMock()
+    task.sf.query_all.return_value = PACKAGE_OBJS
+    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1)
+    assert task._run_task() == None
+
+
+def test_schedule_push_org_list_run_task_without_orgs():
+    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
+
+    with open("output.txt", "w") as file:
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    task = create_task(
+        SchedulePushOrgList,
+        options={
+            "orgs": "output.txt",
+            "version": "1.2.3",
+            "namespace": "foo",
+            "start_time": "now",
+        },
+    )
+    task.push = mock.MagicMock()
+    task.sf = mock.MagicMock()
+    task.sf.query_all.return_value = PACKAGE_OBJS
+    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 0)
+    assert task._run_task() == None
+
+
+def test_schedule_push_org_list_run_task_many_orgs():
+    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
+
+    with open("output.txt", "w") as file:
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    task = create_task(
+        SchedulePushOrgList,
+        options={
+            "orgs": "output.txt",
+            "version": "1.2.3",
+            "namespace": "foo",
+            "start_time": "now",
+        },
+    )
+    task.push = mock.MagicMock()
+    task.sf = mock.MagicMock()
+    task.sf.query_all.return_value = PACKAGE_OBJS
+    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1001)
+    assert task._run_task() == None
+
+
 #     assert task.options[
 #         "start_time"
 #     ] == datetime.datetime.utcnow() + datetime.timedelta(seconds=5)

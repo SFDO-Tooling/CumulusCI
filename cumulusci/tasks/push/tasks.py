@@ -92,7 +92,7 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
                 orgs.append(line.split()[0])
         return orgs
 
-    def _report_push_status(self, request_id):
+    def _get_push_request_query(self, request_id):
         default_where = {"PackagePushRequest": "Id = '{}'".format(request_id)}
 
         # Create a new PushAPI instance with different settings than self.push
@@ -104,54 +104,24 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
         )
 
         # Get the push request
-        push_request = self.push_report.get_push_request_objs(
+        self.push_request = self.push_report.get_push_request_objs(
             "Id = '{}'".format(request_id), limit=1
         )
-        if not push_request:
+        if not self.push_request:
             raise PushApiObjectNotFound(
-                "Push Request {} was not found".format(push_request)
-            )
-        push_request = push_request[0]
-
-        # Check if the request is complete
-        interval = 10
-        if push_request.status not in self.completed_statuses:
-            self.logger.info(
-                "Push request is not yet complete."
-                + " Polling for status every {} seconds until completion".format(
-                    interval
-                )
+                "Push Request {} was not found".format(self.push_request)
             )
 
-        # Loop waiting for request completion
-        i = 0
-        while push_request.status not in self.completed_statuses:
-            if i == 10:
-                self.logger.info("This is taking a while! Polling every 60 seconds")
-                interval = 60
-            time.sleep(interval)
+        self.push_request = self.push_request[0]
 
-            # Clear the method level cache on get_push_requests and
-            # get_push_request_objs
-            self.push_report.get_push_requests.cache.clear()
-            self.push_report.get_push_request_objs.cache.clear()
-            print("Before second call")
-            # Get the push_request again
-            push_request = self.push_report.get_push_request_objs(
-                "Id = '{}'".format(request_id), limit=1
-            )[0]
-            print("After second call")
-
-            self.logger.info(push_request.status)
-
-            i += 1
-
+    def _get_push_request_job_results(self):
         failed_jobs = []
         success_jobs = []
         canceled_jobs = []
 
-        jobs = push_request.get_push_job_objs()
+        jobs = self.push_request.get_push_job_objs()
         for job in jobs:
+            print(type(job))
             if job.status == "Failed":
                 failed_jobs.append(job)
             elif job.status == "Succeeded":
@@ -190,6 +160,39 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
                 self.logger.info("    Title = {}".format(key[1]))
                 self.logger.info("    Message = {}".format(key[2]))
                 self.logger.info("    Details = {}".format(key[3]))
+
+    def _report_push_status(self, request_id):
+        self._get_push_request_query(request_id)
+        # Check if the request is complete
+        interval = 10
+        if self.push_request.status not in self.completed_statuses:
+            self.logger.info(
+                "Push request is not yet complete."
+                + " Polling for status every {} seconds until completion".format(
+                    interval
+                )
+            )
+
+        # Loop waiting for request completion
+        i = 0
+        while self.push_request.status not in self.completed_statuses:
+            if i == 10:
+                self.logger.info("This is taking a while! Polling every 60 seconds")
+                interval = 60
+            time.sleep(interval)
+
+            # Clear the method level cache on get_push_requests and
+            # get_push_request_objs
+            self.push_report.get_push_requests.cache.clear()
+            self.push_report.get_push_request_objs.cache.clear()
+            # Get the push_request again
+            self.push_request = self.push_report.get_push_request_objs(
+                "Id = '{}'".format(request_id), limit=1
+            )[0]
+            self.logger.info(self.push_request.status)
+            i += 1
+
+        self._get_push_request_job_results()
 
 
 class SchedulePushOrgList(BaseSalesforcePushTask):
