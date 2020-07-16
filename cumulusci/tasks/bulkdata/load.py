@@ -574,7 +574,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             if api_name.lower() == "accountid":
                 return lookup
 
-    def _generate_contact_id_map_for_person_accounts(self, mapping, lookup, conn):
+    def _generate_contact_id_map_for_person_accounts(
+        self, contact_mapping, account_id_lookup, conn
+    ):
         """
         Yields (local_id, sf_id) for Contact records where IsPersonAccount
         is true that can handle large data volumes.
@@ -589,17 +591,17 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         - Merge the maps
         """
         # Contact table columns
-        contact_model = self.models[mapping.get("table")]
+        contact_model = self.models[contact_mapping.get("table")]
 
         contact_id_column = getattr(
             contact_model, contact_model.__table__.primary_key.columns.keys()[0]
         )
         account_id_column = getattr(
-            contact_model, lookup.get_lookup_key_field(contact_model)
+            contact_model, account_id_lookup.get_lookup_key_field(contact_model)
         )
 
         # Account ID table + column
-        account_sf_ids_table = lookup["aliased_table"]
+        account_sf_ids_table = account_id_lookup["aliased_table"]
         account_sf_id_column = account_sf_ids_table.columns.sf_id
 
         # Query the Contact table for person account contact records so we can
