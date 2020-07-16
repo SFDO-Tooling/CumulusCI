@@ -52,7 +52,6 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         self._load_file(self.project_local_dir, "connected.app", "app")
 
     def _load_orgs(self):
-
         self._load_files(
             self.config_local_dir, ".org", "orgs", GlobalOrg,
         )

@@ -46,6 +46,8 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         self.services[service] = encrypted
 
     def _set_org(self, org_config, global_org):
+        org_config.keychain = self
+        org_config.global_org = global_org
         encrypted = self._encrypt_config(org_config)
         self._set_encrypted_org(org_config.name, encrypted, global_org)
 
