@@ -602,7 +602,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         # Account ID table + column
         account_sf_ids_table = account_id_lookup["aliased_table"]
-        account_sf_id_column = account_sf_ids_table.columns.sf_id
+        account_sf_id_column = account_sf_ids_table.columns["sf_id"]
 
         # Query the Contact table for person account contact records so we can
         # create a Map: Account SF ID --> Contact ID.  Outer join the
@@ -610,10 +610,10 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         # Account SF ID.
         query = (
             self.session.query(contact_id_column, account_sf_id_column)
-            .filter(contact_model.__table__.columns.IsPersonAccount == "true")
+            .filter(contact_model.__table__.columns["IsPersonAccount"] == "true")
             .outerjoin(
                 account_sf_ids_table,
-                account_sf_ids_table.columns.id == account_id_column,
+                account_sf_ids_table.columns["id"] == account_id_column,
             )
         )
 
