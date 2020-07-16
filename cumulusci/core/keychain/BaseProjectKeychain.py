@@ -98,8 +98,8 @@ class BaseProjectKeychain(BaseConfig):
         scratch_config[
             "sfdx_alias"
         ] = f"{self.project_config.project__name}__{org_name}"
-        org_config = ScratchOrgConfig(scratch_config, org_name)
-        self.set_org(org_config)
+        org_config = ScratchOrgConfig(scratch_config, org_name, self, global_org=False)
+        org_config.save()
 
     def change_key(self, key):
         """ re-encrypt stored services and orgs with the new key """
@@ -116,7 +116,7 @@ class BaseProjectKeychain(BaseConfig):
 
         if orgs:
             for org_name, org_config in list(orgs.items()):
-                self.set_org(org_config)
+                org_config.save()
 
         if services:
             for service_name, service_config in list(services.items()):
@@ -158,11 +158,11 @@ class BaseProjectKeychain(BaseConfig):
         return None, None
 
     def set_default_org(self, name):
-        """ set the default org for tasks by name key """
+        """ set the default org for tasks and flows by name """
         org = self.get_org(name)
         self.unset_default_org()
         org.config["default"] = True
-        self.set_org(org)
+        org.save()
         if org.created:
             sfdx(
                 sarge.shell_format(
@@ -176,7 +176,7 @@ class BaseProjectKeychain(BaseConfig):
             org_config = self.get_org(org)
             if org_config.default:
                 del org_config.config["default"]
-                self.set_org(org_config)
+                org_config.save()
         sfdx("force:config:set defaultusername=")
 
     def get_org(self, name):

@@ -2,6 +2,7 @@ from collections import defaultdict
 from distutils.version import StrictVersion
 import os
 import re
+from contextlib import contextmanager
 
 import requests
 from simple_salesforce import Salesforce
@@ -23,7 +24,10 @@ class OrgConfig(BaseConfig):
     # make sure it can be mocked for tests
     SalesforceOAuth2 = SalesforceOAuth2
 
-    def __init__(self, config, name):
+    def __init__(self, config, name, keychain=None, global_org=False):
+        self.keychain = keychain
+        self.global_org = global_org
+
         self.name = name
         self._community_info_cache = {}
         self._client = None
@@ -31,7 +35,7 @@ class OrgConfig(BaseConfig):
         self._installed_packages = None
         super(OrgConfig, self).__init__(config)
 
-    def refresh_oauth_token(self, keychain, connected_app=None):
+    def refresh_oauth_token(self, keychain, connected_app=None, save=False):
         """Get a fresh access token and store it in the org config.
 
         If the SFDX_CLIENT_ID and SFDX_HUB_KEY environment variables are set,
@@ -45,19 +49,31 @@ class OrgConfig(BaseConfig):
         # invalidate memoized simple-salesforce client with old token
         self._client = None
 
-        if not SKIP_REFRESH:
-            SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
-            SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
-            if SFDX_CLIENT_ID and SFDX_HUB_KEY:
-                info = jwt_session(
-                    SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, self.instance_url
-                )
-            else:
-                info = self._refresh_token(keychain, connected_app)
-            if info != self.config:
-                self.config.update(info)
-        self._load_userinfo()
-        self._load_orginfo()
+        with self._save_changes_if(save):
+            if not SKIP_REFRESH:
+                SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
+                SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
+                if SFDX_CLIENT_ID and SFDX_HUB_KEY:
+                    info = jwt_session(
+                        SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, self.instance_url
+                    )
+                else:
+                    info = self._refresh_token(keychain, connected_app)
+                if info != self.config:
+                    self.config.update(info)
+            self._load_userinfo()
+            self._load_orginfo()
+
+    @contextmanager
+    def _save_changes_if(self, save):
+        if save:
+            orig_config = self.config.copy()
+            yield
+            if self.config != orig_config:
+                self.logger.info("Org info updated, writing to keychain")
+                self.save()
+        else:
+            yield
 
     def _refresh_token(self, keychain, connected_app):
         if keychain:  # it might be none'd and caller adds connected_app
@@ -257,3 +273,7 @@ class OrgConfig(BaseConfig):
 
     def reset_installed_packages(self):
         self._installed_packages = None
+
+    def save(self):
+        assert self.keychain, "Keychain was not set on OrgConfig"
+        self.keychain.set_org(self, self.global_org)
