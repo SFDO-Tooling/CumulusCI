@@ -1,8 +1,10 @@
 import os
+from typing import NamedTuple
 
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
+from cumulusci.core.config import OrgConfig
 
 
 class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
@@ -23,7 +25,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def project_local_dir(self):
         return self.project_config.project_local_dir
 
-    def _load_files(self, dirname, extension, key):
+    def _load_files(self, dirname, extension, key, constructor=lambda x: x):
         if dirname is None:
             return
         for item in sorted(os.listdir(dirname)):
@@ -33,7 +35,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 name = item.replace(extension, "")
                 if key not in self.config:
                     self.config[key] = {}
-                self.config[key][name] = config
+                self.config[key][name] = constructor(config)
 
     def _load_file(self, dirname, filename, key):
         if dirname is None:
@@ -50,8 +52,14 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         self._load_file(self.project_local_dir, "connected.app", "app")
 
     def _load_orgs(self):
-        self._load_files(self.config_local_dir, ".org", "orgs")
-        self._load_files(self.project_local_dir, ".org", "orgs")
+
+        self._load_files(
+            self.config_local_dir, ".org", "orgs", GlobalOrg,
+        )
+
+        self._load_files(
+            self.project_local_dir, ".org", "orgs", LocalOrg,
+        )
 
     def _load_services(self):
         self._load_files(self.config_local_dir, ".service", "services")
@@ -107,3 +115,24 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             f"'{name}' service configuration could not be found. "
             f"Maybe you need to run: cci service connect {name}"
         )
+
+    def _get_org(self, name):
+        org = self._decrypt_config(
+            OrgConfig,
+            self.orgs[name].encrypted_data,
+            extra=[name],
+            context=f"org config ({name})",
+        )
+        if self.orgs[name].global_org:
+            org.global_org = True
+        return org
+
+
+class GlobalOrg(NamedTuple):
+    encrypted_data: bytes
+    global_org: bool = True
+
+
+class LocalOrg(NamedTuple):
+    encrypted_data: bytes
+    global_org: bool = False

@@ -448,7 +448,10 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         )
         keychain = self.keychain_class(self.project_config, self.key)
         del keychain.config["orgs"]
-        keychain._load_files(self.tempdir_home, ".org", "orgs")
+        with mock.patch.object(
+            self.keychain_class, "config_local_dir", self.tempdir_home
+        ):
+            keychain._load_orgs()
         self.assertIn("foo", keychain.get_org("test").config)
 
     def test_load_file(self):
