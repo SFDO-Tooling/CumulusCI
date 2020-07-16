@@ -39,7 +39,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         },
     }
 
-    core_fields = ["Id", "Name", "FirstName", "LastName"]
+    core_fields = ["Name", "FirstName", "LastName"]
 
     def _init_options(self, kwargs):
         super(GenerateMapping, self)._init_options(kwargs)
@@ -161,18 +161,11 @@ class GenerateMapping(BaseSalesforceApiTask):
         objs = set(self.schema.keys())
         stack = self._split_dependencies(objs, self.refs)
 
-        field_sort = (
-            lambda f: "  " + f
-            if f == "Id"
-            else (" " + f if f in self.core_fields else f)
-        )
-
         self.mapping = {}
         for obj in stack:
             key = f"Insert {obj}"
             self.mapping[key] = {}
             self.mapping[key]["sf_object"] = f"{obj}"
-            self.mapping[key]["table"] = f"{obj}"
             fields = []
             lookups = []
             for field in self.schema[obj].values():
@@ -180,17 +173,11 @@ class GenerateMapping(BaseSalesforceApiTask):
                     lookups.append(field["name"])
                 else:
                     fields.append(field["name"])
-            self.mapping[key]["fields"] = {}
             if fields:
-                if "Id" not in fields:
-                    fields.append("Id")
-                fields.sort(key=field_sort)
-                for field in fields:
-                    self.mapping[key]["fields"][field] = (
-                        field if field != "Id" else "sf_id"
-                    )
+                fields.sort()
+                self.mapping[key]["fields"] = fields
             if lookups:
-                lookups.sort(key=field_sort)
+                lookups.sort()
                 self.mapping[key]["lookups"] = {}
                 for field in lookups:
                     # First, determine what manner of lookup we have here.
@@ -322,6 +309,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         in this operation)."""
         return not any(
             [
+                field["name"] == "Id",  # Omit Id fields for auto-pks
                 f"{obj}.{field['name']}" in self.options["ignore"],  # User-ignored list
                 "(Deprecated)" in field["label"],  # Deprecated managed fields
                 field["type"] == "base64",  # No Bulk API support for base64 blob fields
