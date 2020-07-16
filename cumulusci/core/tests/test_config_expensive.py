@@ -6,6 +6,7 @@ import os
 import tempfile
 import unittest
 import shutil
+from pathlib import Path
 
 import yaml
 
@@ -22,10 +23,10 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
-@mock.patch("os.path.expanduser")
+@mock.patch("pathlib.Path.home")
 class TestBaseGlobalConfig(unittest.TestCase):
     def setup_method(self, method):
-        self.tempdir_home = tempfile.mkdtemp()
+        self.tempdir_home = Path(tempfile.mkdtemp())
 
     def teardown_method(self, method):
         shutil.rmtree(self.tempdir_home)
@@ -74,7 +75,7 @@ class TestBaseGlobalConfig(unittest.TestCase):
         self.assertEqual(config.config, expected_config)
 
 
-@mock.patch("os.path.expanduser")
+@mock.patch("pathlib.Path.home")
 class TestBaseProjectConfig(unittest.TestCase):
     def _create_git_config(self):
 
@@ -124,7 +125,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             f.write(content)
 
     def setup_method(self, method):
-        self.tempdir_home = tempfile.mkdtemp()
+        self.tempdir_home = Path(tempfile.mkdtemp())
         self.tempdir_project = tempfile.mkdtemp()
         self.project_name = "TestRepo"
         self.current_commit = "abcdefg1234567890"

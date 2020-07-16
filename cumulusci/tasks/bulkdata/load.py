@@ -21,7 +21,7 @@ from cumulusci.utils import os_friendly_path
 
 from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
-    validate_mapping,
+    validate_and_inject_mapping,
     MappingStep,
     MappingLookup,
 )
@@ -56,12 +56,11 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
         "inject_namespaces": {
-            "description": "If set, CumulusCI automatically injects the project's namespace if schema is managed in the org. "
-            "Defaults to True. Set to False to deactivate automatic namespace injection."
+            "description": "If True, the package namespace prefix will be automatically added to objects "
+            "and fields for which it is present in the org. Defaults to True."
         },
         "drop_missing_schema": {
-            "description": "Set to True to have CumulusCI transparently drop any missing schema elements."
-            "This can support mappings that include data for optional packages."
+            "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
         },
     }
     row_warning_limit = 10
@@ -453,7 +452,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         self.mapping = parse_from_yaml(mapping_file_path)
 
-        validate_mapping(
+        validate_and_inject_mapping(
             mapping=self.mapping,
             org_config=self.org_config,
             namespace=self.project_config.project__package__namespace,

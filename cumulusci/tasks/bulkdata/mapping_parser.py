@@ -277,7 +277,7 @@ class MappingSteps(CCIDictModel):
 
     @root_validator(pre=False)
     @classmethod
-    def validate_mapping(cls, values):
+    def validate_and_inject_mapping(cls, values):
         if values:
             oids = ["Id" in s.fields_ for s in values["__root__"].values()]
             assert all(oids) or not any(
@@ -295,7 +295,7 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
     return MappingSteps.parse_from_yaml(source)
 
 
-def validate_mapping(
+def validate_and_inject_mapping(
     *,
     mapping: Dict,
     org_config: OrgConfig,
@@ -322,7 +322,19 @@ def validate_mapping(
 
         # Remove any remaining lookups to dropped objects.
         for m in mapping.values():
+            describe = getattr(org_config.salesforce_client, m.sf_object).describe()
+            describe = {entry["name"]: entry for entry in describe["fields"]}
+
             for field in list(m.lookups.keys()):
                 lookup = m.lookups[field]
                 if lookup.table not in [step.table for step in mapping.values()]:
                     del m.lookups[field]
+
+                    # Make sure this didn't cause the operation to be invalid
+                    # by dropping a required field.
+                    if not describe[field]["nillable"]:
+                        raise BulkDataException(
+                            f"{m.sf_object}.{field} is a required field, but the target object "
+                            f"{describe[field]['referenceTo']} was removed from the operation "
+                            "due to missing permissions."
+                        )

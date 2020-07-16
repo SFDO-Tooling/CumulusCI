@@ -11,7 +11,7 @@ from cumulusci.tasks.bulkdata.utils import RowErrorChecker
 
 
 class DeleteData(BaseSalesforceApiTask):
-    """Query existing data for a specific sObject and perform a Bulk API delete of all responsive records."""
+    """Query existing data for a specific sObject and perform a Bulk API delete of all matching records."""
 
     task_options = {
         "objects": {
@@ -23,14 +23,14 @@ class DeleteData(BaseSalesforceApiTask):
             "required": False,
         },
         "hardDelete": {
-            "description": "If True, perform a hard delete, bypassing the Recycle Bin. Default: False"
+            "description": "If True, perform a hard delete, bypassing the Recycle Bin. Note that this requires the Bulk API Hard Delete permission. Default: False"
         },
         "ignore_row_errors": {
             "description": "If True, allow the operation to continue even if individual rows fail to delete."
         },
         "inject_namespaces": {
-            "description": "If set, CumulusCI automatically injects the project's namespace if schema is managed in the org. "
-            "Defaults to True. Set to False to deactivate automatic namespace injection."
+            "description": "If True, the package namespace prefix will be automatically added to objects "
+            "and fields for which it is present in the org. Defaults to True."
         },
     }
     row_warning_limit = 10

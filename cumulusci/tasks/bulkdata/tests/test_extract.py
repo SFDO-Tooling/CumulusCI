@@ -523,8 +523,8 @@ class TestExtractData(unittest.TestCase):
         task._init_mapping()
         assert "Insert Households" in task.mapping
 
-    @mock.patch("cumulusci.tasks.bulkdata.extract.validate_mapping")
-    def test_init_mapping_passes_options_to_validate(self, validate_mapping):
+    @mock.patch("cumulusci.tasks.bulkdata.extract.validate_and_inject_mapping")
+    def test_init_mapping_passes_options_to_validate(self, validate_and_inject_mapping):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
         t = _make_task(
@@ -541,7 +541,7 @@ class TestExtractData(unittest.TestCase):
 
         t._init_mapping()
 
-        validate_mapping.assert_called_once_with(
+        validate_and_inject_mapping.assert_called_once_with(
             mapping=t.mapping,
             org_config=t.org_config,
             namespace=t.project_config.project__package__namespace,
