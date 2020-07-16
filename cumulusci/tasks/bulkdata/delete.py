@@ -29,8 +29,8 @@ class DeleteData(BaseSalesforceApiTask):
             "description": "If True, allow the operation to continue even if individual rows fail to delete."
         },
         "inject_namespaces": {
-            "description": "If set, CumulusCI automatically injects the project's namespace if schema is managed in the org. "
-            "Defaults to True. Set to False to deactivate automatic namespace injection."
+            "description": "If True, the package namespace prefix will be automatically added to objects "
+            "and fields for which it is present in the org. Defaults to True."
         },
     }
     row_warning_limit = 10

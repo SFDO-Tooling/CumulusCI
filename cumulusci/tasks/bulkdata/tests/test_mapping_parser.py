@@ -12,7 +12,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     MappingLookup,
     MappingStep,
     parse_from_yaml,
-    validate_mapping,
+    validate_and_inject_mapping,
     ValidationError,
 )
 from cumulusci.tasks.bulkdata.step import DataOperationType
@@ -669,7 +669,7 @@ class TestMappingParser:
     # Start of FLS/Namespace Injection Integration Tests
 
     @responses.activate
-    def test_validate_mapping_enforces_fls(self):
+    def test_validate_and_inject_mapping_enforces_fls(self):
         mock_describe_calls()
         mapping = parse_from_yaml(
             StringIO(
@@ -681,7 +681,7 @@ class TestMappingParser:
         )
 
         with pytest.raises(BulkDataException):
-            validate_mapping(
+            validate_and_inject_mapping(
                 mapping=mapping,
                 org_config=org_config,
                 namespace=None,
@@ -691,7 +691,7 @@ class TestMappingParser:
             )
 
     @responses.activate
-    def test_validate_mapping_removes_steps_with_drop_missing(self):
+    def test_validate_and_inject_mapping_removes_steps_with_drop_missing(self):
         mock_describe_calls()
         mapping = parse_from_yaml(
             StringIO(
@@ -702,7 +702,7 @@ class TestMappingParser:
             {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
         )
 
-        validate_mapping(
+        validate_and_inject_mapping(
             mapping=mapping,
             org_config=org_config,
             namespace=None,
@@ -714,7 +714,7 @@ class TestMappingParser:
         assert "Insert Accounts" not in mapping
 
     @responses.activate
-    def test_validate_mapping_removes_lookups_with_drop_missing(self):
+    def test_validate_and_inject_mapping_removes_lookups_with_drop_missing(self):
         mock_describe_calls()
         mapping = parse_from_yaml(
             StringIO(
@@ -728,7 +728,7 @@ class TestMappingParser:
             {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
         )
 
-        validate_mapping(
+        validate_and_inject_mapping(
             mapping=mapping,
             org_config=org_config,
             namespace=None,
@@ -742,7 +742,36 @@ class TestMappingParser:
         assert "AccountId" not in mapping["Insert Contacts"].lookups
 
     @responses.activate
-    def test_validate_mapping_injects_namespaces(self):
+    def test_validate_and_inject_mapping_throws_exception_required_lookup_dropped(self):
+        mock_describe_calls()
+
+        # This test uses a bit of gimmickry to validate exception behavior on dropping a required lookup.
+        # Since mapping_parser identifies target objects via the `table` clause rather than the actual schema,
+        # which makes us resilient to polymorphic lookups, we'll pretend the non-nillable `Id` field is a lookup.
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c\n"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    Id:\n      table: Account"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        with pytest.raises(BulkDataException):
+            validate_and_inject_mapping(
+                mapping=mapping,
+                org_config=org_config,
+                namespace=None,
+                data_operation=DataOperationType.INSERT,
+                inject_namespaces=False,
+                drop_missing=True,
+            )
+
+    @responses.activate
+    def test_validate_and_inject_mapping_injects_namespaces(self):
         mock_describe_calls()
         # Note: ns__Description__c is a mock field added to our stored, mock describes (in JSON)
         ms = parse_from_yaml(

@@ -651,6 +651,11 @@ Options
 
 	 If True, allow the operation to continue even if individual rows fail to delete.
 
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
 **deploy**
 ==========================================
 
@@ -1327,6 +1332,16 @@ Options
 	 *Optional*
 
 	 Set to Serial to force serial mode on all jobs. Parallel is the default.
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
 ``-o generate_mapping_file GENERATEMAPPINGFILE``
 	 *Optional*
@@ -3851,6 +3866,16 @@ Options
 
 	 Default: datasets/sample.sql
 
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
+
 **load_dataset**
 ==========================================
 
@@ -3906,6 +3931,16 @@ Options
 	 *Optional*
 
 	 Set to Serial to force serial mode on all jobs. Parallel is the default.
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
 **load_custom_settings**
 ==========================================

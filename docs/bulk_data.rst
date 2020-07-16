@@ -261,10 +261,13 @@ namespace injection. This capability typically results in significant simplicati
 Optional Data Elements
 ++++++++++++++++++++++
 
-Some projects need to build datasets that include optional data elements for managed packages and features
+Some projects need to build datasets that include optional data elements - fields and objects that are loaded
+into some of the project's orgs, but not others. This can cover both optional managed packages and features
 that are included in some, but not all, orgs. For example, a managed package A that does not require another
 managed package B but is designed to work with it may wish to include data for managed package B in its
-data sets, but load that data if and only if B is installed.
+data sets, but load that data if and only if B is installed. Likewise, a package might wish to include data
+supporting a particular org feature, but not load that data in an org where the feature is turned off (and its
+associated fields and objects are for that reason unavailable).
 
 To support this use case, the ``load_dataset`` and ``extract_dataset`` tasks offer a ``drop_missing_schema``
 option. When enabled, this option results in CumulusCI ignoring any mapped fields, sObjects, or lookups that

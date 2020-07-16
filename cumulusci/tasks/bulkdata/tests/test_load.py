@@ -299,8 +299,8 @@ class TestLoadData(unittest.TestCase):
         assert t.options["sql_path"] == "test.sql"
         assert t.options["database_url"] is None
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.validate_mapping")
-    def test_init_mapping_passes_options_to_validate(self, validate_mapping):
+    @mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping")
+    def test_init_mapping_passes_options_to_validate(self, validate_and_inject_mapping):
         base_path = os.path.dirname(__file__)
 
         t = _make_task(
@@ -317,7 +317,7 @@ class TestLoadData(unittest.TestCase):
 
         t._init_mapping()
 
-        validate_mapping.assert_called_once_with(
+        validate_and_inject_mapping.assert_called_once_with(
             mapping=t.mapping,
             org_config=t.org_config,
             namespace=t.project_config.project__package__namespace,
