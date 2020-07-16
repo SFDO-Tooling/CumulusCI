@@ -747,7 +747,7 @@ You can include the option ``max_lines`` argument if you want to customize how m
 
 Reporting Error Logs 
 --------------------
-Use the ``cci gist`` command to send the log of your last ``cci`` command to a GitHub gist so you can submit it for support if needed.
+Use the ``cci error gist`` command to send the log of your last ``cci`` command to a GitHub gist so you can submit it for support if needed.
 
 For this feature to work you will need to ensure that your `github service is setup with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
 
