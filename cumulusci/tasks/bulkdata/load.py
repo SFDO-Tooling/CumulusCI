@@ -232,34 +232,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         return statics
 
-    def _update_person_account_name_as_blank(self, mapping: MappingStep) -> None:
-        """
-        If a "Name" Salesforce Field is mapped to a column, updates mapping's
-        table records where IsPersonAccount is "true" setting "Name" field as
-        blank.
-        """
-        # Check if Account.Name is in mapping
-        for api_name, column_name in mapping.fields.items():
-            if api_name.lower() == "name":
-                # Update table
-                table = self.models[mapping["table"]].__table__
-                self.session.connection().execute(
-                    table.update()
-                    .where(table.columns.IsPersonAccount == "true")
-                    .values(**{column_name: ""})
-                )
-                self.session.flush()
-                return
-
-    def _is_person_account_column_exists(self, mapping: MappingStep) -> bool:
-        """
-        Returns if "IsPersonAccount" is a column in mapping's table.
-        """
-        return (
-            self.models[mapping.get("table")].__table__.columns.get("IsPersonAccount")
-            is not None
-        )
-
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
 
@@ -411,70 +383,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         if mapping["action"] == "insert":
             self.session.commit()
-
-    def _get_account_id_lookup(self, mapping: MappingStep) -> MappingLookup:
-        """
-        Returns "AccountId" lookup if it exists.
-        """
-        for api_name, lookup in mapping.get("lookups", {}).items():
-            if api_name.lower() == "accountid":
-                return lookup
-
-    def _generate_contact_id_map_for_person_accounts(
-        self, mapping: MappingStep, lookup: MappingLookup, conn
-    ):
-        """
-        Yields (local_id, sf_id) for Contact records where IsPersonAccount
-        is true that can handle large data volumes.
-
-        We know a Person Account record is related to one and only one Contact
-        record.  Therefore, we can map local Contact IDs to Salesforce IDs
-        by previously inserted Account records:
-        - Query the DB to get the map: Salesforce Account ID ->
-          local Contact ID
-        - Query Salesforce to get the map: Salesforce Account ID ->
-          Salesforce Contact ID
-        - Merge the maps
-        """
-        model = self.models[mapping.get("table")]
-        table = model.__table__
-
-        query = self.session.query(
-            getattr(model, table.primary_key.columns.keys()[0]),
-            lookup["aliased_table"].columns.sf_id,
-        ).filter(table.columns.IsPersonAccount == "true")
-
-        # Outer join with lookup ids table:
-        # returns main obj even if lookup is null
-        key_field = lookup.get_lookup_key_field(model)
-        value_column = getattr(model, key_field)
-        query = query.outerjoin(
-            lookup["aliased_table"], lookup["aliased_table"].columns.id == value_column
-        )
-
-        result = conn.execution_options(stream_results=True).execute(query.statement)
-
-        while True:  # batch not empty
-            chunk = result.fetchmany(200)
-            if not chunk:
-                break
-
-            contact_local_ids_by_account_sf_id = {
-                record[1]: record[0] for record in chunk
-            }
-
-            # It's safe to use query_all since the chunk size to 200.
-            for record in self.sf.query_all(
-                "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true AND AccountId IN ('{}')".format(
-                    "','".join(contact_local_ids_by_account_sf_id.keys())
-                )
-            )["records"]:
-                yield (
-                    contact_local_ids_by_account_sf_id.get(
-                        record["AccountId"]
-                    ),  # local_id
-                    record["Id"],  # sf_id
-                )
 
     def _generate_results_id_map(self, step, local_ids):
         """Consume results from load and prepare rows for id table.
@@ -628,3 +536,109 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         if self._person_accounts_enabled is None:
             self._person_accounts_enabled = is_person_accounts_enabled(self)
         return self._person_accounts_enabled
+
+    def _is_person_account_column_exists(self, mapping):
+        """
+        Returns if "IsPersonAccount" is a column in mapping's table.
+        """
+        return (
+            self.models[mapping.get("table")].__table__.columns.get("IsPersonAccount")
+            is not None
+        )
+
+    def _update_person_account_name_as_blank(self, mapping) -> None:
+        """
+        If a "Name" Salesforce Field is mapped to a column, updates mapping's
+        table records where IsPersonAccount is "true" setting "Name" field as
+        blank.
+        """
+        # Check if Account.Name is in mapping
+        fields = mapping.get("fields", {})
+        for api_name, column_name in fields.items():
+            if api_name.lower() == "name":
+                # Update table
+                table = self.models[mapping["table"]].__table__
+                self.session.connection().execute(
+                    table.update()
+                    .where(table.columns.IsPersonAccount == "true")
+                    .values(**{column_name: ""})
+                )
+                self.session.flush()
+                return
+
+    def _get_account_id_lookup(self, mapping):
+        """
+        Returns "AccountId" lookup if it exists.
+        """
+        for api_name, lookup in mapping.get("lookups", {}).items():
+            if api_name.lower() == "accountid":
+                return lookup
+
+    def _generate_contact_id_map_for_person_accounts(self, mapping, lookup, conn):
+        """
+        Yields (local_id, sf_id) for Contact records where IsPersonAccount
+        is true that can handle large data volumes.
+
+        We know a Person Account record is related to one and only one Contact
+        record.  Therefore, we can map local Contact IDs to Salesforce IDs
+        by previously inserted Account records:
+        - Query the DB to get the map: Salesforce Account ID ->
+          local Contact ID
+        - Query Salesforce to get the map: Salesforce Account ID ->
+          Salesforce Contact ID
+        - Merge the maps
+        """
+        # Contact table columns
+        contact_model = self.models[mapping.get("table")]
+
+        contact_id_column = getattr(
+            contact_model, contact_model.__table__.primary_key.columns.keys()[0]
+        )
+        account_id_column = getattr(
+            contact_model, lookup.get_lookup_key_field(contact_model)
+        )
+
+        # Account ID table + column
+        account_sf_ids_table = lookup["aliased_table"]
+        account_sf_id_column = account_sf_ids_table.columns.sf_id
+
+        # Query the Contact table for person account contact records so we can
+        # create a Map: Account SF ID --> Contact ID.  Outer join the
+        # Account SF IDs table to get each Contact's associated
+        # Account SF ID.
+        query = (
+            self.session.query(contact_id_column, account_sf_id_column)
+            .filter(contact_model.__table__.columns.IsPersonAccount == "true")
+            .outerjoin(
+                account_sf_ids_table,
+                account_sf_ids_table.columns.id == account_id_column,
+            )
+        )
+
+        # Stream the results so we can process batches of 200 Contacts
+        # in case we have large data volumes.
+        query_result = conn.execution_options(stream_results=True).execute(
+            query.statement
+        )
+
+        while True:
+            # While we have a chunk to process
+            chunk = query_result.fetchmany(200)
+            if not chunk:
+                break
+
+            # Collect Map: Account SF ID --> Contact ID
+            contact_ids_by_account_sf_id = {record[1]: record[0] for record in chunk}
+
+            # Query Map: Account SF ID --> Contact SF ID
+            # It's safe to use query_all since the chunk size to 200.
+            for record in self.sf.query_all(
+                "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true AND AccountId IN ('{}')".format(
+                    "','".join(contact_ids_by_account_sf_id.keys())
+                )
+            )["records"]:
+                contact_id = contact_ids_by_account_sf_id.get(record["AccountId"])
+                contact_sf_id = record["Id"]
+
+                # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
+                yield (contact_id, contact_sf_id)
