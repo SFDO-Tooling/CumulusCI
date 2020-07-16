@@ -17,7 +17,6 @@ PACKAGE_VERSION="$(cat cumulusci/version.txt)"
 echo " "
 echo "=> Creating a temporary virtualenv and installing CumulusCI..."
 echo " "
-source deactivate
 python3.7 -m venv "$ENV_DIR" || exit 1
 source "$ENV_DIR/bin/activate" || exit 1
 pip install -U pip
@@ -63,6 +62,7 @@ $(cat "$RES_FILE")
     end
 
     bin.install Dir["#{libexec}/bin/cci"]
+    bin.install Dir["#{libexec}/bin/snowfakery"]
     bin.env_script_all_files(libexec/"bin", :PYTHONPATH => ENV["PYTHONPATH"])
   end
 

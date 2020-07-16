@@ -1,10 +1,12 @@
-from typing import Dict, List, Union, IO
+from typing import Dict, List, Union, IO, Optional
 from logging import getLogger
 from pathlib import Path
 
-from pydantic import Field, validator, ValidationError
+from pydantic import Field, validator, root_validator, ValidationError
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel
+from cumulusci.utils import convert_to_snake_case
+
 from typing_extensions import Literal
 
 LOGGER_NAME = "MAPPING_LOADER"
@@ -14,25 +16,53 @@ logger = getLogger(LOGGER_NAME)
 class MappingLookup(CCIDictModel):
     "Lookup relationship between two tables."
     table: str
-    key_field: str = None
-    value_field: str = None
-    join_field: str = None
-    after: str = None
-    aliased_table: str = None
+    key_field: Optional[str] = None
+    value_field: Optional[str] = None
+    join_field: Optional[str] = None
+    after: Optional[str] = None
+    aliased_table: Optional[str] = None
+    name: Optional[str] = None  # populated by parent
+
+    def get_lookup_key_field(self, model=None):
+        "Find the field name for this lookup."
+        guesses = []
+        if self.get("key_field"):
+            guesses.append(self.get("key_field"))
+
+        guesses.append(self.name)
+
+        if not model:
+            return guesses[0]
+
+        # CCI used snake_case until mid-2020.
+        # At some point this code could probably be simplified.
+        snake_cased_guesses = list(map(convert_to_snake_case, guesses))
+        guesses = guesses + snake_cased_guesses
+        for guess in guesses:
+            if hasattr(model, guess):
+                return guess
+        raise KeyError(
+            f"Could not find a key field for {self.name}.\n"
+            + f"Tried {', '.join(guesses)}"
+        )
 
 
 class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
-    table: str = None
-    fields_: Dict[str, str] = Field(..., alias="fields")
+    table: Optional[str] = None
+    fields_: Dict[str, str] = Field({}, alias="fields")
     lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
     action: str = "insert"
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
-    record_type: str = None  # should be discussed and probably deprecated
-    bulk_mode: Literal["Serial", "Parallel"] = "Parallel"
+    record_type: Optional[str] = None  # should be discussed and probably deprecated
+    bulk_mode: Optional[
+        Literal["Serial", "Parallel"]
+    ] = None  # default should come from task options
+    sf_id_table: Optional[str] = None  # populated at runtime in extract.py
+    record_type_table: Optional[str] = None  # populated at runtime in extract.py
 
     @validator("record_type")
     def record_type_is_deprecated(cls, v):
@@ -48,10 +78,44 @@ class MappingStep(CCIDictModel):
         )
         return v
 
+    @validator("fields_", pre=True)
+    def standardize_fields_to_dict(cls, values):
+        if values is None:
+            values = {}
+        if type(values) is list:
+            return {elem: elem for elem in values}
+
+        return values
+
+    @root_validator
+    def set_default_table(cls, values):
+        """Automatically populate the `table` key with `sf_object`, if not present."""
+        if values["table"] is None:
+            values["table"] = values.get("sf_object")
+
+        return values
+
+    @root_validator  # not really a validator, more like a post-processor
+    def fixup_lookup_names(cls, v):
+        "Allow lookup objects to know the key they were attached to in the mapping file."
+        for name, lookup in v["lookups"].items():
+            lookup.name = name
+        return v
+
 
 class MappingSteps(CCIDictModel):
     "Mapping of named steps"
     __root__: Dict[str, MappingStep]
+
+    @root_validator(pre=False)
+    def validate_mapping(cls, values):
+        if values:
+            oids = ["Id" in s.fields_ for s in values["__root__"].values()]
+            assert all(oids) or not any(
+                oids
+            ), "Id must be mapped in all steps or in no steps."
+
+        return values
 
 
 ValidationError = ValidationError  # export Pydantic's Validation Error under an alias

@@ -36,9 +36,10 @@ class TestDownloadFile(unittest.TestCase):
         bulk_mock = mock.Mock()
         bulk_mock.headers.return_value = {}
 
-        responses.add(method="GET", url=url, body="TEST")
+        responses.add(method="GET", url=url, body=b"TEST\xe2\x80\x94")
         with download_file(url, bulk_mock) as f:
-            assert f.read() == "TEST"
+            # make sure it was decoded as utf-8
+            assert f.read() == "TEST\u2014"
 
 
 class TestBulkDataJobTaskMixin(unittest.TestCase):
@@ -285,7 +286,7 @@ class TestBulkApiQueryOperation(unittest.TestCase):
             "BATCH", job_id="JOB"
         )
         download_mock.assert_called_once_with(
-            f"https://test/job/JOB/batch/BATCH/result/RESULT", context.bulk
+            "https://test/job/JOB/batch/BATCH/result/RESULT", context.bulk
         )
 
         assert list(results) == [
@@ -321,7 +322,7 @@ class TestBulkApiQueryOperation(unittest.TestCase):
             "BATCH", job_id="JOB"
         )
         download_mock.assert_called_once_with(
-            f"https://test/job/JOB/batch/BATCH/result/RESULT", context.bulk
+            "https://test/job/JOB/batch/BATCH/result/RESULT", context.bulk
         )
 
         assert list(results) == []
@@ -422,28 +423,26 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         step._wait_for_job.assert_called_once_with("JOB")
         assert step.job_result.status is DataOperationStatus.SUCCESS
 
-    def test_load_records(self):
+    def test_serialize_csv_record(self):
         context = mock.Mock()
-        context.bulk.post_batch.side_effect = ["BATCH1", "BATCH2"]
-
         step = BulkApiDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
-            api_options={},
+            api_options={"batch_size": 2},
             context=context,
-            fields=["LastName"],
+            fields=["Id", "FirstName", "LastName"],
         )
-        step._batch = mock.Mock()
-        step._batch.return_value = [1, 2]
-        step.job_id = "JOB"
 
-        step.load_records(["RECORDS"])
+        serialized = step._serialize_csv_record(step.fields)
+        assert serialized == b"Id,FirstName,LastName\r\n"
 
-        context.bulk.post_batch.assert_has_calls(
-            [mock.call("JOB", 1), mock.call("JOB", 2)]
-        )
-        assert step.batch_ids == ["BATCH1", "BATCH2"]
-        step._batch.assert_called_once_with(["RECORDS"])
+        record = ["1", "Bob", "Ross"]
+        serialized = step._serialize_csv_record(record)
+        assert serialized == b"1,Bob,Ross\r\n"
+
+        record = ["col1", "multiline\ncol2"]
+        serialized = step._serialize_csv_record(record)
+        assert serialized == b'col1,"multiline\ncol2"\r\n'
 
     def test_batch(self):
         context = mock.Mock()
@@ -456,7 +455,43 @@ class TestBulkApiDmlOperation(unittest.TestCase):
             fields=["LastName"],
         )
 
-        results = list(step._batch(iter([["Test"], ["Test2"], ["Test3"]])))
+        records = iter([["Test"], ["Test2"], ["Test3"]])
+        results = list(step._batch(records, n=2))
+
+        assert len(results) == 2
+        assert list(results[0]) == [
+            "LastName\r\n".encode("utf-8"),
+            "Test\r\n".encode("utf-8"),
+            "Test2\r\n".encode("utf-8"),
+        ]
+        assert list(results[1]) == [
+            "LastName\r\n".encode("utf-8"),
+            "Test3\r\n".encode("utf-8"),
+        ]
+
+    def test_batch__character_limit(self):
+        context = mock.Mock()
+
+        step = BulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={"batch_size": 2},
+            context=context,
+            fields=["LastName"],
+        )
+
+        records = [["Test"], ["Test2"], ["Test3"]]
+
+        csv_rows = [step._serialize_csv_record(step.fields)]
+        for r in records:
+            csv_rows.append(step._serialize_csv_record(r))
+
+        char_limit = sum([len(r) for r in csv_rows]) - 1
+
+        # Ask for batches of three, but we
+        # should get batches of 2 back
+        results = list(step._batch(iter(records), n=3, char_limit=char_limit))
+
         assert len(results) == 2
         assert list(results[0]) == [
             "LastName\r\n".encode("utf-8"),

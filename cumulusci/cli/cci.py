@@ -36,6 +36,7 @@ from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.github import create_gist, get_github_api
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
@@ -43,26 +44,22 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
-from cumulusci.cli.ui import CliTable, CROSSMARK
+from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task, tee_stdout_stderr
+from cumulusci.utils import doc_task
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
+from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
-from .logger import init_logger, get_gist_logger
+from .logger import init_logger, get_tempfile_logger
 
 
 @contextlib.contextmanager
 def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
-    config_dir = os.path.join(
-        os.path.expanduser("~"), BaseGlobalConfig.config_local_dir
-    )
 
-    if not os.path.exists(config_dir):
-        os.mkdir(config_dir)
-
+    config_dir = BaseGlobalConfig.default_cumulusci_dir()
     timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
 
     try:
@@ -174,8 +171,10 @@ def pass_runtime(func=None, require_project=True, require_keychain=False):
 
 
 SUGGEST_ERROR_COMMAND = (
-    """Type `cci error --help` for more information about debugging errors."""
+    """Run this command for more information about debugging errors: cci error --help"""
 )
+
+USAGE_ERRORS = (CumulusCIUsageError, click.UsageError)
 
 
 #
@@ -205,13 +204,15 @@ def main(args=None):
         debug = "--debug" in args
         if debug:
             args.remove("--debug")
+        should_show_stacktraces = RUNTIME.global_config.cli__show_stacktraces
 
         # Only create logfiles for commands
         # that are not `cci error`
         is_error_command = len(args) > 2 and args[1] == "error"
+        tempfile_path = None
         if not is_error_command:
-            logger = get_gist_logger()
-            stack.enter_context(tee_stdout_stderr(args, logger))
+            logger, tempfile_path = get_tempfile_logger()
+            stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
 
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
@@ -221,11 +222,16 @@ def main(args=None):
             show_debug_info() if debug else click.echo("\nAborted!")
             sys.exit(1)
         except Exception as e:
-            show_debug_info() if debug else handle_exception(e, is_error_command)
+            if debug:
+                show_debug_info()
+            else:
+                handle_exception(
+                    e, is_error_command, tempfile_path, should_show_stacktraces
+                )
             sys.exit(1)
 
 
-def handle_exception(error, is_error_cmd):
+def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=False):
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
@@ -239,8 +245,14 @@ def handle_exception(error, is_error_cmd):
     if not is_error_cmd:
         click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
 
-    with open(CCI_LOGFILE_PATH, "a") as log_file:
-        traceback.print_exc(file=log_file)  # log stacktrace silently
+    # This is None if we're handling an exception for a
+    # `cci error` command.
+    if logfile_path:
+        with open(logfile_path, "a") as log_file:
+            traceback.print_exc(file=log_file)  # log stacktrace silently
+
+    if should_show_stacktraces and not isinstance(error, USAGE_ERRORS):
+        raise error
 
 
 def connection_error_message():
@@ -293,19 +305,22 @@ def version():
 @pass_runtime(require_project=False, require_keychain=True)
 def shell(runtime, script=None, python=None):
     # alias for backwards-compatibility
-    config = runtime  # noQA
+    variables = {
+        "config": runtime,
+        "runtime": runtime,
+        "project_config": runtime.project_config,
+    }
 
     if script:
         if python:
             raise click.UsageError("Cannot specify both --script and --python")
-        runpy.run_path(script, init_globals={**globals(), **locals()})
+        runpy.run_path(script, init_globals=variables)
     elif python:
-        exec(python)
+        exec(python, variables)
     else:
-        code.interact(local={**globals(), **locals()})
+        code.interact(local=variables)
 
 
-CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
 GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
 Please ensure that your GitHub personal access token has the 'Create gists' scope."""
 
@@ -362,6 +377,11 @@ def error():
     If you'd like to submit it to a developer for conversation,
     you can use the `cci error gist` command. Just make sure
     that your GitHub access token has the 'create gist' scope.
+
+    If you'd like to regularly see stack traces, set the `show_stacktraces`
+    option to `True` in the "cli" section of `~/.cumulusci/cumulusci.yml`, or to
+    see a stack-trace (and other debugging information) just once, use the `--debug`
+    command line option.
 
     For more information on working with errors in CumulusCI visit:
     https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors
@@ -552,6 +572,17 @@ def project_init(runtime):
     ):
         test_name_match = None
     context["test_name_match"] = test_name_match
+
+    context["code_coverage"] = None
+    if click.confirm(
+        click.style(
+            "Do you want to check Apex code coverage when tests are run?", bold=True
+        ),
+        default=True,
+    ):
+        context["code_coverage"] = click.prompt(
+            click.style("Minimum code coverage percentage", bold=True), default=75
+        )
 
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
@@ -854,6 +885,12 @@ def org_browser(runtime, org_name):
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     runtime.check_org_overwrite(org_name)
 
+    if "lightning.force.com" in login_url:
+        raise click.UsageError(
+            "Connecting an org with a lightning.force.com URL does not work. "
+            "Use the my.salesforce.com version instead"
+        )
+
     connected_app = runtime.keychain.get_service("connected_app")
     if sandbox:
         login_url = "https://test.salesforce.com"
@@ -1043,6 +1080,66 @@ def org_list(runtime, plain):
     persistent_table.echo(plain)
 
 
+@org.command(
+    name="prune", help="Removes all expired scratch orgs from the current project"
+)
+@click.option(
+    "--include-active",
+    is_flag=True,
+    help="Remove all scratch orgs, regardless of expiry.",
+)
+@pass_runtime(require_project=True, require_keychain=True)
+def org_prune(runtime, include_active=False):
+
+    predefined_scratch_configs = getattr(runtime.project_config, "orgs__scratch", {})
+
+    expired_orgs_removed = []
+    active_orgs_removed = []
+    org_shapes_skipped = []
+    active_orgs_skipped = []
+    for org_name in runtime.keychain.list_orgs():
+
+        org_config = runtime.keychain.get_org(org_name)
+
+        if org_name in predefined_scratch_configs:
+            if org_config.active and include_active:
+                runtime.keychain.remove_org(org_name)
+                active_orgs_removed.append(org_name)
+            else:
+                org_shapes_skipped.append(org_name)
+
+        elif org_config.active:
+            if include_active:
+                runtime.keychain.remove_org(org_name)
+                active_orgs_removed.append(org_name)
+            else:
+                active_orgs_skipped.append(org_name)
+
+        elif isinstance(org_config, ScratchOrgConfig):
+            runtime.keychain.remove_org(org_name)
+            expired_orgs_removed.append(org_name)
+
+    if expired_orgs_removed:
+        click.echo(
+            f"Successfully removed {len(expired_orgs_removed)} expired scratch orgs: {', '.join(expired_orgs_removed)}"
+        )
+    else:
+        click.echo("No expired scratch orgs to delete. ✨")
+
+    if active_orgs_removed:
+        click.echo(
+            f"Successfully removed {len(active_orgs_removed)} active scratch orgs: {', '.join(active_orgs_removed)}"
+        )
+    elif include_active:
+        click.echo("No active scratch orgs to delete. ✨")
+
+    if org_shapes_skipped:
+        click.echo(f"Skipped org shapes: {', '.join(org_shapes_skipped)}")
+
+    if active_orgs_skipped:
+        click.echo(f"Skipped active orgs: {', '.join(active_orgs_skipped)}")
+
+
 @org.command(name="remove", help="Removes an org from the keychain")
 @click.argument("org_name")
 @click.option(
@@ -1132,6 +1229,29 @@ def org_scratch_delete(runtime, org_name):
     runtime.keychain.set_org(org_config)
 
 
+org_shell_cci_help_message = """
+The cumulusci shell gives you access to the following objects and functions:
+
+* sf - simple_salesforce connected to your org. [1]
+* org_config - local information about your org. [2]
+* project_config - information about your project. [3]
+* tooling - simple_salesforce connected to the tooling API on your org.
+* query() - SOQL query. `help(query)` for more information
+* describe() - Inspect object fields. `help(describe)` for more information
+* help() - for interactive help on Python
+* help(obj) - for help on any specific Python object or module
+
+[1] https://github.com/simple-salesforce/simple-salesforce
+[2] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.OrgConfig
+[3] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.project_config
+"""
+
+
+class CCIHelp(type(help)):
+    def __repr__(self):
+        return org_shell_cci_help_message
+
+
 @org.command(
     name="shell",
     help="Drop into a Python shell with a simple_salesforce connection in `sf`, "
@@ -1146,10 +1266,20 @@ def org_shell(runtime, org_name, script=None, python=None):
     org_config.refresh_oauth_token(runtime.keychain)
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
+    tooling = get_simple_salesforce_connection(
+        runtime.project_config, org_config, base_url="tooling"
+    )
+
+    sf_helpers = SimpleSalesforceUIHelpers(sf)
+
     globals = {
         "sf": sf,
+        "tooling": tooling,
         "org_config": org_config,
         "project_config": runtime.project_config,
+        "help": CCIHelp(),
+        "query": sf_helpers.query,
+        "describe": sf_helpers.describe,
     }
 
     if script:
@@ -1157,10 +1287,11 @@ def org_shell(runtime, org_name, script=None, python=None):
             raise click.UsageError("Cannot specify both --script and --python")
         runpy.run_path(script, init_globals=globals)
     elif python:
-        exec(python)
+        exec(python, globals)
     else:
         code.interact(
-            banner=f"Use `sf` to access org `{org_name}` via simple_salesforce",
+            banner=f"Use `sf` to access org `{org_name}` via simple_salesforce\n"
+            + "Type `help` for more information about the cci shell.",
             local=globals,
         )
 
@@ -1419,6 +1550,9 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
                 "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
             )
             click.echo(str(e))
+
+
+CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
 
 
 @error.command(

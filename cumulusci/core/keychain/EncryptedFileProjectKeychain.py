@@ -11,11 +11,13 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     @property
     def config_local_dir(self):
         try:
-            config_local_dir = self.project_config.global_config_obj.config_local_dir
+            config_local_dir = (
+                self.project_config.global_config_obj.cumulusci_config_dir
+            )
         except AttributeError:
-            # Handle a global config passed as project config
-            config_local_dir = self.project_config.config_local_dir
-        return os.path.join(os.path.expanduser("~"), config_local_dir)
+            # Handle a global config passed as a project config
+            config_local_dir = self.project_config.cumulusci_config_dir
+        return config_local_dir
 
     @property
     def project_local_dir(self):

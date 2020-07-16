@@ -4,6 +4,7 @@ from unittest import mock
 import unittest
 import zipfile
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.tasks.salesforce import InstallPackageVersion
 from cumulusci.tests.util import create_project_config
@@ -28,7 +29,12 @@ class TestInstallPackageVersion(unittest.TestCase):
         project_config.config["project"]["package"]["namespace"] = "ns"
         task = create_task(
             InstallPackageVersion,
-            {"version": "latest_beta", "activateRSS": True, "password": "astro"},
+            {
+                "version": "latest_beta",
+                "activateRSS": True,
+                "password": "astro",
+                "security_type": "NONE",
+            },
             project_config,
         )
         api = task._get_api()
@@ -36,3 +42,15 @@ class TestInstallPackageVersion(unittest.TestCase):
         package_xml = zf.read("installedPackages/ns.installedPackage")
         self.assertIn(b"<activateRSS>true</activateRSS", package_xml)
         self.assertIn(b"<password>astro</password>", package_xml)
+        self.assertIn(b"<securityType>NONE</securityType>", package_xml)
+
+    def test_run_task__bad_security_type(self):
+        project_config = create_project_config()
+        project_config.get_latest_version = mock.Mock(return_value="1.0")
+        project_config.config["project"]["package"]["namespace"] = "ns"
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                InstallPackageVersion,
+                {"version": "latest", "security_type": "BOGUS"},
+                project_config,
+            )

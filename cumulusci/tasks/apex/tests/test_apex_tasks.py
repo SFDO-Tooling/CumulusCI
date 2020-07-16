@@ -1,3 +1,4 @@
+from distutils.version import StrictVersion
 import http.client
 import os
 import shutil
@@ -37,6 +38,8 @@ from cumulusci.core.tests.utils import MockLoggerMixin
 )
 class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
+        self._task_log_handler.reset()
+        self.task_log = self._task_log_handler.messages
         self.api_version = 38.0
         self.global_config = BaseGlobalConfig(
             {"project": {"api_version": self.api_version}}
@@ -71,9 +74,9 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         namespace_param = "null" if namespace is None else f"%27{namespace}%27"
         url = (
             self.base_tooling_url
-            + f"query/?q=SELECT+Id%2C+Name+"
+            + "query/?q=SELECT+Id%2C+Name+"
             + f"FROM+ApexClass+WHERE+NamespacePrefix+%3D+{namespace_param}"
-            + f"+AND+%28Name+LIKE+%27%25_TEST%27%29"
+            + "+AND+%28Name+LIKE+%27%25_TEST%27%29"
         )
         expected_response = {
             "done": True,
@@ -466,6 +469,197 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         task()
         log = self._task_log_handler.messages
         assert "Completed: 0  Processing: 1 (TestClass_TEST)  Queued: 0" in log["info"]
+
+    @responses.activate
+    def test_run_task__not_verbose(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_tests_processing()
+        self._mock_get_failed_test_classes()  # this returns all passes
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task()
+        log = self._task_log_handler.messages
+        assert "Class: TestClass_TEST" not in log["info"]
+
+    @responses.activate
+    def test_run_task__verbose(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes_failure()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        self._mock_get_symboltable()
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "verbose": True,
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        with self.assertRaises(CumulusCIException):
+            task()
+        log = self._task_log_handler.messages
+        assert "Class: TestClass_TEST" in log["info"]
+
+    @responses.activate
+    def test_run_task__no_code_coverage(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        task._check_code_coverage = Mock()
+        task()
+        task._check_code_coverage.assert_not_called()
+
+    @responses.activate
+    def test_run_task__checks_code_coverage(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": "90",
+        }
+
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
+            "test",
+        )
+        org_config._installed_packages = {"TEST": StrictVersion("1.2.3")}
+        task = RunApexTests(self.project_config, task_config, org_config)
+        task._check_code_coverage = Mock()
+        task()
+        task._check_code_coverage.assert_called_once()
+
+    def test_code_coverage_integer(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": 90,
+        }
+
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
+            "test",
+        )
+        task = RunApexTests(self.project_config, task_config, org_config)
+
+        assert task.code_coverage_level == 90
+
+    def test_code_coverage_percentage(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": "90%",
+        }
+
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
+            "test",
+        )
+        task = RunApexTests(self.project_config, task_config, org_config)
+
+        assert task.code_coverage_level == 90
+
+    def test_exception_bad_code_coverage(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": "foo",
+        }
+
+        with self.assertRaises(TaskOptionsError):
+            RunApexTests(self.project_config, task_config, self.org_config)
+
+    @responses.activate
+    def test_run_task__code_coverage_managed(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "namespace": "TEST",
+            "required_org_code_coverage_percent": "90",
+        }
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
+            "test",
+        )
+        org_config._installed_packages = {"TEST": StrictVersion("1.2.3")}
+
+        task = RunApexTests(self.project_config, task_config, org_config)
+        task._check_code_coverage = Mock()
+        task()
+        task._check_code_coverage.assert_not_called()
+
+    def test_check_code_coverage(self):
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task.code_coverage_level = 90
+        task.tooling = Mock()
+        task.tooling.query.return_value = {
+            "records": [{"PercentCovered": 90}],
+            "totalSize": 1,
+        }
+
+        task._check_code_coverage()
+        task.tooling.query.assert_called_once_with(
+            "SELECT PercentCovered FROM ApexOrgWideCoverage"
+        )
+
+    def test_check_code_coverage__fail(self):
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task.code_coverage_level = 90
+        task.tooling = Mock()
+        task.tooling.query.return_value = {
+            "records": [{"PercentCovered": 89}],
+            "totalSize": 1,
+        }
+
+        with self.assertRaises(ApexTestException):
+            task._check_code_coverage()
 
     def test_is_retriable_failure(self):
         task_config = TaskConfig()

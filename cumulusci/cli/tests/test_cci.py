@@ -10,6 +10,7 @@ import tempfile
 import time
 import pytest
 import unittest
+from pathlib import Path
 
 import click
 from unittest import mock
@@ -61,14 +62,22 @@ def recursive_list_files(d="."):
 
 class TestCCI(unittest.TestCase):
     @classmethod
-    def setUpClass(self):
-        self.tempdir = tempfile.mkdtemp()
-        os.environ["HOME"] = self.tempdir
-        os.environ["CUMULUSCI_KEY"] = ""
+    def setUpClass(cls):
+        cls.global_tempdir = tempfile.gettempdir()
+        cls.tempdir = tempfile.mkdtemp()
+        cls.environ_mock = mock.patch.dict(
+            os.environ, {"HOME": tempfile.mkdtemp(), "CUMULUSCI_KEY": ""}
+        )
+        assert cls.global_tempdir not in os.environ.get("HOME", "")
+        cls.environ_mock.start()
+        assert cls.global_tempdir in os.environ["HOME"]
 
     @classmethod
-    def tearDownClass(self):
-        shutil.rmtree(self.tempdir)
+    def tearDownClass(cls):
+        assert cls.global_tempdir in os.environ["HOME"]
+        cls.environ_mock.stop()
+        shutil.rmtree(cls.tempdir)
+        assert cls.global_tempdir not in os.environ.get("HOME", "")
 
     def test_get_installed_version(self):
         result = cci.get_installed_version()
@@ -138,23 +147,32 @@ class TestCCI(unittest.TestCase):
             "\n".join(out),
         )
 
-    @mock.patch("cumulusci.cli.cci.get_gist_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     @mock.patch("cumulusci.cli.cci.cli")
     def test_main(
-        self, cli, CliRuntime, check_latest_version, init_logger, get_gist_logger
+        self,
+        cli,
+        CliRuntime,
+        check_latest_version,
+        init_logger,
+        get_tempfile_logger,
+        tee,
     ):
-        get_gist_logger.return_value.debug = mock.Mock()
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
         cci.main()
 
         check_latest_version.assert_called_once()
         init_logger.assert_called_once()
         CliRuntime.assert_called_once()
         cli.assert_called_once()
+        tee.assert_called_once()
 
-    @mock.patch("cumulusci.cli.cci.get_gist_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
@@ -169,10 +187,11 @@ class TestCCI(unittest.TestCase):
         CliRuntime,
         check_latest_version,
         init_logger,
-        get_gist_logger,
+        get_tempfile_logger,
+        tee,
     ):
         cli.side_effect = Exception
-        get_gist_logger.return_value.debug = mock.Mock()
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
 
         cci.main(["cci", "--debug"])
 
@@ -182,9 +201,60 @@ class TestCCI(unittest.TestCase):
         cli.assert_called_once()
         post_mortem.assert_called_once()
         sys_exit.assert_called_once_with(1)
+        get_tempfile_logger.assert_called_once()
+        tee.assert_called_once()
 
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.init_logger")
+    @mock.patch("cumulusci.cli.cci.check_latest_version")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.cli.cci.cli")
+    @mock.patch("pdb.post_mortem")
+    @mock.patch("sys.exit")
+    def test_main__cci_show_stacktraces(
+        self,
+        sys_exit,
+        post_mortem,
+        cli,
+        CliRuntime,
+        check_latest_version,
+        init_logger,
+        get_tempfile_logger,
+        tee,
+    ):
+        runtime = mock.Mock()
+        runtime.global_config.cli__show_stacktraces = True
+        CliRuntime.return_value = runtime
+        cli.side_effect = Exception
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
+
+        with self.assertRaises(Exception):
+            cci.main(["cci"])
+
+        check_latest_version.assert_called_once()
+        init_logger.assert_called_once_with(log_requests=False)
+        CliRuntime.assert_called_once()
+        cli.assert_called_once()
+        post_mortem.assert_not_called()
+
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.init_logger")
+    @mock.patch("cumulusci.cli.cci.cli")
+    @mock.patch("sys.exit")
+    def test_main__abort(
+        self, sys_exit, cli, init_logger, get_tempfile_logger, tee_stdout_stderr
+    ):
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
+        cli.side_effect = click.Abort
+        cci.main(["cci"])
+        cli.assert_called_once()
+        sys_exit.assert_called_once_with(1)
+
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
-    @mock.patch("cumulusci.cli.cci.get_gist_logger")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.check_latest_version")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
@@ -199,15 +269,20 @@ class TestCCI(unittest.TestCase):
         CliRuntime,
         check_latest_version,
         init_logger,
-        get_gist_logger,
+        get_tempfile_logger,
         logfile_path,
+        tee,
     ):
+        runtime = mock.Mock()
+        runtime.global_config.cli__show_stacktraces = False
+        CliRuntime.return_value = runtime
+
         expected_logfile_content = "Hello there, I'm a logfile."
         logfile_path.is_file.return_value = True
         logfile_path.read_text.return_value = expected_logfile_content
 
         cli.side_effect = Exception
-        get_gist_logger.return_value.debug = mock.Mock()
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
 
         cci.main(["cci", "org", "info"])
 
@@ -217,42 +292,71 @@ class TestCCI(unittest.TestCase):
         cli.assert_called_once()
         post_mortem.call_count == 0
         sys_exit.assert_called_once_with(1)
+        get_tempfile_logger.assert_called_once()
+        tee.assert_called_once()
+
+        os.remove("tempfile.log")
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
     def test_handle_exception(self, style, traceback, cci_open):
+        logfile_path = "file.log"
+        Path(logfile_path).touch()
+
         error = "Something bad happened."
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(error, is_error_cmd=False)
+        cci.handle_exception(error, False, logfile_path)
 
         style.call_args_list[0][0] == f"Error: {error}"
         style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
         traceback.print_exc.assert_called_once()
 
+        os.remove(logfile_path)
+
+    @mock.patch("cumulusci.cli.cci.open")
+    @mock.patch("cumulusci.cli.cci.traceback")
+    @mock.patch("cumulusci.cli.cci.click.style")
+    def test_handle_exception__error_cmd(self, style, traceback, cci_open):
+        """Ensure we don't write to logfiles when running `cci error ...` commands."""
+        error = "Something bad happened."
+        logfile_path = None
+        cci.handle_exception(error, False, logfile_path)
+
+        style.call_args_list[0][0] == f"Error: {error}"
+        style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
+        assert not cci_open.called
+
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
     def test_handle_click_exception(self, style, traceback, cci_open):
+        logfile_path = "file.log"
+        Path(logfile_path).touch()
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(click.ClickException("oops"), False)
+        cci.handle_exception(click.ClickException("oops"), False, logfile_path)
+        style.call_args_list[0][0] == "Error: oops"
 
-        style.call_args_list[0][0] == f"Error: oops"
+        os.remove(logfile_path)
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.connection_error_message")
     def test_handle_connection_exception(self, connection_msg, cci_open):
-        cci.handle_exception(ConnectionError(), False)
+        logfile_path = "file.log"
+        Path(logfile_path).touch()
+
+        cci.handle_exception(ConnectionError(), False, logfile_path)
         connection_msg.assert_called_once()
+        os.remove(logfile_path)
 
     @mock.patch("cumulusci.cli.cci.click.style")
     def test_connection_exception_message(self, style):
         cci.connection_error_message()
         style.assert_called_once_with(
             (
-                f"We encountered an error with your internet connection. "
+                "We encountered an error with your internet connection. "
                 "Please check your connection and try the last cci command again."
             ),
             fg="red",
@@ -408,7 +512,7 @@ Environment Info: Rossian / x68_46
         self.assertIn("runtime", runpy.call_args[1]["init_globals"])
         assert runpy.call_args[0][0] == "foo.py", runpy.call_args[0]
 
-    @mock.patch("cumulusci.cli.cci.print")
+    @mock.patch("builtins.print")
     def test_shell_code(self, print):
         run_click_command(cci.shell, python="print(config, runtime)")
         print.assert_called_once()
@@ -461,8 +565,13 @@ Environment Info: Rossian / x68_46
                 "uat/",  # git_prefix_beta
                 "rel/",  # git_prefix_release
                 "%_TEST%",  # test_name_match
+                "90",  # code_coverage
             )
-            click.confirm.side_effect = (True, True)  # is managed?  # extending?
+            click.confirm.side_effect = (
+                True,
+                True,
+                True,
+            )  # is managed? extending? enforce Apex coverage?
 
             runtime = CliRuntime(
                 config={"project": {"test": {"name_match": "%_TEST%"}}},
@@ -517,8 +626,13 @@ Environment Info: Rossian / x68_46
                 "uat/",  # git_prefix_beta
                 "rel/",  # git_prefix_release
                 "%_TEST%",  # test_name_match
+                "90",  # code_coverage
             )
-            click.confirm.side_effect = (True, True)  # is managed?  # extending?
+            click.confirm.side_effect = (
+                True,
+                True,
+                True,
+            )  # is managed? extending? enforce code coverage?
 
             run_click_command(cci.project_init)
 
@@ -540,6 +654,7 @@ Environment Info: Rossian / x68_46
                         "output": "robot/testproj/doc/testproj_tests.html",
                     }
                 },
+                "run_tests": {"options": {"required_org_code_coverage_percent": 90}},
             }
             self.assertDictEqual(config["tasks"], expected_tasks)
 
@@ -754,7 +869,11 @@ Environment Info: Rossian / x68_46
     @responses.activate
     def test_org_connect(self, oauth):
         oauth.return_value = mock.Mock(
-            return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
+            return_value={
+                "instance_url": "https://instance",
+                "access_token": "BOGUS",
+                "id": "OODxxxxxxxxxxxx/user",
+            }
         )
         runtime = mock.Mock()
         responses.add(
@@ -765,7 +884,7 @@ Environment Info: Rossian / x68_46
         )
         responses.add(
             method="GET",
-            url="https://instance/services/data/v45.0/sobjects/Organization/None",
+            url="https://instance/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": None,
                 "OrganizationType": "Developer Edition",
@@ -773,6 +892,7 @@ Environment Info: Rossian / x68_46
             },
             status=200,
         )
+        responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
         run_click_command(
             cci.org_connect,
             runtime=runtime,
@@ -793,7 +913,11 @@ Environment Info: Rossian / x68_46
     @responses.activate
     def test_org_connect_expires(self, oauth):
         oauth.return_value = mock.Mock(
-            return_value={"instance_url": "https://instance", "access_token": "BOGUS"}
+            return_value={
+                "instance_url": "https://instance",
+                "access_token": "BOGUS",
+                "id": "OODxxxxxxxxxxxx/user",
+            }
         )
         runtime = mock.Mock()
         responses.add(
@@ -804,7 +928,7 @@ Environment Info: Rossian / x68_46
         )
         responses.add(
             method="GET",
-            url="https://instance/services/data/v45.0/sobjects/Organization/None",
+            url="https://instance/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "TrialExpirationDate": "1970-01-01T12:34:56.000+0000",
                 "OrganizationType": "Developer Edition",
@@ -812,6 +936,8 @@ Environment Info: Rossian / x68_46
             },
             status=200,
         )
+        responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
+
         run_click_command(
             cci.org_connect,
             runtime=runtime,
@@ -842,6 +968,21 @@ Environment Info: Rossian / x68_46
                 default=True,
                 global_org=False,
             )
+
+    def test_org_connect_lightning_url(self):
+        runtime = mock.Mock()
+
+        with self.assertRaises(click.UsageError) as e:
+            run_click_command(
+                cci.org_connect,
+                runtime=runtime,
+                org_name="test",
+                sandbox=True,
+                login_url="https://test1.lightning.force.com/",
+                default=True,
+                global_org=False,
+            )
+            assert "lightning" in str(e.exception)
 
     def test_org_default(self):
         runtime = mock.Mock()
@@ -1094,6 +1235,303 @@ Environment Info: Rossian / x68_46
         self.assertIn(scratch_table_call, cli_tbl.call_args_list)
         self.assertIn(connected_table_call, cli_tbl.call_args_list)
 
+    @mock.patch("click.echo")
+    def test_org_prune(self, echo):
+        runtime = mock.Mock()
+        runtime.keychain.list_orgs.return_value = [
+            "shape1",
+            "shape2",
+            "remove1",
+            "remove2",
+            "active1",
+            "active2",
+            "persistent",
+        ]
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
+
+        runtime.keychain.get_org.side_effect = [
+            ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "shape1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now(),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test1@example.com",
+                },
+                "shape2",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime(1999, 11, 1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "remove1@example.com",
+                },
+                "remove1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime(1999, 11, 1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "remove2@example.com",
+                },
+                "remove2",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active1@example.com",
+                },
+                "active1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active2@example.com",
+                },
+                "active2",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expires": "Persistent",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "persistent@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "persistent",
+            ),
+        ]
+
+        run_click_command(cci.org_prune, runtime=runtime, include_active=False)
+
+        echo.assert_any_call(
+            "Successfully removed 2 expired scratch orgs: remove1, remove2"
+        )
+        echo.assert_any_call("Skipped org shapes: shape1, shape2")
+        echo.assert_any_call("Skipped active orgs: active1, active2")
+
+        runtime.keychain.remove_org.assert_has_calls(
+            [mock.call("remove1"), mock.call("remove2")]
+        )
+        assert runtime.keychain.remove_org.call_count == 2
+
+    @mock.patch("click.echo")
+    def test_org_prune_no_expired(self, echo):
+        runtime = mock.Mock()
+        runtime.keychain.list_orgs.return_value = [
+            "shape1",
+            "shape2",
+            "active1",
+            "active2",
+            "persistent",
+        ]
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
+
+        runtime.keychain.get_org.side_effect = [
+            ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "shape1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now(),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test1@example.com",
+                },
+                "shape2",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active1@example.com",
+                },
+                "active1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active2@example.com",
+                },
+                "active2",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expires": "Persistent",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "persistent@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "persistent",
+            ),
+        ]
+
+        run_click_command(cci.org_prune, runtime=runtime, include_active=False)
+        runtime.keychain.remove_org.assert_not_called()
+
+        echo.assert_any_call("No expired scratch orgs to delete. ✨")
+
+    @mock.patch("click.echo")
+    def test_org_prune_include_active(self, echo):
+        runtime = mock.Mock()
+        runtime.keychain.list_orgs.return_value = [
+            "shape1",
+            "shape2",
+            "remove1",
+            "remove2",
+            "active1",
+            "active2",
+            "persistent",
+        ]
+        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
+
+        runtime.keychain.get_org.side_effect = [
+            ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "shape1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test1@example.com",
+                },
+                "shape2",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime(1999, 11, 1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "remove1@example.com",
+                },
+                "remove1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime(1999, 11, 1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "remove2@example.com",
+                },
+                "remove2",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active1@example.com",
+                },
+                "active1",
+            ),
+            ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=1),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "active2@example.com",
+                },
+                "active2",
+            ),
+            OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expires": "Persistent",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "persistent@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "persistent",
+            ),
+        ]
+
+        run_click_command(cci.org_prune, runtime=runtime, include_active=True)
+
+        echo.assert_any_call(
+            "Successfully removed 2 expired scratch orgs: remove1, remove2"
+        )
+        echo.assert_any_call(
+            "Successfully removed 2 active scratch orgs: active1, active2"
+        )
+        echo.assert_any_call("Skipped org shapes: shape1, shape2")
+
+        runtime.keychain.remove_org.assert_has_calls(
+            [
+                mock.call("remove1"),
+                mock.call("remove2"),
+                mock.call("active1"),
+                mock.call("active2"),
+            ]
+        )
+        assert runtime.keychain.remove_org.call_count == 4
+
     def test_org_remove(self):
         org_config = mock.Mock()
         org_config.can_delete.return_value = True
@@ -1244,11 +1682,13 @@ Environment Info: Rossian / x68_46
         run_click_command(cci.org_shell, runtime=runtime, org_name="test")
 
         org_config.refresh_oauth_token.assert_called_once()
-        mock_sf.assert_called_once_with(runtime.project_config, org_config)
+        mock_sf.assert_any_call(runtime.project_config, org_config)
+        mock_sf.assert_any_call(runtime.project_config, org_config, base_url="tooling")
         runtime.keychain.set_org.assert_called_once_with(org_config)
 
         mock_code.assert_called_once()
         self.assertIn("sf", mock_code.call_args[1]["local"])
+        self.assertIn("tooling", mock_code.call_args[1]["local"])
 
     @mock.patch("runpy.run_path")
     def test_org_shell_script(self, runpy):
@@ -1264,18 +1704,18 @@ Environment Info: Rossian / x68_46
         self.assertIn("sf", runpy.call_args[1]["init_globals"])
         assert runpy.call_args[0][0] == "foo.py", runpy.call_args[0]
 
-    @mock.patch("cumulusci.cli.cci.print")
-    def test_org_shell_code(self, print):
+    @mock.patch("cumulusci.cli.ui.SimpleSalesforceUIHelpers.describe")
+    def test_org_shell_describe(self, describe):
         org_config = mock.Mock()
         org_config.instance_url = "https://salesforce.com"
         org_config.access_token = "TEST"
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)
         run_click_command(
-            cci.org_shell, runtime=runtime, org_name="test", python="print(sf)"
+            cci.org_shell, runtime=runtime, org_name="test", python="describe('blah')"
         )
-        print.assert_called_once()
-        assert "Salesforce" in str(type(print.call_args[0][0]))
+        describe.assert_called_once()
+        assert "blah" in describe.call_args[0][0]
 
     @mock.patch("cumulusci.cli.cci.print")
     def test_org_shell_mutually_exclusive_args(self, print):

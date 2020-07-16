@@ -183,6 +183,7 @@ class ScratchOrgConfig(OrgConfig):
             "devhub": f" --targetdevhubusername {devhub}" if devhub else "",
             "namespaced": " -n" if not self.namespaced else "",
             "days": f" --durationdays {self.days}" if self.days else "",
+            "wait": " -w 120",
             "alias": sarge.shell_format(' -a "{0!s}"', self.sfdx_alias)
             if self.sfdx_alias
             else "",
@@ -195,7 +196,7 @@ class ScratchOrgConfig(OrgConfig):
 
         # This feels a little dirty, but the use cases for extra args would mostly
         # work best with env vars
-        command = "force:org:create -f {config_file}{devhub}{namespaced}{days}{alias}{default} {email} {extraargs}".format(
+        command = "force:org:create -f {config_file}{devhub}{namespaced}{days}{alias}{default}{wait} {email} {extraargs}".format(
             **options
         )
         p = sfdx(command, username=None, log_note="Creating scratch org")
@@ -303,6 +304,7 @@ class ScratchOrgConfig(OrgConfig):
         self.config["created"] = False
         self.config["username"] = None
         self.config["date_created"] = None
+        self.config["instance_url"] = None
 
     def force_refresh_oauth_token(self):
         # Call force:org:display and parse output to get instance_url and
@@ -320,6 +322,7 @@ class ScratchOrgConfig(OrgConfig):
 
     def refresh_oauth_token(self, keychain):
         """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
+        self._client = None
         if hasattr(self, "_scratch_info"):
             # Cache the scratch_info for 1 hour to avoid unnecessary calls out
             # to sfdx CLI

@@ -1,5 +1,5 @@
 import os
-from tempfile import TemporaryDirectory, NamedTemporaryFile
+from tempfile import TemporaryDirectory
 from pathlib import Path
 
 from sqlalchemy import MetaData, create_engine
@@ -75,8 +75,8 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         "replace_database": {
             "description": "Confirmation that it is okay to delete the data in database_url",
         },
-        "debug_dir": {
-            "description": "Store temporary DB files in debug_dir for easier debugging."
+        "working_directory": {
+            "description": "Store temporary files in working_directory for easier debugging."
         },
         **LoadData.task_options,
     }
@@ -93,7 +93,12 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             self.mapping_file = None
 
         self.database_url = self.options.get("database_url")
-        self.num_records = int(self.options["num_records"])
+        num_records = self.options.get("num_records")
+        if not num_records:
+            raise TaskOptionsError(
+                "Please specify the number of records to generate with num_records"
+            )
+        self.num_records = int(num_records)
         self.batch_size = int(self.options.get("batch_size", self.num_records))
         if self.batch_size <= 0:
             raise TaskOptionsError("Batch size should be greater than zero")
@@ -103,7 +108,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         else:
             raise TaskOptionsError("No data generation task specified")
 
-        self.debug_dir = self.options.get("debug_dir", None)
+        self.working_directory = self.options.get("working_directory", None)
         self.database_url = self.options.get("database_url")
 
         if self.database_url:
@@ -119,6 +124,10 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
 
     def _run_task(self):
         with TemporaryDirectory() as tempdir:
+            working_directory = self.options.get("working_directory")
+            if working_directory:
+                tempdir = Path(working_directory)
+                tempdir.mkdir(exist_ok=True)
             for current_batch_size, index in generate_batches(
                 self.num_records, self.batch_size
             ):
@@ -128,7 +137,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
                 )
                 self._generate_batch(
                     self.database_url,
-                    self.debug_dir or tempdir,
+                    self.working_directory or tempdir,
                     self.mapping_file,
                     current_batch_size,
                     index,
@@ -172,12 +181,14 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         }
 
         # some generator tasks can generate the mapping file instead of reading it
-        with NamedTemporaryFile(suffix="_mapping.yml") as generated_mapping_file:
-            subtask_options["generate_mapping_file"] = generated_mapping_file.name
-            self._datagen(subtask_options)
-            if not subtask_options.get("mapping"):
-                subtask_options["mapping"] = generated_mapping_file.name
-            self._dataload(subtask_options)
+        if not subtask_options.get("mapping"):
+            temp_mapping = Path(tempdir) / "temp_mapping.yml"
+            mapping_file = self.options.get("generate_mapping_file", temp_mapping)
+            subtask_options["generate_mapping_file"] = mapping_file
+        self._datagen(subtask_options)
+        if not subtask_options.get("mapping"):
+            subtask_options["mapping"] = mapping_file
+        self._dataload(subtask_options)
 
     def _setup_engine(self, database_url):
         """Set up the database engine"""

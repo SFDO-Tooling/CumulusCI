@@ -212,7 +212,7 @@ class TestDeploy(unittest.TestCase):
             ["objects", "sub-1", "sub-2"],
         ]
 
-        # file endings in lwc component whitelist
+        # file endings in lwc component allowlist
         for file_ending in [".js", ".js-meta.xml", ".html", ".css", ".svg"]:
             # lwc_component_directory
             self.assertEqual(
@@ -224,7 +224,7 @@ class TestDeploy(unittest.TestCase):
             for d in non_lwc_component_directories:
                 self.assertEqual(True, task._include_file(d, "file_name" + file_ending))
 
-        # file endings not in lwc component whitelist
+        # file endings not in lwc component allowlist
         for file_ending in ["", ".json", ".xml", ".cls", ".cls-meta.xml", ".object"]:
             # lwc_component_directory
             self.assertEqual(

@@ -2,6 +2,8 @@ from distutils.version import LooseVersion
 import io
 import os
 import re
+from pathlib import Path
+from configparser import ConfigParser
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -64,9 +66,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def config_project_local_path(self):
-        path = os.path.join(self.project_local_dir, self.config_filename)
-        if os.path.isfile(path):
-            return path
+        path = Path(self.project_local_dir) / self.config_filename
+        if path.is_file():
+            return str(path)
 
     def _load_config(self):
         """ Loads the configuration from YAML, if no override config was passed in initially. """
@@ -233,12 +235,40 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def _split_repo_url(self, url):
         url_parts = url.rstrip("/").split("/")
+
         name = url_parts[-1]
-        owner = url_parts[-2]
         if name.endswith(".git"):
             name = name[:-4]
-        git_info = {"url": url, "owner": owner, "name": name}
-        return git_info
+
+        owner = url_parts[-2]
+        if "git@github.com" in url:  # ssh url
+            owner = owner.split(":")[-1]
+
+        return {"url": url, "owner": owner, "name": name}
+
+    def git_path(self, tail=None):
+        """Returns a Path to the .git directory in self.repo_root
+        with tail appended (if present) or None if self.repo_root
+        is not set."""
+        path = None
+        if self.repo_root:
+            path = Path(self.repo_root) / ".git"
+            if tail is not None:
+                path = path / str(tail)
+        return path
+
+    def git_config_remote_origin_url(self):
+        """Returns the url under the [remote origin]
+        section of the .git/config file. Returns None
+        if .git/config file not present or no matching
+        line is found. """
+        config = ConfigParser(strict=False)
+        try:
+            config.read(self.git_path("config"))
+            url = config['remote "origin"']["url"]
+        except (KeyError, TypeError):
+            url = None
+        return url
 
     @property
     def repo_root(self):
@@ -246,15 +276,15 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if path:
             return path
 
-        path = os.path.splitdrive(os.getcwd())[1]
+        path = Path(os.path.splitdrive(Path.cwd())[1])
         while True:
-            if os.path.isdir(os.path.join(path, ".git")):
-                return path
+            if (path / ".git").is_dir():
+                return str(path)
             head, tail = os.path.split(path)
             if not tail:
                 # reached the root
                 break
-            path = head
+            path = Path(head)
 
     @property
     def repo_name(self):
@@ -265,15 +295,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        in_remote_origin = False
-        with open(os.path.join(self.repo_root, ".git", "config"), "r") as f:
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and line.find("url =") != -1:
-                    return self._split_repo_url(line)["name"]
+        url_line = self.git_config_remote_origin_url()
+        return self._split_repo_url(url_line)["name"]
 
     @property
     def repo_url(self):
@@ -284,16 +307,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        git_config_file = os.path.join(self.repo_root, ".git", "config")
-        with open(git_config_file, "r") as f:
-            in_remote_origin = False
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and "url = " in line:
-                    return line[len("url = ") :]
+        url = self.git_config_remote_origin_url()
+        return url
 
     @property
     def repo_owner(self):
@@ -304,16 +319,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        in_remote_origin = False
-        with open(os.path.join(self.repo_root, ".git", "config"), "r") as f:
-            for line in f:
-                line = line.strip()
-                if line == '[remote "origin"]':
-                    in_remote_origin = True
-                    continue
-                if in_remote_origin and line.find("url =") != -1:
-                    line_parts = line.split("/")
-                    return line_parts[-2].split(":")[-1]
+        url_line = self.git_config_remote_origin_url()
+        return self._split_repo_url(url_line)["owner"]
 
     @property
     def repo_branch(self):
@@ -324,7 +331,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        with open(os.path.join(self.repo_root, ".git", "HEAD"), "r") as f:
+        with open(self.git_path("HEAD"), "r") as f:
             branch_ref = f.read().strip()
         if branch_ref.startswith("ref: "):
             return "/".join(branch_ref[5:].split("/")[2:])
@@ -421,9 +428,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def config_project_path(self):
         if not self.repo_root:
             return
-        path = os.path.join(self.repo_root, self.config_filename)
-        if os.path.isfile(path):
-            return path
+        path = Path(self.repo_root) / self.config_filename
+        if path.is_file():
+            return str(path)
 
     @property
     def project_local_dir(self):
@@ -437,9 +444,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         else:
             name = self.config_project.get("project", {}).get("name", "")
 
-        path = os.path.join(
-            os.path.expanduser("~"), self.global_config_obj.config_local_dir, name
-        )
+        path = str(self.global_config_obj.cumulusci_config_dir / name)
         if not os.path.isdir(path):
             os.makedirs(path)
         return path
@@ -478,7 +483,43 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 + "config.set_keychain(keychain) before accessing orgs"
             )
 
-    def get_static_dependencies(self, dependencies=None, include_beta=None):
+    def get_repo_from_url(self, url):
+        splits = self._split_repo_url(url)
+        gh = self.get_github_api(splits["owner"], splits["name"])
+        repo = gh.repository(splits["owner"], splits["name"])
+
+        return repo
+
+    def get_ref_for_dependency(self, repo, dependency, include_beta=None):
+        release = None
+        if "ref" in dependency:
+            ref = dependency["ref"]
+        else:
+            if "tag" in dependency:
+                try:
+                    # Find the github release corresponding to this tag.
+                    release = repo.release_from_tag(dependency["tag"])
+                except NotFoundError:
+                    raise DependencyResolutionError(
+                        f"No release found for tag {dependency['tag']}"
+                    )
+            else:
+                release = find_latest_release(repo, include_beta)
+            if release:
+                ref = repo.tag(
+                    repo.ref("tags/" + release.tag_name).object.sha
+                ).object.sha
+            else:
+                self.logger.info(
+                    f"No release found; using the latest commit from the {repo.default_branch} branch."
+                )
+                ref = repo.branch(repo.default_branch).commit.sha
+
+        return (release, ref)
+
+    def get_static_dependencies(
+        self, dependencies=None, include_beta=None, ignore_deps=None
+    ):
         """Resolves the project -> dependencies section of cumulusci.yml
         to convert dynamic github dependencies into static dependencies
         by inspecting the referenced repositories.
@@ -486,6 +527,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         Keyword arguments:
         :param dependencies: a list of dependencies to resolve
         :param include_beta: when true, return the latest github release, even if pre-release; else return the latest stable release
+        :param ignore_deps: if provided, ignore the specified dependencies wherever found.
         """
         if not dependencies:
             dependencies = self.project__dependencies
@@ -495,14 +537,30 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         static_dependencies = []
         for dependency in dependencies:
+            if self._should_ignore_dependency(dependency, ignore_deps):
+                continue
+
             if "github" not in dependency:
                 static_dependencies.append(dependency)
             else:
                 static = self.process_github_dependency(
-                    dependency, include_beta=include_beta
+                    dependency, include_beta=include_beta, ignore_deps=ignore_deps
                 )
                 static_dependencies.extend(static)
         return static_dependencies
+
+    def _should_ignore_dependency(self, dependency, ignore_deps):
+        if not ignore_deps:
+            return False
+
+        if "github" in dependency:
+            return dependency["github"] in [dep.get("github") for dep in ignore_deps]
+        elif "namespace" in dependency:
+            return dependency["namespace"] in [
+                dep.get("namespace") for dep in ignore_deps
+            ]
+
+        return False
 
     def pretty_dependencies(self, dependencies, indent=None):
         if not indent:
@@ -529,7 +587,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return pretty
 
     def process_github_dependency(  # noqa: C901
-        self, dependency, indent=None, include_beta=None
+        self, dependency, indent=None, include_beta=None, ignore_deps=None
     ):
         if not indent:
             indent = ""
@@ -543,40 +601,17 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             skip = [skip]
 
         # Initialize github3.py API against repo
-        repo_owner, repo_name = dependency["github"].split("/")[3:5]
-        if repo_name.endswith(".git"):
-            repo_name = repo_name[:-4]
-        gh = self.get_github_api(repo_owner, repo_name)
-        repo = gh.repository(repo_owner, repo_name)
+        repo = self.get_repo_from_url(dependency["github"])
         if repo is None:
             raise DependencyResolutionError(
                 f"{indent}Github repository {dependency['github']} not found or not authorized."
             )
 
+        repo_owner = str(repo.owner)
+        repo_name = repo.name
+
         # Determine the commit
-        release = None
-        if "ref" in dependency:
-            ref = dependency["ref"]
-        else:
-            if "tag" in dependency:
-                try:
-                    # Find the github release corresponding to this tag.
-                    release = repo.release_from_tag(dependency["tag"])
-                except NotFoundError:
-                    raise DependencyResolutionError(
-                        f"{indent}No release found for tag {dependency['tag']}"
-                    )
-            else:
-                release = find_latest_release(repo, include_beta)
-            if release:
-                ref = repo.tag(
-                    repo.ref("tags/" + release.tag_name).object.sha
-                ).object.sha
-            else:
-                self.logger.info(
-                    f"{indent}No release found; using the latest commit from the {repo.default_branch} branch."
-                )
-                ref = repo.branch(repo.default_branch).commit.sha
+        release, ref = self.get_ref_for_dependency(repo, dependency, include_beta)
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
@@ -680,7 +715,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         dependencies = project.get("dependencies")
         if dependencies:
             dependencies = self.get_static_dependencies(
-                dependencies, include_beta=include_beta
+                dependencies, include_beta=include_beta, ignore_deps=ignore_deps
             )
 
         # Create the final ordered list of all parsed dependencies

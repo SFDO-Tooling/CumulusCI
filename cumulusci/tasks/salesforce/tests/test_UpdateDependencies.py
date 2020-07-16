@@ -207,6 +207,38 @@ class TestUpdateDependencies(unittest.TestCase):
         with self.assertRaises(TaskOptionsError):
             task()
 
+    def test_dependency_no_package_zip(self):
+        project_config = create_project_config()
+        project_config.config["project"]["dependencies"] = [{"foo": "bar"}]
+        task = create_task(UpdateDependencies, project_config=project_config)
+        task.org_config = mock.Mock()
+
+        with self.assertRaises(TaskOptionsError) as e:
+            task()
+        assert "Could not find package for" in str(e.exception)
+
+    def test_run_task__bad_security_type(self):
+        project_config = create_project_config()
+        project_config.config["project"]["dependencies"] = PROJECT_DEPENDENCIES
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                UpdateDependencies,
+                {"security_type": "BOGUS"},
+                project_config,
+                mock.Mock(),
+            )
+
+    def test_run_task__bad_ignore_dependencies(self):
+        project_config = create_project_config()
+        project_config.config["project"]["dependencies"] = PROJECT_DEPENDENCIES
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                UpdateDependencies,
+                {"ignore_dependencies": [{"version": "1.3"}, {"namespace": "foo"}]},
+                project_config,
+                mock.Mock(),
+            )
+
     def test_run_task__metadata_bundle(self):
         project_config = create_project_config()
         project_config.get_github_api = mock.Mock()
@@ -283,6 +315,7 @@ class TestUpdateDependencies(unittest.TestCase):
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,
+                            "security_type": "FULL",
                         },
                         "checks": [],
                     },
@@ -310,6 +343,7 @@ class TestUpdateDependencies(unittest.TestCase):
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,
+                            "security_type": "FULL",
                         },
                         "checks": [],
                     },
@@ -326,5 +360,3 @@ class TestUpdateDependencies(unittest.TestCase):
         task = create_task(UpdateDependencies)
         result = task._flatten(dependencies)
         self.assertEqual([{"namespace": "npe01"}, {"namespace": "npe02"}], result)
-
-    maxDiff = None

@@ -127,6 +127,61 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+**add_picklist_entries**
+==========================================
+
+**Description:** Adds specified picklist entries to a custom picklist field.
+
+**Class:** cumulusci.tasks.metadata_etl.picklists.AddPicklistEntries
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run add_picklist_entries``
+
+
+Options
+------------------------------------------
+
+
+``-o picklists PICKLISTS``
+	 *Required*
+
+	 List of picklists to affect, in Object__c.Field__c form.
+
+``-o entries ENTRIES``
+	 *Required*
+
+	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed).
+To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
+
+``-o record_types RECORDTYPES``
+	 *Optional*
+
+	 List of Record Type developer names for which the new values should be available. If any of the entries have `default: True`, they are also made default for these Record Types. Any Record Types not present in the target org will be ignored, and * is a wildcard. Default behavior is to do nothing.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **add_permission_set_perms**
 ==========================================
 
@@ -202,6 +257,42 @@ Options
 	 *Optional*
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+
+**check_sobjects_available**
+==========================================
+
+**Description:** Runs as a preflight check to determine whether specific sObjects are available.
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_sobjects_available``
+
+
+
+**check_org_wide_defaults**
+==========================================
+
+**Description:** Runs as a preflight check to validate Organization-Wide Defaults.
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_org_wide_defaults``
+
+
+Options
+------------------------------------------
+
+
+``-o org_wide_defaults ORGWIDEDEFAULTS``
+	 *Required*
+
+	 The Organization-Wide Defaults to check, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature. Checking External Sharing Model when it is turned off will fail the preflight.
 
 **custom_settings_value_wait**
 ==========================================
@@ -359,6 +450,7 @@ Options
 **Class:** cumulusci.tasks.salesforce.CreateCommunity
 
 Create a Salesforce Community via the Connect API.
+
 Specify the `template` "VF Template" for Visualforce Tabs community,
 or the name for a specific desired template
 
@@ -391,6 +483,11 @@ Options
 	 *Optional*
 
 	 URL prefix for the community.
+
+``-o retries RETRIES``
+	 *Optional*
+
+	 Number of times to retry community creation request
 
 ``-o timeout TIMEOUT``
 	 *Optional*
@@ -517,6 +614,43 @@ Options
 
 	 Default: src.orig
 
+**delete_data**
+==========================================
+
+**Description:** Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
+
+**Class:** cumulusci.tasks.bulkdata.DeleteData
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run delete_data``
+
+
+Options
+------------------------------------------
+
+
+``-o objects OBJECTS``
+	 *Required*
+
+	 A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string
+
+``-o where WHERE``
+	 *Optional*
+
+	 A SOQL where-clause (without the keyword WHERE). Only available when 'objects' is length 1.
+
+``-o hardDelete HARDDELETE``
+	 *Optional*
+
+	 If True, perform a hard delete, bypassing the Recycle Bin. Note that this requires the Bulk API Hard Delete permission. Default: False
+
+``-o ignore_row_errors IGNOREROWERRORS``
+	 *Optional*
+
+	 If True, allow the operation to continue even if individual rows fail to delete.
+
 **deploy**
 ==========================================
 
@@ -537,7 +671,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 
@@ -763,7 +897,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: unpackaged/config/qa
 
@@ -820,6 +954,33 @@ Options
 	 *Optional*
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+
+**dx**
+==========================================
+
+**Description:** Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
+
+**Class:** cumulusci.tasks.sfdx.SFDXOrgTask
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run dx``
+
+
+Options
+------------------------------------------
+
+
+``-o command COMMAND``
+	 *Required*
+
+	 The full command to run with the sfdx cli.
+
+``-o extra EXTRA``
+	 *Optional*
+
+	 Append additional options to the command
 
 **dx_convert_to**
 ==========================================
@@ -1036,7 +1197,7 @@ The data dictionary is output as two CSV files.
 One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
 with one row per packaged object.
 The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
-Picklist Values (if any), Version Introduced.
+Valid Picklist Values (if any) or a Lookup referenced table (if any), Version Introduced.
 Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
 is processed for SFDX projects.
 
@@ -1050,13 +1211,6 @@ Options
 ------------------------------------------
 
 
-``-o release_prefix RELEASEPREFIX``
-	 *Required*
-
-	 The tag prefix used for releases.
-
-	 Default: $project_config.project__git__prefix_release
-
 ``-o object_path OBJECTPATH``
 	 *Optional*
 
@@ -1067,17 +1221,167 @@ Options
 
 	 Path to a CSV file to contain an field-level data dictionary.
 
+``-o include_dependencies INCLUDEDEPENDENCIES``
+	 *Optional*
+
+	 Process all of the GitHub dependencies of this project and include their schema in the data dictionary.
+
+``-o additional_dependencies ADDITIONALDEPENDENCIES``
+	 *Optional*
+
+	 Include schema from additional GitHub repositories that are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of dicts as in project__dependencies in cumulusci.yml. Note: only repository dependencies are supported.
+
+**generate_and_load_from_yaml**
+==========================================
+
+**Description:** None
+
+**Class:** cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run generate_and_load_from_yaml``
+
+
+Options
+------------------------------------------
+
+
+``-o data_generation_task DATAGENERATIONTASK``
+	 *Required*
+
+	 Fully qualified class path of a task to generate the data. Look at cumulusci.tasks.bulkdata.tests.dummy_data_factory to learn how to write them.
+
+``-o generator_yaml GENERATORYAML``
+	 *Required*
+
+	 A generator YAML file to use
+
+``-o num_records NUMRECORDS``
+	 *Optional*
+
+	 How many records to generate: total number of opportunities.
+
+``-o num_records_tablename NUMRECORDSTABLENAME``
+	 *Optional*
+
+	 A string representing which table to count records in.
+
+``-o batch_size BATCHSIZE``
+	 *Optional*
+
+	 How many records to create and load at a time.
+
+``-o data_generation_options DATAGENERATIONOPTIONS``
+	 *Optional*
+
+	 Options to pass to the data generator.
+
+``-o vars VARS``
+	 *Optional*
+
+	 Pass values to override options in the format VAR1:foo,VAR2:bar
+
+``-o replace_database REPLACEDATABASE``
+	 *Optional*
+
+	 Confirmation that it is okay to delete the data in database_url
+
+``-o working_directory WORKINGDIRECTORY``
+	 *Optional*
+
+	 Default path for temporary / working files
+
+``-o database_url DATABASEURL``
+	 *Optional*
+
+	 A path to put a copy of the sqlite database (for debugging)
+
+``-o mapping MAPPING``
+	 *Optional*
+
+	 A mapping YAML file to use
+
+``-o start_step STARTSTEP``
+	 *Optional*
+
+	 If specified, skip steps before this one in the mapping
+
+``-o sql_path SQLPATH``
+	 *Optional*
+
+	 If specified, a database will be created from an SQL script at the provided path
+
+``-o ignore_row_errors IGNOREROWERRORS``
+	 *Optional*
+
+	 If True, allow the load to continue even if individual rows fail to load.
+
+``-o reset_oids RESETOIDS``
+	 *Optional*
+
+	 If True (the default), and the _sf_ids tables exist, reset them before continuing.
+
+``-o bulk_mode BULKMODE``
+	 *Optional*
+
+	 Set to Serial to force serial mode on all jobs. Parallel is the default.
+
+``-o generate_mapping_file GENERATEMAPPINGFILE``
+	 *Optional*
+
+	 A path to put a mapping file inferred from the generator_yaml
+
+``-o continuation_file CONTINUATIONFILE``
+	 *Optional*
+
+	 YAML file generated by Snowfakery representing next steps for data generation
+
+``-o generate_continuation_file GENERATECONTINUATIONFILE``
+	 *Optional*
+
+	 Path for Snowfakery to put its next continuation file
+
 **get_installed_packages**
 ==========================================
 
 **Description:** Retrieves a list of the currently installed managed package namespaces and their versions
 
-**Class:** cumulusci.tasks.salesforce.GetInstalledPackages
+**Class:** cumulusci.tasks.preflight.packages.GetInstalledPackages
 
 Command Syntax
 ------------------------------------------
 
 ``$ cci task run get_installed_packages``
+
+
+
+**get_available_licenses**
+==========================================
+
+**Description:** Retrieves a list of the currently available license definition keys
+
+**Class:** cumulusci.tasks.preflight.licenses.GetAvailableLicenses
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run get_available_licenses``
+
+
+
+**get_available_permission_set_licenses**
+==========================================
+
+**Description:** Retrieves a list of the currently available Permission Set License definition keys
+
+**Class:** cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run get_available_permission_set_licenses``
 
 
 
@@ -1426,6 +1730,11 @@ Options
 
 	 Number of seconds to add before each retry (default=30),
 
+``-o security_type SECURITYTYPE``
+	 *Optional*
+
+	 Which users to install package for (FULL = all users, NONE = admins only)
+
 **install_managed_beta**
 ==========================================
 
@@ -1486,6 +1795,11 @@ Options
 	 *Optional*
 
 	 Number of seconds to add before each retry (default=30),
+
+``-o security_type SECURITYTYPE``
+	 *Optional*
+
+	 Which users to install package for (FULL = all users, NONE = admins only)
 
 **list_communities**
 ==========================================
@@ -1632,10 +1946,10 @@ Options
 
 	 If True, set is_listed to True on the version. Default: False
 
-``-o labels LABELS``
+``-o labels_path LABELSPATH``
 	 *Optional*
 
-	 Path to a file that will be updated with strings to be translated.
+	 Path to a folder containing translations.
 
 **org_settings**
 ==========================================
@@ -2525,9 +2839,9 @@ Example Output::
     W: 2, 0: No suite documentation (RequireSuiteDocumentation)
     E: 30, 0: No testcase documentation (RequireTestDocumentation)
 
-To see a list of all configured options, set the 'list' option to True:
+To see a list of all configured rules, set the 'list' option to True:
 
-    cci task run robot_list -o list True
+    cci task run robot_lint -o list True
 
 
 Command Syntax
@@ -2662,6 +2976,60 @@ Options
 	 *Optional*
 
 	 By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
+
+``-o required_org_code_coverage_percent REQUIREDORGCODECOVERAGEPERCENT``
+	 *Optional*
+
+	 Require at least X percent code coverage across the org following the test run.
+
+``-o verbose VERBOSE``
+	 *Optional*
+
+	 By default, only failures get detailed output. Set verbose to True to see all passed test methods.
+
+**set_duplicate_rule_status**
+==========================================
+
+**Description:** Sets the active status of Duplicate Rules.
+
+**Class:** cumulusci.tasks.metadata_etl.SetDuplicateRuleStatus
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run set_duplicate_rule_status``
+
+
+Options
+------------------------------------------
+
+
+``-o active ACTIVE``
+	 *Required*
+
+	 Boolean value, set the Duplicate Rule to either active or inactive
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
 
 **set_organization_wide_defaults**
 ==========================================
@@ -2828,7 +3196,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 
@@ -2907,7 +3275,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: unpackaged/pre
 
@@ -3144,6 +3512,11 @@ Options
 
 	 List of dependencies to update. Defaults to project__dependencies. Each dependency is a dict with either 'github' set to a github repository URL or 'namespace' set to a Salesforce package namespace. Github dependencies may include 'tag' to install a particular git ref. Package dependencies may include 'version' to install a particular version.
 
+``-o ignore_dependencies IGNOREDEPENDENCIES``
+	 *Optional*
+
+	 List of dependencies to be ignored, including if they are present as transitive dependencies. Dependencies can be specified using the 'github' or 'namespace' keys (all other keys are not used). Note that this can cause installations to fail if required prerequisites are not available.
+
 ``-o namespaced_org NAMESPACEDORG``
 	 *Optional*
 
@@ -3168,6 +3541,11 @@ Options
 	 *Optional*
 
 	 Allow uninstalling a beta release or newer final release in order to install the requested version. Defaults to False. Warning: Enabling this may destroy data.
+
+``-o security_type SECURITYTYPE``
+	 *Optional*
+
+	 Which users to install packages for (FULL = all users, NONE = admins only)
 
 **update_package_xml**
 ==========================================
@@ -3431,6 +3809,11 @@ Options
 	 *Optional*
 
 	 Object API names, or fields in Object.Field format, to ignore
+
+``-o include INCLUDE``
+	 *Optional*
+
+	 Object names to include even if they might not otherwise be included.
 
 **extract_dataset**
 ==========================================

@@ -3,6 +3,7 @@ import fnmatch
 import io
 import math
 import os
+
 import re
 import shutil
 import sys
@@ -14,6 +15,7 @@ from datetime import datetime
 import requests
 import sarge
 import xml.etree.ElementTree as ET
+
 
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
@@ -283,8 +285,12 @@ def inject_namespace(
         namespace_token = "%%%NAMESPACE%%%"
     if managed is True and namespace:
         namespace_prefix = namespace + "__"
+        namespace_dot_prefix = namespace + "."
     else:
         namespace_prefix = ""
+        namespace_dot_prefix = ""
+
+    namespace_dot_token = "%%%NAMESPACE_DOT%%%"
 
     # Handle tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___
     namespaced_org_token = "%%%NAMESPACED_ORG%%%"
@@ -304,6 +310,13 @@ def inject_namespace(
     content = content.replace(namespace_token, namespace_prefix)
     if logger and content != prev_content:
         logger.info(f'  {name}: Replaced {namespace_token} with "{namespace_prefix}"')
+
+    prev_content = content
+    content = content.replace(namespace_dot_token, namespace_dot_prefix)
+    if logger and content != prev_content:
+        logger.info(
+            f'  {name}: Replaced {namespace_dot_token} with "{namespace_dot_prefix}"'
+        )
 
     prev_content = content
     content = content.replace(namespace_or_c_token, namespace_or_c)
@@ -490,9 +503,9 @@ def create_task_options_doc(task_options):
             doc.append(f"\n``{usage_str}``")
 
         if option.get("required"):
-            doc.append(f"\t *Required*")
+            doc.append("\t *Required*")
         else:
-            doc.append(f"\t *Optional*")
+            doc.append("\t *Optional*")
 
         description = option.get("description")
         if description:
@@ -649,39 +662,3 @@ def get_git_config(config_key):
     )
 
     return config_value if config_value and not p.returncode else None
-
-
-@contextlib.contextmanager
-def tee_stdout_stderr(args, logger):
-    """Tee stdout and stderr so that they're also routed to
-    a log file. Add the current command arguments
-    as the first item in the log."""
-    real_stdout_write = sys.stdout.write
-    real_stderr_write = sys.stderr.write
-
-    # Add current command args as first line in logfile
-    logger.debug(" ".join(args) + "\n")
-
-    def stdout_write(s):
-        output = strip_ansi_sequences(s)
-        logger.debug(output)
-        real_stdout_write(s)
-
-    def stderr_write(s):
-        output = strip_ansi_sequences(s)
-        logger.debug(output)
-        real_stderr_write(s)
-
-    sys.stdout.write = stdout_write
-    sys.stderr.write = stderr_write
-    try:
-        yield
-    finally:
-        sys.stdout.write = real_stdout_write
-        sys.stderr.write = real_stderr_write
-
-
-def strip_ansi_sequences(input):
-    """Strip ANSI sequences from what's in buffer"""
-    ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
-    return ansi_escape.sub("", input)

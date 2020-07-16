@@ -2,7 +2,6 @@
 
 import io
 import os
-import sys
 import sarge
 import pytest
 import zipfile
@@ -366,31 +365,31 @@ Options\n------------------------------------------\n\n
     def test_inject_namespace__managed(self):
         logger = mock.Mock()
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(
             name, content, namespace="ns", managed=True, logger=logger
         )
         assert name == "ns__test"
-        assert content == "ns__||ns|c"
+        assert content == "ns__|ns.||ns|c"
 
     def test_inject_namespace__unmanaged(self):
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(name, content, namespace="ns")
         assert name == "test"
-        assert content == "||c|c"
+        assert content == "|||c|c"
 
     def test_inject_namespace__namespaced_org(self):
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(
             name, content, namespace="ns", managed=True, namespaced_org=True
         )
         assert name == "ns__test"
-        assert content == "ns__|ns__|ns|ns"
+        assert content == "ns__|ns.|ns__|ns|ns"
 
     def test_strip_namespace(self):
         logger = mock.Mock()
@@ -563,27 +562,3 @@ Options\n------------------------------------------\n\n
 
         assert utils.get_git_config("user.email") is None
         p.run.assert_called_once()
-
-    def test_strip_ansi_sequences(self):
-        ansi_str = "\033[31mGoodbye ANSI color sequences!\033[0m"
-        plain_str = "This is [just a plain old string with some] [symbols]"
-
-        ansi_string_result = utils.strip_ansi_sequences(ansi_str)
-        plain_string_result = utils.strip_ansi_sequences(plain_str)
-
-        assert ansi_string_result == "Goodbye ANSI color sequences!"
-        assert plain_string_result == plain_str
-
-    def test_tee_stdout_stderr(self):
-        args = ["cci", "test"]
-        logger = mock.Mock()
-        expected_stdout_text = "This is expected stdout.\n"
-        expected_stderr_text = "This is expected stderr.\n"
-        with utils.tee_stdout_stderr(args, logger):
-            sys.stdout.write(expected_stdout_text)
-            sys.stderr.write(expected_stderr_text)
-
-        assert logger.debug.call_count == 3
-        assert logger.debug.call_args_list[0][0][0] == "cci test\n"
-        assert logger.debug.call_args_list[1][0][0] == expected_stdout_text
-        assert logger.debug.call_args_list[2][0][0] == expected_stderr_text

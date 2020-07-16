@@ -113,7 +113,7 @@ cspTrustedSites:
     - type: CspTrustedSite
       class: MetadataFilenameParser
       extension: cspTrustedSite
-CustomHelpMenuSections:
+customHelpMenuSections:
     - type: CustomHelpMenuSection
       class: MetadataFilenameParser
       extension: customHelpMenuSection
@@ -262,10 +262,18 @@ matchingRules:
       extension: matchingRule
       options:
             item_xpath: './sf:matchingRules'
+messageChannels:
+    - type: LightningMessageChannel
+      class: MetadataFilenameParser
+      extension: messageChannel
 MobileApplicationDetails:
     - type: MobileApplicationDetail
       class: MetadataFilenameParser
       extension: MobileApplicationDetail
+navigationMenus:
+    - type: NavigationMenu
+      class: MetadataFilenameParser
+      extension: navigationMenu
 namedCredentials:
     - type: NamedCredential
       class: MetadataFilenameParser

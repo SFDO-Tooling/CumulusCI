@@ -2,6 +2,234 @@
 History
 =======
 
+3.15.0 (2020-07-09)
+-------------------
+
+Changes:
+
+* The ``run_tests`` task now defaults to only logging tests that failed. Set the ``verbose`` option to True to see all results including tests that passed.
+
+* The ``update_dependencies`` task now supports an ``ignore_dependencies`` option, which prevents CumulusCI from processing a specific dependency (whether direct or transitive). This feature may be useful in installers for packages that extend other packages if the installer is not meant to include the base package.
+
+* Improvements to the mapping file for the ``extract_dataset`` and ``load_dataset`` tasks:
+
+  * Fields can now be specified as a simple list of Salesforce API names, instead of a mapping. CumulusCI will infer the database column names.
+  * Mappings may omit the ``table`` key and CumulusCI will use the object name.
+  * The tasks will check and show an error if mappings do not use a consistent object Id mode.
+  * Mappings can now include junction objects with no additional fields.
+
+* The ``generate_dataset_mapping`` task now has an ``include`` option to specify additional objects to include in the mapping if they aren't found by the default heuristics.
+
+* Added additional tasks intended for use as preflight checks for MetaDeploy install plans:
+
+  * ``check_sobjects_enabled`` returns a set of available SObject names.
+  * ``check_org_wide_defaults`` returns a boolean indicating whether Organization-Wide Defaults match the specified values.
+
+* The ``update_package_xml`` task now supports the MessageChannel metadata type.
+
+* Adjusted the default rules for the ``robot_lint`` task.
+
+* CumulusCI can be configured to always show Python stack traces in the case of an error by setting the ``show_stacktraces`` option to True in the ``cli`` section of ``~/.cumulusci/cumulusci.yml``.
+
+* The prompt provided by ``cci org shell`` now has access to the Tooling API through the keyword ``tooling``.
+
+* When using the JWT OAuth2 flow, CumulusCI can be configured to use alternate Salesforce login URLs by setting the SF_PROD_LOGIN_URL and SF_SANDBOX_LOGIN_URL environment variables.
+
+Issues closed:
+
+* Fixed a UnicodeDecodeError that could happen while using the ``extract_dataset`` task on Windows. (#1838)
+
+* Fixed support for the CustomHelpMenuSection metadata type in the ``update_package_xml`` task. (#1832)
+
+* Deleting a scratch org now clears its domain from showing in `cci org list`.
+
+* If you try to use ``cci org connect`` with a login URL containing ``lightning.force.com``, CumulusCI will explain that you should use the ``.my.salesforce.com`` domain instead.
+
+* Fixed an issue with deriving the Lightning domain from the instance URL for some orgs.
+
+3.14.0 (2020-06-18)
+-------------------
+
+Changes:
+
+* Added a generic ``dx`` task which makes it easy to run Salesforce CLI commands against orgs in CumulusCI's keychain. Use the ``command`` option to specify the sfdx command.
+
+* Tasks which do namespace injection now support the ``%%%NAMESPACE_DOT%%%`` injection token, which can be used to support references to packaged Apex classes and Record Types. The token is replaced with ``ns.`` rather than ``ns__`` (for namespace ``ns``).
+
+* Updated to Robot Framework 3.2.1. Robot Framework has a new parser with a few backwards incompatible changes. For details see the `release notes <https://github.com/robotframework/robotframework/blob/master/doc/releasenotes/rf-3.2.rst>`_.
+
+* The ``run_tests`` task now gracefully handles the ``required_org_code_coverage_percent`` option as a string or an integer.
+
+* CumulusCI now logs a success message when a flow finishes running.
+
+Issues closed:
+
+* Fixed a regression introduced in CumulusCI 3.13.0 where connections to a scratch org could fail with a ReadTimeout or other connection error if more than 10 minutes elapsed since a prior task that interacted with the org. This is similar to the fix from 3.13.2, but for scratch orgs.
+
+* Show a clearer error message if dependencies are configured in an unrecognized format.
+
+3.13.2 (2020-06-10)
+-------------------
+
+Issues closed:
+
+* Fixed a regression introduced in CumulusCI 3.13.0 where connections to Salesforce could fail
+  with a ReadTimeout or other connection error if more than 10 minutes elapsed since a prior task
+  that interacted with the org.
+
+3.13.1 (2020-06-09)
+-------------------
+
+Issues closed:
+
+* Fixed a bug with "after:" steps in the `load_dataset` task.
+* Fixed a bug with record types in the `extract_dataset` task.
+
+3.13.0 (2020-06-04)
+-------------------
+
+Changes:
+
+* A new Metadata ETL task, ``add_picklist_entries``, safely adds picklist values to an existing custom field.
+
+* Added the ``cci org prune`` command to automatically remove all expired scratch orgs from the CumulusCI keychain.
+
+* Improvements to the ``cci org shell`` command:
+
+  * Better inline help
+  * New ``query`` and ``describe`` functions
+
+* Scratch org creation will now wait up to 120 minutes for the org to be created
+  to avoid timeouts with more complex org shapes.
+
+* The ``generate_data_dictionary`` task now has more features for complex projects.
+  By default, the task will walk through all project dependencies and include them
+  in the generated data dictionaries. Other non-dependency projects can be included
+  with the ``additional_dependencies`` option. The output format has been extensively improved.
+
+* The ``run_tests`` task supports a new option, ``required_org_code_coverage_percent``.
+  If set, the task will fail if aggregate code coverage in the org is less than the configured value.
+  Code coverage verification is available only in unmanaged builds.
+
+* The ``install_managed`` and ``update_dependencies`` tasks now accept a ``security_type`` option
+  to specify whether the package should be installed for all users or for admins only.
+
+* ``when`` expressions can now use the ``has_minimum_package_version`` method
+  to check if a package is installed with a sufficient version. For example:
+  ``when: org_config.has_minimum_package_version("namespace", "1.0")``
+
+* Robot Framework:
+
+  * Added a new keyword in the modal page objects, ``Select dropdown value``.
+    This keyword will be available whenever you use the ``Wait for modal`` keyword
+    to pull in a modal page object.
+
+Issues closed:
+
+  * Limited the variables available in global scope for the ``cci shell`` command.
+  * Tasks based on ``BaseSalesforceApiTask`` which use the Bulk API now default
+    to using the project's API version rather than 40.0.
+  * Bulk data tasks:
+
+    * The ``extract_dataset`` task no longer converts to snake_case when picking a name for lookup columns.
+    * Improved error message when trying to use the ``load_dataset`` command with an incorrect record type.
+    * Fixed a bug with the ``generate_mapping_file`` option.
+
+
+3.12.2 (2020-05-07)
+-------------------
+
+Changes:
+
+* Added a task, ``set_duplicate_rule_status``, which allows selective activation and
+  deactivation of Duplicate Rules.
+
+* The ``create_community`` task now retries multiple times if there's an error.
+
+* The ``generate_data_dictionary`` task now supports multi-select picklist fields
+  and will indicate the related object for lookup fields.
+
+* The ``update_package_xml`` task now supports the ``NavigationMenu`` metadata type.
+
+Issues closed:
+
+* In the Salesforce library for Robot Framework,
+  fixed locators for the actions ribbon and app launcher button in Summer '20.
+
+* Fixed the ``load_dataset`` task so that steps which don't explicitly specify a ``bulk_mode``
+  will inherit the option specified at the task level.
+
+* Fixed error handling if an exception occurs within one of the `cci error` commands.
+
+* Fixed error handling if the Metadata API returns a response that is marked as done
+  but also contains an ``errorMessage``.
+
+3.12.1 (2020-04-27)
+-------------------
+
+Fixed a problem building the Homebrew formula for installing CumulusCI 3.12.0.
+
+3.12.0 (2020-04-27)
+-------------------
+
+Changes:
+
+* We've removed the prompt that users see when trying to use a scratch org that has expired,
+  and now automatically recreate the scratch org.
+
+* The ``load_dataset`` task now automatically avoids creating Bulk API batches larger than the
+  10 million character limit.
+
+* Robot Framework:
+
+  * When opening an org in the browser, the Salesforce library now attempts to detect if the org
+    was created using the Classic UI and automatically switch to Lightning Experience.
+
+  * The Salesforce library now has preliminary support for Summer '20 preview orgs.
+
+* CumulusCI now directs ``simple-salesforce`` to return results as normal Python dicts
+  instead of OrderedDicts.  This should have minimal impact since normal dicts are ordered
+  in the versions of Python that CumulusCI supports, but we mention it for the sake of completeness.
+
+Issues closed:
+
+* Fixed an issue where non-ASCII output caused an error when trying to write to the CumulusCI log
+  in Windows. (#1619)
+
+3.11.0 (2020-04-17)
+-------------------
+
+Changes:
+
+* CumulusCI now includes `Snowfakery <https://pypi.org/project/snowfakery/>`_,
+  a tool for generating fake data. It can be used to generate and load data into an org
+  via the new ``generate_and_load_from_yaml`` task.
+
+* Added two new preflight check tasks for use in MetaDeploy:
+  ``get_available_licenses`` and ``get_available_permission_set_licenses``.
+  These tasks make available lists of the License Definition Keys for the org's licenses or PSLs.
+
+* The ``get_installed_packages`` task now logs its result.
+
+* Robot Framework: Added two new keywords (``Get Fake Data`` and ``Set Faker Locale``)
+  and a global robot variable (``${faker}``) which can be used to generate fake data
+  using the `Faker <https://pypi.org/project/Faker/>`_ library.
+
+Issues closed:
+
+* Fixed an error when loading a dependency whose ``cumulusci.yml`` contains non-breaking spaces.
+
+* Fixed a PermissionError when running multiple concurrent CumulusCI commands in Windows. (#1477)
+
+* Show a more helpful error message if a keychain entry can't be loaded
+  due to a change in the encryption key.
+
+* Fixed the ``org_settings`` task to use the API version of the org rather than the API version of the package.
+
+* In the Salesforce Robot Framework library, the ``Open App Launcher`` keyword now tries to detect
+  and recover from an occasional situation where the app launcher fails to load.
+
+
 3.10.0 (2020-04-02)
 -------------------
 
