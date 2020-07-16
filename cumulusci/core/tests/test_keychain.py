@@ -499,7 +499,9 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         ) as o:
             self.org_config.save()
             save_argument = o.mock_calls[0][1][0]
-            assert ".cumulusci/test.org" in save_argument, save_argument
+            assert ".cumulusci/test.org" in save_argument.replace(
+                "\\", "/"
+            ), save_argument
 
         # check that it can be loaded in a fresh keychain
         new_keychain = self.keychain_class(self.project_config, self.key)
