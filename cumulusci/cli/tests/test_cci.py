@@ -1983,6 +1983,8 @@ Environment Info: Rossian / x68_46
     def test_flow_run_org_delete_error(self, echo):
         org_config = mock.Mock(scratch=True, config={})
         org_config.delete_org.side_effect = Exception
+        org_config.save_if_changed.return_value.__enter__ = lambda *args: ...
+        org_config.save_if_changed.return_value.__exit__ = lambda *args: ...
         runtime = CliRuntime(
             config={
                 "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
