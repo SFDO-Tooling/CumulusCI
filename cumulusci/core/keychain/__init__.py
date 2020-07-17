@@ -17,7 +17,7 @@ from cumulusci.core.keychain.encrypted_file_project_keychain import (
     EncryptedFileProjectKeychain,
 )
 
-shut_up_flake8 = (
+__all__ = (
     BaseProjectKeychain,
     DEFAULT_CONNECTED_APP,
     BaseEncryptedProjectKeychain,
