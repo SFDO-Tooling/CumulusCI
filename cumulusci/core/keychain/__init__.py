@@ -13,6 +13,14 @@ from cumulusci.core.keychain.EnvironmentProjectKeychain import (
 )
 
 # inherit from BaseEncryptedProjectKeychain
-from cumulusci.core.keychain.EncryptedFileProjectKeychain import (
+from cumulusci.core.keychain.encrypted_file_project_keychain import (
+    EncryptedFileProjectKeychain,
+)
+
+shut_up_flake8 = (
+    BaseProjectKeychain,
+    DEFAULT_CONNECTED_APP,
+    BaseEncryptedProjectKeychain,
+    EnvironmentProjectKeychain,
     EncryptedFileProjectKeychain,
 )

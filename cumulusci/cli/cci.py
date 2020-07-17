@@ -859,7 +859,7 @@ def org_browser(runtime, org_name):
 
     webbrowser.open(org_config.start_url)
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 @org.command(
@@ -904,7 +904,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
         scope="web full refresh_token",
     )
     oauth_dict = oauth_capture()
-    org_config = OrgConfig(oauth_dict, org_name)
+    org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
     org_config.load_userinfo()
     org_config._load_orginfo()
     if org_config.organization_sobject["TrialExpirationDate"] is None:
@@ -914,8 +914,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
             org_config.organization_sobject["TrialExpirationDate"]
         ).date()
 
-    global_org = global_org or runtime.project_config is None
-    runtime.keychain.set_org(org_config, global_org)
+    org_config.save()
 
     if default:
         runtime.keychain.set_default_org(org_name)
@@ -945,14 +944,16 @@ def org_default(runtime, org_name, unset):
 @pass_runtime(require_keychain=True)
 def org_import(runtime, username_or_alias, org_name):
     org_config = {"username": username_or_alias}
-    scratch_org_config = ScratchOrgConfig(org_config, org_name)
+    scratch_org_config = ScratchOrgConfig(
+        org_config, org_name, runtime.keychain, global_org=False
+    )
     scratch_org_config.config["created"] = True
 
     info = scratch_org_config.scratch_info
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 
-    runtime.keychain.set_org(scratch_org_config)
+    scratch_org_config.save()
     click.echo(
         "Imported scratch org: {org_id}, username: {username}".format(
             **scratch_org_config.scratch_info
@@ -1026,7 +1027,7 @@ def org_info(runtime, org_name, print_json):
             click.echo("Org expires on {:%c}".format(org_config.expires))
 
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 @org.command(name="list", help="Lists the connected orgs for the current project")
@@ -1228,7 +1229,7 @@ def org_scratch_delete(runtime, org_name):
 
     org_config.delete_org()
 
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 org_shell_cci_help_message = """
@@ -1298,7 +1299,7 @@ def org_shell(runtime, org_name, script=None, python=None):
         )
 
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 # Commands for group: task

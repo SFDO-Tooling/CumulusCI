@@ -2,7 +2,12 @@ import logging
 
 
 class BaseConfig(object):
-    """ BaseConfig provides a common interface for nested access for all Config objects in CCI. """
+    """ BaseConfig provides a common interface for nested access for all Config objects in CCI.
+
+    As of 2020 there is a set() method for setting values. Please use that
+    instead of config.config["foo"] = "bar". Directly manipulating the
+    internal config dict will eventually be phased out.
+    """
 
     defaults = {}
 
@@ -43,3 +48,9 @@ class BaseConfig(object):
             return value
         else:
             return self.defaults.get(name)
+
+    def set(self, name, value):
+        assert (
+            "__" not in name
+        ), "Deep keys cannot be set. Use ['a']['b']= syntax instead."
+        self.config[name] = value

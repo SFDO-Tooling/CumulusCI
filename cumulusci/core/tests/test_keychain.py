@@ -18,6 +18,7 @@ from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain import EnvironmentProjectKeychain
+from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
@@ -439,7 +440,10 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         )
         keychain = self.keychain_class(self.project_config, self.key)
         del keychain.config["orgs"]
-        keychain._load_files(self.tempdir_home, ".org", "orgs")
+        with mock.patch.object(
+            self.keychain_class, "config_local_dir", Path(self.tempdir_home)
+        ):
+            keychain._load_orgs()
         self.assertIn("foo", keychain.get_org("test").config)
 
     def test_load_file(self):
@@ -473,3 +477,26 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain.orgs["test"] = mock.Mock()
         with self.assertRaises(OrgNotFound):
             keychain.remove_org("test", global_org=True)
+
+    def test_set_and_get_org_local_should_not_shadow_global(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.set_org(self.org_config, global_org=True)
+        self.assertEqual(list(keychain.orgs.keys()), ["test"])
+        assert isinstance(keychain.orgs["test"], GlobalOrg), keychain.orgs["test"]
+        self.assertEqual(keychain.get_org("test").config, self.org_config.config)
+        assert Path(self.tempdir_home, ".cumulusci", "test.org").exists()
+
+        # check that it saves to the right place
+        with mock.patch(
+            "cumulusci.core.keychain.encrypted_file_project_keychain.open"
+        ) as o:
+            self.org_config.save()
+            save_argument = o.mock_calls[0][1][0]
+            assert ".cumulusci/test.org" in save_argument.replace(
+                "\\", "/"
+            ), save_argument
+
+        # check that it can be loaded in a fresh keychain
+        new_keychain = self.keychain_class(self.project_config, self.key)
+        org_config = new_keychain.get_org("test")
+        assert org_config.global_org

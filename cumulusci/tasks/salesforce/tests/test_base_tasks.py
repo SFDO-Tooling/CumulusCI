@@ -35,7 +35,11 @@ class TestBaseSalesforceTask(unittest.TestCase):
                 task()
 
     def test_update_credentials(self):
-        def update_config(keychain):
+        update_config_called = False
+
+        def update_config(keychain, save=False):
+            nonlocal update_config_called
+            update_config_called = True
             self.org_config.config["new"] = "new"
 
         self.org_config.refresh_oauth_token = update_config
@@ -44,7 +48,7 @@ class TestBaseSalesforceTask(unittest.TestCase):
         )
         task._run_task = mock.Mock()
         task()
-        self.project_config.keychain.set_org.assert_called_once()
+        assert update_config_called
 
 
 class TestBaseSalesforceApiTask(unittest.TestCase):

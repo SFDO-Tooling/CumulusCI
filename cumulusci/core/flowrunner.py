@@ -604,7 +604,7 @@ class FlowCoordinator(object):
 
         if self.org_config.config != orig_config:
             self.logger.info("Org info has changed, updating org in keychain")
-            self.project_config.keychain.set_org(self.org_config)
+            self.org_config.save()
 
     def resolve_return_value_options(self, options):
         """Handle dynamic option value lookups in the format ^^task_name.attr"""

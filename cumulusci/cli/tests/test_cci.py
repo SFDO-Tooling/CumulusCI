@@ -879,7 +879,7 @@ Environment Info: Rossian / x68_46
 
         org_config.refresh_oauth_token.assert_called_once()
         browser_open.assert_called_once()
-        runtime.keychain.set_org.assert_called_once_with(org_config)
+        org_config.save.assert_called_once_with()
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
     @responses.activate
@@ -909,19 +909,27 @@ Environment Info: Rossian / x68_46
             status=200,
         )
         responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
-        run_click_command(
-            cci.org_connect,
-            runtime=runtime,
-            org_name="test",
-            sandbox=False,
-            login_url="https://login.salesforce.com",
-            default=True,
-            global_org=False,
-        )
+        org_config = False
+
+        def wrapper(*args, **kwargs):
+            nonlocal org_config
+            org_config = OrgConfig(*args, **kwargs)
+            org_config.save = mock.Mock()
+            return org_config
+
+        with mock.patch("cumulusci.cli.cci.OrgConfig", wrapper):
+            run_click_command(
+                cci.org_connect,
+                runtime=runtime,
+                org_name="test",
+                sandbox=False,
+                login_url="https://login.salesforce.com",
+                default=True,
+                global_org=False,
+            )
 
         runtime.check_org_overwrite.assert_called_once()
-        runtime.keychain.set_org.assert_called_once()
-        org_config = runtime.keychain.set_org.call_args[0][0]
+        org_config.save.assert_called_once()
         assert org_config.expires == "Persistent"
         runtime.keychain.set_default_org.assert_called_once_with("test")
 
@@ -1099,7 +1107,7 @@ Environment Info: Rossian / x68_46
                 wrap_cols=["Value"],
             )
 
-        runtime.keychain.set_org.assert_called_once_with(org_config)
+        org_config.save.assert_called_once_with()
 
     def test_org_info_json(self):
         class Unserializable(object):
@@ -1123,7 +1131,7 @@ Environment Info: Rossian / x68_46
             '{\n    "test": "test",\n    "unserializable": "<unserializable>"\n}',
             "".join(out),
         )
-        runtime.keychain.set_org.assert_called_once_with(org_config)
+        org_config.save.assert_called_once_with()
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_org_list(self, cli_tbl):
@@ -1663,7 +1671,7 @@ Environment Info: Rossian / x68_46
         run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
 
         org_config.delete_org.assert_called_once()
-        runtime.keychain.set_org.assert_called_once_with(org_config)
+        org_config.save.assert_called_once_with()
 
     def test_org_scratch_delete_not_scratch(self):
         org_config = mock.Mock(scratch=False)
@@ -1696,7 +1704,7 @@ Environment Info: Rossian / x68_46
         org_config.refresh_oauth_token.assert_called_once()
         mock_sf.assert_any_call(runtime.project_config, org_config)
         mock_sf.assert_any_call(runtime.project_config, org_config, base_url="tooling")
-        runtime.keychain.set_org.assert_called_once_with(org_config)
+        org_config.save.assert_called_once_with()
 
         mock_code.assert_called_once()
         self.assertIn("sf", mock_code.call_args[1]["local"])
