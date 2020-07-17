@@ -126,6 +126,10 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             org.global_org = True
         return org
 
+    @property
+    def project_cache_dir(self):
+        return self.keychain.project_config.project_cache_dir
+
 
 class GlobalOrg(NamedTuple):
     encrypted_data: bytes

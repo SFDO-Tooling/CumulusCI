@@ -30,7 +30,7 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
     @staticmethod
     def default_cumulusci_dir():
         """Get the root directory for storing persistent data (~/.cumulusci)
-        
+
         Creates it if it doesn't exist yet.
         """
         config_dir = Path.home() / ".cumulusci"
@@ -83,3 +83,7 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
                 "global_local": BaseGlobalConfig.config_global_local,
             }
         )
+
+    @property
+    def project_cache_dir(self):
+        return self.config_global_local_path

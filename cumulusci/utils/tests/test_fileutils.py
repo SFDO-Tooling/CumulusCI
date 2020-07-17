@@ -9,6 +9,7 @@ import responses
 
 from cumulusci.utils import fileutils, temporary_dir
 from cumulusci.utils.fileutils import load_from_source, cleanup_org_cache_dirs
+from cumulusci.core.config import OrgConfig
 
 
 class TestFileutils:
@@ -95,8 +96,12 @@ class TestCleanupCacheDir:
     def test_cleanup_cache_dir_nothing_to_cleanup(self):
         keychain = mock.Mock()
         keychain.list_orgs.return_value = ["qa", "dev"]
-        org = mock.Mock()
-        org.config.get.return_value = "http://foo.my.salesforce.com/"
+        org = OrgConfig(
+            config={"instance_url": "http://foo.my.salesforce.com/"},
+            name="qa",
+            keychain=keychain,
+            global_org=False,
+        )
         keychain.get_org.return_value = org
         project_config = mock.Mock()
         with TemporaryDirectory() as temp_for_global:
@@ -108,4 +113,4 @@ class TestCleanupCacheDir:
                 (org_dir / "schema.json").touch()
                 with mock.patch("cumulusci.utils.fileutils.rmtree") as rmtree:
                     cleanup_org_cache_dirs(keychain, project_config)
-                    rmtree.assert_not_called()
+                    assert not rmtree.mock_calls, rmtree.mock_calls

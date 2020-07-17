@@ -4,7 +4,6 @@ from pathlib import Path
 from io import TextIOWrapper
 import requests
 from io import StringIO
-from urllib.parse import urlparse
 from shutil import rmtree
 
 """Utilities for working with files"""
@@ -93,8 +92,7 @@ def cleanup_org_cache_dirs(keychain, project_config):
     domains = set()
     for org in keychain.list_orgs():
         org_config = keychain.get_org(org)
-        instance_url = org_config.config.get("instance_url", "")
-        domain = urlparse(instance_url).hostname or ""
+        domain = org_config.get_domain()
         if domain:
             domains.add(domain)
 

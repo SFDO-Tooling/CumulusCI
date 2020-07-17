@@ -2,6 +2,7 @@
 from distutils.version import StrictVersion
 import os
 import unittest
+from pathlib import Path
 
 import pytest
 from unittest import mock
@@ -187,6 +188,9 @@ class DummyService(object):
 class DummyKeychain(object):
     def get_service(self, name):
         return DummyService(name)
+
+    config_local_dir = Path("/home/.cumulusci")
+    project_cache_dir = Path("/home/project/.cci")
 
 
 class TestBaseProjectConfig(unittest.TestCase):
@@ -1446,3 +1450,27 @@ class TestOrgConfig(unittest.TestCase):
 
         with pytest.raises(AssertionError):
             config.set("Foo__Bar", "5")
+
+    @mock.patch("pathlib.Path.mkdir")
+    def test_orginfo_cache_dir_global(self, mkdir):
+        config = OrgConfig(
+            {"instance_url": "http://zombo.com/welcome"},
+            "test",
+            keychain=DummyKeychain(),
+            global_org=True,
+        )
+        directory = config.get_orginfo_cache_dir()
+        assert directory == Path("/home/.cumulusci/orginfo/zombo.com"), directory
+        mkdir.assert_called_with(exist_ok=True, parents=True)
+
+    @mock.patch("pathlib.Path.mkdir")
+    def test_orginfo_cache_dir_local(self, mkdir):
+        config = OrgConfig(
+            {"instance_url": "http://zombo.com/welcome"},
+            "test",
+            keychain=DummyKeychain(),
+            global_org=False,
+        )
+        directory = config.get_orginfo_cache_dir()
+        assert directory == Path("/home/project/.cci/orginfo/zombo.com")
+        mkdir.assert_called_with(exist_ok=True, parents=True)

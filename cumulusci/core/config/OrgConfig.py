@@ -3,6 +3,7 @@ from distutils.version import StrictVersion
 import os
 import re
 from contextlib import contextmanager
+from urllib.parse import urlparse
 
 import requests
 from simple_salesforce import Salesforce
@@ -24,7 +25,7 @@ class OrgConfig(BaseConfig):
     # make sure it can be mocked for tests
     SalesforceOAuth2 = SalesforceOAuth2
 
-    def __init__(self, config, name, keychain=None, global_org=False):
+    def __init__(self, config: dict, name: str, keychain=None, global_org=False):
         self.keychain = keychain
         self.global_org = global_org
 
@@ -277,3 +278,18 @@ class OrgConfig(BaseConfig):
     def save(self):
         assert self.keychain, "Keychain was not set on OrgConfig"
         self.keychain.set_org(self, self.global_org)
+
+    def get_domain(self):
+        instance_url = self.config.get("instance_url", "")
+        return urlparse(instance_url).hostname or ""
+
+    def get_orginfo_cache_dir(self):
+        assert self.keychain, "Keychain should be set"
+        if self.global_org:
+            cache_dir = self.keychain.config_local_dir / "orginfo" / self.get_domain()
+        else:
+            cache_dir = self.keychain.project_cache_dir / "orginfo" / self.get_domain()
+        assert cache_dir
+        if not cache_dir.exists():
+            cache_dir.mkdir(parents=True, exist_ok=True)
+        return cache_dir
