@@ -3,7 +3,7 @@ from collections import defaultdict
 import click
 import yaml
 
-from cumulusci.core.utils import process_list_arg
+from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError
 
@@ -37,6 +37,10 @@ class GenerateMapping(BaseSalesforceApiTask):
         "include": {
             "description": "Object names to include even if they might not otherwise be included."
         },
+        "strip_namespace": {
+            "description": "If True, CumulusCI removes the project's namespace where found in fields "
+            " and objects to support automatic namespace injection. On by default."
+        },
     }
 
     core_fields = ["Name", "FirstName", "LastName"]
@@ -53,6 +57,9 @@ class GenerateMapping(BaseSalesforceApiTask):
 
         self.options["ignore"] = process_list_arg(self.options.get("ignore", []))
         self.options["include"] = process_list_arg(self.options.get("include", []))
+        self.options["strip_namespace"] = process_bool_arg(
+            self.options.get("strip_namespace", True)
+        )
 
     def _run_task(self):
         self.logger.info("Collecting sObject information")
@@ -161,19 +168,28 @@ class GenerateMapping(BaseSalesforceApiTask):
         objs = set(self.schema.keys())
         stack = self._split_dependencies(objs, self.refs)
 
+        def strip_namespace(element):
+            ns = self.project_config.project__package__namespace
+            if self.options["strip_namespace"] and ns and element.startswith(ns):
+                return element[len(ns) + 2 :]
+            else:
+                return element
+
         self.mapping = {}
         for obj in stack:
-            key = f"Insert {obj}"
+            key = f"Insert {strip_namespace(obj)}"
             self.mapping[key] = {}
-            self.mapping[key]["sf_object"] = f"{obj}"
+            self.mapping[key]["sf_object"] = strip_namespace(obj)
             fields = []
             lookups = []
             for field in self.schema[obj].values():
                 if field["type"] == "reference" and field["name"] != "RecordTypeId":
+                    # For lookups, namespace stripping takes place below.
                     lookups.append(field["name"])
                 else:
-                    fields.append(field["name"])
+                    fields.append(strip_namespace(field["name"]))
             if fields:
+                fields = [strip_namespace(f) for f in fields]
                 fields.sort()
                 self.mapping[key]["fields"] = fields
             if lookups:
@@ -188,19 +204,21 @@ class GenerateMapping(BaseSalesforceApiTask):
                             f"Field {obj}.{field} is a polymorphic lookup, which is not supported"
                         )
                     elif referenceTo[0] == obj:  # Self-lookup
-                        self.mapping[key]["lookups"][field] = {
-                            "table": referenceTo[0],
+                        self.mapping[key]["lookups"][strip_namespace(field)] = {
+                            "table": strip_namespace(referenceTo[0]),
                             "after": key,
                         }
                     elif stack.index(referenceTo[0]) > stack.index(
                         obj
                     ):  # Dependent lookup
-                        self.mapping[key]["lookups"][field] = {
-                            "table": referenceTo[0],
-                            "after": f"Insert {referenceTo[0]}",
+                        self.mapping[key]["lookups"][strip_namespace(field)] = {
+                            "table": strip_namespace(referenceTo[0]),
+                            "after": f"Insert {strip_namespace(referenceTo[0])}",
                         }
                     else:  # Regular lookup
-                        self.mapping[key]["lookups"][field] = {"table": referenceTo[0]}
+                        self.mapping[key]["lookups"][strip_namespace(field)] = {
+                            "table": strip_namespace(referenceTo[0])
+                        }
 
     def _split_dependencies(self, objs, dependencies):
         """Attempt to flatten the object network into a sequence of load operations."""
