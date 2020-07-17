@@ -98,7 +98,7 @@ class BaseProjectKeychain(BaseConfig):
         scratch_config[
             "sfdx_alias"
         ] = f"{self.project_config.project__name}__{org_name}"
-        org_config = ScratchOrgConfig(scratch_config, org_name, self, global_org=False)
+        org_config = ScratchOrgConfig(scratch_config, org_name, keychain=self, global_org=False)
         org_config.save()
 
     def change_key(self, key):
