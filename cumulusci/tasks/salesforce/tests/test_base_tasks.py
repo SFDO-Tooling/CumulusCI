@@ -22,7 +22,7 @@ class TestBaseSalesforceTask(unittest.TestCase):
         self.project_config.keychain = mock.Mock()
         self.project_config.keychain.get_service.side_effect = ServiceNotConfigured
         self.task_config = TaskConfig()
-        self.org_config = OrgConfig({}, "test")
+        self.org_config = OrgConfig({}, "test", keychain=self.project_config.keychain)
 
     def test_run_task(self):
         with mock.patch(

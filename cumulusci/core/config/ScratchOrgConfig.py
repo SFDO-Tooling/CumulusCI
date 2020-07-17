@@ -320,21 +320,20 @@ class ScratchOrgConfig(OrgConfig):
             message = f"Message: {nl.join(stdout_list)}"
             raise ScratchOrgException(message)
 
-    def refresh_oauth_token(self, keychain, save=False):
+    def refresh_oauth_token(self, keychain):
         """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
-        with self._save_changes_if(save):
-            self._client = None
-            if hasattr(self, "_scratch_info"):
-                # Cache the scratch_info for 1 hour to avoid unnecessary calls out
-                # to sfdx CLI
-                delta = datetime.datetime.utcnow() - self._scratch_info_date
-                if delta.total_seconds() > 3600:
-                    del self._scratch_info
+        self._client = None
+        if hasattr(self, "_scratch_info"):
+            # Cache the scratch_info for 1 hour to avoid unnecessary calls out
+            # to sfdx CLI
+            delta = datetime.datetime.utcnow() - self._scratch_info_date
+            if delta.total_seconds() > 3600:
+                del self._scratch_info
 
-                    # Force a token refresh
-                    self.force_refresh_oauth_token()
+                # Force a token refresh
+                self.force_refresh_oauth_token()
 
-            # Get org info via sfdx force:org:display
-            self.scratch_info
-            # Get additional org info by querying API
-            self._load_orginfo()
+        # Get org info via sfdx force:org:display
+        self.scratch_info
+        # Get additional org info by querying API
+        self._load_orginfo()

@@ -909,27 +909,19 @@ Environment Info: Rossian / x68_46
             status=200,
         )
         responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
-        org_config = False
-
-        def wrapper(*args, **kwargs):
-            nonlocal org_config
-            org_config = OrgConfig(*args, **kwargs)
-            org_config.save = mock.Mock()
-            return org_config
-
-        with mock.patch("cumulusci.cli.cci.OrgConfig", wrapper):
-            run_click_command(
-                cci.org_connect,
-                runtime=runtime,
-                org_name="test",
-                sandbox=False,
-                login_url="https://login.salesforce.com",
-                default=True,
-                global_org=False,
-            )
+        run_click_command(
+            cci.org_connect,
+            runtime=runtime,
+            org_name="test",
+            sandbox=False,
+            login_url="https://login.salesforce.com",
+            default=True,
+            global_org=False,
+        )
 
         runtime.check_org_overwrite.assert_called_once()
-        org_config.save.assert_called_once()
+        runtime.keychain.set_org.assert_called_once()
+        org_config = runtime.keychain.set_org.call_args[0][0]
         assert org_config.expires == "Persistent"
         runtime.keychain.set_default_org.assert_called_once_with("test")
 
@@ -2003,6 +1995,8 @@ Environment Info: Rossian / x68_46
     def test_flow_run_org_delete_error(self, echo):
         org_config = mock.Mock(scratch=True, config={})
         org_config.delete_org.side_effect = Exception
+        org_config.save_if_changed.return_value.__enter__ = lambda *args: ...
+        org_config.save_if_changed.return_value.__exit__ = lambda *args: ...
         runtime = CliRuntime(
             config={
                 "flows": {"test": {"steps": {1: {"task": "test_task"}}}},

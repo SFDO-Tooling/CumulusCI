@@ -597,14 +597,10 @@ class FlowCoordinator(object):
         self.logger.info(
             f"Verifying and refreshing credentials for the specified org: {self.org_config.name}."
         )
-        orig_config = self.org_config.config.copy()
 
         # attempt to refresh the token, this can throw...
-        self.org_config.refresh_oauth_token(self.project_config.keychain)
-
-        if self.org_config.config != orig_config:
-            self.logger.info("Org info has changed, updating org in keychain")
-            self.org_config.save()
+        with self.org_config.save_if_changed():
+            self.org_config.refresh_oauth_token(self.project_config.keychain)
 
     def resolve_return_value_options(self, options):
         """Handle dynamic option value lookups in the format ^^task_name.attr"""
