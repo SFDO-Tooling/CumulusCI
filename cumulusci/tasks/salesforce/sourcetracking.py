@@ -91,7 +91,7 @@ class ListChanges(BaseSalesforceApiTask):
     def _get_changes(self):
         """Get the SourceMember records that have changed since the last snapshot."""
         sourcemembers = self.tooling.query_all(
-            "SELECT MemberName, MemberType, RevisionNum FROM SourceMember "
+            "SELECT MemberName, MemberType, RevisionCounter FROM SourceMember "
             "WHERE IsNameObsolete=false"
         )
         changes = []
@@ -99,7 +99,7 @@ class ListChanges(BaseSalesforceApiTask):
             mdtype = sourcemember["MemberType"]
             name = sourcemember["MemberName"]
             current_revnum = self._snapshot.get(mdtype, {}).get(name)
-            new_revnum = sourcemember["RevisionNum"] or -1
+            new_revnum = sourcemember["RevisionCounter"] or -1
             if current_revnum and current_revnum == new_revnum:
                 continue
             changes.append(sourcemember)
@@ -127,7 +127,7 @@ class ListChanges(BaseSalesforceApiTask):
         for change in changes:
             mdtype = change["MemberType"]
             name = change["MemberName"]
-            revnum = change["RevisionNum"] or -1
+            revnum = change["RevisionCounter"] or -1
             self._snapshot.setdefault(mdtype, {})[name] = revnum
         with open(self._snapshot_path, "w") as f:
             json.dump(self._snapshot, f)
@@ -372,7 +372,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
                 # we can update the sfdx maxrevision too
                 current_maxrevision = self._load_maxrevision()
                 new_maxrevision = max(
-                    change["RevisionNum"] or -1 for change in filtered
+                    change["RevisionCounter"] or -1 for change in filtered
                 )
                 self._store_maxrevision(max(current_maxrevision, new_maxrevision))
 
@@ -397,7 +397,7 @@ class SnapshotChanges(ListChanges):
 
             if changes:
                 self._store_snapshot(changes)
-                maxrevision = max(change["RevisionNum"] or -1 for change in changes)
+                maxrevision = max(change["RevisionCounter"] or -1 for change in changes)
                 self._store_maxrevision(maxrevision)
 
     def freeze(self, step):
