@@ -500,3 +500,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         new_keychain = self.keychain_class(self.project_config, self.key)
         org_config = new_keychain.get_org("test")
         assert org_config.global_org
+
+    def test_project_cache_dir(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        assert keychain.project_cache_dir.name == ".cci"

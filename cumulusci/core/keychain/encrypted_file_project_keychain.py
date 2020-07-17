@@ -128,7 +128,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     @property
     def project_cache_dir(self):
-        return self.keychain.project_config.project_cache_dir
+        return self.project_config.project_cache_dir
 
 
 class GlobalOrg(NamedTuple):

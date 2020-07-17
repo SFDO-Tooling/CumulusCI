@@ -1,27 +1,36 @@
 from unittest import mock
+
+import pytest
 import responses
-import unittest
+
 from cumulusci.tasks.salesforce import SetTDTMHandlerStatus
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
-from .util import create_task
+from .util import create_task_fixture
 
 
-class test_trigger_handlers(unittest.TestCase):
-    def test_init_options(self):
-        task = create_task(
+class TestTriggerHandlers:
+    def test_init_options(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus, {"handlers": ["TestTDTM"], "active": False}
         )
 
         assert task.options["handlers"] == ["TestTDTM"]
 
-        with self.assertRaises(TaskOptionsError):
-            task = create_task(
-                SetTDTMHandlerStatus, {"handlers": ["TestTDTM"], "restore": True}
+        with pytest.raises(TaskOptionsError):
+            task = create_task_fixture(
+                SetTDTMHandlerStatus,
+                {"handlers": ["TestTDTM"], "restore": True, "restore_file": False},
+            )
+
+        with pytest.raises(TaskOptionsError):
+            task = create_task_fixture(
+                SetTDTMHandlerStatus,
+                {"handlers": ["TestTDTM"], "restore": True, "restore_file": "False"},
             )
 
     @responses.activate
-    def test_missing_handler_object(self):
-        task = create_task(
+    def test_missing_handler_object(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus, {"handlers": ["TestTDTM"], "active": False}
         )
         task.api_version = "47.0"
@@ -32,12 +41,12 @@ class test_trigger_handlers(unittest.TestCase):
             status=200,
         )
 
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task()
 
     @responses.activate
-    def test_set_status(self):
-        task = create_task(
+    def test_set_status(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus,
             {"handlers": ["TestTDTM"], "active": False, "namespace": "npsp"},
         )
@@ -82,8 +91,10 @@ class test_trigger_handlers(unittest.TestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
-    def test_set_status__all_handlers(self):
-        task = create_task(SetTDTMHandlerStatus, {"active": False, "namespace": "npsp"})
+    def test_set_status__all_handlers(self, create_task_fixture):
+        task = create_task_fixture(
+            SetTDTMHandlerStatus, {"active": False, "namespace": "npsp"}
+        )
         task.api_version = "47.0"
         responses.add(
             method="GET",
@@ -132,8 +143,8 @@ class test_trigger_handlers(unittest.TestCase):
         assert len(responses.calls) == 4
 
     @responses.activate
-    def test_set_status_namespaced(self):
-        task = create_task(
+    def test_set_status_namespaced(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus,
             {"handlers": ["Test__c:TestTDTM"], "active": False, "namespace": "npsp"},
         )
@@ -178,8 +189,8 @@ class test_trigger_handlers(unittest.TestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
-    def test_restore(self):
-        task = create_task(
+    def test_restore(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus,
             {"restore": True, "restore_file": "resto.yml", "namespace": "npsp"},
         )
@@ -231,8 +242,8 @@ class test_trigger_handlers(unittest.TestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
-    def test_create_restore_file(self):
-        task = create_task(
+    def test_create_restore_file(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus,
             {
                 "handlers": ["Test__c"],
@@ -295,3 +306,6 @@ class test_trigger_handlers(unittest.TestCase):
             )
 
         assert len(responses.calls) == 4
+
+
+flake8 = (create_task_fixture,)

@@ -1,5 +1,6 @@
 import copy
 import random
+from pathlib import Path
 
 from cumulusci.core.config import BaseGlobalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -66,3 +67,18 @@ class DummyLogger(object):
 
     def get_output(self):
         return "\n".join(self.out)
+
+
+class DummyService(object):
+    password = "password"
+
+    def __init__(self, name):
+        self.name = name
+
+
+class DummyKeychain(object):
+    def get_service(self, name):
+        return DummyService(name)
+
+    config_local_dir = Path("/home/.cumulusci")
+    project_cache_dir = Path("/home/project/.cci")

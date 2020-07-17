@@ -26,6 +26,7 @@ from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
+from cumulusci.tests.util import DummyKeychain
 
 
 class TestBaseConfig(unittest.TestCase):
@@ -176,21 +177,6 @@ class DummyGithub(object):
             return self.repositories[name]
         except KeyError:
             raise AssertionError(f"Unexpected repository: {name}")
-
-
-class DummyService(object):
-    password = "password"
-
-    def __init__(self, name):
-        self.name = name
-
-
-class DummyKeychain(object):
-    def get_service(self, name):
-        return DummyService(name)
-
-    config_local_dir = Path("/home/.cumulusci")
-    project_cache_dir = Path("/home/project/.cci")
 
 
 class TestBaseProjectConfig(unittest.TestCase):
