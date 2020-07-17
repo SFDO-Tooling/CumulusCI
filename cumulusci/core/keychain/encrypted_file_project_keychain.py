@@ -25,7 +25,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def project_local_dir(self):
         return self.project_config.project_local_dir
 
-    def _load_files(self, dirname, extension, key, constructor=lambda x: x):
+    def _load_files(self, dirname, extension, key, constructor=None):
         if dirname is None:
             return
         for item in sorted(os.listdir(dirname)):
@@ -35,7 +35,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 name = item.replace(extension, "")
                 if key not in self.config:
                     self.config[key] = {}
-                self.config[key][name] = constructor(config)
+                self.config[key][name] = constructor(config) if constructor else config
 
     def _load_file(self, dirname, filename, key):
         if dirname is None:
