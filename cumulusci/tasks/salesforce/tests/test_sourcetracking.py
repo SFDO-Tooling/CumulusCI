@@ -26,12 +26,12 @@ class TestListChanges(unittest.TestCase):
                 {
                     "MemberType": "CustomObject",
                     "MemberName": "Test__c",
-                    "RevisionNum": 1,
+                    "RevisionCounter": 1,
                 },
                 {
                     "MemberType": "CustomObject",
                     "MemberName": "Ignored__c",
-                    "RevisionNum": 2,
+                    "RevisionCounter": 2,
                 },
             ],
         }
@@ -61,7 +61,7 @@ class TestListChanges(unittest.TestCase):
                     {
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
-                        "RevisionNum": 1,
+                        "RevisionCounter": 1,
                     }
                 ],
             }
@@ -82,7 +82,7 @@ class TestListChanges(unittest.TestCase):
                     {
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
-                        "RevisionNum": 1,
+                        "RevisionCounter": 1,
                     }
                 ],
             }
@@ -90,12 +90,20 @@ class TestListChanges(unittest.TestCase):
             self.assertIn("Found no changes.", messages)
 
     def test_filter_changes__include(self):
-        foo = {"MemberType": "CustomObject", "MemberName": "foo__c", "RevisionNum": 1}
-        bar = {"MemberType": "CustomObject", "MemberName": "bar__c", "RevisionNum": 1}
+        foo = {
+            "MemberType": "CustomObject",
+            "MemberName": "foo__c",
+            "RevisionCounter": 1,
+        }
+        bar = {
+            "MemberType": "CustomObject",
+            "MemberName": "bar__c",
+            "RevisionCounter": 1,
+        }
         foobar = {
             "MemberType": "CustomObject",
             "MemberName": "foobar__c",
-            "RevisionNum": 1,
+            "RevisionCounter": 1,
         }
         task = create_task(ListChanges, {"include": "foo", "exclude": "bar"})
         filtered, ignored = task._filter_changes([foo, bar, foobar])
@@ -105,9 +113,13 @@ class TestListChanges(unittest.TestCase):
         foo = {
             "MemberType": "CustomObject",
             "MemberName": "foo__c",
-            "RevisionNum": None,
+            "RevisionCounter": None,
         }
-        bar = {"MemberType": "CustomObject", "MemberName": "bar__c", "RevisionNum": 1}
+        bar = {
+            "MemberType": "CustomObject",
+            "MemberName": "bar__c",
+            "RevisionCounter": 1,
+        }
         task = create_task(ListChanges, {})
         filtered, ignored = task._filter_changes([foo, bar])
         self.assertEqual([foo, bar], filtered)
@@ -151,7 +163,7 @@ class TestRetrieveChanges(unittest.TestCase):
                     {
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
-                        "RevisionNum": 1,
+                        "RevisionCounter": 1,
                     }
                 ],
             }
@@ -202,7 +214,7 @@ class TestSnapshotChanges(unittest.TestCase):
                             {
                                 "MemberType": "CustomObject",
                                 "MemberName": "Object2",
-                                "RevisionNum": 1,
+                                "RevisionCounter": 1,
                             }
                         ],
                     },
@@ -238,7 +250,7 @@ class TestSnapshotChanges(unittest.TestCase):
                         {
                             "MemberType": "CustomObject",
                             "MemberName": "Object2",
-                            "RevisionNum": None,
+                            "RevisionCounter": None,
                         }
                     ],
                 }
