@@ -100,6 +100,7 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
     def test_set_and_get_org(self, global_org=False):
         keychain = self.keychain_class(self.project_config, self.key)
+        self.org_config.global_org = global_org
         keychain.set_org(self.org_config, global_org)
         self.assertEqual(list(keychain.orgs.keys()), ["test"])
         self.assertEqual(keychain.get_org("test").config, self.org_config.config)
@@ -349,7 +350,9 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
 
     def test_decrypt_config__wrong_key(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_org(self.org_config, True)
+        # print("XXX", self.org_config.global_org)
+        # self.org_config.global_org = True
+        keychain.set_org(self.org_config, False)
 
         keychain.key = "x" * 16
         with pytest.raises(KeychainKeyNotFound):
@@ -487,6 +490,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def test_set_and_get_org_local_should_not_shadow_global(self):
         keychain = self.keychain_class(self.project_config, self.key)
+        self.org_config.global_org = True
         keychain.set_org(self.org_config, global_org=True)
         self.assertEqual(list(keychain.orgs.keys()), ["test"])
         assert isinstance(keychain.orgs["test"], GlobalOrg), keychain.orgs["test"]

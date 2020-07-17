@@ -26,6 +26,8 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     """ Base class for building project keychains that use AES encryption for securing stored org credentials """
 
     encrypted = True
+    keychain = None
+    global_org = None
 
     def _get_connected_app(self):
         if self.app:
@@ -46,6 +48,10 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
         self.services[service] = encrypted
 
     def _set_org(self, org_config, global_org):
+        if org_config.keychain:
+            assert org_config.keychain == self
+        if org_config.global_org is not None:
+            assert org_config.global_org == global_org
         org_config.keychain = self
         org_config.global_org = global_org
         encrypted = self._encrypt_config(org_config)
