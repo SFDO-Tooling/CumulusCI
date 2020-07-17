@@ -903,6 +903,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
         scope="web full refresh_token",
     )
     oauth_dict = oauth_capture()
+    global_org = global_org or runtime.project_config is None
     org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
     org_config.load_userinfo()
     org_config._load_orginfo()
