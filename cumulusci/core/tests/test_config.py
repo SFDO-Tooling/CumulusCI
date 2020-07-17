@@ -1429,14 +1429,6 @@ class TestOrgConfig(unittest.TestCase):
         with self.assertRaises(CumulusCIException):
             config.has_minimum_package_version("GW_Volunteers", "1.0")
 
-    def test_set_value(self):
-        config = OrgConfig({}, "test")
-        config.set("Foo", "Bar")
-        assert config.Foo == "Bar"
-
-        with pytest.raises(AssertionError):
-            config.set("Foo__Bar", "5")
-
     @mock.patch("pathlib.Path.mkdir")
     def test_orginfo_cache_dir_global(self, mkdir):
         config = OrgConfig(
