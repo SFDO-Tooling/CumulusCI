@@ -258,6 +258,42 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
+**check_sobjects_available**
+==========================================
+
+**Description:** Runs as a preflight check to determine whether specific sObjects are available.
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_sobjects_available``
+
+
+
+**check_org_wide_defaults**
+==========================================
+
+**Description:** Runs as a preflight check to validate Organization-Wide Defaults.
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_org_wide_defaults``
+
+
+Options
+------------------------------------------
+
+
+``-o org_wide_defaults ORGWIDEDEFAULTS``
+	 *Required*
+
+	 The Organization-Wide Defaults to check, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature. Checking External Sharing Model when it is turned off will fail the preflight.
+
 **custom_settings_value_wait**
 ==========================================
 
@@ -578,6 +614,43 @@ Options
 
 	 Default: src.orig
 
+**delete_data**
+==========================================
+
+**Description:** Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
+
+**Class:** cumulusci.tasks.bulkdata.DeleteData
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run delete_data``
+
+
+Options
+------------------------------------------
+
+
+``-o objects OBJECTS``
+	 *Required*
+
+	 A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string
+
+``-o where WHERE``
+	 *Optional*
+
+	 A SOQL where-clause (without the keyword WHERE). Only available when 'objects' is length 1.
+
+``-o hardDelete HARDDELETE``
+	 *Optional*
+
+	 If True, perform a hard delete, bypassing the Recycle Bin. Note that this requires the Bulk API Hard Delete permission. Default: False
+
+``-o ignore_row_errors IGNOREROWERRORS``
+	 *Optional*
+
+	 If True, allow the operation to continue even if individual rows fail to delete.
+
 **deploy**
 ==========================================
 
@@ -598,7 +671,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 
@@ -824,7 +897,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: unpackaged/config/qa
 
@@ -1215,10 +1288,10 @@ Options
 
 	 Confirmation that it is okay to delete the data in database_url
 
-``-o debug_dir DEBUGDIR``
+``-o working_directory WORKINGDIRECTORY``
 	 *Optional*
 
-	 Store temporary DB files in debug_dir for easier debugging.
+	 Default path for temporary / working files
 
 ``-o database_url DATABASEURL``
 	 *Optional*
@@ -1270,17 +1343,12 @@ Options
 
 	 Path for Snowfakery to put its next continuation file
 
-``-o working_directory WORKINGDIRECTORY``
-	 *Optional*
-
-	 Default path for temporary / working files
-
 **get_installed_packages**
 ==========================================
 
 **Description:** Retrieves a list of the currently installed managed package namespaces and their versions
 
-**Class:** cumulusci.tasks.salesforce.GetInstalledPackages
+**Class:** cumulusci.tasks.preflight.packages.GetInstalledPackages
 
 Command Syntax
 ------------------------------------------
@@ -1294,7 +1362,7 @@ Command Syntax
 
 **Description:** Retrieves a list of the currently available license definition keys
 
-**Class:** cumulusci.tasks.salesforce.license_preflights.GetAvailableLicenses
+**Class:** cumulusci.tasks.preflight.licenses.GetAvailableLicenses
 
 Command Syntax
 ------------------------------------------
@@ -1308,7 +1376,7 @@ Command Syntax
 
 **Description:** Retrieves a list of the currently available Permission Set License definition keys
 
-**Class:** cumulusci.tasks.salesforce.license_preflights.GetAvailablePermissionSetLicenses
+**Class:** cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
 
 Command Syntax
 ------------------------------------------
@@ -2771,9 +2839,9 @@ Example Output::
     W: 2, 0: No suite documentation (RequireSuiteDocumentation)
     E: 30, 0: No testcase documentation (RequireTestDocumentation)
 
-To see a list of all configured options, set the 'list' option to True:
+To see a list of all configured rules, set the 'list' option to True:
 
-    cci task run robot_list -o list True
+    cci task run robot_lint -o list True
 
 
 Command Syntax
@@ -2913,6 +2981,11 @@ Options
 	 *Optional*
 
 	 Require at least X percent code coverage across the org following the test run.
+
+``-o verbose VERBOSE``
+	 *Optional*
+
+	 By default, only failures get detailed output. Set verbose to True to see all passed test methods.
 
 **set_duplicate_rule_status**
 ==========================================
@@ -3123,7 +3196,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 
@@ -3202,7 +3275,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: unpackaged/pre
 
@@ -3438,6 +3511,11 @@ Options
 	 *Optional*
 
 	 List of dependencies to update. Defaults to project__dependencies. Each dependency is a dict with either 'github' set to a github repository URL or 'namespace' set to a Salesforce package namespace. Github dependencies may include 'tag' to install a particular git ref. Package dependencies may include 'version' to install a particular version.
+
+``-o ignore_dependencies IGNOREDEPENDENCIES``
+	 *Optional*
+
+	 List of dependencies to be ignored, including if they are present as transitive dependencies. Dependencies can be specified using the 'github' or 'namespace' keys (all other keys are not used). Note that this can cause installations to fail if required prerequisites are not available.
 
 ``-o namespaced_org NAMESPACEDORG``
 	 *Optional*
@@ -3731,6 +3809,11 @@ Options
 	 *Optional*
 
 	 Object API names, or fields in Object.Field format, to ignore
+
+``-o include INCLUDE``
+	 *Optional*
+
+	 Object names to include even if they might not otherwise be included.
 
 **extract_dataset**
 ==========================================

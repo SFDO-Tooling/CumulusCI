@@ -444,9 +444,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         else:
             name = self.config_project.get("project", {}).get("name", "")
 
-        path = os.path.join(
-            os.path.expanduser("~"), self.global_config_obj.config_local_dir, name
-        )
+        path = str(self.global_config_obj.cumulusci_config_dir / name)
         if not os.path.isdir(path):
             os.makedirs(path)
         return path
@@ -519,7 +517,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return (release, ref)
 
-    def get_static_dependencies(self, dependencies=None, include_beta=None):
+    def get_static_dependencies(
+        self, dependencies=None, include_beta=None, ignore_deps=None
+    ):
         """Resolves the project -> dependencies section of cumulusci.yml
         to convert dynamic github dependencies into static dependencies
         by inspecting the referenced repositories.
@@ -527,6 +527,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         Keyword arguments:
         :param dependencies: a list of dependencies to resolve
         :param include_beta: when true, return the latest github release, even if pre-release; else return the latest stable release
+        :param ignore_deps: if provided, ignore the specified dependencies wherever found.
         """
         if not dependencies:
             dependencies = self.project__dependencies
@@ -536,14 +537,30 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         static_dependencies = []
         for dependency in dependencies:
+            if self._should_ignore_dependency(dependency, ignore_deps):
+                continue
+
             if "github" not in dependency:
                 static_dependencies.append(dependency)
             else:
                 static = self.process_github_dependency(
-                    dependency, include_beta=include_beta
+                    dependency, include_beta=include_beta, ignore_deps=ignore_deps
                 )
                 static_dependencies.extend(static)
         return static_dependencies
+
+    def _should_ignore_dependency(self, dependency, ignore_deps):
+        if not ignore_deps:
+            return False
+
+        if "github" in dependency:
+            return dependency["github"] in [dep.get("github") for dep in ignore_deps]
+        elif "namespace" in dependency:
+            return dependency["namespace"] in [
+                dep.get("namespace") for dep in ignore_deps
+            ]
+
+        return False
 
     def pretty_dependencies(self, dependencies, indent=None):
         if not indent:
@@ -570,7 +587,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return pretty
 
     def process_github_dependency(  # noqa: C901
-        self, dependency, indent=None, include_beta=None
+        self, dependency, indent=None, include_beta=None, ignore_deps=None
     ):
         if not indent:
             indent = ""
@@ -698,7 +715,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         dependencies = project.get("dependencies")
         if dependencies:
             dependencies = self.get_static_dependencies(
-                dependencies, include_beta=include_beta
+                dependencies, include_beta=include_beta, ignore_deps=ignore_deps
             )
 
         # Create the final ordered list of all parsed dependencies
