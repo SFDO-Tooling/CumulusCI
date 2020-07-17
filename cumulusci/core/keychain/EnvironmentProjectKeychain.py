@@ -44,7 +44,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
                 org_name = key[len(self.org_var_prefix) :].lower()
                 if org_config.get("scratch"):
                     self.orgs[org_name] = scratch_org_factory(
-                        json.loads(value), org_name, self, global_org=False
+                        json.loads(value), org_name, keychain=self, global_org=False
                     )
                 else:
                     self.orgs[org_name] = OrgConfig(
