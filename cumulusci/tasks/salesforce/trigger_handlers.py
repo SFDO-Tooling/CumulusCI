@@ -23,7 +23,7 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
             "description": "True or False to activate or deactivate trigger handlers."
         },
         "restore_file": {
-            "description": "Path to the state file to store or restore the current trigger handler state. Set to False to ignore trigger state. By default the state is cached in an org-specific directory for later restore."
+            "description": "Path to the state file to store or restore the current trigger handler state. Set to False to discard trigger state information. By default the state is cached in an org-specific directory for later restore."
         },
         "restore": {
             "description": "If True, restore the state of Trigger Handlers to that stored in the (specified or default) restore file."
