@@ -1288,10 +1288,10 @@ Options
 
 	 Confirmation that it is okay to delete the data in database_url
 
-``-o debug_dir DEBUGDIR``
+``-o working_directory WORKINGDIRECTORY``
 	 *Optional*
 
-	 Store temporary DB files in debug_dir for easier debugging.
+	 Default path for temporary / working files
 
 ``-o database_url DATABASEURL``
 	 *Optional*
@@ -1342,11 +1342,6 @@ Options
 	 *Optional*
 
 	 Path for Snowfakery to put its next continuation file
-
-``-o working_directory WORKINGDIRECTORY``
-	 *Optional*
-
-	 Default path for temporary / working files
 
 **get_installed_packages**
 ==========================================
