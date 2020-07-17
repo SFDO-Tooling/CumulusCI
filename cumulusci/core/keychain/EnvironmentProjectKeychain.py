@@ -48,7 +48,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
                     )
                 else:
                     self.orgs[org_name] = OrgConfig(
-                        json.loads(value), org_name, self, global_org=False
+                        json.loads(value), org_name, keychain=self, global_org=False
                     )
 
     def _load_services(self):
