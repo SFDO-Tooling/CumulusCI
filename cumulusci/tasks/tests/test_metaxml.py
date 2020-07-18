@@ -2,7 +2,7 @@ from unittest import mock
 import os
 import unittest
 
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import BaseUniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.tasks.metaxml import UpdateApi
@@ -26,7 +26,7 @@ class TestUpdateApi(unittest.TestCase):
                 )
 
             project_config = BaseProjectConfig(
-                BaseGlobalConfig(), config={"noyaml": True}
+                BaseUniversalConfig(), config={"noyaml": True}
             )
             task_config = TaskConfig({"options": {"version": "43.0"}})
             task = UpdateApi(project_config, task_config)
@@ -69,7 +69,7 @@ class TestUpdateDependencies(unittest.TestCase):
                 )
 
             project_config = BaseProjectConfig(
-                BaseGlobalConfig(), config={"noyaml": True}
+                BaseUniversalConfig(), config={"noyaml": True}
             )
             project_config.get_static_dependencies = mock.Mock(
                 return_value=[

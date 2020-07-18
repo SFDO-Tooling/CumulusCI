@@ -32,7 +32,7 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import BaseUniversalConfig
 from cumulusci.core.github import create_gist, get_github_api
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import CumulusCIException
@@ -59,7 +59,7 @@ from .logger import init_logger, get_tempfile_logger
 def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
 
-    config_dir = BaseGlobalConfig.default_cumulusci_dir()
+    config_dir = BaseUniversalConfig.default_cumulusci_dir()
     timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
 
     try:

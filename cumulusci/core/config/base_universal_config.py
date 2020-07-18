@@ -10,7 +10,7 @@ from cumulusci.core.config import BaseTaskFlowConfig
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
-class BaseGlobalConfig(BaseTaskFlowConfig):
+class BaseUniversalConfig(BaseTaskFlowConfig):
     """ Base class for the global config which contains all configuration not specific to projects """
 
     config = None
@@ -30,7 +30,7 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
     @staticmethod
     def default_cumulusci_dir():
         """Get the root directory for storing persistent data (~/.cumulusci)
-        
+
         Creates it if it doesn't exist yet.
         """
         config_dir = Path.home() / ".cumulusci"
@@ -61,13 +61,13 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
     def _load_config(self):
         """ Loads the local configuration """
         # avoid loading multiple times
-        if BaseGlobalConfig.config is not None:
+        if BaseUniversalConfig.config is not None:
             return
 
         # load the global config
         with open(self.config_global_path, "r") as f_config:
             config = yaml.safe_load(f_config)
-        BaseGlobalConfig.config_global = config
+        BaseUniversalConfig.config_global = config
 
         # Load the local config
         if self.config_global_local_path:
@@ -75,11 +75,11 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
                 config = yaml.safe_load(f)
         else:
             config = {}
-        BaseGlobalConfig.config_global_local = config
+        BaseUniversalConfig.config_global_local = config
 
-        BaseGlobalConfig.config = merge_config(
+        BaseUniversalConfig.config = merge_config(
             {
-                "global_config": BaseGlobalConfig.config_global,
-                "global_local": BaseGlobalConfig.config_global_local,
+                "global_config": BaseUniversalConfig.config_global,
+                "global_local": BaseUniversalConfig.config_global_local,
             }
         )

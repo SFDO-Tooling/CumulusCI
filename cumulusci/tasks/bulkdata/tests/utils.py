@@ -1,11 +1,11 @@
-from cumulusci.core.config import BaseGlobalConfig, BaseProjectConfig, TaskConfig
+from cumulusci.core.config import BaseUniversalConfig, BaseProjectConfig, TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tests.util import DummyOrgConfig
 
 
 def _make_task(task_class, task_config):
     task_config = TaskConfig(task_config)
-    global_config = BaseGlobalConfig()
+    global_config = BaseUniversalConfig()
     project_config = BaseProjectConfig(
         global_config,
         config={"noyaml": True, "project": {"package": {"api_version": "46.0"}}},
