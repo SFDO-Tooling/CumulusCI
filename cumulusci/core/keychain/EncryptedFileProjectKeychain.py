@@ -12,7 +12,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def config_local_dir(self):
         try:
             config_local_dir = (
-                self.project_config.global_config_obj.cumulusci_config_dir
+                self.project_config.universal_config_obj.cumulusci_config_dir
             )
         except AttributeError:
             # Handle a global config passed as a project config

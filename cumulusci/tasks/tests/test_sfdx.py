@@ -25,9 +25,9 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
     """ Tests for the Base Task type """
 
     def setUp(self):
-        self.global_config = BaseUniversalConfig()
+        self.universal_config = BaseUniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.task_config = TaskConfig()
 

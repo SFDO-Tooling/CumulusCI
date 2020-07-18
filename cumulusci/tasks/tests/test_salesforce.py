@@ -19,11 +19,11 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 class TestSalesforceToolingTask(unittest.TestCase):
     def setUp(self):
         self.api_version = 36.0
-        self.global_config = BaseUniversalConfig(
+        self.universal_config = BaseUniversalConfig(
             {"project": {"package": {"api_version": self.api_version}}}
         )
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}

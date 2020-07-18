@@ -21,9 +21,9 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
     """ Tests for the basic command task """
 
     def setUp(self):
-        self.global_config = BaseUniversalConfig()
+        self.universal_config = BaseUniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.task_config = TaskConfig()
         self._task_log_handler.reset()
@@ -91,9 +91,9 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
 
 class TestSalesforceCommand(unittest.TestCase):
     def setUp(self):
-        self.global_config = BaseUniversalConfig()
+        self.universal_config = BaseUniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.task_config = TaskConfig({"options": {"command": "ls"}})
         self.org_config = OrgConfig(

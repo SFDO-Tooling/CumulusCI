@@ -204,7 +204,7 @@ def main(args=None):
         debug = "--debug" in args
         if debug:
             args.remove("--debug")
-        should_show_stacktraces = RUNTIME.global_config.cli__show_stacktraces
+        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
 
         # Only create logfiles for commands
         # that are not `cci error`
@@ -463,7 +463,7 @@ def project_init(runtime):
     click.echo()
     context["api_version"] = click.prompt(
         click.style("Salesforce API Version", bold=True),
-        default=runtime.global_config.project__package__api_version,
+        default=runtime.universal_config.project__package__api_version,
     )
 
     click.echo()
@@ -522,7 +522,7 @@ def project_init(runtime):
     )
     if (
         git_default_branch
-        and git_default_branch != runtime.global_config.project__git__default_branch
+        and git_default_branch != runtime.universal_config.project__git__default_branch
     ):
         git_config["default_branch"] = git_default_branch
 
@@ -531,7 +531,7 @@ def project_init(runtime):
     )
     if (
         git_prefix_feature
-        and git_prefix_feature != runtime.global_config.project__git__prefix_feature
+        and git_prefix_feature != runtime.universal_config.project__git__prefix_feature
     ):
         git_config["prefix_feature"] = git_prefix_feature
 
@@ -540,7 +540,7 @@ def project_init(runtime):
     )
     if (
         git_prefix_beta
-        and git_prefix_beta != runtime.global_config.project__git__prefix_beta
+        and git_prefix_beta != runtime.universal_config.project__git__prefix_beta
     ):
         git_config["prefix_beta"] = git_prefix_beta
 
@@ -549,7 +549,7 @@ def project_init(runtime):
     )
     if (
         git_prefix_release
-        and git_prefix_release != runtime.global_config.project__git__prefix_release
+        and git_prefix_release != runtime.universal_config.project__git__prefix_release
     ):
         git_config["prefix_release"] = git_prefix_release
 
@@ -564,11 +564,11 @@ def project_init(runtime):
 
     test_name_match = click.prompt(
         click.style("Test Name Match", bold=True),
-        default=runtime.global_config.project__test__name_match,
+        default=runtime.universal_config.project__test__name_match,
     )
     if (
         test_name_match
-        and test_name_match == runtime.global_config.project__test__name_match
+        and test_name_match == runtime.universal_config.project__test__name_match
     ):
         test_name_match = None
     context["test_name_match"] = test_name_match
@@ -728,10 +728,10 @@ def service_list(runtime, plain, print_json):
     services = (
         runtime.project_config.services
         if runtime.project_config is not None
-        else runtime.global_config.services
+        else runtime.universal_config.services
     )
     configured_services = runtime.keychain.list_services()
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
 
     data = [["Name", "Description", "Configured"]]
     for serv, schema in services.items():
@@ -758,7 +758,7 @@ class ConnectServiceCommand(click.MultiCommand):
         return (
             runtime.project_config.services
             if runtime.project_config
-            else runtime.global_config.services
+            else runtime.universal_config.services
         )
 
     def list_commands(self, ctx):
@@ -822,7 +822,7 @@ def service_connect():
 @pass_runtime(require_project=False, require_keychain=True)
 def service_info(runtime, service_name, plain):
     try:
-        plain = plain or runtime.global_config.cli__plain_output
+        plain = plain or runtime.universal_config.cli__plain_output
         service_config = runtime.keychain.get_service(service_name)
         service_data = [["Key", "Value"]]
         service_data.extend(
@@ -1032,7 +1032,7 @@ def org_info(runtime, org_name, print_json):
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_runtime(require_project=False, require_keychain=True)
 def org_list(runtime, plain):
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
     header = ["Name", "Default", "Username", "Expires"]
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
@@ -1311,9 +1311,9 @@ def task_list(runtime, plain, print_json):
     tasks = (
         runtime.project_config.list_tasks()
         if runtime.project_config is not None
-        else runtime.global_config.list_tasks()
+        else runtime.universal_config.list_tasks()
     )
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
 
     if print_json:
         click.echo(json.dumps(tasks))
@@ -1341,7 +1341,7 @@ def task_list(runtime, plain, print_json):
 @task.command(name="doc", help="Exports RST format documentation for all tasks")
 @pass_runtime(require_project=False)
 def task_doc(runtime):
-    config_src = runtime.global_config
+    config_src = runtime.universal_config
 
     click.echo("==========================================")
     click.echo("Tasks Reference")
@@ -1362,7 +1362,7 @@ def task_info(runtime, task_name):
     task_config = (
         runtime.project_config.get_task(task_name)
         if runtime.project_config is not None
-        else runtime.global_config.get_task(task_name)
+        else runtime.universal_config.get_task(task_name)
     )
 
     doc = doc_task(task_name, task_config).encode()
@@ -1453,11 +1453,11 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False)
 def flow_list(runtime, plain, print_json):
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
     flows = (
         runtime.project_config.list_flows()
         if runtime.project_config is not None
-        else runtime.global_config.list_flows()
+        else runtime.universal_config.list_flows()
     )
 
     if print_json:

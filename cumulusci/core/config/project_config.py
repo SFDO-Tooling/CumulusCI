@@ -37,8 +37,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     config_filename = "cumulusci.yml"
 
-    def __init__(self, global_config_obj, config=None, *args, **kwargs):
-        self.global_config_obj = global_config_obj
+    def __init__(self, universal_config_obj, config=None, *args, **kwargs):
+        self.universal_config_obj = universal_config_obj
         self.keychain = None
 
         # optionally pass in a repo_info dict
@@ -113,7 +113,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         self.config = merge_config(
             {
-                "global_config": self.config_global,
+                "universal_config": self.config_global,
                 "global_local": self.config_global_local,
                 "project_config": self.config_project,
                 "project_local_config": self.config_project_local,
@@ -138,11 +138,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def config_global_local(self):
-        return self.global_config_obj.config_global_local
+        return self.universal_config_obj.config_global_local
 
     @property
     def config_global(self):
-        return self.global_config_obj.config_global
+        return self.universal_config_obj.config_global
 
     @property
     def repo_info(self):
@@ -444,7 +444,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         else:
             name = self.config_project.get("project", {}).get("name", "")
 
-        path = str(self.global_config_obj.cumulusci_config_dir / name)
+        path = str(self.universal_config_obj.cumulusci_config_dir / name)
         if not os.path.isdir(path):
             os.makedirs(path)
         return path
@@ -829,7 +829,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def construct_subproject_config(self, **kwargs):
         """Construct another project config for an external source"""
         return self.__class__(
-            self.global_config_obj, included_sources=self.included_sources, **kwargs
+            self.universal_config_obj, included_sources=self.included_sources, **kwargs
         )
 
     def relpath(self, path):

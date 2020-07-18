@@ -31,7 +31,7 @@ class TestBaseUniversalConfig(unittest.TestCase):
     def teardown_method(self, method):
         shutil.rmtree(self.tempdir_home)
 
-    def _create_global_config_local(self, content):
+    def _create_universal_config_local(self, content):
         global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
         os.makedirs(global_local_dir)
         filename = os.path.join(global_local_dir, BaseUniversalConfig.config_filename)
@@ -41,7 +41,7 @@ class TestBaseUniversalConfig(unittest.TestCase):
         with open(filename, "w") as f:
             f.write(content)
 
-    def test_load_global_config_no_local(self, mock_class):
+    def test_load_universal_config_no_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
         # clear cache
         BaseUniversalConfig.config = None
@@ -50,8 +50,8 @@ class TestBaseUniversalConfig(unittest.TestCase):
             expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
-    def test_load_global_config_empty_local(self, mock_class):
-        self._create_global_config_local("")
+    def test_load_universal_config_empty_local(self, mock_class):
+        self._create_universal_config_local("")
         mock_class.return_value = self.tempdir_home
 
         config = BaseUniversalConfig()
@@ -59,9 +59,9 @@ class TestBaseUniversalConfig(unittest.TestCase):
             expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
-    def test_load_global_config_with_local(self, mock_class):
+    def test_load_universal_config_with_local(self, mock_class):
         local_yaml = "tasks:\n    newtesttask:\n        description: test description"
-        self._create_global_config_local(local_yaml)
+        self._create_universal_config_local(local_yaml)
         mock_class.return_value = self.tempdir_home
 
         # clear cache
@@ -95,7 +95,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         content = self.current_commit
         self._write_file(filename, content)
 
-    def _create_global_config_local(self, content):
+    def _create_universal_config_local(self, content):
         global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
         os.makedirs(global_local_dir)
         filename = os.path.join(global_local_dir, BaseUniversalConfig.config_filename)
@@ -138,17 +138,17 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_load_project_config_not_repo(self, mock_class):
         mock_class.return_value = self.tempdir_home
         with cd(self.tempdir_project):
-            global_config = BaseUniversalConfig()
+            universal_config = BaseUniversalConfig()
             with self.assertRaises(NotInProject):
-                BaseProjectConfig(global_config)
+                BaseProjectConfig(universal_config)
 
     def test_load_project_config_no_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
         os.mkdir(os.path.join(self.tempdir_project, ".git"))
         with cd(self.tempdir_project):
-            global_config = BaseUniversalConfig()
+            universal_config = BaseUniversalConfig()
             with self.assertRaises(ProjectConfigNotFound):
-                BaseProjectConfig(global_config)
+                BaseProjectConfig(universal_config)
 
     def test_load_project_config_empty_config(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -160,8 +160,8 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._write_file(filename, content)
 
         with cd(self.tempdir_project):
-            global_config = BaseUniversalConfig()
-            config = BaseProjectConfig(global_config)
+            universal_config = BaseUniversalConfig()
+            config = BaseProjectConfig(universal_config)
             self.assertEqual(config.config_project, {})
 
     def test_load_project_config_valid_config(self, mock_class):
@@ -169,14 +169,14 @@ class TestBaseProjectConfig(unittest.TestCase):
         os.mkdir(os.path.join(self.tempdir_project, ".git"))
         self._create_git_config()
         local_yaml = "tasks:\n    newtesttask:\n        description: test description"
-        self._create_global_config_local(local_yaml)
+        self._create_universal_config_local(local_yaml)
 
         # create valid project config file
         self._create_project_config()
 
         with cd(self.tempdir_project):
-            global_config = BaseUniversalConfig()
-            config = BaseProjectConfig(global_config)
+            universal_config = BaseUniversalConfig()
+            config = BaseProjectConfig(universal_config)
             self.assertEqual(config.project__package__name, "TestProject")
             self.assertEqual(config.project__package__namespace, "testproject")
 
@@ -189,8 +189,8 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         with cd(self.tempdir_project):
-            global_config = BaseUniversalConfig()
-            config = BaseProjectConfig(global_config)
+            universal_config = BaseUniversalConfig()
+            config = BaseProjectConfig(universal_config)
             self.assertEqual(config.repo_owner, "TestOwner")
 
     def test_repo_branch(self, mock_class):
@@ -202,8 +202,8 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         with cd(self.tempdir_project):
-            global_config = BaseUniversalConfig()
-            config = BaseProjectConfig(global_config)
+            universal_config = BaseUniversalConfig()
+            config = BaseProjectConfig(universal_config)
             self.assertEqual(config.repo_branch, self.current_branch)
 
     def test_repo_commit(self, mock_class):
@@ -215,8 +215,8 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         with cd(self.tempdir_project):
-            global_config = BaseUniversalConfig()
-            config = BaseProjectConfig(global_config)
+            universal_config = BaseUniversalConfig()
+            config = BaseProjectConfig(universal_config)
             self.assertEqual(config.repo_commit, self.current_commit)
 
     def test_load_project_config_local(self, mock_class):
@@ -232,8 +232,8 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config_local(content)
 
         with cd(self.tempdir_project):
-            global_config = BaseUniversalConfig()
-            config = BaseProjectConfig(global_config)
+            universal_config = BaseUniversalConfig()
+            config = BaseProjectConfig(universal_config)
             self.assertNotEqual(config.config_project_local, {})
             self.assertEqual(config.project__package__api_version, 45.0)
 
@@ -249,8 +249,8 @@ class TestBaseProjectConfig(unittest.TestCase):
         content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
 
         with cd(self.tempdir_project):
-            global_config = BaseUniversalConfig()
-            config = BaseProjectConfig(global_config, additional_yaml=content)
+            universal_config = BaseUniversalConfig()
+            config = BaseProjectConfig(universal_config, additional_yaml=content)
             self.assertNotEqual(config.config_additional_yaml, {})
             self.assertEqual(config.project__package__api_version, 45.0)
 

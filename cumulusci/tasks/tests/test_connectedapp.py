@@ -30,9 +30,9 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
     """ Tests for the CreateConnectedApp task """
 
     def setUp(self):
-        self.global_config = BaseUniversalConfig()
+        self.universal_config = BaseUniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
 
         keychain = BaseProjectKeychain(self.project_config, "")

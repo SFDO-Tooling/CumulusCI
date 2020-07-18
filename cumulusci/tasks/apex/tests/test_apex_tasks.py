@@ -41,7 +41,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
         self.api_version = 38.0
-        self.global_config = BaseUniversalConfig(
+        self.universal_config = BaseUniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
         self.task_config = TaskConfig()
@@ -51,7 +51,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             "test_name_match": "%_TEST",
         }
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
@@ -768,7 +768,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
 class TestAnonymousApexTask(unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
-        self.global_config = BaseUniversalConfig(
+        self.universal_config = BaseUniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
         self.tmpdir = tempfile.mkdtemp(dir=".")
@@ -783,7 +783,7 @@ class TestAnonymousApexTask(unittest.TestCase):
             "param1": "StringValue",
         }
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config = {
             "project": {
@@ -936,7 +936,7 @@ class TestAnonymousApexTask(unittest.TestCase):
 class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
-        self.global_config = BaseUniversalConfig(
+        self.universal_config = BaseUniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
         self.task_config = TaskConfig()
@@ -945,7 +945,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
             "poll_interval": 1,
         }
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}

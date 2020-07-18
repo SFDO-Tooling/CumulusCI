@@ -79,7 +79,7 @@ class BaseUniversalConfig(BaseTaskFlowConfig):
 
         BaseUniversalConfig.config = merge_config(
             {
-                "global_config": BaseUniversalConfig.config_global,
+                "universal_config": BaseUniversalConfig.config_global,
                 "global_local": BaseUniversalConfig.config_global_local,
             }
         )

@@ -24,8 +24,8 @@ from cumulusci.utils import touch
 class TestGitHubSource(unittest.TestCase, MockUtil):
     def setUp(self):
         self.repo_api_url = "https://api.github.com/repos/TestOwner/TestRepo"
-        global_config = BaseUniversalConfig()
-        self.project_config = BaseProjectConfig(global_config)
+        universal_config = BaseUniversalConfig()
+        self.project_config = BaseProjectConfig(universal_config)
         self.project_config.set_keychain(BaseProjectKeychain(self.project_config, None))
         self.project_config.keychain.set_service(
             "github",

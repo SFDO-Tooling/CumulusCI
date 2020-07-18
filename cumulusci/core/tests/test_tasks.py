@@ -40,9 +40,9 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
     task_class = BaseTask
 
     def setUp(self):
-        self.global_config = BaseUniversalConfig()
+        self.universal_config = BaseUniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.org_config = OrgConfig({"username": USERNAME, "org_id": ORG_ID}, "test")
         self.task_config = TaskConfig()
