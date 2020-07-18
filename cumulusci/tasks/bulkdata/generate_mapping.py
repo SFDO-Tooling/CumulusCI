@@ -167,58 +167,82 @@ class GenerateMapping(BaseSalesforceApiTask):
         """Output self.schema in mapping file format by constructing a dict and serializing to YAML"""
         objs = set(self.schema.keys())
         stack = self._split_dependencies(objs, self.refs)
+        ns = self.project_config.project__package__namespace
 
         def strip_namespace(element):
-            ns = self.project_config.project__package__namespace
-            if self.options["strip_namespace"] and ns and element.startswith(ns):
+            if self.options["strip_namespace"] and ns and element.startswith(f"{ns}__"):
                 return element[len(ns) + 2 :]
             else:
                 return element
 
         self.mapping = {}
-        for obj in stack:
-            key = f"Insert {strip_namespace(obj)}"
+        for orig_obj in stack:
+            # Check if it's safe for us to strip the namespace from this object
+            stripped_obj = (
+                strip_namespace(orig_obj)
+                if strip_namespace(orig_obj) not in stack
+                else orig_obj
+            )
+            key = f"Insert {stripped_obj}"
             self.mapping[key] = {}
-            self.mapping[key]["sf_object"] = strip_namespace(obj)
+            self.mapping[key]["sf_object"] = stripped_obj
             fields = []
             lookups = []
-            for field in self.schema[obj].values():
+            for field in self.schema[orig_obj].values():
                 if field["type"] == "reference" and field["name"] != "RecordTypeId":
                     # For lookups, namespace stripping takes place below.
                     lookups.append(field["name"])
                 else:
-                    fields.append(strip_namespace(field["name"]))
+                    fields.append(field["name"])
             if fields:
-                fields = [strip_namespace(f) for f in fields]
-                fields.sort()
-                self.mapping[key]["fields"] = fields
+                fields_stripped = [
+                    strip_namespace(f) if strip_namespace(f) not in fields else f
+                    for f in fields
+                ]
+                fields_stripped.sort()
+                self.mapping[key]["fields"] = fields_stripped
             if lookups:
                 lookups.sort()
                 self.mapping[key]["lookups"] = {}
-                for field in lookups:
+                for orig_field in lookups:
                     # First, determine what manner of lookup we have here.
-                    referenceTo = self.schema[obj][field]["referenceTo"]
+                    stripped_field = (
+                        strip_namespace(orig_field)
+                        if strip_namespace(orig_field) not in lookups
+                        else orig_field
+                    )
+                    referenceTo = self.schema[orig_obj][orig_field]["referenceTo"]
 
                     if len(referenceTo) > 1:  # Polymorphic lookup
                         self.logger.warning(
-                            f"Field {obj}.{field} is a polymorphic lookup, which is not supported"
+                            f"Field {orig_obj}.{orig_field} is a polymorphic lookup, which is not supported"
                         )
-                    elif referenceTo[0] == obj:  # Self-lookup
-                        self.mapping[key]["lookups"][strip_namespace(field)] = {
-                            "table": strip_namespace(referenceTo[0]),
-                            "after": key,
-                        }
-                    elif stack.index(referenceTo[0]) > stack.index(
-                        obj
-                    ):  # Dependent lookup
-                        self.mapping[key]["lookups"][strip_namespace(field)] = {
-                            "table": strip_namespace(referenceTo[0]),
-                            "after": f"Insert {strip_namespace(referenceTo[0])}",
-                        }
-                    else:  # Regular lookup
-                        self.mapping[key]["lookups"][strip_namespace(field)] = {
-                            "table": strip_namespace(referenceTo[0])
-                        }
+                    else:
+                        orig_reference = referenceTo[0]
+
+                        # Can we safely namespace-strip this reference?
+                        stripped_reference = (
+                            strip_namespace(orig_reference)
+                            if strip_namespace(orig_reference) not in stack
+                            else orig_reference
+                        )
+
+                        if orig_reference == orig_obj:  # Self-lookup
+                            self.mapping[key]["lookups"][stripped_field] = {
+                                "table": stripped_reference,
+                                "after": key,
+                            }
+                        elif stack.index(orig_reference) > stack.index(
+                            orig_obj
+                        ):  # Dependent lookup
+                            self.mapping[key]["lookups"][stripped_field] = {
+                                "table": stripped_reference,
+                                "after": f"Insert {stripped_reference}",
+                            }
+                        else:  # Regular lookup
+                            self.mapping[key]["lookups"][stripped_field] = {
+                                "table": stripped_reference
+                            }
 
     def _split_dependencies(self, objs, dependencies):
         """Attempt to flatten the object network into a sequence of load operations."""
