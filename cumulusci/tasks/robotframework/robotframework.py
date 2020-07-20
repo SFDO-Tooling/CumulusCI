@@ -39,7 +39,7 @@ class Robot(BaseSalesforceTask):
             "description": "If true, enable the `breakpoint` keyword to enable the robot debugger"
         },
         "processes": {
-            "description": "*zexperimental* Number of parallel processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robot. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.",
+            "description": "*experimental* Number of processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robotframework. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.",
             "type": "integer",
             "default": "1",
         },
