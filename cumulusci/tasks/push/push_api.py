@@ -1,5 +1,5 @@
-import json
 import functools
+import json
 
 from simple_salesforce import SalesforceMalformedRequest
 
@@ -633,11 +633,6 @@ class SalesforcePushApi(object):
                 else:
                     self.logger.error("Skipping batch (no valid orgs)")
         return batch
-
-    def _get_org_id(self, records, ref_id):
-        for record in records:
-            if record["attributes"]["referenceId"] == ref_id:
-                return record["SubscriberOrganizationKey"]
 
     def cancel_push_request(self, request_id):
         return self.sf.PackagePushRequest.update(request_id, {"Status": "Canceled"})

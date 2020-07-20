@@ -1,21 +1,21 @@
+import datetime
 import json
 from unittest import mock
 
 import pytest
-import datetime
 from simple_salesforce import SalesforceMalformedRequest
 
 from cumulusci.tasks.push.push_api import (
-    memoize,
-    batch_list,
+    BasePushApiObject,
     MetadataPackage,
     MetadataPackageVersion,
-    BasePushApiObject,
-    PackageSubscriber,
     PackagePushError,
     PackagePushJob,
     PackagePushRequest,
+    PackageSubscriber,
     SalesforcePushApi,
+    batch_list,
+    memoize,
 )
 
 NAME = "Chewbacca"
@@ -347,8 +347,9 @@ def test_sf_push_get_push_errors(sf_push_api):
 
 
 def test_sf_push_get_push_error_objs(sf_push_api, package_push_job, package_push_error):
-    sf_push_api.get_push_jobs_by_id = mock.MagicMock()
-    sf_push_api.get_push_jobs_by_id.side_effect = [[package_push_job], ["Foo"]]
+    sf_push_api.get_push_job_objs = mock.MagicMock()
+    sf_push_api.get_push_job_objs.return_value = [package_push_job]
+    sf_push_api.lazy = ["jobs"]
     sf_push_api.get_push_errors = mock.MagicMock()
     record = {
         "ErrorSeverity": "high",
@@ -357,10 +358,12 @@ def test_sf_push_get_push_error_objs(sf_push_api, package_push_job, package_push
         "ErrorMessage": "The foo hit the bar",
         "ErrorDetails": "foo bar, foo, foo bar",
         "Id": SF_ID,
+        "PackagePushJobId": "pkg_push_id",
     }
     sf_push_api.get_push_errors.return_value = [record]
 
     actual_result_list = sf_push_api.get_push_error_objs("Name='foo'", None)
+    sf_push_api.get_push_job_objs.assert_called_once_with(where="Id = 'pkg_push_id'")
     assert len(actual_result_list) == 1
     actual_result = actual_result_list[0]
     assert record["ErrorMessage"] == actual_result.message
@@ -376,22 +379,6 @@ def test_sf_push_get_push_errors_by_id(sf_push_api, package_push_error):
     push_error_result = sf_push_api.get_push_errors_by_id("Name='foo'", None)
     sf_push_api.get_push_error_objs.assert_called_with("Name='foo'", None)
     assert push_error_expected == push_error_result
-
-
-def test_sf_push_get_org_id(sf_push_api):
-    assert sf_push_api._get_org_id(
-        [
-            {
-                "attributes": {"referenceId": "12"},
-                "SubscriberOrganizationKey": {"id": "hello"},
-            },
-            {
-                "attributes": {"referenceId": "13"},
-                "SubscriberOrganizationKey": {"id": "world"},
-            },
-        ],
-        "13",
-    ) == {"id": "world"}
 
 
 def test_sf_push_cancel_push_request(sf_push_api):
