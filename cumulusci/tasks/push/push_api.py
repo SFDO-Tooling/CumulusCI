@@ -519,10 +519,7 @@ class SalesforcePushApi(object):
                 jobs = self.get_push_job_objs(
                     where="Id = '%s'" % push_error["PackagePushJobId"]
                 )
-                if jobs:
-                    job = jobs[0]
-                else:
-                    job = None
+            job = jobs[0] if jobs else None
 
             push_error_objs.append(
                 PackagePushError(
@@ -588,15 +585,11 @@ class SalesforcePushApi(object):
     def _add_batch(self, batch, request_id):
 
         # add orgs to batch data
-        batch = set(batch)
         batch_data = {"records": []}
         for i, org in enumerate(batch):
             batch_data["records"].append(
                 {
-                    "attributes": {
-                        "type": "PackagePushJob",
-                        "referenceId": "org{}".format(i),
-                    },
+                    "attributes": {"type": "PackagePushJob", "referenceId": org},
                     "PackagePushRequestId": request_id,
                     "SubscriberOrganizationKey": org,
                 }
@@ -610,7 +603,6 @@ class SalesforcePushApi(object):
                 data=json.dumps(batch_data),
             )
         except SalesforceMalformedRequest as e:
-            invalid_orgs = set()
             retry_all = False
             for result in e.content["results"]:
                 for error in result["errors"]:
@@ -622,10 +614,8 @@ class SalesforcePushApi(object):
                         "INVALID_OPERATION",
                         "UNKNOWN_EXCEPTION",
                     ]:
-                        org_id = self._get_org_id(
-                            batch_data["records"], result["referenceId"]
-                        )
-                        invalid_orgs.add(org_id)
+                        org_id = result["referenceId"]
+                        batch.remove(org_id)
                         self.logger.info(
                             "Skipping org {} - {}".format(org_id, error["message"])
                         )
@@ -637,7 +627,6 @@ class SalesforcePushApi(object):
                 self.logger.warning("Retrying batch")
                 batch = self._add_batch(batch, request_id)
             else:
-                batch -= invalid_orgs
                 if batch:
                     self.logger.warning("Retrying batch without invalid orgs")
                     batch = self._add_batch(batch, request_id)

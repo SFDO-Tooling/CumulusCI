@@ -1,7 +1,9 @@
+import json
 from unittest import mock
 
 import pytest
 import datetime
+from simple_salesforce import SalesforceMalformedRequest
 
 from cumulusci.tasks.push.push_api import (
     memoize,
@@ -61,6 +63,56 @@ def metadata_package_version(metadata_package):
     )
 
 
+@pytest.fixture
+def package_push_job():
+    return PackagePushJob(
+        push_api=mock.MagicMock(),
+        request="",
+        org="00DS0000003TJJ6MAO",
+        status="Succeeded",
+        sf_id=SF_ID,
+    )
+
+
+@pytest.fixture
+def package_subscriber():
+    return PackageSubscriber(
+        push_api=mock.MagicMock(),
+        version="1.2.3",
+        status="Succeeded",
+        org_name="foo",
+        org_key="bar",
+        org_status="Succeeded",
+        org_type="Sandbox",
+        sf_id=SF_ID,
+    )
+
+
+@pytest.fixture
+def package_push_error():
+    return PackagePushError(
+        push_api="foo",
+        sf_id=SF_ID,
+        job="Foo",
+        severity="high",
+        error_type="bar",
+        title="foo_bar",
+        message="The foo hit the bar",
+        details="foo bar, foo, foo bar",
+    )
+
+
+@pytest.fixture
+def package_push_request():
+    return PackagePushRequest(
+        push_api=mock.MagicMock(),
+        version="1.2.3",
+        start_time="12:03",
+        status="Succeeded",
+        sf_id=SF_ID,
+    )
+
+
 def test_base_push_format_where():
     base_obj = BasePushApiObject()
     field_name = "id_field"
@@ -115,10 +167,10 @@ def test_metadata_package_get_versions_by_id(metadata_package):
 
 
 def test_metadata_package_version_version_number(metadata_package_version):
-    beta_expected = f"1.2.3 (Beta 4)"
+    beta_expected = "1.2.3 (Beta 4)"
     beta_actual = metadata_package_version.version_number
     assert beta_expected == beta_actual
-    expected = f"1.2.3 (Beta 4)"
+    expected = "1.2.3 (Beta 4)"
     actual = metadata_package_version.version_number
     assert expected == actual
 
@@ -294,18 +346,36 @@ def test_sf_push_get_push_errors(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
-def test_sf_push_get_push_error_objs(sf_push_api):
-    query = "SELECT Id, PackagePushJobId, ErrorSeverity, ErrorType, ErrorTitle, ErrorMessage, ErrorDetails FROM PackagePushError WHERE Name='foo'"
-    sf_push_api.return_query_records = mock.MagicMock()
-    sf_push_api.get_push_error_objs("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+def test_sf_push_get_push_error_objs(sf_push_api, package_push_job, package_push_error):
+    sf_push_api.get_push_jobs_by_id = mock.MagicMock()
+    sf_push_api.get_push_jobs_by_id.side_effect = [[package_push_job], ["Foo"]]
+    sf_push_api.get_push_errors = mock.MagicMock()
+    record = {
+        "ErrorSeverity": "high",
+        "ErrorType": "bar",
+        "ErrorTitle": "foo_bar",
+        "ErrorMessage": "The foo hit the bar",
+        "ErrorDetails": "foo bar, foo, foo bar",
+        "Id": SF_ID,
+    }
+    sf_push_api.get_push_errors.return_value = [record]
+
+    actual_result_list = sf_push_api.get_push_error_objs("Name='foo'", None)
+    assert len(actual_result_list) == 1
+    actual_result = actual_result_list[0]
+    assert record["ErrorMessage"] == actual_result.message
+    assert record["ErrorDetails"] == actual_result.details
+    assert record["Id"] == actual_result.sf_id
+    assert actual_result.job == package_push_job
 
 
-def test_sf_push_get_push_errors_by_id(sf_push_api):
-    query = "SELECT Id, PackagePushJobId, ErrorSeverity, ErrorType, ErrorTitle, ErrorMessage, ErrorDetails FROM PackagePushError WHERE Name='foo'"
-    sf_push_api.return_query_records = mock.MagicMock()
-    sf_push_api.get_push_errors_by_id("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+def test_sf_push_get_push_errors_by_id(sf_push_api, package_push_error):
+    sf_push_api.get_push_error_objs = mock.MagicMock()
+    sf_push_api.get_push_error_objs.return_value = [package_push_error]
+    push_error_expected = {package_push_error.sf_id: package_push_error}
+    push_error_result = sf_push_api.get_push_errors_by_id("Name='foo'", None)
+    sf_push_api.get_push_error_objs.assert_called_with("Name='foo'", None)
+    assert push_error_expected == push_error_result
 
 
 def test_sf_push_get_org_id(sf_push_api):
@@ -324,29 +394,135 @@ def test_sf_push_get_org_id(sf_push_api):
     ) == {"id": "world"}
 
 
-# def test_sf_push_cancel_push_request(sf_push_api):
-#     ref_id = "12"
-#     sf_push_api.cancel_push_request(ref_id)
-#     sf_push_api.cancel_push_request.assert_called_once_with(ref_id)
+def test_sf_push_cancel_push_request(sf_push_api):
+    ref_id = "12"
+    sf_push_api.cancel_push_request(ref_id)
+    sf_push_api.sf.PackagePushRequest.update.assert_called_once_with(
+        ref_id, {"Status": "Canceled"}
+    )
 
 
-# def test_sf_push_create_push_request(sf_push_api):
-#     query = "SELECT Id, PackagePushJobId, ErrorSeverity, ErrorType, ErrorTitle, ErrorMessage, ErrorDetails FROM PackagePushError WHERE Name='foo'"
-#     # sf_push_api.return_query_records = mock.MagicMock()
-#     sf_push_api.res = mock.MagicMock()
-#     sf_push_api.request_id = {"id": "abe"}
-#     sf_push_api.create_push_request(
-#         PackagePushRequest(
-#             push_api=mock.MagicMock(),
-#             version="1.2.3",
-#             start_time="12:03",
-#             status="Succeeded",
-#             sf_id=SF_ID,
-#         ),
-#         ["00D63000000ApoXEAS"],
-#         datetime.datetime.now(),
-#     )
-#     sf_push_api.return_query_records.assert_called_with(query)
+def test_sf_push_run_push_request(sf_push_api):
+    ref_id = "12"
+    sf_push_api.run_push_request(ref_id)
+    sf_push_api.sf.PackagePushRequest.update.assert_called_once_with(
+        ref_id, {"Status": "Pending"}
+    )
+
+
+def test_sf_push_create_push_request(sf_push_api, metadata_package_version):
+    sf_push_api.batch_size = 1
+    push_request_id = "0DV?xxxxxx?"
+    version_id = metadata_package_version.sf_id = "0KM?xxxxx?"
+    orgs = ["00D000000001", "00D000000002"]
+    batch_0, batch_1 = [orgs[0]], [orgs[1]]
+    start_time = datetime.datetime.now()
+
+    sf_push_api.sf.PackagePushRequest.create.return_value = {"id": push_request_id}
+    sf_push_api.sf.base_url = "url"
+    sf_push_api._add_batch = mock.MagicMock(side_effect=[batch_0, batch_1])
+
+    actual_id, actual_org_count = sf_push_api.create_push_request(
+        metadata_package_version, orgs, start_time
+    )
+
+    sf_push_api.sf.PackagePushRequest.create.assert_called_once_with(
+        {"PackageVersionId": version_id, "ScheduledStartTime": start_time.isoformat()}
+    )
+    assert mock.call(batch_0, push_request_id) in sf_push_api._add_batch.call_args_list
+    assert mock.call(batch_1, push_request_id) in sf_push_api._add_batch.call_args_list
+    assert push_request_id == actual_id
+    assert 2 == actual_org_count
+
+
+def test_sf_push_add_push_batch(sf_push_api, metadata_package_version):
+    push_request_id = "0DV?xxxxxx?"
+    metadata_package_version.sf_id = "0KM?xxxxx?"
+    orgs = ["00D000000001", "00D000000002"]
+    expected_records_json = json.dumps(
+        {
+            "records": [
+                {
+                    "attributes": {"type": "PackagePushJob", "referenceId": orgs[0]},
+                    "PackagePushRequestId": push_request_id,
+                    "SubscriberOrganizationKey": orgs[0],
+                },
+                {
+                    "attributes": {"type": "PackagePushJob", "referenceId": orgs[1]},
+                    "PackagePushRequestId": push_request_id,
+                    "SubscriberOrganizationKey": orgs[1],
+                },
+            ]
+        }
+    )
+
+    sf_push_api.sf.base_url = "base_url/"
+
+    returned_batch = sf_push_api._add_batch(orgs, push_request_id)
+    sf_push_api.sf._call_salesforce.assert_called_once_with(
+        "POST", "base_url/composite/tree/PackagePushJob", data=expected_records_json
+    )
+    assert ["00D000000001", "00D000000002"] == returned_batch
+
+
+def test_sf_push_add_push_batch_retry(sf_push_api, metadata_package_version):
+    push_request_id = "0DV?xxxxxx?"
+    orgs = ["00D000000001", "00D000000002", "00D000000003"]
+    retry_response = {
+        "results": [
+            {
+                "referenceId": orgs[0],
+                "errors": [
+                    {"message": "Something bad has happened! Whatever could it be?"}
+                ],
+            }
+        ]
+    }
+    duplicate_response = {
+        "results": [
+            {
+                "referenceId": orgs[1],
+                "errors": [{"message": "", "statusCode": "DUPLICATE_VALUE"}],
+            }
+        ]
+    }
+    invalid_response = {
+        "results": [
+            {
+                "referenceId": orgs[2],
+                "errors": [{"message": "", "statusCode": "INVALID_OPERATION"}],
+            }
+        ]
+    }
+
+    sf_push_api.sf.base_url = "base_url/"
+    sf_push_api.sf._call_salesforce.side_effect = [
+        SalesforceMalformedRequest(
+            "base_url/composite/tree/PackagePushJob",
+            401,
+            "resource_name",
+            retry_response,
+        ),
+        SalesforceMalformedRequest(
+            "base_url/composite/tree/PackagePushJob",
+            401,
+            "resource_name",
+            duplicate_response,
+        ),
+        SalesforceMalformedRequest(
+            "base_url/composite/tree/PackagePushJob",
+            401,
+            "resource_name",
+            invalid_response,
+        ),
+        [],
+    ]
+
+    # with pytest.raises(SalesforceMalformedRequest):
+    returned_batch = sf_push_api._add_batch(orgs, push_request_id)
+
+    assert [orgs[0]] == returned_batch  # only remaining org should be retry-able
+    assert 4 == sf_push_api.sf._call_salesforce.call_count
 
 
 def test_push_memoize():
@@ -438,14 +614,6 @@ def test_metadata_package_get_subscriber_objects(metadata_package_version):
     )
 
 
-def test_metadata_package_get_subscriber_objects(metadata_package_version):
-    expected = f"MetadataPackageVersionId = '{SF_ID}'"
-    metadata_package_version.get_subscriber_objs()
-    metadata_package_version.push_api.get_subscriber_objs.assert_called_once_with(
-        expected, None
-    )
-
-
 def test_metadata_package_get_subscribers_by_org_key(metadata_package_version):
     expected = f"MetadataPackageVersionId = '{SF_ID}'"
     metadata_package_version.get_subscribers_by_org_key()
@@ -512,7 +680,6 @@ def test_version_less_than_query(metadata_package_version, metadata_package):
     expected_patch_where = (
         " OR (MajorVersion = 2 AND MinorVersion = 2 AND PatchVersion < 2)"
     )
-    print(actual)
     assert expected_where in actual
     assert expected_patch_where in actual
 
@@ -530,7 +697,6 @@ def test_version_greater_than_query(metadata_package_version, metadata_package):
         build="1",
     )
     actual = metadata_package_version._older_query(greater_than)
-    print(actual)
     expected_where = "AND (MajorVersion > 2 OR (MajorVersion = 2 AND MinorVersion > 2)"
     expected_patch_where = (
         " OR (MajorVersion = 2 AND MinorVersion = 2 AND PatchVersion > 2)"
@@ -567,17 +733,6 @@ def test_version_get_older(metadata_package_version):
     )
 
 
-@pytest.fixture
-def package_push_job():
-    return PackagePushJob(
-        push_api=mock.MagicMock(),
-        request="",
-        org="00DS0000003TJJ6MAO",
-        status="Succeeded",
-        sf_id=SF_ID,
-    )
-
-
 def test_package_push_job_get_push_errors(package_push_job):
     expected = f"PackagePushJobId = '{SF_ID}'"
     package_push_job.get_push_errors()
@@ -600,20 +755,6 @@ def test_package_push_job_get_push_errors_by_id(package_push_job):
     )
 
 
-@pytest.fixture
-def package_push_error():
-    return PackagePushError(
-        push_api="foo",
-        sf_id=SF_ID,
-        job="Foo",
-        severity="high",
-        error_type="bar",
-        title="foo_bar",
-        message="The foo hit the bar",
-        details="foo bar, foo, foo bar",
-    )
-
-
 def test_package_push_errors(package_push_error):
     assert package_push_error.push_api == "foo"
     assert package_push_error.sf_id == SF_ID
@@ -624,17 +765,6 @@ def test_package_push_errors(package_push_error):
     assert package_push_error.title == "foo_bar"
     assert package_push_error.message == "The foo hit the bar"
     assert package_push_error.details == "foo bar, foo, foo bar"
-
-
-@pytest.fixture
-def package_push_request():
-    return PackagePushRequest(
-        push_api=mock.MagicMock(),
-        version="1.2.3",
-        start_time="12:03",
-        status="Succeeded",
-        sf_id=SF_ID,
-    )
 
 
 def test_package_push_request_get_push_jobs(package_push_request):
@@ -656,20 +786,6 @@ def test_package_push_request_get_push_jobs_by_id(package_push_request):
     package_push_request.get_push_jobs_by_id()
     package_push_request.push_api.get_push_jobs_by_id.assert_called_once_with(
         expected, None
-    )
-
-
-@pytest.fixture
-def package_subscriber():
-    return PackageSubscriber(
-        push_api=mock.MagicMock(),
-        version="1.2.3",
-        status="Succeeded",
-        org_name="foo",
-        org_key="bar",
-        org_status="Succeeded",
-        org_type="Sandbox",
-        sf_id=SF_ID,
     )
 
 

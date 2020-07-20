@@ -1,20 +1,20 @@
-import pytest
-import mock
-import responses
-import os
 import copy
 import datetime
+import os
+from unittest import mock
+
+import pytest
+
+from cumulusci.core.exceptions import CumulusCIException, PushApiObjectNotFound
+from cumulusci.tasks.push.push_api import MetadataPackage
 from cumulusci.tasks.push.tasks import (
     BaseSalesforcePushTask,
     FilterSubscriberList,
     GetSubscriberList,
     SchedulePushOrgList,
-    SalesforcePushApi,
     SchedulePushOrgQuery,
 )
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tasks.push.push_api import MetadataPackage, PackagePushJob
-from cumulusci.core.exceptions import PushApiObjectNotFound, CumulusCIException
 
 SF_ID = "033xxxxxxxxx"
 NAMESPACE = "foo"
@@ -174,7 +174,7 @@ def test_schedule_push_org_list_init_options():
             "start_time": datetime.datetime.now(),
         }
     )
-    assert task.options["namespace"] == None
+    assert task.options["namespace"] is None
     assert task.options["batch_size"] == 200
     assert task.options["orgs"] == "output.txt"
     assert task.options["version"] == "1.2.3"
@@ -237,16 +237,12 @@ def test_base_push_task_raises_err():
 
 
 def test_report_push_status_error():
-    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
     task = create_task(BaseSalesforcePushTask, options={})
     task.sf = mock.MagicMock()
     task.push_report = mock.MagicMock()
     task.sf.query_all.return_value = {"totalSize": 1, "records": []}
     with pytest.raises(PushApiObjectNotFound):
         task._report_push_status("0DV1R000000k9dEWAQ")
-
-
-#######WIP################
 
 
 def test_get_push_request_job_results():
