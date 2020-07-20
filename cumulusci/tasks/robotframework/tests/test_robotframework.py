@@ -5,6 +5,7 @@ import tempfile
 import pytest
 import os.path
 import re
+import sys
 from xml.etree import ElementTree as ET
 
 from cumulusci.core.config import TaskConfig
@@ -82,6 +83,48 @@ class TestRobot(unittest.TestCase):
         )
         for option in ("test", "include", "exclude", "vars"):
             assert isinstance(task.options[option], list)
+
+    def test_process_arg_requires_int(self):
+        """Verify we throw a useful error for non-int "processes" option"""
+
+        expected = "'processes' value 'bogus' is not an integer"
+        with pytest.raises(TaskOptionsError, match=expected):
+            create_task(Robot, {"suites": "tests", "processes": "bogus"})
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.subprocess.run")
+    def test_process_arg_gt_zero(self, mock_subprocess_run, mock_robot_run):
+        """Verify that setting the process option to a number > 1 runs pabot"""
+        mock_subprocess_run.return_value = mock.Mock(returncode=0)
+        task = create_task(Robot, {"suites": "tests", "processes": "2"})
+        task()
+        expected_cmd = [
+            sys.executable,
+            "-m",
+            "pabot.pabot",
+            "--pabotlib",
+            "--processes",
+            "2",
+            "--variable",
+            "org:test",
+            "--outputdir",
+            ".",
+            "tests",
+        ]
+        mock_robot_run.assert_not_called()
+        mock_subprocess_run.assert_called_once_with(expected_cmd)
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.subprocess.run")
+    def test_process_arg_eq_zero(self, mock_subprocess_run, mock_robot_run):
+        """Verify that setting the process option to 1 runs robot rather than pabot"""
+        mock_robot_run.return_value = 0
+        task = create_task(Robot, {"suites": "tests", "process": 0})
+        task()
+        mock_subprocess_run.assert_not_called()
+        mock_robot_run.assert_called_once_with(
+            "tests", listener=[], outputdir=".", variable=["org:test"]
+        )
 
     def test_default_listeners(self):
         # first, verify that not specifying any listener options
