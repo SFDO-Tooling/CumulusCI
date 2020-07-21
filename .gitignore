@@ -21,7 +21,7 @@ tags
 .cache/
 .coverage
 .python-version
-selenium-screenshot-*
+*selenium-screenshot-*
 log.html
 report.html
 output.xml
@@ -36,3 +36,5 @@ pip-wheel-metadata
 .cci
 results_junit.xml
 test_results.json
+pabot_results/
+.pabotsuitenames
