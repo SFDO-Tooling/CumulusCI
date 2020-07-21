@@ -31,7 +31,7 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
         except ValueError:
             raise TaskOptionsError(f"Invalid API version {self.api_version}")
 
-        if type(self.options["fields"]) != list or len(self.options["fields"]) == 0:
+        if not isinstance(self.options.get("fields"), list) or len(self.options["fields"]) == 0:
             raise TaskOptionsError(
                 "Please populate the fields field with a list of dictionaries containing at minimum one entry with an 'api_name' and 'help_text' keys"
             )
