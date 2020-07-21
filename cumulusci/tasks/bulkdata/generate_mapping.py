@@ -178,14 +178,11 @@ class GenerateMapping(BaseSalesforceApiTask):
         self.mapping = {}
         for orig_obj in stack:
             # Check if it's safe for us to strip the namespace from this object
-            stripped_obj = (
-                strip_namespace(orig_obj)
-                if strip_namespace(orig_obj) not in stack
-                else orig_obj
-            )
-            key = f"Insert {stripped_obj}"
+            stripped_obj = strip_namespace(orig_obj)
+            obj = stripped_obj if stripped_obj not in stack else orig_obj
+            key = f"Insert {obj}"
             self.mapping[key] = {}
-            self.mapping[key]["sf_object"] = stripped_obj
+            self.mapping[key]["sf_object"] = obj
             fields = []
             lookups = []
             for field in self.schema[orig_obj].values():
