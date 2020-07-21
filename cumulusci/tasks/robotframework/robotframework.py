@@ -61,7 +61,9 @@ class Robot(BaseSalesforceTask):
         try:
             self.options["processes"] = int(self.options.get("processes", 1))
         except (TypeError, ValueError):
-            raise TaskOptionsError("Please specify an integer for the `processes` option.")
+            raise TaskOptionsError(
+                "Please specify an integer for the `processes` option."
+            )
 
         # There are potentially many robot options that are or could
         # be lists, but the only one we currently care about is the
