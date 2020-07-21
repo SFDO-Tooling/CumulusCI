@@ -119,7 +119,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         org = self._decrypt_config(
             OrgConfig,
             self.orgs[name].encrypted_data,
-            extra=[name],
+            extra=[name, self],
             context=f"org config ({name})",
         )
         if self.orgs[name].global_org:

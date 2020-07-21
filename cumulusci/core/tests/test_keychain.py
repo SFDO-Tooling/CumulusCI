@@ -338,9 +338,10 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
 
     def test_decrypt_config__no_config(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        config = keychain._decrypt_config(OrgConfig, None, extra=["test"])
+        config = keychain._decrypt_config(OrgConfig, None, extra=["test", keychain])
         self.assertEqual(config.__class__, OrgConfig)
         self.assertEqual(config.config, {})
+        self.assertEqual(config.keychain, keychain)
 
     def test_decrypt_config__no_config_2(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -350,8 +351,6 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
 
     def test_decrypt_config__wrong_key(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        # print("XXX", self.org_config.global_org)
-        # self.org_config.global_org = True
         keychain.set_org(self.org_config, False)
 
         keychain.key = "x" * 16
@@ -457,6 +456,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         ):
             keychain._load_orgs()
         self.assertIn("foo", keychain.get_org("test").config)
+        self.assertEqual(keychain.get_org("test").keychain, keychain)
 
     def test_load_file(self):
         self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
