@@ -614,6 +614,43 @@ Options
 
 	 Default: src.orig
 
+**delete_data**
+==========================================
+
+**Description:** Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
+
+**Class:** cumulusci.tasks.bulkdata.DeleteData
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run delete_data``
+
+
+Options
+------------------------------------------
+
+
+``-o objects OBJECTS``
+	 *Required*
+
+	 A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string
+
+``-o where WHERE``
+	 *Optional*
+
+	 A SOQL where-clause (without the keyword WHERE). Only available when 'objects' is length 1.
+
+``-o hardDelete HARDDELETE``
+	 *Optional*
+
+	 If True, perform a hard delete, bypassing the Recycle Bin. Note that this requires the Bulk API Hard Delete permission. Default: False
+
+``-o ignore_row_errors IGNOREROWERRORS``
+	 *Optional*
+
+	 If True, allow the operation to continue even if individual rows fail to delete.
+
 **deploy**
 ==========================================
 
@@ -634,7 +671,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 
@@ -860,7 +897,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: unpackaged/config/qa
 
@@ -1251,10 +1288,10 @@ Options
 
 	 Confirmation that it is okay to delete the data in database_url
 
-``-o debug_dir DEBUGDIR``
+``-o working_directory WORKINGDIRECTORY``
 	 *Optional*
 
-	 Store temporary DB files in debug_dir for easier debugging.
+	 Default path for temporary / working files
 
 ``-o database_url DATABASEURL``
 	 *Optional*
@@ -1305,11 +1342,6 @@ Options
 	 *Optional*
 
 	 Path for Snowfakery to put its next continuation file
-
-``-o working_directory WORKINGDIRECTORY``
-	 *Optional*
-
-	 Default path for temporary / working files
 
 **get_installed_packages**
 ==========================================
@@ -2807,9 +2839,9 @@ Example Output::
     W: 2, 0: No suite documentation (RequireSuiteDocumentation)
     E: 30, 0: No testcase documentation (RequireTestDocumentation)
 
-To see a list of all configured options, set the 'list' option to True:
+To see a list of all configured rules, set the 'list' option to True:
 
-    cci task run robot_list -o list True
+    cci task run robot_lint -o list True
 
 
 Command Syntax
@@ -3164,7 +3196,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 
@@ -3243,7 +3275,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: unpackaged/pre
 
