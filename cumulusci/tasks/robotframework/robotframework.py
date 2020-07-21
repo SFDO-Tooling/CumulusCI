@@ -59,15 +59,10 @@ class Robot(BaseSalesforceTask):
             self.options["options"] = {}
 
         # processes needs to be an integer.
-        if "processes" in self.options:
-            try:
-                self.options["processes"] = int(self.options["processes"])
-            except ValueError:
-                raise TaskOptionsError(
-                    f"'processes' value '{self.options['processes']}' is not an integer"
-                )
-        else:
-            self.options["processes"] = 1
+        try:
+            self.options["processes"] = int(self.options.get("processes", 1))
+        except (TypeError, ValueError):
+            raise TaskOptionsError("Please specify an integer for the `processes` option.")
 
         # There are potentially many robot options that are or could
         # be lists, but the only one we currently care about is the
