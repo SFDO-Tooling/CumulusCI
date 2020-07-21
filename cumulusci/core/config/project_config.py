@@ -444,9 +444,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         else:
             name = self.config_project.get("project", {}).get("name", "")
 
-        path = os.path.join(
-            os.path.expanduser("~"), self.global_config_obj.config_local_dir, name
-        )
+        path = str(self.global_config_obj.cumulusci_config_dir / name)
         if not os.path.isdir(path):
             os.makedirs(path)
         return path

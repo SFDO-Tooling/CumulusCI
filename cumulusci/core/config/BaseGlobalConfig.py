@@ -1,6 +1,7 @@
 import os
 
 import yaml
+from pathlib import Path
 
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config.project_config import BaseProjectConfig
@@ -22,8 +23,26 @@ class BaseGlobalConfig(BaseTaskFlowConfig):
         self._load_config()
 
     @property
+    def cumulusci_config_dir(self):
+        """Get the root directory for storing persistent data, as an instance property"""
+        return self.default_cumulusci_dir()
+
+    @staticmethod
+    def default_cumulusci_dir():
+        """Get the root directory for storing persistent data (~/.cumulusci)
+        
+        Creates it if it doesn't exist yet.
+        """
+        config_dir = Path.home() / ".cumulusci"
+
+        if not config_dir.exists():
+            config_dir.mkdir(parents=True)
+
+        return config_dir
+
+    @property
     def config_global_local_path(self):
-        directory = os.path.join(os.path.expanduser("~"), self.config_local_dir)
+        directory = self.cumulusci_config_dir
         if not os.path.exists(directory):
             os.makedirs(directory)
 
