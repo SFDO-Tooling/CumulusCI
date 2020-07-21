@@ -186,7 +186,10 @@ class BaseProjectKeychain(BaseConfig):
         if name not in self.orgs:
             self._raise_org_not_found(name)
         org = self._get_org(name)
-        org.keychain = self
+        if org.keychain:
+            assert org.keychain == self
+        else:
+            org.keychain = self
         return org
 
     def _get_org(self, name):

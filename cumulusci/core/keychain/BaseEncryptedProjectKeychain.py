@@ -59,7 +59,10 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
 
     def _get_org(self, name):
         return self._decrypt_config(
-            OrgConfig, self.orgs[name], extra=[name], context=f"org config ({name})"
+            OrgConfig,
+            self.orgs[name],
+            extra=[name, self],
+            context=f"org config ({name})",
         )
 
     def _get_cipher(self, iv=None):
