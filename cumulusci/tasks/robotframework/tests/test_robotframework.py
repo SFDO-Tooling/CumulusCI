@@ -87,7 +87,7 @@ class TestRobot(unittest.TestCase):
     def test_process_arg_requires_int(self):
         """Verify we throw a useful error for non-int "processes" option"""
 
-        expected = "'processes' value 'bogus' is not an integer"
+        expected = "Please specify an integer for the `processes` option."
         with pytest.raises(TaskOptionsError, match=expected):
             create_task(Robot, {"suites": "tests", "processes": "bogus"})
 
