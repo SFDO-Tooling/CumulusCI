@@ -2774,6 +2774,11 @@ Options
 
 	 If true, enable the `breakpoint` keyword to enable the robot debugger
 
+``-o processes PROCESSES``
+	 *Optional*
+
+	 *experimental* Number of processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robotframework. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.
+
 **robot_libdoc**
 ==========================================
 
@@ -3829,6 +3834,11 @@ Options
 	 *Optional*
 
 	 Object names to include even if they might not otherwise be included.
+
+``-o strip_namespace STRIPNAMESPACE``
+	 *Optional*
+
+	 If True, CumulusCI removes the project's namespace where found in fields  and objects to support automatic namespace injection. On by default.
 
 **extract_dataset**
 ==========================================
