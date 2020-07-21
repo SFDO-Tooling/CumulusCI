@@ -77,7 +77,7 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
                 f"The field {api_name}.{custom_field} was not found."
             )
         try:
-            if self.options["overwrite"] is True:
+            if self.options["overwrite"]:
                 field.inlineHelpText.text = help_text
             else:
                 self.logger.warning(
