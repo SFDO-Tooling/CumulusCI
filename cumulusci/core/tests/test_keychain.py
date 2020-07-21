@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.config import BaseUniversalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
@@ -33,7 +33,7 @@ class ProjectKeychainTestMixin(unittest.TestCase):
     keychain_class = BaseProjectKeychain
 
     def setUp(self):
-        self.universal_config = BaseUniversalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"no_yaml": True}
         )
@@ -373,7 +373,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     keychain_class = EncryptedFileProjectKeychain
 
     def setUp(self):
-        self.universal_config = BaseUniversalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"noyaml": True}
         )

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 import sys
 
-from cumulusci.core.config import BaseUniversalConfig, BaseProjectConfig
+from cumulusci.core.config import UniversalConfig, BaseProjectConfig
 from cumulusci.core.exceptions import NotInProject, ProjectConfigNotFound
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
@@ -9,7 +9,7 @@ from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
 
 # pylint: disable=assignment-from-none
 class BaseCumulusCI(object):
-    universal_config_class = BaseUniversalConfig
+    universal_config_class = UniversalConfig
     project_config_class = BaseProjectConfig
     keychain_class = BaseProjectKeychain
     callback_class = FlowCallback

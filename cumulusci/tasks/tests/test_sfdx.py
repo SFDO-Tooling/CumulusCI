@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from cumulusci.core.config import BaseUniversalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
@@ -25,7 +25,7 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
     """ Tests for the Base Task type """
 
     def setUp(self):
-        self.universal_config = BaseUniversalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"noyaml": True}
         )

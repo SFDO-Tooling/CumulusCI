@@ -10,7 +10,7 @@ from cumulusci.core.config import BaseTaskFlowConfig
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
-class BaseUniversalConfig(BaseTaskFlowConfig):
+class UniversalConfig(BaseTaskFlowConfig):
     """ Base class for the global config which contains all configuration not specific to projects """
 
     config = None
@@ -61,13 +61,13 @@ class BaseUniversalConfig(BaseTaskFlowConfig):
     def _load_config(self):
         """ Loads the local configuration """
         # avoid loading multiple times
-        if BaseUniversalConfig.config is not None:
+        if UniversalConfig.config is not None:
             return
 
         # load the global config
         with open(self.config_global_path, "r") as f_config:
             config = yaml.safe_load(f_config)
-        BaseUniversalConfig.config_global = config
+        UniversalConfig.config_global = config
 
         # Load the local config
         if self.config_global_local_path:
@@ -75,11 +75,11 @@ class BaseUniversalConfig(BaseTaskFlowConfig):
                 config = yaml.safe_load(f)
         else:
             config = {}
-        BaseUniversalConfig.config_global_local = config
+        UniversalConfig.config_global_local = config
 
-        BaseUniversalConfig.config = merge_config(
+        UniversalConfig.config = merge_config(
             {
-                "universal_config": BaseUniversalConfig.config_global,
-                "global_local": BaseUniversalConfig.config_global_local,
+                "universal_config": UniversalConfig.config_global,
+                "global_local": UniversalConfig.config_global_local,
             }
         )

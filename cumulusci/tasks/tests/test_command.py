@@ -6,7 +6,7 @@ from io import BytesIO
 
 from sarge import Capture
 
-from cumulusci.core.config import BaseUniversalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
@@ -21,7 +21,7 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
     """ Tests for the basic command task """
 
     def setUp(self):
-        self.universal_config = BaseUniversalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"noyaml": True}
         )
@@ -91,7 +91,7 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
 
 class TestSalesforceCommand(unittest.TestCase):
     def setUp(self):
-        self.universal_config = BaseUniversalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"noyaml": True}
         )

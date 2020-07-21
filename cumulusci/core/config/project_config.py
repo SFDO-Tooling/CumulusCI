@@ -437,7 +437,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """ location of the user local directory for the project
         e.g., ~/.cumulusci/NPSP-Extension-Test/ """
 
-        # depending on where we are in bootstrapping the BaseUniversalConfig
+        # depending on where we are in bootstrapping the UniversalConfig
         # the canonical projectname could be located in one of two places
         if self.project__name:
             name = self.project__name

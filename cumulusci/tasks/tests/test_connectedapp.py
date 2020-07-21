@@ -13,7 +13,7 @@ except ImportError:
 from unittest.mock import MagicMock
 
 from cumulusci.core.config import (
-    BaseUniversalConfig,
+    UniversalConfig,
     BaseProjectConfig,
     TaskConfig,
     ServiceConfig,
@@ -30,7 +30,7 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
     """ Tests for the CreateConnectedApp task """
 
     def setUp(self):
-        self.universal_config = BaseUniversalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"noyaml": True}
         )

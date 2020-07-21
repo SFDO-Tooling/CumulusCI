@@ -1,7 +1,7 @@
 import copy
 import random
 
-from cumulusci.core.config import BaseUniversalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.config import OrgConfig
@@ -15,7 +15,7 @@ def random_sha():
 def create_project_config(
     repo_name="TestRepo", repo_owner="TestOwner", repo_commit=None
 ):
-    universal_config = BaseUniversalConfig()
+    universal_config = UniversalConfig()
     project_config = DummyProjectConfig(
         universal_config=universal_config,
         repo_name=repo_name,

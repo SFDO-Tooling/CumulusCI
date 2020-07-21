@@ -66,7 +66,6 @@ def vcr_config(request):
 def salesforce_matcher(r1, r2):
     summary1 = (r1.method, r1.uri, r1.body)
     summary2 = (r2.method, r2.uri, r2.body)
-    print(summary1, summary2, summary1 == summary2)
     assert summary1 == summary2
 
 

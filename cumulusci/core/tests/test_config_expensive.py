@@ -12,7 +12,7 @@ import yaml
 
 from cumulusci.utils import temporary_dir, cd
 from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import BaseUniversalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import NotInProject
@@ -24,7 +24,7 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
 @mock.patch("pathlib.Path.home")
-class TestBaseUniversalConfig(unittest.TestCase):
+class TestUniversalConfig(unittest.TestCase):
     def setup_method(self, method):
         self.tempdir_home = Path(tempfile.mkdtemp())
 
@@ -34,7 +34,7 @@ class TestBaseUniversalConfig(unittest.TestCase):
     def _create_universal_config_local(self, content):
         global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
         os.makedirs(global_local_dir)
-        filename = os.path.join(global_local_dir, BaseUniversalConfig.config_filename)
+        filename = os.path.join(global_local_dir, UniversalConfig.config_filename)
         self._write_file(filename, content)
 
     def _write_file(self, filename, content):
@@ -44,8 +44,8 @@ class TestBaseUniversalConfig(unittest.TestCase):
     def test_load_universal_config_no_local(self, mock_class):
         mock_class.return_value = self.tempdir_home
         # clear cache
-        BaseUniversalConfig.config = None
-        config = BaseUniversalConfig()
+        UniversalConfig.config = None
+        config = UniversalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
@@ -54,7 +54,7 @@ class TestBaseUniversalConfig(unittest.TestCase):
         self._create_universal_config_local("")
         mock_class.return_value = self.tempdir_home
 
-        config = BaseUniversalConfig()
+        config = UniversalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
@@ -65,9 +65,9 @@ class TestBaseUniversalConfig(unittest.TestCase):
         mock_class.return_value = self.tempdir_home
 
         # clear cache
-        BaseUniversalConfig.config = None
+        UniversalConfig.config = None
 
-        config = BaseUniversalConfig()
+        config = UniversalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
         expected_config["tasks"]["newtesttask"] = {}
@@ -98,7 +98,7 @@ class TestBaseProjectConfig(unittest.TestCase):
     def _create_universal_config_local(self, content):
         global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
         os.makedirs(global_local_dir)
-        filename = os.path.join(global_local_dir, BaseUniversalConfig.config_filename)
+        filename = os.path.join(global_local_dir, UniversalConfig.config_filename)
         self._write_file(filename, content)
 
     def _create_project_config(self):
@@ -138,7 +138,7 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_load_project_config_not_repo(self, mock_class):
         mock_class.return_value = self.tempdir_home
         with cd(self.tempdir_project):
-            universal_config = BaseUniversalConfig()
+            universal_config = UniversalConfig()
             with self.assertRaises(NotInProject):
                 BaseProjectConfig(universal_config)
 
@@ -146,7 +146,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         mock_class.return_value = self.tempdir_home
         os.mkdir(os.path.join(self.tempdir_project, ".git"))
         with cd(self.tempdir_project):
-            universal_config = BaseUniversalConfig()
+            universal_config = UniversalConfig()
             with self.assertRaises(ProjectConfigNotFound):
                 BaseProjectConfig(universal_config)
 
@@ -160,7 +160,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._write_file(filename, content)
 
         with cd(self.tempdir_project):
-            universal_config = BaseUniversalConfig()
+            universal_config = UniversalConfig()
             config = BaseProjectConfig(universal_config)
             self.assertEqual(config.config_project, {})
 
@@ -175,7 +175,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         with cd(self.tempdir_project):
-            universal_config = BaseUniversalConfig()
+            universal_config = UniversalConfig()
             config = BaseProjectConfig(universal_config)
             self.assertEqual(config.project__package__name, "TestProject")
             self.assertEqual(config.project__package__namespace, "testproject")
@@ -189,7 +189,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         with cd(self.tempdir_project):
-            universal_config = BaseUniversalConfig()
+            universal_config = UniversalConfig()
             config = BaseProjectConfig(universal_config)
             self.assertEqual(config.repo_owner, "TestOwner")
 
@@ -202,7 +202,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         with cd(self.tempdir_project):
-            universal_config = BaseUniversalConfig()
+            universal_config = UniversalConfig()
             config = BaseProjectConfig(universal_config)
             self.assertEqual(config.repo_branch, self.current_branch)
 
@@ -215,7 +215,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config()
 
         with cd(self.tempdir_project):
-            universal_config = BaseUniversalConfig()
+            universal_config = UniversalConfig()
             config = BaseProjectConfig(universal_config)
             self.assertEqual(config.repo_commit, self.current_commit)
 
@@ -232,7 +232,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._create_project_config_local(content)
 
         with cd(self.tempdir_project):
-            universal_config = BaseUniversalConfig()
+            universal_config = UniversalConfig()
             config = BaseProjectConfig(universal_config)
             self.assertNotEqual(config.config_project_local, {})
             self.assertEqual(config.project__package__api_version, 45.0)
@@ -249,7 +249,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         content = "project:\n" + "    package:\n" + "        api_version: 45.0\n"
 
         with cd(self.tempdir_project):
-            universal_config = BaseUniversalConfig()
+            universal_config = UniversalConfig()
             config = BaseProjectConfig(universal_config, additional_yaml=content)
             self.assertNotEqual(config.config_additional_yaml, {})
             self.assertEqual(config.project__package__api_version, 45.0)
