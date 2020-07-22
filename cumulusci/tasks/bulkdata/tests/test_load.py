@@ -873,7 +873,6 @@ class TestLoadData(unittest.TestCase):
         with self.assertRaises(BulkDataException):
             task()
 
-    # TODO: test with person accounts: _is_person_accounts_enabled, _get_account_id_lookup, _generate_contact_id_map_for_person_accounts
     def test_process_job_results__insert_success(self):
         task = _make_task(
             LoadData,
@@ -905,7 +904,6 @@ class TestLoadData(unittest.TestCase):
         task._sql_bulk_insert_from_records.assert_called_once()
         task.session.commit.assert_called_once()
 
-    # TODO: test with person accounts: _is_person_accounts_enabled, _get_account_id_lookup, _generate_contact_id_map_for_person_accounts
     def test_process_job_results__insert_rows_fail(self):
         task = _make_task(
             LoadData,
@@ -954,7 +952,6 @@ class TestLoadData(unittest.TestCase):
         task.session.commit.assert_called_once()
         assert len(task.logger.mock_calls) == 4
 
-    # TODO: test with person accounts: _is_person_accounts_enabled, _get_account_id_lookup, _generate_contact_id_map_for_person_accounts
     def test_process_job_results__update_success(self):
         task = _make_task(
             LoadData,
@@ -986,7 +983,6 @@ class TestLoadData(unittest.TestCase):
         task._sql_bulk_insert_from_records.assert_not_called()
         task.session.commit.assert_not_called()
 
-    # TODO: test with person accounts: _is_person_accounts_enabled, _get_account_id_lookup, _generate_contact_id_map_for_person_accounts
     def test_process_job_results__exception_failure(self):
         task = _make_task(
             LoadData,
@@ -1018,6 +1014,125 @@ class TestLoadData(unittest.TestCase):
 
         self.assertIn("Error on record with id", str(ex.exception))
         self.assertIn("message", str(ex.exception))
+
+    def test_process_job_results__contact_id_map_not_updated_for_person_account_contacts(
+        self,
+    ):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        - mapping's action is "insert"
+        - mapping's sf_object is Contact
+        - person accounts is enabled
+        - an account_id_lookup is found in the mapping
+        """
+        for action, sf_object, is_person_accounts_enabled, account_id_lookup in [
+            ("insert", "Not Contact", True, None),
+            ("insert", "Not Contact", False, None),
+            ("insert", "Not Contact", True, mock.Mock()),
+            ("insert", "Not Contact", False, mock.Mock()),
+            ("insert", "Contact", False, None),
+            ("insert", "Contact", False, mock.Mock()),
+            ("insert", "Contact", True, None),
+            ("update", "Not Contact", True, None),
+            ("update", "Not Contact", False, None),
+            ("update", "Not Contact", True, mock.Mock()),
+            ("update", "Not Contact", False, mock.Mock()),
+            ("update", "Contact", False, None),
+            ("update", "Contact", False, mock.Mock()),
+            ("update", "Contact", True, None),
+            ("update", "Contact", True, mock.Mock()),
+        ]:
+            task = _make_task(
+                LoadData,
+                {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+            )
+
+            task.session = mock.Mock()
+            task._initialize_id_table = mock.Mock()
+            task._sql_bulk_insert_from_records = mock.Mock()
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task._is_person_accounts_enabled = mock.Mock(
+                return_value=is_person_accounts_enabled
+            )
+            task._get_account_id_lookup = mock.Mock(return_value=account_id_lookup)
+            task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+            local_ids = ["1"]
+
+            step = MockBulkApiDmlOperation(
+                sobject="Contact",
+                operation=DataOperationType.INSERT,
+                api_options={},
+                context=task,
+                fields=[],
+            )
+            step.results = [DataOperationResult("001111111111111", True, None)]
+
+            mapping = {"sf_object": sf_object, "table": "Account", "action": action}
+            task._process_job_results(mapping, step, local_ids)
+
+            task._generate_contact_id_map_for_person_accounts.assert_not_called()
+
+    def test_process_job_results__contact_id_map_updated_for_person_account_contacts(
+        self,
+    ):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        - mapping's action is "insert"
+        - mapping's sf_object is Contact
+        - person accounts is enabled
+        - an account_id_lookup is found in the mapping
+        """
+        action = "insert"
+        sf_object = "Contact"
+        is_person_accounts_enabled = True
+        account_id_lookup = mock.Mock()
+        for action, sf_object, is_person_accounts_enabled, account_id_lookup in [
+            ("insert", "Contact", True, mock.Mock())
+        ]:
+            task = _make_task(
+                LoadData,
+                {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+            )
+
+            task.session = mock.Mock()
+            task._initialize_id_table = mock.Mock()
+            task._sql_bulk_insert_from_records = mock.Mock()
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task._is_person_accounts_enabled = mock.Mock(
+                return_value=is_person_accounts_enabled
+            )
+            task._get_account_id_lookup = mock.Mock(return_value=account_id_lookup)
+            task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+            local_ids = ["1"]
+
+            step = MockBulkApiDmlOperation(
+                sobject="Contact",
+                operation=DataOperationType.INSERT,
+                api_options={},
+                context=task,
+                fields=[],
+            )
+            step.results = [DataOperationResult("001111111111111", True, None)]
+
+            mapping = {"sf_object": sf_object, "table": "Account", "action": action}
+            task._process_job_results(mapping, step, local_ids)
+
+            task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
+                mapping, account_id_lookup, task.session.connection.return_value
+            )
+
+            task._sql_bulk_insert_from_records.assert_called_with(
+                connection=task.session.connection.return_value,
+                table=task._initialize_id_table.return_value,
+                columns=("id", "sf_id"),
+                record_iterable=task._generate_contact_id_map_for_person_accounts.return_value,
+            )
 
     def test_generate_results_id_map__success(self):
         task = _make_task(
