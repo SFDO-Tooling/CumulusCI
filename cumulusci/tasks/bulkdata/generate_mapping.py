@@ -298,6 +298,9 @@ class GenerateMapping(BaseSalesforceApiTask):
             if only_has_soft_dependencies(sobj, dependencies[sobj])
         )
         first_free_obj = next(free_objs, None)
+        # first_free_obj = (
+        #     "Account" if "Account" in objs_remaining else next(free_objs, None)
+        # )
 
         return first_free_obj
 
@@ -306,6 +309,12 @@ class GenerateMapping(BaseSalesforceApiTask):
         if free_obj:
             return free_obj
 
+        if self.options["break_cycles"] == "auto":
+            return tuple(objs_remaining)[0]
+        else:
+            self.ask_user(objs_remaining, dependencies)
+
+    def ask_user(self, objs_remaining, dependencies):
         self.logger.info(
             "CumulusCI needs help to complete the mapping; the schema contains reference cycles and unresolved dependencies."
         )
@@ -317,14 +326,11 @@ class GenerateMapping(BaseSalesforceApiTask):
                     f"   references {other_obj} via: {', '.join(dependencies[obj][other_obj])}"
                 )
 
-        if self.options["break_cycles"] == "ask":
-            return click.prompt(
-                "Which object should we load first?",
-                type=click.Choice(tuple(objs_remaining)),
-                show_choices=True,
-            )
-        elif self.options["break_cycles"] == "auto":
-            return tuple(objs_remaining)[0]
+        return click.prompt(
+            "Which object should we load first?",
+            type=click.Choice(tuple(objs_remaining)),
+            show_choices=True,
+        )
 
     def _is_any_custom_api_name(self, api_name):
         """True if the entity name is custom (including any package)."""
@@ -434,7 +440,7 @@ def is_standard(obj: str):
 
 
 def soft_dependency(sobj, target_obj: str, field_data: FieldData):
-    return field_data.nillable or (sobj == "Account" and is_standard(target_obj))
+    return field_data.nillable
 
 
 def only_has_soft_dependencies(
