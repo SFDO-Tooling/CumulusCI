@@ -52,7 +52,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
 
@@ -78,7 +78,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/master",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/master",
             json=self._get_expected_ref("heads/master", "abcdef"),
         )
 
@@ -113,7 +113,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/master",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/master",
             json=self._get_expected_ref("master", "abcdef"),
         )
 
@@ -135,7 +135,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/master",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/master",
             json=self._get_expected_ref("master", "abcdef"),
         )
 
@@ -157,7 +157,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "abcdef"),
         )
 
@@ -187,7 +187,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
 
@@ -217,7 +217,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.0-Beta_1",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.0-Beta_1",
             json=self._get_expected_tag_ref("beta/1.0-Beta_1", "tag_sha"),
         )
 
@@ -251,7 +251,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
 
@@ -320,7 +320,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
         f = io.BytesIO()
@@ -370,7 +370,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
         # Set up a fake IOError while extracting the zipball
@@ -400,7 +400,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
 
@@ -425,7 +425,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
 

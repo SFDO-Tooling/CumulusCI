@@ -262,7 +262,7 @@ class TestGithub(GithubApiTestMixin):
     def mock_gist(self, description, files):
         responses.add(
             method=responses.POST,
-            url=f"https://api.github.com/gists",
+            url="https://api.github.com/gists",
             json=self._get_expected_gist(description, files),
             status=201,
         )

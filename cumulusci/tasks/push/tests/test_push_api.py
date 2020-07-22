@@ -241,18 +241,29 @@ def test_sf_push_get_packages(sf_push_api):
     sf_push_api.return_query_records.assert_called_once_with(query)
 
 
-def test_sf_push_get_package_objs(sf_push_api):
-    query = "SELECT id, name, namespaceprefix FROM MetadataPackage WHERE Name='foo'"
-    sf_push_api.return_query_records = mock.MagicMock()
-    sf_push_api.get_package_objs("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_once_with(query)
+def test_sf_push_get_package_objs(sf_push_api, metadata_package):
+    sf_push_api.get_packages = mock.MagicMock()
+    packages = {
+        "Id": metadata_package.sf_id,
+        "Name": metadata_package.name,
+        "NamespacePrefix": metadata_package.namespace,
+    }
+    sf_push_api.get_packages.return_value = [packages]
+    actual_result_list = sf_push_api.get_package_objs("Name='foo'", None)
+    assert len(actual_result_list) == 1
+    actual_result = actual_result_list[0]
+    assert packages["Id"] == actual_result.sf_id
+    assert packages["Name"] == actual_result.name
+    assert packages["NamespacePrefix"] == actual_result.namespace
 
 
-def test_sf_push_get_packages_by_id(sf_push_api):
-    query = "SELECT id, name, namespaceprefix FROM MetadataPackage WHERE Name='foo'"
-    sf_push_api.return_query_records = mock.MagicMock()
-    sf_push_api.get_packages_by_id("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_once_with(query)
+def test_sf_push_get_packages_by_id(sf_push_api, metadata_package):
+    sf_push_api.get_package_objs = mock.MagicMock()
+    sf_push_api.get_package_objs.return_value = [metadata_package]
+    package_expected = {metadata_package.sf_id: metadata_package}
+    package_result = sf_push_api.get_packages_by_id("Name='foo'", None)
+    sf_push_api.get_package_objs.assert_called_with("Name='foo'", None)
+    assert package_expected == package_result
 
 
 def test_sf_push_get_package_versions(sf_push_api):
@@ -262,6 +273,7 @@ def test_sf_push_get_package_versions(sf_push_api):
     sf_push_api.return_query_records.assert_called_once_with(query)
 
 
+###
 def test_sf_push_get_package_version_objs(sf_push_api):
     query = "SELECT Id, Name, MetadataPackageId, ReleaseState, MajorVersion, MinorVersion, PatchVersion, BuildNumber FROM MetadataPackageVersion WHERE Name='foo' ORDER BY MajorVersion DESC, MinorVersion DESC, PatchVersion, BuildNumber DESC"
     sf_push_api.return_query_records = mock.MagicMock()
@@ -269,11 +281,13 @@ def test_sf_push_get_package_version_objs(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
-def test_sf_push_get_package_version_by_id(sf_push_api):
-    query = "SELECT Id, Name, MetadataPackageId, ReleaseState, MajorVersion, MinorVersion, PatchVersion, BuildNumber FROM MetadataPackageVersion WHERE Name='foo' ORDER BY MajorVersion DESC, MinorVersion DESC, PatchVersion, BuildNumber DESC"
-    sf_push_api.return_query_records = mock.MagicMock()
-    sf_push_api.get_package_versions_by_id("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+def test_sf_push_get_package_version_by_id(sf_push_api, metadata_package_version):
+    sf_push_api.get_package_version_objs = mock.MagicMock()
+    sf_push_api.get_package_version_objs.return_value = [metadata_package_version]
+    package_expected = {metadata_package_version.sf_id: metadata_package_version}
+    package_result = sf_push_api.get_package_versions_by_id("Name='foo'", None)
+    sf_push_api.get_package_version_objs.assert_called_with("Name='foo'", None)
+    assert package_expected == package_result
 
 
 def test_sf_push_get_subscribers(sf_push_api):
@@ -283,6 +297,7 @@ def test_sf_push_get_subscribers(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
+###
 def test_sf_push_get_subscriber_objs(sf_push_api):
     query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
@@ -290,11 +305,13 @@ def test_sf_push_get_subscriber_objs(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
-def test_sf_push_get_subscribers_by_org_key(sf_push_api):
-    query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
-    sf_push_api.return_query_records = mock.MagicMock()
-    sf_push_api.get_subscribers_by_org_key("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+def test_sf_push_get_subscribers_by_org_key(sf_push_api, package_subscriber):
+    sf_push_api.get_subscriber_objs = mock.MagicMock()
+    sf_push_api.get_subscriber_objs.return_value = [package_subscriber]
+    package_expected = {package_subscriber.org_key: package_subscriber}
+    package_result = sf_push_api.get_subscribers_by_org_key("Name='foo'", None)
+    sf_push_api.get_subscriber_objs.assert_called_with("Name='foo'", None)
+    assert package_expected == package_result
 
 
 def test_sf_push_get_push_requests(sf_push_api):
@@ -304,6 +321,7 @@ def test_sf_push_get_push_requests(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
+###
 def test_sf_push_get_push_request_objs(sf_push_api):
     query = "SELECT Id, PackageVersionId, ScheduledStartTime, Status FROM PackagePushRequest WHERE Name='foo' ORDER BY ScheduledStartTime DESC"
     sf_push_api.return_query_records = mock.MagicMock()
@@ -311,11 +329,13 @@ def test_sf_push_get_push_request_objs(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
-def test_sf_push_get_push_requests_by_id(sf_push_api):
-    query = "SELECT Id, PackageVersionId, ScheduledStartTime, Status FROM PackagePushRequest WHERE Name='foo' ORDER BY ScheduledStartTime DESC"
-    sf_push_api.return_query_records = mock.MagicMock()
-    sf_push_api.get_push_requests_by_id("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+def test_sf_push_get_push_requests_by_id(sf_push_api, package_push_request):
+    sf_push_api.get_push_request_objs = mock.MagicMock()
+    sf_push_api.get_push_request_objs.return_value = [package_push_request]
+    package_expected = {package_push_request.sf_id: package_push_request}
+    package_result = sf_push_api.get_push_requests_by_id("Name='foo'", None)
+    sf_push_api.get_push_request_objs.assert_called_with("Name='foo'", None)
+    assert package_expected == package_result
 
 
 def test_sf_push_get_push_jobs(sf_push_api):
@@ -325,6 +345,7 @@ def test_sf_push_get_push_jobs(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
+###
 def test_sf_push_get_push_job_objs(sf_push_api):
     query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
@@ -332,11 +353,13 @@ def test_sf_push_get_push_job_objs(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
-def test_sf_push_get_push_jobs_by_id(sf_push_api):
-    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Name='foo'"
-    sf_push_api.return_query_records = mock.MagicMock()
-    sf_push_api.get_push_jobs_by_id("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+def test_sf_push_get_push_jobs_by_id(sf_push_api, package_push_job):
+    sf_push_api.get_push_job_objs = mock.MagicMock()
+    sf_push_api.get_push_job_objs.return_value = [package_push_job]
+    package_expected = {package_push_job.sf_id: package_push_job}
+    package_result = sf_push_api.get_push_jobs_by_id("Name='foo'", None)
+    sf_push_api.get_push_job_objs.assert_called_with("Name='foo'", None)
+    assert package_expected == package_result
 
 
 def test_sf_push_get_push_errors(sf_push_api):

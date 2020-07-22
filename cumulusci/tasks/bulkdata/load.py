@@ -9,10 +9,7 @@ from sqlalchemy.ext.automap import automap_base
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import (
-    SqlAlchemyMixin,
-    RowErrorChecker,
-)
+from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, RowErrorChecker
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
     DataOperationStatus,
@@ -449,14 +446,16 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         for step in self.mapping.values():
             step["action"] = step.get("action", "insert")
             if step.get("lookups") and any(
-                [l.get("after") for l in step["lookups"].values()]
+                [lookup.get("after") for lookup in step["lookups"].values()]
             ):
                 # We have deferred/dependent lookups.
                 # Synthesize mapping steps for them.
 
                 sobject = step["sf_object"]
                 after_list = {
-                    l["after"] for l in step["lookups"].values() if l.get("after")
+                    lookup["after"]
+                    for lookup in step["lookups"].values()
+                    if lookup.get("after")
                 }
 
                 for after in after_list:
@@ -480,8 +479,8 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                             step["table"]
                         ].__table__.primary_key.columns.keys()[0],
                     )
-                    for l in lookups:
-                        mapping["lookups"][l] = lookups[l].copy()
-                        mapping["lookups"][l]["after"] = None
+                    for lookup in lookups:
+                        mapping["lookups"][lookup] = lookups[lookup].copy()
+                        mapping["lookups"][lookup]["after"] = None
 
                     self.after_steps[after][name] = mapping

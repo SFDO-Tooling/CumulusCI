@@ -32,7 +32,7 @@ class CCIModel(BaseModel):
 
     @classmethod
     def validate_data(
-        cls, data: Union[dict, list], context: str = None, on_error: callable = None,
+        cls, data: Union[dict, list], context: str = None, on_error: callable = None
     ):
         """Validate data which has already been loaded into a dictionary or list.
 
@@ -133,16 +133,16 @@ class CCIDictModel(CCIModel):
 
 
 def _add_filenames(e: ValidationError, filename):
-    def _recursively_add_filenames(l):
+    def _recursively_add_filenames(f):
         processed = False
-        if isinstance(l, Sequence):
-            for e in l:
+        if isinstance(f, Sequence):
+            for e in f:
                 _recursively_add_filenames(e)
             processed = True
-        elif isinstance(l, ErrorWrapper):
-            l._loc = (filename, l._loc)
+        elif isinstance(f, ErrorWrapper):
+            f._loc = (filename, f._loc)
 
             processed = True
-        assert processed, f"Should have processed by now {l}, {repr(l)}"
+        assert processed, f"Should have processed by now {f}, {repr(f)}"
 
     _recursively_add_filenames(e.raw_errors)

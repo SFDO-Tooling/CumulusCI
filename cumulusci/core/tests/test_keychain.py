@@ -418,7 +418,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     def _create_git_config(self):
         filename = os.path.join(self.tempdir_project, ".git", "config")
         content = (
-            f'[remote "origin"]\n'
+            '[remote "origin"]\n'
             + f"  url = git@github.com:TestOwner/{self.project_name}"
         )
         self._write_file(filename, content)
