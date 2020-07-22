@@ -102,7 +102,7 @@ class DummyResponse(object):
 
 
 class DummyRepository(object):
-    default_branch = "master"
+    default_branch = "main"
     _api = "http://"
 
     def __init__(self, owner, name, contents, releases=None):
@@ -274,7 +274,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         env = {
             "CUMULUSCI_AUTO_DETECT": "1",
             "HEROKU_TEST_RUN_ID": "TEST1",
-            "HEROKU_TEST_RUN_BRANCH": "master",
+            "HEROKU_TEST_RUN_BRANCH": "main",
             "HEROKU_TEST_RUN_COMMIT_VERSION": "HEAD",
             "CUMULUSCI_REPO_BRANCH": "feature/test",
             "CUMULUSCI_REPO_COMMIT": "HEAD~1",
@@ -301,7 +301,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         env = {
             "CUMULUSCI_AUTO_DETECT": "1",
             "HEROKU_TEST_RUN_ID": "TEST1",
-            "HEROKU_TEST_RUN_BRANCH": "master",
+            "HEROKU_TEST_RUN_BRANCH": "main",
             "HEROKU_TEST_RUN_COMMIT_VERSION": "HEAD",
             "CUMULUSCI_REPO_BRANCH": "feature/test",
             "CUMULUSCI_REPO_COMMIT": "HEAD~1",
@@ -341,7 +341,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         with temporary_dir():
             self.assertIsNone(config.repo_url)
 
-    @mock.patch("cumulusci.core.config.project_config.BaseProjectConfig.git_path")
+    @mock.patch("cumulusci.core.config.project_config.git_path")
     def test_repo_url_from_git(self, git_path):
         git_config_file = "git_config"
         git_path.return_value = git_config_file
@@ -366,8 +366,8 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_repo_branch_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
-        config._repo_info = {"branch": "master"}
-        self.assertEqual("master", config.repo_branch)
+        config._repo_info = {"branch": "main"}
+        self.assertEqual("main", config.repo_branch)
 
     def test_repo_branch_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -1043,7 +1043,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         with pytest.raises(ConfigError):
             project_config._validate_package_api_format()
 
-    @mock.patch("cumulusci.core.config.project_config.BaseProjectConfig.git_path")
+    @mock.patch("cumulusci.core.config.project_config.git_path")
     def test_git_config_remote_origin_line(self, git_path):
         git_config_file = "test_git_config_file"
         git_path.return_value = git_config_file

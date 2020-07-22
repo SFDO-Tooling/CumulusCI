@@ -25,7 +25,7 @@ class TestGithubReleaseNotes:
                 }
             ),
         )
-        project_config.project__git__default_branch = "master"
+        project_config.project__git__default_branch = "main"
         return project_config
 
     @mock.patch("cumulusci.tasks.release_notes.task.GithubReleaseNotesGenerator")
@@ -88,7 +88,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             task_config = TaskConfig(options)
             task = ParentPullRequestNotes(project_config, task_config)
             task.repo = mock.Mock()
-            task.repo.default_branch = "master"
+            task.repo.default_branch = "main"
             task.repo.owner.login = "SFDO-Tooling"
             task.logger = mock.Mock()
             task.github = mock.Mock()
@@ -134,11 +134,11 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
 
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
         task._setup_self()
-        task.repo.default_branch = "master"
+        task.repo.default_branch = "main"
 
         actual_pull_request = task._get_parent_pull_request()
         get_pull_request.assert_called_once_with(
-            task.repo, "master", self.PARENT_BRANCH_NAME
+            task.repo, "main", self.PARENT_BRANCH_NAME
         )
         assert 1 == actual_pull_request.number
         assert "Body" == actual_pull_request.body

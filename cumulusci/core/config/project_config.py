@@ -27,6 +27,7 @@ from cumulusci.core.github import find_previous_release
 from cumulusci.core.source import GitHubSource
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
+from cumulusci.utils.git import current_branch, git_path
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 from github3.exceptions import NotFoundError
@@ -246,17 +247,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return {"url": url, "owner": owner, "name": name}
 
-    def git_path(self, tail=None):
-        """Returns a Path to the .git directory in self.repo_root
-        with tail appended (if present) or None if self.repo_root
-        is not set."""
-        path = None
-        if self.repo_root:
-            path = Path(self.repo_root) / ".git"
-            if tail is not None:
-                path = path / str(tail)
-        return path
-
     def git_config_remote_origin_url(self):
         """Returns the url under the [remote origin]
         section of the .git/config file. Returns None
@@ -264,7 +254,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         line is found. """
         config = ConfigParser(strict=False)
         try:
-            config.read(self.git_path("config"))
+            config.read(git_path(self.repo_root, "config"))
             url = config['remote "origin"']["url"]
         except (KeyError, TypeError):
             url = None
@@ -331,10 +321,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        with open(self.git_path("HEAD"), "r") as f:
-            branch_ref = f.read().strip()
-        if branch_ref.startswith("ref: "):
-            return "/".join(branch_ref[5:].split("/")[2:])
+        return current_branch(self.repo_root)
 
     @property
     def repo_commit(self):

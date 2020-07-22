@@ -16,7 +16,6 @@ class UniversalConfig(BaseTaskFlowConfig):
     config = None
     config_filename = "cumulusci.yml"
     project_config_class = BaseProjectConfig
-    global_config_dir = ".cumulusci"
 
     def __init__(self, config=None):
         self._init_logger()

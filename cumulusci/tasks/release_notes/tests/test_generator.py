@@ -47,7 +47,7 @@ class DummyParser(BaseChangeNotesParser):
         pass
 
     def _render(self):
-        return "dummy parser output".format(self.title)
+        return "dummy parser output"
 
 
 class TestBaseReleaseNotesGenerator(unittest.TestCase):
@@ -215,7 +215,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             "github_repo": "TestRepo",
             "github_username": "TestUser",
             "github_password": "TestPass",
-            "master_branch": "master",
+            "default_branch": "main",
         }
         self.gh = get_github_api("TestUser", "TestPass")
         self.mock_util = MockUtil("TestOwner", "TestRepo")
@@ -475,8 +475,8 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         pr3_json["body"] = ""
 
         pr4_json = self._get_expected_pull_request(5, 5, "Should not be in body")
-        # simulate merge from master back into parent
-        pr4_json["head"]["ref"] = "master"
+        # simulate merge from main back into parent
+        pr4_json["head"]["ref"] = "main"
 
         mock_util.mock_pulls(pulls=[pr1_json, pr2_json, pr3_json, pr4_json])
 
