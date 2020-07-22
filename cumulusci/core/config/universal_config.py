@@ -40,7 +40,7 @@ class UniversalConfig(BaseTaskFlowConfig):
         return config_dir
 
     @property
-    def config_global_local_path(self):
+    def config_global_path(self):
         directory = self.cumulusci_config_dir
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -52,7 +52,7 @@ class UniversalConfig(BaseTaskFlowConfig):
         return config_path
 
     @property
-    def config_global_path(self):
+    def config_universal_path(self):
         return os.path.abspath(
             os.path.join(__location__, "..", "..", self.config_filename)
         )
@@ -64,21 +64,21 @@ class UniversalConfig(BaseTaskFlowConfig):
             return
 
         # load the global config
-        with open(self.config_global_path, "r") as f_config:
+        with open(self.config_universal_path, "r") as f_config:
             config = yaml.safe_load(f_config)
-        UniversalConfig.config_global = config
+        UniversalConfig.config_universal = config
 
         # Load the local config
-        if self.config_global_local_path:
-            with open(self.config_global_local_path, "r") as f:
+        if self.config_global_path:
+            with open(self.config_global_path, "r") as f:
                 config = yaml.safe_load(f)
         else:
             config = {}
-        UniversalConfig.config_global_local = config
+        UniversalConfig.config_global = config
 
         UniversalConfig.config = merge_config(
             {
-                "universal_config": UniversalConfig.config_global,
-                "global_local": UniversalConfig.config_global_local,
+                "universal_config": UniversalConfig.config_universal,
+                "global_config": UniversalConfig.config_global,
             }
         )

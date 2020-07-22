@@ -45,9 +45,6 @@ from cumulusci.core.config.ScratchOrgConfig import ScratchOrgConfig
 # inherit from BaseProjectConfig
 from cumulusci.core.config.universal_config import UniversalConfig
 
-# for backwards compatibility
-BaseGlobalConfig = UniversalConfig
-
 
 __all__ = (
     "FAILED_TO_CREATE_SCRATCH_ORG",
@@ -61,5 +58,4 @@ __all__ = (
     "BaseProjectConfig",
     "ScratchOrgConfig",
     "UniversalConfig",
-    "BaseGlobalConfig",  # for backwards compatibility
 )

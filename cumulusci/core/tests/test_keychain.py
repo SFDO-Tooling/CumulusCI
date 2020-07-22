@@ -407,8 +407,8 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def _mk_temp_home(self):
         self.tempdir_home = tempfile.mkdtemp()
-        global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
-        os.makedirs(global_local_dir)
+        global_config_dir = os.path.join(self.tempdir_home, ".cumulusci")
+        os.makedirs(global_config_dir)
 
     def _mk_temp_project(self):
         self.tempdir_project = tempfile.mkdtemp()

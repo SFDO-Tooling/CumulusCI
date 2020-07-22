@@ -259,16 +259,16 @@ class TestBaseProjectConfig(unittest.TestCase):
             }
         )
 
-    def test_config_global_local(self):
-        universal_config = UniversalConfig()
-        universal_config.config_global_local = {}
-        config = BaseProjectConfig(universal_config)
-        self.assertIs(universal_config.config_global_local, config.config_global_local)
-
     def test_config_global(self):
         universal_config = UniversalConfig()
+        universal_config.config_global = {}
         config = BaseProjectConfig(universal_config)
         self.assertIs(universal_config.config_global, config.config_global)
+
+    def test_config_universal(self):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        self.assertIs(universal_config.config_universal, config.config_universal)
 
     def test_repo_info(self):
         env = {

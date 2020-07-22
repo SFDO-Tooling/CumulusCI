@@ -32,9 +32,9 @@ class TestUniversalConfig(unittest.TestCase):
         shutil.rmtree(self.tempdir_home)
 
     def _create_universal_config_local(self, content):
-        global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
-        os.makedirs(global_local_dir)
-        filename = os.path.join(global_local_dir, UniversalConfig.config_filename)
+        global_config_dir = os.path.join(self.tempdir_home, ".cumulusci")
+        os.makedirs(global_config_dir)
+        filename = os.path.join(global_config_dir, UniversalConfig.config_filename)
         self._write_file(filename, content)
 
     def _write_file(self, filename, content):
@@ -96,9 +96,9 @@ class TestBaseProjectConfig(unittest.TestCase):
         self._write_file(filename, content)
 
     def _create_universal_config_local(self, content):
-        global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
-        os.makedirs(global_local_dir)
-        filename = os.path.join(global_local_dir, UniversalConfig.config_filename)
+        global_config_dir = os.path.join(self.tempdir_home, ".cumulusci")
+        os.makedirs(global_config_dir)
+        filename = os.path.join(global_config_dir, UniversalConfig.config_filename)
         self._write_file(filename, content)
 
     def _create_project_config(self):

@@ -114,8 +114,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         self.config = merge_config(
             {
-                "universal_config": self.config_global,
-                "global_local": self.config_global_local,
+                "universal_config": self.config_universal,
+                "global_config": self.config_global,
                 "project_config": self.config_project,
                 "project_local_config": self.config_project_local,
                 "additional_yaml": self.config_additional_yaml,
@@ -138,12 +138,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             raise ConfigError(message)
 
     @property
-    def config_global_local(self):
-        return self.universal_config_obj.config_global_local
-
-    @property
     def config_global(self):
         return self.universal_config_obj.config_global
+
+    @property
+    def config_universal(self):
+        return self.universal_config_obj.config_universal
 
     @property
     def repo_info(self):
