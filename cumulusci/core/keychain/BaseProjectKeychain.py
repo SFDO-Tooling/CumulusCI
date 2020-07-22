@@ -187,7 +187,7 @@ class BaseProjectKeychain(BaseConfig):
             self._raise_org_not_found(name)
         org = self._get_org(name)
         if org.keychain:
-            assert org.keychain == self
+            assert org.keychain is self
         else:
             org.keychain = self
         return org
