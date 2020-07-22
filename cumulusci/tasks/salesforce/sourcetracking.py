@@ -1,5 +1,4 @@
 from collections import defaultdict
-import contextlib
 import functools
 import json
 import os
@@ -9,14 +8,13 @@ import time
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
+from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
-from cumulusci.utils import inject_namespace
-from cumulusci.utils import process_text_in_directory
+from cumulusci.utils import process_text_in_directory, temporary_dir
 from cumulusci.utils import tokenize_namespace
+from cumulusci.utils.metadata import MetadataPackage
 
 
 class ListChanges(BaseSalesforceApiTask):
@@ -183,13 +181,15 @@ def _write_manifest(changes, path, api_version):
         types=[MetadataType(name, members) for name, members in type_members.items()],
     )
     package_xml = generator()
-    with open(os.path.join(path, "package.xml"), "w") as f:
+    package_xml_path = os.path.join(path, "package.xml")
+    with open(package_xml_path, "w") as f:
         f.write(package_xml)
+    return package_xml_path
 
 
 def retrieve_components(
     components,
-    org_config,
+    task,
     target: str,
     md_format: bool,
     extra_package_xml_opts: dict,
@@ -198,97 +198,65 @@ def retrieve_components(
 ):
     """Retrieve specified components from an org into a target folder.
 
-    Retrieval is done using the sfdx force:source:retrieve command.
+    Retrieval is done using the Metadata API.
 
     Set `md_format` to True if retrieving into a folder with a package
-    in metadata format. In this case the folder will be temporarily
-    converted to dx format for the retrieval and then converted back.
-    Retrievals to metadata format can also set `namespace_tokenize`
+    in metadata format. Retrievals to metadata format can also set `namespace_tokenize`
     to a namespace prefix to replace it with a `%%%NAMESPACE%%%` token.
     """
 
     target = os.path.realpath(target)
-    with contextlib.ExitStack() as stack:
+    # Create target if it doesn't exist
+    if not os.path.exists(target):
+        os.mkdir(target)
+
+    # Construct package.xml with components to retrieve, in its own tempdir
+    with temporary_dir(chdir=False) as package_xml_path:
+        package_xml_path = _write_manifest(components, package_xml_path, api_version)
+
         if md_format:
-            # Create target if it doesn't exist
-            if not os.path.exists(target):
-                os.mkdir(target)
-                touch(os.path.join(target, "package.xml"))
-
-            # Inject namespace
-            if namespace_tokenize:
-                process_text_in_directory(
-                    target,
-                    functools.partial(
-                        inject_namespace, namespace=namespace_tokenize, managed=True
-                    ),
-                )
-
-            # Temporarily convert metadata format to DX format
-            stack.enter_context(temporary_dir())
-            os.mkdir("target")
-            # We need to create sfdx-project.json
-            # so that sfdx will recognize force-app as a package directory.
-            with open("sfdx-project.json", "w") as f:
-                json.dump(
-                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
-                )
-            sfdx(
-                "force:mdapi:convert",
-                log_note="Converting to DX format",
-                args=["-r", target, "-d", "force-app"],
-                check_return=True,
+            _retrieve_mdapi_format(
+                task,
+                package_xml_path,
+                target,
+                extra_package_xml_opts,
+                namespace_tokenize,
+                api_version,
             )
+        else:
+            _retrieve_sfdx_format(task, package_xml_path, api_version)
 
-        # Construct package.xml with components to retrieve, in its own tempdir
-        package_xml_path = stack.enter_context(temporary_dir(chdir=False))
-        _write_manifest(components, package_xml_path, api_version)
 
-        # Retrieve specified components in DX format
-        sfdx(
-            "force:source:retrieve",
-            access_token=org_config.access_token,
-            log_note="Retrieving components",
-            args=[
-                "-a",
-                str(api_version),
-                "-x",
-                os.path.join(package_xml_path, "package.xml"),
-                "-w",
-                "5",
-            ],
-            capture_output=False,
-            check_return=True,
-            env={"SFDX_INSTANCE_URL": org_config.instance_url},
+def _retrieve_sfdx_format(task, package_xml_path, api_version):
+    sfdx(
+        "force:source:retrieve",
+        access_token=task.org_config.access_token,
+        log_note="Retrieving components",
+        args=["-a", str(api_version), "-x", package_xml_path, "-w", "5"],
+        capture_output=False,
+        check_return=True,
+        env={"SFDX_INSTANCE_URL": task.org_config.instance_url},
+    )
+
+
+def _retrieve_mdapi_format(task, temp_path, target, namespace_tokenize, api_version):
+    # Retrieve metadata
+    package_xml_path = os.path.join(temp_path, "package.xml")
+    ApiRetrieveUnpackaged(task, package_xml_path, api_version)()
+
+    # Merge retrieved metadata into target
+    MetadataPackage(temp_path).merge_to(target)
+
+    if namespace_tokenize:
+        process_text_in_directory(
+            target,
+            functools.partial(
+                tokenize_namespace, namespace=namespace_tokenize, managed=True
+            ),
         )
 
-        if md_format:
-            # Convert back to metadata format
-            sfdx(
-                "force:source:convert",
-                log_note="Converting back to metadata format",
-                args=["-r", "force-app", "-d", target],
-                capture_output=False,
-                check_return=True,
-            )
-
-            # Reinject namespace tokens
-            if namespace_tokenize:
-                process_text_in_directory(
-                    target,
-                    functools.partial(tokenize_namespace, namespace=namespace_tokenize),
-                )
-
-            # Regenerate package.xml,
-            # to avoid reformatting or losing package name/scripts
-            package_xml_opts = {
-                "directory": target,
-                "api_version": api_version,
-                **extra_package_xml_opts,
-            }
-            package_xml = PackageXmlGenerator(**package_xml_opts)()
-            with open(os.path.join(target, "package.xml"), "w") as f:
-                f.write(package_xml)
+    # Update package.xml
+    MetadataPackage(target).write_manifest()
 
 
 class RetrieveChanges(ListChanges, BaseSalesforceApiTask):

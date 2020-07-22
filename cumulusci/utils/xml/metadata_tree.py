@@ -87,15 +87,22 @@ class MetadataElement:
 
     __slots__ = ["_element", "_parent", "_ns", "tag"]
 
-    def __init__(self, element: etree._Element, parent: etree._Element = None):
+    def __init__(
+        self, element: Union[etree._Element, str], parent: etree._Element = None
+    ):
+        if isinstance(element, str):
+            element = etree.Element(
+                "{%s}%s" % (METADATA_NAMESPACE, element),
+                nsmap={None: METADATA_NAMESPACE},
+            )
         assert isinstance(element, etree._Element)
-        self._element = element
+        self._element: etree._Element = element
         self._parent = parent
         self._ns = next(iter(element.nsmap.values()))
         self.tag = element.tag.split("}")[1]
 
     @property
-    def text(self):
+    def text(self) -> Union[str, "MetadataElement"]:
         if len(self._element):  # if self has any element children
             return self._get_child("text")
         return self._element.text
@@ -116,9 +123,13 @@ class MetadataElement:
             raise AttributeError(f"{childname} not found in {self.tag}")
         return self._wrap_element(child_element)
 
-    def _create_child(self, tag, text=None):
-        element = etree.Element(self._add_namespace(tag))
-        element.text = text
+    def _create_child(self, tag: Union[str, "MetadataElement"], text: str = None):
+        if isinstance(tag, str):
+            element = etree.Element(self._add_namespace(tag))
+            element.text = text
+        else:
+            assert text is None
+            element = tag._element
         return self._wrap_element(element)
 
     def __getattr__(self, childname):
@@ -148,7 +159,7 @@ class MetadataElement:
                 f"Indices must be integers or strings, not {type(item)}"
             )  # # pragma: no cover
 
-    def append(self, tag: str, text: str = None):
+    def append(self, tag: Union[str, "MetadataElement"], text: str = None):
         '''Append a new element at the appropriate place.
 
         If the parent element (self) already one or more children that match,
@@ -178,7 +189,7 @@ class MetadataElement:
         </types>
         '''
         newchild = self._create_child(tag, text)
-        same_elements = self._element.findall(self._add_namespace(tag))
+        same_elements = self._element.findall(newchild.tag)
         if same_elements:
             last = same_elements[-1]
             index = self._element.index(last)
@@ -187,7 +198,7 @@ class MetadataElement:
             self._element.append(newchild._element)
         return newchild
 
-    def insert(self, index: int, tag: str, text: str = None):
+    def insert(self, index: int, tag: Union[str, "MetadataElement"], text: str = None):
         """Insert at a particular index.
 
         Tag and text can be supplied. Return value is the new element.
@@ -206,20 +217,36 @@ class MetadataElement:
         self._element.insert(index, newchild._element)
         return newchild
 
-    def insert_before(self, oldElement: "MetadataElement", tag: str, text: str = None):
+    def insert_before(
+        self,
+        oldElement: "MetadataElement",
+        tag: Union[str, "MetadataElement"],
+        text: str = None,
+    ):
         """Insert before some other element
 
         Tag and text can be supplied. Return value is the new element."""
         index = self._element.index(oldElement._element)
         return self.insert(index, tag, text)
 
-    def insert_after(self, oldElement: "MetadataElement", tag: str, text: str = None):
+    def insert_after(
+        self,
+        oldElement: "MetadataElement",
+        tag: Union[str, "MetadataElement"],
+        text: str = None,
+    ):
         """Insert after some other element
 
         Tag and text can be supplied. Return value is the new element."""
 
         index = self._element.index(oldElement._element)
         return self.insert(index + 1, tag, text)
+
+    def replace(
+        self, existing_element: "MetadataElement", new_element: "MetadataElement"
+    ) -> None:
+        """Replace an existing child with a new subtree"""
+        self._element.replace(existing_element._element, new_element._element)
 
     def remove(self, metadata_element: "MetadataElement") -> None:
         """Remove an element from its parent (self)"""
