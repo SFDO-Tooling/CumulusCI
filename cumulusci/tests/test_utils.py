@@ -306,7 +306,7 @@ Options\n------------------------------------------\n\n
             zf.writestr("top/src/test", "test")
         f.seek(0)
         zipbytes = f.read()
-        mock_repo = mock.Mock(default_branch="master")
+        mock_repo = mock.Mock(default_branch="main")
         mock_github = mock.Mock()
         mock_github.repository.return_value = mock_repo
 
