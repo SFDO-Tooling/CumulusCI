@@ -66,7 +66,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         self.repo_api_url = "https://api.github.com/repos/{}/{}".format(
             self.repo_owner, self.repo_name
         )
-        self.branch = "master"
+        self.branch = "main"
 
         # Create the project config
         self.project_config = create_project_config(self.repo_name, self.repo_owner)

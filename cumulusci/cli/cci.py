@@ -49,6 +49,7 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
+from cumulusci.utils.git import current_branch
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
@@ -514,11 +515,12 @@ def project_init(runtime):
     click.echo()
     click.echo(click.style("# Git Configuration", bold=True, fg="blue"))
     click.echo(
-        "CumulusCI assumes your default branch is master, your feature branches are named feature/*, your beta release tags are named beta/*, and your release tags are release/*.  If you want to use a different branch/tag naming scheme, you can configure the overrides here.  Otherwise, just accept the defaults."
+        "CumulusCI assumes the current git branch is your default branch, your feature branches are named feature/*, your beta release tags are named beta/*, and your release tags are release/*.  If you want to use a different branch/tag naming scheme, you can configure the overrides here.  Otherwise, just accept the defaults."
     )
 
+    default_main_branch = current_branch(os.getcwd()) or "main"
     git_default_branch = click.prompt(
-        click.style("Default Branch", bold=True), default="master"
+        click.style("Default Branch", bold=True), default=default_main_branch
     )
     if (
         git_default_branch

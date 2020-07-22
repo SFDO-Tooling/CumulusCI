@@ -551,6 +551,7 @@ Environment Info: Rossian / x68_46
     def test_project_init(self, click):
         with temporary_dir():
             os.mkdir(".git")
+            Path(".git", "HEAD").write_text("ref: refs/heads/main")
 
             click.prompt.side_effect = (
                 "testproj",  # project_name
@@ -560,7 +561,7 @@ Environment Info: Rossian / x68_46
                 "mdapi",  # source_format
                 "3",  # extend other URL
                 "https://github.com/SalesforceFoundation/NPSP",  # github_url
-                "default",  # git_default_branch
+                "main",  # git_default_branch
                 "work/",  # git_prefix_feature
                 "uat/",  # git_prefix_beta
                 "rel/",  # git_prefix_release
@@ -583,6 +584,7 @@ Environment Info: Rossian / x68_46
             self.assertEqual(
                 [
                     ".git/",
+                    ".git/HEAD",
                     ".github/",
                     ".github/PULL_REQUEST_TEMPLATE.md",
                     ".gitignore",
@@ -612,6 +614,7 @@ Environment Info: Rossian / x68_46
         """Verify that the generated cumulusci.yml file is readable and has the proper robot task"""
         with temporary_dir():
             os.mkdir(".git")
+            Path(".git", "HEAD").write_text("ref: refs/heads/main")
 
             click.prompt.side_effect = (
                 "testproj",  # project_name
@@ -621,7 +624,7 @@ Environment Info: Rossian / x68_46
                 "mdapi",  # source_format
                 "3",  # extend other URL
                 "https://github.com/SalesforceFoundation/NPSP",  # github_url
-                "default",  # git_default_branch
+                "main",  # git_default_branch
                 "work/",  # git_prefix_feature
                 "uat/",  # git_prefix_beta
                 "rel/",  # git_prefix_release
@@ -666,6 +669,7 @@ Environment Info: Rossian / x68_46
     def test_project_init_already_initted(self):
         with temporary_dir():
             os.mkdir(".git")
+            Path(".git", "HEAD").write_text("ref: refs/heads/main")
             with open("cumulusci.yml", "w"):
                 pass  # create empty file
 
