@@ -47,7 +47,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
 
     def _set_org(self, org_config, global_org):
         if org_config.keychain:
-            assert org_config.keychain == self
+            assert org_config.keychain is self
         assert org_config.global_org == global_org
         org_config.keychain = self
         org_config.global_org = global_org
