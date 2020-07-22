@@ -91,7 +91,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
         dirname = os.path.join(self.tempdir_project, ".git", "refs", "heads")
         os.makedirs(dirname)
-        filename = os.path.join(dirname, "master")
+        filename = os.path.join(dirname, "main")
         content = self.current_commit
         self._write_file(filename, content)
 
@@ -129,7 +129,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.tempdir_project = tempfile.mkdtemp()
         self.project_name = "TestRepo"
         self.current_commit = "abcdefg1234567890"
-        self.current_branch = "master"
+        self.current_branch = "main"
 
     def teardown_method(self, method):
         shutil.rmtree(self.tempdir_home)
