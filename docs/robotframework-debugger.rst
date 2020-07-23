@@ -12,7 +12,7 @@ prompt from which you can interactively issue commands.
 
 For the following examples we'll be using this simple test:
 
-.. code-block:: console
+.. code-block:: robotframework
 
     *** Settings ***
     Resource  cumulusci/robotframework/Salesforce.robot
