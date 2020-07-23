@@ -47,7 +47,7 @@ class TestMappingGenerator(unittest.TestCase):
 
     def test_accepts_include_list(self):
         t = _make_task(
-            GenerateMapping, {"options": {"include": ["Foo", "Bar"], "path": "t"}},
+            GenerateMapping, {"options": {"include": ["Foo", "Bar"], "path": "t"}}
         )
 
         self.assertEqual(["Foo", "Bar"], t.options["include"])
@@ -74,7 +74,7 @@ class TestMappingGenerator(unittest.TestCase):
     def test_is_core_field(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
-        self.assertTrue(t._is_core_field("Id"))
+        self.assertTrue(t._is_core_field("Name"))
         self.assertFalse(t._is_core_field("Custom__c"))
 
     def test_is_object_mappable(self):
@@ -258,24 +258,13 @@ class TestMappingGenerator(unittest.TestCase):
 
             self.assertEqual(["Insert Parent", "Insert Child__c"], list(content.keys()))
             self.assertEqual("Parent", t.mapping["Insert Parent"]["sf_object"])
-            self.assertEqual("Parent", t.mapping["Insert Parent"]["table"])
-            self.assertEqual(
-                ["Id", "Custom__c"], list(t.mapping["Insert Parent"]["fields"].keys())
-            )
-            self.assertEqual("sf_id", t.mapping["Insert Parent"]["fields"]["Id"])
-            self.assertEqual(
-                "Custom__c", t.mapping["Insert Parent"]["fields"]["Custom__c"]
-            )
+            self.assertEqual(["Custom__c"], t.mapping["Insert Parent"]["fields"])
 
             self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
-            self.assertEqual("Child__c", t.mapping["Insert Child__c"]["table"])
-            self.assertEqual(
-                ["Id"], list(t.mapping["Insert Child__c"]["fields"].keys())
-            )
+            assert "fields" not in t.mapping["Insert Child__c"]
             self.assertEqual(
                 ["Account__c"], list(t.mapping["Insert Child__c"]["lookups"].keys())
             )
-            self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
             self.assertEqual(
                 "Parent", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
             )
@@ -554,14 +543,12 @@ class TestMappingGenerator(unittest.TestCase):
 
         t.schema = {
             "Account": {
-                "Id": self._mock_field("Id"),
                 "Name": self._mock_field("Name"),
                 "Dependent__c": self._mock_field(
                     "Dependent__c", field_type="reference", referenceTo=["Child__c"]
                 ),
             },
             "Child__c": {
-                "Id": self._mock_field("Id"),
                 "Name": self._mock_field("Name"),
                 "Account__c": self._mock_field(
                     "Account__c", field_type="reference", referenceTo=["Account"]
@@ -579,12 +566,7 @@ class TestMappingGenerator(unittest.TestCase):
         t._build_mapping()
         self.assertEqual(["Insert Account", "Insert Child__c"], list(t.mapping.keys()))
         self.assertEqual("Account", t.mapping["Insert Account"]["sf_object"])
-        self.assertEqual("Account", t.mapping["Insert Account"]["table"])
-        self.assertEqual(
-            ["Id", "Name"], list(t.mapping["Insert Account"]["fields"].keys())
-        )
-        self.assertEqual("sf_id", t.mapping["Insert Account"]["fields"]["Id"])
-        self.assertEqual("Name", t.mapping["Insert Account"]["fields"]["Name"])
+        self.assertEqual(["Name"], t.mapping["Insert Account"]["fields"])
         self.assertEqual(
             ["Dependent__c"], list(t.mapping["Insert Account"]["lookups"].keys())
         )
@@ -593,22 +575,129 @@ class TestMappingGenerator(unittest.TestCase):
         )
 
         self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
-        self.assertEqual("Child__c", t.mapping["Insert Child__c"]["table"])
-        self.assertEqual(
-            ["Id", "Name"], list(t.mapping["Insert Child__c"]["fields"].keys())
-        )
+        self.assertEqual(["Name"], t.mapping["Insert Child__c"]["fields"])
         self.assertEqual(
             ["Account__c", "Self__c"],
             list(t.mapping["Insert Child__c"]["lookups"].keys()),
         )
-        self.assertEqual("sf_id", t.mapping["Insert Child__c"]["fields"]["Id"])
-        self.assertEqual("Name", t.mapping["Insert Child__c"]["fields"]["Name"])
         self.assertEqual(
             "Account", t.mapping["Insert Child__c"]["lookups"]["Account__c"]["table"]
         )
         self.assertEqual(
             "Child__c", t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"]
         )
+
+    @mock.patch("click.prompt")
+    def test_build_mapping__strip_namespace(self, prompt):
+        t = _make_task(GenerateMapping, {"options": {"path": "t"}})
+        t.project_config.project__package__namespace = "ns"
+        prompt.return_value = "ns__Parent__c"
+
+        t.schema = {
+            "ns__Parent__c": {
+                "Name": self._mock_field("Name"),
+                "ns__Dependent__c": self._mock_field(
+                    "ns__Dependent__c",
+                    field_type="reference",
+                    referenceTo=["ns__Child__c"],
+                ),
+            },
+            "ns__Child__c": {
+                "Name": self._mock_field("Name"),
+                "ns__Parent__c": self._mock_field(
+                    "ns__Parent__c",
+                    field_type="reference",
+                    referenceTo=["ns__Parent__c"],
+                ),
+                "ns__Self__c": self._mock_field(
+                    "ns__Self__c", field_type="reference", referenceTo=["ns__Child__c"]
+                ),
+            },
+        }
+        t.refs = {
+            "ns__Child__c": {"ns__Parent__c": set(["ns__Parent__c"])},
+            "ns__Parent__c": {"ns__Child__c": set(["ns__Dependent__c"])},
+        }
+
+        t._build_mapping()
+        self.assertEqual(
+            ["Insert Parent__c", "Insert Child__c"], list(t.mapping.keys())
+        )
+        self.assertEqual("Parent__c", t.mapping["Insert Parent__c"]["sf_object"])
+        self.assertEqual(["Name"], t.mapping["Insert Parent__c"]["fields"])
+        self.assertEqual(
+            ["Dependent__c"], list(t.mapping["Insert Parent__c"]["lookups"].keys())
+        )
+        self.assertEqual(
+            "Child__c",
+            t.mapping["Insert Parent__c"]["lookups"]["Dependent__c"]["table"],
+        )
+
+        self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
+        self.assertEqual(["Name"], t.mapping["Insert Child__c"]["fields"])
+        self.assertEqual(
+            ["Parent__c", "Self__c"],
+            list(t.mapping["Insert Child__c"]["lookups"].keys()),
+        )
+        self.assertEqual(
+            "Parent__c", t.mapping["Insert Child__c"]["lookups"]["Parent__c"]["table"]
+        )
+        self.assertEqual(
+            "Child__c", t.mapping["Insert Child__c"]["lookups"]["Self__c"]["table"]
+        )
+
+    @mock.patch("click.prompt")
+    def test_build_mapping__no_strip_namespace_if_dup_component(self, prompt):
+        t = _make_task(GenerateMapping, {"options": {"path": "t"}})
+        t.project_config.project__package__namespace = "ns"
+        prompt.return_value = "ns__Parent__c"
+
+        t.schema = {
+            "ns__Parent__c": {"Name": self._mock_field("Name")},
+            "ns__Child__c": {
+                "Name": self._mock_field("Name"),
+                "Test__c": self._mock_field("Test__c"),
+                "ns__Test__c": self._mock_field("ns__Test__c"),
+                "ns__Parent__c": self._mock_field(
+                    "ns__Parent__c",
+                    field_type="reference",
+                    referenceTo=["ns__Parent__c"],
+                ),
+                "Parent__c": self._mock_field(
+                    "Parent__c", field_type="reference", referenceTo=["ns__Child__c"]
+                ),
+            },
+            "Child__c": {"Name": self._mock_field("Name")},
+        }
+        t.refs = {"ns__Child__c": {"ns__Parent__c": set(["ns__Parent__c"])}}
+
+        t._build_mapping()
+
+        self.assertEqual(
+            set(["Insert Parent__c", "Insert ns__Child__c", "Insert Child__c"]),
+            set(t.mapping.keys()),
+        )
+
+        self.assertEqual("ns__Child__c", t.mapping["Insert ns__Child__c"]["sf_object"])
+        self.assertEqual(
+            ["Name", "Test__c", "ns__Test__c"],
+            t.mapping["Insert ns__Child__c"]["fields"],
+        )
+        self.assertEqual(
+            set(["ns__Parent__c", "Parent__c"]),
+            set(t.mapping["Insert ns__Child__c"]["lookups"].keys()),
+        )
+        self.assertEqual(
+            "Parent__c",
+            t.mapping["Insert ns__Child__c"]["lookups"]["ns__Parent__c"]["table"],
+        )
+        self.assertEqual(
+            "ns__Child__c",
+            t.mapping["Insert ns__Child__c"]["lookups"]["Parent__c"]["table"],
+        )
+
+        self.assertEqual("Child__c", t.mapping["Insert Child__c"]["sf_object"])
+        self.assertEqual(["Name"], t.mapping["Insert Child__c"]["fields"])
 
     def test_build_mapping__warns_polymorphic_lookups(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
