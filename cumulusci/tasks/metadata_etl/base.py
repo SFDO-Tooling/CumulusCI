@@ -310,14 +310,14 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
 
 class UpdateFirstAttributeTextTask(MetadataSingleEntityTransformTask):
     """
-    Updates the metadata's first child with name attribute's text.
-    Does not support attributes with object-like values.
+    Updates the metadata's first child tag's text.
+    Does not support tags with complex/object-like values.
     """
 
     task_options = {
         "entity": {"description": "Metadata Entity", "required": True},
         "tag": {
-            "description": "Tag of metadata's first child whose text will be updated.   Does not support compound attributes.",
+            "description": "Tag of metadata's first child whose text will be updated.   Only supports setting the tag's text.",
             "required": True,
         },
         "value": {
