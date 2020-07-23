@@ -8,10 +8,14 @@ from cumulusci.tasks.bulkdata.step import (
     BaseQueryOperation,
     DataOperationStatus,
     DataOperationJobResult,
+    DataOperationType,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
+
+import responses
 
 
 class MockBulkQueryOperation(BaseQueryOperation):
@@ -36,10 +40,12 @@ class TestExtractData(unittest.TestCase):
     mapping_file_v1 = "mapping_v1.yml"
     mapping_file_v2 = "mapping_v2.yml"
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
     def test_run(self, step_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        mock_describe_calls()
 
         task = _make_task(
             ExtractData,
@@ -79,10 +85,12 @@ class TestExtractData(unittest.TestCase):
         self.assertEqual("2", contact.sf_id)
         self.assertEqual("1", contact.household_id)
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
     def test_run__sql(self, step_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        mock_describe_calls()
 
         with temporary_dir():
             task = _make_task(
@@ -114,10 +122,12 @@ class TestExtractData(unittest.TestCase):
 
             assert os.path.exists("testdata.sql")
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
     def test_run__v2(self, step_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v2)
+        mock_describe_calls()
 
         task = _make_task(
             ExtractData,
@@ -383,10 +393,12 @@ class TestExtractData(unittest.TestCase):
 
         assert "accounts" in task.models
 
+    @responses.activate
     def test_create_table__already_exists(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
         db_path = os.path.join(base_path, "testdata.db")
+        mock_describe_calls()
         task = _make_task(
             ExtractData,
             {
@@ -498,9 +510,11 @@ class TestExtractData(unittest.TestCase):
         )
         assert task.session == session_mock.return_value
 
+    @responses.activate
     def test_init_mapping(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        mock_describe_calls()
         task = _make_task(
             ExtractData,
             {"options": {"database_url": "sqlite:///", "mapping": mapping_path}},
@@ -508,6 +522,33 @@ class TestExtractData(unittest.TestCase):
 
         task._init_mapping()
         assert "Insert Households" in task.mapping
+
+    @mock.patch("cumulusci.tasks.bulkdata.extract.validate_and_inject_mapping")
+    def test_init_mapping_passes_options_to_validate(self, validate_and_inject_mapping):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        t = _make_task(
+            ExtractData,
+            {
+                "options": {
+                    "database_url": "sqlite:///",
+                    "mapping": mapping_path,
+                    "inject_namespaces": True,
+                    "drop_missing_schema": True,
+                }
+            },
+        )
+
+        t._init_mapping()
+
+        validate_and_inject_mapping.assert_called_once_with(
+            mapping=t.mapping,
+            org_config=t.org_config,
+            namespace=t.project_config.project__package__namespace,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=True,
+            drop_missing=True,
+        )
 
     def test_fields_for_mapping(self):
         task = _make_task(
