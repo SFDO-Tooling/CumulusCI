@@ -29,9 +29,9 @@ Create Customfield In Object Manager
 *** Test Cases ***
 
 Navigate To The Object Manager page For Specified Object
-    [Documentation]     Smoke Test For validating Object's ObjectManager Page Navigation
+    [Documentation]     Smoke Test For validating the behavior of navigating to the ObjectManager Page for a specified object
 
-    Go To Page                                             ObjectManager                               Contact
+    Go To Page                                             ObjectManager                              Contact
     Current page should be                                 ObjectManager                              Contact
 
 
@@ -46,7 +46,7 @@ Create Custom Lookup Field Using Object Manager
     Go To Page                                             ObjectManager                               Contact
     Switch Tab To                                          Fields & Relationships
     Is Field Present                                       Last Soft Credit Opportunity
-    Delete Custom Field
+    Delete Custom Field                                    Last Soft Credit Opportunity
 
 Create Custom Text Field Using Object Manager
     [Documentation]     To test the ability of creating a custom text field using object manager and verify field got created
@@ -58,7 +58,7 @@ Create Custom Text Field Using Object Manager
     Go To Page                                             ObjectManager                               Contact
     Switch Tab To                                          Fields & Relationships
     Is Field Present                                       This Is A Text Field
-    Delete Custom Field
+    Delete Custom Field                                    This Is A Text Field
 
 
 Create Custom Currency Field Using Object Manager
@@ -71,4 +71,4 @@ Create Custom Currency Field Using Object Manager
     Go To Page                                             ObjectManager                               Account
     Switch Tab To                                          Fields & Relationships
     Is Field Present                                       This Year Payments on Past Year Pledges
-    Delete Custom Field
+    Delete Custom Field                                    This Year Payments on Past Year Pledges
