@@ -55,7 +55,7 @@ Open up your favorite editor and create a file named ``MyObject.robot``
 in the folder ``robot/MyProject/tests``. Copy and paste the
 following into this file, and then save it.
 
-.. code-block:: console
+.. code-block:: robotframework
 
     *** Settings ***
     Resource  cumulusci/robotframework/Salesforce.robot
@@ -223,7 +223,7 @@ characters ``...`` on a separate line.
 Modify the import statements at the top of ``MyObject.robot`` to look
 like the following:
 
-.. code-block:: console
+.. code-block:: robotframework
 
     *** Settings ***
     Resource  cumulusci/robotframework/Salesforce.robot
@@ -264,7 +264,7 @@ run.
 Open up ``MyObject.robot`` and add the following just before ``***
 Test Cases ***``:
 
-.. code-block::
+.. code-block:: robotframework
 
     *** Keywords ***
     Create test data
@@ -296,7 +296,7 @@ readability.
     that's the way robot knows where one keyword ends and the next
     begins.
 
-.. code-block:: console
+.. code-block:: robotframework
 
     Suite Setup     Run keywords
     ...  Create test data
@@ -324,14 +324,14 @@ our page object file.
 Once again, edit ``MyObject.robot`` to add the following two
 statements at the end of our test:
 
-.. code-block:: console
+.. code-block:: robotframework
 
     Click on the row with name  Leeroy Jenkins
     Current page should be  Detail  MyObject__c
 
 The complete test should now look like this:
 
-.. code-block::
+.. code-block:: robotframework
 
     *** Settings ***
     Resource  cumulusci/robotframework/Salesforce.robot

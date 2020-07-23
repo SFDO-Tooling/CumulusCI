@@ -21,6 +21,7 @@ from cumulusci.tasks.bulkdata.step import (
     BaseDmlOperation,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 
@@ -113,6 +114,7 @@ class TestLoadData(unittest.TestCase):
                 DataOperationResult("003000000000001", True, None),
             ]
 
+            mock_describe_calls()
             task()
 
             assert step.records == [
@@ -239,6 +241,7 @@ class TestLoadData(unittest.TestCase):
             DataOperationResult("003000000000000", True, None),
             DataOperationResult("003000000000001", True, None),
         ]
+        mock_describe_calls()
         task()
 
         assert step.records == [
@@ -298,6 +301,34 @@ class TestLoadData(unittest.TestCase):
         assert t.options["sql_path"] == "test.sql"
         assert t.options["database_url"] is None
 
+    @mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping")
+    def test_init_mapping_passes_options_to_validate(self, validate_and_inject_mapping):
+        base_path = os.path.dirname(__file__)
+
+        t = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": "test.sql",
+                    "mapping": os.path.join(base_path, self.mapping_file),
+                    "inject_namespaces": True,
+                    "drop_missing_schema": True,
+                }
+            },
+        )
+
+        t._init_mapping()
+
+        validate_and_inject_mapping.assert_called_once_with(
+            mapping=t.mapping,
+            org_config=t.org_config,
+            namespace=t.project_config.project__package__namespace,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=True,
+            drop_missing=True,
+        )
+
+    @responses.activate
     def test_expand_mapping_creates_after_steps(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "mapping_after.yml")
@@ -306,6 +337,7 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
 
+        mock_describe_calls()
         task._init_mapping()
 
         model = mock.Mock()
@@ -1308,6 +1340,7 @@ class TestLoadData(unittest.TestCase):
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.load.automap_base")
+    @responses.activate
     def test_init_db__record_type_mapping(self, base):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
@@ -1322,6 +1355,7 @@ class TestLoadData(unittest.TestCase):
         task._create_record_type_table = mock.Mock(side_effect=create_table_mock)
         task.models = mock.Mock()
         task.metadata = mock.Mock()
+        mock_describe_calls()
 
         task._init_mapping()
         task.mapping["Insert Households"]["fields"]["RecordTypeId"] = "RecordTypeId"
@@ -1390,6 +1424,7 @@ class TestLoadData(unittest.TestCase):
                 DataOperationResult("003000000000001", True, None),
             ]
 
+            mock_describe_calls()
             task()
 
             assert step.records == [
@@ -1405,6 +1440,7 @@ class TestLoadData(unittest.TestCase):
 
             task.session.close()
 
+    @responses.activate
     def test_run__complex_lookups(self):
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1413,7 +1449,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
-
+        mock_describe_calls()
         task._init_mapping()
         assert (
             task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
@@ -1432,6 +1468,7 @@ class TestLoadData(unittest.TestCase):
             == "Insert Accounts"
         )
 
+    @responses.activate
     def test_load__inferred_keyfield_camelcase(self):
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1440,6 +1477,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
+        mock_describe_calls()
         task._init_mapping()
 
         class FakeModel:
@@ -1452,6 +1490,7 @@ class TestLoadData(unittest.TestCase):
             == "ParentId"
         )
 
+    @responses.activate
     def test_load__inferred_keyfield_snakecase(self):
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1460,6 +1499,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
+        mock_describe_calls()
         task._init_mapping()
 
         class FakeModel:

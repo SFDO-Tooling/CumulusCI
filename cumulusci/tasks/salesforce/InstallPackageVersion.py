@@ -92,6 +92,7 @@ class InstallPackageVersion(Deploy):
         if isinstance(e, MetadataApiError) and (
             "This package is not yet available" in str(e)
             or "InstalledPackage version number" in str(e)
+            or "The requested package doesn't yet exist or has been deleted" in str(e)
         ):
             return True
 

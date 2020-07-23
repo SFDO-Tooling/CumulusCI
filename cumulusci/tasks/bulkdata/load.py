@@ -25,6 +25,7 @@ from cumulusci.utils import os_friendly_path
 
 from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
+    validate_and_inject_mapping,
     MappingStep,
     MappingLookup,
 )
@@ -58,6 +59,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         "bulk_mode": {
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
+        "inject_namespaces": {
+            "description": "If True, the package namespace prefix will be automatically added to objects "
+            "and fields for which it is present in the org. Defaults to True."
+        },
+        "drop_missing_schema": {
+            "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
+        },
     }
     row_warning_limit = 10
 
@@ -83,6 +91,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         )
         if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
+
+        self.options["inject_namespaces"] = process_bool_arg(
+            self.options.get("inject_namespaces", True)
+        )
+        self.options["drop_missing_schema"] = process_bool_arg(
+            self.options.get("drop_missing_schema", False)
+        )
 
     def _run_task(self):
         # Initialize attributes that will be cached.
@@ -477,6 +492,15 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         self.mapping = parse_from_yaml(mapping_file_path)
 
+        validate_and_inject_mapping(
+            mapping=self.mapping,
+            org_config=self.org_config,
+            namespace=self.project_config.project__package__namespace,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=self.options["inject_namespaces"],
+            drop_missing=self.options["drop_missing_schema"],
+        )
+
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps
         to handle dependent and self-lookups."""
@@ -486,14 +510,16 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         for step in self.mapping.values():
             step["action"] = step.get("action", "insert")
             if step.get("lookups") and any(
-                [l.get("after") for l in step["lookups"].values()]
+                [lookup.get("after") for lookup in step["lookups"].values()]
             ):
                 # We have deferred/dependent lookups.
                 # Synthesize mapping steps for them.
 
                 sobject = step["sf_object"]
                 after_list = {
-                    l["after"] for l in step["lookups"].values() if l.get("after")
+                    lookup["after"]
+                    for lookup in step["lookups"].values()
+                    if lookup.get("after")
                 }
 
                 for after in after_list:
@@ -517,9 +543,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                             step["table"]
                         ].__table__.primary_key.columns.keys()[0],
                     )
-                    for l in lookups:
-                        mapping["lookups"][l] = lookups[l].copy()
-                        mapping["lookups"][l]["after"] = None
+                    for lookup in lookups:
+                        mapping["lookups"][lookup] = lookups[lookup].copy()
+                        mapping["lookups"][lookup]["after"] = None
 
                     self.after_steps[after][name] = mapping
 
