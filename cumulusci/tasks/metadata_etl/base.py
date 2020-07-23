@@ -12,6 +12,7 @@ from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import inject_namespace
 from cumulusci.core.config import TaskConfig
 from cumulusci.utils.xml import metadata_tree
+from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 
 class MetadataOperation(enum.Enum):
@@ -305,3 +306,48 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
                 removed_api_names.add(api_name)
 
         self.api_names = self.api_names - removed_api_names
+
+
+class UpdateFirstAttributeTextTask(MetadataSingleEntityTransformTask):
+    """
+    Updates the metadata's first child with name attribute's text.
+    Does not support attributes with object-like values.
+    """
+
+    task_options = {
+        "entity": {"description": "Metadata Entity", "required": True},
+        "tag": {
+            "description": "Tag of metadata's first child whose text will be updated.   Does not support compound attributes.",
+            "required": True,
+        },
+        "value": {
+            "description": "Text of metadata's first child with tag.  This value is namespaced injected.",
+            "required": True,
+        },
+        **MetadataSingleEntityTransformTask.task_options,
+    }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.entity = self.options.get("entity")
+        self.options["value"] = self._inject_namespace(self.options.get("value"))
+
+    def _transform_entity(
+        self, metadata: MetadataElement, api_name: str
+    ) -> MetadataElement:
+        """
+        Finds metadata's first child with tag.  If no child is found, appends
+        a new child with tag.  Then updates child's text as the value option.
+        """
+        tag = self.options.get("tag")
+
+        attribute = metadata.find(tag)
+        if not attribute:
+            attribute = metadata.append(tag)
+
+        attribute.text = self.options.get("value")
+
+        self.logger.info(f'Updating {self.entity} "{api_name}":')
+        self.logger.info(f'    {tag} as "{attribute.text}"')
+
+        return metadata

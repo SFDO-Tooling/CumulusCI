@@ -4,6 +4,7 @@ from cumulusci.tasks.metadata_etl.base import (
     BaseMetadataTransformTask,
     MetadataSingleEntityTransformTask,
     MetadataOperation,
+    UpdateFirstAttributeTextTask,
 )
 from cumulusci.tasks.metadata_etl.duplicate_rules import SetDuplicateRuleStatus
 from cumulusci.tasks.metadata_etl.layouts import AddRelatedLists
@@ -22,4 +23,5 @@ flake8 = (
     SetOrgWideDefaults,
     MetadataOperation,
     SetDuplicateRuleStatus,
+    UpdateFirstAttributeTextTask,
 )
