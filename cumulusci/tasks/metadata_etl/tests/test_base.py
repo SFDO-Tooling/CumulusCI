@@ -12,7 +12,7 @@ from cumulusci.tasks.metadata_etl import (
     BaseMetadataSynthesisTask,
     BaseMetadataTransformTask,
     MetadataSingleEntityTransformTask,
-    UpdateFirstAttributeTextTask,
+    UpdateMetadataFirstChildTextTask,
 )
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
@@ -383,7 +383,7 @@ class TestMetadataSingleEntityTransformTask:
                 task._transform()
 
 
-class TestUpdateFirstAttributeTextTask:
+class TestUpdateMetadataFirstChildTextTask:
     def test_init_options(self):
         for options, expected_value in [
             (
@@ -467,7 +467,7 @@ class TestUpdateFirstAttributeTextTask:
                 "namespace__newAttributeValue",
             ),
         ]:
-            task = create_task(UpdateFirstAttributeTextTask, options)
+            task = create_task(UpdateMetadataFirstChildTextTask, options)
 
             assert options["entity"] == task.entity
             assert expected_value == task.options["value"]
@@ -484,7 +484,7 @@ class TestUpdateFirstAttributeTextTask:
         value = "newAttributeValue"
 
         task = create_task(
-            UpdateFirstAttributeTextTask,
+            UpdateMetadataFirstChildTextTask,
             {
                 "managed": False,
                 "namespace_inject": None,
@@ -524,7 +524,7 @@ class TestUpdateFirstAttributeTextTask:
         value = "newAttributeValue"
 
         task = create_task(
-            UpdateFirstAttributeTextTask,
+            UpdateMetadataFirstChildTextTask,
             {
                 "managed": False,
                 "namespace_inject": None,

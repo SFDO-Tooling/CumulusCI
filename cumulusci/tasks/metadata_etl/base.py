@@ -308,7 +308,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
         self.api_names = self.api_names - removed_api_names
 
 
-class UpdateFirstAttributeTextTask(MetadataSingleEntityTransformTask):
+class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
     """
     Updates the metadata's first child tag's text.
     Does not support tags with complex/object-like values.

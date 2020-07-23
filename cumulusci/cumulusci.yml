@@ -430,6 +430,12 @@ tasks:
         description: Installs all dependencies in project__dependencies into the target org
         class_path: cumulusci.tasks.salesforce.UpdateDependencies
         group: Salesforce Packages
+    update_metadata_first_child_text:
+        group: Metadata Transformations
+        description: Updates the text of the first child of Metadata with matching tag.  Adds a child for tag if it does not exist.
+        class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+        options:
+            namespace_inject: $project_config.project__package__namespace
     update_package_xml:
         description: Updates src/package.xml with metadata in src/
         class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
