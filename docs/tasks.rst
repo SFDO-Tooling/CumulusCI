@@ -651,6 +651,11 @@ Options
 
 	 If True, allow the operation to continue even if individual rows fail to delete.
 
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
 **deploy**
 ==========================================
 
@@ -1327,6 +1332,16 @@ Options
 	 *Optional*
 
 	 Set to Serial to force serial mode on all jobs. Parallel is the default.
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
 ``-o generate_mapping_file GENERATEMAPPINGFILE``
 	 *Optional*
@@ -2759,6 +2774,11 @@ Options
 
 	 If true, enable the `breakpoint` keyword to enable the robot debugger
 
+``-o processes PROCESSES``
+	 *Optional*
+
+	 *experimental* Number of processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robotframework. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.
+
 **robot_libdoc**
 ==========================================
 
@@ -3815,6 +3835,11 @@ Options
 
 	 Object names to include even if they might not otherwise be included.
 
+``-o strip_namespace STRIPNAMESPACE``
+	 *Optional*
+
+	 If True, CumulusCI removes the project's namespace where found in fields  and objects to support automatic namespace injection. On by default.
+
 **extract_dataset**
 ==========================================
 
@@ -3850,6 +3875,16 @@ Options
 	 If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs.
 
 	 Default: datasets/sample.sql
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
 **load_dataset**
 ==========================================
@@ -3906,6 +3941,16 @@ Options
 	 *Optional*
 
 	 Set to Serial to force serial mode on all jobs. Parallel is the default.
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
 **load_custom_settings**
 ==========================================
