@@ -1,4 +1,3 @@
-import time
 from cumulusci.robotframework.utils import capture_screenshot_on_error
 from cumulusci.robotframework.pageobjects import BasePage
 from cumulusci.robotframework.pageobjects import pageobject
@@ -33,6 +32,7 @@ actions_menu = object_manager["action_menu"]
 action_item_delete = object_manager["action_menu_item"].format("Delete")
 confirm_delete = object_manager["delete_confirm_btn"]
 lookup_locator = object_manager["input"].format("dtypeY")
+
 
 @pageobject(page_type="ObjectManager")
 class ObjectManagerPage(BasePage):
@@ -182,17 +182,16 @@ class ObjectManagerPage(BasePage):
         )
 
     @capture_screenshot_on_error
-    def delete_custom_field(self,field_name):
-          """Searches for the custom field and performs the delete action from the actions menu next to the field"""
-          self.is_field_present(field_name)
-          self.selenium.wait_until_page_contains_element(actions_menu, 60)
-          self.selenium.click_element(actions_menu)
-          self.selenium.wait_until_page_contains_element(action_item_delete, 60)
-          self.selenium.click_element(action_item_delete)
-          self.selenium.wait_until_page_contains_element(confirm_delete, 60)
-          self.selenium.click_element(confirm_delete)
-          self.selenium.wait_until_location_contains("/view", timeout=90)
-        
+    def delete_custom_field(self, field_name):
+        """Searches for the custom field and performs the delete action from the actions menu next to the field"""
+        self.is_field_present(field_name)
+        self.selenium.wait_until_page_contains_element(actions_menu, 60)
+        self.selenium.click_element(actions_menu)
+        self.selenium.wait_until_page_contains_element(action_item_delete, 60)
+        self.selenium.click_element(action_item_delete)
+        self.selenium.wait_until_page_contains_element(confirm_delete, 60)
+        self.selenium.click_element(confirm_delete)
+        self.selenium.wait_until_location_contains("/view", timeout=90)
 
     @capture_screenshot_on_error
     def create_custom_field(self, **kwargs):
