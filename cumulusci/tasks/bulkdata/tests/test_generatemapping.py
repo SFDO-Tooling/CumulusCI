@@ -615,8 +615,8 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
         t.refs = {
-            "ns__Child__c": {"ns__Parent__c": set(["ns__Parent__c"])},
-            "ns__Parent__c": {"ns__Child__c": set(["ns__Dependent__c"])},
+            "ns__Child__c": {"ns__Parent__c": {"ns__Parent__c": FieldData({})}},
+            "ns__Parent__c": {"ns__Child__c": {"ns__Dependent__c": FieldData({})}},
         }
 
         t._build_mapping()
@@ -669,7 +669,7 @@ class TestMappingGenerator(unittest.TestCase):
             },
             "Child__c": {"Name": self._mock_field("Name")},
         }
-        t.refs = {"ns__Child__c": {"ns__Parent__c": set(["ns__Parent__c"])}}
+        t.refs = {"ns__Child__c": {"ns__Parent__c": {"ns__Parent__c": FieldData({})}}}
 
         t._build_mapping()
 
@@ -796,7 +796,7 @@ class TestMappingGenerator(unittest.TestCase):
         )
 
         self.assertEqual(
-            ["Custom__c", "Account", "Contact", "Opportunity"], split_dependencies,
+            ["Custom__c", "Account", "Contact", "Opportunity"], split_dependencies
         )
         assert not choice.mock_calls
 
@@ -820,7 +820,7 @@ class TestMappingGenerator(unittest.TestCase):
         )
 
         self.assertEqual(
-            ["Contact", "Opportunity", "Account", "Custom__c"], split_dependencies,
+            ["Contact", "Opportunity", "Account", "Custom__c"], split_dependencies
         )
 
     @mock.patch("click.prompt")
@@ -892,7 +892,7 @@ class TestMappingGenerator(unittest.TestCase):
                             },
                         },
                     },
-                ),
+                )
             ),
         )
 
@@ -937,7 +937,7 @@ class TestIntegrationGenerateMapping:
             every_obj = sf.describe["sobjects"].keys()
 
             task = create_task(
-                GenerateMapping, {"path": tempfile, "include": every_obj},
+                GenerateMapping, {"path": tempfile, "include": every_obj}
             )
             assert not Path(tempfile).exists()
             task()
