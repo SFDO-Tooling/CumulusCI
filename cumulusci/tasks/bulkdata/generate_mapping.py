@@ -423,14 +423,14 @@ class FieldData:
     nillable: bool
 
     def __init__(self, describe_data: dict):
-        self.nillable = describe_data.get("nillable")
+        self.nillable = describe_data.get("nillable", False)
 
     def __eq__(self, other: "FieldData"):
         return self.__dict__ == other.__dict__
 
 
 def is_standard(obj: str):
-    return not obj.endswith("__c")
+    return "__" not in obj
 
 
 def soft_dependency(sobj, target_obj: str, field_data: FieldData):
