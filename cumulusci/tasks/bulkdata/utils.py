@@ -9,7 +9,6 @@ from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
 
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
@@ -75,6 +74,21 @@ class SqlAlchemyMixin:
                     [rt["Id"], rt["DeveloperName"]] for rt in result["records"]
                 ),
             )
+
+
+class OrgInfoMixin:
+    """Bulk data task mixin for accessing info about the org"""
+
+    _person_accounts_enabled = None
+
+    def _org_has_person_accounts_enabled(self):
+        """Does Account have an "IsPersonAccount" field?"""
+        if self._person_accounts_enabled is None:
+            account_fields = self.sf.Account.describe()["fields"]
+            self._person_accounts_enabled = any(
+                field["name"] == "IsPersonAccount" for field in account_fields
+            )
+        return self._person_accounts_enabled
 
 
 def _handle_primary_key(mapping, fields):
@@ -155,14 +169,3 @@ class RowErrorChecker:
                 return self.row_error_count
             else:
                 raise BulkDataException(msg)
-
-
-def is_person_accounts_enabled(self: BaseSalesforceApiTask) -> bool:
-    """
-    Returns if Account has an "IsPersonAccount" field.  Always return a
-    non-None bool to help implementations cache this response.
-    """
-    for field in self.sf.Account.describe()["fields"]:
-        if field["name"].lower() == "ispersonaccount":
-            return True
-    return False

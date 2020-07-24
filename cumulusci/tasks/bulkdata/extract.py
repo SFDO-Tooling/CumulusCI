@@ -11,10 +11,10 @@ import tempfile
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
+    OrgInfoMixin,
     SqlAlchemyMixin,
     create_table,
     fields_for_mapping,
-    is_person_accounts_enabled,
 )
 from cumulusci.core.utils import process_bool_arg
 
@@ -31,7 +31,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
 )
 
 
-class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
+class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
     """Perform Bulk Queries to extract data for a mapping and persist to a SQL file or database."""
 
     task_options = {
@@ -77,9 +77,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         )
 
     def _run_task(self):
-        # Initialize attributes that will be cached.
-        self._person_accounts_enabled = None
-
         self._init_mapping()
         self._init_db()
 
@@ -293,8 +290,8 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Track IsPersonAccount for Account and Contact tables if person accounts is enabled.
         # IsPersonAccount field should never exist in a mapping because the field is not creatable.
         if (
-            mapping["sf_object"].lower() in ["account", "contact"]
-        ) and self._is_person_accounts_enabled():
+            mapping["sf_object"] in ("Account", "Contact")
+        ) and self._org_has_person_accounts_enabled():
             mapping["fields"]["IsPersonAccount"] = "IsPersonAccount"
 
         t = create_table(mapping, self.metadata)
@@ -336,12 +333,3 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         with open(path, "w") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")
-
-    def _is_person_accounts_enabled(self):
-        """
-        Caches is_person_accounts_enabled response which consumes a describe
-        call.
-        """
-        if self._person_accounts_enabled is None:
-            self._person_accounts_enabled = is_person_accounts_enabled(self)
-        return self._person_accounts_enabled

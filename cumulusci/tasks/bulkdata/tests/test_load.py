@@ -581,7 +581,7 @@ class TestLoadData(unittest.TestCase):
         task.metadata = mock.Mock()
         task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
         task.session = mock.Mock()
-        task._is_person_accounts_enabled = mock.Mock(return_value=True)
+        task._can_load_person_accounts = mock.Mock(return_value=True)
         task._update_person_account_name_as_blank = mock.Mock()
         task._filter_out_person_account_records = mock.Mock()
 
@@ -617,7 +617,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # Validate person account db records had their Name updated as blank
-        task._is_person_accounts_enabled.assert_called_once_with(mapping)
+        task._can_load_person_accounts.assert_called_once_with(mapping)
         task._update_person_account_name_as_blank.assert_called_once_with(mapping)
 
         # Validate person account records were not filtered out
@@ -633,7 +633,7 @@ class TestLoadData(unittest.TestCase):
         task.metadata = mock.Mock()
         task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
         task.session = mock.Mock()
-        task._is_person_accounts_enabled = mock.Mock(return_value=False)
+        task._can_load_person_accounts = mock.Mock(return_value=False)
         task._update_person_account_name_as_blank = mock.Mock()
         task._filter_out_person_account_records = mock.Mock()
 
@@ -670,7 +670,7 @@ class TestLoadData(unittest.TestCase):
 
         # Validate person account db records did not have their Name updated as blank
         # because person accounts is not enabled
-        task._is_person_accounts_enabled.assert_called_once_with(mapping)
+        task._can_load_person_accounts.assert_called_once_with(mapping)
         task._update_person_account_name_as_blank.assert_not_called()
 
         # Validate person account records were not filtered out
@@ -686,7 +686,7 @@ class TestLoadData(unittest.TestCase):
         task.metadata = mock.Mock()
         task.metadata.tables = {"contacts_sf_ids": mock.Mock()}
         task.session = mock.Mock()
-        task._is_person_accounts_enabled = mock.Mock(return_value=True)
+        task._can_load_person_accounts = mock.Mock(return_value=True)
         task._update_person_account_name_as_blank = mock.Mock()
         task._filter_out_person_account_records = mock.Mock()
 
@@ -731,7 +731,7 @@ class TestLoadData(unittest.TestCase):
         task._update_person_account_name_as_blank.assert_not_called()
 
         # Validate person contact records were not filtered out
-        task._is_person_accounts_enabled.assert_called_once_with(mapping)
+        task._can_load_person_accounts.assert_called_once_with(mapping)
         task._filter_out_person_account_records.assert_called_once_with(
             task.session.query.return_value, model
         )
@@ -746,7 +746,7 @@ class TestLoadData(unittest.TestCase):
         task.metadata = mock.Mock()
         task.metadata.tables = {"contacts_sf_ids": mock.Mock()}
         task.session = mock.Mock()
-        task._is_person_accounts_enabled = mock.Mock(return_value=False)
+        task._can_load_person_accounts = mock.Mock(return_value=False)
         task._update_person_account_name_as_blank = mock.Mock()
         task._filter_out_person_account_records = mock.Mock()
 
@@ -791,7 +791,7 @@ class TestLoadData(unittest.TestCase):
         task._update_person_account_name_as_blank.assert_not_called()
 
         # Validate person contact records were not filtered out
-        task._is_person_accounts_enabled.assert_called_once_with(mapping)
+        task._can_load_person_accounts.assert_called_once_with(mapping)
         task._filter_out_person_account_records.assert_not_called()
 
     @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
@@ -806,7 +806,7 @@ class TestLoadData(unittest.TestCase):
         task.metadata = mock.Mock()
         task.metadata.tables = {"requests_sf_ids": mock.Mock()}
         task.session = mock.Mock()
-        task._is_person_accounts_enabled = mock.Mock(return_value=True)
+        task._can_load_person_accounts = mock.Mock(return_value=True)
         task._update_person_account_name_as_blank = mock.Mock()
         task._filter_out_person_account_records = mock.Mock()
 
@@ -844,7 +844,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # Validate person contact db records had their Name updated as blank
-        task._is_person_accounts_enabled.assert_not_called()
+        task._can_load_person_accounts.assert_not_called()
         task._update_person_account_name_as_blank.assert_not_called()
 
         # Validate person contact records were not filtered out
@@ -1058,7 +1058,7 @@ class TestLoadData(unittest.TestCase):
         - person accounts is enabled
         - an account_id_lookup is found in the mapping
         """
-        for action, sf_object, is_person_accounts_enabled, account_id_lookup in [
+        for action, sf_object, can_load_person_accounts, account_id_lookup in [
             ("insert", "Not Contact", True, None),
             ("insert", "Not Contact", False, None),
             ("insert", "Not Contact", True, mock.Mock()),
@@ -1085,10 +1085,9 @@ class TestLoadData(unittest.TestCase):
             task._sql_bulk_insert_from_records = mock.Mock()
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
-            task._is_person_accounts_enabled = mock.Mock(
-                return_value=is_person_accounts_enabled
+            task._can_load_person_accounts = mock.Mock(
+                return_value=can_load_person_accounts
             )
-            task._get_account_id_lookup = mock.Mock(return_value=account_id_lookup)
             task._generate_contact_id_map_for_person_accounts = mock.Mock()
 
             local_ids = ["1"]
@@ -1102,7 +1101,14 @@ class TestLoadData(unittest.TestCase):
             )
             step.results = [DataOperationResult("001111111111111", True, None)]
 
-            mapping = {"sf_object": sf_object, "table": "Account", "action": action}
+            mapping = {
+                "sf_object": sf_object,
+                "table": "Account",
+                "action": action,
+                "lookups": {},
+            }
+            if account_id_lookup:
+                mapping["lookups"]["AccountId"] = account_id_lookup
             task._process_job_results(mapping, step, local_ids)
 
             task._generate_contact_id_map_for_person_accounts.assert_not_called()
@@ -1120,51 +1126,54 @@ class TestLoadData(unittest.TestCase):
         """
         action = "insert"
         sf_object = "Contact"
-        is_person_accounts_enabled = True
+        can_load_person_accounts = True
         account_id_lookup = mock.Mock()
-        for action, sf_object, is_person_accounts_enabled, account_id_lookup in [
-            ("insert", "Contact", True, mock.Mock())
-        ]:
-            task = _make_task(
-                LoadData,
-                {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
-            )
 
-            task.session = mock.Mock()
-            task._initialize_id_table = mock.Mock()
-            task._sql_bulk_insert_from_records = mock.Mock()
-            task.bulk = mock.Mock()
-            task.sf = mock.Mock()
-            task._is_person_accounts_enabled = mock.Mock(
-                return_value=is_person_accounts_enabled
-            )
-            task._get_account_id_lookup = mock.Mock(return_value=account_id_lookup)
-            task._generate_contact_id_map_for_person_accounts = mock.Mock()
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
 
-            local_ids = ["1"]
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(
+            return_value=can_load_person_accounts
+        )
+        task._generate_contact_id_map_for_person_accounts = mock.Mock()
 
-            step = MockBulkApiDmlOperation(
-                sobject="Contact",
-                operation=DataOperationType.INSERT,
-                api_options={},
-                context=task,
-                fields=[],
-            )
-            step.results = [DataOperationResult("001111111111111", True, None)]
+        local_ids = ["1"]
 
-            mapping = {"sf_object": sf_object, "table": "Account", "action": action}
-            task._process_job_results(mapping, step, local_ids)
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
 
-            task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
-                mapping, account_id_lookup, task.session.connection.return_value
-            )
+        mapping = {
+            "sf_object": sf_object,
+            "table": "Account",
+            "action": action,
+            "lookups": {"AccountId": account_id_lookup},
+        }
 
-            task._sql_bulk_insert_from_records.assert_called_with(
-                connection=task.session.connection.return_value,
-                table=task._initialize_id_table.return_value,
-                columns=("id", "sf_id"),
-                record_iterable=task._generate_contact_id_map_for_person_accounts.return_value,
-            )
+        task._process_job_results(mapping, step, local_ids)
+
+        task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
+            mapping, account_id_lookup, task.session.connection.return_value
+        )
+
+        task._sql_bulk_insert_from_records.assert_called_with(
+            connection=task.session.connection.return_value,
+            table=task._initialize_id_table.return_value,
+            columns=("id", "sf_id"),
+            record_iterable=task._generate_contact_id_map_for_person_accounts.return_value,
+        )
 
     def test_generate_results_id_map__success(self):
         task = _make_task(
@@ -1512,7 +1521,7 @@ class TestLoadData(unittest.TestCase):
             == "parent_id"
         )
 
-    def test_is_person_account_column_exists(self):
+    def test_db_has_person_accounts_column(self):
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, mapping_file)
@@ -1535,100 +1544,9 @@ class TestLoadData(unittest.TestCase):
             task.models = {}
             task.models[mapping["table"]] = model
 
-            actual = task._is_person_account_column_exists(mapping)
+            actual = task._db_has_person_accounts_column(mapping)
 
             self.assertEqual(expected, actual, f"columns: {columns}")
-
-    @mock.patch("cumulusci.tasks.bulkdata.load.is_person_accounts_enabled")
-    def test_is_person_accounts_enabled__column_exists(
-        self, is_person_accounts_enabled
-    ):
-        """
-        Asserts _is_person_accounts_enabled caches the response of
-        is_person_accounts_enabled.
-        """
-        mapping_file = "mapping-oid.yml"
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, mapping_file)
-
-        for return_value in [True, False]:
-            is_person_accounts_enabled.reset_mock()
-
-            self.assertTrue(return_value is not None)
-            is_person_accounts_enabled.return_value = return_value
-
-            task = _make_task(
-                LoadData,
-                {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
-            )
-            task._person_accounts_enabled = None
-            task._is_person_account_column_exists = mock.Mock(return_value=True)
-
-            mapping = {"table": "table"}
-
-            expected = return_value
-
-            # Execute test.
-            actual = task._is_person_accounts_enabled(mapping)
-
-            # Assert expected happend.
-            self.assertEqual(expected, actual)
-
-            task._is_person_account_column_exists.assert_called_once_with(mapping)
-
-            self.assertEqual(
-                is_person_accounts_enabled.return_value, task._person_accounts_enabled
-            )
-
-            is_person_accounts_enabled.assert_called_once_with(task)
-
-            # Call again and assert is_person_accounts_enabled not called again.
-            task._is_person_account_column_exists.reset_mock()
-
-            self.assertFalse(task._person_accounts_enabled is None)
-
-            self.assertEqual(expected, task._is_person_accounts_enabled(mapping))
-
-            task._is_person_account_column_exists.assert_called_once_with(mapping)
-
-            self.assertEqual(
-                is_person_accounts_enabled.return_value, task._person_accounts_enabled
-            )
-
-            is_person_accounts_enabled.assert_called_once_with(task)
-
-    @mock.patch("cumulusci.tasks.bulkdata.load.is_person_accounts_enabled")
-    def test_is_person_accounts_enabled__column_does_not_exist(
-        self, is_person_accounts_enabled
-    ):
-        """
-        Asserts _is_person_accounts_enabled caches the response of
-        is_person_accounts_enabled.
-        """
-        mapping_file = "mapping-oid.yml"
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, mapping_file)
-
-        task = _make_task(
-            LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
-        )
-        task._person_accounts_enabled = None
-        task._is_person_account_column_exists = mock.Mock(return_value=False)
-
-        mapping = {"table": "table"}
-
-        expected = False
-
-        # Execute test.
-        actual = task._is_person_accounts_enabled(mapping)
-
-        # Assert expected happend.
-        self.assertEqual(expected, actual)
-
-        task._is_person_account_column_exists.assert_called_once_with(mapping)
-
-        is_person_accounts_enabled.assert_not_called()
 
     def test_update_person_account_name_as_blank__name_field_found(self):
         mapping_file = "mapping-oid.yml"
@@ -1636,55 +1554,52 @@ class TestLoadData(unittest.TestCase):
         mapping_path = os.path.join(base_path, mapping_file)
         name_column_name = "name_column_name"
 
-        for api_name in ["name", "NAME", "nAmE"]:
-            mapping = {
-                "table": "table",
-                "fields": {"Some_Field_Api_Name": "some_column_name"},
-            }
-            mapping["fields"][api_name] = name_column_name
+        mapping = {
+            "table": "table",
+            "fields": {"Some_Field_Api_Name": "some_column_name"},
+        }
+        mapping["fields"]["Name"] = name_column_name
 
-            update = mock.Mock()
-            update.where.return_value = update
-            update.values.return_value = update
+        update = mock.Mock()
+        update.where.return_value = update
+        update.values.return_value = update
 
-            table = mock.Mock()
-            table.update.return_value = update
-            IsPersonAccount_column = mock.MagicMock()
-            IsPersonAccount_column.__eq__ = mock.Mock()
-            table.columns = {"IsPersonAccount": IsPersonAccount_column}
+        table = mock.Mock()
+        table.update.return_value = update
+        IsPersonAccount_column = mock.MagicMock()
+        IsPersonAccount_column.__eq__ = mock.Mock()
+        table.columns = {"IsPersonAccount": IsPersonAccount_column}
 
-            model = mock.Mock()
-            model.__table__ = table
+        model = mock.Mock()
+        model.__table__ = table
 
-            task = _make_task(
-                LoadData,
-                {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
-            )
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
 
-            task.models = {}
-            task.models[mapping["table"]] = model
+        task.models = {}
+        task.models[mapping["table"]] = model
 
-            connection = mock.Mock()
-            connection.execute = mock.Mock()
+        connection = mock.Mock()
+        connection.execute = mock.Mock()
 
-            task.session = mock.Mock()
-            task.session.connection = mock.Mock(return_value=connection)
-            task.session.flush = mock.Mock()
+        task.session = mock.Mock()
+        task.session.connection = mock.Mock(return_value=connection)
+        task.session.flush = mock.Mock()
 
-            # Execute test.
-            task._update_person_account_name_as_blank(mapping)
+        # Execute test.
+        task._update_person_account_name_as_blank(mapping)
 
-            # Assert expected happened.
-            task.session.connection.assert_called_once_with()
-            connection.execute.assert_called_once_with(update)
-            task.session.flush.assert_called_once_with()
+        # Assert expected happened.
+        task.session.connection.assert_called_once_with()
+        connection.execute.assert_called_once_with(update)
+        task.session.flush.assert_called_once_with()
 
-            table.update.assert_called_once_with()
-            update.where.assert_called_once_with(
-                IsPersonAccount_column.__eq__.return_value
-            )
-            IsPersonAccount_column.__eq__.assert_called_once_with("true")
-            update.values.assert_called_once_with(**{name_column_name: ""})
+        table.update.assert_called_once_with()
+        update.where.assert_called_once_with(IsPersonAccount_column.__eq__.return_value)
+        IsPersonAccount_column.__eq__.assert_called_once_with("true")
+        update.values.assert_called_once_with(**{name_column_name: ""})
 
     def test_update_person_account_name_as_blank__name_field_not_found(self):
         mapping_file = "mapping-oid.yml"
@@ -1762,47 +1677,6 @@ class TestLoadData(unittest.TestCase):
         IsPersonAccount_column.__eq__.assert_called_once_with("false")
 
         query.filter.assert_called_once_with(IsPersonAccount_column.__eq__.return_value)
-
-    def test_get_account_id_lookup__found(self):
-        mapping_file = "mapping-oid.yml"
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, mapping_file)
-
-        lookup = mock.Mock()
-        for lookups in [
-            {"ACCOUNTID": lookup},
-            {"accountid": lookup},
-            {"AccountId": lookup},
-            {"Name": mock.Mock(), "AccountId": lookup, "AnotherField__c": mock.Mock()},
-        ]:
-            mapping = {"lookups": lookups}
-
-            task = _make_task(
-                LoadData,
-                {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
-            )
-
-            self.assertEqual(
-                lookup, task._get_account_id_lookup(mapping), f"lookups: {lookups}"
-            )
-
-    def test_get_account_id_lookup__not_found(self):
-        mapping_file = "mapping-oid.yml"
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, mapping_file)
-
-        for mapping in [
-            {},
-            {"lookups": {"Name": mock.Mock(), "AnotherField__c": mock.Mock()}},
-        ]:
-            task = _make_task(
-                LoadData,
-                {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
-            )
-
-            self.assertEqual(
-                None, task._get_account_id_lookup(mapping), f"mapping: {mapping}"
-            )
 
     def test_generate_contact_id_map_for_person_accounts(self):
         mapping_file = "mapping-oid.yml"
