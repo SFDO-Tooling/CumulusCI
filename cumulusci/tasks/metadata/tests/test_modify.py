@@ -1,6 +1,6 @@
 import os
 import unittest
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.tasks.metadata.modify import RemoveElementsXPath
@@ -10,7 +10,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 
 class TestRemoveElementsXPath(unittest.TestCase):
     def _run_task(self, options):
-        project_config = BaseProjectConfig(BaseGlobalConfig(), config={"noyaml": True})
+        project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})
         task_config = TaskConfig({"options": options})
         task = RemoveElementsXPath(project_config, task_config)
         task()
