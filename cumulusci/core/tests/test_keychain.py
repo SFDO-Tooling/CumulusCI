@@ -492,9 +492,9 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain = self.keychain_class(self.project_config, self.key)
         self.org_config.global_org = True
         keychain.set_org(self.org_config, global_org=True)
-        self.assertEqual(list(keychain.orgs.keys()), ["test"])
+        assert ["test"] == list(keychain.orgs.keys())
         assert isinstance(keychain.orgs["test"], GlobalOrg), keychain.orgs["test"]
-        self.assertEqual(keychain.get_org("test").config, self.org_config.config)
+        assert self.org_config.config == keychain.get_org("test").config
         assert Path(self.tempdir_home, ".cumulusci", "test.org").exists()
 
         # check that it saves to the right place
@@ -502,10 +502,10 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
             "cumulusci.core.keychain.encrypted_file_project_keychain.open"
         ) as o:
             self.org_config.save()
-            save_argument = o.mock_calls[0][1][0]
-            assert ".cumulusci/test.org" in save_argument.replace(
-                "\\", "/"
-            ), save_argument
+            opened_filename = o.mock_calls[0][1][0]
+            assert ".cumulusci/test.org" in opened_filename.replace(
+                os.sep, "/"
+            ), opened_filename
 
         # check that it can be loaded in a fresh keychain
         new_keychain = self.keychain_class(self.project_config, self.key)
