@@ -15,7 +15,9 @@ from selenium.common.exceptions import NoSuchElementException
 from cumulusci.robotframework.pageobjects import pageobject
 from cumulusci.robotframework.pageobjects import BasePage
 from cumulusci.robotframework.utils import capture_screenshot_on_error
-from cumulusci.robotframework.pageobjects.ObjectManagerPageObject import ObjectManagerPage
+from cumulusci.robotframework.pageobjects.ObjectManagerPageObject import (
+    ObjectManagerPage,
+)
 
 # This will appear in the generated documentation in place of
 # the filename.
