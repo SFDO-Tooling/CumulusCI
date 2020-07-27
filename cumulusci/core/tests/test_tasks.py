@@ -5,7 +5,7 @@ import collections
 from unittest import mock
 
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
@@ -40,9 +40,9 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
     task_class = BaseTask
 
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.org_config = OrgConfig({"username": USERNAME, "org_id": ORG_ID}, "test")
         self.task_config = TaskConfig()

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import responses
 
 from cumulusci.core.config import (
-    BaseGlobalConfig,
+    UniversalConfig,
     BaseProjectConfig,
     OrgConfig,
     TaskConfig,
@@ -22,12 +22,12 @@ from cumulusci.core.tests.utils import MockLoggerMixin
 class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
-        self.global_config = BaseGlobalConfig(
+        self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
         self.task_config = TaskConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
