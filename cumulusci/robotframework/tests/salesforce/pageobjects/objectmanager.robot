@@ -22,7 +22,7 @@ Create Customfield In Object Manager
     ...  | ...  Formula=YEAR( npe01__Opportunity__r.CloseDate ) < YEAR( npe01__Payment_Date__c )
 
     [Arguments]                                    &{fields}
-    Go To Page                                     ObjectManager                           &{fields}[Object]
+    Go To Page                                     ObjectManager                           ${fields}[Object]
     Switch Tab To                                  Fields & Relationships
     Create Custom Field                            &{fields}
 
