@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
@@ -34,9 +34,9 @@ class ProjectKeychainTestMixin(unittest.TestCase):
     keychain_class = BaseProjectKeychain
 
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"no_yaml": True}
+            self.universal_config, config={"no_yaml": True}
         )
         self.project_config.config["services"] = {
             "connected_app": {"attributes": {"test": {"required": True}}},
@@ -186,7 +186,7 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 class TestBaseProjectKeychain(ProjectKeychainTestMixin):
     def test_convert_connected_app(self):
         project_config = BaseProjectConfig(
-            self.global_config,
+            self.universal_config,
             {
                 "services": {
                     "connected_app": {
@@ -211,7 +211,7 @@ class TestBaseProjectKeychain(ProjectKeychainTestMixin):
 
     def test_create_scratch_org(self):
         project_config = BaseProjectConfig(
-            self.global_config, {"orgs": {"scratch": {"dev": {}}}}
+            self.universal_config, {"orgs": {"scratch": {"dev": {}}}}
         )
         keychain = self.keychain_class(project_config, self.key)
         keychain.set_org = mock.Mock()
@@ -376,9 +376,9 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     keychain_class = EncryptedFileProjectKeychain
 
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["services"] = {
             "connected_app": {"attributes": {"test": {"required": True}}},
@@ -410,8 +410,8 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def _mk_temp_home(self):
         self.tempdir_home = tempfile.mkdtemp()
-        global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
-        os.makedirs(global_local_dir)
+        global_config_dir = os.path.join(self.tempdir_home, ".cumulusci")
+        os.makedirs(global_config_dir)
 
     def _mk_temp_project(self):
         self.tempdir_project = tempfile.mkdtemp()
@@ -437,8 +437,8 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     def test_set_and_get_org_global(self):
         self.test_set_and_get_org(True)
 
-    def test_set_and_get_org__global_config(self):
-        keychain = self.keychain_class(self.global_config, self.key)
+    def test_set_and_get_org__universal_config(self):
+        keychain = self.keychain_class(self.universal_config, self.key)
         keychain.set_org(self.org_config, False)
         self.assertEqual(list(keychain.orgs.keys()), [])
 
@@ -452,7 +452,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain = self.keychain_class(self.project_config, self.key)
         del keychain.config["orgs"]
         with mock.patch.object(
-            self.keychain_class, "config_local_dir", Path(self.tempdir_home)
+            self.keychain_class, "global_config_dir", Path(self.tempdir_home)
         ):
             keychain._load_orgs()
         self.assertIn("foo", keychain.get_org("test").config)
@@ -464,7 +464,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain._load_file(self.tempdir_home, "config", "from_file")
         self.assertEqual("foo", keychain.config["from_file"])
 
-    def test_load_file__global_config(self):
+    def test_load_file__universal_config(self):
         self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
         keychain = self.keychain_class(self.project_config, self.key)
         keychain._load_file(self.tempdir_home, "config", "from_file")

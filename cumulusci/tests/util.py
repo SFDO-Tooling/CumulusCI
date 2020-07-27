@@ -1,7 +1,7 @@
 import copy
 import random
 
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.config import OrgConfig
@@ -15,13 +15,13 @@ def random_sha():
 def create_project_config(
     repo_name="TestRepo", repo_owner="TestOwner", repo_commit=None
 ):
-    global_config = BaseGlobalConfig()
+    universal_config = UniversalConfig()
     project_config = DummyProjectConfig(
-        global_config=global_config,
+        universal_config=universal_config,
         repo_name=repo_name,
         repo_owner=repo_owner,
         repo_commit=repo_commit,
-        config=copy.deepcopy(global_config.config),
+        config=copy.deepcopy(universal_config.config),
     )
     keychain = BaseProjectKeychain(project_config, None)
     project_config.set_keychain(keychain)
@@ -30,7 +30,7 @@ def create_project_config(
 
 class DummyProjectConfig(BaseProjectConfig):
     def __init__(
-        self, global_config, repo_name, repo_owner, repo_commit=None, config=None
+        self, universal_config, repo_name, repo_owner, repo_commit=None, config=None
     ):
         repo_info = {
             "owner": repo_owner,
@@ -39,7 +39,7 @@ class DummyProjectConfig(BaseProjectConfig):
             "commit": repo_commit or random_sha(),
         }
         super(DummyProjectConfig, self).__init__(
-            global_config, config, repo_info=repo_info
+            universal_config, config, repo_info=repo_info
         )
 
 
