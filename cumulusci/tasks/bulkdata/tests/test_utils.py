@@ -10,15 +10,8 @@ from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.utils import (
-    create_table,
-    generate_batches,
-    is_person_accounts_enabled,
-)
+from cumulusci.tasks.bulkdata.utils import create_table, generate_batches, OrgInfoMixin
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
-
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
 
 def create_db_file(filename):
@@ -218,27 +211,29 @@ class TestBatching(unittest.TestCase):
         assert batches == [(7, 0), (7, 1), (6, 2)]
 
 
-class TestIsPersonAccountsEnabled(unittest.TestCase):
-    def test_is_person_accounts_enabled__person_accounts_disabled(self):
-        task = _make_task(BaseSalesforceApiTask, {})
-        task.sf = mock.Mock()
-        task.sf.Account = mock.Mock()
-        task.sf.Account.describe = mock.Mock(
-            return_value={"fields": [{"name": "Name"}]}
-        )
+class TestOrgInfoMixin:
+    def test_org_has_person_accounts_enabled__from_cache(self):
+        mixin = OrgInfoMixin()
+        mixin.sf = mock.Mock()
+        mixin._person_accounts_enabled = True
 
-        assert is_person_accounts_enabled(task) is False
+        assert mixin._org_has_person_accounts_enabled
+        mixin.sf.Account.describe.assert_not_called()
 
-        task.sf.Account.describe.assert_called_once_with()
+    def test_org_has_person_accounts_enabled__uncached_enabled(self):
+        mixin = OrgInfoMixin()
+        mixin.sf = mock.Mock()
+        mixin.sf.Account.describe.return_value = {
+            "fields": [{"name": "Name"}, {"name": "IsPersonAccount"}]
+        }
 
-    def test_is_person_accounts_enabled__person_accounts_enabled(self):
-        task = _make_task(BaseSalesforceApiTask, {})
-        task.sf = mock.Mock()
-        task.sf.Account = mock.Mock()
-        task.sf.Account.describe = mock.Mock(
-            return_value={"fields": [{"name": "Name"}, {"name": "IsPersonAccount"}]}
-        )
+        assert mixin._org_has_person_accounts_enabled()
+        mixin.sf.Account.describe.assert_called_once_with()
 
-        assert is_person_accounts_enabled(task) is True
+    def test_org_has_person_accounts_enabled__uncached_disabled(self):
+        mixin = OrgInfoMixin()
+        mixin.sf = mock.Mock()
+        mixin.sf.Account.describe.return_value = {"fields": [{"name": "Name"}]}
 
-        task.sf.Account.describe.assert_called_once_with()
+        assert not mixin._org_has_person_accounts_enabled()
+        mixin.sf.Account.describe.assert_called_once_with()

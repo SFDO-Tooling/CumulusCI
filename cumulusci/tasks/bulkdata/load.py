@@ -10,9 +10,9 @@ from sqlalchemy.ext.automap import automap_base
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import (
+    OrgInfoMixin,
     SqlAlchemyMixin,
     RowErrorChecker,
-    is_person_accounts_enabled,
 )
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
@@ -31,7 +31,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
 )
 
 
-class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
+class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
     """Perform Bulk API operations to load data defined by a mapping from a local store into an org."""
 
     task_options = {
@@ -100,9 +100,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         )
 
     def _run_task(self):
-        # Initialize attributes that will be cached.
-        self._person_accounts_enabled = None
-
         self._init_mapping()
         self._init_db()
         self._expand_mapping()
@@ -257,9 +254,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         model = self.models[mapping.get("table")]
 
         # Update Account.Name as blank for IsPersonAccount Account records.
-        if mapping[
-            "sf_object"
-        ].lower() == "account" and self._is_person_accounts_enabled(mapping):
+        if mapping["sf_object"] == "Account" and self._can_load_person_accounts(
+            mapping
+        ):
             self._update_person_account_name_as_blank(mapping)
 
         # Use primary key instead of the field mapped to SF Id
@@ -333,9 +330,9 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
         # Filter out non-person account Contact records.
         # Contact records for person accounts were already created by the system.
-        if mapping[
-            "sf_object"
-        ].lower() == "contact" and self._is_person_accounts_enabled(mapping):
+        if mapping["sf_object"] == "Contact" and self._can_load_person_accounts(
+            mapping
+        ):
             query = self._filter_out_person_account_records(query, model)
 
         return query
@@ -377,10 +374,10 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         # person account Contact records get populated downstream as expected.
         if (
             mapping["action"] == "insert"
-            and mapping["sf_object"].lower() == "contact"
-            and self._is_person_accounts_enabled(mapping)
+            and mapping["sf_object"] == "Contact"
+            and self._can_load_person_accounts(mapping)
         ):
-            account_id_lookup = self._get_account_id_lookup(mapping)
+            account_id_lookup = mapping["lookups"].get("AccountId")
             if account_id_lookup:
                 self._sql_bulk_insert_from_records(
                     connection=conn,
@@ -549,28 +546,23 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
                     self.after_steps[after][name] = mapping
 
-    def _is_person_account_column_exists(self, mapping):
-        """
-        Returns if "IsPersonAccount" is a column in mapping's table.
+    def _db_has_person_accounts_column(self, mapping):
+        """Returns whether "IsPersonAccount" is a column in mapping's table.
         """
         return (
             self.models[mapping.get("table")].__table__.columns.get("IsPersonAccount")
             is not None
         )
 
-    def _is_person_accounts_enabled(self, mapping):
-        """
-        Returns if the mapping supports person accounts meaning:
+    def _can_load_person_accounts(self, mapping) -> bool:
+        """Returns whether person accounts can be loaded:
         - The mapping has a "IsPersonAccount" column
         - Person Accounts is enabled in the org.
-        Caches is_person_accounts_enabled response which consumes a describe
-        call.
         """
-        if self._is_person_account_column_exists(mapping):
-            if self._person_accounts_enabled is None:
-                self._person_accounts_enabled = is_person_accounts_enabled(self)
-            return self._person_accounts_enabled
-        return False
+        return (
+            self._db_has_person_accounts_column(mapping)
+            and self._org_has_person_accounts_enabled()
+        )
 
     def _update_person_account_name_as_blank(self, mapping) -> None:
         """
@@ -581,7 +573,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         # Check if Account.Name is in mapping
         fields = mapping.get("fields", {})
         for api_name, column_name in fields.items():
-            if api_name.lower() == "name":
+            if api_name == "Name":
                 # Update table
                 table = self.models[mapping["table"]].__table__
                 self.session.connection().execute(
@@ -594,14 +586,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
     def _filter_out_person_account_records(self, query, model):
         return query.filter(model.__table__.columns.get("IsPersonAccount") == "false")
-
-    def _get_account_id_lookup(self, mapping):
-        """
-        Returns "AccountId" lookup if it exists.
-        """
-        for api_name, lookup in mapping.get("lookups", {}).items():
-            if api_name.lower() == "accountid":
-                return lookup
 
     def _generate_contact_id_map_for_person_accounts(
         self, contact_mapping, account_id_lookup, conn

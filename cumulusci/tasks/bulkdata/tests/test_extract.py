@@ -58,7 +58,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task._is_person_accounts_enabled = mock.Mock(return_value=False)
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
         mock_query_households = MockBulkQueryOperation(
             sobject="Account",
@@ -79,12 +79,6 @@ class TestExtractData(unittest.TestCase):
 
         task()
 
-        self.assertEqual(
-            None,
-            task._person_accounts_enabled,
-            "_person_accounts_enabled should be initialized",
-        )
-
         household = task.session.query(task.models["households"]).one()
         self.assertEqual("1", household.sf_id)
         self.assertFalse(hasattr(household, "IsPersonAccount"))
@@ -95,7 +89,7 @@ class TestExtractData(unittest.TestCase):
         self.assertFalse(hasattr(contact, "IsPersonAccount"))
         self.assertEqual("1", contact.household_id)
 
-        task._is_person_accounts_enabled.assert_has_calls(
+        task._org_has_person_accounts_enabled.assert_has_calls(
             [mock.call(), mock.call()]  # Account and Contact
         )
 
@@ -117,7 +111,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task._is_person_accounts_enabled = mock.Mock(return_value=True)
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
 
         mock_query_households = MockBulkQueryOperation(
             sobject="Account",
@@ -140,12 +134,6 @@ class TestExtractData(unittest.TestCase):
 
         task()
 
-        self.assertEqual(
-            None,
-            task._person_accounts_enabled,
-            "_person_accounts_enabled should be initialized",
-        )
-
         household = task.session.query(task.models["households"]).one()
         self.assertEqual("1", household.sf_id)
         self.assertEqual("false", household.IsPersonAccount)
@@ -156,7 +144,7 @@ class TestExtractData(unittest.TestCase):
         self.assertEqual("true", contact.IsPersonAccount)
         self.assertEqual("1", contact.household_id)
 
-        task._is_person_accounts_enabled.assert_has_calls(
+        task._org_has_person_accounts_enabled.assert_has_calls(
             [mock.call(), mock.call()]  # Account and Contact
         )
 
@@ -174,7 +162,7 @@ class TestExtractData(unittest.TestCase):
             )
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
-            task._is_person_accounts_enabled = mock.Mock(return_value=False)
+            task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
             mock_query_households = MockBulkQueryOperation(
                 sobject="Account",
@@ -216,7 +204,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task._is_person_accounts_enabled = mock.Mock(return_value=False)
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
         mock_query_households = MockBulkQueryOperation(
             sobject="Account",
@@ -263,7 +251,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task._is_person_accounts_enabled = mock.Mock(return_value=True)
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
 
         mock_query_households = MockBulkQueryOperation(
             sobject="Account",
@@ -506,14 +494,7 @@ class TestExtractData(unittest.TestCase):
     def test_create_table__account_or_contact__person_accounts_disabled(
         self, mapper_mock, create_mock
     ):
-        for sf_object, table in [
-            ("Account", "accounts"),
-            ("ACCOUNT", "accounts"),
-            ("account", "accounts"),
-            ("Contact", "contacts"),
-            ("CONTACT", "contacts"),
-            ("contact", "contacts"),
-        ]:
+        for sf_object, table in (("Account", "accounts"), ("Contact", "contacts")):
             create_mock.reset_mock()
             mapper_mock.reset_mock()
 
@@ -530,11 +511,11 @@ class TestExtractData(unittest.TestCase):
             }
             task.models = {}
             task.metadata = mock.Mock()
-            task._is_person_accounts_enabled = mock.Mock(return_value=False)
+            task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
             task._create_table(mapping)
             create_mock.assert_called_once_with(mapping, task.metadata)
-            task._is_person_accounts_enabled.assert_called_once_with()
+            task._org_has_person_accounts_enabled.assert_called_once_with()
 
             assert table in task.models
             assert "IsPersonAccount" not in mapping["fields"]
@@ -544,14 +525,7 @@ class TestExtractData(unittest.TestCase):
     def test_create_table__account_or_contact__person_accounts_enabled(
         self, mapper_mock, create_mock
     ):
-        for sf_object, table in [
-            ("Account", "accounts"),
-            ("ACCOUNT", "accounts"),
-            ("account", "accounts"),
-            ("Contact", "contacts"),
-            ("CONTACT", "contacts"),
-            ("contact", "contacts"),
-        ]:
+        for sf_object, table in (("Account", "accounts"), ("Contact", "contacts")):
             create_mock.reset_mock()
             mapper_mock.reset_mock()
 
@@ -568,11 +542,11 @@ class TestExtractData(unittest.TestCase):
             }
             task.models = {}
             task.metadata = mock.Mock()
-            task._is_person_accounts_enabled = mock.Mock(return_value=True)
+            task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
 
             task._create_table(mapping)
             create_mock.assert_called_once_with(mapping, task.metadata)
-            task._is_person_accounts_enabled.assert_called_once_with()
+            task._org_has_person_accounts_enabled.assert_called_once_with()
 
             assert table in task.models
             assert "IsPersonAccount" in mapping["fields"]
@@ -580,35 +554,33 @@ class TestExtractData(unittest.TestCase):
     @mock.patch("cumulusci.tasks.bulkdata.extract.create_table")
     @mock.patch("cumulusci.tasks.bulkdata.extract.mapper")
     def test_create_table__not_account_nor_contact(self, mapper_mock, create_mock):
-        for sf_object, table in [
-            ("Opportunity", "opportunities"),
-            ("OPPORTUNITY", "opportunities"),
-            ("opportunity", "opportunities"),
-        ]:
-            create_mock.reset_mock()
-            mapper_mock.reset_mock()
+        sf_object = "Opportunity"
+        table = "opportunities"
 
-            task = _make_task(
-                ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
-            )
-            mapping = {
-                "sf_object": sf_object,
-                "fields": {"Name": "Name"},
-                "lookups": {},
-                "table": table,
-                "sf_id_table": "test_ids",
-                "oid_as_pk": True,
-            }
-            task.models = {}
-            task.metadata = mock.Mock()
-            task._is_person_accounts_enabled = mock.Mock(return_value=False)
+        create_mock.reset_mock()
+        mapper_mock.reset_mock()
 
-            task._create_table(mapping)
-            create_mock.assert_called_once_with(mapping, task.metadata)
-            task._is_person_accounts_enabled.assert_not_called()
+        task = _make_task(
+            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
+        )
+        mapping = {
+            "sf_object": sf_object,
+            "fields": {"Name": "Name"},
+            "lookups": {},
+            "table": table,
+            "sf_id_table": "test_ids",
+            "oid_as_pk": True,
+        }
+        task.models = {}
+        task.metadata = mock.Mock()
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
-            assert table in task.models
-            assert "IsPersonAccount" not in mapping["fields"]
+        task._create_table(mapping)
+        create_mock.assert_called_once_with(mapping, task.metadata)
+        task._org_has_person_accounts_enabled.assert_not_called()
+
+        assert table in task.models
+        assert "IsPersonAccount" not in mapping["fields"]
 
     @responses.activate
     def test_create_table__already_exists(self):
@@ -625,7 +597,7 @@ class TestExtractData(unittest.TestCase):
                 }
             },
         )
-        task._is_person_accounts_enabled = mock.Mock(return_value=False)
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
         with self.assertRaises(BulkDataException):
             task()
@@ -652,7 +624,7 @@ class TestExtractData(unittest.TestCase):
                 "oid_as_pk": False,
             },
         }
-        task._is_person_accounts_enabled = mock.Mock(return_value=False)
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
         def create_table_mock(table_name):
             task.models[table_name] = mock.Mock()
@@ -678,7 +650,7 @@ class TestExtractData(unittest.TestCase):
         }
         task.models = {}
         task.metadata = mock.Mock()
-        task._is_person_accounts_enabled = mock.Mock(return_value=False)
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
         task._create_table(mapping)
 
@@ -897,48 +869,3 @@ class TestExtractData(unittest.TestCase):
             columns=["sf_id", "Name", "account_id"],
             record_iterable=log_mock.return_value,
         )
-
-    @mock.patch("cumulusci.tasks.bulkdata.extract.is_person_accounts_enabled")
-    def test_is_person_accounts_enabled__call_gets_cached(
-        self, is_person_accounts_enabled
-    ):
-        """
-        Asserts _is_person_accounts_enabled caches the response of
-        is_person_accounts_enabled.
-        """
-        for return_value in [True, False]:
-            is_person_accounts_enabled.reset_mock()
-
-            self.assertTrue(return_value is not None)
-            is_person_accounts_enabled.return_value = return_value
-
-            task = _make_task(
-                ExtractData,
-                {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
-            )
-            task._person_accounts_enabled = None
-
-            expected = return_value
-
-            # Execute test.
-            actual = task._is_person_accounts_enabled()
-
-            # Assert expected happend.
-            self.assertEqual(expected, actual)
-
-            self.assertEqual(
-                is_person_accounts_enabled.return_value, task._person_accounts_enabled
-            )
-
-            is_person_accounts_enabled.assert_called_once_with(task)
-
-            # Call again and assert is_person_accounts_enabled not called again.
-            self.assertFalse(task._person_accounts_enabled is None)
-
-            self.assertEqual(expected, task._is_person_accounts_enabled())
-
-            self.assertEqual(
-                is_person_accounts_enabled.return_value, task._person_accounts_enabled
-            )
-
-            is_person_accounts_enabled.assert_called_once_with(task)
