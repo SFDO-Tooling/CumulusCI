@@ -18,6 +18,7 @@ from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain import EnvironmentProjectKeychain
+from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
@@ -99,6 +100,7 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
     def test_set_and_get_org(self, global_org=False):
         keychain = self.keychain_class(self.project_config, self.key)
+        self.org_config.global_org = global_org
         keychain.set_org(self.org_config, global_org)
         self.assertEqual(list(keychain.orgs.keys()), ["test"])
         self.assertEqual(keychain.get_org("test").config, self.org_config.config)
@@ -336,9 +338,10 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
 
     def test_decrypt_config__no_config(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        config = keychain._decrypt_config(OrgConfig, None, extra=["test"])
+        config = keychain._decrypt_config(OrgConfig, None, extra=["test", keychain])
         self.assertEqual(config.__class__, OrgConfig)
         self.assertEqual(config.config, {})
+        self.assertEqual(config.keychain, keychain)
 
     def test_decrypt_config__no_config_2(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -348,7 +351,7 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
 
     def test_decrypt_config__wrong_key(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_org(self.org_config, True)
+        keychain.set_org(self.org_config, False)
 
         keychain.key = "x" * 16
         with pytest.raises(KeychainKeyNotFound):
@@ -448,8 +451,12 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         )
         keychain = self.keychain_class(self.project_config, self.key)
         del keychain.config["orgs"]
-        keychain._load_files(self.tempdir_home, ".org", "orgs")
+        with mock.patch.object(
+            self.keychain_class, "global_config_dir", Path(self.tempdir_home)
+        ):
+            keychain._load_orgs()
         self.assertIn("foo", keychain.get_org("test").config)
+        self.assertEqual(keychain.get_org("test").keychain, keychain)
 
     def test_load_file(self):
         self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
@@ -480,3 +487,27 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain.orgs["test"] = mock.Mock()
         with self.assertRaises(OrgNotFound):
             keychain.remove_org("test", global_org=True)
+
+    def test_set_and_get_org_local_should_not_shadow_global(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        self.org_config.global_org = True
+        keychain.set_org(self.org_config, global_org=True)
+        assert ["test"] == list(keychain.orgs.keys())
+        assert isinstance(keychain.orgs["test"], GlobalOrg), keychain.orgs["test"]
+        assert self.org_config.config == keychain.get_org("test").config
+        assert Path(self.tempdir_home, ".cumulusci", "test.org").exists()
+
+        # check that it saves to the right place
+        with mock.patch(
+            "cumulusci.core.keychain.encrypted_file_project_keychain.open"
+        ) as o:
+            self.org_config.save()
+            opened_filename = o.mock_calls[0][1][0]
+            assert ".cumulusci/test.org" in opened_filename.replace(
+                os.sep, "/"
+            ), opened_filename
+
+        # check that it can be loaded in a fresh keychain
+        new_keychain = self.keychain_class(self.project_config, self.key)
+        org_config = new_keychain.get_org("test")
+        assert org_config.global_org

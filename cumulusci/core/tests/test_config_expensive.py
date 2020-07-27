@@ -688,15 +688,13 @@ class TestScratchOrgConfig(unittest.TestCase):
         mock_keychain.get_service.return_value = ServiceConfig(
             {"username": "fake@fake.devhub"}
         )
-        config = ScratchOrgConfig({}, "test")
-        config.keychain = mock_keychain
+        config = ScratchOrgConfig({}, "test", mock_keychain)
 
         assert config._choose_devhub() == "fake@fake.devhub"
 
     def test_choose_devhub__service_not_configured(self, Command):
         mock_keychain = mock.Mock()
         mock_keychain.get_service.side_effect = ServiceNotConfigured
-        config = ScratchOrgConfig({}, "test")
-        config.keychain = mock_keychain
+        config = ScratchOrgConfig({}, "test", mock_keychain)
 
         assert config._choose_devhub() is None

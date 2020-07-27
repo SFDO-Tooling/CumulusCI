@@ -44,10 +44,10 @@ class DummyProjectConfig(BaseProjectConfig):
 
 
 class DummyOrgConfig(OrgConfig):
-    def __init__(self, config=None, name=None):
+    def __init__(self, config=None, name=None, keychain=None, global_org=False):
         if not name:
             name = "test"
-        super(DummyOrgConfig, self).__init__(config, name)
+        super(DummyOrgConfig, self).__init__(config, name, keychain, global_org)
 
     def refresh_oauth_token(self, keychain):
         pass
