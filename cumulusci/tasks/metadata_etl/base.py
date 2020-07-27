@@ -317,7 +317,7 @@ class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
     task_options = {
         "entity": {"description": "Metadata Entity", "required": True},
         "tag": {
-            "description": "Tag of metadata's first child whose text will be updated.   Only supports setting the tag's text.",
+            "description": "Targeted tag. The text of the first instance of this tag within the metadata entity will be updated.",
             "required": True,
         },
         "value": {
