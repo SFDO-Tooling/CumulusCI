@@ -2,6 +2,8 @@ import os.path
 
 import unittest
 from unittest import mock
+from tempfile import TemporaryDirectory
+from pathlib import Path
 
 from cumulusci.tasks.bulkdata import GenerateAndLoadData
 from cumulusci.core.exceptions import TaskOptionsError
@@ -218,3 +220,33 @@ class TestGenerateAndLoadData(unittest.TestCase):
                 )
 
                 task()
+
+    def test_working_directory(self):
+        class MockLoadData:
+            def __init__(self, *args, **kwargs):
+                options = kwargs["task_config"].options
+                assert Path(options["working_directory"]).exists()
+
+            def __call__(self):
+                pass
+
+        mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
+
+        with TemporaryDirectory() as t:
+            with mock.patch(
+                "cumulusci.tasks.bulkdata.generate_and_load_data.LoadData", MockLoadData
+            ):
+                assert not list(Path(t).glob("*"))
+                task = _make_task(
+                    GenerateAndLoadData,
+                    {
+                        "options": {
+                            "num_records": 12,
+                            "data_generation_task": "cumulusci.tasks.bulkdata.tests.dummy_data_factory.GenerateDummyData",
+                            "working_directory": t,
+                            "mapping": mapping_file,
+                        }
+                    },
+                )
+                task()
+                assert list(Path(t).glob("*"))

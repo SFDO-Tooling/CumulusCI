@@ -614,6 +614,48 @@ Options
 
 	 Default: src.orig
 
+**delete_data**
+==========================================
+
+**Description:** Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
+
+**Class:** cumulusci.tasks.bulkdata.DeleteData
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run delete_data``
+
+
+Options
+------------------------------------------
+
+
+``-o objects OBJECTS``
+	 *Required*
+
+	 A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string
+
+``-o where WHERE``
+	 *Optional*
+
+	 A SOQL where-clause (without the keyword WHERE). Only available when 'objects' is length 1.
+
+``-o hardDelete HARDDELETE``
+	 *Optional*
+
+	 If True, perform a hard delete, bypassing the Recycle Bin. Note that this requires the Bulk API Hard Delete permission. Default: False
+
+``-o ignore_row_errors IGNOREROWERRORS``
+	 *Optional*
+
+	 If True, allow the operation to continue even if individual rows fail to delete.
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
 **deploy**
 ==========================================
 
@@ -634,7 +676,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 
@@ -860,7 +902,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: unpackaged/config/qa
 
@@ -1251,10 +1293,10 @@ Options
 
 	 Confirmation that it is okay to delete the data in database_url
 
-``-o debug_dir DEBUGDIR``
+``-o working_directory WORKINGDIRECTORY``
 	 *Optional*
 
-	 Store temporary DB files in debug_dir for easier debugging.
+	 Default path for temporary / working files
 
 ``-o database_url DATABASEURL``
 	 *Optional*
@@ -1291,6 +1333,16 @@ Options
 
 	 Set to Serial to force serial mode on all jobs. Parallel is the default.
 
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
+
 ``-o generate_mapping_file GENERATEMAPPINGFILE``
 	 *Optional*
 
@@ -1305,11 +1357,6 @@ Options
 	 *Optional*
 
 	 Path for Snowfakery to put its next continuation file
-
-``-o working_directory WORKINGDIRECTORY``
-	 *Optional*
-
-	 Default path for temporary / working files
 
 **get_installed_packages**
 ==========================================
@@ -2727,6 +2774,11 @@ Options
 
 	 If true, enable the `breakpoint` keyword to enable the robot debugger
 
+``-o processes PROCESSES``
+	 *Optional*
+
+	 *experimental* Number of processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robotframework. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.
+
 **robot_libdoc**
 ==========================================
 
@@ -2807,9 +2859,9 @@ Example Output::
     W: 2, 0: No suite documentation (RequireSuiteDocumentation)
     E: 30, 0: No testcase documentation (RequireTestDocumentation)
 
-To see a list of all configured options, set the 'list' option to True:
+To see a list of all configured rules, set the 'list' option to True:
 
-    cci task run robot_list -o list True
+    cci task run robot_lint -o list True
 
 
 Command Syntax
@@ -3164,7 +3216,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 
@@ -3243,7 +3295,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: unpackaged/pre
 
@@ -3783,6 +3835,11 @@ Options
 
 	 Object names to include even if they might not otherwise be included.
 
+``-o strip_namespace STRIPNAMESPACE``
+	 *Optional*
+
+	 If True, CumulusCI removes the project's namespace where found in fields  and objects to support automatic namespace injection. On by default.
+
 **extract_dataset**
 ==========================================
 
@@ -3818,6 +3875,16 @@ Options
 	 If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs.
 
 	 Default: datasets/sample.sql
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
 **load_dataset**
 ==========================================
@@ -3874,6 +3941,16 @@ Options
 	 *Optional*
 
 	 Set to Serial to force serial mode on all jobs. Parallel is the default.
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
 **load_custom_settings**
 ==========================================
