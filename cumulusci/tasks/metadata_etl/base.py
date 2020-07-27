@@ -321,7 +321,7 @@ class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
             "required": True,
         },
         "value": {
-            "description": "Text of metadata's first child with tag.  This value is namespaced injected.",
+            "description": "Desired value to set for the targeted tag's text. This value is namespace-injected.",
             "required": True,
         },
         **MetadataSingleEntityTransformTask.task_options,
