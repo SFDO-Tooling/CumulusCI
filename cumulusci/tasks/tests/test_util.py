@@ -3,7 +3,7 @@ import os
 import unittest
 
 from cumulusci.tasks import util
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
@@ -14,9 +14,9 @@ from cumulusci.tests.util import DummyLogger
 class TestUtilTasks(unittest.TestCase):
     def setUp(self):
         os.mkdir(os.path.join(self.tempdir, ".git"))
-        self.global_config = BaseGlobalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.org_config = OrgConfig({}, "test")
         self.task_config = TaskConfig({})

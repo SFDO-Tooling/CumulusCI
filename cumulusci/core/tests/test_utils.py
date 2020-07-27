@@ -75,7 +75,10 @@ class TestUtils(unittest.TestCase):
 class TestMergedConfig(unittest.TestCase):
     def test_init(self):
         config = utils.merge_config(
-            {"global_config": {"hello": "world"}, "user_config": {"hello": "christian"}}
+            {
+                "universal_config": {"hello": "world"},
+                "user_config": {"hello": "christian"},
+            }
         )
         self.assertEqual(config["hello"], "christian")
 
@@ -83,7 +86,7 @@ class TestMergedConfig(unittest.TestCase):
         with self.assertRaises(ConfigMergeError) as cm:
             utils.merge_config(
                 {
-                    "global_config": {"hello": "world", "test": {"sample": 1}},
+                    "universal_config": {"hello": "world", "test": {"sample": 1}},
                     "user_config": {"hello": "christian", "test": [1, 2]},
                 }
             )
