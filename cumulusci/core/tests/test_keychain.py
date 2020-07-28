@@ -34,8 +34,6 @@ class ProjectKeychainTestMixin(unittest.TestCase):
     keychain_class = BaseProjectKeychain
 
     def setUp(self):
-        self.cache_dirs = mock.patch("cumulusci.utils.fileutils.cleanup_org_cache_dirs")
-        self.cache_dirs.start()
         self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"no_yaml": True}
@@ -55,9 +53,6 @@ class ProjectKeychainTestMixin(unittest.TestCase):
             {"foo": "bar", "scratch": True}, "test_scratch"
         )
         self.key = "0123456789123456"
-
-    def tearDown(self):
-        self.cache_dirs.stop()
 
     def test_init(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -254,7 +249,6 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
         )
 
     def tearDown(self):
-        super().tearDown()
         self.env.__exit__()
 
     def _clean_env(self, env):
@@ -384,7 +378,6 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     keychain_class = EncryptedFileProjectKeychain
 
     def setUp(self):
-        super().setUp()
         self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"noyaml": True}
@@ -396,6 +389,15 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         }
         self.project_config.project__name = "TestProject"
         self.project_name = "TestProject"
+        self.org_config = OrgConfig({"foo": "bar"}, "test")
+        self.scratch_org_config = ScratchOrgConfig(
+            {"foo": "bar", "scratch": True}, "test_scratch"
+        )
+        self.services = {
+            "connected_app": ServiceConfig({"test": "value"}),
+            "github": ServiceConfig({"git": "hub"}),
+        }
+        self.key = "0123456789123456"
 
         self._mk_temp_home()
         self._home_patch = mock.patch(
@@ -406,7 +408,6 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         os.chdir(self.tempdir_project)
 
     def tearDown(self):
-        super().tearDown()
         self._home_patch.__exit__(None, None, None)
 
     def _mk_temp_home(self):
