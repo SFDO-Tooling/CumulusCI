@@ -9,7 +9,7 @@ from cumulusci.core.config import TaskConfig
 def pytest_addoption(parser, pluginmanager):
     parser.addoption("--org", action="store", default=None, help="org to use")
     parser.addoption(
-        "--use-cached-org-output",
+        "--accelerate-integration-tests",
         action="store_true",
         default=False,
         help="DO run integration tests. Do NOT make calls to a real org. This will error out if you have not run with '--org blah' so that you have cached org output.",
@@ -93,9 +93,9 @@ def pytest_runtest_setup(item):
     is_integration_test = any(item.iter_markers(name="integration_test"))
     if is_integration_test:
         if not item.config.getoption(
-            "--use-cached-org-output"
+            "--accelerate-integration-tests"
         ) and not item.config.getoption("--org"):
-            pytest.skip("test requires --org or --use-cached-org-output")
+            pytest.skip("test requires --org or --accelerate-integration-tests")
 
 
 @pytest.fixture(scope="module")

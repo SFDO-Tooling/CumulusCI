@@ -164,7 +164,7 @@ This will generate the cached data.
 
 Later, you can use the cached data like this::
 
-    $ pytest cumulusci/.../test_<something>.py --use-cached-org-output
+    $ pytest cumulusci/.../test_<something>.py --accelerate-integration-tests
 
 It will usually be  much faster than calling into the Salesforce org, but it will
 still be quite slow compared to normal unit tests. Nevertheless, if you are changing feature tested by
