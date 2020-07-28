@@ -139,7 +139,7 @@ class ObjectManagerPage(BasePage):
         )
 
     def create_lookup_field(self, field_name, related):
-        """Creates a Lookpup field by taking in the inputs field_name and related field"""
+        """Creates a Lookup field by taking in the inputs field_name and related field"""
         option = object_manager["select_related_option"].format(related)
         related = object_manager["select_related"].format("DomainEnumOrId")
         self.selenium.wait_until_page_contains_element(lookup_locator, 60)
