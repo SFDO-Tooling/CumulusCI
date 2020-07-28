@@ -3,6 +3,10 @@ name: Feature Test
 on:
   schedule:
     - cron:  '13 13 * * *'
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Test scenario tags'  
 
 env:
   CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
