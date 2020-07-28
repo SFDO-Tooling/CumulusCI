@@ -27,6 +27,9 @@ class PublishSubtree(BaseGithubTask):
         "release_body": {
             "description": "If True, the entire release body will be published to the public repo.  Defaults to False"
         },
+        "dry_run": {
+            "description": "If True, skip creating Github data.  Defaults to False"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -36,6 +39,7 @@ class PublishSubtree(BaseGithubTask):
                 "include", ["datasets/", "documentation/", "tasks/", "unpackaged/"]
             )
         )
+        self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
         self.options["release_body"] = process_bool_arg(
             self.options.get("release_body", False)
         )
@@ -63,7 +67,8 @@ class PublishSubtree(BaseGithubTask):
         with tempfile.TemporaryDirectory() as target:
             self._download_repo_and_extract(target)
             commit = self._create_commit(target)
-            self._create_release(target, commit)
+            if commit:
+                self._create_release(target, commit.sha)
 
     def _download_repo_and_extract(self, path):
         zf = download_extract_github_from_repo(
@@ -88,10 +93,13 @@ class PublishSubtree(BaseGithubTask):
     def _create_commit(self, path):
         committer = CommitDir(self.target_repo, logger=self.logger)
         message = f"Publishing release {self.options['version']}"
-        commit = committer(
-            path, self.options["branch"], repo_dir="", commit_message=message
+        return committer(
+            path,
+            self.options["branch"],
+            repo_dir="",
+            commit_message=message,
+            dry_run=self.options["dry_run"],
         )
-        return commit.sha
 
     def _create_release(self, path, commit):
         # Get current release info

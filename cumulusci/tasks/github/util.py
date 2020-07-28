@@ -54,6 +54,7 @@ class CommitDir(object):
         self._set_git_data(branch)
 
         self.new_tree_list = [self._create_new_tree_item(item) for item in self.tree]
+        self.new_tree_list = [item for item in self.new_tree_list if item]
         self._add_new_files_to_tree(self.new_tree_list)
 
         tree_unchanged = self._summarize_changes(self.new_tree_list)
@@ -100,7 +101,11 @@ class CommitDir(object):
 
         local_file, content = self._read_item_content(item)
         new_item = item.copy()
-        if self._item_changed(item, content):
+        if content is None:
+            # delete blob from tree
+            self.logger.debug(f"Delete: {item['path']}")
+            return content
+        elif self._item_changed(item, content):
             self.logger.debug("Update: {}".format(local_file))
             blob_sha = self._create_blob(content, local_file)
             new_item["sha"] = blob_sha
@@ -204,16 +209,12 @@ class CommitDir(object):
         item_subpath = self._get_item_sub_path(item)
         local_file = os.path.join(self.local_dir, item_subpath)
         if not os.path.isfile(local_file):
-            # delete blob from tree
-            self.logger.debug("Delete: {}".format(item["path"]))
             return local_file, None
         with io.open(local_file, "rb") as f:
             content = f.read()
         return local_file, content
 
     def _item_changed(self, item, content):
-        if content is None:
-            return False
         header = b"blob " + str(len(content)).encode() + b"\0"
         return hashlib.sha1(header + content).hexdigest() != item["sha"]
 
