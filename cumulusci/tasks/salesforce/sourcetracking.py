@@ -132,27 +132,14 @@ class ListChanges(BaseSalesforceApiTask):
         with open(self._snapshot_path, "w") as f:
             json.dump(self._snapshot, f)
 
-    @property
-    def _maxrevision_path(self):
-        parent_dir = os.path.join(".sfdx", "orgs", self.org_config.username)
-        if not os.path.isdir(parent_dir):
-            os.makedirs(parent_dir)
-        return os.path.join(parent_dir, "maxrevision.json")
-
-    def _load_maxrevision(self):
-        """Load sfdx's maxrevision file."""
-        if not os.path.exists(self._maxrevision_path):
-            return -1
-        with open(self._maxrevision_path, "r") as f:
-            return json.load(f)
-
-    def _store_maxrevision(self, value):
-        """Update sfdx's maxrevision file."""
-        if value == -1:
-            return
-        self.logger.info(f"Setting source tracking max revision to {value}")
-        with open(self._maxrevision_path, "w") as f:
-            json.dump(value, f)
+    def _reset_sfdx_snapshot(self):
+        sfdx(
+            "force:source:tracking:reset",
+            args=["-p"],
+            username=self.org_config.username,
+            capture_output=True,
+            check_return=True,
+        )
 
 
 retrieve_changes_task_options = ListChanges.task_options.copy()
@@ -367,14 +354,11 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         if self.options["snapshot"]:
             self.logger.info("Storing snapshot of changes")
             self._store_snapshot(filtered)
+
             if not ignored:
                 # If all changed components were retrieved,
-                # we can update the sfdx maxrevision too
-                current_maxrevision = self._load_maxrevision()
-                new_maxrevision = max(
-                    change["RevisionCounter"] or -1 for change in filtered
-                )
-                self._store_maxrevision(max(current_maxrevision, new_maxrevision))
+                # we can reset sfdx source tracking too
+                self._reset_sfdx_snapshot()
 
 
 class SnapshotChanges(ListChanges):
@@ -397,8 +381,7 @@ class SnapshotChanges(ListChanges):
 
             if changes:
                 self._store_snapshot(changes)
-                maxrevision = max(change["RevisionCounter"] or -1 for change in changes)
-                self._store_maxrevision(maxrevision)
+            self._reset_sfdx_snapshot()
 
     def freeze(self, step):
         return []
