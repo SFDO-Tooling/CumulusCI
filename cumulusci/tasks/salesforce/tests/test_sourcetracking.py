@@ -125,11 +125,10 @@ class TestListChanges(unittest.TestCase):
         self.assertEqual([foo, bar], filtered)
 
 
-@mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
 class TestRetrieveChanges(unittest.TestCase):
     """Retrieve changed components from a scratch org"""
 
-    def test_init_options__sfdx_format(self, sfdx):
+    def test_init_options__sfdx_format(self):
         with temporary_dir():
             project_config = create_project_config()
             project_config.project__source_format = "sfdx"
@@ -141,6 +140,7 @@ class TestRetrieveChanges(unittest.TestCase):
             assert not task.md_format
             assert task.options["path"] == "force-app"
 
+    @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
     def test_run_task(self, sfdx):
         sfdx_calls = []
         sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
@@ -168,11 +168,10 @@ class TestRetrieveChanges(unittest.TestCase):
                 "force:mdapi:convert",
                 "force:source:retrieve",
                 "force:source:convert",
-                "force:source:tracking:reset",
             ]
             assert os.path.exists(os.path.join("src", "package.xml"))
 
-    def test_run_task__no_changes(self, sfdx):
+    def test_run_task__no_changes(self):
         with temporary_dir() as path:
             task = create_task(RetrieveChanges, {"path": path})
             task._init_task()
@@ -216,8 +215,9 @@ class TestSnapshotChanges(unittest.TestCase):
                     },
                 ]
             )
+            task._reset_sfdx_snapshot = mock.Mock()
             task._run_task()
-            sfdx.assert_called_once()
+            task._reset_sfdx_snapshot.assert_called_once()
 
     def test_freeze(self):
         task = create_task(SnapshotChanges)
