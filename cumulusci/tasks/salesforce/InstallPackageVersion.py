@@ -1,11 +1,14 @@
+from cumulusci.core.exceptions import PackageInstallError
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce import Deploy
+from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 
-class InstallPackageVersion(Deploy):
+class InstallPackageVersion(BaseSalesforceApiTask, Deploy):
     task_options = {
         "name": {
             "description": "The name of the package to install.  Defaults to project__package__name_managed",
@@ -24,6 +27,11 @@ class InstallPackageVersion(Deploy):
             "Remote Site Settings and Content Security Policy "
             "in the package. Default: False."
         },
+        "name_conflict_resolution": {
+            "description": "Only for package version id based installation, sets the "
+            "value of NameConflictResultion.  Valid values are Block or RenameMetadata "
+            "and Block is the default.",
+        },
         "password": {"description": "The package password. Optional."},
         "retries": {"description": "Number of retries (default=5)"},
         "retry_interval": {
@@ -36,6 +44,10 @@ class InstallPackageVersion(Deploy):
             "description": "Which users to install package for (FULL = all users, NONE = admins only)"
         },
     }
+
+    def _init_task(self):
+        BaseSalesforceApiTask._init_task(self)
+        super()._init_task()
 
     def _init_options(self, kwargs):
         super(InstallPackageVersion, self)._init_options(kwargs)
@@ -84,14 +96,63 @@ class InstallPackageVersion(Deploy):
         self._retry()
         self.org_config.reset_installed_packages()
 
+    def _is_version_id(self, version):
+        return version and version.lower().startswith("04t")
+
     def _try(self):
-        api = self._get_api()
-        api()
+        if self._is_version_id(self.options["version"]):
+            # If version is a 04t package version id, install via PackageInstallRequest
+            self._install_package_version()
+        else:
+            # Install via Metadata API deployment of InstalledPackage type
+            api = self._get_api()
+            api()
+
+    def _install_package_version(self):
+        PackageInstallRequest = self._get_tooling_object("PackageInstallRequest")
+        self.request = PackageInstallRequest.create(
+            {
+                "EnableRss": self.options["activateRSS"],
+                "NameConflictResolution": self.options.get(
+                    "name_conflict_resolution", "Block"
+                ),
+                "Password": self.options.get("password"),
+                "SecurityType": self.options["security_type"],
+                "SubscriberPackageVersionKey": self.options["version"],
+            }
+        )
+        self._poll()
+
+    def _poll_action(self):
+        request_id = self.request["id"]
+        res = self.tooling.query(
+            f"SELECT Errors, Status FROM PackageInstallRequest WHERE Id='{request_id}'"
+        )
+        request = res["records"][0]
+        if request["Status"] == "IN_PROGRESS":
+            self.logger.info("In Progress")
+            return
+
+        if request["Status"] == "SUCCESS":
+            self.logger.info("Success")
+            self.poll_complete = True
+            return
+
+        if request["Status"] == "ERROR":
+            self.logger.error("Error installing package")
+            self.poll_complete = True
+            raise PackageInstallError(request["Errors"])
 
     def _is_retry_valid(self, e):
         if isinstance(e, MetadataApiError) and (
             "This package is not yet available" in str(e)
             or "InstalledPackage version number" in str(e)
+        ):
+            return True
+        if (
+            self._is_version_id(self.options["version"])
+            and isinstance(e, SalesforceMalformedRequest)
+            and e.content[0]["message"] == "invalid cross reference id"
         ):
             return True
 

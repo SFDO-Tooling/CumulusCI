@@ -255,6 +255,12 @@ class DependencyLookupError(CumulusCIFailure):
     pass
 
 
+class PackageInstallError(CumulusCIFailure):
+    """ Raise for errors in installing a package version """
+
+    pass
+
+
 class PackageUploadFailure(CumulusCIFailure):
     """ Raise for errors in uploading a 2GP package version """
 

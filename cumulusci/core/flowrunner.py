@@ -92,6 +92,7 @@ class StepSpec(object):
         "path",  # type: str
         "skip",  # type: bool
         "when",  # type: str
+        "org",  # type: str
     )
 
     def __init__(
@@ -105,6 +106,7 @@ class StepSpec(object):
         from_flow=None,
         skip=None,
         when=None,
+        org=None,
     ):
         self.step_num = step_num
         self.task_name = task_name
@@ -114,6 +116,7 @@ class StepSpec(object):
         self.allow_failure = allow_failure
         self.skip = skip
         self.when = when
+        self.org = org
 
         # Store the dotted path to this step.
         # This is not guaranteed to be unique, because multiple steps
@@ -194,11 +197,15 @@ class TaskRunner(object):
         self.flow.resolve_return_value_options(task_config["options"])
 
         task_config["options"].update(options)
+        if self.step.org:
+            org_config = self.flow.project_config.keychain.get_org(self.step.org)
+        else:
+            org_config = self.org_config
 
         task = self.step.task_class(
             self.step.project_config,
             TaskConfig(task_config),
-            org_config=self.org_config,
+            org_config=org_config,
             name=self.step.task_name,
             stepnum=self.step.step_num,
             flow=self.flow,
@@ -525,6 +532,7 @@ class FlowCoordinator(object):
                     allow_failure=step_config.get("ignore_failure", False),
                     from_flow=from_flow,
                     when=step_config.get("when"),
+                    org=step_config.get("org"),
                 )
             )
             return visited_steps

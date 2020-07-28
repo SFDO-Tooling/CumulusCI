@@ -91,8 +91,11 @@ class BaseTask(object):
         for option, value in list(self.options.items()):
             try:
                 if value.startswith("$project_config."):
-                    attr = value.replace("$project_config.", "", 1)
+                    parts = value.replace("$project_config.", "", 1).split(" ", 1)
+                    attr, extra = parts + [""] * (2 - len(parts))
                     self.options[option] = getattr(self.project_config, attr, None)
+                    if extra and isinstance(self.options[option], str):
+                        self.options[option] += extra
             except AttributeError:
                 pass
 
