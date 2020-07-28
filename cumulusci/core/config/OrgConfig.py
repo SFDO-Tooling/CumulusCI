@@ -285,7 +285,7 @@ class OrgConfig(BaseConfig):
             cache_dir = self.keychain.config_local_dir / "orginfo" / self.get_domain()
         else:
             cache_dir = self.keychain.project_cache_dir / "orginfo" / self.get_domain()
-        assert cache_dir
+
         if not cache_dir.exists():
             cache_dir.mkdir(parents=True, exist_ok=True)
         return cache_dir
