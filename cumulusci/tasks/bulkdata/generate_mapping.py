@@ -292,6 +292,8 @@ class GenerateMapping(BaseSalesforceApiTask):
         return stack
 
     def find_free_object(self, objs_remaining: list, dependencies: dict):
+        # if you change this code, remember that
+        # peeking into a generator consumes it
         free_objs = (
             sobj
             for sobj in objs_remaining
@@ -439,20 +441,15 @@ def is_standard(obj: str):
     return "__" not in obj
 
 
-def soft_dependency(sobj, target_obj: str, field_data: FieldData):
-    return field_data.nillable
-
-
 def only_has_soft_dependencies(
     sobj: str, obj_dependencies: Dict[str, Dict[str, FieldData]]
 ):
     for target_obj, field_deps in obj_dependencies.items():
         for field_name, field_data in field_deps.items():
-            # all references from Account are considered soft dependencies.
             # all nillable references are considered soft dependencies.
             #
             # A single hard dependency renders an object "not yet free"
-            if not soft_dependency(sobj, target_obj, field_data):
+            if not field_data.nillable:
                 return False
 
     return True

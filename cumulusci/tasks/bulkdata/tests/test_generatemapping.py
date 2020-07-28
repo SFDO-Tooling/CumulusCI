@@ -901,6 +901,7 @@ class TestMappingGenerator(unittest.TestCase):
 class TestIntegrationGenerateMapping:
     @pytest.mark.vcr()
     def test_simple_generate(self, create_task):
+        "Generate a mapping against a provided org."
         with TemporaryDirectory() as t:
             tempfile = Path(t) / "tempfile.mapping.yml"
 
@@ -911,6 +912,7 @@ class TestIntegrationGenerateMapping:
 
     @pytest.mark.vcr()
     def test_generate_with_cycles(self, create_task):
+        "Generate a mapping that necessarily includes some reference cycles"
         with TemporaryDirectory() as t:
             tempfile = Path(t) / "tempfile.mapping.yml"
 
@@ -931,6 +933,7 @@ class TestIntegrationGenerateMapping:
             assert Path(tempfile).exists()
 
     def test_big_generate(self, create_task, sf):
+        "Generate a large mapping that includes every reachable object"
         with TemporaryDirectory() as t:
             tempfile = Path(t) / "tempfile.mapping.yml"
 
