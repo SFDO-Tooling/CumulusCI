@@ -897,7 +897,7 @@ class TestMappingGenerator(unittest.TestCase):
         )
 
 
-@pytest.mark.skip()  # this is slow even with VCR
+@pytest.mark.integration_test()
 class TestIntegrationGenerateMapping:
     @pytest.mark.vcr()
     def test_simple_generate(self, create_task):
@@ -932,12 +932,13 @@ class TestIntegrationGenerateMapping:
             task()
             assert Path(tempfile).exists()
 
+    @pytest.mark.vcr()
     def test_big_generate(self, create_task, sf):
         "Generate a large mapping that includes every reachable object"
         with TemporaryDirectory() as t:
             tempfile = Path(t) / "tempfile.mapping.yml"
 
-            every_obj = sf.describe["sobjects"].keys()
+            every_obj = [obj["name"] for obj in sf.describe()["sobjects"]]
 
             task = create_task(
                 GenerateMapping, {"path": tempfile, "include": every_obj}
