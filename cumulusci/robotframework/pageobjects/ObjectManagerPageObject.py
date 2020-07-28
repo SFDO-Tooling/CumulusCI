@@ -44,7 +44,7 @@ class ObjectManagerPage(BasePage):
     def _go_to_page(self):
         url_template = "{root}/lightning/setup/ObjectManager/home"
         url = url_template.format(
-            root=self.cumulusci.org.lightning_base_url, object_name=self.object_name
+            root=self.cumulusci.org.lightning_base_url
         )
         self.selenium.go_to(url)
         object_name = self.object_name
