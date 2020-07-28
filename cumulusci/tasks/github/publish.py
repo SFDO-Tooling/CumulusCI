@@ -2,6 +2,7 @@ import tempfile
 from datetime import datetime
 
 import github3.exceptions
+
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.github.base import BaseGithubTask
@@ -9,7 +10,7 @@ from cumulusci.tasks.github.util import CommitDir
 from cumulusci.utils import download_extract_github_from_repo
 
 
-class PublishRelease(BaseGithubTask):
+class PublishSubtree(BaseGithubTask):
     task_options = {
         "repo_url": {"description": "The url to the public repo", "required": True},
         "branch": {

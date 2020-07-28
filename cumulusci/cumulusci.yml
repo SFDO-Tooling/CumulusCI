@@ -198,7 +198,7 @@ tasks:
         group: GitHub
     github_copy_subtree:
         description: Copies a subtree from the project repo at a given ref to a target repo.
-        class_path: cumulusci.tasks.github.public_repo.PublishRelease
+        class_path: cumulusci.tasks.github.publish.PublishSubtree
         group: GitHub
         options:
             ref: latest
