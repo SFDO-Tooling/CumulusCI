@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from cumulusci.tasks.bulkdata import GenerateMapping
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.generate_mapping import FieldData
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
@@ -51,6 +52,19 @@ class TestMappingGenerator(unittest.TestCase):
         )
 
         self.assertEqual(["Foo", "Bar"], t.options["include"])
+
+    @responses.activate
+    def test_checks_include_list(self):
+        t = _make_task(
+            GenerateMapping, {"options": {"include": ["Foo", "Bar"], "path": "t"}}
+        )
+        t.project_config.project__package__api_version = "45.0"
+
+        self._prepare_describe_mock(t, {})
+        t._init_task()
+
+        with pytest.raises(TaskOptionsError):
+            t._collect_objects()
 
     def test_is_any_custom_api_name(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
@@ -559,8 +573,8 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
         t.refs = {
-            "Child__c": {"Account": {"Account__c": FieldData({})}},
-            "Account": {"Child__c": {"Dependent__c": FieldData({})}},
+            "Child__c": {"Account": {"Account__c": FieldData({"nillable": True})}},
+            "Account": {"Child__c": {"Dependent__c": FieldData({"nillable": True})}},
         }
 
         t._build_mapping()
@@ -615,8 +629,12 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
         t.refs = {
-            "ns__Child__c": {"ns__Parent__c": {"ns__Parent__c": FieldData({})}},
-            "ns__Parent__c": {"ns__Child__c": {"ns__Dependent__c": FieldData({})}},
+            "ns__Child__c": {
+                "ns__Parent__c": {"ns__Parent__c": FieldData({"nillable": False})}
+            },
+            "ns__Parent__c": {
+                "ns__Child__c": {"ns__Dependent__c": FieldData({"nillable": True})}
+            },
         }
 
         t._build_mapping()
@@ -760,11 +778,17 @@ class TestMappingGenerator(unittest.TestCase):
             t._split_dependencies(
                 ["Account", "Contact", "Opportunity", "Custom__c"],
                 {
-                    "Account": {"Contact": {"Primary_Contact__c": FieldData({})}},
-                    "Contact": {"Account": {"AccountId": FieldData({})}},
+                    "Account": {
+                        "Contact": {"Primary_Contact__c": FieldData({"nillable": True})}
+                    },
+                    "Contact": {
+                        "Account": {"AccountId": FieldData({"nillable": True})}
+                    },
                     "Opportunity": {
-                        "Account": {"AccountId": FieldData({})},
-                        "Contact": {"Primary_Contact__c": FieldData({})},
+                        "Account": {"AccountId": FieldData({"nillable": True})},
+                        "Contact": {
+                            "Primary_Contact__c": FieldData({"nillable": True})
+                        },
                     },
                 },
             ),
@@ -895,6 +919,39 @@ class TestMappingGenerator(unittest.TestCase):
                 )
             ),
         )
+
+    @mock.patch("click.prompt")
+    def test_split_dependencies__ask_pick_cycles(self, prompt):
+        t = _make_task(
+            GenerateMapping, {"options": {"path": "t", "break_cycles": "ask"}}
+        )
+        prompt.return_value = "Custom__c"
+
+        self.assertEqual(
+            set(["Custom__c", "Account", "Contact", "Opportunity"]),
+            set(
+                t._split_dependencies(
+                    ["Account", "Contact", "Opportunity", "Custom__c"],
+                    {
+                        "Account": {
+                            "Custom__c": {"Custom__c": FieldData({"nillable": False})}
+                        },
+                        "Custom__c": {
+                            "Account": {"Account__c": FieldData({"nillable": False})}
+                        },
+                    },
+                )
+            ),
+        )
+
+        prompt.assert_called_once()
+        assert prompt.mock_calls
+
+    def test_options_error(self):
+        with pytest.raises(TaskOptionsError):
+            _make_task(
+                GenerateMapping, {"options": {"path": "t", "break_cycles": "foo"}}
+            )
 
 
 @pytest.mark.integration_test()

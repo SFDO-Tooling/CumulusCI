@@ -181,6 +181,7 @@ class GenerateMapping(BaseSalesforceApiTask):
     def _build_mapping(self):
         """Output self.schema in mapping file format by constructing a dict and serializing to YAML"""
         objs = list(self.schema.keys())
+        assert all(objs)
         stack = self._split_dependencies(objs, self.refs)
         ns = self.project_config.project__package__namespace
 
@@ -259,7 +260,7 @@ class GenerateMapping(BaseSalesforceApiTask):
     def _split_dependencies(self, objs, dependencies):
         """Attempt to flatten the object network into a sequence of load operations."""
         stack = []
-        objs_remaining = objs.copy()
+        objs_remaining = sorted(objs)
 
         # The structure of `dependencies` is:
         # key = object, value = set of objects it references.
@@ -273,9 +274,11 @@ class GenerateMapping(BaseSalesforceApiTask):
                 for obj in objs_remaining
                 if obj not in dependencies or not dependencies[obj]
             ]
+            assert all(objs_without_deps)
 
             if not objs_without_deps:
                 choice = self.choose_next_object(objs_remaining, dependencies)
+                assert choice
                 objs_without_deps = [choice]
 
             for obj in objs_without_deps:
@@ -300,9 +303,6 @@ class GenerateMapping(BaseSalesforceApiTask):
             if only_has_soft_dependencies(sobj, dependencies[sobj])
         )
         first_free_obj = next(free_objs, None)
-        # first_free_obj = (
-        #     "Account" if "Account" in objs_remaining else next(free_objs, None)
-        # )
 
         return first_free_obj
 
@@ -314,7 +314,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         if self.options["break_cycles"] == "auto":
             return tuple(objs_remaining)[0]
         else:
-            self.ask_user(objs_remaining, dependencies)
+            return self.ask_user(objs_remaining, dependencies)
 
     def ask_user(self, objs_remaining, dependencies):
         self.logger.info(
@@ -435,10 +435,6 @@ class FieldData:
 
     def __eq__(self, other: "FieldData"):
         return self.__dict__ == other.__dict__
-
-
-def is_standard(obj: str):
-    return "__" not in obj
 
 
 def only_has_soft_dependencies(
