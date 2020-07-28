@@ -1,0 +1,151 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Request-Headers:
+      - Elided
+    method: GET
+    uri: https://orgname.my.salesforce.com/services/data/v48.0/tooling/query/?q=SELECT+MemberName%2C+MemberType%2C+RevisionCounter+FROM+SourceMember+WHERE+IsNameObsolete%3Dfalse
+  response:
+    body:
+      string: "{\n  \"size\" : 6,\n  \"totalSize\" : 6,\n  \"done\" : true,\n  \"queryLocator\"
+        : null,\n  \"entityTypeName\" : \"SourceMember\",\n  \"records\" : [ {\n    \"attributes\"
+        : {\n      \"type\" : \"SourceMember\",\n      \"url\" : \"/services/data/v48.0/tooling/sobjects/SourceMember/0MZR000000Bogf1OAB\"\n
+        \   },\n    \"MemberName\" : \"Admin\",\n    \"MemberType\" : \"Profile\",\n
+        \   \"RevisionCounter\" : 5\n  }, {\n    \"attributes\" : {\n      \"type\"
+        : \"SourceMember\",\n      \"url\" : \"/services/data/v48.0/tooling/sobjects/SourceMember/0MZR000000BogexOAB\"\n
+        \   },\n    \"MemberName\" : \"Custom: Sales Profile\",\n    \"MemberType\"
+        : \"Profile\",\n    \"RevisionCounter\" : 1\n  }, {\n    \"attributes\" :
+        {\n      \"type\" : \"SourceMember\",\n      \"url\" : \"/services/data/v48.0/tooling/sobjects/SourceMember/0MZR000000BogezOAB\"\n
+        \   },\n    \"MemberName\" : \"Custom: Marketing Profile\",\n    \"MemberType\"
+        : \"Profile\",\n    \"RevisionCounter\" : 3\n  }, {\n    \"attributes\" :
+        {\n      \"type\" : \"SourceMember\",\n      \"url\" : \"/services/data/v48.0/tooling/sobjects/SourceMember/0MZR000000Bogf0OAB\"\n
+        \   },\n    \"MemberName\" : \"Custom: Support Profile\",\n    \"MemberType\"
+        : \"Profile\",\n    \"RevisionCounter\" : 4\n  }, {\n    \"attributes\" :
+        {\n      \"type\" : \"SourceMember\",\n      \"url\" : \"/services/data/v48.0/tooling/sobjects/SourceMember/0MZR000000BogeyOAB\"\n
+        \   },\n    \"MemberName\" : \"Test__c-Test Layout\",\n    \"MemberType\"
+        : \"Layout\",\n    \"RevisionCounter\" : 2\n  }, {\n    \"attributes\" : {\n
+        \     \"type\" : \"SourceMember\",\n      \"url\" : \"/services/data/v48.0/tooling/sobjects/SourceMember/0MZR000000Bogf2OAB\"\n
+        \   },\n    \"MemberName\" : \"Test__c\",\n    \"MemberType\" : \"CustomObject\",\n
+        \   \"RevisionCounter\" : 6\n  } ]\n}"
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+- request:
+    body: "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"
+      xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\n
+      \ <soap:Header>\n    <SessionHeader xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
+      \     <sessionId>**Elided**</sessionId>\n    </SessionHeader>\n  </soap:Header>\n
+      \ <soap:Body>\n    <retrieve xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
+      \     <retrieveRequest>\n        <apiVersion>48.0</apiVersion>\n        <unpackaged>\n
+      \         <types><members>Test__c</members><name>CustomObject</name></types><version>48.0</version>\n
+      \       </unpackaged>\n      </retrieveRequest>\n    </retrieve>\n  </soap:Body>\n</soap:Envelope>"
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://cs00.salesforce.com/services/Soap/m/48.0/ORGID
+  response:
+    body:
+      string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><retrieveResponse><result><done>false</done><id>09SR0000002zK5sMAE</id><state>Queued</state></result></retrieveResponse></soapenv:Body></soapenv:Envelope>
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+- request:
+    body: "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"
+      xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\n
+      \ <soap:Header>\n    <SessionHeader xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
+      \     <sessionId>**Elided**</sessionId>\n    </SessionHeader>\n  </soap:Header>\n
+      \ <soap:Body>\n    <checkStatus xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
+      \     <asyncProcessId>09SR0000002zK5sMAE</asyncProcessId>\n    </checkStatus>\n
+      \ </soap:Body>\n</soap:Envelope>"
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://cs00.salesforce.com/services/Soap/m/48.0/ORGID
+  response:
+    body:
+      string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><checkStatusResponse><result><done>false</done><id>09SR0000002zK5sMAE</id><state>InProgress</state></result></checkStatusResponse></soapenv:Body></soapenv:Envelope>
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+- request:
+    body: "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"
+      xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\n
+      \ <soap:Header>\n    <SessionHeader xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
+      \     <sessionId>**Elided**</sessionId>\n    </SessionHeader>\n  </soap:Header>\n
+      \ <soap:Body>\n    <checkStatus xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
+      \     <asyncProcessId>09SR0000002zK5sMAE</asyncProcessId>\n    </checkStatus>\n
+      \ </soap:Body>\n</soap:Envelope>"
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://cs00.salesforce.com/services/Soap/m/48.0/ORGID
+  response:
+    body:
+      string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><checkStatusResponse><result><done>false</done><id>09SR0000002zK5sMAE</id><state>InProgress</state></result></checkStatusResponse></soapenv:Body></soapenv:Envelope>
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+- request:
+    body: "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"
+      xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\n
+      \ <soap:Header>\n    <SessionHeader xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
+      \     <sessionId>**Elided**</sessionId>\n    </SessionHeader>\n  </soap:Header>\n
+      \ <soap:Body>\n    <checkStatus xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
+      \     <asyncProcessId>09SR0000002zK5sMAE</asyncProcessId>\n    </checkStatus>\n
+      \ </soap:Body>\n</soap:Envelope>"
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://cs00.salesforce.com/services/Soap/m/48.0/ORGID
+  response:
+    body:
+      string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><checkStatusResponse><result><done>true</done><id>09SR0000002zK5sMAE</id><state>Completed</state></result></checkStatusResponse></soapenv:Body></soapenv:Envelope>
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+- request:
+    body: "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"
+      xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\n
+      \ <soap:Header>\n    <SessionHeader xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
+      \     <sessionId>**Elided**</sessionId>\n    </SessionHeader>\n  </soap:Header>\n
+      \ <soap:Body>\n    <checkRetrieveStatus xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
+      \     <asyncProcessId>09SR0000002zK5sMAE</asyncProcessId>\n    </checkRetrieveStatus>\n
+      \ </soap:Body>\n</soap:Envelope>"
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://cs00.salesforce.com/services/Soap/m/48.0/ORGID
+  response:
+    body:
+      string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><checkRetrieveStatusResponse><result><done>true</done><fileProperties><createdById>005R0000006zKuaIAE</createdById><createdByName>User
+        User</createdByName><createdDate>2020-07-28T02:12:33.000Z</createdDate><fileName>unpackaged/objects/Test__c.object</fileName><fullName>Test__c</fullName><id>01IR0000000zlMdMAI</id><lastModifiedById>005R0000006zKuaIAE</lastModifiedById><lastModifiedByName>User
+        User</lastModifiedByName><lastModifiedDate>2020-07-28T02:12:33.000Z</lastModifiedDate><manageableState>unmanaged</manageableState><type>CustomObject</type></fileProperties><fileProperties><createdById>005R0000006zKuaIAE</createdById><createdByName>User
+        User</createdByName><createdDate>2020-07-28T04:08:23.915Z</createdDate><fileName>unpackaged/package.xml</fileName><fullName>unpackaged/package.xml</fullName><id></id><lastModifiedById>005R0000006zKuaIAE</lastModifiedById><lastModifiedByName>User
+        User</lastModifiedByName><lastModifiedDate>2020-07-28T04:08:23.915Z</lastModifiedDate><manageableState>unmanaged</manageableState><type>Package</type></fileProperties><id>09SR0000002zK5sMAE</id><status>Succeeded</status><success>true</success><zipFile>UEsDBBQACAgIAAsh/FAAAAAAAAAAAAAAAAAhAAAAdW5wYWNrYWdlZC9vYmplY3RzL1Rlc3RfX2Mub2JqZWN0zVjbjtowEH3nK1Dei2lVVVWVzYqyS1uJvWjDturjxBnArWNHtsMuf19nw8Xhtqm0cuApnDkzZyZnZBnCy+eMdxeoNJPiInjf6wddFFSmTMwugsfJ6N3n4DLqhMNCG5ndJX+Qmq5NEfoimBuTfyFES8h7eioVxR6VGfnQ738i/Y8kQwMpGAiiTtd+QqDGatxZLcVS1BXqRG4hw2hAKeYmJA605ZlljtEVTqHglvLyrSpNDtZ+A0U7VTayEamiMagZhsRBzqSxOAPOfTY2BEGRX6fMq0+vqrbp1f80598vLgV6teqEYKsuNevLu0FXyNF4deikYpsWNW3Mu0e+j7szPejO9IgbM+3VnRN6bbrTrC3v7tzik09zjsu16U2jrrxbE8MCfR9tr2i2aVLz1rw7NYHEp0nH5dr0p1FX3q35yfwecCf02jSnWVtv6g7n8umHGM7BGFTflCxyHU2B6/IGeShWpVGZ5bbgGJayMAOt2UxkKEwU/44n1zchORavslPMuVyWQGzAFNo2XAKYhmQvVGWggITjwI6wYIbhpsU93KV/LfjfQc4io4oNdY25vBFiulOxglzSd3sxkGpZp61BlzhmFIVmYlanbmGX/IC5VGZHfA26xBhB0Xmdt8JqtDmoUsMdeY3VeEYhZBbdfT+1wCrj2bovgK/q3MgUeXSv2ALKnxkHo1Uih8Q+T7C8UVXPFS7sZo8Y8tTZ2y23Wy5+LWG72BOrVt/qnVphzgsFfLyppkPiQhVJv7y4ajk1WYPuAA8I6S/FygH1/mALplnCODPL6L5IOKMhcaBOSNz/+qLOP1BLBwjDiE0nYgIAACIUAABQSwMEFAAICAgACyH8UAAAAAAAAAAAAAAAABYAAAB1bnBhY2thZ2VkL3BhY2thZ2UueG1sTU7NCsIwGLv3KUrv9qsyZEjXHQSvepjn0XWfc2rbsVbRt3fsB80pCSGJzN/2QV/Yh9a7jK25YBSd8XXrmoydi8MqZbki8qTNXTdIh7QLGbvG2O0AgtcdDxffG+TGW9gIsQWRgMWoax01U4QOkPHTYZj4qC3aaphUBYZYlkbCYvwiTltU+2eI3h6rG5ooYbSmQvhrlPN7laRcSFgUkTCfVuQLUEsHCCJkNfqiAAAA5gAAAFBLAQIUABQACAgIAAsh/FDDiE0nYgIAACIUAAAhAAAAAAAAAAAAAAAAAAAAAAB1bnBhY2thZ2VkL29iamVjdHMvVGVzdF9fYy5vYmplY3RQSwECFAAUAAgICAALIfxQImQ1+qIAAADmAAAAFgAAAAAAAAAAAAAAAACxAgAAdW5wYWNrYWdlZC9wYWNrYWdlLnhtbFBLBQYAAAAAAgACAJMAAACXAwAAAAA=</zipFile></result></checkRetrieveStatusResponse></soapenv:Body></soapenv:Envelope>
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+version: 1

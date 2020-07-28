@@ -78,8 +78,8 @@ class BaseMetadataApiCall(object):
         org_id = self.task.org_config.org_id
         # If "My Domain" is configured in the org, the instance_url needs to be
         # parsed differently
-        instance_url = self.task.org_config.instance_url
-        if instance_url.find(".my.salesforce.com") != -1:
+        instance_url = self.task.org_config.instance_url.rstrip("/")
+        if ".my.salesforce.com" in instance_url:
             # Parse instance_url with My Domain configured
             # URL will be in the format
             # https://name--name.na11.my.salesforce.com and should be
@@ -295,7 +295,7 @@ class ApiRetrieveUnpackaged(BaseMetadataApiCall):
             api_version=self.api_version, package_xml=self.package_xml
         )
 
-    def _process_response(self, response):
+    def _process_response(self, response) -> ZipFile:
         # Parse the metadata zip file from the response
         zipstr = parseString(response.content).getElementsByTagName("zipFile")
         if zipstr:

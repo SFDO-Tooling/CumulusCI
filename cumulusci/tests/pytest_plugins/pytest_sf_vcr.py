@@ -19,12 +19,12 @@ def sf_before_record_cb(request):
             request.body.decode(),
         ).encode()
     request.uri = re.sub(
-        r"//.*.my.salesforce.com", "//orgname.salesforce.com", request.uri
+        r"//.*\.my\.salesforce\.com", "//orgname.my.salesforce.com", request.uri
     )
     request.uri = re.sub(
-        r"//.*\d+.*.salesforce.com/", "//podname.salesforce.com/", request.uri
+        r"//.*\d+\.salesforce\.com/", "//cs00.salesforce.com/", request.uri
     )
-    request.uri = re.sub(r"00D[\w\d]{15,18}", "Organization/ORGID", request.uri)
+    request.uri = re.sub(r"00D[\w\d]{12,15}", "ORGID", request.uri)
 
     request.headers = {"Request-Headers": "Elided"}
 
@@ -52,7 +52,7 @@ def vcr_config(request):
         "decode_compressed_response": True,
         "before_record_response": sf_before_record_response,
         "before_record_request": sf_before_record_cb,
-        # this is redundant, but I guess its a from of
+        # this is redundant, but I guess its a form of
         # security in-depth
         "filter_headers": [
             "Authorization",

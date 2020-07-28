@@ -54,7 +54,7 @@ def serialize_xml_for_salesforce(xdoc, xml_declaration=True):
             r += tail
         elif action == "comment":
             r += str(elem) + (elem.tail if elem.tail else "")
-    return r.strip()
+    return r
 
 
 def _has_content(element):

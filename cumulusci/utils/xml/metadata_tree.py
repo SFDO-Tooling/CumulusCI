@@ -159,6 +159,9 @@ class MetadataElement:
                 f"Indices must be integers or strings, not {type(item)}"
             )  # # pragma: no cover
 
+    def index(self, child: "MetadataElement"):
+        return self._element.index(child._element)
+
     def append(self, tag: Union[str, "MetadataElement"], text: str = None):
         '''Append a new element at the appropriate place.
 
@@ -189,10 +192,10 @@ class MetadataElement:
         </types>
         '''
         newchild = self._create_child(tag, text)
-        same_elements = self._element.findall(newchild.tag)
+        same_elements = self.findall(newchild.tag)
         if same_elements:
             last = same_elements[-1]
-            index = self._element.index(last)
+            index = self.index(last)
             self._element.insert(index + 1, newchild._element)
         else:
             self._element.append(newchild._element)
@@ -306,3 +309,6 @@ class MetadataElement:
             contents = ""
 
         return f"<{self.tag}>{contents}</{self.tag}> element"
+
+    def iterchildren(self, *args):
+        return (self._wrap_element(el) for el in self._element.iterchildren(*args))
