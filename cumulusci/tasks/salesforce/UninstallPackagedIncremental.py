@@ -69,27 +69,27 @@ class UninstallPackagedIncremental(UninstallPackaged):
         )
         return destructive_changes
 
-    def _package_xml_diff(self, master, compare):
-        with open(master, "rb") as f:
-            master_xml = xmltodict.parse(f)
+    def _package_xml_diff(self, baseline, compare):
+        with open(baseline, "rb") as f:
+            baseline_xml = xmltodict.parse(f)
         with open(compare, "rb") as f:
             compare_xml = xmltodict.parse(f)
 
         delete = {}
 
         ignore = self.options["ignore"]
-        master_items = {}
+        baseline_items = {}
         compare_items = {}
-        md_types = master_xml["Package"].get("types", [])
+        md_types = baseline_xml["Package"].get("types", [])
         md_types = [md_types] if not isinstance(md_types, list) else md_types
         for md_type in md_types:
-            master_items[md_type["name"]] = []
+            baseline_items[md_type["name"]] = []
             if "members" not in md_type:
                 continue
             if isinstance(md_type["members"], str):
-                master_items[md_type["name"]].append(md_type["members"])
+                baseline_items[md_type["name"]].append(md_type["members"])
             else:
-                master_items[md_type["name"]].extend(md_type["members"])
+                baseline_items[md_type["name"]].extend(md_type["members"])
 
         md_types = compare_xml["Package"].get("types", [])
         md_types = [md_types] if not isinstance(md_types, list) else md_types
@@ -105,12 +105,12 @@ class UninstallPackagedIncremental(UninstallPackaged):
                 compare_items[md_type["name"]].append(item)
 
         for md_type, members in compare_items.items():
-            if md_type not in master_items:
+            if md_type not in baseline_items:
                 delete[md_type] = members
                 continue
 
             for member in members:
-                if member not in master_items[md_type]:
+                if member not in baseline_items[md_type]:
                     if md_type not in delete:
                         delete[md_type] = []
                     delete[md_type].append(member)

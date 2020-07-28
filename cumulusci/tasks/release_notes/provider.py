@@ -51,10 +51,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
         - github_owner
         - github_username
         - github_password
-
-    Will optionally use the following if provided by release_notes_generator:
-
-        - master_branch: Name of the default branch. Defaults to 'master'
+        - default_branch
         - prefix_prod: Tag prefix for production release tags. Defaults to 'prod/'
     """
 
@@ -151,7 +148,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
         """ Gets all pull requests from the repo since we can't do a filtered
         date merged search """
         for pull in self.repo.pull_requests(
-            state="closed", base=self.github_info["master_branch"], direction="asc"
+            state="closed", base=self.github_info["default_branch"], direction="asc"
         ):
             if self._include_pull_request(pull):
                 yield pull
