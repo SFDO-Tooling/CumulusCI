@@ -6,7 +6,7 @@ Suite Setup     Run keywords  Open Test Browser
 Suite Teardown  Delete Records and Close Browser
 
 *** Keywords ***
-Create Customfield In Object Manager
+Create Custom Field In Object Manager
     [Documentation]
     ...  Reads key value pair arguments.
     ...
