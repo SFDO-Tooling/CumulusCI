@@ -80,5 +80,5 @@ class DummyKeychain(object):
     def get_service(self, name):
         return DummyService(name)
 
-    config_local_dir = Path("/home/.cumulusci")
+    global_config_dir = Path("/home/.cumulusci")
     project_cache_dir = Path("/home/project/.cci")

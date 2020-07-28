@@ -282,7 +282,7 @@ class OrgConfig(BaseConfig):
     def get_orginfo_cache_dir(self):
         assert self.keychain, "Keychain should be set"
         if self.global_org:
-            cache_dir = self.keychain.config_local_dir / "orginfo" / self.get_domain()
+            cache_dir = self.keychain.global_config_dir / "orginfo" / self.get_domain()
         else:
             cache_dir = self.keychain.project_cache_dir / "orginfo" / self.get_domain()
 

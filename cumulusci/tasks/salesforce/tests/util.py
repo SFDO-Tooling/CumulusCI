@@ -52,7 +52,7 @@ def create_task_fixture(request):
     to_patch = {
         "cumulusci.core.config.UniversalConfig.cumulusci_config_dir": temp_root
         / "fixture_userhome/.cumulusci",
-        "cumulusci.tests.util.DummyKeychain.config_local_dir": temp_root
+        "cumulusci.tests.util.DummyKeychain.global_config_dir": temp_root
         / "fixture_userhome/.cumulusci",
         "cumulusci.core.config.project_config.BaseProjectConfig.project_cache_dir": temp_root
         / "fixture_userhome/project_home/.cci",
