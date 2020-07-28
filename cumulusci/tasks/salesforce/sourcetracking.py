@@ -52,10 +52,11 @@ class ListChanges(BaseSalesforceApiTask):
 
     @property
     def _snapshot_path(self):
-        parent_dir = os.path.join(".cci", "snapshot")
-        if not os.path.isdir(parent_dir):
-            os.makedirs(parent_dir)
-        return os.path.join(parent_dir, "{}.json".format(self.org_config.name))
+        parent_dir = self.project_config.project_cache_dir / "snapshot"
+        if not parent_dir.exists():
+            parent_dir.mkdir(parents=True)
+        assert parent_dir.is_dir()
+        return str(parent_dir / f"{self.org_config.name}.json")
 
     def _load_snapshot(self):
         """Load the snapshot of which component revisions have been retrieved."""
