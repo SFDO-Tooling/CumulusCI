@@ -132,7 +132,7 @@ class TestListChanges:
 class TestRetrieveChanges:
     """Retrieve changed components from a scratch org"""
 
-    def test_init_options__sfdx_format(self):
+    def test_init_options__sfdx_format(self, sfdx):
         with temporary_dir():
             project_config = create_project_config()
             project_config.project__source_format = "sfdx"
@@ -144,13 +144,12 @@ class TestRetrieveChanges:
             assert not task.md_format
             assert task.options["path"] == "force-app"
 
-    @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
-    def test_run_task(self, sfdx):
+    def test_run_task(self, sfdx, create_task_fixture):
         sfdx_calls = []
         sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
 
         with temporary_dir():
-            task = create_task_fixture(
+            task = create_task(
                 RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns"}
             )
             task._init_task()
@@ -190,7 +189,7 @@ class TestRetrieveChanges:
 
 class TestSnapshotChanges:
     @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
-    def test_run_task(self, create_task_fixture):
+    def test_run_task(self, sfdx, create_task_fixture):
         with temporary_dir():
             org_config = OrgConfig(
                 {
@@ -221,48 +220,7 @@ class TestSnapshotChanges:
             )
             task._reset_sfdx_snapshot = mock.Mock()
             task._run_task()
-            assert os.path.exists(
-                os.path.join(
-                    ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"
-                )
-            )
             task._reset_sfdx_snapshot.assert_called_once()
-    
-    def test_run_task__null_revnum(self, create_task_fixture):
-        with temporary_dir():
-            org_config = OrgConfig(
-                {
-                    "username": "test-cci@example.com",
-                    "scratch": True,
-                    "instance_url": "https://test.salesforce.com",
-                    "access_token": "TOKEN",
-                },
-                "test",
-            )
-            task = create_task(SnapshotChanges, org_config=org_config)
-            task._init_task()
-            task.tooling.query = mock.Mock(
-                return_value={
-                    "totalSize": 1,
-                    "done": True,
-                    "records": [
-                        {
-                            "MemberType": "CustomObject",
-                            "MemberName": "Object2",
-                            "RevisionNum": None,
-                        }
-                    ],
-                }
-            )
-            task._run_task()
-            assert task._snapshot["CustomObject"]["Object2"] == -1
-            assert not (
-                os.path.exists(
-                    os.path.join(
-                        ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"
-                    )
-                )
-            )
 
     def test_freeze(self):
         task = create_task(SnapshotChanges)
