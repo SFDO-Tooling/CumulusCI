@@ -23,10 +23,11 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         self.repo_api_url = "https://api.github.com/repos/{}/{}".format(
             self.owner, self.repo
         )
-        self.branch = "master"
+        self.branch = "main"
 
         # Create the project config
         self.project_config = create_project_config(self.repo, self.owner)
+        self.project_config.config["project"]["git"]["default_branch"] = self.branch
         self.project_config.keychain.set_service(
             "github",
             ServiceConfig(
@@ -37,13 +38,6 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
                 }
             ),
         )
-
-        # self.current_tag_sha = self._random_sha()
-        # self.current_tag_commit_sha = self._random_sha()
-        # self.current_tag_commit_date = datetime.utcnow()
-        # self.last_tag_sha = self._random_sha()
-        # self.last_tag_commit_sha = self._random_sha()
-        # self.last_tag_commit_date = datetime.utcnow() - timedelta(days=1)
 
     def _create_task(self, task_config=None):
         if not task_config:
@@ -76,8 +70,10 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         else:
             expected_response = []
 
-        master = self._get_expected_branch("master", self.project_config.repo_commit)
-        expected_response = [master] + expected_response
+        default_branch = self._get_expected_branch(
+            "main", self.project_config.repo_commit
+        )
+        expected_response = [default_branch] + expected_response
 
         responses.add(method=responses.GET, url=api_url, json=expected_response)
         return expected_response
@@ -152,7 +148,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             expected = [
                 ("INFO", "Beginning task: MergeBranch"),
                 ("INFO", ""),
-                ("DEBUG", "Skipping branch master: is source branch"),
+                ("DEBUG", "Skipping branch main: is source branch"),
                 (
                     "DEBUG",
                     "Skipping branch not-a-feature-branch: does not match prefix feature/",
@@ -181,7 +177,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             expected = [
                 ("INFO", "Beginning task: MergeBranch"),
                 ("INFO", ""),
-                ("DEBUG", "Skipping branch master: is source branch"),
+                ("DEBUG", "Skipping branch main: is source branch"),
                 ("INFO", "Skipping branch feature/a-test: no file diffs found"),
             ]
             self.assertEqual(expected, log_lines)
@@ -210,7 +206,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             expected = [
                 ("INFO", "Beginning task: MergeBranch"),
                 ("INFO", ""),
-                ("DEBUG", "Skipping branch master: is source branch"),
+                ("DEBUG", "Skipping branch main: is source branch"),
                 ("INFO", "Merged 1 commits into branch feature/a-test"),
             ]
             self.assertEqual(expected, log_lines)
@@ -259,7 +255,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             expected = [
                 ("INFO", "Beginning task: MergeBranch"),
                 ("INFO", ""),
-                ("DEBUG", "Skipping branch master: is source branch"),
+                ("DEBUG", "Skipping branch main: is source branch"),
                 (
                     "INFO",
                     "Merge conflict on branch feature/a-test: created pull request #2",
@@ -299,7 +295,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             expected = [
                 ("INFO", "Beginning task: MergeBranch"),
                 ("INFO", ""),
-                ("DEBUG", "Skipping branch master: is source branch"),
+                ("DEBUG", "Skipping branch main: is source branch"),
                 (
                     "INFO",
                     "Merge conflict on branch feature/a-test: merge PR already exists",
@@ -309,7 +305,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         self.assertEqual(6, len(responses.calls))
 
     @responses.activate
-    def test_master_parent_with_child_pr(self):
+    def test_main_parent_with_child_pr(self):
         self._mock_repo()
         self._mock_branch(self.branch)
         # branches
@@ -342,7 +338,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         expected = [
             ("INFO", "Beginning task: MergeBranch"),
             ("INFO", ""),
-            ("DEBUG", "Skipping branch master: is source branch"),
+            ("DEBUG", "Skipping branch main: is source branch"),
             (
                 "INFO",
                 "Merge conflict on parent branch {}: created pull request #2".format(
@@ -354,7 +350,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         self.assertEqual(7, len(responses.calls))
 
     @responses.activate
-    def test_master_parent_does_not_merge_child(self):
+    def test_main_parent_does_not_merge_child(self):
         self._mock_repo()
         self._mock_branch(self.branch)
 
@@ -386,7 +382,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             expected = [
                 ("INFO", "Beginning task: MergeBranch"),
                 ("INFO", ""),
-                ("DEBUG", "Skipping branch master: is source branch"),
+                ("DEBUG", "Skipping branch main: is source branch"),
                 (
                     "INFO",
                     "Merged 1 commits into parent branch {}".format(parent_branch_name),

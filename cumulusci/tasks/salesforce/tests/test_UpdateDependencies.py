@@ -202,7 +202,9 @@ class TestUpdateDependencies(unittest.TestCase):
         project_config.config["project"]["dependencies"] = [{"namespace": "foo"}]
         task = create_task(UpdateDependencies, project_config=project_config)
         task.options["include_beta"] = True
-        task.org_config = mock.Mock()
+        task.org_config = mock.Mock(scratch=False)
+        task.org_config.save_if_changed.return_value.__enter__ = lambda *args: ...
+        task.org_config.save_if_changed.return_value.__exit__ = lambda *args: ...
 
         with self.assertRaises(TaskOptionsError):
             task()
@@ -212,6 +214,8 @@ class TestUpdateDependencies(unittest.TestCase):
         project_config.config["project"]["dependencies"] = [{"foo": "bar"}]
         task = create_task(UpdateDependencies, project_config=project_config)
         task.org_config = mock.Mock()
+        task.org_config.save_if_changed.return_value.__enter__ = lambda *args: ...
+        task.org_config.save_if_changed.return_value.__exit__ = lambda *args: ...
 
         with self.assertRaises(TaskOptionsError) as e:
             task()

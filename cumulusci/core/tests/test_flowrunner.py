@@ -59,7 +59,7 @@ class AbstractFlowCoordinatorTest(object):
     def setUp(self):
         self.project_config = create_project_config("TestOwner", "TestRepo")
         self.org_config = OrgConfig(
-            {"username": "sample@example", "org_id": ORG_ID}, "test"
+            {"username": "sample@example", "org_id": ORG_ID}, "test", mock.Mock()
         )
         self.org_config.refresh_oauth_token = mock.Mock()
 
@@ -466,7 +466,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual(1, len(org_id_logs))
 
     def test_init_org_updates_keychain(self):
-        self.project_config.keychain.set_org = set_org = mock.Mock()
+        self.org_config.save = save = mock.Mock()
 
         def change_username(keychain):
             self.org_config.config["username"] = "sample2@example"
@@ -478,7 +478,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow.org_config = self.org_config
         flow._init_org()
 
-        set_org.assert_called_once()
+        save.assert_called_once()
 
 
 class StepSpecTest(unittest.TestCase):

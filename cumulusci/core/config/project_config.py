@@ -27,6 +27,7 @@ from cumulusci.core.github import find_previous_release
 from cumulusci.core.source import GitHubSource
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
+from cumulusci.utils.git import current_branch, git_path
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 from github3.exceptions import NotFoundError
@@ -37,8 +38,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     config_filename = "cumulusci.yml"
 
-    def __init__(self, global_config_obj, config=None, *args, **kwargs):
-        self.global_config_obj = global_config_obj
+    def __init__(self, universal_config_obj, config=None, *args, **kwargs):
+        self.universal_config_obj = universal_config_obj
         self.keychain = None
 
         # optionally pass in a repo_info dict
@@ -113,8 +114,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         self.config = merge_config(
             {
+                "universal_config": self.config_universal,
                 "global_config": self.config_global,
-                "global_local": self.config_global_local,
                 "project_config": self.config_project,
                 "project_local_config": self.config_project_local,
                 "additional_yaml": self.config_additional_yaml,
@@ -137,12 +138,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             raise ConfigError(message)
 
     @property
-    def config_global_local(self):
-        return self.global_config_obj.config_global_local
+    def config_global(self):
+        return self.universal_config_obj.config_global
 
     @property
-    def config_global(self):
-        return self.global_config_obj.config_global
+    def config_universal(self):
+        return self.universal_config_obj.config_universal
 
     @property
     def repo_info(self):
@@ -246,17 +247,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return {"url": url, "owner": owner, "name": name}
 
-    def git_path(self, tail=None):
-        """Returns a Path to the .git directory in self.repo_root
-        with tail appended (if present) or None if self.repo_root
-        is not set."""
-        path = None
-        if self.repo_root:
-            path = Path(self.repo_root) / ".git"
-            if tail is not None:
-                path = path / str(tail)
-        return path
-
     def git_config_remote_origin_url(self):
         """Returns the url under the [remote origin]
         section of the .git/config file. Returns None
@@ -264,7 +254,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         line is found. """
         config = ConfigParser(strict=False)
         try:
-            config.read(self.git_path("config"))
+            config.read(git_path(self.repo_root, "config"))
             url = config['remote "origin"']["url"]
         except (KeyError, TypeError):
             url = None
@@ -331,10 +321,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        with open(self.git_path("HEAD"), "r") as f:
-            branch_ref = f.read().strip()
-        if branch_ref.startswith("ref: "):
-            return "/".join(branch_ref[5:].split("/")[2:])
+        return current_branch(self.repo_root)
 
     @property
     def repo_commit(self):
@@ -437,16 +424,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """ location of the user local directory for the project
         e.g., ~/.cumulusci/NPSP-Extension-Test/ """
 
-        # depending on where we are in bootstrapping the BaseGlobalConfig
+        # depending on where we are in bootstrapping the UniversalConfig
         # the canonical projectname could be located in one of two places
         if self.project__name:
             name = self.project__name
         else:
             name = self.config_project.get("project", {}).get("name", "")
 
-        path = os.path.join(
-            os.path.expanduser("~"), self.global_config_obj.config_local_dir, name
-        )
+        path = str(self.universal_config_obj.cumulusci_config_dir / name)
         if not os.path.isdir(path):
             os.makedirs(path)
         return path
@@ -831,7 +816,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def construct_subproject_config(self, **kwargs):
         """Construct another project config for an external source"""
         return self.__class__(
-            self.global_config_obj, included_sources=self.included_sources, **kwargs
+            self.universal_config_obj, included_sources=self.included_sources, **kwargs
         )
 
     def relpath(self, path):

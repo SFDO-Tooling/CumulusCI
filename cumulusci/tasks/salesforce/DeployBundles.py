@@ -1,9 +1,10 @@
+import copy
 import os
 
 from cumulusci.tasks.salesforce import Deploy
 
 
-deploy_options = Deploy.task_options.copy()
+deploy_options = copy.deepcopy(Deploy.task_options)
 deploy_options["path"][
     "description"
 ] = "The path to the parent directory containing the metadata bundles directories"
