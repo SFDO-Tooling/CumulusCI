@@ -6,6 +6,7 @@ import os
 import re
 import time
 
+from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
@@ -133,13 +134,17 @@ class ListChanges(BaseSalesforceApiTask):
             json.dump(self._snapshot, f)
 
     def _reset_sfdx_snapshot(self):
-        sfdx(
-            "force:source:tracking:reset",
-            args=["-p"],
-            username=self.org_config.username,
-            capture_output=True,
-            check_return=True,
-        )
+        # If org is from sfdx, reset sfdx source tracking
+        if self.project_config.project__source_format == "sfdx" and isinstance(
+            self.org_config, ScratchOrgConfig
+        ):
+            sfdx(
+                "force:source:tracking:reset",
+                args=["-p"],
+                username=self.org_config.username,
+                capture_output=True,
+                check_return=True,
+            )
 
 
 retrieve_changes_task_options = ListChanges.task_options.copy()
