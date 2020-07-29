@@ -53,8 +53,7 @@ class ListChanges(BaseSalesforceApiTask):
     @property
     def _snapshot_path(self):
         parent_dir = self.project_config.project_cache_dir / "snapshot"
-        if not parent_dir.exists():
-            parent_dir.mkdir(parents=True)
+        parent_dir.mkdir(parents=True, exist_ok=True)
         assert parent_dir.is_dir()
         return str(parent_dir / f"{self.org_config.name}.json")
 
