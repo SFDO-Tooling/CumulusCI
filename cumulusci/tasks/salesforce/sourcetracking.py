@@ -135,7 +135,9 @@ class ListChanges(BaseSalesforceApiTask):
 
     def _reset_sfdx_snapshot(self):
         # If org is from sfdx, reset sfdx source tracking
-        if isinstance(self.org_config, ScratchOrgConfig):
+        if self.project_config.project__source_format == "sfdx" and isinstance(
+            self.org_config, ScratchOrgConfig
+        ):
             sfdx(
                 "force:source:tracking:reset",
                 args=["-p"],
