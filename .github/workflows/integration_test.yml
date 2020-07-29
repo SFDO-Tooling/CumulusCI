@@ -7,6 +7,9 @@ on:
     inputs:
       tags:
         description: 'Test scenario tags'  
+  push:
+    branches:
+    - feature/run-integration-tests-daily
 
 env:
   CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
