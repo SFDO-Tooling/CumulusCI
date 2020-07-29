@@ -552,7 +552,7 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         return render
 
 
-class TestGithubLinesParser(unittest.TestCase):
+class TestInstallLinkParser:
     def setUp(self):
         self.title = "Title"
 
