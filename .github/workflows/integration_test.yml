@@ -48,7 +48,7 @@ jobs:
         SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
     - name: Run integration tests
       run: |
-        pytest --org dev
+        coverage run --append $(which pytest) --org dev
     - name: Delete scratch org
       if: always()
       run: |
