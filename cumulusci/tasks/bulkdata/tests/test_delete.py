@@ -1,5 +1,8 @@
+import pytest
 import unittest
 from unittest import mock
+
+import responses
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata import DeleteData
@@ -10,12 +13,15 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
 
 
 class TestDeleteData(unittest.TestCase):
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run(self, dml_mock, query_mock):
+        mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
         query_mock.return_value.get_results.return_value = iter(
             ["001000000000000", "001000000000001"]
@@ -56,9 +62,11 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.load_records.assert_called_once()
         dml_mock.return_value.get_results.assert_called_once()
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__no_results(self, dml_mock, query_mock):
+        mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
         query_mock.return_value.get_results.return_value = iter([])
         query_mock.return_value.job_result = DataOperationJobResult(
@@ -78,9 +86,11 @@ class TestDeleteData(unittest.TestCase):
 
         dml_mock.assert_not_called()
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__job_error_delete(self, dml_mock, query_mock):
+        mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
         query_mock.return_value.get_results.return_value = iter(
             ["001000000000000", "001000000000001"]
@@ -97,9 +107,11 @@ class TestDeleteData(unittest.TestCase):
         with self.assertRaises(BulkDataException):
             task()
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__job_error_query(self, dml_mock, query_mock):
+        mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
         query_mock.return_value.get_results.return_value = iter(
             ["001000000000000", "001000000000001"]
@@ -110,9 +122,11 @@ class TestDeleteData(unittest.TestCase):
         with self.assertRaises(BulkDataException):
             task()
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__row_error(self, dml_mock, query_mock):
+        mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
         query_mock.return_value.get_results.return_value = iter(
             ["001000000000000", "001000000000001"]
@@ -129,9 +143,11 @@ class TestDeleteData(unittest.TestCase):
         with self.assertRaises(BulkDataException):
             task()
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__ignore_error(self, dml_mock, query_mock):
+        mock_describe_calls()
         task = _make_task(
             DeleteData,
             {
@@ -181,9 +197,11 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.load_records.assert_called_once()
         dml_mock.return_value.get_results.assert_called_once()
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__ignore_error_throttling(self, dml_mock, query_mock):
+        mock_describe_calls()
         task = _make_task(
             DeleteData,
             {
@@ -215,9 +233,11 @@ class TestDeleteData(unittest.TestCase):
         assert len(warning.mock_calls) == task.row_warning_limit + 1 == 11
         assert "warnings suppressed" in str(warning.mock_calls[-1])
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__where(self, dml_mock, query_mock):
+        mock_describe_calls()
         task = _make_task(
             DeleteData, {"options": {"objects": "Contact", "where": "Id != null"}}
         )
@@ -258,9 +278,11 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.load_records.assert_called_once()
         dml_mock.return_value.get_results.assert_called_once()
 
+    @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
     def test_run__query_fails(self, dml_mock, query_mock):
+        mock_describe_calls()
         task = _make_task(
             DeleteData, {"options": {"objects": "Contact", "where": "Id != null"}}
         )
@@ -272,6 +294,59 @@ class TestDeleteData(unittest.TestCase):
         )
         with self.assertRaises(BulkDataException):
             task()
+
+    @responses.activate
+    def test_validate_and_inject_namespace__standard(self):
+        mock_describe_calls()
+
+        task = _make_task(DeleteData, {"options": {"objects": "Contact,Account"}})
+
+        task._validate_and_inject_namespace()
+
+        assert task.sobjects == ["Contact", "Account"]
+
+    @responses.activate
+    def test_validate_and_inject_namespace__missing_object(self):
+        mock_describe_calls()
+        task = _make_task(
+            DeleteData, {"options": {"objects": "ApexTestQueueItem,Account"}}
+        )
+        # ApexTestQueueItem is not deletable
+
+        with pytest.raises(BulkDataException):
+            task._validate_and_inject_namespace()
+
+    def test_validate_and_inject_namespace__packaged(self):
+        task = _make_task(DeleteData, {"options": {"objects": "Contact,Test__c"}})
+        task.project_config.project__package__namespace = "ns"
+        task.org_config = mock.Mock()
+        task.org_config.salesforce_client.describe.return_value = {
+            "sobjects": [
+                {"name": "ns__Test__c", "deletable": True},
+                {"name": "Contact", "deletable": True},
+            ]
+        }
+
+        task._validate_and_inject_namespace()
+
+        assert task.sobjects == ["Contact", "ns__Test__c"]
+
+    def test_validate_and_inject_namespace__packaged_and_not(self):
+        task = _make_task(DeleteData, {"options": {"objects": "Contact,Test__c"}})
+        task.project_config.project__package__namespace = "ns"
+        task.org_config = mock.Mock()
+        task.org_config.salesforce_client.describe.return_value = {
+            "sobjects": [
+                {"name": "Test__c", "deletable": True},
+                {"name": "Contact", "deletable": True},
+                {"name": "ns__Test__c", "deletable": True},
+            ]
+        }
+
+        task._validate_and_inject_namespace()
+
+        # Prefer the user entry where there is ambiguity.
+        assert task.sobjects == ["Contact", "Test__c"]
 
     def test_object_description(self):
         t = _make_task(DeleteData, {"options": {"objects": "a", "where": "Id != null"}})

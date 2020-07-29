@@ -49,6 +49,7 @@ class TestBaseSalesforceTask(unittest.TestCase):
         task._run_task = mock.Mock()
         task()
         assert update_config_called
+        self.project_config.keychain.set_org.assert_called_once()
 
 
 class TestBaseSalesforceApiTask(unittest.TestCase):

@@ -11,15 +11,15 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     """ An encrypted project keychain that stores in the project's local directory """
 
     @property
-    def config_local_dir(self):
+    def global_config_dir(self):
         try:
-            config_local_dir = (
-                self.project_config.global_config_obj.cumulusci_config_dir
+            global_config_dir = (
+                self.project_config.universal_config_obj.cumulusci_config_dir
             )
         except AttributeError:
             # Handle a global config passed as a project config
-            config_local_dir = self.project_config.cumulusci_config_dir
-        return config_local_dir
+            global_config_dir = self.project_config.cumulusci_config_dir
+        return global_config_dir
 
     @property
     def project_local_dir(self):
@@ -48,25 +48,21 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         self.config[key] = config
 
     def _load_app(self):
-        self._load_file(self.config_local_dir, "connected.app", "app")
+        self._load_file(self.global_config_dir, "connected.app", "app")
         self._load_file(self.project_local_dir, "connected.app", "app")
 
     def _load_orgs(self):
-        self._load_files(
-            self.config_local_dir, ".org", "orgs", GlobalOrg,
-        )
+        self._load_files(self.global_config_dir, ".org", "orgs", GlobalOrg)
 
-        self._load_files(
-            self.project_local_dir, ".org", "orgs", LocalOrg,
-        )
+        self._load_files(self.project_local_dir, ".org", "orgs", LocalOrg)
 
     def _load_services(self):
-        self._load_files(self.config_local_dir, ".service", "services")
+        self._load_files(self.global_config_dir, ".service", "services")
         self._load_files(self.project_local_dir, ".service", "services")
 
     def _remove_org(self, name, global_org):
         if global_org:
-            full_path = os.path.join(self.config_local_dir, f"{name}.org")
+            full_path = os.path.join(self.global_config_dir, f"{name}.org")
         else:
             full_path = os.path.join(self.project_local_dir, f"{name}.org")
         if not os.path.exists(full_path):
@@ -88,7 +84,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     def _set_encrypted_org(self, name, encrypted, global_org):
         if global_org:
-            filename = os.path.join(self.config_local_dir, f"{name}.org")
+            filename = os.path.join(self.global_config_dir, f"{name}.org")
         elif self.project_local_dir is None:
             return
         else:
@@ -100,7 +96,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         if project:
             filename = os.path.join(self.project_local_dir, f"{name}.service")
         else:
-            filename = os.path.join(self.config_local_dir, f"{name}.service")
+            filename = os.path.join(self.global_config_dir, f"{name}.service")
         with open(filename, "wb") as f_service:
             f_service.write(encrypted)
 
@@ -119,7 +115,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         org = self._decrypt_config(
             OrgConfig,
             self.orgs[name].encrypted_data,
-            extra=[name],
+            extra=[name, self],
             context=f"org config ({name})",
         )
         if self.orgs[name].global_org:

@@ -97,10 +97,10 @@ def cleanup_org_cache_dirs(keychain, project_config):
             domains.add(domain)
 
     assert project_config.project_cache_dir
-    assert keychain.config_local_dir
+    assert keychain.global_config_dir
 
     project_org_directories = (project_config.project_cache_dir / "orginfo").glob("*")
-    global_org_directories = (keychain.config_local_dir / "orginfo").glob("*")
+    global_org_directories = (keychain.global_config_dir / "orginfo").glob("*")
 
     for directory in list(project_org_directories) + list(global_org_directories):
         if directory.name not in domains:

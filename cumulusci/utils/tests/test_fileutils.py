@@ -81,8 +81,8 @@ class TestCleanupCacheDir:
         keychain.get_org.return_value = org
         project_config = mock.Mock()
         with TemporaryDirectory() as temp_for_global:
-            keychain.config_local_dir = Path(temp_for_global)
-            global_org_dir = _touch_test_org_file(keychain.config_local_dir)
+            keychain.global_config_dir = Path(temp_for_global)
+            global_org_dir = _touch_test_org_file(keychain.global_config_dir)
             with TemporaryDirectory() as temp_for_project:
                 cache_dir = project_config.project_cache_dir = Path(temp_for_project)
                 project_org_dir = _touch_test_org_file(cache_dir)
@@ -105,7 +105,7 @@ class TestCleanupCacheDir:
         keychain.get_org.return_value = org
         project_config = mock.Mock()
         with TemporaryDirectory() as temp_for_global:
-            keychain.config_local_dir = Path(temp_for_global)
+            keychain.global_config_dir = Path(temp_for_global)
             with TemporaryDirectory() as temp_for_project:
                 cache_dir = project_config.project_cache_dir = Path(temp_for_project)
                 org_dir = cache_dir / "orginfo/foo.my.salesforce.com"

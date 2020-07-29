@@ -187,7 +187,10 @@ class BaseProjectKeychain(BaseConfig):
         if name not in self.orgs:
             self._raise_org_not_found(name)
         org = self._get_org(name)
-        org.keychain = self
+        if org.keychain:
+            assert org.keychain is self
+        else:
+            org.keychain = self
         return org
 
     def _get_org(self, name):
@@ -262,3 +265,7 @@ class BaseProjectKeychain(BaseConfig):
         services = list(self.services.keys())
         services.sort()
         return services
+
+    @property
+    def project_cache_dir(self):
+        return self.project_config.universal_config_obj.cumulusci_config_dir

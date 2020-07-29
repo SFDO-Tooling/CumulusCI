@@ -186,7 +186,7 @@ tasks:
         class_path: cumulusci.tasks.github.CloneTag
         group: GitHub
     github_master_to_feature:
-        description: Merges the latest commit on the master branch into all open feature branches
+        description: Merges the latest commit on the main branch into all open feature branches
         class_path: cumulusci.tasks.github.MergeBranch
         group: GitHub
     github_parent_to_children:
@@ -551,7 +551,7 @@ flows:
                 task: github_parent_to_children
 
     ci_master:
-        description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against master branch commits.
+        description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
         steps:
             1:
                 flow: dependencies
