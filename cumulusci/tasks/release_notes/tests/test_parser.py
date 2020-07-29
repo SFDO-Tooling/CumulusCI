@@ -561,7 +561,7 @@ class TestGithubLinesParser(unittest.TestCase):
         generator.version_id = None
         parser = InstallLinkParser(generator, self.title)
         parser.parse("abc")
-        self.assertEqual(None, parser.render())
+        assert parser.render() is None
 
     def test_package_version(self):
         generator = mock.Mock(link_pr=True)
