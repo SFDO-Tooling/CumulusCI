@@ -38,7 +38,7 @@ Navigate To The Object Manager page For Specified Object
 Create Custom Lookup Field Using Object Manager
     [Documentation]     To test the ability of creating a custom lookup field using object manager and verify field got created
 
-    Create Customfield In Object Manager
+    Create Custom Field In Object Manager
     ...                                                    Object=Contact
     ...                                                    Field_Type=Lookup
     ...                                                    Field_Name=Last Soft Credit Opportunity
@@ -51,7 +51,7 @@ Create Custom Lookup Field Using Object Manager
 Create Custom Text Field Using Object Manager
     [Documentation]     To test the ability of creating a custom text field using object manager and verify field got created
 
-    Create Customfield In Object Manager
+    Create Custom Field In Object Manager
     ...                                                    Object=Contact
     ...                                                    Field_Type=Text
     ...                                                    Field_Name=This Is A Text Field
@@ -64,7 +64,7 @@ Create Custom Text Field Using Object Manager
 Create Custom Currency Field Using Object Manager
     [Documentation]     To test the ability of creating a custom currency field and verify field got created
 
-    Create Customfield In Object Manager
+    Create Custom Field In Object Manager
     ...                                                    Object=Account
     ...                                                    Field_Type=Currency
     ...                                                    Field_Name=This Year Payments on Past Year Pledges
