@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Dict
 
 import click
 import yaml
@@ -18,6 +19,9 @@ class GenerateMapping(BaseSalesforceApiTask):
     Mappings must be serializable, and hence must resolve reference cycles - situations
     where Object A refers to B, and B also refers to A. Mapping generation will stop
     and request user input to resolve such cycles by identifying the correct load order.
+    If you would rather the mapping generator break such a cycle randomly, set the
+    `break_cycles` option to `auto`.
+
     Alternately, specify the `ignore` option with the name of one of the
     lookup fields to suppress it and break the cycle. `ignore` can be specified as a list in
     `cumulusci.yml` or as a comma-separated string at the command line.
@@ -33,6 +37,10 @@ class GenerateMapping(BaseSalesforceApiTask):
         "namespace_prefix": {"description": "The namespace prefix to use"},
         "ignore": {
             "description": "Object API names, or fields in Object.Field format, to ignore"
+        },
+        "break_cycles": {
+            "description": "If the generator is unsure of the order to load, what to do? "
+            "Set to `ask` (the default) to allow the user to choose or `auto` to pick randomly."
         },
         "include": {
             "description": "Object names to include even if they might not otherwise be included."
@@ -56,6 +64,11 @@ class GenerateMapping(BaseSalesforceApiTask):
             self.options["namespace_prefix"] += "__"
 
         self.options["ignore"] = process_list_arg(self.options.get("ignore", []))
+        break_cycles = self.options.setdefault("break_cycles", "ask")
+        if break_cycles not in ["ask", "auto"]:
+            raise TaskOptionsError(
+                f"`break_cycles` should be `ask` or `auto`, not {break_cycles}"
+            )
         self.options["include"] = process_list_arg(self.options.get("include", []))
         self.options["strip_namespace"] = process_bool_arg(
             self.options.get("strip_namespace", True)
@@ -134,7 +147,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         # and master-detail relationships. Required means createable and not nillable.
         # In all cases, ensure that RecordTypeId is included if and only if there are Record Types
         self.schema = {}
-        self.refs = defaultdict(lambda: defaultdict(set))
+        self.refs = defaultdict(lambda: defaultdict(dict))
         for obj in self.mapping_objects:
             self.schema[obj] = {}
 
@@ -155,7 +168,9 @@ class GenerateMapping(BaseSalesforceApiTask):
                                 # We've already vetted that this field is referencing
                                 # included objects, via `_is_field_mappable()`
                                 if target != obj:
-                                    self.refs[obj][target].add(field["name"])
+                                    self.refs[obj][target][field["name"]] = FieldData(
+                                        field
+                                    )
                 if (
                     field["name"] == "RecordTypeId"
                     and len(self.describes[obj]["recordTypeInfos"]) > 1
@@ -165,7 +180,8 @@ class GenerateMapping(BaseSalesforceApiTask):
 
     def _build_mapping(self):
         """Output self.schema in mapping file format by constructing a dict and serializing to YAML"""
-        objs = set(self.schema.keys())
+        objs = list(self.schema.keys())
+        assert all(objs)
         stack = self._split_dependencies(objs, self.refs)
         ns = self.project_config.project__package__namespace
 
@@ -244,7 +260,7 @@ class GenerateMapping(BaseSalesforceApiTask):
     def _split_dependencies(self, objs, dependencies):
         """Attempt to flatten the object network into a sequence of load operations."""
         stack = []
-        objs_remaining = objs.copy()
+        objs_remaining = sorted(objs)
 
         # The structure of `dependencies` is:
         # key = object, value = set of objects it references.
@@ -258,24 +274,11 @@ class GenerateMapping(BaseSalesforceApiTask):
                 for obj in objs_remaining
                 if obj not in dependencies or not dependencies[obj]
             ]
+            assert all(objs_without_deps)
 
             if not objs_without_deps:
-                self.logger.info(
-                    "CumulusCI needs help to complete the mapping; the schema contains reference cycles and unresolved dependencies."
-                )
-                self.logger.info(f"Mapped objects: {', '.join(stack)}")
-                self.logger.info("Remaining objects:")
-                for obj in objs_remaining:
-                    self.logger.info(obj)
-                    for other_obj in dependencies[obj]:
-                        self.logger.info(
-                            f"   references {other_obj} via: {', '.join(dependencies[obj][other_obj])}"
-                        )
-                choice = click.prompt(
-                    "Which object should we load first?",
-                    type=click.Choice(list(objs_remaining)),
-                    show_choices=True,
-                )
+                choice = self.choose_next_object(objs_remaining, dependencies)
+                assert choice
                 objs_without_deps = [choice]
 
             for obj in objs_without_deps:
@@ -290,6 +293,46 @@ class GenerateMapping(BaseSalesforceApiTask):
                 objs_remaining.remove(obj)
 
         return stack
+
+    def find_free_object(self, objs_remaining: list, dependencies: dict):
+        # if you change this code, remember that
+        # peeking into a generator consumes it
+        free_objs = (
+            sobj
+            for sobj in objs_remaining
+            if only_has_soft_dependencies(sobj, dependencies[sobj])
+        )
+        first_free_obj = next(free_objs, None)
+
+        return first_free_obj
+
+    def choose_next_object(self, objs_remaining: list, dependencies: dict):
+        free_obj = self.find_free_object(objs_remaining, dependencies)
+        if free_obj:
+            return free_obj
+
+        if self.options["break_cycles"] == "auto":
+            return tuple(objs_remaining)[0]
+        else:
+            return self.ask_user(objs_remaining, dependencies)
+
+    def ask_user(self, objs_remaining, dependencies):
+        self.logger.info(
+            "CumulusCI needs help to complete the mapping; the schema contains reference cycles and unresolved dependencies."
+        )
+        self.logger.info("Remaining objects:")
+        for obj in objs_remaining:
+            self.logger.info(obj)
+            for other_obj in dependencies[obj]:
+                self.logger.info(
+                    f"   references {other_obj} via: {', '.join(dependencies[obj][other_obj])}"
+                )
+
+        return click.prompt(
+            "Which object should we load first?",
+            type=click.Choice(tuple(objs_remaining)),
+            show_choices=True,
+        )
 
     def _is_any_custom_api_name(self, api_name):
         """True if the entity name is custom (including any package)."""
@@ -382,3 +425,27 @@ class GenerateMapping(BaseSalesforceApiTask):
         return field["type"] == "reference" and self._are_lookup_targets_in_operation(
             field
         )
+
+
+class FieldData:
+    nillable: bool
+
+    def __init__(self, describe_data: dict):
+        self.nillable = describe_data.get("nillable", False)
+
+    def __eq__(self, other: "FieldData"):
+        return self.__dict__ == other.__dict__
+
+
+def only_has_soft_dependencies(
+    sobj: str, obj_dependencies: Dict[str, Dict[str, FieldData]]
+):
+    for target_obj, field_deps in obj_dependencies.items():
+        for field_name, field_data in field_deps.items():
+            # all nillable references are considered soft dependencies.
+            #
+            # A single hard dependency renders an object "not yet free"
+            if not field_data.nillable:
+                return False
+
+    return True
