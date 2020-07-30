@@ -14,7 +14,7 @@ from cumulusci.tasks.metadata_etl import (
     MetadataSingleEntityTransformTask,
     UpdateMetadataFirstChildTextTask,
 )
-from cumulusci.utils.xml.metadata_tree import MetadataElement
+from cumulusci.utils.xml.metadata_tree import fromstring
 
 
 class MetadataETLTask(BaseMetadataETLTask):
@@ -528,13 +528,29 @@ class TestUpdateMetadataFirstChildTextTask:
     def test_transform_entity__child_found(self):
         api_name = "Supercalifragilisticexpialidocious__c"
 
-        metadata = mock.Mock(spec=MetadataElement)
-        metadata.find.return_value = mock.Mock(spec=MetadataElement)
-        metadata.append.return_value = mock.Mock(spec=MetadataElement)
-
         entity = "CustomObject"
         tag = "customObjectAttribute"
         value = "newAttributeValue"
+
+        ORIGINAL_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<{entity} xmlns="http://soap.sforce.com/2006/04/metadata">
+    <name>{api_name}</name>
+    <{tag}>oldAttributeValue</{tag}>
+    <anotherTag>value</anotherTag>
+</{entity}>
+"""
+
+        EXPECTED_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<{entity} xmlns="http://soap.sforce.com/2006/04/metadata">
+    <name>{api_name}</name>
+    <{tag}>{value}</{tag}>
+    <anotherTag>value</anotherTag>
+</{entity}>
+"""
+
+        metadata = fromstring(ORIGINAL_XML.encode("utf-8"))
+
+        expected_metadata = fromstring(EXPECTED_XML.encode("utf-8"))
 
         task = create_task(
             UpdateMetadataFirstChildTextTask,
@@ -554,9 +570,7 @@ class TestUpdateMetadataFirstChildTextTask:
 
         assert metadata == actual
 
-        metadata.find.assert_called_once_with(tag)
-        metadata.append.assert_not_called()
-        assert metadata.find.return_value.text == value
+        assert actual.tostring() == expected_metadata.tostring()
 
         task.logger.info.assert_has_calls(
             [
@@ -568,13 +582,28 @@ class TestUpdateMetadataFirstChildTextTask:
     def test_transform_entity__child_not_found(self):
         api_name = "Supercalifragilisticexpialidocious__c"
 
-        metadata = mock.Mock(spec=MetadataElement)
-        metadata.find.return_value = None
-        metadata.append.return_value = mock.Mock(spec=MetadataElement)
-
         entity = "CustomObject"
         tag = "customObjectAttribute"
         value = "newAttributeValue"
+
+        ORIGINAL_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<{entity} xmlns="http://soap.sforce.com/2006/04/metadata">
+    <name>{api_name}</name>
+    <anotherTag>value</anotherTag>
+</{entity}>
+"""
+
+        EXPECTED_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<{entity} xmlns="http://soap.sforce.com/2006/04/metadata">
+    <name>{api_name}</name>
+    <anotherTag>value</anotherTag>
+    <{tag}>{value}</{tag}>
+</{entity}>
+"""
+
+        metadata = fromstring(ORIGINAL_XML.encode("utf-8"))
+
+        expected_metadata = fromstring(EXPECTED_XML.encode("utf-8"))
 
         task = create_task(
             UpdateMetadataFirstChildTextTask,
@@ -594,9 +623,7 @@ class TestUpdateMetadataFirstChildTextTask:
 
         assert metadata == actual
 
-        metadata.find.assert_called_once_with(tag)
-        metadata.append.assert_called_once_with(tag)
-        assert metadata.append.return_value.text == value
+        assert actual.tostring() == expected_metadata.tostring()
 
         task.logger.info.assert_has_calls(
             [
