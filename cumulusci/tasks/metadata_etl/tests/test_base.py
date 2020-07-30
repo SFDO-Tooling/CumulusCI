@@ -525,7 +525,7 @@ class TestUpdateMetadataFirstChildTextTask:
         # task.entity should always be set as options["metadata_type"]
         assert options["metadata_type"] == task.entity
 
-    def test_transform_entity__attribute_found(self):
+    def test_transform_entity__child_found(self):
         api_name = "Supercalifragilisticexpialidocious__c"
 
         metadata = mock.Mock(spec=MetadataElement)
@@ -565,7 +565,7 @@ class TestUpdateMetadataFirstChildTextTask:
             ]
         )
 
-    def test_transform_entity__attribute_not_found(self):
+    def test_transform_entity__child_not_found(self):
         api_name = "Supercalifragilisticexpialidocious__c"
 
         metadata = mock.Mock(spec=MetadataElement)
