@@ -309,10 +309,8 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
 
 
 class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
-    """
-    Updates the metadata's first child tag's text.
-    Does not support tags with complex/object-like values.
-    """
+    """Updates the metadata's first child tag's text.
+    Does not support tags with complex/object-like values."""
 
     task_options = {
         "entity": {"description": "Metadata Entity", "required": True},
@@ -335,10 +333,8 @@ class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
     def _transform_entity(
         self, metadata: MetadataElement, api_name: str
     ) -> MetadataElement:
-        """
-        Finds metadata's first child with tag.  If no child is found, appends
-        a new child with tag.  Then updates child's text as the value option.
-        """
+        """Finds metadata's first child with tag.  If no child is found, appends
+        a new child with tag.  Then updates child's text as the value option."""
         tag = self.options.get("tag")
 
         attribute = metadata.find(tag)
