@@ -26,12 +26,12 @@ class TestListChanges(unittest.TestCase):
                 {
                     "MemberType": "CustomObject",
                     "MemberName": "Test__c",
-                    "RevisionNum": 1,
+                    "RevisionCounter": 1,
                 },
                 {
                     "MemberType": "CustomObject",
                     "MemberName": "Ignored__c",
-                    "RevisionNum": 2,
+                    "RevisionCounter": 2,
                 },
             ],
         }
@@ -61,7 +61,7 @@ class TestListChanges(unittest.TestCase):
                     {
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
-                        "RevisionNum": 1,
+                        "RevisionCounter": 1,
                     }
                 ],
             }
@@ -82,7 +82,7 @@ class TestListChanges(unittest.TestCase):
                     {
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
-                        "RevisionNum": 1,
+                        "RevisionCounter": 1,
                     }
                 ],
             }
@@ -90,12 +90,20 @@ class TestListChanges(unittest.TestCase):
             self.assertIn("Found no changes.", messages)
 
     def test_filter_changes__include(self):
-        foo = {"MemberType": "CustomObject", "MemberName": "foo__c", "RevisionNum": 1}
-        bar = {"MemberType": "CustomObject", "MemberName": "bar__c", "RevisionNum": 1}
+        foo = {
+            "MemberType": "CustomObject",
+            "MemberName": "foo__c",
+            "RevisionCounter": 1,
+        }
+        bar = {
+            "MemberType": "CustomObject",
+            "MemberName": "bar__c",
+            "RevisionCounter": 1,
+        }
         foobar = {
             "MemberType": "CustomObject",
             "MemberName": "foobar__c",
-            "RevisionNum": 1,
+            "RevisionCounter": 1,
         }
         task = create_task(ListChanges, {"include": "foo", "exclude": "bar"})
         filtered, ignored = task._filter_changes([foo, bar, foobar])
@@ -105,25 +113,22 @@ class TestListChanges(unittest.TestCase):
         foo = {
             "MemberType": "CustomObject",
             "MemberName": "foo__c",
-            "RevisionNum": None,
+            "RevisionCounter": None,
         }
-        bar = {"MemberType": "CustomObject", "MemberName": "bar__c", "RevisionNum": 1}
+        bar = {
+            "MemberType": "CustomObject",
+            "MemberName": "bar__c",
+            "RevisionCounter": 1,
+        }
         task = create_task(ListChanges, {})
         filtered, ignored = task._filter_changes([foo, bar])
         self.assertEqual([foo, bar], filtered)
 
-    def test_load_maxrevision(self):
-        with temporary_dir():
-            task = create_task(ListChanges, {})
-            task._store_maxrevision(1)
-            assert task._load_maxrevision() == 1
 
-
-@mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
 class TestRetrieveChanges(unittest.TestCase):
     """Retrieve changed components from a scratch org"""
 
-    def test_init_options__sfdx_format(self, sfdx):
+    def test_init_options__sfdx_format(self):
         with temporary_dir():
             project_config = create_project_config()
             project_config.project__source_format = "sfdx"
@@ -135,6 +140,7 @@ class TestRetrieveChanges(unittest.TestCase):
             assert not task.md_format
             assert task.options["path"] == "force-app"
 
+    @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
     def test_run_task(self, sfdx):
         sfdx_calls = []
         sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
@@ -151,7 +157,7 @@ class TestRetrieveChanges(unittest.TestCase):
                     {
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
-                        "RevisionNum": 1,
+                        "RevisionCounter": 1,
                     }
                 ],
             }
@@ -165,7 +171,7 @@ class TestRetrieveChanges(unittest.TestCase):
             ]
             assert os.path.exists(os.path.join("src", "package.xml"))
 
-    def test_run_task__no_changes(self, sfdx):
+    def test_run_task__no_changes(self):
         with temporary_dir() as path:
             task = create_task(RetrieveChanges, {"path": path})
             task._init_task()
@@ -179,7 +185,8 @@ class TestRetrieveChanges(unittest.TestCase):
 
 
 class TestSnapshotChanges(unittest.TestCase):
-    def test_run_task(self):
+    @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
+    def test_run_task(self, sfdx):
         with temporary_dir():
             org_config = OrgConfig(
                 {
@@ -202,56 +209,15 @@ class TestSnapshotChanges(unittest.TestCase):
                             {
                                 "MemberType": "CustomObject",
                                 "MemberName": "Object2",
-                                "RevisionNum": 1,
+                                "RevisionCounter": 1,
                             }
                         ],
                     },
                 ]
             )
+            task._reset_sfdx_snapshot = mock.Mock()
             task._run_task()
-            self.assertTrue(
-                os.path.exists(
-                    os.path.join(
-                        ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"
-                    )
-                )
-            )
-
-    def test_run_task__null_revnum(self):
-        with temporary_dir():
-            org_config = OrgConfig(
-                {
-                    "username": "test-cci@example.com",
-                    "scratch": True,
-                    "instance_url": "https://test.salesforce.com",
-                    "access_token": "TOKEN",
-                },
-                "test",
-            )
-            task = create_task(SnapshotChanges, org_config=org_config)
-            task._init_task()
-            task.tooling.query = mock.Mock(
-                return_value={
-                    "totalSize": 1,
-                    "done": True,
-                    "records": [
-                        {
-                            "MemberType": "CustomObject",
-                            "MemberName": "Object2",
-                            "RevisionNum": None,
-                        }
-                    ],
-                }
-            )
-            task._run_task()
-            self.assertEqual(-1, task._snapshot["CustomObject"]["Object2"])
-            self.assertFalse(
-                os.path.exists(
-                    os.path.join(
-                        ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"
-                    )
-                )
-            )
+            task._reset_sfdx_snapshot.assert_called_once()
 
     def test_freeze(self):
         task = create_task(SnapshotChanges)

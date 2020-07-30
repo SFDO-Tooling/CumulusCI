@@ -370,6 +370,8 @@ which should be used for all classes that use the ``pageobject`` decorator:
   page object which represents a listing page
 - ``cumulusci.robotframework.pageobject.NewModal`` - a class for a
   page object which represents the "new object" modal
+- ``cumulusci.robotframework.pageobject.ObjectManagerPage`` - a class
+  for interacting with the object manager.
 
 The ``BasePage`` class adds the following keyword to every page object:
 

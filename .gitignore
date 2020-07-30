@@ -38,3 +38,4 @@ results_junit.xml
 test_results.json
 pabot_results/
 .pabotsuitenames
+large_cassettes/
