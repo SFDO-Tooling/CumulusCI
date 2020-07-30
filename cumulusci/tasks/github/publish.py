@@ -2,7 +2,6 @@ import tempfile
 from datetime import datetime
 
 import github3.exceptions
-
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.github.base import BaseGithubTask
@@ -24,6 +23,9 @@ class PublishSubtree(BaseGithubTask):
         "include": {
             "description": "A list of paths from repo root to include. Directories must end with a trailing slash."
         },
+        "create_release": {
+            "description": "If True, create a release in the public repo.  Defaults to True"
+        },
         "release_body": {
             "description": "If True, the entire release body will be published to the public repo.  Defaults to False"
         },
@@ -39,16 +41,19 @@ class PublishSubtree(BaseGithubTask):
                 "include", ["datasets/", "documentation/", "tasks/", "unpackaged/"]
             )
         )
-        self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
-        self.options["release_body"] = process_bool_arg(
-            self.options.get("release_body", False)
-        )
         if self.options["version"] == "latest":
             self.options["version"] = str(self.project_config.get_latest_version())
         elif self.options["version"] == "latest_beta":
             self.options["version"] = str(
                 self.project_config.get_latest_version(beta=True)
             )
+        self.options["create_release"] = process_bool_arg(
+            self.options.get("create_release", True)
+        )
+        self.options["release_body"] = process_bool_arg(
+            self.options.get("release_body", False)
+        )
+        self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
 
     def _get_target_repo_api(self):
         gh = self.project_config.get_github_api(
@@ -67,7 +72,7 @@ class PublishSubtree(BaseGithubTask):
         with tempfile.TemporaryDirectory() as target:
             self._download_repo_and_extract(target)
             commit = self._create_commit(target)
-            if commit:
+            if commit and self.options["create_release"]:
                 self._create_release(target, commit.sha)
 
     def _download_repo_and_extract(self, path):
@@ -134,7 +139,7 @@ class PublishSubtree(BaseGithubTask):
         except github3.exceptions.NotFoundError:
             pass
         else:
-            message = "Ref for tag {tag_name} already exists in target repo"
+            message = f"Ref for tag {tag_name} already exists in target repo"
             raise GithubException(message)
 
         # Create the tag
