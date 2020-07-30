@@ -197,7 +197,7 @@ tasks:
             source_branch: $project_config.repo_branch
         group: GitHub
     github_copy_subtree:
-        description: Copies a subtree from the project repo at a given ref to a target repo.
+        description: Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
         class_path: cumulusci.tasks.github.publish.PublishSubtree
         group: GitHub
         options:

@@ -1557,7 +1557,7 @@ Options
 **github_copy_subtree**
 ==========================================
 
-**Description:** Copies a subtree from the project repo at a given ref to a target repo.
+**Description:** Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
 
 **Class:** cumulusci.tasks.github.publish.PublishSubtree
 
