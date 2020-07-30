@@ -384,8 +384,10 @@ class TestMetadataSingleEntityTransformTask:
 
 
 class TestUpdateMetadataFirstChildTextTask:
-    def test_init_options(self):
-        for options, expected_value in [
+    @pytest.mark.parametrize(
+        "options,expected_value",
+        [
+            # 000
             (
                 {
                     "managed": False,
@@ -396,9 +398,10 @@ class TestUpdateMetadataFirstChildTextTask:
                 },
                 "newAttributeValue",
             ),
+            # 001
             (
                 {
-                    "managed": True,
+                    "managed": False,
                     "namespace_inject": None,
                     "entity": "CustomObject",
                     "tag": "customObjectAttribute",
@@ -406,6 +409,18 @@ class TestUpdateMetadataFirstChildTextTask:
                 },
                 "newAttributeValue",
             ),
+            # 010
+            (
+                {
+                    "managed": False,
+                    "namespace_inject": "namespace",
+                    "entity": "CustomObject",
+                    "tag": "customObjectAttribute",
+                    "value": "newAttributeValue",
+                },
+                "newAttributeValue",
+            ),
+            # 011
             (
                 {
                     "managed": False,
@@ -416,6 +431,29 @@ class TestUpdateMetadataFirstChildTextTask:
                 },
                 "newAttributeValue",
             ),
+            # 100
+            (
+                {
+                    "managed": True,
+                    "namespace_inject": None,
+                    "entity": "CustomObject",
+                    "tag": "customObjectAttribute",
+                    "value": "newAttributeValue",
+                },
+                "newAttributeValue",
+            ),
+            # 101
+            (
+                {
+                    "managed": True,
+                    "namespace_inject": None,
+                    "entity": "CustomObject",
+                    "tag": "customObjectAttribute",
+                    "value": "newAttributeValue",
+                },
+                "newAttributeValue",
+            ),
+            # 110
             (
                 {
                     "managed": True,
@@ -426,36 +464,44 @@ class TestUpdateMetadataFirstChildTextTask:
                 },
                 "newAttributeValue",
             ),
-            (
-                {
-                    "managed": False,
-                    "namespace_inject": None,
-                    "entity": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "%%%NAMESPACE%%%newAttributeValue",
-                },
-                "newAttributeValue",
-            ),
-            (
-                {
-                    "managed": True,
-                    "namespace_inject": None,
-                    "entity": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "%%%NAMESPACE%%%newAttributeValue",
-                },
-                "newAttributeValue",
-            ),
-            (
-                {
-                    "managed": False,
-                    "namespace_inject": "namespace",
-                    "entity": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "%%%NAMESPACE%%%newAttributeValue",
-                },
-                "newAttributeValue",
-            ),
+        ],
+        ids=[
+            "000: not managed, namespace_inject is None, and value has no namespace token",
+            "001: not managed and namespace_inject is None though value has a namespace token",
+            "010: not managed and value has no namespace token though namespace_inject is not None",
+            "011: not managed though namespace_inject is not None and value has a namespace token",
+            "100: namespace_inject is None and value has no namespace token though managed",
+            "101: namespace_inject is None though managed and value has a namespace token",
+            "110: value has no namespace token though managed and namespace_inject is not None",
+        ],
+    )
+    def test_init_options__namespace_not_injected_in_value(
+        self, options, expected_value
+    ):
+        """
+        Namespace is injected into value option if all three are true:
+        0) "T": value has a namespace token
+        1) "N": namespace_inject is not None
+        2) "M": managed is truthy
+
+        This tests all combinations where the namespace is not injected
+        into the value option.
+
+        Binary indices are shown below mapping:
+        210
+        |||
+        MNT
+        """
+        task = create_task(UpdateMetadataFirstChildTextTask, options)
+
+        assert expected_value == task.options["value"]
+
+        # task.entity should always be set as options["entity"]
+        assert options["entity"] == task.entity
+
+    @pytest.mark.parametrize(
+        "options,expected_value",
+        [
             (
                 {
                     "managed": True,
@@ -465,12 +511,19 @@ class TestUpdateMetadataFirstChildTextTask:
                     "value": "%%%NAMESPACE%%%newAttributeValue",
                 },
                 "namespace__newAttributeValue",
-            ),
-        ]:
-            task = create_task(UpdateMetadataFirstChildTextTask, options)
+            )
+        ],
+        ids=[
+            "value should be namespace injected: managed, namespace_inject is not None, and value has a namespace token"
+        ],
+    )
+    def test_init_options__namespace_injected_in_value(self, options, expected_value):
+        task = create_task(UpdateMetadataFirstChildTextTask, options)
 
-            assert options["entity"] == task.entity
-            assert expected_value == task.options["value"]
+        assert expected_value == task.options["value"]
+
+        # task.entity should always be set as options["entity"]
+        assert options["entity"] == task.entity
 
     def test_transform_entity__attribute_found(self):
         api_name = "Supercalifragilisticexpialidocious__c"
