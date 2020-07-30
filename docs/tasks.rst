@@ -1554,6 +1554,60 @@ Options
 
 	 Default: True
 
+**github_copy_subtree**
+==========================================
+
+**Description:** Copies a subtree from the project repo at a given ref to a target repo.
+
+**Class:** cumulusci.tasks.github.publish.PublishSubtree
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run github_copy_subtree``
+
+
+Options
+------------------------------------------
+
+
+``-o repo_url REPOURL``
+	 *Required*
+
+	 The url to the public repo
+
+``-o branch BRANCH``
+	 *Required*
+
+	 The branch to update in the target repo
+
+	 Default: master
+
+``-o version VERSION``
+	 *Required*
+
+	 The version number to release.  Also supports latest and latest_beta to look up the latest releases.
+
+``-o include INCLUDE``
+	 *Optional*
+
+	 A list of paths from repo root to include. Directories must end with a trailing slash.
+
+``-o create_release CREATERELEASE``
+	 *Optional*
+
+	 If True, create a release in the public repo.  Defaults to True
+
+``-o release_body RELEASEBODY``
+	 *Optional*
+
+	 If True, the entire release body will be published to the public repo.  Defaults to False
+
+``-o dry_run DRYRUN``
+	 *Optional*
+
+	 If True, skip creating Github data.  Defaults to False
+
 **github_pull_requests**
 ==========================================
 
