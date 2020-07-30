@@ -3567,6 +3567,60 @@ Options
 
 	 Which users to install packages for (FULL = all users, NONE = admins only)
 
+**update_metadata_first_child_text**
+==========================================
+
+**Description:** Updates the text of the first child of Metadata with matching tag.  Adds a child for tag if it does not exist.
+
+**Class:** cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run update_metadata_first_child_text``
+
+
+Options
+------------------------------------------
+
+
+``-o entity ENTITY``
+	 *Required*
+
+	 Metadata Entity
+
+``-o tag TAG``
+	 *Required*
+
+	 Targeted tag. The text of the first instance of this tag within the metadata entity will be updated.
+
+``-o value VALUE``
+	 *Required*
+
+	 Desired value to set for the targeted tag's text. This value is namespace-injected.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **update_package_xml**
 ==========================================
 
