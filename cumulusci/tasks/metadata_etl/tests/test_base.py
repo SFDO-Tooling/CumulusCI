@@ -392,7 +392,7 @@ class TestUpdateMetadataFirstChildTextTask:
                 {
                     "managed": False,
                     "namespace_inject": None,
-                    "entity": "CustomObject",
+                    "metadata_type": "CustomObject",
                     "tag": "customObjectAttribute",
                     "value": "newAttributeValue",
                 },
@@ -403,7 +403,7 @@ class TestUpdateMetadataFirstChildTextTask:
                 {
                     "managed": False,
                     "namespace_inject": None,
-                    "entity": "CustomObject",
+                    "metadata_type": "CustomObject",
                     "tag": "customObjectAttribute",
                     "value": "newAttributeValue",
                 },
@@ -414,7 +414,7 @@ class TestUpdateMetadataFirstChildTextTask:
                 {
                     "managed": False,
                     "namespace_inject": "namespace",
-                    "entity": "CustomObject",
+                    "metadata_type": "CustomObject",
                     "tag": "customObjectAttribute",
                     "value": "newAttributeValue",
                 },
@@ -425,7 +425,7 @@ class TestUpdateMetadataFirstChildTextTask:
                 {
                     "managed": False,
                     "namespace_inject": "namespace",
-                    "entity": "CustomObject",
+                    "metadata_type": "CustomObject",
                     "tag": "customObjectAttribute",
                     "value": "newAttributeValue",
                 },
@@ -436,7 +436,7 @@ class TestUpdateMetadataFirstChildTextTask:
                 {
                     "managed": True,
                     "namespace_inject": None,
-                    "entity": "CustomObject",
+                    "metadata_type": "CustomObject",
                     "tag": "customObjectAttribute",
                     "value": "newAttributeValue",
                 },
@@ -447,7 +447,7 @@ class TestUpdateMetadataFirstChildTextTask:
                 {
                     "managed": True,
                     "namespace_inject": None,
-                    "entity": "CustomObject",
+                    "metadata_type": "CustomObject",
                     "tag": "customObjectAttribute",
                     "value": "newAttributeValue",
                 },
@@ -458,7 +458,7 @@ class TestUpdateMetadataFirstChildTextTask:
                 {
                     "managed": True,
                     "namespace_inject": "namespace",
-                    "entity": "CustomObject",
+                    "metadata_type": "CustomObject",
                     "tag": "customObjectAttribute",
                     "value": "newAttributeValue",
                 },
@@ -496,8 +496,8 @@ class TestUpdateMetadataFirstChildTextTask:
 
         assert expected_value == task.options["value"]
 
-        # task.entity should always be set as options["entity"]
-        assert options["entity"] == task.entity
+        # task.entity should always be set as options["metadata_type"]
+        assert options["metadata_type"] == task.entity
 
     @pytest.mark.parametrize(
         "options,expected_value",
@@ -506,7 +506,7 @@ class TestUpdateMetadataFirstChildTextTask:
                 {
                     "managed": True,
                     "namespace_inject": "namespace",
-                    "entity": "CustomObject",
+                    "metadata_type": "CustomObject",
                     "tag": "customObjectAttribute",
                     "value": "%%%NAMESPACE%%%newAttributeValue",
                 },
@@ -522,8 +522,8 @@ class TestUpdateMetadataFirstChildTextTask:
 
         assert expected_value == task.options["value"]
 
-        # task.entity should always be set as options["entity"]
-        assert options["entity"] == task.entity
+        # task.entity should always be set as options["metadata_type"]
+        assert options["metadata_type"] == task.entity
 
     def test_transform_entity__attribute_found(self):
         api_name = "Supercalifragilisticexpialidocious__c"
@@ -541,7 +541,7 @@ class TestUpdateMetadataFirstChildTextTask:
             {
                 "managed": False,
                 "namespace_inject": None,
-                "entity": entity,
+                "metadata_type": entity,
                 "tag": tag,
                 "value": value,
             },
@@ -581,7 +581,7 @@ class TestUpdateMetadataFirstChildTextTask:
             {
                 "managed": False,
                 "namespace_inject": None,
-                "entity": entity,
+                "metadata_type": entity,
                 "tag": tag,
                 "value": value,
             },

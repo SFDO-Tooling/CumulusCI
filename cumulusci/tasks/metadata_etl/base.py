@@ -313,7 +313,7 @@ class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
     Does not support tags with complex/object-like values."""
 
     task_options = {
-        "entity": {"description": "Metadata Entity", "required": True},
+        "metadata_type": {"description": "Metadata Type", "required": True},
         "tag": {
             "description": "Targeted tag. The text of the first instance of this tag within the metadata entity will be updated.",
             "required": True,
@@ -327,7 +327,7 @@ class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.entity = self.options.get("entity")
+        self.entity = self.options.get("metadata_type")
         self.options["value"] = self._inject_namespace(self.options.get("value"))
 
     def _transform_entity(

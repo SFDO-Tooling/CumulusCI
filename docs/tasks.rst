@@ -3584,10 +3584,10 @@ Options
 ------------------------------------------
 
 
-``-o entity ENTITY``
+``-o metadata_type METADATATYPE``
 	 *Required*
 
-	 Metadata Entity
+	 Metadata Type
 
 ``-o tag TAG``
 	 *Required*
