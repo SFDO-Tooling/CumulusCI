@@ -309,8 +309,61 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
 
 
 class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
-    """Updates the metadata's first child tag's text.
-    Does not support tags with complex/object-like values."""
+    task_docs = """
+MetadataSingleEntityTransformTask to update a single child's text.  Specify:
+
+- ``metadata_type`` as the Metadata's `Metadata Type <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_types_list.htm>`_
+
+- ``tag`` as the targeted child's tag
+
+- ``value`` as the new value of the child's text
+
+
+If the child doesn't exist, the child is created and appended to the Metadata.   Furthermore, the ``value`` option is namespaced injected if the task is properly configured.
+
+Example: Assign a Custom Object's Compact Layout
+------------------------------------------------
+
+Researching `CustomObject <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/customobject.htm>`_ in the Metadata API documentation or even retrieving the CustomObject's Metadata for inspection, we see the ``compactLayoutAssignment`` Field.  We want to assign a specific Compact Layout for our Custom Object, so we write the following CumulusCI task in our project's ``cumulusci.yml``.
+
+.. code-block::  yaml
+
+  tasks:
+      assign_compact_layout:
+          class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+          options:
+              managed: False
+              namespace_inject: $project_config.project__package__namespace
+              entity: CustomObject
+              api_names: OurCustomObject__c
+              tag: compactLayoutAssignment
+              value: "%%%NAMESPACE%%%DifferentCompactLayout"
+              # We include a namespace token so it's easy to use this task in a managed context.
+
+Suppose the original CustomObject metadata XML looks like:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>OriginalCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+After running the ``cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask``, the CustomObject metadata XML is deployed as:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>DifferentCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+    """
 
     task_options = {
         "metadata_type": {"description": "Metadata Type", "required": True},
