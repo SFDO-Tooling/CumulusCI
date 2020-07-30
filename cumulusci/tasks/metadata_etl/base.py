@@ -335,13 +335,13 @@ class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
     ) -> MetadataElement:
         """Finds metadata's first child with tag.  If no child is found, appends
         a new child with tag.  Then updates child's text as the value option."""
-        tag = self.options.get("tag")
+        tag = self.options["tag"]
 
         child = metadata.find(tag)
         if child is None:
             child = metadata.append(tag)
 
-        child.text = self.options.get("value")
+        child.text = self.options["value"]
 
         self.logger.info(f'Updating {self.entity} "{api_name}":')
         self.logger.info(f'    {tag} as "{child.text}"')
