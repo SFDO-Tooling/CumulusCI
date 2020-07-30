@@ -338,7 +338,7 @@ class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
         tag = self.options.get("tag")
 
         child = metadata.find(tag)
-        if not child:
+        if child is None:
             child = metadata.append(tag)
 
         child.text = self.options.get("value")
