@@ -38,6 +38,9 @@ class GithubReleaseNotes(BaseGithubTask):
         "include_empty": {
             "description": "If True, include links to PRs that have no release notes (default=False)"
         },
+        "version_id": {
+            "description": "The package version id used by the InstallLinksParser to add install urls"
+        },
     }
 
     def _run_task(self):
@@ -61,6 +64,7 @@ class GithubReleaseNotes(BaseGithubTask):
             process_bool_arg(self.options.get("publish", False)),
             self.get_repo().has_issues,
             process_bool_arg(self.options.get("include_empty", False)),
+            version_id=self.options.get("version_id"),
         )
 
         release_notes = generator()
