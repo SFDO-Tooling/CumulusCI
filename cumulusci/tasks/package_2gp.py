@@ -432,8 +432,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     else ""
                 )
                 self.logger.info(
-                    f"Adding dependency {name}with id {dependency['version_id']}"
+                    f"Adding dependency {name} with id {dependency['version_id']}"
                 )
+                new_dependency["subscriberPackageVersionId"] = dependency["version_id"]
 
             elif dependency.get("repo_name"):
                 version_id = self._create_unlocked_package_from_github(dependency)
