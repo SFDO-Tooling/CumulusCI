@@ -494,6 +494,11 @@ Options
 
 	 Time to wait, in seconds, for the community to be created
 
+``-o skip_existing SKIPEXISTING``
+	 *Optional*
+
+	 If True, an existing community with the same name will not raise an exception.
+
 **insert_record**
 ==========================================
 
