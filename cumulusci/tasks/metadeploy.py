@@ -119,7 +119,7 @@ class Publish(BaseMetaDeployTask):
         with temporary_dir() as project_dir:
             zf.extractall(project_dir)
             project_config = BaseProjectConfig(
-                self.project_config.global_config_obj,
+                self.project_config.universal_config_obj,
                 repo_info={
                     "root": project_dir,
                     "owner": repo_owner,

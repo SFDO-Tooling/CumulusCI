@@ -1,7 +1,7 @@
 from abc import abstractmethod
 import sys
 
-from cumulusci.core.config import BaseGlobalConfig, BaseProjectConfig
+from cumulusci.core.config import UniversalConfig, BaseProjectConfig
 from cumulusci.core.exceptions import NotInProject, ProjectConfigNotFound
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
@@ -9,17 +9,17 @@ from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
 
 # pylint: disable=assignment-from-none
 class BaseCumulusCI(object):
-    global_config_class = BaseGlobalConfig
+    universal_config_class = UniversalConfig
     project_config_class = BaseProjectConfig
     keychain_class = BaseProjectKeychain
     callback_class = FlowCallback
 
     def __init__(self, *args, load_keychain=True, **kwargs):
-        self.global_config = None
+        self.universal_config = None
         self.project_config = None
         self.keychain = None
 
-        self._load_global_config()
+        self._load_universal_config()
 
         try:
             self._load_project_config(*args, **kwargs)
@@ -30,12 +30,12 @@ class BaseCumulusCI(object):
             self._load_keychain()
 
     @property
-    def global_config_cls(self):
-        klass = self.get_global_config_class()
-        return klass or self.global_config_class
+    def universal_config_cls(self):
+        klass = self.get_universal_config_class()
+        return klass or self.universal_config_class
 
     @abstractmethod
-    def get_global_config_class(self):
+    def get_universal_config_class(self):
         return None
 
     @property
@@ -68,18 +68,18 @@ class BaseCumulusCI(object):
         if self.project_config:
             sys.path.append(self.project_config.repo_root)
 
-    def _load_global_config(self):
-        self.global_config = self.global_config_cls()
+    def _load_universal_config(self):
+        self.universal_config = self.universal_config_cls()
 
     def _load_project_config(self, *args, **kwargs):
         self.project_config = self.project_config_cls(
-            self.global_config, *args, **kwargs
+            self.universal_config, *args, **kwargs
         )
 
     def _load_keychain(self):
         keychain_key = self.keychain_key if self.keychain_cls.encrypted else None
         if self.project_config is None:
-            self.keychain = self.keychain_cls(self.global_config, keychain_key)
+            self.keychain = self.keychain_cls(self.universal_config, keychain_key)
         else:
             self.keychain = self.keychain_cls(self.project_config, keychain_key)
             self.project_config.keychain = self.keychain

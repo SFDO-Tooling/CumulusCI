@@ -15,10 +15,19 @@ from cumulusci.tasks.bulkdata.utils import (
     create_table,
     fields_for_mapping,
 )
+from cumulusci.core.utils import process_bool_arg
+
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.tasks.bulkdata.step import BulkApiQueryOperation, DataOperationStatus
+from cumulusci.tasks.bulkdata.step import (
+    BulkApiQueryOperation,
+    DataOperationStatus,
+    DataOperationType,
+)
 from cumulusci.utils import os_friendly_path, log_progress
-from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
+from cumulusci.tasks.bulkdata.mapping_parser import (
+    parse_from_yaml,
+    validate_and_inject_mapping,
+)
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -36,6 +45,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "If set, an SQL script will be generated at the path provided "
             + "This is useful for keeping data in the repository and allowing diffs."
         },
+        "inject_namespaces": {
+            "description": "If True, the package namespace prefix will be automatically added to objects "
+            "and fields for which it is present in the org. Defaults to True."
+        },
+        "drop_missing_schema": {
+            "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -51,6 +67,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
             )
+
+        self.options["inject_namespaces"] = process_bool_arg(
+            self.options.get("inject_namespaces", True)
+        )
+        self.options["drop_missing_schema"] = process_bool_arg(
+            self.options.get("drop_missing_schema", False)
+        )
 
     def _run_task(self):
         self._init_mapping()
@@ -93,6 +116,15 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             raise TaskOptionsError("Mapping file path required")
 
         self.mapping = parse_from_yaml(mapping_file_path)
+
+        validate_and_inject_mapping(
+            mapping=self.mapping,
+            org_config=self.org_config,
+            namespace=self.project_config.project__package__namespace,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=self.options["inject_namespaces"],
+            drop_missing=self.options["drop_missing_schema"],
+        )
 
     def _fields_for_mapping(self, mapping):
         """Return a flat list of fields for this mapping."""

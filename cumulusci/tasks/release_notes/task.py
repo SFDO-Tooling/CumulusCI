@@ -49,7 +49,7 @@ class GithubReleaseNotes(BaseGithubTask):
             "github_repo": self.project_config.repo_name,
             "github_username": self.github_config.username,
             "github_password": self.github_config.password,
-            "master_branch": self.project_config.project__git__default_branch,
+            "default_branch": self.project_config.project__git__default_branch,
             "prefix_beta": self.project_config.project__git__prefix_beta,
             "prefix_prod": self.project_config.project__git__prefix_release,
         }

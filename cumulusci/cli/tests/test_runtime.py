@@ -29,7 +29,7 @@ class TestCliRuntime(unittest.TestCase):
         config = CliRuntime()
 
         for key in {"cumulusci", "tasks", "flows", "services", "orgs", "project"}:
-            self.assertIn(key, config.global_config.config)
+            self.assertIn(key, config.universal_config.config)
         self.assertEqual("CumulusCI", config.project_config.project__name)
         for key in {"services", "orgs", "app"}:
             self.assertIn(key, config.keychain.config)

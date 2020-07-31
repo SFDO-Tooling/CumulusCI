@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
@@ -19,11 +19,11 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 class TestSalesforceToolingTask(unittest.TestCase):
     def setUp(self):
         self.api_version = 36.0
-        self.global_config = BaseGlobalConfig(
+        self.universal_config = UniversalConfig(
             {"project": {"package": {"api_version": self.api_version}}}
         )
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
