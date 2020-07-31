@@ -310,14 +310,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
 
 class UpdateMetadataFirstChildTextTask(MetadataSingleEntityTransformTask):
     task_docs = """
-MetadataSingleEntityTransformTask to update a single child's text.  Specify:
-
-- ``metadata_type`` as the Metadata's `Metadata Type <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_types_list.htm>`_
-
-- ``tag`` as the targeted child's tag
-
-- ``value`` as the new value of the child's text
-
+Metadata ETL task to update a single child element's text within metadata XML.
 
 If the child doesn't exist, the child is created and appended to the Metadata.   Furthermore, the ``value`` option is namespaced injected if the task is properly configured.
 
