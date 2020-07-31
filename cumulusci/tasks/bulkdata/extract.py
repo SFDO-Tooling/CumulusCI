@@ -125,6 +125,7 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
             data_operation=DataOperationType.QUERY,
             inject_namespaces=self.options["inject_namespaces"],
             drop_missing=self.options["drop_missing_schema"],
+            org_has_person_accounts_enabled=self._org_has_person_accounts_enabled(),
         )
 
     def _fields_for_mapping(self, mapping):
@@ -286,13 +287,6 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
         model_name = f"{mapping['table']}Model"
         mapper_kwargs = {}
         self.models[mapping["table"]] = type(model_name, (object,), {})
-
-        # Track IsPersonAccount for Account and Contact tables if person accounts is enabled.
-        # IsPersonAccount field should never exist in a mapping because the field is not creatable.
-        if (
-            mapping["sf_object"] in ("Account", "Contact")
-        ) and self._org_has_person_accounts_enabled():
-            mapping["fields"]["IsPersonAccount"] = "IsPersonAccount"
 
         t = create_table(mapping, self.metadata)
 
