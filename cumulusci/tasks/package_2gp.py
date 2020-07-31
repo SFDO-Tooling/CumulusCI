@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 from typing import Optional
 import base64
 import enum
@@ -38,6 +39,7 @@ class PackageConfig(BaseModel):
     branch: str = None
     version_name: str
     version_type: VersionTypeEnum = VersionTypeEnum.minor
+    ancestor = Optional[str]
 
 
 class CreatePackageVersion(BaseSalesforceApiTask):
@@ -70,13 +72,19 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         "force_upload": {
             "description": "If true, force reuploading a package even if a package with the same metadata already exists",
         },
+        "ancestor": {
+            "description": "The ancenstor package version.  Can be in the format 'M.n.p.b', 'latest', or a 04t "
+            "package version id.  Defaults to 'latest' for managed packages which will automatically query the "
+            "DevHub for the latest released version"
+        },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
         self.package_config = PackageConfig(
-            name=self.options.get("name") or self.project_config.project__package__name,
+            name=self.options.get("package_name")
+            or self.project_config.project__package__name,
             package_type=self.options.get("package_type")
             or self.project_config.project__package__type,
             namespace=self.options.get("namespace")
@@ -92,6 +100,54 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             self.options.get("force_upload", False)
         )
 
+    def _process_ancestor(self, package_config, ancestor):
+        if package_config.package_type == "Unlocked" and ancestor is not None:
+            raise TaskOptionsError(
+                "The ancestor option cannot be specified for Unlocked packages"
+            )
+        if isinstance(ancestor, str):
+            if ancestor == "latest":
+                query = (
+                    "SELECT Id, MajorVersion, MinorVersion PatchVersion, BuildNumber "
+                    "FROM Package2Version WHERE IsReleased = TRUE and "
+                    f"Package2Id = '{self.package_id}' ORDER BY MajorVersion DESC, "
+                    "MinorVersion DESC, PatchVersion DESC, BuildNumber DESC"
+                    "LIMIT 1"
+                )
+            elif ancestor.lower().startswith("04t"):
+                query = (
+                    "SELECT Id, IsReleased, MajorVersion, MinorVersion PatchVersion, BuildNumber "
+                    f"FROM Package2Version WHERE IsReleased = TRUE and Package2Id = '{ancestor}' "
+                    "LIMIT 1"
+                )
+            else:
+                version_number = LooseVersion(ancestor)
+                if len(version_number.version) != 4:
+                    raise TaskOptionsError(
+                        "Ancestor version numbers must be in the format major.minor.patch.build"
+                    )
+                major, minor, patch, build = version_number.version
+                query = (
+                    "SELECT Id, IsReleased, MajorVersion, MinorVersion PatchVersion, BuildNumber "
+                    f"FROM Package2Version WHERE IsReleased = TRUE and MajorVersion = {major} AND "
+                    f"MinorVersion = {minor} AND PatchVersion = {patch} AND BuildNumber = {build} "
+                    "LIMIT 1"
+                )
+            res = self.tooling.query(query)
+            if res["count"] == 0 and ancestor != "latest":
+                raise TaskOptionsError("Unable to find ancestor version for {ancestor}")
+            elif res["count"] == 0:
+                ancestor = None
+            else:
+                record = res["records"][0]["Id"]
+                self.logger.info(
+                    f"Setting ancestor to {record['Id']} ({record['MajorVersion']}."
+                    f"{record['MinorVersion']}.{record['PatchVersion']}.{record['BuildNumber']})"
+                )
+
+        package_config.ancestor = ancestor
+        return package_config
+
     def _run_task(self):
         """Creates a new 2GP package version.
 
@@ -104,6 +160,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.package_id = self._get_or_create_package(self.package_config)
         self.return_values["package_id"] = self.package_id
 
+        # Process the ancestor option for the package
+        self.package_config = self._process_ancestor(
+            self.package_config, self.options.get("ancestor")
+        )
+
         # submit request to create package version
         package_zip_builder = MetadataPackageZipBuilder(
             path=self.project_config.default_package_path,
@@ -111,7 +172,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             logger=self.logger,
         )
         self.request_id = self._create_version_request(
-            self.package_id, self.package_config, package_zip_builder
+            self.package_id,
+            self.package_config,
+            package_zip_builder,
+            self.options["skip_validation"],
         )
         self.return_values["request_id"] = self.request_id
 
@@ -157,7 +221,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         with matching name, type, and namespace.
         """
         message = f"Checking for existing {package_config.package_type} Package named {package_config.name}"
-        query = f"SELECT Id FROM Package2 WHERE IsDeprecated = FALSE AND ContainerOptions='{package_config.package_type}' AND Name='{package_config.name}'"
+        query = f"SELECT Id, ContainerOptions FROM Package2 WHERE IsDeprecated = FALSE AND Name='{package_config.name}'"
         if package_config.namespace:
             query += f" AND NamespacePrefix='{package_config.namespace}'"
             message += f" with namespace {package_config.namespace}"
@@ -177,9 +241,15 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 f"Found {res['size']} packages with the same name, namespace, and package_type"
             )
         if res["size"] == 1:
-            package_id = res["records"][0]["Id"]
-            self.logger.info(f"Found {package_id}")
-            return package_id
+            existing_package = res["records"][0]
+            if existing_package["ContainerOptions"] != package_config.package_type:
+                raise PackageUploadFailure(
+                    f"Duplicate Package: {existing_package['ContainerOptions']} package with id "
+                    f"{ existing_package['Id']} has the same name ({package_config.name}) "
+                    "for this namespace but has a different package type"
+                )
+            self.logger.info(f"Found {existing_package['Id']}")
+            return existing_package["Id"]
 
         self.logger.info("No existing package found, creating the package")
         Package2 = self._get_tooling_object("Package2")
@@ -193,7 +263,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         return package["id"]
 
-    def _create_version_request(self, package_id, package_config, package_zip_builder):
+    def _create_version_request(
+        self, package_id, package_config, package_zip_builder, skip_validation
+    ):
         # Prepare the VersionInfo file
         version_bytes = io.BytesIO()
         version_info = zipfile.ZipFile(version_bytes, "w", zipfile.ZIP_DEFLATED)
@@ -256,7 +328,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         request = {
             "Branch": package_config.branch,
             "Package2Id": package_id,
-            "SkipValidation": self.options["skip_validation"],
+            "SkipValidation": skip_validation,
             "Tag": f"hash:{package_hash}",
             "VersionInfo": version_info,
         }
@@ -265,6 +337,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             f"for package {package_config.name} ({package_id})"
         )
         response = Package2CreateVersionRequest.create(request)
+        self.logger.info(
+            f"Package2VersionCreateRequest created with id {response['id']}"
+        )
         return response["id"]
 
     def _get_highest_version_parts(self, package_id):
@@ -478,7 +553,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         package_id = self._get_or_create_package(package_config)
         self.request_id = self._create_version_request(
-            package_id, package_config, package_zip_builder
+            package_id, package_config, package_zip_builder, False
         )
 
         self._poll()
@@ -509,7 +584,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         package_id = self._get_or_create_package(package_config)
         self.request_id = self._create_version_request(
-            package_id, package_config, package_zip_builder
+            package_id, package_config, package_zip_builder, False
         )
         self._poll()
         self._reset_poll()
