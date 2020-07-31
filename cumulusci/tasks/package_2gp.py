@@ -67,6 +67,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "description": "If true, skip validation of the package version. Default: false. "
             "Skipping validation creates packages more quickly, but they cannot be promoted for release."
         },
+        "force_upload": {
+            "description": "If true, force creating a new package version even if one with the same contents already exists"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -84,6 +87,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         self.options["skip_validation"] = process_bool_arg(
             self.options.get("skip_validation", False)
+        )
+        self.options["force_upload"] = process_bool_arg(
+            self.options.get("force_upload", False)
         )
 
     def _run_task(self):
@@ -197,20 +203,21 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             package_hash = package_zip_builder.as_hash()
             version_info.writestr("package.zip", package_zip_builder.as_bytes())
 
-            # Check for an existing package with the same contents
-            res = self.tooling.query(
-                "SELECT Id "
-                "FROM Package2VersionCreateRequest "
-                f"WHERE Package2Id = '{package_id}' "
-                "AND Status != 'Error' "
-                f"AND Tag = 'hash:{package_hash}'"
-                # @@@ order by created
-            )
-            if res["size"] > 0:
-                self.logger.info(
-                    "Found existing request for package with the same metadata.  Using existing package."
+            if not self.options["force_upload"]:
+                # Check for an existing package with the same contents
+                res = self.tooling.query(
+                    "SELECT Id "
+                    "FROM Package2VersionCreateRequest "
+                    f"WHERE Package2Id = '{package_id}' "
+                    "AND Status != 'Error' "
+                    f"AND Tag = 'hash:{package_hash}'"
+                    # @@@ order by created
                 )
-                return res["records"][0]["Id"]
+                if res["size"] > 0:
+                    self.logger.info(
+                        "Found existing request for package with the same metadata.  Using existing package."
+                    )
+                    return res["records"][0]["Id"]
 
             # Create the package2-descriptor.json contents and write to version_info
             # @@@ we should support releasing a successor to an older version by specifying a base version
