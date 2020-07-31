@@ -50,7 +50,7 @@ If you run the `cci project info` command from inside a git repository that has 
         uninstall_class: None
         api_version: 33.0
     git:
-        default_branch: master
+        default_branch: main
         prefix_feature: feature/
         prefix_beta: beta/
         prefix_release: release/

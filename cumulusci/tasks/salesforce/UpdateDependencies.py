@@ -1,7 +1,6 @@
 from distutils.version import LooseVersion
 
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
@@ -92,9 +91,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
-        if self.options["include_beta"] and not isinstance(
-            self.org_config, ScratchOrgConfig
-        ):
+        if self.options["include_beta"] and not self.org_config.scratch:
             raise TaskOptionsError(
                 "Target org must be a scratch org when `include_beta` is true."
             )

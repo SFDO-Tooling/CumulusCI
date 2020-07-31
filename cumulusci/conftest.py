@@ -60,7 +60,7 @@ def fallback_orgconfig():
     def fallback_orgconfig():
         return DummyOrgConfig(
             {
-                "instance_url": "https://podname.salesforce.com",
+                "instance_url": "https://orgname.salesforce.com",
                 "access_token": "pytest_sf_orgconnect_abc123",
                 "id": "ORGID/ORGID",
             },

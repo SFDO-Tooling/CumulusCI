@@ -9,7 +9,7 @@ import pytest
 import responses
 import yaml
 
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
@@ -61,7 +61,7 @@ def repo_root():
 @pytest.fixture
 def project_config(repo_root):
     project_config = BaseProjectConfig(
-        BaseGlobalConfig(), repo_info={"root": repo_root, "branch": "main"}
+        UniversalConfig(), repo_info={"root": repo_root, "branch": "main"}
     )
 
     project_config.keychain = BaseProjectKeychain(project_config, key=None)

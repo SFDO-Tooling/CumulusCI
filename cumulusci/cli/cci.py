@@ -32,7 +32,7 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.github import create_gist, get_github_api
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import CumulusCIException
@@ -49,6 +49,7 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
+from cumulusci.utils.git import current_branch
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 
@@ -59,7 +60,7 @@ from .logger import init_logger, get_tempfile_logger
 def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
 
-    config_dir = BaseGlobalConfig.default_cumulusci_dir()
+    config_dir = UniversalConfig.default_cumulusci_dir()
     timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
 
     try:
@@ -204,7 +205,7 @@ def main(args=None):
         debug = "--debug" in args
         if debug:
             args.remove("--debug")
-        should_show_stacktraces = RUNTIME.global_config.cli__show_stacktraces
+        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
 
         # Only create logfiles for commands
         # that are not `cci error`
@@ -463,7 +464,7 @@ def project_init(runtime):
     click.echo()
     context["api_version"] = click.prompt(
         click.style("Salesforce API Version", bold=True),
-        default=runtime.global_config.project__package__api_version,
+        default=runtime.universal_config.project__package__api_version,
     )
 
     click.echo()
@@ -514,15 +515,16 @@ def project_init(runtime):
     click.echo()
     click.echo(click.style("# Git Configuration", bold=True, fg="blue"))
     click.echo(
-        "CumulusCI assumes your default branch is master, your feature branches are named feature/*, your beta release tags are named beta/*, and your release tags are release/*.  If you want to use a different branch/tag naming scheme, you can configure the overrides here.  Otherwise, just accept the defaults."
+        "CumulusCI assumes the current git branch is your default branch, your feature branches are named feature/*, your beta release tags are named beta/*, and your release tags are release/*.  If you want to use a different branch/tag naming scheme, you can configure the overrides here.  Otherwise, just accept the defaults."
     )
 
+    default_main_branch = current_branch(os.getcwd()) or "main"
     git_default_branch = click.prompt(
-        click.style("Default Branch", bold=True), default="master"
+        click.style("Default Branch", bold=True), default=default_main_branch
     )
     if (
         git_default_branch
-        and git_default_branch != runtime.global_config.project__git__default_branch
+        and git_default_branch != runtime.universal_config.project__git__default_branch
     ):
         git_config["default_branch"] = git_default_branch
 
@@ -531,7 +533,7 @@ def project_init(runtime):
     )
     if (
         git_prefix_feature
-        and git_prefix_feature != runtime.global_config.project__git__prefix_feature
+        and git_prefix_feature != runtime.universal_config.project__git__prefix_feature
     ):
         git_config["prefix_feature"] = git_prefix_feature
 
@@ -540,7 +542,7 @@ def project_init(runtime):
     )
     if (
         git_prefix_beta
-        and git_prefix_beta != runtime.global_config.project__git__prefix_beta
+        and git_prefix_beta != runtime.universal_config.project__git__prefix_beta
     ):
         git_config["prefix_beta"] = git_prefix_beta
 
@@ -549,7 +551,7 @@ def project_init(runtime):
     )
     if (
         git_prefix_release
-        and git_prefix_release != runtime.global_config.project__git__prefix_release
+        and git_prefix_release != runtime.universal_config.project__git__prefix_release
     ):
         git_config["prefix_release"] = git_prefix_release
 
@@ -564,11 +566,11 @@ def project_init(runtime):
 
     test_name_match = click.prompt(
         click.style("Test Name Match", bold=True),
-        default=runtime.global_config.project__test__name_match,
+        default=runtime.universal_config.project__test__name_match,
     )
     if (
         test_name_match
-        and test_name_match == runtime.global_config.project__test__name_match
+        and test_name_match == runtime.universal_config.project__test__name_match
     ):
         test_name_match = None
     context["test_name_match"] = test_name_match
@@ -728,10 +730,10 @@ def service_list(runtime, plain, print_json):
     services = (
         runtime.project_config.services
         if runtime.project_config is not None
-        else runtime.global_config.services
+        else runtime.universal_config.services
     )
     configured_services = runtime.keychain.list_services()
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
 
     data = [["Name", "Description", "Configured"]]
     for serv, schema in services.items():
@@ -758,7 +760,7 @@ class ConnectServiceCommand(click.MultiCommand):
         return (
             runtime.project_config.services
             if runtime.project_config
-            else runtime.global_config.services
+            else runtime.universal_config.services
         )
 
     def list_commands(self, ctx):
@@ -822,7 +824,7 @@ def service_connect():
 @pass_runtime(require_project=False, require_keychain=True)
 def service_info(runtime, service_name, plain):
     try:
-        plain = plain or runtime.global_config.cli__plain_output
+        plain = plain or runtime.universal_config.cli__plain_output
         service_config = runtime.keychain.get_service(service_name)
         service_data = [["Key", "Value"]]
         service_data.extend(
@@ -858,7 +860,7 @@ def org_browser(runtime, org_name):
 
     webbrowser.open(org_config.start_url)
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 @org.command(
@@ -903,7 +905,8 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
         scope="web full refresh_token",
     )
     oauth_dict = oauth_capture()
-    org_config = OrgConfig(oauth_dict, org_name)
+    global_org = global_org or runtime.project_config is None
+    org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
     org_config.load_userinfo()
     org_config._load_orginfo()
     if org_config.organization_sobject["TrialExpirationDate"] is None:
@@ -913,8 +916,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
             org_config.organization_sobject["TrialExpirationDate"]
         ).date()
 
-    global_org = global_org or runtime.project_config is None
-    runtime.keychain.set_org(org_config, global_org)
+    org_config.save()
 
     if default:
         runtime.keychain.set_default_org(org_name)
@@ -944,14 +946,16 @@ def org_default(runtime, org_name, unset):
 @pass_runtime(require_keychain=True)
 def org_import(runtime, username_or_alias, org_name):
     org_config = {"username": username_or_alias}
-    scratch_org_config = ScratchOrgConfig(org_config, org_name)
+    scratch_org_config = ScratchOrgConfig(
+        org_config, org_name, runtime.keychain, global_org=False
+    )
     scratch_org_config.config["created"] = True
 
     info = scratch_org_config.scratch_info
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 
-    runtime.keychain.set_org(scratch_org_config)
+    scratch_org_config.save()
     click.echo(
         "Imported scratch org: {org_id}, username: {username}".format(
             **scratch_org_config.scratch_info
@@ -1025,14 +1029,14 @@ def org_info(runtime, org_name, print_json):
             click.echo("Org expires on {:%c}".format(org_config.expires))
 
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 @org.command(name="list", help="Lists the connected orgs for the current project")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_runtime(require_project=False, require_keychain=True)
 def org_list(runtime, plain):
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
     header = ["Name", "Default", "Username", "Expires"]
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
@@ -1226,7 +1230,7 @@ def org_scratch_delete(runtime, org_name):
 
     org_config.delete_org()
 
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 org_shell_cci_help_message = """
@@ -1296,7 +1300,7 @@ def org_shell(runtime, org_name, script=None, python=None):
         )
 
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 # Commands for group: task
@@ -1311,9 +1315,9 @@ def task_list(runtime, plain, print_json):
     tasks = (
         runtime.project_config.list_tasks()
         if runtime.project_config is not None
-        else runtime.global_config.list_tasks()
+        else runtime.universal_config.list_tasks()
     )
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
 
     if print_json:
         click.echo(json.dumps(tasks))
@@ -1341,7 +1345,7 @@ def task_list(runtime, plain, print_json):
 @task.command(name="doc", help="Exports RST format documentation for all tasks")
 @pass_runtime(require_project=False)
 def task_doc(runtime):
-    config_src = runtime.global_config
+    config_src = runtime.universal_config
 
     click.echo("==========================================")
     click.echo("Tasks Reference")
@@ -1362,7 +1366,7 @@ def task_info(runtime, task_name):
     task_config = (
         runtime.project_config.get_task(task_name)
         if runtime.project_config is not None
-        else runtime.global_config.get_task(task_name)
+        else runtime.universal_config.get_task(task_name)
     )
 
     doc = doc_task(task_name, task_config).encode()
@@ -1453,11 +1457,11 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False)
 def flow_list(runtime, plain, print_json):
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
     flows = (
         runtime.project_config.list_flows()
         if runtime.project_config is not None
-        else runtime.global_config.list_flows()
+        else runtime.universal_config.list_flows()
     )
 
     if print_json:
