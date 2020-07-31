@@ -345,7 +345,7 @@ Suppose the original CustomObject metadata XML looks like:
       ...
   </CustomObject>
 
-After running the ``cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask``, the CustomObject metadata XML is deployed as:
+After running ``cci task run assign_compact_layout``, the CustomObject metadata XML is deployed as:
 
 .. code-block:: xml
 
