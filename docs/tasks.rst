@@ -231,6 +231,111 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+**assign_compact_layout**
+==========================================
+
+**Description:** Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option.
+
+**Class:** cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+
+Metadata ETL task to update a single child element's text within metadata XML.
+
+If the child doesn't exist, the child is created and appended to the Metadata.   Furthermore, the ``value`` option is namespaced injected if the task is properly configured.
+
+Example: Assign a Custom Object's Compact Layout
+------------------------------------------------
+
+Researching `CustomObject <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/customobject.htm>`_ in the Metadata API documentation or even retrieving the CustomObject's Metadata for inspection, we see the ``compactLayoutAssignment`` Field.  We want to assign a specific Compact Layout for our Custom Object, so we write the following CumulusCI task in our project's ``cumulusci.yml``.
+
+.. code-block::  yaml
+
+  tasks:
+      assign_compact_layout:
+          class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+          options:
+              managed: False
+              namespace_inject: $project_config.project__package__namespace
+              entity: CustomObject
+              api_names: OurCustomObject__c
+              tag: compactLayoutAssignment
+              value: "%%%NAMESPACE%%%DifferentCompactLayout"
+              # We include a namespace token so it's easy to use this task in a managed context.
+
+Suppose the original CustomObject metadata XML looks like:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>OriginalCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+After running ``cci task run assign_compact_layout``, the CustomObject metadata XML is deployed as:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>DifferentCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run assign_compact_layout``
+
+
+Options
+------------------------------------------
+
+
+``-o metadata_type METADATATYPE``
+	 *Required*
+
+	 Metadata Type
+
+	 Default: CustomObject
+
+``-o tag TAG``
+	 *Required*
+
+	 Targeted tag. The text of the first instance of this tag within the metadata entity will be updated.
+
+	 Default: compactLayoutAssignment
+
+``-o value VALUE``
+	 *Required*
+
+	 Desired value to set for the targeted tag's text. This value is namespace-injected.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **batch_apex_wait**
 ==========================================
 
@@ -1651,6 +1756,11 @@ Options
 	 *Optional*
 
 	 If True, include links to PRs that have no release notes (default=False)
+
+``-o version_id VERSIONID``
+	 *Optional*
+
+	 The package version id used by the InstallLinksParser to add install urls
 
 **github_release_report**
 ==========================================
@@ -3579,14 +3689,7 @@ Options
 
 **Class:** cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
 
-MetadataSingleEntityTransformTask to update a single child's text.  Specify:
-
-- ``metadata_type`` as the Metadata's `Metadata Type <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_types_list.htm>`_
-
-- ``tag`` as the targeted child's tag
-
-- ``value`` as the new value of the child's text
-
+Metadata ETL task to update a single child element's text within metadata XML.
 
 If the child doesn't exist, the child is created and appended to the Metadata.   Furthermore, the ``value`` option is namespaced injected if the task is properly configured.
 
@@ -3621,7 +3724,7 @@ Suppose the original CustomObject metadata XML looks like:
       ...
   </CustomObject>
 
-After running the ``cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask``, the CustomObject metadata XML is deployed as:
+After running ``cci task run assign_compact_layout``, the CustomObject metadata XML is deployed as:
 
 .. code-block:: xml
 
