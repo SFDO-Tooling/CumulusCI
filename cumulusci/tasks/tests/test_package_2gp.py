@@ -168,7 +168,12 @@ class TestCreatePackageVersion:
         responses.add(  # query for existing package (dependency from github)
             "GET",
             f"{self.base_url}/tooling/query/",
-            json={"size": 1, "records": [{"Id": "0Ho000000000001AAA"}]},
+            json={
+                "size": 1,
+                "records": [
+                    {"Id": "0Ho000000000001AAA", "ContainerOptions": "Unlocked"}
+                ],
+            },
         )
         responses.add(  # query for existing package version (dependency from github)
             "GET",
@@ -208,7 +213,12 @@ class TestCreatePackageVersion:
         responses.add(  # query for existing package (unpackaged/pre)
             "GET",
             f"{self.base_url}/tooling/query/",
-            json={"size": 1, "records": [{"Id": "0Ho000000000004AAA"}]},
+            json={
+                "size": 1,
+                "records": [
+                    {"Id": "0Ho000000000004AAA", "ContainerOptions": "Unlocked"}
+                ],
+            },
         )
         responses.add(  # query for existing package version (unpackaged/pre)
             "GET",
@@ -296,7 +306,12 @@ class TestCreatePackageVersion:
         responses.add(  # query to find existing package
             "GET",
             f"{self.base_url}/tooling/query/",
-            json={"size": 1, "records": [{"Id": "0Ho6g000000fy4ZCAQ"}]},
+            json={
+                "size": 1,
+                "records": [
+                    {"Id": "0Ho6g000000fy4ZCAQ", "ContainerOptions": "Unlocked"}
+                ],
+            },
         )
 
         task = CreatePackageVersion(
@@ -315,6 +330,38 @@ class TestCreatePackageVersion:
         task._init_task()
         result = task._get_or_create_package(task.package_config)
         assert result == "0Ho6g000000fy4ZCAQ"
+
+    @responses.activate
+    def test_get_or_create_package__exists_but_wrong_type(
+        self, project_config, org_config
+    ):
+        responses.add(  # query to find existing package
+            "GET",
+            f"{self.base_url}/tooling/query/",
+            json={
+                "size": 1,
+                "records": [
+                    {"Id": "0Ho6g000000fy4ZCAQ", "ContainerOptions": "Managed"}
+                ],
+            },
+        )
+
+        task = CreatePackageVersion(
+            project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "package_type": "Unlocked",
+                        "package_name": "Test Package",
+                        "namespace": "ns",
+                    }
+                }
+            ),
+            org_config,
+        )
+        task._init_task()
+        with pytest.raises(PackageUploadFailure):
+            task._get_or_create_package(task.package_config)
 
     @responses.activate
     def test_get_or_create_package__devhub_disabled(self, task):

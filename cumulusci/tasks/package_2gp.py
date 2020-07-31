@@ -162,7 +162,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         with matching name, type, and namespace.
         """
         message = f"Checking for existing {package_config.package_type} Package named {package_config.package_name}"
-        query = f"SELECT Id FROM Package2 WHERE IsDeprecated = FALSE AND ContainerOptions='{package_config.package_type}' AND Name='{package_config.package_name}'"
+        query = (
+            f"SELECT Id, ContainerOptions FROM Package2 WHERE IsDeprecated = FALSE "
+            f"AND ContainerOptions='{package_config.package_type}' "
+            "AND Name='{package_config.package_name}'"
+        )
         if package_config.namespace:
             query += f" AND NamespacePrefix='{package_config.namespace}'"
             message += f" with namespace {package_config.namespace}"
@@ -177,12 +181,20 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     "This org does not have a Dev Hub with 2nd-generation packaging enabled. "
                     "Make sure you are using the correct org and/or check the Dev Hub settings in Setup."
                 )
+            raise  # pragma: no cover
         if res["size"] > 1:
             raise TaskOptionsError(
                 f"Found {res['size']} packages with the same name, namespace, and package_type"
             )
         if res["size"] == 1:
-            package_id = res["records"][0]["Id"]
+            existing_package = res["records"][0]
+            if existing_package["ContainerOptions"] != package_config.package_type:
+                raise PackageUploadFailure(
+                    f"Duplicate Package: {existing_package['ContainerOptions']} package with id "
+                    f"{ existing_package['Id']} has the same name ({package_config.package_name}) "
+                    "for this namespace but has a different package type"
+                )
+            package_id = existing_package["Id"]
             self.logger.info(f"Found {package_id}")
             return package_id
 
