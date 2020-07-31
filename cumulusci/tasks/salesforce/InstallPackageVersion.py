@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 from cumulusci.core.exceptions import PackageInstallError
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
@@ -97,7 +98,11 @@ class InstallPackageVersion(BaseSalesforceApiTask, Deploy):
         self.org_config.reset_installed_packages()
 
     def _is_version_id(self, version):
-        return version and version.lower().startswith("04t")
+        return (
+            version
+            and not isinstance(version, LooseVersion)
+            and version.lower().startswith("04t")
+        )
 
     def _try(self):
         if self._is_version_id(self.options["version"]):
