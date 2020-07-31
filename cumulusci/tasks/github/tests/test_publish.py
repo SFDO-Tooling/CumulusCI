@@ -1,5 +1,6 @@
 import unittest
 from unittest import mock
+import json
 
 import pytest
 import responses
@@ -20,7 +21,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
 
         self.public_owner = "TestOwner"
-        self.public_name = "TestRepo"
+        self.public_name = "PublicRepo"
         self.public_repo_url = (
             f"https://api.github.com/repos/{self.public_owner}/{self.public_name}"
         )
@@ -37,85 +38,88 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             ),
         )
 
-    @responses.activate
     @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
     @mock.patch("cumulusci.tasks.github.publish.CommitDir")
     def test_run_task(self, commit_dir, extract_github):
-        responses.add(
-            method=responses.GET,
-            url=self.repo_api_url,
-            json=self._get_expected_repo(owner=self.repo_owner, name=self.repo_name),
-        )
-        responses.add(
-            method=responses.GET,
-            url=self.repo_api_url,
-            json=self._get_expected_repo(
-                owner=self.public_owner, name=self.public_name
-            ),
-        )
-        responses.add(
-            responses.GET,
-            self.repo_api_url + "/releases/latest",
-            json=self._get_expected_release("release/1.0"),
-        )
-        responses.add(
-            method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
-            status=201,
-            json=self._get_expected_tag_ref("release/1.0", "SHA"),
-        )
-        responses.add(
-            method=responses.GET,
-            url=self.repo_api_url + "/git/tags/SHA",
-            json=self._get_expected_tag("release/1.0", "SHA"),
-            status=201,
-        )
-        responses.add(
-            responses.GET,
-            self.repo_api_url + "/releases/tags/release/1.0",
-            json=self._get_expected_release("release/1.0"),
-        )
-        responses.add(
-            responses.GET,
-            self.public_repo_url + "/releases/tags/release/1.0",
-            status=404,
-        )
-        responses.add(
-            responses.GET,
-            self.public_repo_url + "/git/refs/tags/release/1.0",
-            status=404,
-        )
-        responses.add(
-            responses.POST,
-            self.public_repo_url + "/releases",
-            json=self._get_expected_release("release"),
-        )
-        responses.add(
-            responses.POST,
-            self.repo_api_url + "/git/tags",
-            json=self._get_expected_tag("release/1.0", "SHA0"),
-            status=201,
-        )
-        responses.add(
-            responses.POST, self.repo_api_url + "/git/refs", json={}, status=201
-        )
-        task_config = TaskConfig(
-            {
-                "options": {
-                    "branch": "master",
-                    "version": "latest",
-                    "repo_url": self.public_repo_url,
-                    "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url,
+                json=self._get_expected_repo(
+                    owner=self.repo_owner, name=self.repo_name
+                ),
+            )
+            rsps.add(
+                responses.GET,
+                self.repo_api_url + "/releases/latest",
+                json=self._get_expected_release("release/1.0"),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.public_repo_url,
+                json=self._get_expected_repo(
+                    owner=self.public_owner, name=self.public_name
+                ),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url + "/git/refs/tags/release/1.0",
+                status=200,
+                json=self._get_expected_tag_ref("release/1.0", "SHA"),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url + "/git/tags/SHA",
+                json=self._get_expected_tag("release/1.0", "SHA"),
+                status=200,
+            )
+            rsps.add(
+                responses.GET,
+                self.repo_api_url + "/releases/tags/release/1.0",
+                json=self._get_expected_release("release/1.0"),
+            )
+            rsps.add(
+                responses.GET,
+                self.public_repo_url + "/git/refs/tags/release/1.0",
+                status=404,
+            )
+            rsps.add(
+                responses.POST,
+                self.public_repo_url + "/releases",
+                json=self._get_expected_release("release"),
+            )
+            task_config = TaskConfig(
+                {
+                    "options": {
+                        "branch": "master",
+                        "version": "latest",
+                        "repo_url": self.public_repo_url,
+                        "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+                    }
                 }
-            }
-        )
-        extract_github.return_value.namelist.return_value = [
-            "tasks/foo.py",
-            "unpackaged/pre/foo/package.xml",
-            "force-app",
-        ]
-        task = PublishSubtree(self.project_config, task_config)
-        task()
+            )
+            extract_github.return_value.namelist.return_value = [
+                "tasks/foo.py",
+                "unpackaged/pre/foo/package.xml",
+                "force-app",
+            ]
+
+            task = PublishSubtree(self.project_config, task_config)
+            task()
+
+            expected_release_body = json.dumps(
+                {
+                    "tag_name": "release/1.0",
+                    "name": "1.0",
+                    "body": "",
+                    "draft": False,
+                    "prerelease": False,
+                }
+            )
+            create_release_call = rsps.calls[9]
+            assert create_release_call.request.url == self.public_repo_url + "/releases"
+            assert create_release_call.request.method == responses.POST
+            assert create_release_call.request.body == expected_release_body
 
     @responses.activate
     @mock.patch("cumulusci.core.config.project_config.BaseProjectConfig.get_latest_tag")
@@ -129,7 +133,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url,
+            url=self.public_repo_url,
             json=self._get_expected_repo(
                 owner=self.public_owner, name=self.public_name
             ),
@@ -161,7 +165,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url,
+            url=self.public_repo_url,
             json=self._get_expected_repo(
                 owner=self.public_owner, name=self.public_name
             ),
@@ -206,22 +210,27 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             json=self._get_expected_repo(owner=self.repo_owner, name=self.repo_name),
         )
         responses.add(
-            method=responses.GET,
-            url=self.repo_api_url,
-            json=self._get_expected_repo(
-                owner=self.public_owner, name=self.public_name
-            ),
-        )
-        responses.add(
             responses.GET,
             self.repo_api_url + "/releases/latest",
             json=self._get_expected_release("release/1.0"),
         )
         responses.add(
             method=responses.GET,
+            url=self.public_repo_url,
+            json=self._get_expected_repo(
+                owner=self.public_owner, name=self.public_name
+            ),
+        )
+        responses.add(
+            method=responses.GET,
             url=self.repo_api_url + "/git/refs/tags/release/1.0",
             status=201,
             json=self._get_expected_tag_ref("release/1.0", "SHA"),
+        )
+        responses.add(
+            responses.GET,
+            self.public_repo_url + "/releases/tags/release/1.0",
+            json=self._get_expected_release("release/1.0"),
         )
         responses.add(
             method=responses.GET, url=self.repo_api_url + "/git/tags/SHA", status=404
@@ -256,28 +265,28 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             json=self._get_expected_repo(owner=self.repo_owner, name=self.repo_name),
         )
         responses.add(
-            method=responses.GET,
-            url=self.repo_api_url,
-            json=self._get_expected_repo(
-                owner=self.public_owner, name=self.public_name
-            ),
-        )
-        responses.add(
             responses.GET,
             self.repo_api_url + "/releases/latest",
             json=self._get_expected_release("release/1.0"),
         )
         responses.add(
             method=responses.GET,
+            url=self.public_repo_url,
+            json=self._get_expected_repo(
+                owner=self.public_owner, name=self.public_name
+            ),
+        )
+        responses.add(
+            method=responses.GET,
             url=self.repo_api_url + "/git/refs/tags/release/1.0",
-            status=201,
+            status=200,
             json=self._get_expected_tag_ref("release/1.0", "SHA"),
         )
         responses.add(
             method=responses.GET,
             url=self.repo_api_url + "/git/tags/SHA",
             json=self._get_expected_tag("release/1.0", "SHA"),
-            status=201,
+            status=200,
         )
         responses.add(
             responses.GET, self.repo_api_url + "/releases/tags/release/1.0", status=404
@@ -312,16 +321,22 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             json=self._get_expected_repo(owner=self.repo_owner, name=self.repo_name),
         )
         responses.add(
+            responses.GET,
+            self.repo_api_url + "/releases/latest",
+            json=self._get_expected_release("release/1.0"),
+        )
+        responses.add(
             method=responses.GET,
-            url=self.repo_api_url,
+            url=self.public_repo_url,
             json=self._get_expected_repo(
                 owner=self.public_owner, name=self.public_name
             ),
         )
         responses.add(
-            responses.GET,
-            self.repo_api_url + "/releases/latest",
-            json=self._get_expected_release("release/1.0"),
+            method=responses.GET,
+            url=self.public_repo_url + "/git/refs/tags/release/1.0",
+            status=201,
+            json=self._get_expected_tag_ref("release/1.0", "SHA"),
         )
         responses.add(
             method=responses.GET,

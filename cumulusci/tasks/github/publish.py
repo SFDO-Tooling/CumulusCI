@@ -68,6 +68,7 @@ class PublishSubtree(BaseGithubTask):
             self.options["repo_url"]
         )
         self.target_repo = self._get_target_repo_api()
+        self.tag_name = self.project_config.get_tag_for_version(self.options["version"])
 
         with tempfile.TemporaryDirectory() as target:
             self._download_repo_and_extract(target)
@@ -77,10 +78,7 @@ class PublishSubtree(BaseGithubTask):
 
     def _download_repo_and_extract(self, path):
         zf = download_extract_github_from_repo(
-            self.get_repo(),
-            ref="tags/{}".format(
-                self.project_config.get_tag_for_version(self.options["version"])
-            ),
+            self.get_repo(), ref=f"tags/{self.tag_name}"
         )
         included_members = self._filter_namelist(
             includes=self.options["include"], namelist=zf.namelist()
@@ -89,7 +87,9 @@ class PublishSubtree(BaseGithubTask):
 
     def _filter_namelist(self, includes, namelist):
         dirs = tuple(name for name in includes if name.endswith("/"))
-        return list({name for name in namelist if name.startswith(dirs) or name in includes})
+        return list(
+            {name for name in namelist if name.startswith(dirs) or name in includes}
+        )
 
     def _create_commit(self, path):
         committer = CommitDir(self.target_repo, logger=self.logger)
@@ -104,40 +104,39 @@ class PublishSubtree(BaseGithubTask):
 
     def _create_release(self, path, commit):
         # Get current release info
-        tag_name = self.project_config.get_tag_for_version(self.options["version"])
         repo = self.get_repo()
         # Get the ref
         try:
-            ref = repo.ref(f"tags/{tag_name}")
+            ref = repo.ref(f"tags/{self.tag_name}")
         except github3.exceptions.NotFoundError:
-            message = f"Ref not found for tag {tag_name}"
+            message = f"Ref not found for tag {self.tag_name}"
             raise GithubException(message)
         # Get the tag
         try:
             tag = repo.tag(ref.object.sha)
         except github3.exceptions.NotFoundError:
-            message = f"Tag {tag_name} not found"
+            message = f"Tag {self.tag_name} not found"
             raise GithubException(message)
         # Get the release
         try:
-            release = repo.release_from_tag(tag_name)
+            release = repo.release_from_tag(self.tag_name)
             release_body = release.body if self.options["release_body"] else ""
         except github3.exceptions.NotFoundError:
-            message = f"Release for {tag_name} not found"
+            message = f"Release for {self.tag_name} not found"
             raise GithubException(message)
 
         # Check for tag in target repo
         try:
-            self.target_repo.ref(f"tags/{tag_name}")
+            self.target_repo.ref(f"tags/{self.tag_name}")
         except github3.exceptions.NotFoundError:
             pass
         else:
-            message = f"Ref for tag {tag_name} already exists in target repo"
+            message = f"Ref for tag {self.tag_name} already exists in target repo"
             raise GithubException(message)
 
         # Create the tag
         self.target_repo.create_tag(
-            tag=tag_name,
+            tag=self.tag_name,
             message=tag.message,
             sha=commit,
             obj_type="commit",
@@ -151,7 +150,7 @@ class PublishSubtree(BaseGithubTask):
 
         # Create the release
         self.target_repo.create_release(
-            tag_name=tag_name,
+            tag_name=self.tag_name,
             name=self.options["version"],
             prerelease=release.prerelease,
             body=release_body,

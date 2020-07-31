@@ -200,9 +200,6 @@ tasks:
         description: Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
         class_path: cumulusci.tasks.github.publish.PublishSubtree
         group: GitHub
-        options:
-            ref: latest
-            branch: master
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
