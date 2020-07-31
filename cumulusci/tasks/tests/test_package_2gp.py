@@ -90,7 +90,9 @@ def org_config():
 def task(project_config, org_config):
     task = CreatePackageVersion(
         project_config,
-        TaskConfig({"options": {"package_type": "Unlocked", "name": "Test Package"}}),
+        TaskConfig(
+            {"options": {"package_type": "Unlocked", "package_name": "Test Package"}}
+        ),
         org_config,
     )
     task._init_task()
@@ -303,7 +305,7 @@ class TestCreatePackageVersion:
                 {
                     "options": {
                         "package_type": "Unlocked",
-                        "name": "Test Package",
+                        "package_name": "Test Package",
                         "namespace": "ns",
                     }
                 }

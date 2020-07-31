@@ -14,6 +14,7 @@ from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import download_extract_github
@@ -31,11 +32,11 @@ class VersionTypeEnum(str, enum.Enum):
 
 
 class PackageConfig(BaseModel):
-    name: str
+    package_name: str
     description: str = ""
     package_type: PackageTypeEnum
     namespace: Optional[str]
-    branch: str = None
+    branch: Optional[str] = None
     version_name: str
     version_type: VersionTypeEnum = VersionTypeEnum.minor
 
@@ -76,7 +77,8 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         super()._init_options(kwargs)
 
         self.package_config = PackageConfig(
-            name=self.options.get("name") or self.project_config.project__package__name,
+            package_name=self.options.get("package_name")
+            or self.project_config.project__package__name,
             package_type=self.options.get("package_type")
             or self.project_config.project__package__type,
             namespace=self.options.get("namespace")
@@ -107,11 +109,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         # submit request to create package version
         package_zip_builder = MetadataPackageZipBuilder(
             path=self.project_config.default_package_path,
-            name=self.package_config.name,
+            name=self.package_config.package_name,
             logger=self.logger,
         )
         self.request_id = self._create_version_request(
-            self.package_id, self.package_config, package_zip_builder
+            self.package_id,
+            self.package_config,
+            package_zip_builder,
+            self.options["skip_validation"],
         )
         self.return_values["request_id"] = self.request_id
 
@@ -156,8 +161,8 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         Checks the Dev Hub for an existing, non-deprecated 2GP package
         with matching name, type, and namespace.
         """
-        message = f"Checking for existing {package_config.package_type} Package named {package_config.name}"
-        query = f"SELECT Id FROM Package2 WHERE IsDeprecated = FALSE AND ContainerOptions='{package_config.package_type}' AND Name='{package_config.name}'"
+        message = f"Checking for existing {package_config.package_type} Package named {package_config.package_name}"
+        query = f"SELECT Id FROM Package2 WHERE IsDeprecated = FALSE AND ContainerOptions='{package_config.package_type}' AND Name='{package_config.package_name}'"
         if package_config.namespace:
             query += f" AND NamespacePrefix='{package_config.namespace}'"
             message += f" with namespace {package_config.namespace}"
@@ -186,14 +191,20 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package = Package2.create(
             {
                 "ContainerOptions": package_config.package_type,
-                "Name": package_config.name,
+                "Name": package_config.package_name,
                 "Description": package_config.description,
                 "NamespacePrefix": package_config.namespace,
             }
         )
         return package["id"]
 
-    def _create_version_request(self, package_id, package_config, package_zip_builder):
+    def _create_version_request(
+        self,
+        package_id: str,
+        package_config: PackageConfig,
+        package_zip_builder: BasePackageZipBuilder,
+        skip_validation: bool = False,
+    ):
         # Prepare the VersionInfo file
         version_bytes = io.BytesIO()
         version_info = zipfile.ZipFile(version_bytes, "w", zipfile.ZIP_DEFLATED)
@@ -210,7 +221,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     "FROM Package2VersionCreateRequest "
                     f"WHERE Package2Id = '{package_id}' "
                     "AND Status != 'Error' "
-                    f"AND SkipValidation = {str(self.options['skip_validation'])} "
+                    f"AND SkipValidation = {str(skip_validation)} "
                     f"AND Tag = 'hash:{package_hash}' "
                     "ORDER BY CreatedDate DESC"
                 )
@@ -255,15 +266,18 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         request = {
             "Branch": package_config.branch,
             "Package2Id": package_id,
-            "SkipValidation": self.options["skip_validation"],
+            "SkipValidation": skip_validation,
             "Tag": f"hash:{package_hash}",
             "VersionInfo": version_info,
         }
         self.logger.info(
             f"Requesting creation of package version {version_number} "
-            f"for package {package_config.name} ({package_id})"
+            f"for package {package_config.package_name} ({package_id})"
         )
         response = Package2CreateVersionRequest.create(request)
+        self.logger.info(
+            f"Package2VersionCreateRequest created with id {response['id']}"
+        )
         return response["id"]
 
     def _get_highest_version_parts(self, package_id):
@@ -468,7 +482,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
 
         package_config = PackageConfig(
-            name="{repo_owner}/{repo_name} {subfolder}".format(**dependency),
+            package_name="{repo_owner}/{repo_name} {subfolder}".format(**dependency),
             version_name="Auto",
             package_type="Unlocked",
             # Ideally we'd do this without a namespace,
@@ -499,7 +513,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             path=path, name=package_name, logger=self.logger
         )
         package_config = PackageConfig(
-            name=package_name,
+            package_name=package_name,
             version_name="Auto",
             package_type="Unlocked",
             # Ideally we'd do this without a namespace,
