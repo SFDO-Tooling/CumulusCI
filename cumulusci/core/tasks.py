@@ -95,7 +95,7 @@ class BaseTask(object):
                     attr, extra = parts + [""] * (2 - len(parts))
                     self.options[option] = getattr(self.project_config, attr, None)
                     if extra and isinstance(self.options[option], str):
-                        self.options[option] += extra
+                        self.options[option] += " " + extra
             except AttributeError:
                 pass
 
