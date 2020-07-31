@@ -88,12 +88,8 @@ class PublishSubtree(BaseGithubTask):
         zf.extractall(path=path, members=included_members)
 
     def _filter_namelist(self, includes, namelist):
-        filtered_names = set()
         dirs = tuple(name for name in includes if name.endswith("/"))
-        filtered_names.update(
-            {name for name in namelist if name.startswith(dirs) or name in includes}
-        )
-        return list(filtered_names)
+        return list({name for name in namelist if name.startswith(dirs) or name in includes})
 
     def _create_commit(self, path):
         committer = CommitDir(self.target_repo, logger=self.logger)
@@ -115,14 +111,12 @@ class PublishSubtree(BaseGithubTask):
             ref = repo.ref(f"tags/{tag_name}")
         except github3.exceptions.NotFoundError:
             message = f"Ref not found for tag {tag_name}"
-            self.logger.error(message)
             raise GithubException(message)
         # Get the tag
         try:
             tag = repo.tag(ref.object.sha)
         except github3.exceptions.NotFoundError:
             message = f"Tag {tag_name} not found"
-            self.logger.error(message)
             raise GithubException(message)
         # Get the release
         try:
@@ -130,7 +124,6 @@ class PublishSubtree(BaseGithubTask):
             release_body = release.body if self.options["release_body"] else ""
         except github3.exceptions.NotFoundError:
             message = f"Release for {tag_name} not found"
-            self.logger.error(message)
             raise GithubException(message)
 
         # Check for tag in target repo
