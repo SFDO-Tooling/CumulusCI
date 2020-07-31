@@ -494,6 +494,11 @@ Options
 
 	 Time to wait, in seconds, for the community to be created
 
+``-o skip_existing SKIPEXISTING``
+	 *Optional*
+
+	 If True, an existing community with the same name will not raise an exception.
+
 **insert_record**
 ==========================================
 
@@ -1479,7 +1484,7 @@ Options
 **github_master_to_feature**
 ==========================================
 
-**Description:** Merges the latest commit on the master branch into all open feature branches
+**Description:** Merges the latest commit on the main branch into all open feature branches
 
 **Class:** cumulusci.tasks.github.MergeBranch
 
@@ -3792,6 +3797,9 @@ customized standard objects.
 Mappings must be serializable, and hence must resolve reference cycles - situations
 where Object A refers to B, and B also refers to A. Mapping generation will stop
 and request user input to resolve such cycles by identifying the correct load order.
+If you would rather the mapping generator break such a cycle randomly, set the
+`break_cycles` option to `auto`.
+
 Alternately, specify the `ignore` option with the name of one of the
 lookup fields to suppress it and break the cycle. `ignore` can be specified as a list in
 `cumulusci.yml` or as a comma-separated string at the command line.
@@ -3829,6 +3837,11 @@ Options
 	 *Optional*
 
 	 Object API names, or fields in Object.Field format, to ignore
+
+``-o break_cycles BREAKCYCLES``
+	 *Optional*
+
+	 If the generator is unsure of the order to load, what to do? Set to `ask` (the default) to allow the user to choose or `auto` to pick randomly.
 
 ``-o include INCLUDE``
 	 *Optional*
