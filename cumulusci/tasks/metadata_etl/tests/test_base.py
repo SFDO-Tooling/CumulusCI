@@ -384,140 +384,18 @@ class TestMetadataSingleEntityTransformTask:
 
 
 class TestUpdateMetadataFirstChildTextTask:
-    @pytest.mark.parametrize(
-        "options,expected_value",
-        [
-            # 000
-            (
-                {
-                    "managed": False,
-                    "namespace_inject": None,
-                    "metadata_type": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "newAttributeValue",
-                },
-                "newAttributeValue",
-            ),
-            # 001
-            (
-                {
-                    "managed": False,
-                    "namespace_inject": None,
-                    "metadata_type": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "newAttributeValue",
-                },
-                "newAttributeValue",
-            ),
-            # 010
-            (
-                {
-                    "managed": False,
-                    "namespace_inject": "namespace",
-                    "metadata_type": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "newAttributeValue",
-                },
-                "newAttributeValue",
-            ),
-            # 011
-            (
-                {
-                    "managed": False,
-                    "namespace_inject": "namespace",
-                    "metadata_type": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "newAttributeValue",
-                },
-                "newAttributeValue",
-            ),
-            # 100
-            (
-                {
-                    "managed": True,
-                    "namespace_inject": None,
-                    "metadata_type": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "newAttributeValue",
-                },
-                "newAttributeValue",
-            ),
-            # 101
-            (
-                {
-                    "managed": True,
-                    "namespace_inject": None,
-                    "metadata_type": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "newAttributeValue",
-                },
-                "newAttributeValue",
-            ),
-            # 110
-            (
-                {
-                    "managed": True,
-                    "namespace_inject": "namespace",
-                    "metadata_type": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "newAttributeValue",
-                },
-                "newAttributeValue",
-            ),
-        ],
-        ids=[
-            "000: not managed, namespace_inject is None, and value has no namespace token",
-            "001: not managed and namespace_inject is None though value has a namespace token",
-            "010: not managed and value has no namespace token though namespace_inject is not None",
-            "011: not managed though namespace_inject is not None and value has a namespace token",
-            "100: namespace_inject is None and value has no namespace token though managed",
-            "101: namespace_inject is None though managed and value has a namespace token",
-            "110: value has no namespace token though managed and namespace_inject is not None",
-        ],
-    )
-    def test_init_options__namespace_not_injected_in_value(
-        self, options, expected_value
-    ):
-        """
-        Namespace is injected into value option if all three are true:
-        0) "T": value has a namespace token
-        1) "N": namespace_inject is not None
-        2) "M": managed is truthy
-
-        This tests all combinations where the namespace is not injected
-        into the value option.
-
-        Binary indices are shown below mapping:
-        210
-        |||
-        MNT
-        """
-        task = create_task(UpdateMetadataFirstChildTextTask, options)
-
-        assert expected_value == task.options["value"]
-
-        # task.entity should always be set as options["metadata_type"]
-        assert options["metadata_type"] == task.entity
-
-    @pytest.mark.parametrize(
-        "options,expected_value",
-        [
-            (
-                {
-                    "managed": True,
-                    "namespace_inject": "namespace",
-                    "metadata_type": "CustomObject",
-                    "tag": "customObjectAttribute",
-                    "value": "%%%NAMESPACE%%%newAttributeValue",
-                },
-                "namespace__newAttributeValue",
-            )
-        ],
-        ids=[
-            "value should be namespace injected: managed, namespace_inject is not None, and value has a namespace token"
-        ],
-    )
     def test_init_options__namespace_injected_in_value(self, options, expected_value):
+        # TODO: remove parametrize
+        options = {
+            "managed": True,
+            "namespace_inject": "namespace",
+            "metadata_type": "CustomObject",
+            "tag": "customObjectAttribute",
+            "value": "%%%NAMESPACE%%%newAttributeValue",
+        }
+
+        expected_value = "namespace__newAttributeValue"
+
         task = create_task(UpdateMetadataFirstChildTextTask, options)
 
         assert expected_value == task.options["value"]
