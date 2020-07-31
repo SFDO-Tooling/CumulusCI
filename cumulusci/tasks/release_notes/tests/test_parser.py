@@ -119,7 +119,7 @@ class TestChangeNotesLinesParser(unittest.TestCase):
 
     def test_render_no_content(self):
         parser = ChangeNotesLinesParser(None, self.title)
-        self.assertEqual(parser.render(), None)
+        self.assertEqual(parser.render(), "")
 
     def test_render_one_content(self):
         parser = ChangeNotesLinesParser(None, self.title)
@@ -553,23 +553,24 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
 
 
 class TestInstallLinkParser:
-    def setUp(self):
-        self.title = "Title"
-
     def test_no_package_version(self):
         generator = mock.Mock(link_pr=True)
         generator.version_id = None
-        parser = InstallLinkParser(generator, self.title)
+        parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
-        assert parser.render() is None
+        assert parser.render() == ""
 
     def test_package_version(self):
         generator = mock.Mock(link_pr=True)
         generator.version_id = "foo bar"
-        parser = InstallLinkParser(generator, self.title)
+        parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
-        prod_url = parser.prod_url_template.format("foo+bar")
-        test_url = parser.test_url_template.format("foo+bar")
         output = parser.render()
-        assert prod_url in output
-        assert test_url in output
+        assert (
+            "https://login.salesforce.com/packaging/installPackage.apexp?p0=foo+bar"
+            in output
+        )
+        assert (
+            "https://test.salesforce.com/packaging/installPackage.apexp?p0=foo+bar"
+            in output
+        )

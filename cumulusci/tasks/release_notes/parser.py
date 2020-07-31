@@ -1,9 +1,10 @@
 import re
-import urllib
+import urllib.parse
 
 import github3.exceptions
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
+from cumulusci.oauth.salesforce import PROD_LOGIN_URL, SANDBOX_LOGIN_URL
 from .exceptions import GithubIssuesError
 
 
@@ -15,7 +16,7 @@ class BaseChangeNotesParser(object):
     def parse(self):
         raise NotImplementedError()
 
-    def render(self):
+    def render(self, existing_content=""):
         return "# {}\r\n\r\n{}".format(self.title, self._render())
 
     def _render(self):
@@ -111,9 +112,9 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
     def _add_link(self, line):
         return line
 
-    def render(self):
+    def render(self, existing_content=""):
         if not self.content and not self.h2:
-            return None
+            return ""
         content = []
         content.append(self._render_header())
         if self.content:
@@ -286,33 +287,23 @@ class GithubIssuesParser(IssuesParser):
             issue.create_comment("{} {}".format(comment_prefix, version_str))
 
 
-class InstallLinkParser(BaseChangeNotesParser):
-    prod_url_template = (
-        "https://login.salesforce.com/packaging/installPackage.apexp?p0={}"
-    )
-
-    test_url_template = (
-        "https://test.salesforce.com/packaging/installPackage.apexp?p0={}"
-    )
-
-    def __init__(self, release_notes_generator, title):
-        super().__init__(title)
-        self.release_notes_generator = release_notes_generator
-
+class InstallLinkParser(ChangeNotesLinesParser):
     def parse(self, change_note):
         # There's no need to parse lines, this parser gets its values from task options
-        pass
+        return False
 
-    def render(self):
-        pv_id = self.release_notes_generator.version_id
-        if pv_id is not None:
-            pv_id = urllib.parse.quote_plus(pv_id)
-            return "\n\r".join(
-                (
-                    f"# {self.title}\r\n",
+    def render(self, existing_content=""):
+        version_id = self.release_notes_generator.version_id
+        if version_id:
+            version_id = urllib.parse.quote_plus(version_id)
+            return "\r\n".join(
+                [
+                    self._render_header(),
                     "Production & Developer Edition Orgs:",
-                    "   " + self.prod_url_template.format(pv_id),
+                    f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+                    "",
                     "Sandbox & Scratch Orgs:",
-                    "   " + self.test_url_template.format(pv_id),
-                )
+                    f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+                ]
             )
+        return existing_content

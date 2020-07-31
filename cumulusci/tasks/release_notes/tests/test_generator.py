@@ -39,7 +39,7 @@ PARSER_CONFIG = [
         "class_path": "cumulusci.tasks.release_notes.parser.GithubIssuesParser",
         "title": "Issues Closed",
     },
-    {"class_path": None,},
+    {"class_path": None},
 ]
 
 
@@ -438,7 +438,7 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         return ParentPullRequestNotesGenerator(gh_api, repo, create_project_config())
 
     def test_init_parsers(self, generator):
-        assert 6 == len(generator.parsers)
+        assert 7 == len(generator.parsers)
         assert generator.parsers[-1]._in_section
 
     @responses.activate
