@@ -533,8 +533,6 @@ class TestUpdateMetadataFirstChildTextTask:
 
         metadata = fromstring(ORIGINAL_XML.encode("utf-8"))
 
-        expected_metadata = fromstring(EXPECTED_XML.encode("utf-8"))
-
         task = create_task(
             UpdateMetadataFirstChildTextTask,
             {
@@ -553,7 +551,7 @@ class TestUpdateMetadataFirstChildTextTask:
 
         assert metadata == actual
 
-        assert actual.tostring() == expected_metadata.tostring()
+        assert actual.tostring(xml_declaration=True) == EXPECTED_XML
 
         task.logger.info.assert_has_calls(
             [
