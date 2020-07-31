@@ -65,8 +65,3 @@ jobs:
         export SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
         cd CumulusCI-Test
         coverage run --append --rcfile=../.coveragerc --source=../cumulusci $(which cci) flow run release_beta --org packaging
-    - name: Create unlocked package version
-      run: |
-        export SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
-        cd CumulusCI-Test
-        cci task run create_package_version -o package_name "CumulusCI Test Feature" -o package_type Unlocked -o dependency_org packaging
