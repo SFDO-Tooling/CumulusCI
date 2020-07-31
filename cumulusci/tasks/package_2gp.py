@@ -210,8 +210,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     "FROM Package2VersionCreateRequest "
                     f"WHERE Package2Id = '{package_id}' "
                     "AND Status != 'Error' "
-                    f"AND Tag = 'hash:{package_hash}'"
-                    # @@@ order by created
+                    f"AND SkipValidation = {str(self.options['skip_validation'])} "
+                    f"AND Tag = 'hash:{package_hash}' "
+                    "ORDER BY CreatedDate DESC"
                 )
                 if res["size"] > 0:
                     self.logger.info(
