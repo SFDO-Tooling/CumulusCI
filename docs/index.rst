@@ -15,6 +15,7 @@ Contents:
    robotframework-tutorial
    robotframework-debugger
    bulk_data
+   metadata_etl
    cookbook
    cumulusci_flow
    usage
