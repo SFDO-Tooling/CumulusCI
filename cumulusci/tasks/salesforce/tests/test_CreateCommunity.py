@@ -1,24 +1,28 @@
 import json
-from unittest import mock
-import responses
 import unittest
 from datetime import datetime
-from cumulusci.tasks.salesforce import CreateCommunity
-from cumulusci.core.exceptions import SalesforceException
-from simple_salesforce.exceptions import SalesforceMalformedRequest
-from .util import create_task
+from unittest import mock
 
+import responses
+from simple_salesforce.exceptions import SalesforceMalformedRequest
+
+from cumulusci.core.exceptions import SalesforceException
+from cumulusci.tasks.salesforce import CreateCommunity
+
+from .util import create_task
 
 task_options = {
     "name": "Test Community",
     "description": "Community Details",
     "template": "VF Template",
     "url_path_prefix": "test",
+    "skip_existing": False,
 }
 task_options_no_url_path_prefix = {
     "name": "Test Community",
     "description": "Community Details",
     "template": "VF Template",
+    "skip_existing": False,
 }
 
 
@@ -115,6 +119,23 @@ class test_CreateCommunity(unittest.TestCase):
 
         with self.assertRaises(Exception):
             cc_task()
+
+    @responses.activate
+    def test_no_error_for_existing_community_when_skip_existing(self):
+        task_options["skip_existing"] = True
+        cc_task = create_task(CreateCommunity, task_options)
+        community_url = "{}/services/data/v48.0/connect/communities".format(
+            cc_task.org_config.instance_url
+        )
+
+        responses.add(
+            method=responses.GET,
+            url=community_url,
+            status=200,
+            json={"communities": [{"name": "Test Community", "id": "000000000000000"}]},
+        )
+
+        cc_task()
 
     @responses.activate
     def test_handles_community_created_between_tries(self):

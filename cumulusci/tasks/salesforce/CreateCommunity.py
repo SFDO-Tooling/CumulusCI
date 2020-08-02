@@ -3,9 +3,9 @@ from datetime import datetime
 
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
+from cumulusci.core.exceptions import CumulusCIException, SalesforceException
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import SalesforceException
 
 
 class CreateCommunity(BaseSalesforceApiTask):
@@ -36,19 +36,28 @@ class CreateCommunity(BaseSalesforceApiTask):
         "timeout": {
             "description": "Time to wait, in seconds, for the community to be created"
         },
+        "skip_existing": {
+            "description": "If True, an existing community with the "
+            "same name will not raise an exception."
+        },
     }
 
     def _init_options(self, kwargs):
         super(CreateCommunity, self)._init_options(kwargs)
         self.options["retries"] = int(self.options.get("retries", 6))
         self.options["timeout"] = int(self.options.get("timeout", 300))
+        self.options["skip_existing"] = process_bool_arg(
+            self.options.get("skip_existing", False)
+        )
 
     def _run_task(self):
         community = self._get_community()
         if community is not None:
-            raise CumulusCIException(
-                'A community named "{}" already exists.'.format(self.options["name"])
-            )
+            error_msg = f'A community named "{self.options["name"]}" already exists.'
+            if self.options["skip_existing"]:
+                self.logger.info(error_msg)
+                return
+            raise CumulusCIException(error_msg)
 
         self.logger.info('Creating community "{}"'.format(self.options["name"]))
         tries = 0

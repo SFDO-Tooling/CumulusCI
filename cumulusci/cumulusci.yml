@@ -850,6 +850,7 @@ flows:
                     publish: True
                     tag: ^^github_release.tag_name
                     include_empty: True
+                    version_id: ^^upload_beta.version_id
             4:
                 task: github_master_to_feature
 
@@ -868,6 +869,7 @@ flows:
                 options:
                     publish: True
                     tag: ^^github_release.tag_name
+                    version_id: ^^upload_production.version_id
 
     retrieve_scratch:
         description: Retrieves declarative changes made in a scratch org and converts to src directory
@@ -1010,6 +1012,9 @@ project:
                 5:
                     class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
                     title: Deleted Metadata
+                6:
+                    class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
+                    title: Installation Links
     test:
         name_match: '%_TEST%'
     dependencies:
