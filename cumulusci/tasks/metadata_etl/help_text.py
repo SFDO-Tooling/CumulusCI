@@ -13,7 +13,8 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
             "required": True,
         },
         "overwrite": {
-            "description": "List of object fields to affect, in Object__c.Field__c form."
+            "description": "If set to True, overwrite any differing Help Text found on the field. "
+            "By default, Help Text is set only if it is blank."
         },
         **MetadataSingleEntityTransformTask.task_options,
     }
@@ -26,12 +27,10 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
             self.options.get("overwrite", False)
         )
 
-        try:
-            float(self.api_version)
-        except ValueError:
-            raise TaskOptionsError(f"Invalid API version {self.api_version}")
-
-        if not isinstance(self.options.get("fields"), list) or len(self.options["fields"]) == 0:
+        if (
+            not isinstance(self.options.get("fields"), list)
+            or len(self.options["fields"]) == 0
+        ):
             raise TaskOptionsError(
                 "Please populate the fields field with a list of dictionaries containing at minimum one entry with an 'api_name' and 'help_text' keys"
             )
@@ -77,11 +76,16 @@ class SetFieldHelpText(MetadataSingleEntityTransformTask):
                 f"The field {api_name}.{custom_field} was not found."
             )
         try:
-            if self.options["overwrite"]:
+            if (
+                field.inlineHelpText.text == ""
+                or field.inlineHelpText.text == help_text
+                or self.options["overwrite"]
+            ):
                 field.inlineHelpText.text = help_text
             else:
                 self.logger.warning(
-                    f"Skipping over help text field: {field.inlineHelpText.text}. Please set the overwrite option to True to overwrite this help text field."
+                    f"Help text for field {api_name} has a different value. "
+                    "Set the overwrite option to True to overwrite this field help text."
                 )
         except AttributeError:
             field.append("inlineHelpText", text=help_text)

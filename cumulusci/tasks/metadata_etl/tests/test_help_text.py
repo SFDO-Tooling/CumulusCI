@@ -10,25 +10,11 @@ OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <fields>
         <fullName>Foo__c</fullName>
-        <defaultValue>false</defaultValue>
-        <description>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</description>
-        <externalId>false</externalId>
         <inlineHelpText>Foo</inlineHelpText>
-        <label>FERPA Approved</label>
-        <trackHistory>false</trackHistory>
-        <trackTrending>false</trackTrending>
-        <type>Checkbox</type>
     </fields>
     <fields>
         <fullName>Bar__c</fullName>
-        <defaultValue>false</defaultValue>
-        <description>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</description>
-        <externalId>false</externalId>
         <inlineHelpText>Bar</inlineHelpText>
-        <label>HIPPA Approved</label>
-        <trackHistory>false</trackHistory>
-        <trackTrending>false</trackTrending>
-        <type>Checkbox</type>
     </fields>
 </CustomObject>
 """
@@ -38,52 +24,24 @@ OBJECT_XML_2 = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <fields>
         <fullName>Foo__c</fullName>
-        <defaultValue>false</defaultValue>
-        <description>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</description>
-        <externalId>false</externalId>
         <inlineHelpText>Foo</inlineHelpText>
-        <label>FERPA Approved</label>
-        <trackHistory>false</trackHistory>
-        <trackTrending>false</trackTrending>
-        <type>Checkbox</type>
     </fields>
     <fields>
         <fullName>Bar__c</fullName>
-        <defaultValue>false</defaultValue>
-        <description>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</description>
-        <externalId>false</externalId>
-        <inlineHelpText>Indicates arrested development.</inlineHelpText>
-        <label>HIPPA Approved</label>
-        <trackHistory>false</trackHistory>
-        <trackTrending>false</trackTrending>
-        <type>Checkbox</type>
+        <inlineHelpText>Does something.</inlineHelpText>
     </fields>
 </CustomObject>
 """
 
-# Custom Object with 2 custom fields witth Buster__c missing inlineHelpText
+# Custom Object with 2 custom fields with one missing inlineHelpText
 OBJECT_XML_3 = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <fields>
         <fullName>Foo__c</fullName>
-        <defaultValue>false</defaultValue>
-        <description>Indicates that the Contact is allowed to receive information protected by FERPA and other privacy laws, regulations, and policies.</description>
-        <externalId>false</externalId>
-        <label>FERPA Approved</label>
-        <trackHistory>false</trackHistory>
-        <trackTrending>false</trackTrending>
-        <type>Checkbox</type>
     </fields>
     <fields>
         <fullName>Bar__c</fullName>
-        <defaultValue>false</defaultValue>
-        <description>Indicates that the Contact is allowed to receive information protected by HIPPA and other privacy laws, regulations, and policies.</description>
-        <externalId>false</externalId>
-        <inlineHelpText>Indicates arrested development.</inlineHelpText>
-        <label>HIPPA Approved</label>
-        <trackHistory>false</trackHistory>
-        <trackTrending>false</trackTrending>
-        <type>Checkbox</type>
+        <inlineHelpText>Does something.</inlineHelpText>
     </fields>
 </CustomObject>
 """
@@ -163,6 +121,40 @@ class TestAddPicklistValues:
         test_elem = result.find("fields", fullName="Bar__c")
         assert test_elem is not None
         assert test_elem.inlineHelpText.text == "Bar"
+
+    def test_add_single_object_help_text__same_value(self):
+        task = create_task(
+            SetFieldHelpText,
+            {
+                "api_version": "47.0",
+                "overwrite": True,
+                "fields": [{"api_name": "MyObject.Foo__c", "help_text": "foo"}],
+            },
+        )
+
+        tree = metadata_tree.fromstring(OBJECT_XML)
+        test_elem = tree.find("fields", fullName="Foo__c")
+        test_elem.inlineHelpText.text = "foo"
+        assert task._transform_entity(tree, "MyObject") is tree
+
+        assert test_elem.inlineHelpText.text == "foo"
+
+    def test_add_single_object_help_text__blank_value(self):
+        task = create_task(
+            SetFieldHelpText,
+            {
+                "api_version": "47.0",
+                "overwrite": True,
+                "fields": [{"api_name": "MyObject.Foo__c", "help_text": "foo"}],
+            },
+        )
+
+        tree = metadata_tree.fromstring(OBJECT_XML)
+        test_elem = tree.find("fields", fullName="Foo__c")
+        test_elem.inlineHelpText.text = ""
+        assert task._transform_entity(tree, "MyObject") is tree
+
+        assert test_elem.inlineHelpText.text == "foo"
 
     def test_add_multi_object_help_text(self):
         task = create_task(
@@ -312,21 +304,7 @@ class TestAddPicklistValues:
             tree = metadata_tree.fromstring(OBJECT_XML)
             task._transform_entity(tree, "MyObject")
 
-    def test_raises_invalid_api_value(self):
-        with pytest.raises(TaskOptionsError):
-            task = create_task(
-                SetFieldHelpText,
-                {
-                    "api_version": "buster_bluth",
-                    "fields": [{"api": "MyObject.Foo__c", "help_text": "help"}],
-                },
-            )
-
-            tree = metadata_tree.fromstring(OBJECT_XML)
-            task._transform_entity(tree, "MyObject")
-
     def test_sets_helptext_for_standard_field_fields(self):
-
         task = create_task(
             SetFieldHelpText,
             {
@@ -368,7 +346,7 @@ class TestAddPicklistValues:
                 SetFieldHelpText,
                 {
                     "api_version": "48.0",
-                    "fields": [{"api_name": "Buster.b.Bust__c", "help_text": "help"}],
+                    "fields": [{"api_name": "Test.c.Test__c", "help_text": "help"}],
                 },
             )
 

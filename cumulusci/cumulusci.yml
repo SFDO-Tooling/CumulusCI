@@ -328,7 +328,7 @@ tasks:
         group: Salesforce Metadata
     set_field_help_text:
         group: Metadata Transformations
-        description: Adds/sets specified field help text values.
+        description: Sets specified fields' Help Text values.
         class_path: cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
         options:
             namespace_inject: $project_config.project__package__namespace
