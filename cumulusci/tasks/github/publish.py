@@ -56,17 +56,13 @@ class PublishSubtree(BaseGithubTask):
         self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
 
     def _get_target_repo_api(self):
+        target_repo_info = self.project_config._split_repo_url(self.options["repo_url"])
         gh = self.project_config.get_github_api(
-            self._target_repo_info["owner"], self._target_repo_info["name"]
+            target_repo_info["owner"], target_repo_info["name"]
         )
-        return gh.repository(
-            self._target_repo_info["owner"], self._target_repo_info["name"]
-        )
+        return gh.repository(target_repo_info["owner"], target_repo_info["name"])
 
     def _run_task(self):
-        self._target_repo_info = self.project_config._split_repo_url(
-            self.options["repo_url"]
-        )
         self.target_repo = self._get_target_repo_api()
         self.tag_name = self.project_config.get_tag_for_version(self.options["version"])
 
