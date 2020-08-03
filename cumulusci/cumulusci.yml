@@ -330,6 +330,12 @@ tasks:
             path: unpackaged/config/qa
             namespace_tokenize: $project_config.project__package__namespace
         group: Salesforce Metadata
+    set_field_help_text:
+        group: Metadata Transformations
+        description: Sets specified fields' Help Text values.
+        class_path: cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
+        options:
+            namespace_inject: $project_config.project__package__namespace
     snapshot_changes:
         description: Tell SFDX source tracking to ignore previous changes in a scratch org
         class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
@@ -848,6 +854,7 @@ flows:
                     publish: True
                     tag: ^^github_release.tag_name
                     include_empty: True
+                    version_id: ^^upload_beta.version_id
             4:
                 task: github_master_to_feature
 
@@ -866,6 +873,7 @@ flows:
                 options:
                     publish: True
                     tag: ^^github_release.tag_name
+                    version_id: ^^upload_production.version_id
 
     retrieve_scratch:
         description: Retrieves declarative changes made in a scratch org and converts to src directory
@@ -1008,6 +1016,9 @@ project:
                 5:
                     class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
                     title: Deleted Metadata
+                6:
+                    class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
+                    title: Installation Links
     test:
         name_match: '%_TEST%'
     dependencies:

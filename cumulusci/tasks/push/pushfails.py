@@ -4,8 +4,9 @@ this doesn't use the nearby push_api module, and was just a quick ccistyle
 get the job done kinda moment.
 """
 
+import csv
 import re
-import unicodecsv
+
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
@@ -57,7 +58,7 @@ class ReportPushFailures(BaseSalesforceApiTask):
         # Get errors
         formatted_query = self.job_query.format(**self.options)
         self.logger.debug("Running query for job errors: " + formatted_query)
-        result = self.sf.query(formatted_query)
+        result = self.sf.query_all(formatted_query)
         job_records = result["records"]
         self.logger.debug(
             "Query is complete: {done}. Found {n} results.".format(
@@ -94,7 +95,7 @@ class ReportPushFailures(BaseSalesforceApiTask):
             formatted_query = self.subscriber_query.format(
                 org_ids=",".join("'{}'".format(org_id) for org_id in org_ids)
             )
-            result = self.sf.query(formatted_query)
+            result = self.sf.query_all(formatted_query)
             org_map.update({org["OrgKey"]: org for org in result["records"]})
         self.logger.debug(
             "Query is complete: {done}. Found {n} results.".format(
@@ -104,8 +105,8 @@ class ReportPushFailures(BaseSalesforceApiTask):
 
         ignore_errors = self.options["ignore_errors"]
         file_name = self.options["result_file"]
-        with open(file_name, "wb") as f:
-            w = unicodecsv.writer(f, encoding="utf-8")
+        with open(file_name, "w", encoding="utf-8") as f:
+            w = csv.writer(f)
             w.writerow(self.headers)
             for result in job_records:
                 error = result["Error"]

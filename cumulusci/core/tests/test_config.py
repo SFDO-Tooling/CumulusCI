@@ -397,11 +397,13 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             os.system("git init")
+            with open(os.path.join(d, ".git", "HEAD"), "w") as f:
+                f.write("ref: refs/heads/main\n")
             with open(os.path.join(d, ".git", "packed-refs"), "w") as f:
                 f.write("# pack-refs with: peeled fully-peeled sorted\n")
                 f.write("#\n")
                 f.write(
-                    "8ce67f4519190cd1ec9785105168e21b9599bc27 refs/remotes/origin/master\n"
+                    "8ce67f4519190cd1ec9785105168e21b9599bc27 refs/remotes/origin/main\n"
                 )
 
             self.assertIsNotNone(config.repo_commit)

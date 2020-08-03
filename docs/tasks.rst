@@ -494,6 +494,11 @@ Options
 
 	 Time to wait, in seconds, for the community to be created
 
+``-o skip_existing SKIPEXISTING``
+	 *Optional*
+
+	 If True, an existing community with the same name will not raise an exception.
+
 **insert_record**
 ==========================================
 
@@ -2677,6 +2682,55 @@ Options
 	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
 	 Default: $project_config.project__package__namespace
+
+**set_field_help_text**
+==========================================
+
+**Description:** Sets specified fields' Help Text values.
+
+**Class:** cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run set_field_help_text``
+
+
+Options
+------------------------------------------
+
+
+``-o fields FIELDS``
+	 *Required*
+
+	 List of object fields to affect, in Object__c.Field__c form.
+
+``-o overwrite OVERWRITE``
+	 *Optional*
+
+	 If set to True, overwrite any differing Help Text found on the field. By default, Help Text is set only if it is blank.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
 
 **snapshot_changes**
 ==========================================
