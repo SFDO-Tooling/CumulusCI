@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 from urllib.parse import quote, unquote
 
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
@@ -48,6 +48,10 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
             self.options.get("api_version")
             or self.project_config.project__package__api_version
         )
+        try:
+            float(self.api_version)
+        except ValueError:
+            raise TaskOptionsError(f"Invalid API version {self.api_version}")
 
     def _inject_namespace(self, text):
         """Inject the namespace into the given text if running in managed mode."""
