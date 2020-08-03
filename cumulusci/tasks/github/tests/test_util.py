@@ -1,9 +1,10 @@
 import hashlib
-from unittest import mock
 import unittest
+from unittest import mock
 
-from github3.repos import Repository
 from github3.git import Tree
+from github3.repos import Repository
+
 from cumulusci.core.exceptions import GithubException
 from cumulusci.tasks.github.util import CommitDir
 from cumulusci.utils import temporary_dir
@@ -32,6 +33,12 @@ class TestCommitDir(unittest.TestCase):
                             "mode": "100644",
                             "path": "file_outside_dir",
                             "sha": "bogus2",
+                        },
+                        {
+                            "type": "blob",
+                            "mode": "100644",
+                            "path": "dir/deleteme",
+                            "sha": "deletedfilesha",
                         },
                         {
                             "type": "blob",
