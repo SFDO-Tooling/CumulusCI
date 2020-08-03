@@ -582,7 +582,6 @@ class TestLoadData(unittest.TestCase):
         task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
-        task._update_person_account_name_as_blank = mock.Mock()
         task._filter_out_person_account_records = mock.Mock()
 
         model.__table__ = mock.Mock()
@@ -616,11 +615,8 @@ class TestLoadData(unittest.TestCase):
             aliased.return_value.columns.sf_id,
         )
 
-        # Validate person account db records had their Name updated as blank
-        task._can_load_person_accounts.assert_called_once_with(mapping)
-        task._update_person_account_name_as_blank.assert_called_once_with(mapping)
-
         # Validate person account records were not filtered out
+        task._can_load_person_accounts.assert_not_called()
         task._filter_out_person_account_records.assert_not_called()
 
     @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
@@ -634,7 +630,6 @@ class TestLoadData(unittest.TestCase):
         task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=False)
-        task._update_person_account_name_as_blank = mock.Mock()
         task._filter_out_person_account_records = mock.Mock()
 
         model.__table__ = mock.Mock()
@@ -668,12 +663,8 @@ class TestLoadData(unittest.TestCase):
             aliased.return_value.columns.sf_id,
         )
 
-        # Validate person account db records did not have their Name updated as blank
-        # because person accounts is not enabled
-        task._can_load_person_accounts.assert_called_once_with(mapping)
-        task._update_person_account_name_as_blank.assert_not_called()
-
         # Validate person account records were not filtered out
+        task._can_load_person_accounts.assert_not_called()
         task._filter_out_person_account_records.assert_not_called()
 
     @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
@@ -687,7 +678,6 @@ class TestLoadData(unittest.TestCase):
         task.metadata.tables = {"contacts_sf_ids": mock.Mock()}
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
-        task._update_person_account_name_as_blank = mock.Mock()
         task._filter_out_person_account_records = mock.Mock()
 
         # Make mock query chainable
@@ -726,9 +716,6 @@ class TestLoadData(unittest.TestCase):
             model.__table__.columns["name"],
             aliased.return_value.columns.sf_id,
         )
-
-        # Validate person contact db records had their Name updated as blank
-        task._update_person_account_name_as_blank.assert_not_called()
 
         # Validate person contact records were not filtered out
         task._can_load_person_accounts.assert_called_once_with(mapping)
@@ -747,7 +734,6 @@ class TestLoadData(unittest.TestCase):
         task.metadata.tables = {"contacts_sf_ids": mock.Mock()}
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=False)
-        task._update_person_account_name_as_blank = mock.Mock()
         task._filter_out_person_account_records = mock.Mock()
 
         # Make mock query chainable
@@ -787,9 +773,6 @@ class TestLoadData(unittest.TestCase):
             aliased.return_value.columns.sf_id,
         )
 
-        # Validate person contact db records had their Name updated as blank
-        task._update_person_account_name_as_blank.assert_not_called()
-
         # Validate person contact records were not filtered out
         task._can_load_person_accounts.assert_called_once_with(mapping)
         task._filter_out_person_account_records.assert_not_called()
@@ -807,7 +790,6 @@ class TestLoadData(unittest.TestCase):
         task.metadata.tables = {"requests_sf_ids": mock.Mock()}
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
-        task._update_person_account_name_as_blank = mock.Mock()
         task._filter_out_person_account_records = mock.Mock()
 
         # Make mock query chainable
@@ -845,7 +827,6 @@ class TestLoadData(unittest.TestCase):
 
         # Validate person contact db records had their Name updated as blank
         task._can_load_person_accounts.assert_not_called()
-        task._update_person_account_name_as_blank.assert_not_called()
 
         # Validate person contact records were not filtered out
         task._filter_out_person_account_records.assert_not_called()
@@ -1547,109 +1528,6 @@ class TestLoadData(unittest.TestCase):
             actual = task._db_has_person_accounts_column(mapping)
 
             self.assertEqual(expected, actual, f"columns: {columns}")
-
-    def test_update_person_account_name_as_blank__name_field_found(self):
-        mapping_file = "mapping-oid.yml"
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, mapping_file)
-        name_column_name = "name_column_name"
-
-        mapping = {
-            "table": "table",
-            "fields": {"Some_Field_Api_Name": "some_column_name"},
-        }
-        mapping["fields"]["Name"] = name_column_name
-
-        update = mock.Mock()
-        update.where.return_value = update
-        update.values.return_value = update
-
-        table = mock.Mock()
-        table.update.return_value = update
-        IsPersonAccount_column = mock.MagicMock()
-        IsPersonAccount_column.__eq__ = mock.Mock()
-        table.columns = {"IsPersonAccount": IsPersonAccount_column}
-
-        model = mock.Mock()
-        model.__table__ = table
-
-        task = _make_task(
-            LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
-        )
-
-        task.models = {}
-        task.models[mapping["table"]] = model
-
-        connection = mock.Mock()
-        connection.execute = mock.Mock()
-
-        task.session = mock.Mock()
-        task.session.connection = mock.Mock(return_value=connection)
-        task.session.flush = mock.Mock()
-
-        # Execute test.
-        task._update_person_account_name_as_blank(mapping)
-
-        # Assert expected happened.
-        task.session.connection.assert_called_once_with()
-        connection.execute.assert_called_once_with(update)
-        task.session.flush.assert_called_once_with()
-
-        table.update.assert_called_once_with()
-        update.where.assert_called_once_with(IsPersonAccount_column.__eq__.return_value)
-        IsPersonAccount_column.__eq__.assert_called_once_with("true")
-        update.values.assert_called_once_with(**{name_column_name: ""})
-
-    def test_update_person_account_name_as_blank__name_field_not_found(self):
-        mapping_file = "mapping-oid.yml"
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, mapping_file)
-
-        mapping = {
-            "table": "table",
-            "fields": {"Some_Field_Api_Name": "some_column_name"},
-        }
-
-        update = mock.Mock()
-        update.where.return_value = update
-        update.values.return_value = update
-
-        table = mock.Mock()
-        table.update.return_value = update
-        table.columns.IsPersonAccount = mock.MagicMock()
-        table.columns.IsPersonAccount.__eq__.return_value = mock.Mock()
-
-        model = mock.Mock()
-        model.__table__ = table
-
-        task = _make_task(
-            LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
-        )
-
-        task.models = {}
-        task.models[mapping["table"]] = model
-
-        connection = mock.Mock()
-        connection.execute = mock.Mock()
-
-        task.session = mock.Mock()
-        task.session.connection = mock.Mock(return_value=connection)
-        task.session.flush = mock.Mock()
-
-        # Execute test.
-        task._update_person_account_name_as_blank(mapping)
-
-        # Assert expected happened.
-        task.session.connection.assert_not_called()
-        connection.execute.assert_not_called()
-        task.session.flush.assert_not_called()
-
-        table.update.assert_not_called()
-        update.where.assert_not_called()
-        table.columns.IsPersonAccount.__eq__.assert_not_called()
-        update.values.assert_not_called()
 
     def test_filter_out_person_account_records(self):
         task = _make_task(

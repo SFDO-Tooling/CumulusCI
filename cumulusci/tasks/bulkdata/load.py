@@ -253,12 +253,6 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
         """
         model = self.models[mapping.get("table")]
 
-        # Update Account.Name as blank for IsPersonAccount Account records.
-        if mapping["sf_object"] == "Account" and self._can_load_person_accounts(
-            mapping
-        ):
-            self._update_person_account_name_as_blank(mapping)
-
         # Use primary key instead of the field mapped to SF Id
         fields = mapping.get("fields", {}).copy()
         if mapping["oid_as_pk"]:
@@ -563,26 +557,6 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
             self._db_has_person_accounts_column(mapping)
             and self._org_has_person_accounts_enabled()
         )
-
-    def _update_person_account_name_as_blank(self, mapping) -> None:
-        """
-        If a "Name" Salesforce Field is mapped to a column, updates mapping's
-        table records where IsPersonAccount is "true" setting "Name" field as
-        blank.
-        """
-        # Check if Account.Name is in mapping
-        fields = mapping.get("fields", {})
-        for api_name, column_name in fields.items():
-            if api_name == "Name":
-                # Update table
-                table = self.models[mapping["table"]].__table__
-                self.session.connection().execute(
-                    table.update()
-                    .where(table.columns.get("IsPersonAccount") == "true")
-                    .values(**{column_name: ""})
-                )
-                self.session.flush()
-                return
 
     def _filter_out_person_account_records(self, query, model):
         return query.filter(model.__table__.columns.get("IsPersonAccount") == "false")
