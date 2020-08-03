@@ -30,6 +30,14 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.AddPermissionSetPermissions
         options:
             namespace_inject: $project_config.project__package__namespace
+    assign_compact_layout:
+        group: Metadata Transformations
+        description: "Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option."
+        class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+        options:
+            namespace_inject: $project_config.project__package__namespace
+            metadata_type: CustomObject
+            tag: compactLayoutAssignment
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
@@ -196,6 +204,10 @@ tasks:
             children_only: True
             source_branch: $project_config.repo_branch
         group: GitHub
+    github_copy_subtree:
+        description: Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
+        class_path: cumulusci.tasks.github.publish.PublishSubtree
+        group: GitHub
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
@@ -326,6 +338,12 @@ tasks:
             path: unpackaged/config/qa
             namespace_tokenize: $project_config.project__package__namespace
         group: Salesforce Metadata
+    set_field_help_text:
+        group: Metadata Transformations
+        description: Sets specified fields' Help Text values.
+        class_path: cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
+        options:
+            namespace_inject: $project_config.project__package__namespace
     snapshot_changes:
         description: Tell SFDX source tracking to ignore previous changes in a scratch org
         class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
@@ -430,6 +448,12 @@ tasks:
         description: Installs all dependencies in project__dependencies into the target org
         class_path: cumulusci.tasks.salesforce.UpdateDependencies
         group: Salesforce Packages
+    update_metadata_first_child_text:
+        group: Metadata Transformations
+        description: Updates the text of the first child of Metadata with matching tag.  Adds a child for tag if it does not exist.
+        class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+        options:
+            namespace_inject: $project_config.project__package__namespace
     update_package_xml:
         description: Updates src/package.xml with metadata in src/
         class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
