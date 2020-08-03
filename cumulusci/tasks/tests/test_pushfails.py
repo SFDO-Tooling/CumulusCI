@@ -40,7 +40,7 @@ class TestPushFailureTask(unittest.TestCase):
 
         def _init_class():
             task.sf = mock.Mock()
-            task.sf.query.side_effect = [
+            task.sf.query_all.side_effect = [
                 {
                     "done": True,
                     "totalSize": 2,
@@ -71,7 +71,7 @@ class TestPushFailureTask(unittest.TestCase):
         task._init_class = _init_class
         with temporary_dir():
             task()
-            self.assertEqual(2, task.sf.query.call_count)
+            self.assertEqual(2, task.sf.query_all.call_count)
             self.assertTrue(
                 os.path.isfile(task.result), "the result file does not exist"
             )
@@ -86,7 +86,11 @@ class TestPushFailureTask(unittest.TestCase):
 
         def _init_class():
             task.sf = mock.Mock()
-            task.sf.query.return_value = {"totalSize": 0, "records": [], "done": True}
+            task.sf.query_all.return_value = {
+                "totalSize": 0,
+                "records": [],
+                "done": True,
+            }
 
         task._init_class = _init_class
         task()
