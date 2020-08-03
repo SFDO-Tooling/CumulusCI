@@ -194,6 +194,26 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
         if record_type:
             record_iterator = (record + [record_type] for record in record_iterator)
 
+        # Set Name field as blank for Person Account "Account" records.
+        if (
+            mapping["sf_object"] == "Account"
+            and "Name" in mapping.get("fields", {})
+            and self._org_has_person_accounts_enabled()
+        ):
+            # Bump indices by one since record's ID is the first column.
+            Name_index = columns.index(mapping["fields"]["Name"]) + 1
+            IsPersonAccount_index = (
+                columns.index(mapping["fields"]["IsPersonAccount"]) + 1
+            )
+
+            def strip_name_field(record):
+                nonlocal Name_index, IsPersonAccount_index
+                if record[IsPersonAccount_index] == "true":
+                    record[Name_index] = ""
+                return record
+
+            record_iterator = (strip_name_field(record) for record in record_iterator)
+
         if mapping["oid_as_pk"]:
             self._sql_bulk_insert_from_records(
                 connection=conn,

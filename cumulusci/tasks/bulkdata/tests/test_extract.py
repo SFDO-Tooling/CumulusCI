@@ -383,6 +383,7 @@ class TestExtractData(unittest.TestCase):
         task._extract_record_types = mock.Mock()
         task._sql_bulk_insert_from_records = mock.Mock()
         task.session = mock.Mock()
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
         step = mock.Mock()
         step.get_results.return_value = [["000000000000001", "Test", "012000000000000"]]
@@ -402,6 +403,55 @@ class TestExtractData(unittest.TestCase):
         task._extract_record_types.assert_called_once_with(
             "Account", "test_rt", task.session.connection.return_value
         )
+
+        task._org_has_person_accounts_enabled.assert_called_once_with()
+
+    def test_import_results__person_account_name_stripped(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, "recordtypes.yml")
+        task = _make_task(
+            ExtractData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        task._extract_record_types = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.session = mock.Mock()
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+
+        step = mock.Mock()
+        step.get_results.return_value = [
+            ["000000000000001", "Person Account", "012000000000001", "true"],
+            ["000000000000002", "Business Account", "012000000000002", "false"],
+        ]
+
+        task._import_results(
+            {
+                "sf_object": "Account",
+                "record_type_table": "test_rt",
+                "fields": {
+                    "Name": "Name",
+                    "RecordTypeId": "RecordTypeId",
+                    "IsPersonAccount": "IsPersonAccount",
+                },
+                "lookups": {},
+                "table": "accounts",
+                "sf_id_table": "test_ids",
+                "oid_as_pk": True,  # So we can extract record_iterable from _sql_bulk_insert_from_records
+            },
+            step,
+        )
+
+        task._org_has_person_accounts_enabled.assert_called_once()
+
+        task._sql_bulk_insert_from_records.assert_called()
+        args, kwargs = task._sql_bulk_insert_from_records.call_args_list[0]
+
+        records = [record for record in kwargs["record_iterable"]]
+
+        assert [
+            ["000000000000001", "", "012000000000001", "true"],
+            ["000000000000002", "Business Account", "012000000000002", "false"],
+        ] == records
 
     def test_convert_lookups_to_id(self):
         task = _make_task(
