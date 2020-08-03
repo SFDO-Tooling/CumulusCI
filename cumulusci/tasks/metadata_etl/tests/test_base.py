@@ -5,7 +5,7 @@ import tempfile
 from lxml import etree
 import pytest
 
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl import (
     BaseMetadataETLTask,
@@ -26,6 +26,10 @@ class TestBaseMetadataETLTask:
 
         assert task.options["managed"]
         assert task.options["api_version"] == "47.0"
+
+    def test_init_options_raises_invalid_api_value(self):
+        with pytest.raises(TaskOptionsError):
+            create_task(MetadataETLTask, {"api_version": "aaa"})
 
     def test_inject_namespace(self):
         task = create_task(
