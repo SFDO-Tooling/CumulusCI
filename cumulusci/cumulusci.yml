@@ -30,6 +30,14 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.AddPermissionSetPermissions
         options:
             namespace_inject: $project_config.project__package__namespace
+    assign_compact_layout:
+        group: Metadata Transformations
+        description: "Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option."
+        class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+        options:
+            namespace_inject: $project_config.project__package__namespace
+            metadata_type: CustomObject
+            tag: compactLayoutAssignment
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
@@ -440,6 +448,12 @@ tasks:
         description: Installs all dependencies in project__dependencies into the target org
         class_path: cumulusci.tasks.salesforce.UpdateDependencies
         group: Salesforce Packages
+    update_metadata_first_child_text:
+        group: Metadata Transformations
+        description: Updates the text of the first child of Metadata with matching tag.  Adds a child for tag if it does not exist.
+        class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+        options:
+            namespace_inject: $project_config.project__package__namespace
     update_package_xml:
         description: Updates src/package.xml with metadata in src/
         class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
