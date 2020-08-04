@@ -1,6 +1,7 @@
-from typing import Dict, List, Union, IO, Optional, Any, Callable
+from typing import Dict, List, Union, IO, Optional, Any, Callable, Mapping
 from logging import getLogger
 from pathlib import Path
+from requests.structures import CaseInsensitiveDict
 
 from pydantic import Field, validator, root_validator, ValidationError
 
@@ -123,13 +124,13 @@ class MappingStep(CCIDictModel):
         return "createable"
 
     def _check_object_permission(
-        self, global_describe: Dict, sobject: str, operation: DataOperationType
+        self, global_describe: Mapping, sobject: str, operation: DataOperationType
     ):
         perm = self._get_permission_type(operation)
         return sobject in global_describe and global_describe[sobject][perm]
 
     def _check_field_permission(
-        self, describe: Dict, field: str, operation: DataOperationType
+        self, describe: Mapping, field: str, operation: DataOperationType
     ):
         perm = self._get_permission_type(operation)
         # Fields don't have "queryable" permission.
@@ -139,7 +140,7 @@ class MappingStep(CCIDictModel):
 
     def _validate_field_dict(
         self,
-        describe: Dict,
+        describe: Mapping,
         field_dict: Dict[str, Any],
         inject: Optional[Callable[[str], str]],
         drop_missing: bool,
@@ -185,7 +186,7 @@ class MappingStep(CCIDictModel):
 
     def _validate_sobject(
         self,
-        global_describe: Dict,
+        global_describe: Mapping,
         inject: Optional[Callable[[str], str]],
         data_operation_type: DataOperationType,
     ) -> bool:
@@ -244,10 +245,12 @@ class MappingStep(CCIDictModel):
         else:
             inject = None
 
-        global_describe = {
-            entry["name"]: entry
-            for entry in org_config.salesforce_client.describe()["sobjects"]
-        }
+        global_describe = CaseInsensitiveDict(
+            {
+                entry["name"]: entry
+                for entry in org_config.salesforce_client.describe()["sobjects"]
+            }
+        )
 
         if not self._validate_sobject(global_describe, inject, operation):
             # Don't attempt to validate field permissions if the object doesn't exist.
@@ -256,7 +259,9 @@ class MappingStep(CCIDictModel):
         # Validate, inject, and drop (if configured) fields.
         # By this point, we know the attribute is valid.
         describe = getattr(org_config.salesforce_client, self.sf_object).describe()
-        describe = {entry["name"]: entry for entry in describe["fields"]}
+        describe = CaseInsensitiveDict(
+            {entry["name"]: entry for entry in describe["fields"]}
+        )
 
         if not self._validate_field_dict(
             describe, self.fields, inject, drop_missing, operation
