@@ -1028,86 +1028,274 @@ class TestLoadData(unittest.TestCase):
         self.assertIn("Error on record with id", str(ex.exception))
         self.assertIn("message", str(ex.exception))
 
-    def test_process_job_results__contact_id_map_not_updated_for_person_account_contacts(
+    def test_process_job_results__person_account_contact_ids__not_updated__mapping_action_not_insert(
         self,
     ):
         """
         Contact ID table is updated with Contact IDs for person account records
         only if all:
-        - mapping's action is "insert"
-        - mapping's sf_object is Contact
-        - person accounts is enabled
-        - an account_id_lookup is found in the mapping
+        ❌ mapping's action is "insert"
+        ✅ mapping's sf_object is Contact
+        ✅ person accounts is enabled
+        ✅ an account_id_lookup is found in the mapping
         """
-        for action, sf_object, can_load_person_accounts, account_id_lookup in [
-            ("insert", "Not Contact", True, None),
-            ("insert", "Not Contact", False, None),
-            ("insert", "Not Contact", True, mock.Mock()),
-            ("insert", "Not Contact", False, mock.Mock()),
-            ("insert", "Contact", False, None),
-            ("insert", "Contact", False, mock.Mock()),
-            ("insert", "Contact", True, None),
-            ("update", "Not Contact", True, None),
-            ("update", "Not Contact", False, None),
-            ("update", "Not Contact", True, mock.Mock()),
-            ("update", "Not Contact", False, mock.Mock()),
-            ("update", "Contact", False, None),
-            ("update", "Contact", False, mock.Mock()),
-            ("update", "Contact", True, None),
-            ("update", "Contact", True, mock.Mock()),
-        ]:
-            task = _make_task(
-                LoadData,
-                {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
-            )
 
-            task.session = mock.Mock()
-            task._initialize_id_table = mock.Mock()
-            task._sql_bulk_insert_from_records = mock.Mock()
-            task.bulk = mock.Mock()
-            task.sf = mock.Mock()
-            task._can_load_person_accounts = mock.Mock(
-                return_value=can_load_person_accounts
-            )
-            task._generate_contact_id_map_for_person_accounts = mock.Mock()
+        # ❌ mapping's action is "insert"
+        action = "update"
 
-            local_ids = ["1"]
-
-            step = MockBulkApiDmlOperation(
-                sobject="Contact",
-                operation=DataOperationType.INSERT,
-                api_options={},
-                context=task,
-                fields=[],
-            )
-            step.results = [DataOperationResult("001111111111111", True, None)]
-
-            mapping = {
-                "sf_object": sf_object,
-                "table": "Account",
-                "action": action,
-                "lookups": {},
-            }
-            if account_id_lookup:
-                mapping["lookups"]["AccountId"] = account_id_lookup
-            task._process_job_results(mapping, step, local_ids)
-
-            task._generate_contact_id_map_for_person_accounts.assert_not_called()
-
-    def test_process_job_results__contact_id_map_updated_for_person_account_contacts(
-        self,
-    ):
-        """
-        Contact ID table is updated with Contact IDs for person account records
-        only if all:
-        - mapping's action is "insert"
-        - mapping's sf_object is Contact
-        - person accounts is enabled
-        - an account_id_lookup is found in the mapping
-        """
-        action = "insert"
+        # ✅ mapping's sf_object is Contact
         sf_object = "Contact"
+
+        # ✅ person accounts is enabled
         can_load_person_accounts = True
+
+        # ✅ an account_id_lookup is found in the mapping
+        account_id_lookup = mock.Mock()
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(
+            return_value=can_load_person_accounts
+        )
+        task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+        local_ids = ["1"]
+
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
+
+        mapping = {
+            "sf_object": sf_object,
+            "table": "Account",
+            "action": action,
+            "lookups": {},
+        }
+        if account_id_lookup:
+            mapping["lookups"]["AccountId"] = account_id_lookup
+        task._process_job_results(mapping, step, local_ids)
+
+        task._generate_contact_id_map_for_person_accounts.assert_not_called()
+
+    def test_process_job_results__person_account_contact_ids__not_updated__sf_object_not_contact(
+        self,
+    ):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        ✅ mapping's action is "insert"
+        ❌ mapping's sf_object is Contact
+        ✅ person accounts is enabled
+        ✅ an account_id_lookup is found in the mapping
+        """
+
+        # ✅ mapping's action is "insert"
+        action = "insert"
+
+        # ❌ mapping's sf_object is Contact
+        sf_object = "Opportunity"
+
+        # ✅ person accounts is enabled
+        can_load_person_accounts = True
+
+        # ✅ an account_id_lookup is found in the mapping
+        account_id_lookup = mock.Mock()
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(
+            return_value=can_load_person_accounts
+        )
+        task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+        local_ids = ["1"]
+
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
+
+        mapping = {
+            "sf_object": sf_object,
+            "table": "Account",
+            "action": action,
+            "lookups": {},
+        }
+        if account_id_lookup:
+            mapping["lookups"]["AccountId"] = account_id_lookup
+        task._process_job_results(mapping, step, local_ids)
+
+        task._generate_contact_id_map_for_person_accounts.assert_not_called()
+
+    def test_process_job_results__person_account_contact_ids__not_updated__person_accounts_not_enabled(
+        self,
+    ):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        ✅ mapping's action is "insert"
+        ✅ mapping's sf_object is Contact
+        ❌ person accounts is enabled
+        ✅ an account_id_lookup is found in the mapping
+        """
+
+        # ✅ mapping's action is "insert"
+        action = "insert"
+
+        # ✅ mapping's sf_object is Contact
+        sf_object = "Contact"
+
+        # ❌ person accounts is enabled
+        can_load_person_accounts = False
+
+        # ✅ an account_id_lookup is found in the mapping
+        account_id_lookup = mock.Mock()
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(
+            return_value=can_load_person_accounts
+        )
+        task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+        local_ids = ["1"]
+
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
+
+        mapping = {
+            "sf_object": sf_object,
+            "table": "Account",
+            "action": action,
+            "lookups": {},
+        }
+        if account_id_lookup:
+            mapping["lookups"]["AccountId"] = account_id_lookup
+        task._process_job_results(mapping, step, local_ids)
+
+        task._generate_contact_id_map_for_person_accounts.assert_not_called()
+
+    def test_process_job_results__person_account_contact_ids__not_updated__no_account_id_lookup(
+        self,
+    ):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        ✅ mapping's action is "insert"
+        ✅ mapping's sf_object is Contact
+        ✅ person accounts is enabled
+        ❌ an account_id_lookup is found in the mapping
+        """
+
+        # ✅ mapping's action is "insert"
+        action = "insert"
+
+        # ✅ mapping's sf_object is Contact
+        sf_object = "Contact"
+
+        # ✅ person accounts is enabled
+        can_load_person_accounts = True
+
+        # ❌ an account_id_lookup is found in the mapping
+        account_id_lookup = None
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(
+            return_value=can_load_person_accounts
+        )
+        task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+        local_ids = ["1"]
+
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
+
+        mapping = {
+            "sf_object": sf_object,
+            "table": "Account",
+            "action": action,
+            "lookups": {},
+        }
+        if account_id_lookup:
+            mapping["lookups"]["AccountId"] = account_id_lookup
+        task._process_job_results(mapping, step, local_ids)
+
+        task._generate_contact_id_map_for_person_accounts.assert_not_called()
+
+    def test_process_job_results__person_account_contact_ids__updated(self):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        ✅ mapping's action is "insert"
+        ✅ mapping's sf_object is Contact
+        ✅ person accounts is enabled
+        ✅ an account_id_lookup is found in the mapping
+        """
+
+        # ✅ mapping's action is "insert"
+        action = "insert"
+
+        # ✅ mapping's sf_object is Contact
+        sf_object = "Contact"
+
+        # ✅ person accounts is enabled
+        can_load_person_accounts = True
+
+        # ✅ an account_id_lookup is found in the mapping
         account_id_lookup = mock.Mock()
 
         task = _make_task(
