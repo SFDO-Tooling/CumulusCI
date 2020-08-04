@@ -1,7 +1,7 @@
 from typing import Dict, List, Union, IO, Optional, Any, Callable, Mapping
 from logging import getLogger
 from pathlib import Path
-from requests.structures import CaseInsensitiveDict
+from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
 
 from pydantic import Field, validator, root_validator, ValidationError
 
@@ -14,7 +14,18 @@ from cumulusci.utils import convert_to_snake_case
 from typing_extensions import Literal
 
 LOGGER_NAME = "MAPPING_LOADER"
-logger = getLogger(LOGGER_NAME)
+logger = getLogger(__name__)
+
+
+class CaseInsensitiveDict(RequestsCaseInsensitiveDict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # there's a more efficient way to do this by poking around the
+        # base class internals but this way may be less fragile
+        self._canonical_keys = {key.lower(): key for key in self.keys()}
+
+    def canonical_key(self, name):
+        return self._canonical_keys[name.lower()]
 
 
 class MappingLookup(CCIDictModel):
@@ -126,8 +137,9 @@ class MappingStep(CCIDictModel):
     def _check_object_permission(
         self, global_describe: Mapping, sobject: str, operation: DataOperationType
     ):
+        assert sobject in global_describe
         perm = self._get_permission_type(operation)
-        return sobject in global_describe and global_describe[sobject][perm]
+        return global_describe[sobject][perm]
 
     def _check_field_permission(
         self, describe: Mapping, field: str, operation: DataOperationType
@@ -140,7 +152,7 @@ class MappingStep(CCIDictModel):
 
     def _validate_field_dict(
         self,
-        describe: Mapping,
+        describe: CaseInsensitiveDict,
         field_dict: Dict[str, Any],
         inject: Optional[Callable[[str], str]],
         drop_missing: bool,
@@ -151,7 +163,9 @@ class MappingStep(CCIDictModel):
         orig_fields = field_dict.copy()
         for f, entry in orig_fields.items():
             # Do we need to inject this field?
-            if f == "Id":
+            if f.lower() == "id":
+                del field_dict[f]
+                field_dict["Id"] = entry
                 continue
 
             if inject and self._is_injectable(f) and inject(f) not in orig_fields:
@@ -164,6 +178,18 @@ class MappingStep(CCIDictModel):
                     field_dict[inject(f)] = entry
                     del field_dict[f]
                     f = inject(f)
+
+            # Canonicalize the key's case
+            try:
+                new_name = describe.canonical_key(f)
+                if new_name != f:
+                    del field_dict[f]
+                    field_dict[new_name] = entry
+                    f = new_name
+            except KeyError:
+                logger.warning(
+                    f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
+                )
 
             # Do we have the right permissions for this field, or do we need to drop it?
             is_after_lookup = hasattr(field_dict[f], "after")
@@ -186,7 +212,7 @@ class MappingStep(CCIDictModel):
 
     def _validate_sobject(
         self,
-        global_describe: Mapping,
+        global_describe: CaseInsensitiveDict,
         inject: Optional[Callable[[str], str]],
         data_operation_type: DataOperationType,
     ) -> bool:
@@ -206,12 +232,20 @@ class MappingStep(CCIDictModel):
             ):
                 self.sf_object = inject(self.sf_object)
 
+        try:
+            self.sf_object = global_describe.canonical_key(self.sf_object)
+        except KeyError:
+            logger.warning(
+                f"sObject {self.sf_object} does not exist or is not visible to the current user."
+            )
+            return False
+
         # Validate our access to this sObject.
         if not self._check_object_permission(
             global_describe, self.sf_object, data_operation_type
         ):
             logger.warning(
-                f"sObject {self.sf_object} is not present or does not have the correct permissions."
+                f"sObject {self.sf_object} does not have the correct permissions for {data_operation_type}."
             )
             return False
 
