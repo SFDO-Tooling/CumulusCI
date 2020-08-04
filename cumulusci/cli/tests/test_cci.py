@@ -1210,6 +1210,21 @@ Environment Info: Rossian / x68_46
             ),
         ]
 
+        runtime.keychain.get_default_org.return_value = (
+            "test0",
+            ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "test0",
+            ),
+        )
+
         run_click_command(cci.org_list, runtime=runtime, plain=False)
 
         scratch_table_call = mock.call(
