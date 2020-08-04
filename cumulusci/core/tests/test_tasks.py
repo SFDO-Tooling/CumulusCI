@@ -37,8 +37,6 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
     BaseTask has basic logging
     """
 
-    task_class = BaseTask
-
     def setUp(self):
         self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
@@ -85,26 +83,29 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
 
     def test_task_is_callable(self):
         """ BaseTask is Callable """
-        task = self.__class__.task_class(
-            self.project_config, self.task_config, self.org_config
-        )
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
 
         self.assertIsInstance(task, collections.abc.Callable)
 
     def test_option_overrides(self):
-        task = self.__class__.task_class(
+        task = BaseTask(
             self.project_config, self.task_config, self.org_config, foo="bar"
         )
         self.assertEqual("bar", task.options["foo"])
 
-    def test_dynamic_options(self):
-        """ Option values can lookup values from project_config """
+    def test_init_options__project_config_substitution(self):
         self.project_config.config["foo"] = {"bar": "baz"}
         self.task_config.config["options"] = {"test_option": "$project_config.foo__bar"}
-        task = self.__class__.task_class(
-            self.project_config, self.task_config, self.org_config
-        )
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
         self.assertEqual("baz", task.options["test_option"])
+
+    def test_init_options__project_config_substitution__substring(self):
+        self.project_config.config["foo"] = {"bar": "baz"}
+        self.task_config.config["options"] = {
+            "test_option": "before $project_config.foo__bar after"
+        }
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        self.assertEqual("before baz after", task.options["test_option"])
 
     def test_validates_missing_options(self):
         class Task(BaseTask):
