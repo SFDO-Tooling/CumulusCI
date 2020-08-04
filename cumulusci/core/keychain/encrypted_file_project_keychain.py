@@ -151,7 +151,10 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def unset_default_org(self):
         """Unset the default orgs for tasks and flows """
         super().unset_default_org()
-        self._default_org_path.unlink(missing_ok=True)
+        try:
+            self._default_org_path.unlink()
+        except FileNotFoundError:
+            pass
 
 
 class GlobalOrg(NamedTuple):
