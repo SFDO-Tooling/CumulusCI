@@ -78,7 +78,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
         if bool(self.specified_tests) != (self.test_level == "RunSpecifiedTests"):
             raise TaskOptionsError(
-                f"The specified_tests option and test_level RunSpecifiedTests must be used together."
+                "The specified_tests option and test_level RunSpecifiedTests must be used together."
             )
 
     def _get_api(self, path=None):
