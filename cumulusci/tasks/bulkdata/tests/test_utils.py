@@ -66,6 +66,8 @@ def mock_describe_calls():
         "Opportunity",
         "OpportunityContactRole",
         "Case",
+        "account",
+        "contact",
     ]:
         mock_sobject_describe(sobject)
 

@@ -831,3 +831,27 @@ class TestMappingLookup:
 
         with pytest.raises(KeyError):
             lookup.get_lookup_key_field(FakeModel())
+
+    @responses.activate
+    def test_validate_and_inject_mapping_works_case_insensitively(self):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: account\n  table: account\n  fields:\n    - name\n"
+                    "Insert Contacts:\n  sf_object: contact\n  table: contact\n  fields:\n    - fIRSTnAME\n  lookups:\n    accountid:\n      table: account"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            org_config=org_config,
+            namespace=None,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=False,
+            drop_missing=False,
+        )
