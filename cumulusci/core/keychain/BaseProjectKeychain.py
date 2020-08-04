@@ -142,6 +142,11 @@ class BaseProjectKeychain(BaseConfig):
         del self.orgs[name]
         self._load_orgs()
 
+    # TODO: Are these used in any context other than
+    # encrypted_file_project_keychain?
+    #
+    # If not, they can be removed after a reasonable
+    # period of backwards compatibility
     def set_org(self, org_config, global_org=False):
         if isinstance(org_config, ScratchOrgConfig):
             org_config.config["scratch"] = True
@@ -181,7 +186,7 @@ class BaseProjectKeychain(BaseConfig):
                 org_config.save()
         sfdx("force:config:set defaultusername=")
 
-    def get_org(self, name):
+    def get_org(self, name: str):
         """ retrieve an org configuration by name key """
         if name not in self.orgs:
             self._raise_org_not_found(name)

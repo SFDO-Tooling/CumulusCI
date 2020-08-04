@@ -1,5 +1,6 @@
 import os
 from typing import NamedTuple
+from pathlib import Path
 
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
@@ -121,6 +122,40 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         if self.orgs[name].global_org:
             org.global_org = True
         return org
+
+    @property
+    def default_org_name(self):
+        return Path(self.project_local_dir) / "DEFAULT_ORG.txt"
+
+    def get_default_org(self):
+        """ Retrieve the name and configuration of the default org """
+        # first look for a file with the default org in it
+        if os.path.exists(self.default_org_name):
+            with open(self.default_org_name, "r") as f:
+                org_name = f.read().strip()
+            org_config = self.get_org(org_name)
+            if org_config:
+                return org_name, org_config
+
+        # fallback to old way of doing it
+        org_name, org_config = super().get_default_org()
+        if org_name:
+            self.set_default_org(org_name)  # upgrade to new way
+        return org_name, org_config
+
+    def set_default_org(self, name: str):
+        """ Set the default org for tasks and flows by name """
+        super().set_default_org(name)
+        with open(self.default_org_name, "w") as f:
+            f.write(name)
+
+    def unset_default_org(self):
+        """Unset the default orgs for tasks and flows """
+        super().unset_default_org()
+        try:
+            os.unlink(self.default_org_name)
+        except FileNotFoundError:
+            pass
 
 
 class GlobalOrg(NamedTuple):
