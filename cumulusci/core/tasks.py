@@ -5,6 +5,7 @@ Subclass BaseTask or a descendant to define custom task logic
 import contextlib
 import logging
 import os
+import re
 import time
 import threading
 
@@ -16,6 +17,8 @@ from cumulusci.core.exceptions import TaskOptionsError
 
 CURRENT_TASK = threading.local()
 CURRENT_TASK.stack = []
+
+PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
 
 
 @contextlib.contextmanager
@@ -91,13 +94,13 @@ class BaseTask(object):
             self.options.update(kwargs)
 
         # Handle dynamic lookup of project_config values via $project_config.attr
-        for option, value in list(self.options.items()):
-            try:
-                if value.startswith("$project_config."):
-                    attr = value.replace("$project_config.", "", 1)
-                    self.options[option] = getattr(self.project_config, attr, None)
-            except AttributeError:
-                pass
+        for option, value in self.options.items():
+            if isinstance(value, str):
+                value = PROJECT_CONFIG_RE.sub(
+                    lambda match: getattr(self.project_config, match.group(1), None),
+                    value,
+                )
+                self.options[option] = value
 
     def _validate_options(self):
         missing_required = []
