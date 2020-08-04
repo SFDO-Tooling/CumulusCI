@@ -918,7 +918,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
 
     org_config.save()
 
-    if default:
+    if default and not global_org:
         runtime.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
 
