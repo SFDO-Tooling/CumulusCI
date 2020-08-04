@@ -1698,14 +1698,18 @@ class TestLoadData(unittest.TestCase):
         self,
     ):
         """
-        A BulkDataException is raised because the task will (later) attempt to load
-        person account Account records, but the org does not have person accounts enabled
-        which will result in an Exception from the Bulk Data API or load records in
-        an unexpected state.
-        - ✅ An Account or Contact object is mapped
-        - ✅ The corresponding table includes an IsPersonAccount column
-        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
-        - ✅ The org does not have person accounts enabled
+        To ensure data is loaded from the dataset as expected as well as avoid partial
+        failues:
+        - Raises a BulkDataException if there exists Account or Contact records with IsPersonAccount as 'true' but the org does not have person accounts enabled.
+            - ✅ An Account or Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ The org does not have person accounts enabled
+        - Raises a BulkDataException if a Contact step has person account records but does not have an Account Id Lookup which is required for _generate_contact_id_map_for_person_accounts.
+            - ❌ A Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ Mapping does not have an "AccountId" lookup
         """
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1717,11 +1721,17 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping_step_name = "Accounts"
+        mapping = {
+            "table": "account",
+            "sf_object": "Account",
+            # ✅ Mapping does not have an "AccountId" lookup
+            "lookups": {},
+        }
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
-        task.mapping = {"Mapping Step": mapping}
+        task.mapping = {mapping_step_name: mapping}
         task.models = {mapping["table"]: model}
 
         # ✅ The cooresponding table includes an IsPersonAccount column
@@ -1737,21 +1747,30 @@ class TestLoadData(unittest.TestCase):
         # ✅ The org does not have person accounts enabled
         task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
-        with self.assertRaises(BulkDataException):
+        with self.assertRaises(BulkDataException) as context_manager:
             task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+        assert (
+            context_manager.exception.args[0]
+            == "Your dataset contains Person Account data but Person Accounts is not enabled for your org."
+        )
 
     def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__raises_exception__contact(
         self,
     ):
         """
-        A BulkDataException is raised because the task will (later) attempt to load
-        person account Account records, but the org does not have person accounts enabled
-        which will result in an Exception from the Bulk Data API or load records in
-        an unexpected state.
-        - ✅ An Account or Contact object is mapped
-        - ✅ The corresponding table includes an IsPersonAccount column
-        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
-        - ✅ The org does not have person accounts enabled
+        To ensure data is loaded from the dataset as expected as well as avoid partial
+        failues:
+        - Raises a BulkDataException if there exists Account or Contact records with IsPersonAccount as 'true' but the org does not have person accounts enabled.
+            - ✅ An Account or Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ The org does not have person accounts enabled
+        - Raises a BulkDataException if a Contact step has person account records but does not have an Account Id Lookup which is required for _generate_contact_id_map_for_person_accounts.
+            - ✅ A Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ Mapping does not have an "AccountId" lookup
         """
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1763,11 +1782,17 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ A Contact object is mapped
-        mapping = {"table": "contact", "sf_object": "Contact"}
+        mapping_step_name = "Contacts"
+        mapping = {
+            "table": "contact",
+            "sf_object": "Contact",
+            # ✅ Mapping does not have an "AccountId" lookup
+            "lookups": {},
+        }
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
-        task.mapping = {"Mapping Step": mapping}
+        task.mapping = {mapping_step_name: mapping}
         task.models = {mapping["table"]: model}
 
         # ✅ The cooresponding table includes an IsPersonAccount column
@@ -1783,21 +1808,91 @@ class TestLoadData(unittest.TestCase):
         # ✅ The org does not have person accounts enabled
         task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
 
-        with self.assertRaises(BulkDataException):
+        with self.assertRaises(BulkDataException) as context_manager:
             task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+        assert (
+            context_manager.exception.args[0]
+            == "Your dataset contains Person Account data but Person Accounts is not enabled for your org."
+        )
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__raises_exception__no_account_id_lookup(
+        self,
+    ):
+        """
+        To ensure data is loaded from the dataset as expected as well as avoid partial
+        failues:
+        - Raises a BulkDataException if there exists Account or Contact records with IsPersonAccount as 'true' but the org does not have person accounts enabled.
+            - ✅ An Account or Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ❌ The org does not have person accounts enabled
+        - Raises a BulkDataException if a Contact step has person account records but does not have an Account Id Lookup which is required for _generate_contact_id_map_for_person_accounts.
+            - ✅ A Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ Mapping does not have an "AccountId" lookup
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ A Contact object is mapped
+        mapping_step_name = "Contacts"
+        mapping = {
+            "table": "contact",
+            "sf_object": "Contact",
+            # ✅ Mapping does not have an "AccountId" lookup
+            "lookups": {},
+        }
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {mapping_step_name: mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ❌ The org does not have person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+
+        with self.assertRaises(BulkDataException) as context_manager:
+            task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+        assert (
+            context_manager.exception.args[0]
+            == f'Dataset step "{mapping_step_name}" contains person account Contact records, but the step does not have an AccountId lookup.'
+        )
 
     def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_org_has_person_accounts_enabled(
         self,
     ):
         """
-        A BulkDataException is raised because the task will (later) attempt to load
-        person account Account records, but the org does not have person accounts enabled
-        which will result in an Exception from the Bulk Data API or load records in
-        an unexpected state.
-        - ✅ An Account or Contact object is mapped
-        - ✅ The corresponding table includes an IsPersonAccount column
-        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
-        - ❌ The org does not have person accounts enabled
+        To ensure data is loaded from the dataset as expected as well as avoid partial
+        failues:
+        - Raises a BulkDataException if there exists Account or Contact records with IsPersonAccount as 'true' but the org does not have person accounts enabled.
+            - ✅ An Account or Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ❌ The org does not have person accounts enabled
+        - Raises a BulkDataException if a Contact step has person account records but does not have an Account Id Lookup which is required for _generate_contact_id_map_for_person_accounts.
+            - ❌ A Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ Mapping does not have an "AccountId" lookup
         """
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1809,11 +1904,17 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping_step_name = "Accounts"
+        mapping = {
+            "table": "account",
+            "sf_object": "Account",
+            # ✅ Mapping does not have an "AccountId" lookup
+            "lookups": {},
+        }
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
-        task.mapping = {"Mapping Step": mapping}
+        task.mapping = {mapping_step_name: mapping}
         task.models = {mapping["table"]: model}
 
         # ✅ The cooresponding table includes an IsPersonAccount column
@@ -1835,14 +1936,18 @@ class TestLoadData(unittest.TestCase):
         self,
     ):
         """
-        A BulkDataException is raised because the task will (later) attempt to load
-        person account Account records, but the org does not have person accounts enabled
-        which will result in an Exception from the Bulk Data API or load records in
-        an unexpected state.
-        - ✅ An Account or Contact object is mapped
-        - ✅ The corresponding table includes an IsPersonAccount column
-        - ❌ There is at least one record in the table with IsPersonAccount equals "true"
-        - ✅ The org does not have person accounts enabled
+        To ensure data is loaded from the dataset as expected as well as avoid partial
+        failues:
+        - Raises a BulkDataException if there exists Account or Contact records with IsPersonAccount as 'true' but the org does not have person accounts enabled.
+            - ✅ An Account or Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ❌ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ The org does not have person accounts enabled
+        - Raises a BulkDataException if a Contact step has person account records but does not have an Account Id Lookup which is required for _generate_contact_id_map_for_person_accounts.
+            - ❌ A Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ❌ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ Mapping does not have an "AccountId" lookup
         """
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1854,11 +1959,17 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping_step_name = "Accounts"
+        mapping = {
+            "table": "account",
+            "sf_object": "Account",
+            # ✅ Mapping does not have an "AccountId" lookup
+            "lookups": {},
+        }
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
-        task.mapping = {"Mapping Step": mapping}
+        task.mapping = {mapping_step_name: mapping}
         task.models = {mapping["table"]: model}
 
         # ✅ The cooresponding table includes an IsPersonAccount column
@@ -1881,14 +1992,18 @@ class TestLoadData(unittest.TestCase):
         self,
     ):
         """
-        A BulkDataException is raised because the task will (later) attempt to load
-        person account Account records, but the org does not have person accounts enabled
-        which will result in an Exception from the Bulk Data API or load records in
-        an unexpected state.
-        - ✅ An Account or Contact object is mapped
-        - ❌ The corresponding table includes an IsPersonAccount column
-        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
-        - ✅ The org does not have person accounts enabled
+        To ensure data is loaded from the dataset as expected as well as avoid partial
+        failues:
+        - Raises a BulkDataException if there exists Account or Contact records with IsPersonAccount as 'true' but the org does not have person accounts enabled.
+            - ✅ An Account or Contact object is mapped
+            - ❌ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ The org does not have person accounts enabled
+        - Raises a BulkDataException if a Contact step has person account records but does not have an Account Id Lookup which is required for _generate_contact_id_map_for_person_accounts.
+            - ❌ A Contact object is mapped
+            - ❌ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ Mapping does not have an "AccountId" lookup
         """
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1900,11 +2015,17 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping_step_name = "Accounts"
+        mapping = {
+            "table": "account",
+            "sf_object": "Account",
+            # ✅ Mapping does not have an "AccountId" lookup
+            "lookups": {},
+        }
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
-        task.mapping = {"Mapping Step": mapping}
+        task.mapping = {mapping_step_name: mapping}
         task.models = {mapping["table"]: model}
 
         # ❌ The cooresponding table includes an IsPersonAccount column
@@ -1922,18 +2043,22 @@ class TestLoadData(unittest.TestCase):
 
         task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
 
-    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_no_account_or_contact_not_mapped(
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_account_or_contact_not_mapped(
         self,
     ):
         """
-        A BulkDataException is raised because the task will (later) attempt to load
-        person account Account records, but the org does not have person accounts enabled
-        which will result in an Exception from the Bulk Data API or load records in
-        an unexpected state.
-        - ❌ An Account or Contact object is mapped
-        - ✅ The corresponding table includes an IsPersonAccount column
-        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
-        - ✅ The org does not have person accounts enabled
+        To ensure data is loaded from the dataset as expected as well as avoid partial
+        failues:
+        - Raises a BulkDataException if there exists Account or Contact records with IsPersonAccount as 'true' but the org does not have person accounts enabled.
+            - ❌ An Account or Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ The org does not have person accounts enabled
+        - Raises a BulkDataException if a Contact step has person account records but does not have an Account Id Lookup which is required for _generate_contact_id_map_for_person_accounts.
+            - ❌ A Contact object is mapped
+            - ✅ The corresponding table includes an IsPersonAccount column
+            - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+            - ✅ Mapping does not have an "AccountId" lookup
         """
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1945,11 +2070,17 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ❌ An Account object is mapped
-        mapping = {"table": "custom_object", "sf_object": "CustomObject__c"}
+        mapping_step_name = "Custom Objects"
+        mapping = {
+            "table": "custom_object",
+            "sf_object": "CustomObject__c",
+            # ✅ Mapping does not have an "AccountId" lookup
+            "lookups": {},
+        }
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
-        task.mapping = {"Mapping Step": mapping}
+        task.mapping = {mapping_step_name: mapping}
         task.models = {mapping["table"]: model}
 
         # ✅ The cooresponding table includes an IsPersonAccount column

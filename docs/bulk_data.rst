@@ -196,9 +196,13 @@ During dataset extraction, if the org has person accounts enabled, the ``IsPerso
 Load
 ****
 
-Before loading, CumulusCI checks if the dataset contains any person account records (i.e. any **Account** or **Contact** records with ``IsPersonAccount`` as ``true``).  If the dataset does contain any person account records, CumulusCI validates the org has person accounts enabled.
+Before loading, CumulusCI validates the dataset and org are compatible:
 
-You can enable person accounts for scratch orgs by including the `PersonAccounts <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file_config_values.htm#so_personaccounts/>`_ feature in your scratch org definition.
+- If the dataset contains any person account records (i.e. any **Account** or **Contact** records with ``IsPersonAccount`` as ``true``), person accounts must be enabled in the org.
+  
+    Note: You can enable person accounts for scratch orgs by including the `PersonAccounts <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file_config_values.htm#so_personaccounts/>`_ feature in your scratch org definition.
+
+- If a dataset step will load person account **Contact** records, the step must have an ``AccountId`` lookup.
 
 Advanced Features
 -------------------

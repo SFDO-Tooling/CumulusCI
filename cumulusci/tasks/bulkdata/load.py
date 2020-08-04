@@ -545,10 +545,11 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
     def _validate_org_has_person_accounts_enabled_if_person_account_data_exists(self):
         """
         To ensure data is loaded from the dataset as expected as well as avoid partial
-        failues, raise a BulkDataException if there exists Account or Contact records with
-        IsPersonAccount as 'true' but the org does not have person accounts enabled.
+        failues:
+        - Raises a BulkDataException if there exists Account or Contact records with IsPersonAccount as 'true' but the org does not have person accounts enabled.
+        - Raises a BulkDataException if a Contact step has person account records but does not have an Account Id Lookup which is required for _generate_contact_id_map_for_person_accounts.
         """
-        for mapping in self.mapping.values():
+        for step_name, mapping in self.mapping.items():
             if mapping["sf_object"] in (
                 "Account",
                 "Contact",
@@ -558,11 +559,17 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
                     self.session.query(table)
                     .filter(table.columns.get("IsPersonAccount") == "true")
                     .first()
-                    and not self._org_has_person_accounts_enabled()
                 ):
-                    raise BulkDataException(
-                        "Your dataset contains Person Account data but Person Accounts is not enabled for your org."
-                    )
+                    if not self._org_has_person_accounts_enabled():
+                        raise BulkDataException(
+                            "Your dataset contains Person Account data but Person Accounts is not enabled for your org."
+                        )
+                    if mapping["sf_object"] == "Contact" and not mapping["lookups"].get(
+                        "AccountId"
+                    ):
+                        raise BulkDataException(
+                            f'Dataset step "{step_name}" contains person account Contact records, but the step does not have an AccountId lookup.'
+                        )
 
     def _db_has_person_accounts_column(self, mapping):
         """Returns whether "IsPersonAccount" is a column in mapping's table.
