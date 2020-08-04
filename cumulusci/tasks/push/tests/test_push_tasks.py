@@ -1,11 +1,14 @@
 import datetime
 import os
 from unittest import mock
-
 import pytest
 
 from cumulusci.core.exceptions import CumulusCIException, PushApiObjectNotFound
-from cumulusci.tasks.push.push_api import MetadataPackage
+from cumulusci.tasks.push.push_api import (
+    MetadataPackage,
+    PackagePushRequest,
+    PackagePushJob,
+)
 from cumulusci.tasks.push.tasks import (
     BaseSalesforcePushTask,
     FilterSubscriberList,
@@ -15,14 +18,51 @@ from cumulusci.tasks.push.tasks import (
 )
 from cumulusci.tasks.salesforce.tests.util import create_task
 
+
 SF_ID = "033xxxxxxxxx"
 NAMESPACE = "foo"
 NAME = "foo"
+ORG_FILE = "output.txt"
+VERSION = "1.2.3"
 ORG = "00DS0000003TJJ6MAO"
+ORG_FILE_TEXT = "\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL"
+
 PACKAGE_OBJS = {
-    "totalSize": 1,
+    "totalSize": 2,
     "done": True,
     "records": [
+        {
+            "attributes": {
+                "type": "PackagePushRequest",
+                "url": "/services/data/v48.0/sobjects/PackagePushRequest/0DV1R000000k9dEWAQ",
+            },
+            "Id": "0DV1R000000k9dEWAQ",
+            "NamespacePrefix": "2020-07-02T08:03:49.000+0000",
+            "Name": "cci",
+            "MetadataPackageId": "0DV1R000000k9dEWAQ",
+            "PackageVersionId": "0DV1R000000k9dEWAQ",
+            "ReleaseState": "Failed",
+            "ScheduledStartTime": "2020-07-02T08:03:49.000+0000",
+            "MajorVersion": "1",
+            "MinorVersion": "2",
+            "PatchVersion": "3",
+            "BuildNumber": "4",
+            "Status": "Failed",
+            "SubscriberOrganizationKey": "00DS0000003TJJ6MAA",
+            "MetadataPackageVersionId": "0DV1R000000k9dEWAQ",
+            "InstalledStatus": "Success",
+            "PackagePushRequestId": "0DV1R000000k9dEWAQ",
+            "OrgName": "bar",
+            "OrgKey": "bar",
+            "OrgStatus": "bar",
+            "OrgType": "Production",
+            "PackagePushJobId": "0DV1R000000k9dEWAQ",
+            "ErrorSeverity": "",
+            "ErrorType": "",
+            "ErrorTitle": "",
+            "ErrorMessage": "",
+            "ErrorDetails": "",
+        },
         {
             "attributes": {
                 "type": "PackagePushRequest",
@@ -54,9 +94,71 @@ PACKAGE_OBJS = {
             "ErrorTitle": "",
             "ErrorMessage": "",
             "ErrorDetails": "",
-        }
+        },
     ],
 }
+
+
+@pytest.fixture
+def metadata_package():
+    return MetadataPackage(
+        push_api=mock.MagicMock(), name=NAME, sf_id=SF_ID, namespace=NAMESPACE
+    )
+
+
+@pytest.fixture
+def package_push_job_success():
+    return PackagePushJob(
+        push_api=mock.MagicMock(),
+        request=mock.Mock(),
+        org="00D63000000ApoXEAS",
+        status="Succeeded",
+        sf_id=SF_ID,
+    )
+
+
+@pytest.fixture
+def package_push_job_failure():
+    return PackagePushJob(
+        push_api=mock.MagicMock(),
+        request=mock.Mock(),
+        org="00D63000000ApoXEAS",
+        status="Failed",
+        sf_id=SF_ID,
+    )
+
+
+@pytest.fixture
+def package_push_job_cancel():
+    return PackagePushJob(
+        push_api=mock.MagicMock(),
+        request=mock.Mock(),
+        org="00D63000000ApoXEAS",
+        status="Canceled",
+        sf_id=SF_ID,
+    )
+
+
+@pytest.fixture
+def package_push_request_failure():
+    return PackagePushRequest(
+        push_api=mock.MagicMock(),
+        version="1.2.3",
+        start_time="12:03",
+        status="Failed",
+        sf_id=SF_ID,
+    )
+
+
+@pytest.fixture
+def package_push_request_cancel():
+    return PackagePushRequest(
+        push_api=mock.MagicMock(),
+        version="1.2.3",
+        start_time="12:03",
+        status="Canceled",
+        sf_id=SF_ID,
+    )
 
 
 def test_parse_version():
@@ -112,7 +214,7 @@ def test_get_version_error():
     package.get_package_version_objs.return_value = None
     task = create_task(BaseSalesforcePushTask, options={})
     with pytest.raises(PushApiObjectNotFound):
-        task._get_version(package, "1.2.3")
+        task._get_version(package, VERSION)
 
 
 def test_get_package():
@@ -138,98 +240,77 @@ def test_get_package_error():
 
 
 def test_schedule_push_org_list_get_orgs():
-    with open("output.txt", "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    with open(ORG_FILE, "w") as file:
+        file.write(f"{ORG_FILE_TEXT}")
     task = create_task(
         SchedulePushOrgList,
         options={
-            "orgs": "output.txt",
-            "version": "1.2.3",
+            "orgs": ORG_FILE,
+            "version": VERSION,
             "namespace": NAMESPACE,
             "start_time": datetime.datetime.now(),
             "batch_size": 10,
         },
     )
     assert task._get_orgs() == ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"]
-    os.remove("output.txt")
+    os.remove(ORG_FILE)
 
 
 def test_schedule_push_org_list_init_options():
-    with open("output.txt", "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    with open(ORG_FILE, "w") as file:
+        file.write(f"{ORG_FILE_TEXT}")
     task = create_task(
         SchedulePushOrgList,
         options={
-            "orgs": "output.txt",
-            "version": "1.2.3",
+            "orgs": ORG_FILE,
+            "version": VERSION,
             "start_time": datetime.datetime.now(),
         },
     )
     task._init_task()
     task._init_options(
-        {
-            "orgs": "output.txt",
-            "version": "1.2.3",
-            "start_time": datetime.datetime.now(),
-        }
+        {"orgs": ORG_FILE, "version": VERSION, "start_time": datetime.datetime.now()}
     )
     assert task.options["namespace"] is None
     assert task.options["batch_size"] == 200
-    assert task.options["orgs"] == "output.txt"
-    assert task.options["version"] == "1.2.3"
-    os.remove("output.txt")
+    assert task.options["orgs"] == ORG_FILE
+    assert task.options["version"] == VERSION
+    os.remove(ORG_FILE)
 
 
 def test_schedule_push_org_list_bad_start_time():
-    with open("output.txt", "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    with open(ORG_FILE, "w") as file:
+        file.write(f"{ORG_FILE_TEXT}")
     task = create_task(
         SchedulePushOrgList,
         options={
-            "orgs": "output.txt",
-            "version": "1.2.3",
+            "orgs": ORG_FILE,
+            "version": VERSION,
             "start_time": "2020-06-10T10:15",
-            "namespace": "foo",
+            "namespace": NAMESPACE,
         },
     )
     task.push = mock.MagicMock()
     with pytest.raises(CumulusCIException):
         task._run_task()
-    os.remove("output.txt")
-
-
-def test_load_orgs_file_space():
-    # creating sample org file for testing
-    # testing with empty file
-    with open("output.txt", "w") as file:
-        file.write("  \n")
-        task = create_task(BaseSalesforcePushTask, options={})
-        assert task._load_orgs_file("output.txt") == []
-    #
-    # testing with multiple orgs
-    with open("output.txt", "r") as file:
-        assert task._load_orgs_file("output.txt") == []
-    os.remove("output.txt")
+    os.remove(ORG_FILE)
 
 
 def test_load_orgs_file():
     # creating sample org file for testing
     # testing with empty file
-    with open("output.txt", "w") as file:
-        file.write(
-            "OrganizationId,OrgName,OrgType,OrgStatus,InstanceName,ErrorSeverity,ErrorTitle,ErrorType,ErrorMessage,Gack Id,Stacktrace Id,\n00D5w000004zLhX,,,,,Error,Unexpected Failure,UnclassifiedError,An unexpected failure was experienced during the upgrade. The subscriber's organization was unaffected. Contact salesforce.com Support through your normal channels and provide the following error number: 1351793968-113330 (-1345328791).,1351793968-113330,-1345328791\n00D5w000005V5Dq,,,,,Error,Unexpected Failure,UnclassifiedError,An unexpected failure was experienced during the upgrade. The subscriber's organization was unaffected. Contact salesforce.com Support through your normal channels and provide the following error number: 822524189-80345 (-2096886284).,822524189-80345,-2096886284"
-        )
+    with open(ORG_FILE, "w") as file:
+        file.write(f"{ORG_FILE_TEXT}")
         task = create_task(BaseSalesforcePushTask, options={})
-        assert task._load_orgs_file("output.txt") == []
-    #
+        assert task._load_orgs_file(ORG_FILE) == []
+
     # testing with multiple orgs
-    with open("output.txt", "r") as file:
-        assert task._load_orgs_file("output.txt") == [
-            "OrganizationId",
-            "00D5w000004zLhX",
-            "00D5w000005V5Dq",
+    with open(ORG_FILE, "r") as file:
+        assert task._load_orgs_file(ORG_FILE) == [
+            "00DS0000003TJJ6MAO",
+            "00DS0000003TJJ6MAL",
         ]
-    os.remove("output.txt")
+    os.remove(ORG_FILE)
 
 
 def test_get_subs_raises_err():
@@ -261,55 +342,20 @@ def test_report_push_status_error():
         task._report_push_status("0DV1R000000k9dEWAQ")
 
 
-def test_get_push_request_job_results():
+def test_get_push_request_job_results(
+    package_push_job_success, package_push_job_failure, package_push_job_cancel
+):
     task = create_task(BaseSalesforcePushTask, options={})
     task.sf = mock.MagicMock()
     task.push_report = mock.MagicMock()
     task.push_request = mock.MagicMock()
-    assert task._get_push_request_job_results() is None
-
-
-# def test_report_push_status():
-#     query1 = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
-#     query2 = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE OrgKey = '00DS0000003TJJ6MAO'"
-#     task = create_task(BaseSalesforcePushTask, options={})
-#     task.sf = mock.MagicMock()
-#     task.push_report = mock.MagicMock()
-
-#     # push_request_result = {
-#     #     "totalSize": 1,
-#     #     "done": True,
-#     #     "records": [
-#     #         {
-#     #             "attributes": {
-#     #                 "type": "PackagePushRequest",
-#     #                 "url": "/services/data/v48.0/sobjects/PackagePushRequest/0DV1R000000k9dEWAQ",
-#     #             },
-#     #             "Id": "0DV1R000000k9dEWAQ",
-#     #             "PackageVersionId": "04t1R000000s4PJQAY",
-#     #             "ScheduledStartTime": "2020-07-02T08:03:49.000+0000",
-#     #             "Status": "Failed",
-#     #         }
-#     #     ],
-#     # }
-#     push_request_result_succeded = copy.deepcopy(PACKAGE_OBJS)
-#     # push_request_result_inprogress = copy.deepcopy(push_request_result)
-#     push_request_result_succeded["records"][0]["Status"] = "X-GAMES"
-#     # push_request_result_succeded["Name"] = push_request_result_succeded
-#     # get_package_objs_result["Name"] = "cci"
-#     task.sf.query_all.return_value = PACKAGE_OBJS
-#     task.push_report.get_push_request_objs.return_value = task.sf.query_all.return_value
-
-#     # task.push_report.get_push_request_objs.side_effect = [
-#     #     push_request_result_succeded,
-#     #     PACKAGE_OBJS,
-#     # ]
-
-#     task._report_push_status("0DV1R000000k9dEWAQ")
-#     task.sf.query_all.assert_called_with(query1)
-
-
-# ##########WIP################
+    task.push_request.get_push_job_objs.return_value = [
+        package_push_job_success,
+        package_push_job_failure,
+        package_push_job_cancel,
+    ]
+    task._get_push_request_job_results()
+    task.push_request.get_push_job_objs.assert_called_once()
 
 
 def test_schedule_push_org_query_get_org_error():
@@ -317,7 +363,7 @@ def test_schedule_push_org_query_get_org_error():
         SchedulePushOrgQuery,
         options={
             "orgs": ORG,
-            "version": "1.2.3",
+            "version": VERSION,
             "namespace": NAMESPACE,
             "start_time": None,
             "batch_size": "200",
@@ -339,85 +385,90 @@ def test_schedule_push_org_query_get_org():
         SchedulePushOrgQuery,
         options={
             "orgs": ORG,
-            "version": "1.2.3",
+            "version": VERSION,
             "namespace": NAMESPACE,
             "start_time": None,
             "batch_size": "200",
+            "subscriber_where": "OrgType = 'Sandbox'",
         },
     )
     task.push = mock.MagicMock()
     task.push_api = mock.MagicMock()
     task.sf = mock.Mock()
-    task.push_api.return_query_records = mock.MagicMock()
-    task.push_api.return_query_records.return_value = {"totalSize": "1"}
     task.sf.query_all.return_value = PACKAGE_OBJS
-    assert task._get_orgs() == [NAME]
+    assert task._get_orgs() == ["bar", NAME]
 
 
 def test_schedule_push_org_list_run_task_with_time():
     query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
-
-    with open("output.txt", "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    with open(ORG_FILE, "w") as file:
+        file.write(f"{ORG_FILE_TEXT}")
     task = create_task(
         SchedulePushOrgList,
         options={
-            "orgs": "output.txt",
-            "version": "1.2.3",
+            "orgs": ORG_FILE,
+            "version": VERSION,
             "start_time": "now",
-            "namespace": "foo",
+            "namespace": NAMESPACE,
         },
     )
     task.push = mock.MagicMock()
     task.sf = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJS
-    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1)
+    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 2)
     task._run_task()
     task.sf.query_all.assert_called_with(query)
+    os.remove(ORG_FILE)
 
 
 def test_schedule_push_org_list_run_task_without_time():
-    with open("output.txt", "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    with open(ORG_FILE, "w") as file:
+        file.write(f"{ORG_FILE_TEXT}")
     task = create_task(
         SchedulePushOrgList,
-        options={"orgs": "output.txt", "version": "1.2.3", "namespace": "foo"},
+        options={"orgs": ORG_FILE, "version": VERSION, "namespace": NAMESPACE},
     )
     task.push = mock.MagicMock()
     task.sf = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJS
-    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1)
-    assert task._run_task() is None
+    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 2)
+    task._run_task()
+    task.push.create_push_request.assert_called_once()
+    os.remove(ORG_FILE)
 
 
 def test_schedule_push_org_list_run_task_without_orgs():
-    with open("output.txt", "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    with open(ORG_FILE, "w") as file:
+        file.write(f"{ORG_FILE_TEXT}")
     task = create_task(
         SchedulePushOrgList,
         options={
-            "orgs": "output.txt",
-            "version": "1.2.3",
-            "namespace": "foo",
+            "orgs": ORG_FILE,
+            "version": VERSION,
+            "namespace": NAMESPACE,
             "start_time": "now",
         },
     )
     task.push = mock.MagicMock()
+    task.push_request = mock.MagicMock()
     task.sf = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJS
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 0)
-    assert task._run_task() is None
+    task._run_task()
+    task.push.create_push_request.assert_called_once()
+    os.remove(ORG_FILE)
 
 
 def test_schedule_push_org_list_run_task_many_orgs():
-    with open("output.txt", "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
+    with open(ORG_FILE, "w") as file:
+        file.write(f"{ORG_FILE_TEXT}")
     task = create_task(
         SchedulePushOrgList,
         options={
-            "orgs": "output.txt",
-            "version": "1.2.3",
-            "namespace": "foo",
+            "orgs": ORG_FILE,
+            "version": VERSION,
+            "namespace": NAMESPACE,
             "start_time": "now",
         },
     )
@@ -425,4 +476,6 @@ def test_schedule_push_org_list_run_task_many_orgs():
     task.sf = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJS
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1001)
-    assert task._run_task() is None
+    task._run_task()
+    task.sf.query_all.assert_called_with(query)
+    os.remove(ORG_FILE)
