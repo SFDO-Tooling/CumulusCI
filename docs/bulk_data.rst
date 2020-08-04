@@ -158,6 +158,48 @@ the same Record Type upon load.
 It's recommended that new datasets use Record Type mapping by including the ``RecordTypeId`` 
 field. Using ``record_type`` will result in CumulusCI issuing a warning.
 
+Person Accounts
+---------------
+
+CumulusCI supports extracting and loading person account data.  In your dataset definition, map person account fields like ``LastName``, ``PersonBirthdate``, or ``CustomContactField__pc`` to **Account** steps (i.e. where ``sf_object`` equals **Account**).
+
+.. code-block:: yaml
+
+    Account:
+      sf_object: Account
+      table: Account
+      fields:
+        # Business Account Fields
+        - Name
+        - AccountNumber
+        - BillingStreet
+        - BillingCity
+
+        # Person Account Fields
+        - FirstName
+        - LastName
+        - PersonEmail
+        - CustomContactField__pc
+
+        # Optional (though recommended) Record Type
+        - RecordTypeId
+
+Record Types
+************
+It's recommended, though not required, to extract Account Record Types to support datasets with person accounts so there is consistency in the Account record types loaded.   If Account ``RecordTypeId`` is not extracted, the default business account Record Type and default person account Record Type will be applied to business and person account records respectively.
+
+Extract
+*******
+
+During dataset extraction, if the org has person accounts enabled, the ``IsPersonAccount`` field is extracted for **Account** and **Contact** records so CumulusCI can properly load these records later.  Additionally, ``Account.Name`` is not createable for person account **Account** records, so ``Account.Name`` is not extracted for person account **Account** records.
+
+Load
+****
+
+Before loading, CumulusCI checks if the dataset contains any person account records (i.e. any **Account** or **Contact** records with ``IsPersonAccount`` as ``true``).  If the dataset does contain any person account records, CumulusCI validates the org has person accounts enabled.
+
+You can enable person accounts for scratch orgs by including the `PersonAccounts <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file_config_values.htm#so_personaccounts/>`_ feature in your scratch org definition.
+
 Advanced Features
 -------------------
 
