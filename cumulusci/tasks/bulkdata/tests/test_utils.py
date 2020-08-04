@@ -46,6 +46,12 @@ def mock_describe_calls():
             body=read_mock(name),
             status=200,
         )
+        responses.add(
+            method="GET",
+            url=f"https://example.com/services/data/v48.0/sobjects/{name.lower()}/describe",
+            body=read_mock(name),
+            status=200,
+        )
 
     responses.add(
         method="GET",
@@ -66,8 +72,6 @@ def mock_describe_calls():
         "Opportunity",
         "OpportunityContactRole",
         "Case",
-        "account",
-        "contact",
     ]:
         mock_sobject_describe(sobject)
 
