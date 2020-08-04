@@ -2,6 +2,51 @@
 History
 =======
 
+3.15.0 (2020-07-09)
+-------------------
+
+Changes:
+
+* The ``run_tests`` task now defaults to only logging tests that failed. Set the ``verbose`` option to True to see all results including tests that passed.
+
+* The ``update_dependencies`` task now supports an ``ignore_dependencies`` option, which prevents CumulusCI from processing a specific dependency (whether direct or transitive). This feature may be useful in installers for packages that extend other packages if the installer is not meant to include the base package.
+
+* Improvements to the mapping file for the ``extract_dataset`` and ``load_dataset`` tasks:
+
+  * Fields can now be specified as a simple list of Salesforce API names, instead of a mapping. CumulusCI will infer the database column names.
+  * Mappings may omit the ``table`` key and CumulusCI will use the object name.
+  * The tasks will check and show an error if mappings do not use a consistent object Id mode.
+  * Mappings can now include junction objects with no additional fields.
+
+* The ``generate_dataset_mapping`` task now has an ``include`` option to specify additional objects to include in the mapping if they aren't found by the default heuristics.
+
+* Added additional tasks intended for use as preflight checks for MetaDeploy install plans:
+
+  * ``check_sobjects_enabled`` returns a set of available SObject names.
+  * ``check_org_wide_defaults`` returns a boolean indicating whether Organization-Wide Defaults match the specified values.
+
+* The ``update_package_xml`` task now supports the MessageChannel metadata type.
+
+* Adjusted the default rules for the ``robot_lint`` task.
+
+* CumulusCI can be configured to always show Python stack traces in the case of an error by setting the ``show_stacktraces`` option to True in the ``cli`` section of ``~/.cumulusci/cumulusci.yml``.
+
+* The prompt provided by ``cci org shell`` now has access to the Tooling API through the keyword ``tooling``.
+
+* When using the JWT OAuth2 flow, CumulusCI can be configured to use alternate Salesforce login URLs by setting the SF_PROD_LOGIN_URL and SF_SANDBOX_LOGIN_URL environment variables.
+
+Issues closed:
+
+* Fixed a UnicodeDecodeError that could happen while using the ``extract_dataset`` task on Windows. (#1838)
+
+* Fixed support for the CustomHelpMenuSection metadata type in the ``update_package_xml`` task. (#1832)
+
+* Deleting a scratch org now clears its domain from showing in `cci org list`.
+
+* If you try to use ``cci org connect`` with a login URL containing ``lightning.force.com``, CumulusCI will explain that you should use the ``.my.salesforce.com`` domain instead.
+
+* Fixed an issue with deriving the Lightning domain from the instance URL for some orgs.
+
 3.14.0 (2020-06-18)
 -------------------
 

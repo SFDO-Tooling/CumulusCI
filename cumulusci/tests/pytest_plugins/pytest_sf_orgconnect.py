@@ -1,4 +1,5 @@
 import pytest
+import os.path
 
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
@@ -7,6 +8,12 @@ from cumulusci.core.config import TaskConfig
 
 def pytest_addoption(parser, pluginmanager):
     parser.addoption("--org", action="store", default=None, help="org to use")
+    parser.addoption(
+        "--accelerate-integration-tests",
+        action="store_true",
+        default=False,
+        help="DO run integration tests. Do NOT make calls to a real org. This will error out if you have not run with '--org blah' so that you have cached org output.",
+    )
 
 
 def sf_pytest_orgname(request):
@@ -72,3 +79,31 @@ def create_task(request, project_config, org_config):
         return task_class(project_config, task_config, org_config)
 
     return create_task
+
+
+def pytest_configure(config):
+    # register an additional marker
+    config.addinivalue_line(
+        "markers",
+        "integration_test(): an integration test that should only be executed when requested",
+    )
+
+
+def pytest_runtest_setup(item):
+    is_integration_test = any(item.iter_markers(name="integration_test"))
+    if is_integration_test:
+        if not item.config.getoption(
+            "--accelerate-integration-tests"
+        ) and not item.config.getoption("--org"):
+            pytest.skip("test requires --org or --accelerate-integration-tests")
+
+
+@pytest.fixture(scope="module")
+def vcr_cassette_dir(request):
+    is_integration_test = any(request.node.iter_markers(name="integration_test"))
+    test_dir = request.node.fspath.dirname
+    if is_integration_test:
+        return os.path.join(test_dir, "large_cassettes")  # 8-tracks
+    else:  # standard behaviour from
+        # https://github.com/ktosiek/pytest-vcr/blob/master/pytest_vcr.py
+        return os.path.join(test_dir, "cassettes")

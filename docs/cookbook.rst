@@ -290,9 +290,9 @@ Continuous Integration with CumulusCI and GitHub Actions
 
 The “CI” in CumulusCI stands for “continuous integration.” Continuous
 integration is the practice of automatically running a project’s tests
-for any change before that change is merged to the master branch. This
-helps keep the master branch in a state where it can be released at any
-time, because the repository can be configured to protect the master
+for any change before that change is merged to the main branch. This
+helps keep the main branch in a state where it can be released at any
+time, because the repository can be configured to protect the main
 branch so that changes can only be merged if the tests have passed.
 
 CumulusCI flows can be run on your own computer, or they can be run in a
@@ -464,7 +464,7 @@ results of the checks that were performed by the workflow:
    :alt: Screenshot showing a successful check on a GitHub pull request
 
 It is possible to configure
-the repository’s master branch as a *protected branch* so that changes
+the repository’s main branch as a *protected branch* so that changes
 can only be merged to it if these checks are passing.
 
 See GitHub’s documentation for instructions to `configure protected

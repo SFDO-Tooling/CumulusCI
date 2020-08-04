@@ -52,6 +52,58 @@ A simple dataset definition looks like this:
 
     Accounts:
         sf_object: Account
+        fields:
+            - Name
+            - Description
+            - RecordTypeId
+        lookups:
+            ParentId:
+                table: Account
+                after: Accounts
+    Contacts:
+        sf_object: Contact
+        fields:
+            - FirstName
+            - LastName
+            - Email
+        lookups:
+            AccountId:
+                table: Account
+
+This example defines two steps: ``Accounts`` and ``Contacts``. (The names of steps
+are arbitrary). Each step governs the  extraction or load of records in the sObject denoted 
+in its ``sf_object`` property.
+
+Relationships are defined in the ``lookups`` section. Each key within ``lookups`` is the API
+name of the relationship field. Beneath, the ``table`` key defines the stored table to which
+this relationship refers.
+
+CumulusCI loads steps in order. However, sObjects earlier in the sequence of steps may include
+lookups to sObjects loaded later, or to themselves. For these cases, the ``after`` key may be 
+included in a lookup definition, with a value set to the name of the step after which the 
+referenced record is expected to be available. CumulusCI will defer populating the lookup field 
+until the referenced step has been completed. In the example above, an ``after`` definition
+is used to support the ``ParentId`` self-lookup on ``Account``.
+
+CumulusCI defaults to using the Bulk API in Parallel mode. If required to avoid row locks,
+specify the key ``bulk_mode: Serial`` in each step requiring the use of serial mode.
+
+Database Mapping
+----------------
+
+CumulusCI's definition format includes considerable flexibility for use cases where datasets
+are stored in SQL databases whose structure is not identical to the Salesforce database.
+Salesforce objects may be assigned to arbitrary database tables, and Salesforce field names
+mapped to arbitrary columns.
+
+For new mappings, it's recommended to allow CumulusCI to use sensible defaults by specifying
+only the Salesforce entities. Legacy datasets are likely to include explicit database mappings,
+which would look like this for the same data model as above: 
+
+.. code-block:: yaml
+
+    Accounts:
+        sf_object: Account
         table: Account
         fields:
             Name: Name
@@ -72,38 +124,17 @@ A simple dataset definition looks like this:
             AccountId:
                 table: Account
 
-This example defines two steps: ``Accounts`` and ``Contacts``. (The names of steps
-are arbitrary). Each step governs the 
-extraction or load of records in the sObject denoted in its ``sf_object`` property, which is
-stored in the ``table`` table in the local database. In most cases, ``sf_object`` and ``table``
-may be identical.
+Note that in this version, fields are specified as a colon-separated mapping, not a list. Each pair 
+in the field map is structured as ``Salesforce API Name: Database Column Name``. Additionally, each
+object has a ``table`` key to specify the underlying database table.
 
-Those fields which are named in ``fields`` are included. Each field entry has the form 
-``API Name: Stored Name``; that is, the first component is the Salesforce API name of the
-field, and the second is the name under which that data is stored in the extracted version of
-the dataset. In most cases, these values can be the same; users need to use a distinct stored
-name only if the data is stored in a SQL database under a column other than its Salesforce API
-name.
-
-    CumulusCI's definition format includes considerable flexibility for use cases where datasets
-    are stored in SQL databases whose structure is not identical to the Salesforce database.
-    It's recommended that most new datasets set ``table`` equal to ``sf_object`` for each
-    step and have API name and stored name the same for each field. Definitions generated
-    by CumulusCI (see below) match these expectations.
-
-Relationships are defined in the ``lookups`` section. Each key within ``lookups`` is the API
-name of the relationship field. Beneath, the ``table`` key defines the stored table to which
-this relationship refers.
-
-CumulusCI loads steps in order. However, sObjects earlier in the sequence of steps may include
-lookups to sObjects loaded later, or to themselves. For these cases, the ``after`` key may be 
-included in a lookup definition, with a value set to the name of the step after which the 
-referenced record is expected to be available. CumulusCI will defer populating the lookup field 
-until the referenced step has been completed. In the example above, an ``after`` definition
-is used to support the ``ParentId`` self-lookup on ``Account``.
-
-CumulusCI defaults to using the Bulk API in Parallel mode. If required to avoid row locks,
-specify the key ``bulk_mode: Serial`` in each step requiring the use of serial mode.
+New mappings that do not connect to an external SQL database (that is, mappings which simply extract
+and load data between Salesforce orgs) should not need to use this feature, and new mappings that
+are generated by CumulusCI use the simpler version shown above. Existing mappings may be converted
+to this streamlined style in most cases by loading the existing dataset, modifying the mapping file,
+and then extracting a fresh copy of the data. Note however that datasets which make use of older and
+deprecated CumulusCI features, such as the ``record_type`` key, may need to continue using explicit
+database mapping.
 
 Record Types
 ------------
@@ -117,16 +148,15 @@ Older dataset definitions may also use a ``record_type`` key::
 
     Accounts:
         sf_object: Account
-        table: Account
         fields:
-            Name: Name
+            - Name
         record_type: Organization
 
 This feature limits extraction to records possessing that specific Record Type, and assigns
 the same Record Type upon load.
 
 It's recommended that new datasets use Record Type mapping by including the ``RecordTypeId`` 
-field.
+field. Using ``record_type`` will result in CumulusCI issuing a warning.
 
 Advanced Features
 -------------------
@@ -139,7 +169,8 @@ Use of ``filters`` can support use cases where only a subset of stored data shou
     filters:
         - 'SQL string'
 
-Note that ``filters`` uses SQL syntax, not SOQL. This is an advanced feature.
+Note that ``filters`` uses SQL syntax, not SOQL. Filters do not perform filtration or data subsetting
+upon extraction; they only impact loading. This is an advanced feature.
 
 The ``static`` key allows individual fields to be populated with a fixed, static value. ::
 
@@ -164,27 +195,33 @@ If no such mapping is provided, CumulusCI will remove the Salesforce Id from ext
 data and replace it with an autoincrementing integer primary key.
 
 Use of integer primary keys may help yield more readable text diffs when storing data in SQL
-script format. However, it comes at some performance penalty when extracting data.
+script format. However, it comes at some performance penalty when extracting data. It's
+recommended that most mappings do not map the Id field and allow CumulusCI to utilize
+the automatic primary key.
 
 Handling Namespaces
 +++++++++++++++++++
 
-In many cases, the same dataset can be cleanly deployed to both namespaced (or managed)
-and non-namespaced orgs. Data will be stored in the form corresponding to the org from
-which it was captured - that is, data captured from a namespaced scratch org, or a managed
-installation, will be stored with a namespace, and data captured from an unmanaged and 
-non-namespaced scratch org without.
+All CumulusCI bulk data tasks support automatic namespace injection. When you build a
+mapping file for a managed package product, it is recommended to start with a non-namespaced,
+unmanaged scratch org, resulting in a mapping that does not contain any references to the
+product's namespace. 
 
-An additional definition file can be customized to permit loading the same data into the
-opposite type of org. This example shows two versions of the same step, adapting an originally
-non-namespaced definition to deploy non-namespaced data into a namespaced org with the 
-namespace prefix ``MyNS``. 
+CumulusCI by default will automatically resolve these fields to their namespaced versions 
+when data operations are run against an org that contains the project in managed form. In the
+extremely rare circumstance that an org contains the same mapped schema element in both
+namespaced and non-namespaced form, CumulusCI does not perform namespace injection for that element.
+
+Namespace injection can be deactivated by setting the ``inject_namespaces`` option to ``False``.
+
+It's also possible, and common in existing managed package products, to use multiple mapping files
+to achieve loading the same data set in both namespaced and non-namespaced contexts. A mapping file
+that is converted to use explicit namespacing might look like this:
 
 Original version: ::
 
     Destinations:
         sf_object: Destination__c
-        table: Destination__c
         fields:
             Name: Name
             Target__c: Target__c
@@ -214,6 +251,32 @@ simply the version of the field name in the original definition file.
 
 Adapting an originally-namespaced definition to load into a non-namespaced org follows the same
 pattern, but in reverse.
+
+Note that mappings which use the flat list style of field specification must use mapping style to convert
+between namespaced and non-namespaced deployment.
+
+It's recommended that all new mappings use flat list field specifications and allow CumulusCI to manage
+namespace injection. This capability typically results in significant simplication in automation.
+
+Optional Data Elements
+++++++++++++++++++++++
+
+Some projects need to build datasets that include optional data elements - fields and objects that are loaded
+into some of the project's orgs, but not others. This can cover both optional managed packages and features
+that are included in some, but not all, orgs. For example, a managed package A that does not require another
+managed package B but is designed to work with it may wish to include data for managed package B in its
+data sets, but load that data if and only if B is installed. Likewise, a package might wish to include data
+supporting a particular org feature, but not load that data in an org where the feature is turned off (and its
+associated fields and objects are for that reason unavailable).
+
+To support this use case, the ``load_dataset`` and ``extract_dataset`` tasks offer a ``drop_missing_schema``
+option. When enabled, this option results in CumulusCI ignoring any mapped fields, sObjects, or lookups that
+correspond to schema that is not present in the org.
+
+Projects that require this type of conditional behavior can build their datasets in an org that contains managed
+package B, capture it, and then load it safely in orgs that both do and do not contain B. However, it's important
+to always capture from an org with B present, or B data will not be preserved in the dataset.
+
 
 Custom Settings
 ===============
@@ -370,3 +433,28 @@ Options
 +++++++
 
 * ``settings_path``: Location of the YAML settings file.
+
+``delete_data``
+---------------
+
+You can also delete records using CumulusCI. You can either delete every record of a
+particular object, certain records based on a  ``where`` clause or every record of
+multiple objects. Because ``where`` clauses seldom make logical sense when applied
+to multiple objects, you cannot use a ``where`` clause when specifying multiple
+objects.
+
+Details are available with ``cci org info delete_data``
+and `in the task reference <./tasks.html#delete-data>`_.
+
+Examples
+++++++++
+
+.. code-block::
+
+    cci task run delete_data -o objects Opportunity,Contact,Account --org qa
+
+    cci task run delete_data -o objects Opportunity -o where "StageName = 'Active' "
+
+    cci task run delete_data -o objects Account -o ignore_row_errors True
+
+    cci task run delete_data -o objects Account -o hardDelete True

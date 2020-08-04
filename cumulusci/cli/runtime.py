@@ -29,7 +29,7 @@ class CliRuntime(BaseCumulusCI):
         default_keychain_class = (
             self.project_config.cumulusci__keychain
             if self.project_config is not None
-            else self.global_config.cumulusci__keychain
+            else self.universal_config.cumulusci__keychain
         )
         keychain_class = os.environ.get(
             "CUMULUSCI_KEYCHAIN_CLASS", default_keychain_class

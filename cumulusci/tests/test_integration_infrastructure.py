@@ -1,5 +1,5 @@
 import pytest
-from cumulusci.tasks.salesforce.GetInstalledPackages import GetInstalledPackages
+from cumulusci.tasks.preflight.packages import GetInstalledPackages
 from pathlib import Path
 
 

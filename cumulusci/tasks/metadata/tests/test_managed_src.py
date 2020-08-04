@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
@@ -21,7 +21,7 @@ class TestCreateManagedSrc(unittest.TestCase):
                 os.path.dirname(path), os.path.basename(path) + "_revert"
             )
             project_config = BaseProjectConfig(
-                BaseGlobalConfig(), config={"noyaml": True}
+                UniversalConfig(), config={"noyaml": True}
             )
             task_config = TaskConfig(
                 {"options": {"path": path, "revert_path": revert_path}}
@@ -33,7 +33,7 @@ class TestCreateManagedSrc(unittest.TestCase):
             self.assertEqual("", result)
 
     def test_run_task__path_not_found(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig(), config={"noyaml": True})
+        project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})
         task_config = TaskConfig({"options": {"path": "bogus", "revert_path": "bogus"}})
         task = CreateManagedSrc(project_config, task_config)
         with self.assertRaises(TaskOptionsError):
@@ -42,7 +42,7 @@ class TestCreateManagedSrc(unittest.TestCase):
     def test_run_task__revert_path_already_exists(self):
         with temporary_dir() as path, temporary_dir() as revert_path:
             project_config = BaseProjectConfig(
-                BaseGlobalConfig(), config={"noyaml": True}
+                UniversalConfig(), config={"noyaml": True}
             )
             task_config = TaskConfig(
                 {"options": {"path": path, "revert_path": revert_path}}
@@ -61,7 +61,7 @@ class TestRevertManagedSrc(unittest.TestCase):
                 os.path.dirname(revert_path), os.path.basename(revert_path) + "_orig"
             )
             project_config = BaseProjectConfig(
-                BaseGlobalConfig(), config={"noyaml": True}
+                UniversalConfig(), config={"noyaml": True}
             )
             task_config = TaskConfig(
                 {"options": {"path": path, "revert_path": revert_path}}
@@ -71,7 +71,7 @@ class TestRevertManagedSrc(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(path, "file")))
 
     def test_run_task__revert_path_not_found(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig(), config={"noyaml": True})
+        project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})
         task_config = TaskConfig({"options": {"path": "bogus", "revert_path": "bogus"}})
         task = RevertManagedSrc(project_config, task_config)
         with self.assertRaises(TaskOptionsError):

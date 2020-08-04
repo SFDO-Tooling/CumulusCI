@@ -1,3 +1,4 @@
+from pathlib import Path
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
@@ -46,9 +47,9 @@ class RobotLint(BaseTask):
         W: 2, 0: No suite documentation (RequireSuiteDocumentation)
         E: 30, 0: No testcase documentation (RequireTestDocumentation)
 
-    To see a list of all configured options, set the 'list' option to True:
+    To see a list of all configured rules, set the 'list' option to True:
 
-        cci task run robot_list -o list True
+        cci task run robot_lint -o list True
 
     """
 
@@ -102,7 +103,8 @@ class RobotLint(BaseTask):
         result = 0
 
         if self.options["list"]:
-            linter.run(["--list"])
+            args = self._get_args()
+            linter.run(args + ["--list"])
 
         else:
             files = self._get_files()
@@ -143,7 +145,9 @@ class RobotLint(BaseTask):
     def _get_args(self):
         """Return rflint-style args based on the task options"""
 
-        args = []
+        here = Path(__file__).parent
+        args = ["--argumentfile", str((here / "lint_defaults.txt").resolve())]
+
         for rule in self.options["ignore"]:
             args.extend(["--ignore", rule])
         for rule in self.options["warning"]:

@@ -21,6 +21,7 @@ from cumulusci.utils import os_friendly_path
 
 from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
+    validate_and_inject_mapping,
     MappingStep,
     MappingLookup,
 )
@@ -54,6 +55,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         "bulk_mode": {
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
+        "inject_namespaces": {
+            "description": "If True, the package namespace prefix will be automatically added to objects "
+            "and fields for which it is present in the org. Defaults to True."
+        },
+        "drop_missing_schema": {
+            "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
+        },
     }
     row_warning_limit = 10
 
@@ -79,6 +87,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         )
         if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
+
+        self.options["inject_namespaces"] = process_bool_arg(
+            self.options.get("inject_namespaces", True)
+        )
+        self.options["drop_missing_schema"] = process_bool_arg(
+            self.options.get("drop_missing_schema", False)
+        )
 
     def _run_task(self):
         self._init_mapping()
@@ -436,6 +451,15 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             raise TaskOptionsError("Mapping file path required")
 
         self.mapping = parse_from_yaml(mapping_file_path)
+
+        validate_and_inject_mapping(
+            mapping=self.mapping,
+            org_config=self.org_config,
+            namespace=self.project_config.project__package__namespace,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=self.options["inject_namespaces"],
+            drop_missing=self.options["drop_missing_schema"],
+        )
 
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps

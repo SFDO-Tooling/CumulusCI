@@ -11,7 +11,7 @@ import responses
 
 from ..source import GitHubSource
 from ..source import LocalFolderSource
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import DependencyResolutionError
@@ -24,8 +24,8 @@ from cumulusci.utils import touch
 class TestGitHubSource(unittest.TestCase, MockUtil):
     def setUp(self):
         self.repo_api_url = "https://api.github.com/repos/TestOwner/TestRepo"
-        global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        self.project_config = BaseProjectConfig(universal_config)
         self.project_config.set_keychain(BaseProjectKeychain(self.project_config, None))
         self.project_config.keychain.set_service(
             "github",
@@ -86,8 +86,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
             self.project_config, {"github": "https://github.com/TestOwner/TestRepo.git"}
         )
         assert (
-            repr(source)
-            == "<GitHubSource GitHub: TestOwner/TestRepo @ master (abcdef)>"
+            repr(source) == "<GitHubSource GitHub: TestOwner/TestRepo @ main (abcdef)>"
         )
 
     @responses.activate
@@ -119,11 +118,10 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
 
         source = GitHubSource(
             self.project_config,
-            {"github": "https://github.com/TestOwner/TestRepo.git", "ref": "master"},
+            {"github": "https://github.com/TestOwner/TestRepo.git", "ref": "main"},
         )
         assert (
-            repr(source)
-            == "<GitHubSource GitHub: TestOwner/TestRepo @ master (abcdef)>"
+            repr(source) == "<GitHubSource GitHub: TestOwner/TestRepo @ main (abcdef)>"
         )
 
     @responses.activate
@@ -141,11 +139,10 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
 
         source = GitHubSource(
             self.project_config,
-            {"github": "https://github.com/TestOwner/TestRepo.git", "branch": "master"},
+            {"github": "https://github.com/TestOwner/TestRepo.git", "branch": "main"},
         )
         assert (
-            repr(source)
-            == "<GitHubSource GitHub: TestOwner/TestRepo @ master (abcdef)>"
+            repr(source) == "<GitHubSource GitHub: TestOwner/TestRepo @ main (abcdef)>"
         )
 
     @responses.activate
@@ -441,7 +438,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
 
 class TestLocalFolderSource:
     def test_fetch(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             touch("cumulusci.yml")
             source = LocalFolderSource(project_config, {"path": d})
@@ -449,19 +446,19 @@ class TestLocalFolderSource:
             assert project_config.repo_root == os.path.realpath(d)
 
     def test_hash(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             source = LocalFolderSource(project_config, {"path": d})
             assert hash(source) == hash((source.path,))
 
     def test_repr(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             source = LocalFolderSource(project_config, {"path": d})
             assert repr(source) == f"<LocalFolderSource Local folder: {d}>"
 
     def test_frozenspec(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             source = LocalFolderSource(project_config, {"path": d})
             with pytest.raises(NotImplementedError):

@@ -231,6 +231,111 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+**assign_compact_layout**
+==========================================
+
+**Description:** Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option.
+
+**Class:** cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+
+Metadata ETL task to update a single child element's text within metadata XML.
+
+If the child doesn't exist, the child is created and appended to the Metadata.   Furthermore, the ``value`` option is namespaced injected if the task is properly configured.
+
+Example: Assign a Custom Object's Compact Layout
+------------------------------------------------
+
+Researching `CustomObject <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/customobject.htm>`_ in the Metadata API documentation or even retrieving the CustomObject's Metadata for inspection, we see the ``compactLayoutAssignment`` Field.  We want to assign a specific Compact Layout for our Custom Object, so we write the following CumulusCI task in our project's ``cumulusci.yml``.
+
+.. code-block::  yaml
+
+  tasks:
+      assign_compact_layout:
+          class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+          options:
+              managed: False
+              namespace_inject: $project_config.project__package__namespace
+              entity: CustomObject
+              api_names: OurCustomObject__c
+              tag: compactLayoutAssignment
+              value: "%%%NAMESPACE%%%DifferentCompactLayout"
+              # We include a namespace token so it's easy to use this task in a managed context.
+
+Suppose the original CustomObject metadata XML looks like:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>OriginalCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+After running ``cci task run assign_compact_layout``, the CustomObject metadata XML is deployed as:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>DifferentCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run assign_compact_layout``
+
+
+Options
+------------------------------------------
+
+
+``-o metadata_type METADATATYPE``
+	 *Required*
+
+	 Metadata Type
+
+	 Default: CustomObject
+
+``-o tag TAG``
+	 *Required*
+
+	 Targeted tag. The text of the first instance of this tag within the metadata entity will be updated.
+
+	 Default: compactLayoutAssignment
+
+``-o value VALUE``
+	 *Required*
+
+	 Desired value to set for the targeted tag's text. This value is namespace-injected.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **batch_apex_wait**
 ==========================================
 
@@ -257,6 +362,42 @@ Options
 	 *Optional*
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+
+**check_sobjects_available**
+==========================================
+
+**Description:** Runs as a preflight check to determine whether specific sObjects are available.
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_sobjects_available``
+
+
+
+**check_org_wide_defaults**
+==========================================
+
+**Description:** Runs as a preflight check to validate Organization-Wide Defaults.
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_org_wide_defaults``
+
+
+Options
+------------------------------------------
+
+
+``-o org_wide_defaults ORGWIDEDEFAULTS``
+	 *Required*
+
+	 The Organization-Wide Defaults to check, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature. Checking External Sharing Model when it is turned off will fail the preflight.
 
 **custom_settings_value_wait**
 ==========================================
@@ -458,6 +599,11 @@ Options
 
 	 Time to wait, in seconds, for the community to be created
 
+``-o skip_existing SKIPEXISTING``
+	 *Optional*
+
+	 If True, an existing community with the same name will not raise an exception.
+
 **insert_record**
 ==========================================
 
@@ -578,6 +724,48 @@ Options
 
 	 Default: src.orig
 
+**delete_data**
+==========================================
+
+**Description:** Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
+
+**Class:** cumulusci.tasks.bulkdata.DeleteData
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run delete_data``
+
+
+Options
+------------------------------------------
+
+
+``-o objects OBJECTS``
+	 *Required*
+
+	 A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string
+
+``-o where WHERE``
+	 *Optional*
+
+	 A SOQL where-clause (without the keyword WHERE). Only available when 'objects' is length 1.
+
+``-o hardDelete HARDDELETE``
+	 *Optional*
+
+	 If True, perform a hard delete, bypassing the Recycle Bin. Note that this requires the Bulk API Hard Delete permission. Default: False
+
+``-o ignore_row_errors IGNOREROWERRORS``
+	 *Optional*
+
+	 If True, allow the operation to continue even if individual rows fail to delete.
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
 **deploy**
 ==========================================
 
@@ -598,7 +786,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 
@@ -824,7 +1012,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: unpackaged/config/qa
 
@@ -1215,10 +1403,10 @@ Options
 
 	 Confirmation that it is okay to delete the data in database_url
 
-``-o debug_dir DEBUGDIR``
+``-o working_directory WORKINGDIRECTORY``
 	 *Optional*
 
-	 Store temporary DB files in debug_dir for easier debugging.
+	 Default path for temporary / working files
 
 ``-o database_url DATABASEURL``
 	 *Optional*
@@ -1255,6 +1443,16 @@ Options
 
 	 Set to Serial to force serial mode on all jobs. Parallel is the default.
 
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
+
 ``-o generate_mapping_file GENERATEMAPPINGFILE``
 	 *Optional*
 
@@ -1270,17 +1468,12 @@ Options
 
 	 Path for Snowfakery to put its next continuation file
 
-``-o working_directory WORKINGDIRECTORY``
-	 *Optional*
-
-	 Default path for temporary / working files
-
 **get_installed_packages**
 ==========================================
 
 **Description:** Retrieves a list of the currently installed managed package namespaces and their versions
 
-**Class:** cumulusci.tasks.salesforce.GetInstalledPackages
+**Class:** cumulusci.tasks.preflight.packages.GetInstalledPackages
 
 Command Syntax
 ------------------------------------------
@@ -1294,7 +1487,7 @@ Command Syntax
 
 **Description:** Retrieves a list of the currently available license definition keys
 
-**Class:** cumulusci.tasks.salesforce.license_preflights.GetAvailableLicenses
+**Class:** cumulusci.tasks.preflight.licenses.GetAvailableLicenses
 
 Command Syntax
 ------------------------------------------
@@ -1308,7 +1501,7 @@ Command Syntax
 
 **Description:** Retrieves a list of the currently available Permission Set License definition keys
 
-**Class:** cumulusci.tasks.salesforce.license_preflights.GetAvailablePermissionSetLicenses
+**Class:** cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
 
 Command Syntax
 ------------------------------------------
@@ -1396,7 +1589,7 @@ Options
 **github_master_to_feature**
 ==========================================
 
-**Description:** Merges the latest commit on the master branch into all open feature branches
+**Description:** Merges the latest commit on the main branch into all open feature branches
 
 **Class:** cumulusci.tasks.github.MergeBranch
 
@@ -1470,6 +1663,60 @@ Options
 	 If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
 
 	 Default: True
+
+**github_copy_subtree**
+==========================================
+
+**Description:** Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
+
+**Class:** cumulusci.tasks.github.publish.PublishSubtree
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run github_copy_subtree``
+
+
+Options
+------------------------------------------
+
+
+``-o repo_url REPOURL``
+	 *Required*
+
+	 The url to the public repo
+
+``-o branch BRANCH``
+	 *Required*
+
+	 The branch to update in the target repo
+
+	 Default: master
+
+``-o version VERSION``
+	 *Required*
+
+	 The version number to release.  Also supports latest and latest_beta to look up the latest releases.
+
+``-o include INCLUDE``
+	 *Optional*
+
+	 A list of paths from repo root to include. Directories must end with a trailing slash.
+
+``-o create_release CREATERELEASE``
+	 *Optional*
+
+	 If True, create a release in the public repo.  Defaults to True
+
+``-o release_body RELEASEBODY``
+	 *Optional*
+
+	 If True, the entire release body will be published to the public repo.  Defaults to False
+
+``-o dry_run DRYRUN``
+	 *Optional*
+
+	 If True, skip creating Github data.  Defaults to False
 
 **github_pull_requests**
 ==========================================
@@ -1563,6 +1810,11 @@ Options
 	 *Optional*
 
 	 If True, include links to PRs that have no release notes (default=False)
+
+``-o version_id VERSIONID``
+	 *Optional*
+
+	 The package version id used by the InstallLinksParser to add install urls
 
 **github_release_report**
 ==========================================
@@ -2541,6 +2793,55 @@ Options
 
 	 Default: $project_config.project__package__namespace
 
+**set_field_help_text**
+==========================================
+
+**Description:** Sets specified fields' Help Text values.
+
+**Class:** cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run set_field_help_text``
+
+
+Options
+------------------------------------------
+
+
+``-o fields FIELDS``
+	 *Required*
+
+	 List of object fields to affect, in Object__c.Field__c form.
+
+``-o overwrite OVERWRITE``
+	 *Optional*
+
+	 If set to True, overwrite any differing Help Text found on the field. By default, Help Text is set only if it is blank.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **snapshot_changes**
 ==========================================
 
@@ -2691,6 +2992,11 @@ Options
 
 	 If true, enable the `breakpoint` keyword to enable the robot debugger
 
+``-o processes PROCESSES``
+	 *Optional*
+
+	 *experimental* Number of processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robotframework. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.
+
 **robot_libdoc**
 ==========================================
 
@@ -2771,9 +3077,9 @@ Example Output::
     W: 2, 0: No suite documentation (RequireSuiteDocumentation)
     E: 30, 0: No testcase documentation (RequireTestDocumentation)
 
-To see a list of all configured options, set the 'list' option to True:
+To see a list of all configured rules, set the 'list' option to True:
 
-    cci task run robot_list -o list True
+    cci task run robot_lint -o list True
 
 
 Command Syntax
@@ -2913,6 +3219,11 @@ Options
 	 *Optional*
 
 	 Require at least X percent code coverage across the org following the test run.
+
+``-o verbose VERBOSE``
+	 *Optional*
+
+	 By default, only failures get detailed output. Set verbose to True to see all passed test methods.
 
 **set_duplicate_rule_status**
 ==========================================
@@ -3123,7 +3434,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: src
 
@@ -3202,7 +3513,7 @@ Options
 ``-o path PATH``
 	 *Required*
 
-	 The path to the parent directory containing the metadata bundles directories
+	 The path to the metadata source to be deployed
 
 	 Default: unpackaged/pre
 
@@ -3439,6 +3750,11 @@ Options
 
 	 List of dependencies to update. Defaults to project__dependencies. Each dependency is a dict with either 'github' set to a github repository URL or 'namespace' set to a Salesforce package namespace. Github dependencies may include 'tag' to install a particular git ref. Package dependencies may include 'version' to install a particular version.
 
+``-o ignore_dependencies IGNOREDEPENDENCIES``
+	 *Optional*
+
+	 List of dependencies to be ignored, including if they are present as transitive dependencies. Dependencies can be specified using the 'github' or 'namespace' keys (all other keys are not used). Note that this can cause installations to fail if required prerequisites are not available.
+
 ``-o namespaced_org NAMESPACEDORG``
 	 *Optional*
 
@@ -3468,6 +3784,107 @@ Options
 	 *Optional*
 
 	 Which users to install packages for (FULL = all users, NONE = admins only)
+
+**update_metadata_first_child_text**
+==========================================
+
+**Description:** Updates the text of the first child of Metadata with matching tag.  Adds a child for tag if it does not exist.
+
+**Class:** cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+
+Metadata ETL task to update a single child element's text within metadata XML.
+
+If the child doesn't exist, the child is created and appended to the Metadata.   Furthermore, the ``value`` option is namespaced injected if the task is properly configured.
+
+Example: Assign a Custom Object's Compact Layout
+------------------------------------------------
+
+Researching `CustomObject <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/customobject.htm>`_ in the Metadata API documentation or even retrieving the CustomObject's Metadata for inspection, we see the ``compactLayoutAssignment`` Field.  We want to assign a specific Compact Layout for our Custom Object, so we write the following CumulusCI task in our project's ``cumulusci.yml``.
+
+.. code-block::  yaml
+
+  tasks:
+      assign_compact_layout:
+          class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+          options:
+              managed: False
+              namespace_inject: $project_config.project__package__namespace
+              entity: CustomObject
+              api_names: OurCustomObject__c
+              tag: compactLayoutAssignment
+              value: "%%%NAMESPACE%%%DifferentCompactLayout"
+              # We include a namespace token so it's easy to use this task in a managed context.
+
+Suppose the original CustomObject metadata XML looks like:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>OriginalCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+After running ``cci task run assign_compact_layout``, the CustomObject metadata XML is deployed as:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>DifferentCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run update_metadata_first_child_text``
+
+
+Options
+------------------------------------------
+
+
+``-o metadata_type METADATATYPE``
+	 *Required*
+
+	 Metadata Type
+
+``-o tag TAG``
+	 *Required*
+
+	 Targeted tag. The text of the first instance of this tag within the metadata entity will be updated.
+
+``-o value VALUE``
+	 *Required*
+
+	 Desired value to set for the targeted tag's text. This value is namespace-injected.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
 
 **update_package_xml**
 ==========================================
@@ -3694,6 +4111,9 @@ customized standard objects.
 Mappings must be serializable, and hence must resolve reference cycles - situations
 where Object A refers to B, and B also refers to A. Mapping generation will stop
 and request user input to resolve such cycles by identifying the correct load order.
+If you would rather the mapping generator break such a cycle randomly, set the
+`break_cycles` option to `auto`.
+
 Alternately, specify the `ignore` option with the name of one of the
 lookup fields to suppress it and break the cycle. `ignore` can be specified as a list in
 `cumulusci.yml` or as a comma-separated string at the command line.
@@ -3732,6 +4152,21 @@ Options
 
 	 Object API names, or fields in Object.Field format, to ignore
 
+``-o break_cycles BREAKCYCLES``
+	 *Optional*
+
+	 If the generator is unsure of the order to load, what to do? Set to `ask` (the default) to allow the user to choose or `auto` to pick randomly.
+
+``-o include INCLUDE``
+	 *Optional*
+
+	 Object names to include even if they might not otherwise be included.
+
+``-o strip_namespace STRIPNAMESPACE``
+	 *Optional*
+
+	 If True, CumulusCI removes the project's namespace where found in fields  and objects to support automatic namespace injection. On by default.
+
 **extract_dataset**
 ==========================================
 
@@ -3767,6 +4202,16 @@ Options
 	 If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs.
 
 	 Default: datasets/sample.sql
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
 **load_dataset**
 ==========================================
@@ -3823,6 +4268,16 @@ Options
 	 *Optional*
 
 	 Set to Serial to force serial mode on all jobs. Parallel is the default.
+
+``-o inject_namespaces INJECTNAMESPACES``
+	 *Optional*
+
+	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+``-o drop_missing_schema DROPMISSINGSCHEMA``
+	 *Optional*
+
+	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
 **load_custom_settings**
 ==========================================
