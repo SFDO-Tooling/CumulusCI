@@ -182,10 +182,9 @@ class MappingStep(CCIDictModel):
             # Canonicalize the key's case
             try:
                 new_name = describe.canonical_key(f)
-                if new_name != f:
-                    del field_dict[f]
-                    field_dict[new_name] = entry
-                    f = new_name
+                del field_dict[f]
+                field_dict[new_name] = entry
+                f = new_name
             except KeyError:
                 logger.warning(
                     f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
