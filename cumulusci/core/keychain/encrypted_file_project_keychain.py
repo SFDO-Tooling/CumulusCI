@@ -134,8 +134,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         if default_org_path.exists():
             org_name = default_org_path.read_text().strip()
             org_config = self.get_org(org_name)
-            if org_config:
-                return org_name, org_config
+            return org_name, org_config
 
         # fallback to old way of doing it
         org_name, org_config = super().get_default_org()
