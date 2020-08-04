@@ -1005,7 +1005,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: '48.0'
+        api_version: '49.0'
     git:
         default_branch: master
         prefix_feature: feature/
