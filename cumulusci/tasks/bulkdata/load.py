@@ -475,6 +475,8 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
                 )
         self.metadata.create_all()
 
+        self._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
     def _init_mapping(self):
         """Load a YAML mapping file."""
         mapping_file_path = self.options["mapping"]
@@ -539,6 +541,28 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
                         mapping["lookups"][lookup]["after"] = None
 
                     self.after_steps[after][name] = mapping
+
+    def _validate_org_has_person_accounts_enabled_if_person_account_data_exists(self):
+        """
+        To ensure data is loaded from the dataset as expected as well as avoid partial
+        failues, raise a BulkDataException if there exists Account or Contact records with
+        IsPersonAccount as 'true' but the org does not have person accounts enabled.
+        """
+        for mapping in self.mapping.values():
+            if mapping["sf_object"] in (
+                "Account",
+                "Contact",
+            ) and self._db_has_person_accounts_column(mapping):
+                table = self.models[mapping.get("table")].__table__
+                if (
+                    self.session.query(table)
+                    .filter(table.columns.get("IsPersonAccount") == "true")
+                    .first()
+                    and not self._org_has_person_accounts_enabled()
+                ):
+                    raise BulkDataException(
+                        "Your dataset contains Person Account data but Person Accounts is not enabled for your org."
+                    )
 
     def _db_has_person_accounts_column(self, mapping):
         """Returns whether "IsPersonAccount" is a column in mapping's table.

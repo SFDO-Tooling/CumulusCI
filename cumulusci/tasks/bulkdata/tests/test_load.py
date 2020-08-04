@@ -1345,6 +1345,9 @@ class TestLoadData(unittest.TestCase):
         task._create_record_type_table = mock.Mock(side_effect=create_table_mock)
         task.models = mock.Mock()
         task.metadata = mock.Mock()
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists = (
+            mock.Mock()
+        )
         mock_describe_calls()
 
         task._init_mapping()
@@ -1353,6 +1356,7 @@ class TestLoadData(unittest.TestCase):
         task._create_record_type_table.assert_called_once_with(
             "Account_rt_target_mapping"
         )
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists.assert_called_once_with()
 
     def test_load_record_types(self):
         task = _make_task(
@@ -1501,6 +1505,279 @@ class TestLoadData(unittest.TestCase):
             )
             == "parent_id"
         )
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__raises_exception__account(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ✅ An Account or Contact object is mapped
+        - ✅ The corresponding table includes an IsPersonAccount column
+        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        - ✅ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ An Account object is mapped
+        mapping = {"table": "account", "sf_object": "Account"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ✅ The org does not have person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+
+        with self.assertRaises(BulkDataException):
+            task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__raises_exception__contact(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ✅ An Account or Contact object is mapped
+        - ✅ The corresponding table includes an IsPersonAccount column
+        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        - ✅ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ A Contact object is mapped
+        mapping = {"table": "contact", "sf_object": "Contact"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ✅ The org does not have person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+
+        with self.assertRaises(BulkDataException):
+            task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_org_has_person_accounts_enabled(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ✅ An Account or Contact object is mapped
+        - ✅ The corresponding table includes an IsPersonAccount column
+        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        - ❌ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ An Account object is mapped
+        mapping = {"table": "account", "sf_object": "Account"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ❌ The org does has person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_no_person_account_records(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ✅ An Account or Contact object is mapped
+        - ✅ The corresponding table includes an IsPersonAccount column
+        - ❌ There is at least one record in the table with IsPersonAccount equals "true"
+        - ✅ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ An Account object is mapped
+        mapping = {"table": "account", "sf_object": "Account"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ❌ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+        task.session.query.first.return_value = None
+
+        assert task.session.query.first.return_value is None
+
+        # ✅ The org does has person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_no_person_account_column(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ✅ An Account or Contact object is mapped
+        - ❌ The corresponding table includes an IsPersonAccount column
+        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        - ✅ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ An Account object is mapped
+        mapping = {"table": "account", "sf_object": "Account"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ❌ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=False)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ✅ The org does has person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_no_account_or_contact_not_mapped(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ❌ An Account or Contact object is mapped
+        - ✅ The corresponding table includes an IsPersonAccount column
+        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        - ✅ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ❌ An Account object is mapped
+        mapping = {"table": "custom_object", "sf_object": "CustomObject__c"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ✅ The org does has person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
 
     def test_db_has_person_accounts_column(self):
         mapping_file = "mapping-oid.yml"
