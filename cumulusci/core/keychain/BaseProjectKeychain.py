@@ -142,11 +142,6 @@ class BaseProjectKeychain(BaseConfig):
         del self.orgs[name]
         self._load_orgs()
 
-    # TODO: Are these used in any context other than
-    # encrypted_file_project_keychain?
-    #
-    # If not, they can be removed after a reasonable
-    # period of backwards compatibility
     def set_org(self, org_config, global_org=False):
         if isinstance(org_config, ScratchOrgConfig):
             org_config.config["scratch"] = True
@@ -155,6 +150,11 @@ class BaseProjectKeychain(BaseConfig):
 
     def _set_org(self, org_config, global_org):
         self.orgs[org_config.name] = org_config
+
+    # This implementation of get_default_org, set_default_org, and unset_default_org
+    # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
+    # now stores the default elsewhere, and EnvironmentProjectKeychain doesn't actually
+    # persist across multiple invocations of cci, so we should consider getting rid of this.
 
     def get_default_org(self):
         """ retrieve the name and configuration of the default org """
