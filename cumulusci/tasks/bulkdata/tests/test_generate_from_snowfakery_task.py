@@ -39,7 +39,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
     def assertRowsCreated(self, database_url):
         engine = create_engine(database_url)
         connection = engine.connect()
-        accounts = connection.execute(f"select * from Account")
+        accounts = connection.execute("select * from Account")
         accounts = list(accounts)
         assert accounts and accounts[0] and accounts[0][1]
         return accounts
