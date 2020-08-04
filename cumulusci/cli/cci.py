@@ -918,7 +918,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
 
     org_config.save()
 
-    if default and not global_org:
+    if default and runtime.project_config is not None:
         runtime.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
 
@@ -1044,8 +1044,9 @@ def org_list(runtime, plain):
         org: runtime.keychain.get_org(org) for org in runtime.keychain.list_orgs()
     }
     rows_to_dim = []
+    default_org_name, _ = runtime.keychain.get_default_org()
     for org, org_config in org_configs.items():
-        row = [org, org_config.default]
+        row = [org, org == default_org_name]
         if isinstance(org_config, ScratchOrgConfig):
             org_days = org_config.format_org_days()
             if org_config.expired:
