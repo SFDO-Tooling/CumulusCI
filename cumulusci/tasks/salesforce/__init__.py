@@ -42,6 +42,8 @@ ORIGINS = {
     "UpdateDependencies": "cumulusci.tasks.salesforce.UpdateDependencies",
     "UpdateProfile": "cumulusci.tasks.salesforce.update_profile",
     "UpdateAdminProfile": "cumulusci.tasks.salesforce.update_profile",
+    "UploadUserProfilePhoto": "cumulusci.tasks.salesforce.users",
+    "UploadDefaultUserProfilePhoto": "cumulusci.tasks.salesforce.users",
 }
 
 
