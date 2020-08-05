@@ -143,16 +143,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "SELECT Dependencies FROM SubscriberPackageVersion "
             f"WHERE Id='{package2_version['SubscriberPackageVersionId']}'"
         )
-        subscriber_version = res["records"][0]
-        dependencies = (
-            [
-                {"version_id": d["subscriberPackageVersionId"]}
-                for d in subscriber_version["Dependencies"]["ids"]
-            ]
-            if subscriber_version["Dependencies"]
-            else []
-        )
-        self.return_values["dependencies"] = dependencies
+        self.return_values["dependencies"] = res["records"][0]["Dependencies"]
 
         self.logger.info("Created package version:")
         self.logger.info(f"  Package2 Id: {self.package_id}")

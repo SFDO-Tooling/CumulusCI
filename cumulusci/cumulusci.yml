@@ -212,6 +212,10 @@ tasks:
         description: Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
         class_path: cumulusci.tasks.github.publish.PublishSubtree
         group: GitHub
+    github_package_data:
+        description: Look up 2gp package dependencies for a version id recorded in a commit status.
+        class_path: cumulusci.tasks.github.commit_status.GetPackageDataFromCommitStatus
+        group: GitHub
     github_pull_requests:
         description: Lists open pull requests in project Github repository
         class_path: cumulusci.tasks.github.PullRequests
@@ -227,14 +231,6 @@ tasks:
     github_release_report:
         description: Parses GitHub release notes to report various info
         class_path: cumulusci.tasks.github.ReleaseReport
-        group: GitHub
-    github_tag:
-        description: Creates a GitHub tag
-        class_path: cumulusci.tasks.github.tag.CreateTag
-        group: GitHub
-    github_tag_data:
-        description: Load data from a GitHub tag
-        class_path: cumulusci.tasks.github.tag.GetTagData
         group: GitHub
     install_managed:
         description: Install the latest managed production release
@@ -589,21 +585,21 @@ flows:
                 task: github_parent_to_children
 
     ci_feature_2gp:
-        description: Install as a namespaced unlocked package and run Apex tests. Intended for use on the tag created by release_feature_test.
+        description: Install as a namespaced unlocked package and run Apex tests. Intended for use after build_feature_test_package.
         steps:
             1:
-                task: github_tag_data
+                task: github_package_data
                 options:
-                    tag: featuretest/$project_config.repo_commit
+                    context: "Build Feature Test Package"
             2:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        dependencies: ^^github_tag_data.dependencies
+                        dependencies: ^^github_package_data.dependencies
             3:
                 task: install_managed
                 options:
-                    version: ^^github_tag_data.version_id
+                    version: ^^github_package_data.version_id
             4:
                 flow: config_apextest
             5:
@@ -931,7 +927,7 @@ flows:
                     tag: ^^github_release.tag_name
                     version_id: ^^upload_production.version_id
 
-    release_feature_test:
+    build_feature_test_package:
         description: Create a namespaced unlocked package version
         steps:
             1:
@@ -940,12 +936,6 @@ flows:
                     package_type: Unlocked
                     package_name: $project_config.project__package__name Unlocked Feature Test
                     skip_validation: True
-            2:
-                task: github_tag
-                options:
-                    tag: featuretest/$project_config.repo_commit
-                    version_id: ^^create_package_version.subscriber_package_version_id
-                    dependencies: ^^create_package_version.dependencies
 
     retrieve_scratch:
         description: Retrieves declarative changes made in a scratch org and converts to src directory
