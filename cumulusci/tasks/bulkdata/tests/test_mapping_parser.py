@@ -814,6 +814,36 @@ class TestMappingParser:
 
         assert list(ms.fields.keys()) == ["ns__Description__c"]
 
+    @responses.activate
+    def test_validate_and_inject_mapping_queries_is_person_account_field(self):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: Account\n  table: Account\n  fields:\n    - Description__c\n"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            org_config=org_config,
+            namespace=None,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=False,
+            drop_missing=True,
+            org_has_person_accounts_enabled=True,
+        )
+
+        assert "Insert Accounts" in mapping
+        assert "Insert Contacts" in mapping
+        assert "IsPersonAccount" in mapping["Insert Accounts"]["fields"]
+        assert "IsPersonAccount" in mapping["Insert Contacts"]["fields"]
+
 
 class TestMappingLookup:
     def test_get_lookup_key_field__no_model(self):

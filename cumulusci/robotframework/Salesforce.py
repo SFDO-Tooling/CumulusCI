@@ -530,7 +530,7 @@ class Salesforce(object):
                 self.open_app_launcher(retry=False)
             else:
                 self.builtin.log(
-                    f"caught exception waiting for app launcher; not retrying", "DEBUG"
+                    "caught exception waiting for app launcher; not retrying", "DEBUG"
                 )
                 raise
 

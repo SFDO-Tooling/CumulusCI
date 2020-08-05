@@ -341,6 +341,7 @@ def validate_and_inject_mapping(
     data_operation: DataOperationType,
     inject_namespaces: bool,
     drop_missing: bool,
+    org_has_person_accounts_enabled: bool = False,
 ):
     should_continue = [
         m.validate_and_inject_namespace(
@@ -376,3 +377,10 @@ def validate_and_inject_mapping(
                             f"{describe[field]['referenceTo']} was removed from the operation "
                             "due to missing permissions."
                         )
+
+    # If the org has person accounts enable, add a field mapping to track "IsPersonAccount".
+    # IsPersonAccount field values are used to properly load person account records.
+    if org_has_person_accounts_enabled and data_operation == DataOperationType.QUERY:
+        for step in mapping.values():
+            if step["sf_object"] in ("Account", "Contact"):
+                step["fields"]["IsPersonAccount"] = "IsPersonAccount"
