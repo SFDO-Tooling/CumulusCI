@@ -181,13 +181,14 @@ class MappingStep(CCIDictModel):
             # Canonicalize the key's case
             try:
                 new_name = describe.canonical_key(f)
-                del field_dict[f]
-                field_dict[new_name] = entry
-                f = new_name
             except KeyError:
                 logger.warning(
                     f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
                 )
+            else:
+                del field_dict[f]
+                field_dict[new_name] = entry
+                f = new_name
 
             # Do we have the right permissions for this field, or do we need to drop it?
             is_after_lookup = hasattr(field_dict[f], "after")
