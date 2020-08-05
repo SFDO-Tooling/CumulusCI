@@ -151,6 +151,11 @@ class BaseProjectKeychain(BaseConfig):
     def _set_org(self, org_config, global_org):
         self.orgs[org_config.name] = org_config
 
+    # This implementation of get_default_org, set_default_org, and unset_default_org
+    # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
+    # now stores the default elsewhere, and EnvironmentProjectKeychain doesn't actually
+    # persist across multiple invocations of cci, so we should consider getting rid of this.
+
     def get_default_org(self):
         """ retrieve the name and configuration of the default org """
         for org in self.list_orgs():
@@ -181,7 +186,7 @@ class BaseProjectKeychain(BaseConfig):
                 org_config.save()
         sfdx("force:config:set defaultusername=")
 
-    def get_org(self, name):
+    def get_org(self, name: str):
         """ retrieve an org configuration by name key """
         if name not in self.orgs:
             self._raise_org_not_found(name)

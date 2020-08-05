@@ -231,6 +231,111 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+**assign_compact_layout**
+==========================================
+
+**Description:** Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option.
+
+**Class:** cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+
+Metadata ETL task to update a single child element's text within metadata XML.
+
+If the child doesn't exist, the child is created and appended to the Metadata.   Furthermore, the ``value`` option is namespaced injected if the task is properly configured.
+
+Example: Assign a Custom Object's Compact Layout
+------------------------------------------------
+
+Researching `CustomObject <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/customobject.htm>`_ in the Metadata API documentation or even retrieving the CustomObject's Metadata for inspection, we see the ``compactLayoutAssignment`` Field.  We want to assign a specific Compact Layout for our Custom Object, so we write the following CumulusCI task in our project's ``cumulusci.yml``.
+
+.. code-block::  yaml
+
+  tasks:
+      assign_compact_layout:
+          class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+          options:
+              managed: False
+              namespace_inject: $project_config.project__package__namespace
+              entity: CustomObject
+              api_names: OurCustomObject__c
+              tag: compactLayoutAssignment
+              value: "%%%NAMESPACE%%%DifferentCompactLayout"
+              # We include a namespace token so it's easy to use this task in a managed context.
+
+Suppose the original CustomObject metadata XML looks like:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>OriginalCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+After running ``cci task run assign_compact_layout``, the CustomObject metadata XML is deployed as:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>DifferentCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run assign_compact_layout``
+
+
+Options
+------------------------------------------
+
+
+``-o metadata_type METADATATYPE``
+	 *Required*
+
+	 Metadata Type
+
+	 Default: CustomObject
+
+``-o tag TAG``
+	 *Required*
+
+	 Targeted tag. The text of the first instance of this tag within the metadata entity will be updated.
+
+	 Default: compactLayoutAssignment
+
+``-o value VALUE``
+	 *Required*
+
+	 Desired value to set for the targeted tag's text. This value is namespace-injected.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **batch_apex_wait**
 ==========================================
 
@@ -1611,6 +1716,60 @@ Options
 
 	 Default: True
 
+**github_copy_subtree**
+==========================================
+
+**Description:** Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
+
+**Class:** cumulusci.tasks.github.publish.PublishSubtree
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run github_copy_subtree``
+
+
+Options
+------------------------------------------
+
+
+``-o repo_url REPOURL``
+	 *Required*
+
+	 The url to the public repo
+
+``-o branch BRANCH``
+	 *Required*
+
+	 The branch to update in the target repo
+
+	 Default: master
+
+``-o version VERSION``
+	 *Required*
+
+	 The version number to release.  Also supports latest and latest_beta to look up the latest releases.
+
+``-o include INCLUDE``
+	 *Optional*
+
+	 A list of paths from repo root to include. Directories must end with a trailing slash.
+
+``-o create_release CREATERELEASE``
+	 *Optional*
+
+	 If True, create a release in the public repo.  Defaults to True
+
+``-o release_body RELEASEBODY``
+	 *Optional*
+
+	 If True, the entire release body will be published to the public repo.  Defaults to False
+
+``-o dry_run DRYRUN``
+	 *Optional*
+
+	 If True, skip creating Github data.  Defaults to False
+
 **github_pull_requests**
 ==========================================
 
@@ -1703,6 +1862,11 @@ Options
 	 *Optional*
 
 	 If True, include links to PRs that have no release notes (default=False)
+
+``-o version_id VERSIONID``
+	 *Optional*
+
+	 The package version id used by the InstallLinksParser to add install urls
 
 **github_release_report**
 ==========================================
@@ -2681,6 +2845,55 @@ Options
 
 	 Default: $project_config.project__package__namespace
 
+**set_field_help_text**
+==========================================
+
+**Description:** Sets specified fields' Help Text values.
+
+**Class:** cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run set_field_help_text``
+
+
+Options
+------------------------------------------
+
+
+``-o fields FIELDS``
+	 *Required*
+
+	 List of object fields to affect, in Object__c.Field__c form.
+
+``-o overwrite OVERWRITE``
+	 *Optional*
+
+	 If set to True, overwrite any differing Help Text found on the field. By default, Help Text is set only if it is blank.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **snapshot_changes**
 ==========================================
 
@@ -3623,6 +3836,107 @@ Options
 	 *Optional*
 
 	 Which users to install packages for (FULL = all users, NONE = admins only)
+
+**update_metadata_first_child_text**
+==========================================
+
+**Description:** Updates the text of the first child of Metadata with matching tag.  Adds a child for tag if it does not exist.
+
+**Class:** cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+
+Metadata ETL task to update a single child element's text within metadata XML.
+
+If the child doesn't exist, the child is created and appended to the Metadata.   Furthermore, the ``value`` option is namespaced injected if the task is properly configured.
+
+Example: Assign a Custom Object's Compact Layout
+------------------------------------------------
+
+Researching `CustomObject <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/customobject.htm>`_ in the Metadata API documentation or even retrieving the CustomObject's Metadata for inspection, we see the ``compactLayoutAssignment`` Field.  We want to assign a specific Compact Layout for our Custom Object, so we write the following CumulusCI task in our project's ``cumulusci.yml``.
+
+.. code-block::  yaml
+
+  tasks:
+      assign_compact_layout:
+          class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+          options:
+              managed: False
+              namespace_inject: $project_config.project__package__namespace
+              entity: CustomObject
+              api_names: OurCustomObject__c
+              tag: compactLayoutAssignment
+              value: "%%%NAMESPACE%%%DifferentCompactLayout"
+              # We include a namespace token so it's easy to use this task in a managed context.
+
+Suppose the original CustomObject metadata XML looks like:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>OriginalCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+After running ``cci task run assign_compact_layout``, the CustomObject metadata XML is deployed as:
+
+.. code-block:: xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+      ...
+      <label>Our Custom Object</label>
+      <compactLayoutAssignment>DifferentCompactLayout</compactLayoutAssignment>
+      ...
+  </CustomObject>
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run update_metadata_first_child_text``
+
+
+Options
+------------------------------------------
+
+
+``-o metadata_type METADATATYPE``
+	 *Required*
+
+	 Metadata Type
+
+``-o tag TAG``
+	 *Required*
+
+	 Targeted tag. The text of the first instance of this tag within the metadata entity will be updated.
+
+``-o value VALUE``
+	 *Required*
+
+	 Desired value to set for the targeted tag's text. This value is namespace-injected.
+
+``-o api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``-o managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``-o namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``-o api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
 
 **update_package_xml**
 ==========================================

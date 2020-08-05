@@ -45,7 +45,7 @@ class TestReleaseReport(unittest.TestCase, GithubApiTestMixin):
                     "rel/2.0",
                     created_at="2018-01-01T00:00:00Z",
                     url="https://api.github.com/repos/SalesforceFoundation/Cumulus/releases/2",
-                    body="""Sandbox orgs: 
+                    body="""Sandbox orgs:
 Sandbox orgs: bogusdate
 Sandbox orgs: 2018-08-01
 Production orgs: 2018-09-01""",
