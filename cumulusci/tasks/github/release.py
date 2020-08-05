@@ -1,12 +1,12 @@
-import json
-import time
 from datetime import datetime
+import time
 
 import github3.exceptions
 
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.github.base import BaseGithubTask
+from cumulusci.tasks.github.util import build_package_tag_message
 
 
 class CreateRelease(BaseGithubTask):
@@ -58,10 +58,9 @@ class CreateRelease(BaseGithubTask):
             raise GithubException(message)
 
         # Build tag message
-        message = self.options.get("message", "Release of version {}".format(version))
-        dependencies = self.options.get("dependencies")
-        if dependencies:
-            message += "\n\ndependencies: {}".format(json.dumps(dependencies, indent=4))
+        message = build_package_tag_message(
+            self.options, base_message=f"Release of version {version}"
+        )
 
         try:
             repo.ref("tags/{}".format(tag_name))
@@ -89,11 +88,7 @@ class CreateRelease(BaseGithubTask):
         release = repo.create_release(
             tag_name=tag_name, name=version, prerelease=prerelease
         )
-        self.return_values = {
-            "tag_name": tag_name,
-            "name": version,
-            "dependencies": dependencies,
-        }
+        self.return_values = {"tag_name": tag_name, "name": version}
         self.logger.info(
             "Created release {} at {}".format(release.name, release.html_url)
         )

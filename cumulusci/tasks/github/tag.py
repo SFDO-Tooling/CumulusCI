@@ -3,7 +3,63 @@ from datetime import datetime
 import github3.exceptions
 
 from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.github.base import BaseGithubTask
+from cumulusci.tasks.github.util import build_package_tag_message
+
+
+class CreateTag(BaseGithubTask):
+
+    task_options = {
+        "tag": {"description": "The tag to create", "required": True},
+        "message": {"description": "The message to attach to the git tag"},
+        "dependencies": {
+            "description": "List of dependencies to record in the tag message."
+        },
+        "version_id": {
+            "description": "Package version id to record in the tag message."
+        },
+        "commit": {
+            "description": (
+                "Override the commit used to create the release. "
+                "Defaults to the current local HEAD commit"
+            )
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
+        self.commit = self.options.get("commit", self.project_config.repo_commit)
+        if not self.commit:
+            message = "Could not detect the current commit from the local repo"
+            raise GithubException(message)
+        if len(self.commit) != 40:
+            raise TaskOptionsError("The commit option must be exactly 40 characters.")
+
+    def _run_task(self):
+        repo = self.get_repo()
+        tag_name = self.options["tag"]
+        message = build_package_tag_message(self.options)
+
+        try:
+            repo.ref("tags/{}".format(tag_name))
+        except github3.exceptions.NotFoundError:
+            # Create the annotated tag
+            repo.create_tag(
+                tag=tag_name,
+                message=message,
+                sha=self.commit,
+                obj_type="commit",
+                tagger={
+                    "name": self.github_config.username,
+                    "email": self.github_config.email,
+                    "date": "{}Z".format(datetime.utcnow().isoformat()),
+                },
+                lightweight=False,
+            )
+
+        self.logger.info(f"Created tag {tag_name}")
 
 
 class CloneTag(BaseGithubTask):

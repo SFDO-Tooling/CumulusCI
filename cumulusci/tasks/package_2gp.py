@@ -144,7 +144,15 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             f"WHERE Id='{package2_version['SubscriberPackageVersionId']}'"
         )
         subscriber_version = res["records"][0]
-        self.return_values["dependencies"] = subscriber_version["Dependencies"]
+        dependencies = (
+            [
+                {"version_id": d["subscriberPackageVersionId"]}
+                for d in subscriber_version["Dependencies"]["ids"]
+            ]
+            if subscriber_version["Dependencies"]
+            else []
+        )
+        self.return_values["dependencies"] = dependencies
 
         self.logger.info("Created package version:")
         self.logger.info(f"  Package2 Id: {self.package_id}")
@@ -165,7 +173,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         query = (
             f"SELECT Id, ContainerOptions FROM Package2 WHERE IsDeprecated = FALSE "
             f"AND ContainerOptions='{package_config.package_type}' "
-            "AND Name='{package_config.package_name}'"
+            f"AND Name='{package_config.package_name}'"
         )
         if package_config.namespace:
             query += f" AND NamespacePrefix='{package_config.namespace}'"

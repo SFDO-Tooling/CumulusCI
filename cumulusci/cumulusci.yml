@@ -228,6 +228,10 @@ tasks:
         description: Parses GitHub release notes to report various info
         class_path: cumulusci.tasks.github.ReleaseReport
         group: GitHub
+    github_tag:
+        description: Creates a GitHub tag
+        class_path: cumulusci.tasks.github.tag.CreateTag
+        group: GitHub
     install_managed:
         description: Install the latest managed production release
         class_path: cumulusci.tasks.salesforce.InstallPackageVersion
@@ -896,6 +900,22 @@ flows:
                     publish: True
                     tag: ^^github_release.tag_name
                     version_id: ^^upload_production.version_id
+
+    release_feature_test:
+        description: Create a namespaced unlocked package version
+        steps:
+            1:
+                task: create_package_version
+                options:
+                    package_type: Unlocked
+                    package_name: $project_config.project__package__name Unlocked Feature Test
+                    skip_validation: True
+            2:
+                task: github_tag
+                options:
+                    tag: featuretest/$project_config.repo_commit
+                    version_id: ^^create_package_version.subscriber_package_version_id
+                    dependencies: ^^create_package_version.dependencies
 
     retrieve_scratch:
         description: Retrieves declarative changes made in a scratch org and converts to src directory
