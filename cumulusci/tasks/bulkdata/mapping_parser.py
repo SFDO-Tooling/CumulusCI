@@ -13,7 +13,6 @@ from cumulusci.utils import convert_to_snake_case
 
 from typing_extensions import Literal
 
-LOGGER_NAME = "MAPPING_LOADER"
 logger = getLogger(__name__)
 
 
