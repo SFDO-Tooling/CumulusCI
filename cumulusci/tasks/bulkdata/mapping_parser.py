@@ -26,6 +26,10 @@ class CaseInsensitiveDict(RequestsCaseInsensitiveDict):
     def canonical_key(self, name):
         return self._canonical_keys[name.lower()]
 
+    def __setitem__(self, name, value):
+        # self._canonical_keys doesn't get updated if this dict gets mutated
+        raise NotImplementedError()
+
 
 class MappingLookup(CCIDictModel):
     "Lookup relationship between two tables."
