@@ -1,24 +1,10 @@
 import base64
 import hashlib
 import io
-import json
 import logging
 import os
 
 from cumulusci.core.exceptions import GithubException
-
-
-def build_package_tag_message(options, base_message=" "):
-    # message needs to NOT be empty or github3.py won't create the tag
-    message = base_message
-    data = {}
-    for name in ("dependencies", "version_id"):
-        value = options.get(name)
-        if value:
-            data[name] = value
-    if data:
-        message += "\n\ndata: {}".format(json.dumps(data, indent=4))
-    return message
 
 
 class CommitDir(object):
