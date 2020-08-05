@@ -18,17 +18,15 @@ logger = getLogger(__name__)
 
 class CaseInsensitiveDict(RequestsCaseInsensitiveDict):
     def __init__(self, *args, **kwargs):
+        self._canonical_keys = {}
         super().__init__(*args, **kwargs)
-        # there's a more efficient way to do this by poking around the
-        # base class internals but this way may be less fragile
-        self._canonical_keys = {key.lower(): key for key in self.keys()}
 
     def canonical_key(self, name):
         return self._canonical_keys[name.lower()]
 
-    def __setitem__(self, name, value):
-        # self._canonical_keys doesn't get updated if this dict gets mutated
-        raise NotImplementedError()
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self._canonical_keys[key.lower()] = key
 
 
 class MappingLookup(CCIDictModel):
