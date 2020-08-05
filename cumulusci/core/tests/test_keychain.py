@@ -142,9 +142,10 @@ class ProjectKeychainTestMixin(unittest.TestCase):
     def test_get_default_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
         org_config = self.org_config.config.copy()
-        org_config = OrgConfig(org_config, "test")
+        org_config = OrgConfig(org_config, "test", keychain=keychain)
+        org_config.save()
+        keychain.set_default_org("test")
         org_config.config["default"] = True
-        keychain.set_org(org_config)
         self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
 
     def test_get_default_org_no_default(self):
@@ -511,3 +512,45 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         new_keychain = self.keychain_class(self.project_config, self.key)
         org_config = new_keychain.get_org("test")
         assert org_config.global_org
+
+    def test_get_default_org__with_files(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = OrgConfig(self.org_config.config.copy(), "test", keychain=keychain)
+        org_config.save()
+        with open(self._default_org_path(), "w") as f:
+            f.write("test")
+        self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
+        self._default_org_path().unlink()
+
+    @mock.patch("sarge.Command")
+    def test_set_default_org__with_files(self, Command):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = OrgConfig(self.org_config.config.copy(), "test")
+        keychain.set_org(org_config)
+        keychain.set_default_org("test")
+        with open(self._default_org_path()) as f:
+            assert f.read() == "test"
+        self._default_org_path().unlink()
+
+    @mock.patch("sarge.Command")
+    def test_unset_default_org__with_files(self, Command):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = self.org_config.config.copy()
+        org_config = OrgConfig(org_config, "test")
+        keychain.set_org(org_config)
+        keychain.set_default_org("test")
+        keychain.unset_default_org()
+        self.assertEqual(keychain.get_default_org()[1], None)
+        assert not self._default_org_path().exists()
+
+    def _default_org_path(self):
+        return Path(self.tempdir_home) / ".cumulusci/TestProject/DEFAULT_ORG.txt"
+
+    # old way of finding defaults used contents of the files themselves
+    # we should preserve backwards compatibiliity for a few months
+    def test_get_default_org__file_missing_fallback(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = OrgConfig(self.org_config.config.copy(), "test", keychain=keychain)
+        org_config.config["default"] = True
+        org_config.save()
+        self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
