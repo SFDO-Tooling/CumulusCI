@@ -232,6 +232,10 @@ tasks:
         description: Creates a GitHub tag
         class_path: cumulusci.tasks.github.tag.CreateTag
         group: GitHub
+    github_tag_data:
+        description: Load data from a GitHub tag
+        class_path: cumulusci.tasks.github.tag.GetTagData
+        group: GitHub
     install_managed:
         description: Install the latest managed production release
         class_path: cumulusci.tasks.salesforce.InstallPackageVersion
@@ -547,7 +551,7 @@ flows:
                     managed: True
 
     ci_feature:
-        description: Prepare an unmanaged metadata test org and run apex tests.  Intended for use against feature branch commits.
+        description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
         steps:
             0.5:
                 task: github_parent_pr_notes
@@ -583,6 +587,32 @@ flows:
                 task: run_tests
             5:
                 task: github_parent_to_children
+
+    ci_feature_2gp:
+        description: Install as a namespaced unlocked package and run Apex tests. Intended for use on the tag created by release_feature_test.
+        steps:
+            1:
+                task: github_tag_data
+                options:
+                    tag: featuretest/$project_config.repo_commit
+            2:
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        dependencies: ^^github_tag_data.dependencies
+            3:
+                task: install_managed
+                options:
+                    version: ^^github_tag_data.version_id
+            4:
+                flow: config_apextest
+            5:
+                task: run_tests
+                options:
+                    managed: True
+            6:
+                task: github_parent_to_children
+
 
     ci_master:
         description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.

@@ -1,4 +1,6 @@
 from datetime import datetime
+import json
+import re
 
 import github3.exceptions
 
@@ -103,3 +105,20 @@ class CloneTag(BaseGithubTask):
         )
 
         return tag
+
+
+class GetTagData(BaseGithubTask):
+    DATA_RE = re.compile(r"^data: (\{.*\})$", re.M | re.S)
+
+    task_options = {"tag": {"description": "Tag name", "required": True}}
+
+    def _run_task(self):
+        repo = self.get_repo()
+        tag_name = self.options["tag"]
+        ref = repo.ref(f"tags/{tag_name}")
+        tag = repo.tag(ref.object.sha)
+        data = {}
+        match = self.DATA_RE.search(tag.message)
+        if match:
+            data = json.loads(match.group(1))
+        self.return_values = data

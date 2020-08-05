@@ -259,3 +259,7 @@ class PackageUploadFailure(CumulusCIFailure):
     """ Raise for errors in uploading a 2GP package version """
 
     pass
+
+
+class PackageInstallError(Exception):
+    """Error installing a 2GP package version"""
