@@ -117,6 +117,14 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         self.assertEqual({"Subheading": ["foo"]}, parser.h2)
         self.assertTrue(line_added)
 
+    def test_parse_subheading_from_another_section(self):
+        change_note = "## Subheading\r\n# {0}\r\nfoo".format(self.title)
+        parser = ChangeNotesLinesParser(None, self.title)
+        line_added = parser.parse(change_note)
+        self.assertEqual(["foo"], parser.content)
+        self.assertEqual({}, parser.h2)
+        self.assertTrue(line_added)
+
     def test_render_no_content(self):
         parser = ChangeNotesLinesParser(None, self.title)
         self.assertEqual(parser.render(), "")
