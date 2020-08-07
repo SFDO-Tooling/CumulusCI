@@ -62,7 +62,7 @@ import copy
 import logging
 from collections import defaultdict
 from collections import namedtuple
-from distutils.version import LooseVersion
+from packaging import version
 from operator import attrgetter
 
 from jinja2.sandbox import ImmutableSandboxedEnvironment
@@ -433,7 +433,7 @@ class FlowCoordinator(object):
 
         If it is a flow, we recursively call _visit_step with the rest of the parameters of context.
 
-        :param number: LooseVersion representation of the current step number
+        :param number: Version representation of the current step number
         :param step_config: the current step's config (dict from YAML)
         :param visited_steps: used when called recursively for nested steps, becomes the return value
         :param parent_options: used when called recursively for nested steps, options from parent flow
@@ -441,7 +441,7 @@ class FlowCoordinator(object):
         :param from_flow: used when called recursively for nested steps, name of parent flow
         :return: List[StepSpec] a list of all resolved steps including/under the one passed in
         """
-        number = LooseVersion(str(number))
+        number = version.parse(str(number))
 
         if visited_steps is None:
             visited_steps = []
@@ -539,7 +539,7 @@ class FlowCoordinator(object):
             step_ui_options = step_config.get("ui_options", {})
             flow_config = project_config.get_flow(name)
             for sub_number, sub_stepconf in flow_config.steps.items():
-                # append the flow number to the child number, since its a LooseVersion.
+                # append the flow number to the child number, since its a Version.
                 # e.g. if we're in step 2.3 which references a flow with steps 1-5, it
                 #   simply ends up as five steps: 2.3.1, 2.3.2, 2.3.3, 2.3.4, 2.3.5
                 # TODO: how does this work with nested flowveride? what does defining step 2.3.2 later do?
