@@ -7,7 +7,20 @@ from cumulusci.core.exceptions import CumulusCIException
 
 class UploadDefaultUserProfilePhoto(BaseSalesforceApiTask):
     task_docs = """
+    Uploads a profile photo for the default CumulusCI user.
 
+    Example
+    *******
+
+    Upload a user profile photo for a user whose ``Alias`` equals ``grace``.:: yaml
+
+        tasks:
+            upload_profile_photo:
+                group: Internal storytelling data
+                class_path: cumulusci.tasks.salesforce.UploadDefaultUserProfilePhoto
+                description: Uploads profile photo for the default user.
+                options:
+                    photo_path: datasets/users/default/profile.png
     """
 
     task_options = {
@@ -67,7 +80,22 @@ class UploadDefaultUserProfilePhoto(BaseSalesforceApiTask):
 
 class UploadUserProfilePhoto(UploadDefaultUserProfilePhoto):
     task_docs = """
-    Uploads a profile photo for a dynamically chosen User.  Specifically, uploads for a profile photo for the User whose ``user_field`` equals ``user_field_value``
+    Uploads a profile photo for a dynamically chosen User.  Specifically, uploads for a profile photo for the User whose ``user_field`` equals ``user_field_value``.
+
+    Example
+    *******
+
+    Upload a user profile photo for a user whose ``Alias`` equals ``grace``.:: yaml
+
+        tasks:
+            upload_grace_profile_photo:
+                group: Internal storytelling data
+                class_path: cumulusci.tasks.salesforce.UploadUserProfilePhoto
+                description: Uploads profile photo for community user Grace.
+                options:
+                    photo_path: datasets/community_users/grace/profile.png
+                    user_field: Alias
+                    user_field_value: grace
     """
 
     task_options = {
