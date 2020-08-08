@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import csv
 from enum import Enum
 import io
+import itertools
 import os
 import pathlib
 import tempfile
@@ -14,6 +15,15 @@ import requests
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
+
+
+def get_batch_iterator(iterator, n):
+    while True:
+        batch = list(itertools.islice(iterator, n))
+        if not batch:
+            return
+
+        yield batch
 
 
 class DataOperationType(Enum):
@@ -31,6 +41,7 @@ class DataApi(Enum):
 
     BULK = "bulk"
     REST = "rest"
+    SMART = "smart"
 
 
 class DataOperationStatus(Enum):
@@ -220,6 +231,39 @@ class BulkApiQueryOperation(BaseQueryOperation, BulkJobMixin):
                 yield from reader
 
 
+class RestApiQueryOperation(BaseQueryOperation):
+    """Operation class for REST API query jobs."""
+
+    def query(self):
+        pass
+
+    def get_results(self):
+        yield from self.sf.query_all_iter(self.soql)
+
+
+class RestApiRetrieveOperation(BaseQueryOperation):
+    def __init__(self, *, sobject, api_options, context, ids, fields):
+        super().__init__(
+            sobject=sobject,
+            operation=DataOperationType.QUERY,
+            api_options=api_options,
+            context=context,
+        )
+        self.ids = ids
+        self.fields = fields
+
+    def query(self):
+        pass
+
+    def get_results(self):
+        for chunk in get_batch_iterator(iter(self.ids), 2000):
+            yield from self.sf.restful(
+                f"composite/sobjects/{self.sobject}",
+                method="POST",
+                json={"ids": chunk, "fields": self.fields},
+            )
+
+
 class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
     """Abstract base class for DML operations in all APIs."""
 
@@ -239,7 +283,6 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
     def __exit__(self, exc_type, exc_value, traceback):
         self.end()
 
-    @abstractmethod
     def start(self):
         """Perform any required setup, such as job initialization, for the operation."""
         pass
@@ -249,7 +292,6 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
         """Perform the requested DML operation on the supplied row iterator."""
         pass
 
-    @abstractmethod
     def end(self):
         """Perform any required teardown for the operation before results are returned."""
         pass
@@ -297,7 +339,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         """Given an iterator of records, yields batches of
         records serialized in .csv format.
 
-        Batches adhere to the following, in order of presedence:
+        Batches adhere to the following, in order of precedence:
         (1) They do not exceed the given character limit
         (2) They do not contain more than n records per batch
         """
@@ -365,3 +407,60 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                 raise BulkDataException(
                     f"Failed to download results for batch {batch_id} ({str(e)})"
                 )
+
+
+class RestApiDmlOperation(BaseDmlOperation):
+    def load_records(self, records):
+        def _convert(rec):
+            r = dict(zip(self.fields, rec))
+            r["attributes"] = {"type": self.sobject}
+            return r
+
+        self.results = []
+        method = {
+            DataOperationType.INSERT: "POST",
+            DataOperationType.UPDATE: "PATCH",
+            DataOperationType.DELETE: "DELETE",
+        }[self.operation]
+
+        for chunk in get_batch_iterator(
+            records, self.api_options.get("batch_size", 200)
+        ):
+            if self.operation is DataOperationType.DELETE:
+                url_string = "?ids=" + ",".join(rec["Id"] for rec in chunk)
+                json = None
+            else:
+                url_string = ""
+                json = {"allOrNone": False, "records": [_convert(rec) for rec in chunk]}
+
+            self.results.extend(
+                self.sf.restful(
+                    f"composite/sobjects{url_string}", method=method, json=json
+                )
+            )
+
+        row_errors = len([res for res in self.results if not res["success"]])
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS
+            if not row_errors
+            else DataOperationStatus.ROW_FAILURE,
+            [],
+            len(self.results),
+            row_errors,
+        )
+
+    def get_results(self):
+        """Return a generator of DataOperationResult objects."""
+
+        def _convert(res):
+            if res.get("errors"):
+                errors = "\n".join(
+                    f"{e['statusCode']}: {e['message']} ({','.join(e['fields'])}"
+                    for e in res["errors"]
+                )
+            else:
+                errors = ""
+
+            return DataOperationResult(res["id"], res["success"], errors)
+
+        yield from (_convert(res) for res in self.results)

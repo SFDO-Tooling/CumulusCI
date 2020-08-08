@@ -16,9 +16,11 @@ from cumulusci.tasks.bulkdata.utils import (
 )
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
+    RestApiDmlOperation,
     DataOperationStatus,
     DataOperationType,
     DataOperationJobResult,
+    DataApi,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
@@ -142,23 +144,43 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
 
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
-        bulk_mode = mapping.get("bulk_mode") or self.bulk_mode or "Parallel"
-
-        step = BulkApiDmlOperation(
-            sobject=mapping["sf_object"],
-            operation=(
-                DataOperationType.INSERT
-                if mapping.get("action") == "insert"
-                else DataOperationType.UPDATE
-            ),
-            api_options={"bulk_mode": bulk_mode},
-            context=self,
-            fields=self._get_columns(mapping),
-        )
-
         local_ids = []
+        query = self._query_db(mapping)
+
+        api = mapping.api
+        if api is DataApi.SMART:
+            record_count = query.count()
+            api = DataApi.BULK if record_count > 10000 else DataApi.REST
+
+        if api is DataApi.BULK:
+            bulk_mode = mapping.get("bulk_mode") or self.bulk_mode or "Parallel"
+
+            step = BulkApiDmlOperation(
+                sobject=mapping["sf_object"],
+                operation=(
+                    DataOperationType.INSERT
+                    if mapping.get("action") == "insert"
+                    else DataOperationType.UPDATE
+                ),
+                api_options={"bulk_mode": bulk_mode},
+                context=self,
+                fields=self._get_columns(mapping),
+            )
+        elif api is DataApi.REST:
+            step = RestApiDmlOperation(
+                sobject=mapping["sf_object"],
+                operation=(
+                    DataOperationType.INSERT
+                    if mapping.get("action") == "insert"
+                    else DataOperationType.UPDATE
+                ),
+                api_options={"batch_size": mapping.batch_size},
+                context=self,
+                fields=self._get_columns(mapping),
+            )
+
         step.start()
-        step.load_records(self._stream_queried_data(mapping, local_ids))
+        step.load_records(self._stream_queried_data(mapping, local_ids, query))
         step.end()
 
         if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
@@ -166,18 +188,14 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
 
         return step.job_result
 
-    def _stream_queried_data(self, mapping, local_ids):
+    def _stream_queried_data(self, mapping, local_ids, query):
         """Get data from the local db"""
 
         statics = self._get_statics(mapping)
-        query = self._query_db(mapping)
 
         total_rows = 0
 
-        # 10,000 is the maximum Bulk API size. Clamping the yield from the query ensures we do not
-        # create more Bulk API batches than expected, regardless of batch size, while capping
-        # memory usage.
-        for row in query.yield_per(10000):
+        for row in query:
             total_rows += 1
             # Add static values to row
             pkey = row[0]
