@@ -1,5 +1,5 @@
-import functools
 import json
+import functools
 
 from simple_salesforce import SalesforceMalformedRequest
 
@@ -109,7 +109,8 @@ class MetadataPackageVersion(BasePushApiObject):
                 )
             where += less_than_where
 
-        return where
+        versions = self.package.get_package_version_objs(where)
+        return versions
 
     def get_older_released_version_objs(self, greater_than_version=None):
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
@@ -132,16 +133,10 @@ class MetadataPackageVersion(BasePushApiObject):
                 greater_than_where = (
                     greater_than_where[:-1] + patch_where + greater_than_where[-1:]
                 )
-            )
             where += greater_than_where
 
-        return where
-
-    def _base_query(self):
-        return (
-            f"MetadataPackageId = '{self.package.sf_id}' AND "
-            + "ReleaseState = 'Released' AND "
-        )
+        versions = self.package.get_package_version_objs(where)
+        return versions
 
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where("MetadataPackageVersionId", where)
@@ -527,7 +522,10 @@ class SalesforcePushApi(object):
                 jobs = self.get_push_job_objs(
                     where="Id = '%s'" % push_error["PackagePushJobId"]
                 )
-            job = jobs[0] if jobs else None
+                if jobs:
+                    job = jobs[0]
+                else:
+                    job = None
 
             push_error_objs.append(
                 PackagePushError(
@@ -593,11 +591,15 @@ class SalesforcePushApi(object):
     def _add_batch(self, batch, request_id):
 
         # add orgs to batch data
+        batch = set(batch)
         batch_data = {"records": []}
         for i, org in enumerate(batch):
             batch_data["records"].append(
                 {
-                    "attributes": {"type": "PackagePushJob", "referenceId": org},
+                    "attributes": {
+                        "type": "PackagePushJob",
+                        "referenceId": "org{}".format(i),
+                    },
                     "PackagePushRequestId": request_id,
                     "SubscriberOrganizationKey": org,
                 }
@@ -611,6 +613,7 @@ class SalesforcePushApi(object):
                 data=json.dumps(batch_data),
             )
         except SalesforceMalformedRequest as e:
+            invalid_orgs = set()
             retry_all = False
             for result in e.content["results"]:
                 for error in result["errors"]:
@@ -622,8 +625,10 @@ class SalesforcePushApi(object):
                         "INVALID_OPERATION",
                         "UNKNOWN_EXCEPTION",
                     ]:
-                        org_id = result["referenceId"]
-                        batch.remove(org_id)
+                        org_id = self._get_org_id(
+                            batch_data["records"], result["referenceId"]
+                        )
+                        invalid_orgs.add(org_id)
                         self.logger.info(
                             "Skipping org {} - {}".format(org_id, error["message"])
                         )
@@ -635,12 +640,18 @@ class SalesforcePushApi(object):
                 self.logger.warning("Retrying batch")
                 batch = self._add_batch(batch, request_id)
             else:
+                batch -= invalid_orgs
                 if batch:
                     self.logger.warning("Retrying batch without invalid orgs")
                     batch = self._add_batch(batch, request_id)
                 else:
                     self.logger.error("Skipping batch (no valid orgs)")
         return batch
+
+    def _get_org_id(self, records, ref_id):
+        for record in records:
+            if record["attributes"]["referenceId"] == ref_id:
+                return record["SubscriberOrganizationKey"]
 
     def cancel_push_request(self, request_id):
         return self.sf.PackagePushRequest.update(request_id, {"Status": "Canceled"})

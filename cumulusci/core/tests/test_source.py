@@ -78,8 +78,8 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/master",
-            json=self._get_expected_ref("heads/master", "abcdef"),
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/main",
+            json=self._get_expected_ref("heads/main", "abcdef"),
         )
 
         source = GitHubSource(
@@ -112,8 +112,8 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/master",
-            json=self._get_expected_ref("master", "abcdef"),
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/main",
+            json=self._get_expected_ref("main", "abcdef"),
         )
 
         source = GitHubSource(
@@ -133,8 +133,8 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/master",
-            json=self._get_expected_ref("master", "abcdef"),
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/main",
+            json=self._get_expected_ref("main", "abcdef"),
         )
 
         source = GitHubSource(

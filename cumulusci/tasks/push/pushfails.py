@@ -1,5 +1,4 @@
 """ simple task(s) for reporting on push upgrade jobs.
-
 this doesn't use the nearby push_api module, and was just a quick ccistyle
 get the job done kinda moment.
 """
@@ -13,7 +12,6 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 class ReportPushFailures(BaseSalesforceApiTask):
     """ Produce a report of the failed and otherwise anomalous push jobs.
-
     Takes a push request id and writes results to a CSV file. The task result contains the filename. """
 
     task_doc = __doc__
@@ -134,21 +132,3 @@ class ReportPushFailures(BaseSalesforceApiTask):
 
         self.logger.debug("Written out to {file_name}.".format(file_name=file_name))
         return file_name
-
-    def _get_errors(self):
-        """Query for push job results"""
-        formatted_query = self.job_query.format(**self.options)
-        self.logger.debug("Running query for job errors: " + formatted_query)
-        result = self.sf.query(formatted_query)
-        job_records = result["records"]
-        self.logger.debug(
-            "Query is complete: {done}. Found {n} results.".format(
-                done=result["done"], n=result["totalSize"]
-            )
-        )
-
-        if not result["totalSize"]:
-            self.logger.info("No errors found.")
-            return None
-
-        return job_records
