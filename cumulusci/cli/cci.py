@@ -1349,7 +1349,7 @@ def task_doc(runtime):
     config_src = runtime.universal_config
 
     click.echo("==========================================")
-    click.echo("Tasks Reference")
+    click.echo("Standard Tasks")
     click.echo("==========================================")
     click.echo("")
 

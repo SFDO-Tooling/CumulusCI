@@ -1,5 +1,5 @@
 ==========================================
-Tasks Reference
+Standard Tasks
 ==========================================
 
 **activate_flow**
@@ -152,8 +152,7 @@ Options
 ``-o entries ENTRIES``
 	 *Required*
 
-	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed).
-To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
+	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed).To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
 
 ``-o record_types RECORDTYPES``
 	 *Optional*
@@ -1690,8 +1689,6 @@ Options
 	 *Required*
 
 	 The branch to update in the target repo
-
-	 Default: master
 
 ``-o version VERSION``
 	 *Required*

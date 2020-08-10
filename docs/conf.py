@@ -117,7 +117,10 @@ html_theme = "alabaster"
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
 # documentation.
-# html_theme_options = {}
+html_theme_options = {
+    "show_relbars": True,
+    "extra_nav_links": {"GitHub": "https://github.com/SFDO-Tooling/CumulusCI"},
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
@@ -281,26 +284,26 @@ texinfo_documents = [
 
 
 # Run sphinx api-doc
-def run_apidoc(_):
-    from sphinx.ext.apidoc import main
-    import os
-    import sys
+# def run_apidoc(_):
+#     from sphinx.ext.apidoc import main
+#     import os
+#     import sys
 
-    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    module = os.path.join(cur_dir, "..", "cumulusci")
-    main(
-        [
-            "-T",
-            "-M",
-            "-o",
-            os.path.join(cur_dir, "api"),
-            module,
-            os.path.join(cur_dir, "..", "**", "tests", "*"),
-            "--force",
-        ]
-    )
+#     sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+#     cur_dir = os.path.abspath(os.path.dirname(__file__))
+#     module = os.path.join(cur_dir, "..", "cumulusci")
+#     main(
+#         [
+#             "-T",
+#             "-M",
+#             "-o",
+#             os.path.join(cur_dir, "api"),
+#             module,
+#             os.path.join(cur_dir, "..", "**", "tests", "*"),
+#             "--force",
+#         ]
+#     )
 
 
-def setup(app):
-    app.connect("builder-inited", run_apidoc)
+# def setup(app):
+#     app.connect("builder-inited", run_apidoc)
