@@ -49,6 +49,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
             # Look for the starting line of the section
             if self._is_start_line(line):
                 self._in_section = True
+                self.h2_title = None
                 continue
 
             # Look for h2

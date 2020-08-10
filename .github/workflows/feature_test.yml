@@ -35,7 +35,7 @@ jobs:
     - name: Run pre-commit on changed files
       run: |
         git fetch --depth=1 origin master
-        pre-commit run --files $(git diff --diff-filter=d --name-only origin/master)
+        pre-commit run --files $(git diff --diff-filter=d --name-only origin/master...HEAD)
 
   unit_tests:
     name: "Unit tests: Python ${{ matrix.python-version }}"

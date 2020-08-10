@@ -133,16 +133,16 @@ class CCIDictModel(CCIModel):
 
 
 def _add_filenames(e: ValidationError, filename):
-    def _recursively_add_filenames(f):
+    def _recursively_add_filenames(val):
         processed = False
-        if isinstance(f, Sequence):
-            for e in f:
+        if isinstance(val, Sequence):
+            for e in val:
                 _recursively_add_filenames(e)
             processed = True
-        elif isinstance(f, ErrorWrapper):
-            f._loc = (filename, f._loc)
+        elif isinstance(val, ErrorWrapper):
+            val._loc = (filename, val._loc)
 
             processed = True
-        assert processed, f"Should have processed by now {f}, {repr(f)}"
+        assert processed, f"Should have processed by now {val}, {repr(val)}"
 
     _recursively_add_filenames(e.raw_errors)
