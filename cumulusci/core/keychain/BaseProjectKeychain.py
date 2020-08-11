@@ -98,8 +98,10 @@ class BaseProjectKeychain(BaseConfig):
         scratch_config[
             "sfdx_alias"
         ] = f"{self.project_config.project__name}__{org_name}"
-        org_config = ScratchOrgConfig(scratch_config, org_name)
-        self.set_org(org_config)
+        org_config = ScratchOrgConfig(
+            scratch_config, org_name, keychain=self, global_org=False
+        )
+        org_config.save()
 
     def change_key(self, key):
         """ re-encrypt stored services and orgs with the new key """
@@ -116,7 +118,7 @@ class BaseProjectKeychain(BaseConfig):
 
         if orgs:
             for org_name, org_config in list(orgs.items()):
-                self.set_org(org_config)
+                org_config.save()
 
         if services:
             for service_name, service_config in list(services.items()):
@@ -149,6 +151,11 @@ class BaseProjectKeychain(BaseConfig):
     def _set_org(self, org_config, global_org):
         self.orgs[org_config.name] = org_config
 
+    # This implementation of get_default_org, set_default_org, and unset_default_org
+    # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
+    # now stores the default elsewhere, and EnvironmentProjectKeychain doesn't actually
+    # persist across multiple invocations of cci, so we should consider getting rid of this.
+
     def get_default_org(self):
         """ retrieve the name and configuration of the default org """
         for org in self.list_orgs():
@@ -158,11 +165,11 @@ class BaseProjectKeychain(BaseConfig):
         return None, None
 
     def set_default_org(self, name):
-        """ set the default org for tasks by name key """
+        """ set the default org for tasks and flows by name """
         org = self.get_org(name)
         self.unset_default_org()
         org.config["default"] = True
-        self.set_org(org)
+        org.save()
         if org.created:
             sfdx(
                 sarge.shell_format(
@@ -176,15 +183,18 @@ class BaseProjectKeychain(BaseConfig):
             org_config = self.get_org(org)
             if org_config.default:
                 del org_config.config["default"]
-                self.set_org(org_config)
+                org_config.save()
         sfdx("force:config:set defaultusername=")
 
-    def get_org(self, name):
+    def get_org(self, name: str):
         """ retrieve an org configuration by name key """
         if name not in self.orgs:
             self._raise_org_not_found(name)
         org = self._get_org(name)
-        org.keychain = self
+        if org.keychain:
+            assert org.keychain is self
+        else:
+            org.keychain = self
         return org
 
     def _get_org(self, name):

@@ -22,7 +22,7 @@ class TestBaseSalesforceTask(unittest.TestCase):
         self.project_config.keychain = mock.Mock()
         self.project_config.keychain.get_service.side_effect = ServiceNotConfigured
         self.task_config = TaskConfig()
-        self.org_config = OrgConfig({}, "test")
+        self.org_config = OrgConfig({}, "test", keychain=self.project_config.keychain)
 
     def test_run_task(self):
         with mock.patch(
@@ -35,7 +35,11 @@ class TestBaseSalesforceTask(unittest.TestCase):
                 task()
 
     def test_update_credentials(self):
-        def update_config(keychain):
+        update_config_called = False
+
+        def update_config(keychain, save=False):
+            nonlocal update_config_called
+            update_config_called = True
             self.org_config.config["new"] = "new"
 
         self.org_config.refresh_oauth_token = update_config
@@ -44,6 +48,7 @@ class TestBaseSalesforceTask(unittest.TestCase):
         )
         task._run_task = mock.Mock()
         task()
+        assert update_config_called
         self.project_config.keychain.set_org.assert_called_once()
 
 

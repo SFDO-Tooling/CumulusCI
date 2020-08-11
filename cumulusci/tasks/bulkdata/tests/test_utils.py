@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+import json
 import unittest
 from unittest import mock
 
@@ -9,7 +10,7 @@ from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.tasks.bulkdata.utils import create_table, generate_batches, OrgInfoMixin
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
@@ -29,6 +30,44 @@ def create_db_memory():
     metadata = MetaData()
     metadata.bind = engine
     return engine, metadata
+
+
+def mock_describe_calls():
+    def read_mock(name: str):
+        base_path = os.path.dirname(__file__)
+
+        with open(os.path.join(base_path, f"{name}.json"), "r") as f:
+            return f.read()
+
+    def mock_sobject_describe(name: str):
+        responses.add(
+            method="GET",
+            url=f"https://example.com/services/data/v48.0/sobjects/{name}/describe",
+            body=read_mock(name),
+            status=200,
+        )
+
+    responses.add(
+        method="GET",
+        url="https://example.com/services/data",
+        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        status=200,
+    )
+    responses.add(
+        method="GET",
+        url="https://example.com/services/data/v48.0/sobjects",
+        body=read_mock("global_describe"),
+        status=200,
+    )
+
+    for sobject in [
+        "Account",
+        "Contact",
+        "Opportunity",
+        "OpportunityContactRole",
+        "Case",
+    ]:
+        mock_sobject_describe(sobject)
 
 
 class TestEpochType(unittest.TestCase):
@@ -170,3 +209,31 @@ class TestBatching(unittest.TestCase):
     def test_batching_with_remainder(self):
         batches = list(generate_batches(num_records=20, batch_size=7))
         assert batches == [(7, 0), (7, 1), (6, 2)]
+
+
+class TestOrgInfoMixin:
+    def test_org_has_person_accounts_enabled__from_cache(self):
+        mixin = OrgInfoMixin()
+        mixin.sf = mock.Mock()
+        mixin._person_accounts_enabled = True
+
+        assert mixin._org_has_person_accounts_enabled
+        mixin.sf.Account.describe.assert_not_called()
+
+    def test_org_has_person_accounts_enabled__uncached_enabled(self):
+        mixin = OrgInfoMixin()
+        mixin.sf = mock.Mock()
+        mixin.sf.Account.describe.return_value = {
+            "fields": [{"name": "Name"}, {"name": "IsPersonAccount"}]
+        }
+
+        assert mixin._org_has_person_accounts_enabled()
+        mixin.sf.Account.describe.assert_called_once_with()
+
+    def test_org_has_person_accounts_enabled__uncached_disabled(self):
+        mixin = OrgInfoMixin()
+        mixin.sf = mock.Mock()
+        mixin.sf.Account.describe.return_value = {"fields": [{"name": "Name"}]}
+
+        assert not mixin._org_has_person_accounts_enabled()
+        mixin.sf.Account.describe.assert_called_once_with()

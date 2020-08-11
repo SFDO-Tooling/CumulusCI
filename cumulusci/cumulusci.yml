@@ -30,10 +30,26 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.AddPermissionSetPermissions
         options:
             namespace_inject: $project_config.project__package__namespace
+    assign_compact_layout:
+        group: Metadata Transformations
+        description: "Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option."
+        class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+        options:
+            namespace_inject: $project_config.project__package__namespace
+            metadata_type: CustomObject
+            tag: compactLayoutAssignment
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
+    check_sobjects_available:
+        description: Runs as a preflight check to determine whether specific sObjects are available.
+        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
+        group: Salesforce Preflight Checks
+    check_org_wide_defaults:
+        description: Runs as a preflight check to validate Organization-Wide Defaults.
+        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
+        group: Salesforce Preflight Checks
     custom_settings_value_wait:
         description: Waits for a specific field value on the specified custom settings object and field
         class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
@@ -76,6 +92,10 @@ tasks:
             path: src
             revert_path: src.orig
         group: Salesforce Metadata
+    delete_data:
+        description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
+        class_path: cumulusci.tasks.bulkdata.DeleteData
+        group: Data Operations
     deploy:
         description: Deploys the src directory of the repository to the org
         class_path: cumulusci.tasks.salesforce.Deploy
@@ -155,15 +175,15 @@ tasks:
         group: Data Operations
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
-        class_path: cumulusci.tasks.salesforce.GetInstalledPackages
+        class_path: cumulusci.tasks.preflight.packages.GetInstalledPackages
         group: Salesforce Preflight Checks
     get_available_licenses:
         description: Retrieves a list of the currently available license definition keys
-        class_path: cumulusci.tasks.salesforce.license_preflights.GetAvailableLicenses
+        class_path: cumulusci.tasks.preflight.licenses.GetAvailableLicenses
         group: Salesforce Preflight Checks
     get_available_permission_set_licenses:
         description: Retrieves a list of the currently available Permission Set License definition keys
-        class_path: cumulusci.tasks.salesforce.license_preflights.GetAvailablePermissionSetLicenses
+        class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
         group: Salesforce Preflight Checks
     github_parent_pr_notes:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
@@ -174,7 +194,7 @@ tasks:
         class_path: cumulusci.tasks.github.CloneTag
         group: GitHub
     github_master_to_feature:
-        description: Merges the latest commit on the master branch into all open feature branches
+        description: Merges the latest commit on the main branch into all open feature branches
         class_path: cumulusci.tasks.github.MergeBranch
         group: GitHub
     github_parent_to_children:
@@ -183,6 +203,10 @@ tasks:
         options:
             children_only: True
             source_branch: $project_config.repo_branch
+        group: GitHub
+    github_copy_subtree:
+        description: Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
+        class_path: cumulusci.tasks.github.publish.PublishSubtree
         group: GitHub
     github_pull_requests:
         description: Lists open pull requests in project Github repository
@@ -314,6 +338,12 @@ tasks:
             path: unpackaged/config/qa
             namespace_tokenize: $project_config.project__package__namespace
         group: Salesforce Metadata
+    set_field_help_text:
+        group: Metadata Transformations
+        description: Sets specified fields' Help Text values.
+        class_path: cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
+        options:
+            namespace_inject: $project_config.project__package__namespace
     snapshot_changes:
         description: Tell SFDX source tracking to ignore previous changes in a scratch org
         class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
@@ -418,6 +448,12 @@ tasks:
         description: Installs all dependencies in project__dependencies into the target org
         class_path: cumulusci.tasks.salesforce.UpdateDependencies
         group: Salesforce Packages
+    update_metadata_first_child_text:
+        group: Metadata Transformations
+        description: Updates the text of the first child of Metadata with matching tag.  Adds a child for tag if it does not exist.
+        class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+        options:
+            namespace_inject: $project_config.project__package__namespace
     update_package_xml:
         description: Updates src/package.xml with metadata in src/
         class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
@@ -541,7 +577,7 @@ flows:
                 task: github_parent_to_children
 
     ci_master:
-        description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against master branch commits.
+        description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
         steps:
             1:
                 flow: dependencies
@@ -832,6 +868,7 @@ flows:
                     publish: True
                     tag: ^^github_release.tag_name
                     include_empty: True
+                    version_id: ^^upload_beta.version_id
             4:
                 task: github_master_to_feature
 
@@ -850,6 +887,7 @@ flows:
                 options:
                     publish: True
                     tag: ^^github_release.tag_name
+                    version_id: ^^upload_production.version_id
 
     retrieve_scratch:
         description: Retrieves declarative changes made in a scratch org and converts to src directory
@@ -967,7 +1005,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: '48.0'
+        api_version: '49.0'
     git:
         default_branch: master
         prefix_feature: feature/
@@ -992,6 +1030,9 @@ project:
                 5:
                     class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
                     title: Deleted Metadata
+                6:
+                    class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
+                    title: Installation Links
     test:
         name_match: '%_TEST%'
     dependencies:

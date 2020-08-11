@@ -588,6 +588,8 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
         """
         Yields (local_id, sf_id) for Contact records where IsPersonAccount
         is true that can handle large data volumes.
+
+
         We know a Person Account record is related to one and only one Contact
         record.  Therefore, we can map local Contact IDs to Salesforce IDs
         by previously inserted Account records:
