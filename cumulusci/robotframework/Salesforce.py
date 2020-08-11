@@ -1133,6 +1133,7 @@ class Salesforce(object):
         This seems to happen randomly, causing tests to fail
         catastrophically. The idea is to detect such a case and
         auto-click the "switch to lightning" link
+
         """
         try:
             # we don't actually want to wait here, but if we don't
