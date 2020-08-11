@@ -246,6 +246,7 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
 
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
+
         Includes columns from the mapping
         as well as joining to the id tables to get real SF ids
         for lookups.
@@ -398,7 +399,9 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
 
     def _initialize_id_table(self, mapping, should_reset_table):
         """initalize or find table to hold the inserted SF Ids
+
         The table has a name like xxx_sf_ids and has just two columns, id and sf_id.
+
         If the table already exists, should_reset_table determines whether to
         drop and recreate it or not.
         """
@@ -588,6 +591,7 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
         """
         Yields (local_id, sf_id) for Contact records where IsPersonAccount
         is true that can handle large data volumes.
+
         We know a Person Account record is related to one and only one Contact
         record.  Therefore, we can map local Contact IDs to Salesforce IDs
         by previously inserted Account records:
