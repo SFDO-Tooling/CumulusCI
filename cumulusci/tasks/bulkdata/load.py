@@ -9,7 +9,11 @@ from sqlalchemy.ext.automap import automap_base
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, RowErrorChecker
+from cumulusci.tasks.bulkdata.utils import (
+    OrgInfoMixin,
+    SqlAlchemyMixin,
+    RowErrorChecker,
+)
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
     DataOperationStatus,
@@ -21,12 +25,13 @@ from cumulusci.utils import os_friendly_path
 
 from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
+    validate_and_inject_mapping,
     MappingStep,
     MappingLookup,
 )
 
 
-class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
+class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
     """Perform Bulk API operations to load data defined by a mapping from a local store into an org."""
 
     task_options = {
@@ -54,6 +59,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         "bulk_mode": {
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
+        "inject_namespaces": {
+            "description": "If True, the package namespace prefix will be automatically added to objects "
+            "and fields for which it is present in the org. Defaults to True."
+        },
+        "drop_missing_schema": {
+            "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
+        },
     }
     row_warning_limit = 10
 
@@ -79,6 +91,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
         )
         if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
+
+        self.options["inject_namespaces"] = process_bool_arg(
+            self.options.get("inject_namespaces", True)
+        )
+        self.options["drop_missing_schema"] = process_bool_arg(
+            self.options.get("drop_missing_schema", False)
+        )
 
     def _run_task(self):
         self._init_mapping()
@@ -227,7 +246,6 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
-
         Includes columns from the mapping
         as well as joining to the id tables to get real SF ids
         for lookups.
@@ -303,6 +321,13 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             lookup_column = getattr(model, key_field)
             query = query.order_by(lookup_column)
 
+        # Filter out non-person account Contact records.
+        # Contact records for person accounts were already created by the system.
+        if mapping["sf_object"] == "Contact" and self._can_load_person_accounts(
+            mapping
+        ):
+            query = self._filter_out_person_account_records(query, model)
+
         return query
 
     def _convert(self, value):
@@ -336,6 +361,26 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             for r in results_generator:
                 pass  # Drain generator to validate results
 
+        # Contact records for Person Accounts are inserted during an Account
+        # sf_object step.  Insert records into the Contact ID table for
+        # person account Contact records so lookups to
+        # person account Contact records get populated downstream as expected.
+        if (
+            mapping["action"] == "insert"
+            and mapping["sf_object"] == "Contact"
+            and self._can_load_person_accounts(mapping)
+        ):
+            account_id_lookup = mapping["lookups"].get("AccountId")
+            if account_id_lookup:
+                self._sql_bulk_insert_from_records(
+                    connection=conn,
+                    table=id_table_name,
+                    columns=("id", "sf_id"),
+                    record_iterable=self._generate_contact_id_map_for_person_accounts(
+                        mapping, account_id_lookup, conn
+                    ),
+                )
+
         if mapping["action"] == "insert":
             self.session.commit()
 
@@ -353,9 +398,7 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
 
     def _initialize_id_table(self, mapping, should_reset_table):
         """initalize or find table to hold the inserted SF Ids
-
         The table has a name like xxx_sf_ids and has just two columns, id and sf_id.
-
         If the table already exists, should_reset_table determines whether to
         drop and recreate it or not.
         """
@@ -429,6 +472,8 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                 )
         self.metadata.create_all()
 
+        self._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
     def _init_mapping(self):
         """Load a YAML mapping file."""
         mapping_file_path = self.options["mapping"]
@@ -436,6 +481,15 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
             raise TaskOptionsError("Mapping file path required")
 
         self.mapping = parse_from_yaml(mapping_file_path)
+
+        validate_and_inject_mapping(
+            mapping=self.mapping,
+            org_config=self.org_config,
+            namespace=self.project_config.project__package__namespace,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=self.options["inject_namespaces"],
+            drop_missing=self.options["drop_missing_schema"],
+        )
 
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps
@@ -484,3 +538,116 @@ class LoadData(BaseSalesforceApiTask, SqlAlchemyMixin):
                         mapping["lookups"][lookup]["after"] = None
 
                     self.after_steps[after][name] = mapping
+
+    def _validate_org_has_person_accounts_enabled_if_person_account_data_exists(self):
+        """
+        To ensure data is loaded from the dataset as expected as well as avoid partial
+        failues, raise a BulkDataException if there exists Account or Contact records with
+        IsPersonAccount as 'true' but the org does not have person accounts enabled.
+        """
+        for mapping in self.mapping.values():
+            if mapping["sf_object"] in (
+                "Account",
+                "Contact",
+            ) and self._db_has_person_accounts_column(mapping):
+                table = self.models[mapping.get("table")].__table__
+                if (
+                    self.session.query(table)
+                    .filter(table.columns.get("IsPersonAccount") == "true")
+                    .first()
+                    and not self._org_has_person_accounts_enabled()
+                ):
+                    raise BulkDataException(
+                        "Your dataset contains Person Account data but Person Accounts is not enabled for your org."
+                    )
+
+    def _db_has_person_accounts_column(self, mapping):
+        """Returns whether "IsPersonAccount" is a column in mapping's table.
+        """
+        return (
+            self.models[mapping.get("table")].__table__.columns.get("IsPersonAccount")
+            is not None
+        )
+
+    def _can_load_person_accounts(self, mapping) -> bool:
+        """Returns whether person accounts can be loaded:
+        - The mapping has a "IsPersonAccount" column
+        - Person Accounts is enabled in the org.
+        """
+        return (
+            self._db_has_person_accounts_column(mapping)
+            and self._org_has_person_accounts_enabled()
+        )
+
+    def _filter_out_person_account_records(self, query, model):
+        return query.filter(model.__table__.columns.get("IsPersonAccount") == "false")
+
+    def _generate_contact_id_map_for_person_accounts(
+        self, contact_mapping, account_id_lookup, conn
+    ):
+        """
+        Yields (local_id, sf_id) for Contact records where IsPersonAccount
+        is true that can handle large data volumes.
+        We know a Person Account record is related to one and only one Contact
+        record.  Therefore, we can map local Contact IDs to Salesforce IDs
+        by previously inserted Account records:
+        - Query the DB to get the map: Salesforce Account ID ->
+          local Contact ID
+        - Query Salesforce to get the map: Salesforce Account ID ->
+          Salesforce Contact ID
+        - Merge the maps
+        """
+        # Contact table columns
+        contact_model = self.models[contact_mapping.get("table")]
+
+        contact_id_column = getattr(
+            contact_model, contact_model.__table__.primary_key.columns.keys()[0]
+        )
+        account_id_column = getattr(
+            contact_model, account_id_lookup.get_lookup_key_field(contact_model)
+        )
+
+        # Account ID table + column
+        account_sf_ids_table = account_id_lookup["aliased_table"]
+        account_sf_id_column = account_sf_ids_table.columns["sf_id"]
+
+        # Query the Contact table for person account contact records so we can
+        # create a Map: Account SF ID --> Contact ID.  Outer join the
+        # Account SF IDs table to get each Contact's associated
+        # Account SF ID.
+        query = (
+            self.session.query(contact_id_column, account_sf_id_column)
+            .filter(contact_model.__table__.columns.get("IsPersonAccount") == "true")
+            .outerjoin(
+                account_sf_ids_table,
+                account_sf_ids_table.columns["id"] == account_id_column,
+            )
+        )
+
+        # Stream the results so we can process batches of 200 Contacts
+        # in case we have large data volumes.
+        query_result = conn.execution_options(stream_results=True).execute(
+            query.statement
+        )
+
+        while True:
+            # While we have a chunk to process
+            chunk = query_result.fetchmany(200)
+            if not chunk:
+                break
+
+            # Collect Map: Account SF ID --> Contact ID
+            contact_ids_by_account_sf_id = {record[1]: record[0] for record in chunk}
+
+            # Query Map: Account SF ID --> Contact SF ID
+            # It's safe to use query_all since the chunk size to 200.
+            for record in self.sf.query_all(
+                "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true AND AccountId IN ('{}')".format(
+                    "','".join(contact_ids_by_account_sf_id.keys())
+                )
+            )["records"]:
+                contact_id = contact_ids_by_account_sf_id.get(record["AccountId"])
+                contact_sf_id = record["Id"]
+
+                # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
+                yield (contact_id, contact_sf_id)

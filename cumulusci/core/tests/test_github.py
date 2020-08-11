@@ -149,7 +149,7 @@ class TestGithub(GithubApiTestMixin):
         pull_requests = get_pull_requests_by_head(repo, "test_branch")
         assert pull_requests == []
 
-        pull_requests = get_pull_requests_by_head(repo, "master")
+        pull_requests = get_pull_requests_by_head(repo, "main")
         assert pull_requests is None
 
     @responses.activate
@@ -162,15 +162,15 @@ class TestGithub(GithubApiTestMixin):
     @responses.activate
     def test_get_pull_requests_with_base_branch(self, mock_util, repo):
         self.init_github()
-        mock_util.mock_pulls(base="master", head="TestOwner:some-branch")
+        mock_util.mock_pulls(base="main", head="TestOwner:some-branch")
         pull_requests = get_pull_requests_with_base_branch(
-            repo, "master", head="some-branch"
+            repo, "main", head="some-branch"
         )
         assert 0 == len(pull_requests)
 
         responses.reset()
-        mock_util.mock_pulls(pulls=self._get_expected_pull_requests(3), base="master")
-        pull_requests = get_pull_requests_with_base_branch(repo, "master")
+        mock_util.mock_pulls(pulls=self._get_expected_pull_requests(3), base="main")
+        pull_requests = get_pull_requests_with_base_branch(repo, "main")
         assert 3 == len(pull_requests)
 
     @responses.activate

@@ -36,7 +36,6 @@ SF_COLLECTION_INSERTION_LIMIT = 200
 @selenium_retry
 class Salesforce(object):
     """A keyword library for working with Salesforce Lightning pages
-
     While you can import this directly into any suite, the recommended way
     to include this in a test suite is to import the ``Salesforce.robot``
     resource file.
@@ -65,7 +64,6 @@ class Salesforce(object):
 
     def _init_locators(self):
         """Load the appropriate locator file for the current version
-
         If no version can be determined, we'll use the highest numbered
         locator file name.
         """
@@ -98,7 +96,6 @@ class Salesforce(object):
     def initialize_location_strategies(self):
         """Initialize the Salesforce location strategies 'text' and 'title'
         plus any strategies registered by other keyword libraries
-
         Note: This keyword is called automatically from *Open Test Browser*
         """
         locator_manager.register_locators("sf", lex_locators)
@@ -113,7 +110,6 @@ class Salesforce(object):
     @selenium_retry(False)
     def _jsclick(self, locator):
         """Use javascript to click an element on the page
-
         See https://help.salesforce.com/articleView?id=000352057&language=en_US&mode=1&type=1
         """
 
@@ -138,19 +134,14 @@ class Salesforce(object):
 
     def set_faker_locale(self, locale):
         """Set the locale for fake data
-
         This sets the locale for all calls to the ``Faker`` keyword
         and ``${faker}`` variable. The default is en_US
-
         For a list of supported locales see
         [https://faker.readthedocs.io/en/master/locales.html|Localized Providers]
         in the Faker documentation.
-
         Example
-
         | Set Faker Locale    fr_FR
         | ${french_address}=  Faker  address
-
         """
         try:
             self._faker = faker.Faker(locale)
@@ -159,12 +150,10 @@ class Salesforce(object):
 
     def get_fake_data(self, fake, *args, **kwargs):
         """Return fake data
-
         This uses the [https://faker.readthedocs.io/en/master/|Faker]
         library to provide fake data in a variety of formats (names,
         addresses, credit card numbers, dates, phone numbers, etc) and
         locales (en_US, fr_FR, etc).
-
         The _fake_ argument is the name of a faker property such as
         ``first_name``, ``address``, ``lorem``, etc. Additional
         arguments depend on type of data requested. For a
@@ -172,7 +161,6 @@ class Salesforce(object):
         generated see
         [https://faker.readthedocs.io/en/master/providers.html|Faker
         providers] in the Faker documentation.
-
         The return value is typically a string, though in some cases
         some other type of object will be returned. For example, the
         ``date_between`` fake returns a
@@ -180,30 +168,22 @@ class Salesforce(object):
         object]. Each time a piece of fake data is requested it will
         be regenerated, so that multiple calls will usually return
         different data.
-
         This keyword can also be called using robot's extended variable
         syntax using the variable ``${faker}``. In such a case, the
         data being asked for is a method call and arguments must be
         enclosed in parentheses and be quoted. Arguments should not be
         quoted when using the keyword.
-
         To generate fake data for a locale other than en_US, use
         the keyword ``Set Faker Locale`` prior to calling this keyword.
-
         Examples
-
         | # Generate a fake first name
         | ${first_name}=  Get fake data  first_name
-
         | # Generate a fake date in the default format
         | ${date}=  Get fake data  date
-
         | # Generate a fake date with an explicit format
         | ${date}=  Get fake data  date  pattern=%Y-%m-%d
-
         | # Generate a fake date using extended variable syntax
         | Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
-
         """
         try:
             return self._faker.format(fake, *args, **kwargs)
@@ -215,7 +195,6 @@ class Salesforce(object):
 
     def create_webdriver_with_retry(self, *args, **kwargs):
         """Call the Create Webdriver keyword.
-
         Retry on connection resets which can happen if custom domain propagation is slow.
         """
         # Get selenium without referencing selenium.driver which doesn't exist yet
@@ -266,7 +245,6 @@ class Salesforce(object):
 
     def click_related_list_button(self, heading, button_title):
         """Clicks a button in the heading of a related list.
-
         Waits for a modal to open after clicking the button.
         """
         self.load_related_list(heading)
@@ -279,7 +257,6 @@ class Salesforce(object):
     @capture_screenshot_on_error
     def click_related_item_link(self, heading, title):
         """Clicks a link in the related list with the specified heading.
-
          This keyword will automatically call *Wait until loading is complete*.
         """
         self.load_related_list(heading)
@@ -295,7 +272,6 @@ class Salesforce(object):
 
     def click_related_item_popup_link(self, heading, title, link):
         """Clicks a link in the popup menu for a related list item.
-
         heading specifies the name of the list,
         title specifies the name of the item,
         and link specifies the name of the link
@@ -326,7 +302,6 @@ class Salesforce(object):
 
     def delete_session_records(self):
         """Deletes records that were created while running this test case.
-
         (Only records specifically recorded using the Store Session Record
         keyword are deleted.)
         """
@@ -494,13 +469,11 @@ class Salesforce(object):
     @capture_screenshot_on_error
     def open_app_launcher(self, retry=True):
         """Opens the Saleforce App Launcher Modal
-
         Note: starting with Spring '20 the app launcher button opens a
         menu rather than a modal. To maintain backwards compatibility,
         this keyword will continue to open the modal rather than the
         menu. If you need to interact with the app launcher menu, you
         will need to create a custom keyword.
-
         If the retry parameter is true, the keyword will
         close and then re-open the app launcher if it times out
         while waiting for the dialog to open.
@@ -536,10 +509,8 @@ class Salesforce(object):
 
     def populate_field(self, name, value):
         """Enters a value into an input or textarea field.
-
         'name' represents the label on the page (eg: "First Name"),
         and 'value' is the new value.
-
         Any existing value will be replaced.
         """
         locator = self._get_input_field_locator(name)
@@ -569,15 +540,12 @@ class Salesforce(object):
 
     def _get_input_field_locator(self, name):
         """Given an input field label, return a locator for the related input field
-
         This looks for a <label> element with the given text, or
         a label with a span with the given text. The value of the
         'for' attribute is then extracted from the label and used
         to create a new locator with that id.
-
         For example, the locator 'abc123' will be returned
         for the following html:
-
         <label for='abc123'>First Name</label>
         -or-
         <label for='abc123'><span>First Name</span>
@@ -608,7 +576,6 @@ class Salesforce(object):
 
     def _focus(self, element):
         """Set focus to an element
-
         In addition to merely setting the focus, we click the mouse
         to the field in case there are functions tied to that event.
         """
@@ -618,7 +585,6 @@ class Salesforce(object):
 
     def _clear(self, element):
         """Clear the field, using any means necessary
-
         This is surprisingly hard to do with a generic solution. Some
         methods work for some components and/or on some browsers but
         not others. Therefore, several techniques are employed.
@@ -645,7 +611,6 @@ class Salesforce(object):
 
     def _force_clear(self, element):
         """Use brute-force to clear an element
-
         This moves the cursor to the end of the input field and
         then issues a series of backspace keys to delete the data
         in the field.
@@ -705,12 +670,9 @@ class Salesforce(object):
 
     def salesforce_delete(self, obj_name, obj_id):
         """Deletes a Salesforce object by object name and Id.
-
         Example:
-
         The following example assumes that ``${contact id}`` has been
         previously set. The example deletes the Contact with that Id.
-
         | Salesforce Delete  Contact  ${contact id}
         """
         self.builtin.log("Deleting {} with Id {}".format(obj_name, obj_id))
@@ -720,16 +682,12 @@ class Salesforce(object):
 
     def salesforce_get(self, obj_name, obj_id):
         """Gets a Salesforce object by Id and returns the result as a dict.
-
         Example:
-
         The following example assumes that ``${contact id}`` has been
         previously set. The example retrieves the Contact object with
         that Id and then logs the Name field.
-
         | &{contact}=  Salesforce Get  Contact  ${contact id}
         | log  Contact name:  ${contact['Name']}
-
         """
         self.builtin.log(f"Getting {obj_name} with Id {obj_id}")
         obj_class = getattr(self.cumulusci.sf, obj_name)
@@ -737,27 +695,20 @@ class Salesforce(object):
 
     def salesforce_insert(self, obj_name, **kwargs):
         """Creates a new Salesforce object and returns the Id.
-
         The fields of the object may be defined with keyword arguments
         where the keyword name is the same as the field name.
-
         The object name and Id is passed to the *Store Session
         Record* keyword, and will be deleted when the keyword
         *Delete Session Records* is called.
-
         As a best practice, either *Delete Session Records* or
         *Delete Records and Close Browser* from Salesforce.robot
         should be called as a suite teardown.
-
         Example:
-
         The following example creates a new Contact with the
         first name of "Eleanor" and the last name of "Rigby".
-
         | ${contact id}=  Salesforce Insert  Contact
         | ...  FirstName=Eleanor
         | ...  LastName=Rigby
-
         """
         self.builtin.log("Inserting {} with values {}".format(obj_name, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
@@ -772,45 +723,30 @@ class Salesforce(object):
 
     def generate_test_data(self, obj_name, number_to_create, **fields):
         """Generate bulk test data
-
         This returns an array of dictionaries with template-formatted
         arguments which can be passed to the *Salesforce Collection Insert*
         keyword.
-
         You can use ``{{number}}`` to represent the unique index of
         the row in the list of rows.  If the entire string consists of
         a number, Salesforce API will treat the value as a number.
-
         Example:
-
         The following example creates three new Contacts:
-
             | @{objects} =  Generate Test Data  Contact  3
             | ...  Name=User {{number}}
             | ...  Age={{number}}
-
         The example code will generate Contact objects with these fields:
-
             | [{'Name': 'User 0', 'Age': '0'},
             |  {'Name': 'User 1', 'Age': '1'},
             |  {'Name': 'User 2', 'Age': '2'}]
-
         Python Expression Syntax is allowed so computed templates like this are also allowed: ``{{1000 + number}}``
-
         Python operators can be used, but no functions or variables are provided, so mostly you just
         have access to mathematical and logical operators. The Python operators are described here:
-
         https://www.digitalocean.com/community/tutorials/how-to-do-math-in-python-3-with-operators
-
         Contact the CCI team if you have a use-case that
         could benefit from more expression language power.
-
         Templates can also be based on faker patterns like those described here:
-
         https://faker.readthedocs.io/en/master/providers.html
-
         Most examples can be pasted into templates verbatim:
-
             | @{objects}=  Generate Test Data  Contact  200
             | ...  Name={{fake.first_name}} {{fake.last_name}}
             | ...  MailingStreet={{fake.street_address}}
@@ -818,7 +754,6 @@ class Salesforce(object):
             | ...  MailingState=NY
             | ...  MailingPostalCode=12345
             | ...  Email={{fake.email(domain="salesforce.com")}}
-
         """
         objs = []
 
@@ -833,27 +768,20 @@ class Salesforce(object):
 
     def salesforce_collection_insert(self, objects):
         """Inserts records that were created with *Generate Test Data*.
-
         _objects_ is a list of data, typically generated by the
         *Generate Test Data* keyword.
-
         A 200 record limit is enforced by the Salesforce APIs.
-
         The object name and Id is passed to the *Store Session
         Record* keyword, and will be deleted when the keyword *Delete
         Session Records* is called.
-
         As a best practice, either *Delete Session Records* or
         **Delete Records and Close Browser* from Salesforce.robot
         should be called as a suite teardown.
-
         Example:
-
         | @{objects}=  Generate Test Data  Contact  200
         | ...  FirstName=User {{number}}
         | ...  LastName={{fake.last_name}}
         | Salesforce Collection Insert  ${objects}
-
         """
         assert (
             not obj.get("id", None) for obj in objects
@@ -882,17 +810,12 @@ class Salesforce(object):
 
     def salesforce_collection_update(self, objects):
         """Updates records described as Robot/Python dictionaries.
-
         _objects_ is a dictionary of data in the format returned
         by the *Salesforce Collection Insert* keyword.
-
         A 200 record limit is enforced by the Salesforce APIs.
-
         Example:
-
         The following example creates ten accounts and then updates
         the Rating from "Cold" to "Hot"
-
         | ${data}=  Generate Test Data  Account  10
         | ...  Name=Account #{{number}}
         | ...  Rating=Cold
@@ -902,7 +825,6 @@ class Salesforce(object):
         |     Set to dictionary  ${account}  Rating  Hot
         | END
         | Salesforce Collection Update  ${accounts}
-
         """
         for obj in objects:
             assert obj[
@@ -927,23 +849,18 @@ class Salesforce(object):
 
     def salesforce_query(self, obj_name, **kwargs):
         """Constructs and runs a simple SOQL query and returns a list of dictionaries.
-
         By default the results will only contain object Ids. You can
         specify a SOQL SELECT clase via keyword arguments by passing
         a comma-separated list of fields with the ``select`` keyword
         argument.
-
         Example:
-
         The following example searches for all Contacts where the
         first name is "Eleanor". It returns the "Name" and "Id"
         fields and logs them to the robot report:
-
         | @{records}=  Salesforce Query  Contact  select=Id,Name
         | FOR  ${record}  IN  @{records}
         |     log  Name: ${record['Name']} Id: ${record['Id']}
         | END
-
         """
         query = "SELECT "
         if "select" in kwargs:
@@ -963,20 +880,16 @@ class Salesforce(object):
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
         """ Updates a Salesforce object by Id.
-
         The keyword returns the result from the underlying
         simple_salesforce ``insert`` method, which is an HTTP
         status code. As with `Salesforce Insert`, field values
         are specified as keyword arguments.
-
         The following example assumes that ${contact id} has been
         previously set, and adds a Description to the given
         contact.
-
         | &{contact}=  Salesforce Update  Contact  ${contact id}
         | ...  Description=This Contact created during a test
         | Should be equal as numbers ${result}  204
-
         """
         self.builtin.log(
             "Updating {} {} with values {}".format(obj_name, obj_id, kwargs)
@@ -986,32 +899,26 @@ class Salesforce(object):
 
     def soql_query(self, query):
         """ Runs a simple SOQL query and returns the dict results
-
         The _query_ parameter must be a properly quoted SOQL query statement. The
         return value is a dictionary. The dictionary contains the keys
         as documented for the raw API call. The most useful key is ``records``,
         which contains a list of records which were matched by the query.
-
         Example
-
         The following example searches for all Contacts with a first
         name of "Eleanor" and a last name of "Rigby", and then prints
         the name of the first record found.
-
         | ${result}=  SOQL Query
         | ...  SELECT Name, Id FROM Contact WHERE FirstName='Eleanor' AND LastName='Rigby'
         | Run keyword if  len($result['records']) == 0  Fail  No records found
         |
         | ${contact}=  Get from list  ${result['records']}  0
         | Should be equal  ${contact['Name']}  Eleanor Rigby
-
         """
         self.builtin.log("Running SOQL Query: {}".format(query))
         return self.cumulusci.sf.query_all(query)
 
     def store_session_record(self, obj_type, obj_id):
         """ Stores a Salesforce record's Id for use in the *Delete Session Records* keyword.
-
         This keyword is automatically called by *Salesforce Insert*.
         """
         self.builtin.log("Storing {} {} to session records".format(obj_type, obj_id))
@@ -1034,7 +941,6 @@ class Salesforce(object):
 
     def wait_until_loading_is_complete(self, locator=None):
         """Wait for LEX page to load.
-
         (We're actually waiting for the actions ribbon to appear.)
         """
         locator = lex_locators["body"] if locator is None else locator
@@ -1057,17 +963,14 @@ class Salesforce(object):
     @capture_screenshot_on_error
     def wait_until_salesforce_is_ready(self, locator=None, timeout=None, interval=5):
         """Waits until we are able to render the initial salesforce landing page
-
         It will continue to refresh the page until we land on a
         lightning page or until a timeout has been reached. The
         timeout can be specified in any time string supported by robot
         (eg: number of seconds, "3 minutes", etc.). If not specified,
         the default selenium timeout will be used.
-
         This keyword will wait a few seconds between each refresh, as
         well as wait after each refresh for the page to fully render
         (ie: it calls wait_for_aura())
-
         """
 
         # Note: we can't just ask selenium to wait for an element,
@@ -1120,7 +1023,6 @@ class Salesforce(object):
 
     def breakpoint(self):
         """Serves as a breakpoint for the robot debugger
-
         Note: this keyword is a no-op unless the debug option for
         the task has been set to True. Unless the option has been
         set, this keyword will have no effect on a running test.
@@ -1129,11 +1031,9 @@ class Salesforce(object):
 
     def _check_for_classic(self):
         """Switch to lightning if we land on a classic page
-
         This seems to happen randomly, causing tests to fail
         catastrophically. The idea is to detect such a case and
         auto-click the "switch to lightning" link
-
         """
         try:
             # we don't actually want to wait here, but if we don't
@@ -1163,13 +1063,11 @@ class Salesforce(object):
 
     def _check_for_login_failure(self):
         """Handle the case where we land on a login screen
-
            Sometimes we get redirected to a login URL rather than
            being logged in, and we've yet to figure out precisely why
            that happens. Experimentation shows that authentication has
            already happened, so in this case we'll try going back to
            the instance url rather than the front door servlet.
-
            Admittedly, this is a bit of a hack, but it's better than
            never getting past this redirect.
         """
