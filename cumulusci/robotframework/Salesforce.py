@@ -36,6 +36,7 @@ SF_COLLECTION_INSERTION_LIMIT = 200
 @selenium_retry
 class Salesforce(object):
     """A keyword library for working with Salesforce Lightning pages
+
     While you can import this directly into any suite, the recommended way
     to include this in a test suite is to import the ``Salesforce.robot``
     resource file.
@@ -64,6 +65,7 @@ class Salesforce(object):
 
     def _init_locators(self):
         """Load the appropriate locator file for the current version
+
         If no version can be determined, we'll use the highest numbered
         locator file name.
         """
@@ -96,6 +98,7 @@ class Salesforce(object):
     def initialize_location_strategies(self):
         """Initialize the Salesforce location strategies 'text' and 'title'
         plus any strategies registered by other keyword libraries
+
         Note: This keyword is called automatically from *Open Test Browser*
         """
         locator_manager.register_locators("sf", lex_locators)
@@ -110,6 +113,7 @@ class Salesforce(object):
     @selenium_retry(False)
     def _jsclick(self, locator):
         """Use javascript to click an element on the page
+
         See https://help.salesforce.com/articleView?id=000352057&language=en_US&mode=1&type=1
         """
 
@@ -134,14 +138,19 @@ class Salesforce(object):
 
     def set_faker_locale(self, locale):
         """Set the locale for fake data
+
         This sets the locale for all calls to the ``Faker`` keyword
         and ``${faker}`` variable. The default is en_US
+
         For a list of supported locales see
         [https://faker.readthedocs.io/en/master/locales.html|Localized Providers]
         in the Faker documentation.
+
         Example
+
         | Set Faker Locale    fr_FR
         | ${french_address}=  Faker  address
+
         """
         try:
             self._faker = faker.Faker(locale)
@@ -150,10 +159,12 @@ class Salesforce(object):
 
     def get_fake_data(self, fake, *args, **kwargs):
         """Return fake data
+
         This uses the [https://faker.readthedocs.io/en/master/|Faker]
         library to provide fake data in a variety of formats (names,
         addresses, credit card numbers, dates, phone numbers, etc) and
         locales (en_US, fr_FR, etc).
+
         The _fake_ argument is the name of a faker property such as
         ``first_name``, ``address``, ``lorem``, etc. Additional
         arguments depend on type of data requested. For a
@@ -161,6 +172,7 @@ class Salesforce(object):
         generated see
         [https://faker.readthedocs.io/en/master/providers.html|Faker
         providers] in the Faker documentation.
+
         The return value is typically a string, though in some cases
         some other type of object will be returned. For example, the
         ``date_between`` fake returns a
@@ -168,22 +180,30 @@ class Salesforce(object):
         object]. Each time a piece of fake data is requested it will
         be regenerated, so that multiple calls will usually return
         different data.
+
         This keyword can also be called using robot's extended variable
         syntax using the variable ``${faker}``. In such a case, the
         data being asked for is a method call and arguments must be
         enclosed in parentheses and be quoted. Arguments should not be
         quoted when using the keyword.
+
         To generate fake data for a locale other than en_US, use
         the keyword ``Set Faker Locale`` prior to calling this keyword.
+
         Examples
+
         | # Generate a fake first name
         | ${first_name}=  Get fake data  first_name
+
         | # Generate a fake date in the default format
         | ${date}=  Get fake data  date
+
         | # Generate a fake date with an explicit format
         | ${date}=  Get fake data  date  pattern=%Y-%m-%d
+
         | # Generate a fake date using extended variable syntax
         | Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
+
         """
         try:
             return self._faker.format(fake, *args, **kwargs)
@@ -195,6 +215,7 @@ class Salesforce(object):
 
     def create_webdriver_with_retry(self, *args, **kwargs):
         """Call the Create Webdriver keyword.
+
         Retry on connection resets which can happen if custom domain propagation is slow.
         """
         # Get selenium without referencing selenium.driver which doesn't exist yet
@@ -245,6 +266,7 @@ class Salesforce(object):
 
     def click_related_list_button(self, heading, button_title):
         """Clicks a button in the heading of a related list.
+
         Waits for a modal to open after clicking the button.
         """
         self.load_related_list(heading)
@@ -257,7 +279,8 @@ class Salesforce(object):
     @capture_screenshot_on_error
     def click_related_item_link(self, heading, title):
         """Clicks a link in the related list with the specified heading.
-         This keyword will automatically call *Wait until loading is complete*.
+
+        This keyword will automatically call *Wait until loading is complete*.
         """
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
