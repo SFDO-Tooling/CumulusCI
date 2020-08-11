@@ -89,7 +89,14 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
             for line in f:
                 if line.isspace():
                     continue
-                orgs.append(line.split()[0])
+                elif len(line.split(",")) > 1:
+                    for value in line.split(","):
+                        if value.startswith("00D") or value.startswith(
+                            "OrganizationId"
+                        ):
+                            orgs.append(value)
+                else:
+                    orgs.append(line.split()[0])
         return orgs
 
     def _report_push_status(self, request_id):
