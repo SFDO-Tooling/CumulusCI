@@ -43,7 +43,7 @@ from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config.ScratchOrgConfig import ScratchOrgConfig
 
 # inherit from BaseProjectConfig
-from cumulusci.core.config.BaseGlobalConfig import BaseGlobalConfig
+from cumulusci.core.config.universal_config import UniversalConfig
 
 
 __all__ = (
@@ -57,5 +57,5 @@ __all__ = (
     "BaseTaskFlowConfig",
     "BaseProjectConfig",
     "ScratchOrgConfig",
-    "BaseGlobalConfig",
+    "UniversalConfig",
 )

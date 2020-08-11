@@ -88,41 +88,49 @@ class MetadataPackageVersion(BasePushApiObject):
         return version_number
 
     def get_newer_released_version_objs(self, less_than_version=None):
-        where = self._newer_query(less_than_version)
-        versions = self.package.get_package_version_objs(where)
-        return versions
-
-    def get_older_released_version_objs(self, greater_than_version=None):
-        where = self._older_query(greater_than_version)
-        versions = self.package.get_package_version_objs(where)
-        return versions
-
-    def _newer_query(self, less_than_version=None):
-        where = self._base_query()
-        where += f"(MajorVersion > {self.major} OR (MajorVersion = {self.major} AND MinorVersion > {self.minor}))"
+        where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
+        version_info = {"major": self.major, "minor": self.minor, "patch": self.patch}
+        where += f"(MajorVersion > {version_info.major} OR (MajorVersion = {version_info.major} AND MinorVersion > {version_info.minor}))"
         if self.patch:
-            patch_where = f" OR (MajorVersion = {self.major} AND MinorVersion = {self.minor} AND PatchVersion > {self.patch})"
+            patch_where = f" OR (MajorVersion = {version_info.major} AND MinorVersion = {version_info.minor} AND PatchVersion > {version_info.patch})"
             where = where[:-1] + patch_where + where[-1:]
 
         if less_than_version:
-            less_than_where = " AND " + (
-                less_than_version._older_query().lstrip(less_than_version._base_query())
-            )
+            version_info = {
+                "major": less_than_version.major,
+                "minor": less_than_version.minor,
+                "patch": less_than_version.patch,
+            }
+            less_than_where = f" AND (MajorVersion < {version_info.major} OR (MajorVersion = {version_info.major} AND MinorVersion < {version_info.minor}))"
+            if less_than_version.patch:
+                patch_where = f" OR (MajorVersion = {version_info.major} AND MinorVersion = {version_info.minor} AND PatchVersion < {version_info.patch})"
+                less_than_where = (
+                    less_than_where[:-1] + patch_where + less_than_where[-1:]
+                )
             where += less_than_where
 
         return where
 
-    def _older_query(self, greater_than_version=None):
-        where = self._base_query()
-        where += f"(MajorVersion < {self.major} OR (MajorVersion = {self.major} AND MinorVersion < {self.minor}))"
+    def get_older_released_version_objs(self, greater_than_version=None):
+        where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
+        version_info = {"major": self.major, "minor": self.minor, "patch": self.patch}
+        where += f"(MajorVersion < {version_info.major} OR (MajorVersion = {version_info.major} AND MinorVersion < {version_info.minor}))"
+
         if self.patch:
-            patch_where = f" OR (MajorVersion = {self.major} AND MinorVersion = {self.minor} AND PatchVersion < {self.patch})"
+            patch_where = f" OR (MajorVersion = {version_info.major} AND MinorVersion = {version_info.minor} AND PatchVersion < {version_info.patch})"
             where = where[:-1] + patch_where + where[-1:]
 
         if greater_than_version:
-            greater_than_where = " AND " + (
-                greater_than_version._newer_query().lstrip(
-                    greater_than_version._base_query()
+            version_info = {
+                "major": greater_than_version.major,
+                "minor": greater_than_version.minor,
+                "patch": greater_than_version.patch,
+            }
+            greater_than_where = f" AND (MajorVersion > {version_info.major} OR (MajorVersion = {version_info.major} AND MinorVersion > {version_info.minor}))"
+            if greater_than_version.patch:
+                patch_where = f" OR (MajorVersion = {version_info.major} AND MinorVersion = {version_info.minor} AND PatchVersion > {version_info.patch})"
+                greater_than_where = (
+                    greater_than_where[:-1] + patch_where + greater_than_where[-1:]
                 )
             )
             where += greater_than_where
@@ -306,7 +314,7 @@ class SalesforcePushApi(object):
     @memoize
     def get_packages(self, where=None, limit=None):
         where = self.format_where_clause(where)
-        query = "SELECT id, name, namespaceprefix FROM MetadataPackage%s" % where
+        query = f"SELECT id, name, namespaceprefix FROM MetadataPackage{where}"
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 

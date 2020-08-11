@@ -3,6 +3,8 @@ from datetime import datetime
 import os
 import json
 import shutil
+import random
+import string
 import unittest
 from unittest import mock
 
@@ -19,13 +21,14 @@ from cumulusci.tasks.bulkdata.step import (
     BaseDmlOperation,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 
 
 class MockBulkApiDmlOperation(BaseDmlOperation):
     def __init__(
-        self, *, context, sobject=None, operation=None, api_options=None, fields=None,
+        self, *, context, sobject=None, operation=None, api_options=None, fields=None
     ):
         super().__init__(
             sobject=sobject,
@@ -111,6 +114,7 @@ class TestLoadData(unittest.TestCase):
                 DataOperationResult("003000000000001", True, None),
             ]
 
+            mock_describe_calls()
             task()
 
             assert step.records == [
@@ -237,6 +241,7 @@ class TestLoadData(unittest.TestCase):
             DataOperationResult("003000000000000", True, None),
             DataOperationResult("003000000000001", True, None),
         ]
+        mock_describe_calls()
         task()
 
         assert step.records == [
@@ -296,6 +301,34 @@ class TestLoadData(unittest.TestCase):
         assert t.options["sql_path"] == "test.sql"
         assert t.options["database_url"] is None
 
+    @mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping")
+    def test_init_mapping_passes_options_to_validate(self, validate_and_inject_mapping):
+        base_path = os.path.dirname(__file__)
+
+        t = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": "test.sql",
+                    "mapping": os.path.join(base_path, self.mapping_file),
+                    "inject_namespaces": True,
+                    "drop_missing_schema": True,
+                }
+            },
+        )
+
+        t._init_mapping()
+
+        validate_and_inject_mapping.assert_called_once_with(
+            mapping=t.mapping,
+            org_config=t.org_config,
+            namespace=t.project_config.project__package__namespace,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=True,
+            drop_missing=True,
+        )
+
+    @responses.activate
     def test_expand_mapping_creates_after_steps(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "mapping_after.yml")
@@ -304,6 +337,7 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
 
+        mock_describe_calls()
         task._init_mapping()
 
         model = mock.Mock()
@@ -324,7 +358,7 @@ class TestLoadData(unittest.TestCase):
         lookups = {}
         lookups["Id"] = MappingLookup(name="Id", table="accounts", key_field="sf_id")
         lookups["Primary_Contact__c"] = MappingLookup(
-            table="contacts", name="Primary_Contact__c",
+            table="contacts", name="Primary_Contact__c"
         )
         self.assertEqual(
             {
@@ -537,6 +571,266 @@ class TestLoadData(unittest.TestCase):
             aliased.return_value, False
         )
 
+    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    def test_query_db__person_accounts_enabled__account_mapping(self, aliased):
+        task = _make_task(
+            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
+        )
+        model = mock.Mock()
+        task.models = {"accounts": model}
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
+        task.session = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(return_value=True)
+        task._filter_out_person_account_records = mock.Mock()
+
+        model.__table__ = mock.Mock()
+        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        columns = {
+            "sf_id": mock.Mock(),
+            "name": mock.Mock(),
+            "IsPersonAccount": mock.Mock(),
+        }
+        model.__table__.columns = columns
+
+        mapping = {
+            "sf_object": "Account",
+            "table": "accounts",
+            "action": "update",
+            "oid_as_pk": True,
+            "fields": {"Id": "sf_id", "Name": "name"},
+            "lookups": {
+                "ParentId": MappingLookup(
+                    table="accounts", key_field="parent_id", name="ParentId"
+                )
+            },
+        }
+
+        task._query_db(mapping)
+
+        # Validate that the column set is accurate
+        task.session.query.assert_called_once_with(
+            model.sf_id,
+            model.__table__.columns["name"],
+            aliased.return_value.columns.sf_id,
+        )
+
+        # Validate person account records were not filtered out
+        task._can_load_person_accounts.assert_not_called()
+        task._filter_out_person_account_records.assert_not_called()
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    def test_query_db__person_accounts_disabled__account_mapping(self, aliased):
+        task = _make_task(
+            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
+        )
+        model = mock.Mock()
+        task.models = {"accounts": model}
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
+        task.session = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(return_value=False)
+        task._filter_out_person_account_records = mock.Mock()
+
+        model.__table__ = mock.Mock()
+        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        columns = {
+            "sf_id": mock.Mock(),
+            "name": mock.Mock(),
+            "IsPersonAccount": mock.Mock(),
+        }
+        model.__table__.columns = columns
+
+        mapping = {
+            "sf_object": "Account",
+            "table": "accounts",
+            "action": "update",
+            "oid_as_pk": True,
+            "fields": {"Id": "sf_id", "Name": "name"},
+            "lookups": {
+                "ParentId": MappingLookup(
+                    table="accounts", key_field="parent_id", name="ParentId"
+                )
+            },
+        }
+
+        task._query_db(mapping)
+
+        # Validate that the column set is accurate
+        task.session.query.assert_called_once_with(
+            model.sf_id,
+            model.__table__.columns["name"],
+            aliased.return_value.columns.sf_id,
+        )
+
+        # Validate person account records were not filtered out
+        task._can_load_person_accounts.assert_not_called()
+        task._filter_out_person_account_records.assert_not_called()
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    def test_query_db__person_accounts_enabled__contact_mapping(self, aliased):
+        task = _make_task(
+            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
+        )
+        model = mock.Mock()
+        task.models = {"contacts": model}
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"contacts_sf_ids": mock.Mock()}
+        task.session = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(return_value=True)
+        task._filter_out_person_account_records = mock.Mock()
+
+        # Make mock query chainable
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+        task.session.query.outerjoin.return_value = task.session.query
+        task.session.query.order_by.return_value = task.session.query
+
+        model.__table__ = mock.Mock()
+        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        columns = {
+            "sf_id": mock.Mock(),
+            "name": mock.Mock(),
+            "IsPersonAccount": mock.Mock(),
+        }
+        model.__table__.columns = columns
+
+        mapping = {
+            "sf_object": "Contact",
+            "table": "contacts",
+            "action": "update",
+            "oid_as_pk": True,
+            "fields": {"Id": "sf_id", "Name": "name"},
+            "lookups": {
+                "ParentId": MappingLookup(
+                    table="contacts", key_field="parent_id", name="ParentId"
+                )
+            },
+        }
+
+        task._query_db(mapping)
+
+        # Validate that the column set is accurate
+        task.session.query.assert_called_once_with(
+            model.sf_id,
+            model.__table__.columns["name"],
+            aliased.return_value.columns.sf_id,
+        )
+
+        # Validate person contact records were not filtered out
+        task._can_load_person_accounts.assert_called_once_with(mapping)
+        task._filter_out_person_account_records.assert_called_once_with(
+            task.session.query.return_value, model
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    def test_query_db__person_accounts_disabled__contact_mapping(self, aliased):
+        task = _make_task(
+            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
+        )
+        model = mock.Mock()
+        task.models = {"contacts": model}
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"contacts_sf_ids": mock.Mock()}
+        task.session = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(return_value=False)
+        task._filter_out_person_account_records = mock.Mock()
+
+        # Make mock query chainable
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+        task.session.query.outerjoin.return_value = task.session.query
+        task.session.query.order_by.return_value = task.session.query
+
+        model.__table__ = mock.Mock()
+        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        columns = {
+            "sf_id": mock.Mock(),
+            "name": mock.Mock(),
+            "IsPersonAccount": mock.Mock(),
+        }
+        model.__table__.columns = columns
+
+        mapping = {
+            "sf_object": "Contact",
+            "table": "contacts",
+            "action": "update",
+            "oid_as_pk": True,
+            "fields": {"Id": "sf_id", "Name": "name"},
+            "lookups": {
+                "ParentId": MappingLookup(
+                    table="contacts", key_field="parent_id", name="ParentId"
+                )
+            },
+        }
+
+        task._query_db(mapping)
+
+        # Validate that the column set is accurate
+        task.session.query.assert_called_once_with(
+            model.sf_id,
+            model.__table__.columns["name"],
+            aliased.return_value.columns.sf_id,
+        )
+
+        # Validate person contact records were not filtered out
+        task._can_load_person_accounts.assert_called_once_with(mapping)
+        task._filter_out_person_account_records.assert_not_called()
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    def test_query_db__person_accounts_enabled__neither_account_nor_contact_mapping(
+        self, aliased
+    ):
+        task = _make_task(
+            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
+        )
+        model = mock.Mock()
+        task.models = {"requests": model}
+        task.metadata = mock.Mock()
+        task.metadata.tables = {"requests_sf_ids": mock.Mock()}
+        task.session = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(return_value=True)
+        task._filter_out_person_account_records = mock.Mock()
+
+        # Make mock query chainable
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+        task.session.query.outerjoin.return_value = task.session.query
+        task.session.query.order_by.return_value = task.session.query
+
+        model.__table__ = mock.Mock()
+        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
+        model.__table__.columns = columns
+
+        mapping = {
+            "sf_object": "Request__c",
+            "table": "requests",
+            "action": "update",
+            "oid_as_pk": True,
+            "fields": {"Id": "sf_id", "Name": "name"},
+            "lookups": {
+                "ParentId": MappingLookup(
+                    table="requests", key_field="parent_id", name="ParentId"
+                )
+            },
+        }
+
+        task._query_db(mapping)
+
+        # Validate that the column set is accurate
+        task.session.query.assert_called_once_with(
+            model.sf_id,
+            model.__table__.columns["name"],
+            aliased.return_value.columns.sf_id,
+        )
+
+        # Validate person contact db records had their Name updated as blank
+        task._can_load_person_accounts.assert_not_called()
+
+        # Validate person contact records were not filtered out
+        task._filter_out_person_account_records.assert_not_called()
+
     def test_convert(self):
         task = _make_task(
             LoadData,
@@ -615,7 +909,7 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {"table": "Account", "action": "insert"}
+        mapping = {"sf_object": "Account", "table": "Account", "action": "insert"}
         task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
@@ -662,7 +956,7 @@ class TestLoadData(unittest.TestCase):
             DataOperationResult("001111111111114", False, None),
         ]
 
-        mapping = {"table": "Account", "action": "insert"}
+        mapping = {"sf_object": "Account", "table": "Account", "action": "insert"}
         task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
@@ -733,6 +1027,322 @@ class TestLoadData(unittest.TestCase):
 
         self.assertIn("Error on record with id", str(ex.exception))
         self.assertIn("message", str(ex.exception))
+
+    def test_process_job_results__person_account_contact_ids__not_updated__mapping_action_not_insert(
+        self,
+    ):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        ❌ mapping's action is "insert"
+        ✅ mapping's sf_object is Contact
+        ✅ person accounts is enabled
+        ✅ an account_id_lookup is found in the mapping
+        """
+
+        # ❌ mapping's action is "insert"
+        action = "update"
+
+        # ✅ mapping's sf_object is Contact
+        sf_object = "Contact"
+
+        # ✅ person accounts is enabled
+        can_load_person_accounts = True
+
+        # ✅ an account_id_lookup is found in the mapping
+        account_id_lookup = mock.Mock()
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(
+            return_value=can_load_person_accounts
+        )
+        task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+        local_ids = ["1"]
+
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
+
+        mapping = {
+            "sf_object": sf_object,
+            "table": "Account",
+            "action": action,
+            "lookups": {},
+        }
+        if account_id_lookup:
+            mapping["lookups"]["AccountId"] = account_id_lookup
+        task._process_job_results(mapping, step, local_ids)
+
+        task._generate_contact_id_map_for_person_accounts.assert_not_called()
+
+    def test_process_job_results__person_account_contact_ids__not_updated__sf_object_not_contact(
+        self,
+    ):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        ✅ mapping's action is "insert"
+        ❌ mapping's sf_object is Contact
+        ✅ person accounts is enabled
+        ✅ an account_id_lookup is found in the mapping
+        """
+
+        # ✅ mapping's action is "insert"
+        action = "insert"
+
+        # ❌ mapping's sf_object is Contact
+        sf_object = "Opportunity"
+
+        # ✅ person accounts is enabled
+        can_load_person_accounts = True
+
+        # ✅ an account_id_lookup is found in the mapping
+        account_id_lookup = mock.Mock()
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(
+            return_value=can_load_person_accounts
+        )
+        task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+        local_ids = ["1"]
+
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
+
+        mapping = {
+            "sf_object": sf_object,
+            "table": "Account",
+            "action": action,
+            "lookups": {},
+        }
+        if account_id_lookup:
+            mapping["lookups"]["AccountId"] = account_id_lookup
+        task._process_job_results(mapping, step, local_ids)
+
+        task._generate_contact_id_map_for_person_accounts.assert_not_called()
+
+    def test_process_job_results__person_account_contact_ids__not_updated__person_accounts_not_enabled(
+        self,
+    ):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        ✅ mapping's action is "insert"
+        ✅ mapping's sf_object is Contact
+        ❌ person accounts is enabled
+        ✅ an account_id_lookup is found in the mapping
+        """
+
+        # ✅ mapping's action is "insert"
+        action = "insert"
+
+        # ✅ mapping's sf_object is Contact
+        sf_object = "Contact"
+
+        # ❌ person accounts is enabled
+        can_load_person_accounts = False
+
+        # ✅ an account_id_lookup is found in the mapping
+        account_id_lookup = mock.Mock()
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(
+            return_value=can_load_person_accounts
+        )
+        task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+        local_ids = ["1"]
+
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
+
+        mapping = {
+            "sf_object": sf_object,
+            "table": "Account",
+            "action": action,
+            "lookups": {},
+        }
+        if account_id_lookup:
+            mapping["lookups"]["AccountId"] = account_id_lookup
+        task._process_job_results(mapping, step, local_ids)
+
+        task._generate_contact_id_map_for_person_accounts.assert_not_called()
+
+    def test_process_job_results__person_account_contact_ids__not_updated__no_account_id_lookup(
+        self,
+    ):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        ✅ mapping's action is "insert"
+        ✅ mapping's sf_object is Contact
+        ✅ person accounts is enabled
+        ❌ an account_id_lookup is found in the mapping
+        """
+
+        # ✅ mapping's action is "insert"
+        action = "insert"
+
+        # ✅ mapping's sf_object is Contact
+        sf_object = "Contact"
+
+        # ✅ person accounts is enabled
+        can_load_person_accounts = True
+
+        # ❌ an account_id_lookup is found in the mapping
+        account_id_lookup = None
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(
+            return_value=can_load_person_accounts
+        )
+        task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+        local_ids = ["1"]
+
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
+
+        mapping = {
+            "sf_object": sf_object,
+            "table": "Account",
+            "action": action,
+            "lookups": {},
+        }
+        if account_id_lookup:
+            mapping["lookups"]["AccountId"] = account_id_lookup
+        task._process_job_results(mapping, step, local_ids)
+
+        task._generate_contact_id_map_for_person_accounts.assert_not_called()
+
+    def test_process_job_results__person_account_contact_ids__updated(self):
+        """
+        Contact ID table is updated with Contact IDs for person account records
+        only if all:
+        ✅ mapping's action is "insert"
+        ✅ mapping's sf_object is Contact
+        ✅ person accounts is enabled
+        ✅ an account_id_lookup is found in the mapping
+        """
+
+        # ✅ mapping's action is "insert"
+        action = "insert"
+
+        # ✅ mapping's sf_object is Contact
+        sf_object = "Contact"
+
+        # ✅ person accounts is enabled
+        can_load_person_accounts = True
+
+        # ✅ an account_id_lookup is found in the mapping
+        account_id_lookup = mock.Mock()
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        task.session = mock.Mock()
+        task._initialize_id_table = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task.bulk = mock.Mock()
+        task.sf = mock.Mock()
+        task._can_load_person_accounts = mock.Mock(
+            return_value=can_load_person_accounts
+        )
+        task._generate_contact_id_map_for_person_accounts = mock.Mock()
+
+        local_ids = ["1"]
+
+        step = MockBulkApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={},
+            context=task,
+            fields=[],
+        )
+        step.results = [DataOperationResult("001111111111111", True, None)]
+
+        mapping = {
+            "sf_object": sf_object,
+            "table": "Account",
+            "action": action,
+            "lookups": {"AccountId": account_id_lookup},
+        }
+
+        task._process_job_results(mapping, step, local_ids)
+
+        task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
+            mapping, account_id_lookup, task.session.connection.return_value
+        )
+
+        task._sql_bulk_insert_from_records.assert_called_with(
+            connection=task.session.connection.return_value,
+            table=task._initialize_id_table.return_value,
+            columns=("id", "sf_id"),
+            record_iterable=task._generate_contact_id_map_for_person_accounts.return_value,
+        )
 
     def test_generate_results_id_map__success(self):
         task = _make_task(
@@ -908,6 +1518,7 @@ class TestLoadData(unittest.TestCase):
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.load.automap_base")
+    @responses.activate
     def test_init_db__record_type_mapping(self, base):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file)
@@ -922,6 +1533,10 @@ class TestLoadData(unittest.TestCase):
         task._create_record_type_table = mock.Mock(side_effect=create_table_mock)
         task.models = mock.Mock()
         task.metadata = mock.Mock()
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists = (
+            mock.Mock()
+        )
+        mock_describe_calls()
 
         task._init_mapping()
         task.mapping["Insert Households"]["fields"]["RecordTypeId"] = "RecordTypeId"
@@ -929,6 +1544,7 @@ class TestLoadData(unittest.TestCase):
         task._create_record_type_table.assert_called_once_with(
             "Account_rt_target_mapping"
         )
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists.assert_called_once_with()
 
     def test_load_record_types(self):
         task = _make_task(
@@ -990,6 +1606,7 @@ class TestLoadData(unittest.TestCase):
                 DataOperationResult("003000000000001", True, None),
             ]
 
+            mock_describe_calls()
             task()
 
             assert step.records == [
@@ -1005,6 +1622,7 @@ class TestLoadData(unittest.TestCase):
 
             task.session.close()
 
+    @responses.activate
     def test_run__complex_lookups(self):
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1013,7 +1631,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
-
+        mock_describe_calls()
         task._init_mapping()
         assert (
             task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
@@ -1032,6 +1650,7 @@ class TestLoadData(unittest.TestCase):
             == "Insert Accounts"
         )
 
+    @responses.activate
     def test_load__inferred_keyfield_camelcase(self):
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1040,6 +1659,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
+        mock_describe_calls()
         task._init_mapping()
 
         class FakeModel:
@@ -1052,6 +1672,7 @@ class TestLoadData(unittest.TestCase):
             == "ParentId"
         )
 
+    @responses.activate
     def test_load__inferred_keyfield_snakecase(self):
         mapping_file = "mapping-oid.yml"
         base_path = os.path.dirname(__file__)
@@ -1060,6 +1681,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
+        mock_describe_calls()
         task._init_mapping()
 
         class FakeModel:
@@ -1071,3 +1693,529 @@ class TestLoadData(unittest.TestCase):
             )
             == "parent_id"
         )
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__raises_exception__account(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ✅ An Account or Contact object is mapped
+        - ✅ The corresponding table includes an IsPersonAccount column
+        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        - ✅ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ An Account object is mapped
+        mapping = {"table": "account", "sf_object": "Account"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ✅ The org does not have person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+
+        with self.assertRaises(BulkDataException):
+            task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__raises_exception__contact(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ✅ An Account or Contact object is mapped
+        - ✅ The corresponding table includes an IsPersonAccount column
+        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        - ✅ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ A Contact object is mapped
+        mapping = {"table": "contact", "sf_object": "Contact"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ✅ The org does not have person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+
+        with self.assertRaises(BulkDataException):
+            task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_org_has_person_accounts_enabled(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ✅ An Account or Contact object is mapped
+        - ✅ The corresponding table includes an IsPersonAccount column
+        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        - ❌ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ An Account object is mapped
+        mapping = {"table": "account", "sf_object": "Account"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ❌ The org does has person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_no_person_account_records(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ✅ An Account or Contact object is mapped
+        - ✅ The corresponding table includes an IsPersonAccount column
+        - ❌ There is at least one record in the table with IsPersonAccount equals "true"
+        - ✅ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ An Account object is mapped
+        mapping = {"table": "account", "sf_object": "Account"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ❌ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+        task.session.query.first.return_value = None
+
+        assert task.session.query.first.return_value is None
+
+        # ✅ The org does has person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_no_person_account_column(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ✅ An Account or Contact object is mapped
+        - ❌ The corresponding table includes an IsPersonAccount column
+        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        - ✅ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ✅ An Account object is mapped
+        mapping = {"table": "account", "sf_object": "Account"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ❌ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=False)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ✅ The org does has person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_no_account_or_contact_not_mapped(
+        self,
+    ):
+        """
+        A BulkDataException is raised because the task will (later) attempt to load
+        person account Account records, but the org does not have person accounts enabled
+        which will result in an Exception from the Bulk Data API or load records in
+        an unexpected state.
+        - ❌ An Account or Contact object is mapped
+        - ✅ The corresponding table includes an IsPersonAccount column
+        - ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        - ✅ The org does not have person accounts enabled
+        """
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        # ❌ An Account object is mapped
+        mapping = {"table": "custom_object", "sf_object": "CustomObject__c"}
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+
+        task.mapping = {"Mapping Step": mapping}
+        task.models = {mapping["table"]: model}
+
+        # ✅ The cooresponding table includes an IsPersonAccount column
+        task._db_has_person_accounts_column = mock.Mock(return_value=True)
+
+        # ✅ There is at least one record in the table with IsPersonAccount equals "true"
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+
+        assert task.session.query.first.return_value is not None
+
+        # ✅ The org does has person accounts enabled
+        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+
+    def test_db_has_person_accounts_column(self):
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        for columns, expected in [
+            ({}, False),
+            ({"IsPersonAccount": None}, False),
+            ({"IsPersonAccount": "Not None"}, True),
+        ]:
+            mapping = {"table": "table"}
+
+            model = mock.Mock()
+            model.__table__ = mock.Mock()
+            model.__table__.columns = columns
+
+            task = _make_task(
+                LoadData,
+                {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+            )
+            task.models = {}
+            task.models[mapping["table"]] = model
+
+            actual = task._db_has_person_accounts_column(mapping)
+
+            self.assertEqual(expected, actual, f"columns: {columns}")
+
+    def test_filter_out_person_account_records(self):
+        task = _make_task(
+            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
+        )
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+        IsPersonAccount_column = mock.MagicMock()
+        IsPersonAccount_column.__eq__ = mock.Mock()
+        columns = {
+            "sf_id": mock.Mock(),
+            "name": mock.Mock(),
+            "IsPersonAccount": IsPersonAccount_column,
+        }
+        model.__table__.columns = columns
+
+        query = mock.Mock()
+
+        expected = query.filter.return_value
+
+        actual = task._filter_out_person_account_records(query, model)
+
+        self.assertEqual(expected, actual)
+
+        IsPersonAccount_column.__eq__.assert_called_once_with("false")
+
+        query.filter.assert_called_once_with(IsPersonAccount_column.__eq__.return_value)
+
+    def test_generate_contact_id_map_for_person_accounts(self):
+        mapping_file = "mapping-oid.yml"
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, mapping_file)
+
+        # Set task mocks
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        account_model = mock.Mock()
+        contact_model = mock.Mock()
+        task.models = {"accounts": account_model, "contacts": contact_model}
+        task.metadata = mock.Mock()
+        task.metadata.tables = {
+            "accounts": mock.Mock(),
+            "contacts": mock.Mock(),
+            "accounts_sf_ids": mock.Mock(),
+            "contacts_sf_ids": mock.Mock(),
+        }
+        task.session = mock.Mock()
+        task.session.query.return_value = task.session.query
+        task.session.query.filter.return_value = task.session.query
+        task.session.query.outerjoin.return_value = task.session.query
+        task.sf = mock.Mock()
+
+        # Set model mocks
+        account_model.__table__ = mock.Mock()
+        account_model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        account_model.__table__.columns = {
+            "id": mock.Mock(),
+            "sf_id": mock.Mock(),
+            "IsPersonAccount": mock.MagicMock(),
+        }
+
+        account_sf_ids_table = mock.Mock()
+        account_sf_ids_table.columns = {"id": mock.Mock(), "sf_id": mock.Mock()}
+
+        contact_model.__table__ = mock.Mock()
+        contact_model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        contact_model.__table__.columns = {
+            "id": mock.Mock(),
+            "sf_id": mock.Mock(),
+            "IsPersonAccount": mock.MagicMock(),
+            "account_id": mock.Mock,
+        }
+
+        account_id_lookup = MappingLookup(
+            table="accounts", key_field="account_id", name="AccountId"
+        )
+        account_id_lookup["aliased_table"] = account_sf_ids_table
+
+        # Calculated values
+        contact_id_column = getattr(
+            contact_model, contact_model.__table__.primary_key.columns.keys()[0]
+        )
+        account_id_column = getattr(
+            contact_model, account_id_lookup.get_lookup_key_field(contact_model)
+        )
+        account_sf_ids_table = account_id_lookup["aliased_table"]
+        account_sf_id_column = account_sf_ids_table.columns["sf_id"]
+
+        contact_mapping = {
+            "sf_object": "Contact",
+            "table": "contacts",
+            "action": "update",
+            "oid_as_pk": True,
+            "fields": {
+                "Id": "sf_id",
+                "LastName": "LastName",
+                "IsPersonAccount": "IsPersonAccount",
+            },
+            "lookups": {"AccountId": account_id_lookup},
+        }
+
+        conn = mock.Mock()
+        conn.execution_options.return_value = conn
+        query_result = conn.execute.return_value
+
+        def get_random_string():
+            return "".join(
+                [random.choice(string.ascii_letters + string.digits) for n in range(18)]
+            )
+
+        # Set records to be queried.
+        chunks = [
+            [
+                {
+                    # Table IDs
+                    "id": get_random_string(),
+                    # Salesforce IDs
+                    "sf_id": get_random_string(),
+                    "AccountId": get_random_string(),
+                }
+                for i in range(200)
+            ],
+            [
+                {
+                    # Table IDs
+                    "id": get_random_string(),
+                    # Salesforce IDs
+                    "sf_id": get_random_string(),
+                    "AccountId": get_random_string(),
+                }
+                for i in range(4)
+            ],
+        ]
+
+        expected = []
+        query_result.fetchmany.expected_calls = []
+        task.sf.query_all.expected_calls = []
+        for chunk in chunks:
+            expected.extend([(record["id"], record["sf_id"]) for record in chunk])
+
+            query_result.fetchmany.expected_calls.append(mock.call(200))
+
+            contact_ids_by_account_sf_id = {
+                record["AccountId"]: record["id"] for record in chunk
+            }
+            task.sf.query_all.expected_calls.append(
+                mock.call(
+                    "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true AND AccountId IN ('{}')".format(
+                        "','".join(contact_ids_by_account_sf_id.keys())
+                    )
+                )
+            )
+
+        chunks_index = 0
+
+        def fetchmany(batch_size):
+            nonlocal chunks_index
+
+            assert 200 == batch_size
+
+            # _generate_contact_id_map_for_person_accounts should break if fetchmany returns falsy.
+            return (
+                [(record["id"], record["AccountId"]) for record in chunks[chunks_index]]
+                if chunks_index < len(chunks)
+                else None
+            )
+
+        def query_all(query):
+            nonlocal chunks_index
+            chunk = chunks[chunks_index]
+
+            contact_ids_by_account_sf_id = {
+                record["AccountId"]: record["id"] for record in chunk
+            }
+
+            # query_all is called last; increment to next chunk
+            chunks_index += 1
+
+            assert (
+                query
+                == "SELECT Id, AccountId FROM Contact WHERE IsPersonAccount = true AND AccountId IN ('{}')".format(
+                    "','".join(contact_ids_by_account_sf_id.keys())
+                )
+            )
+
+            return {
+                "records": [
+                    {"Id": record["sf_id"], "AccountId": record["AccountId"]}
+                    for record in chunk
+                ]
+            }
+
+        conn.execute.return_value.fetchmany.side_effect = fetchmany
+        task.sf.query_all.side_effect = query_all
+
+        # Execute the test.
+        generator = task._generate_contact_id_map_for_person_accounts(
+            contact_mapping, account_id_lookup, conn
+        )
+
+        actual = [value for value in generator]
+
+        assert expected == actual
+
+        # Assert query executed
+        task.session.query.assert_called_once_with(
+            contact_id_column, account_sf_id_column
+        )
+        task.session.query.filter.assert_called_once_with(
+            contact_model.__table__.columns["IsPersonAccount"] == "true"
+        )
+        task.session.query.outerjoin.assert_called_once_with(
+            account_sf_ids_table,
+            account_sf_ids_table.columns["id"] == account_id_column,
+        )
+        conn.execution_options.assert_called_once_with(stream_results=True)
+        conn.execute.assert_called_once_with(task.session.query.statement)
+
+        # Assert chunks processed
+        assert len(chunks) == chunks_index
+
+        query_result.fetchmany.assert_has_calls(query_result.fetchmany.expected_calls)
+        task.sf.query_all.assert_has_calls(task.sf.query_all.expected_calls)

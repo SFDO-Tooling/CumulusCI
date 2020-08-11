@@ -1,6 +1,6 @@
 from unittest import mock
 
-from cumulusci.tasks.salesforce.GetInstalledPackages import GetInstalledPackages
+from cumulusci.tasks.preflight.packages import GetInstalledPackages
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 

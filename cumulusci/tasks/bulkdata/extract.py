@@ -11,17 +11,27 @@ import tempfile
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
+    OrgInfoMixin,
     SqlAlchemyMixin,
     create_table,
     fields_for_mapping,
 )
+from cumulusci.core.utils import process_bool_arg
+
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.tasks.bulkdata.step import BulkApiQueryOperation, DataOperationStatus
+from cumulusci.tasks.bulkdata.step import (
+    BulkApiQueryOperation,
+    DataOperationStatus,
+    DataOperationType,
+)
 from cumulusci.utils import os_friendly_path, log_progress
-from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
+from cumulusci.tasks.bulkdata.mapping_parser import (
+    parse_from_yaml,
+    validate_and_inject_mapping,
+)
 
 
-class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
+class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
     """Perform Bulk Queries to extract data for a mapping and persist to a SQL file or database."""
 
     task_options = {
@@ -35,6 +45,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         "sql_path": {
             "description": "If set, an SQL script will be generated at the path provided "
             + "This is useful for keeping data in the repository and allowing diffs."
+        },
+        "inject_namespaces": {
+            "description": "If True, the package namespace prefix will be automatically added to objects "
+            "and fields for which it is present in the org. Defaults to True."
+        },
+        "drop_missing_schema": {
+            "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
         },
     }
 
@@ -51,6 +68,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
             )
+
+        self.options["inject_namespaces"] = process_bool_arg(
+            self.options.get("inject_namespaces", True)
+        )
+        self.options["drop_missing_schema"] = process_bool_arg(
+            self.options.get("drop_missing_schema", False)
+        )
 
     def _run_task(self):
         self._init_mapping()
@@ -93,6 +117,16 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             raise TaskOptionsError("Mapping file path required")
 
         self.mapping = parse_from_yaml(mapping_file_path)
+
+        validate_and_inject_mapping(
+            mapping=self.mapping,
+            org_config=self.org_config,
+            namespace=self.project_config.project__package__namespace,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=self.options["inject_namespaces"],
+            drop_missing=self.options["drop_missing_schema"],
+            org_has_person_accounts_enabled=self._org_has_person_accounts_enabled(),
+        )
 
     def _fields_for_mapping(self, mapping):
         """Return a flat list of fields for this mapping."""
@@ -159,6 +193,26 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         record_iterator = log_progress(step.get_results(), self.logger)
         if record_type:
             record_iterator = (record + [record_type] for record in record_iterator)
+
+        # Set Name field as blank for Person Account "Account" records.
+        if (
+            mapping["sf_object"] == "Account"
+            and "Name" in mapping.get("fields", {})
+            and self._org_has_person_accounts_enabled()
+        ):
+            # Bump indices by one since record's ID is the first column.
+            Name_index = columns.index(mapping["fields"]["Name"]) + 1
+            IsPersonAccount_index = (
+                columns.index(mapping["fields"]["IsPersonAccount"]) + 1
+            )
+
+            def strip_name_field(record):
+                nonlocal Name_index, IsPersonAccount_index
+                if record[IsPersonAccount_index] == "true":
+                    record[Name_index] = ""
+                return record
+
+            record_iterator = (strip_name_field(record) for record in record_iterator)
 
         if mapping["oid_as_pk"]:
             self._sql_bulk_insert_from_records(
