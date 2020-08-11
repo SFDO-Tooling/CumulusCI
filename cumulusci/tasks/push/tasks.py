@@ -121,7 +121,6 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 
         jobs = self.push_request.get_push_job_objs()
         for job in jobs:
-            print(type(job))
             if job.status == "Failed":
                 failed_jobs.append(job)
             elif job.status == "Succeeded":
