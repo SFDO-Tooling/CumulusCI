@@ -295,6 +295,7 @@ class Salesforce(object):
 
     def click_related_item_popup_link(self, heading, title, link):
         """Clicks a link in the popup menu for a related list item.
+
         heading specifies the name of the list,
         title specifies the name of the item,
         and link specifies the name of the link
@@ -325,6 +326,7 @@ class Salesforce(object):
 
     def delete_session_records(self):
         """Deletes records that were created while running this test case.
+
         (Only records specifically recorded using the Store Session Record
         keyword are deleted.)
         """
@@ -492,11 +494,13 @@ class Salesforce(object):
     @capture_screenshot_on_error
     def open_app_launcher(self, retry=True):
         """Opens the Saleforce App Launcher Modal
+
         Note: starting with Spring '20 the app launcher button opens a
         menu rather than a modal. To maintain backwards compatibility,
         this keyword will continue to open the modal rather than the
         menu. If you need to interact with the app launcher menu, you
         will need to create a custom keyword.
+
         If the retry parameter is true, the keyword will
         close and then re-open the app launcher if it times out
         while waiting for the dialog to open.
@@ -532,8 +536,10 @@ class Salesforce(object):
 
     def populate_field(self, name, value):
         """Enters a value into an input or textarea field.
+
         'name' represents the label on the page (eg: "First Name"),
         and 'value' is the new value.
+
         Any existing value will be replaced.
         """
         locator = self._get_input_field_locator(name)
@@ -563,12 +569,15 @@ class Salesforce(object):
 
     def _get_input_field_locator(self, name):
         """Given an input field label, return a locator for the related input field
+
         This looks for a <label> element with the given text, or
         a label with a span with the given text. The value of the
         'for' attribute is then extracted from the label and used
         to create a new locator with that id.
+
         For example, the locator 'abc123' will be returned
         for the following html:
+
         <label for='abc123'>First Name</label>
         -or-
         <label for='abc123'><span>First Name</span>
@@ -599,6 +608,7 @@ class Salesforce(object):
 
     def _focus(self, element):
         """Set focus to an element
+
         In addition to merely setting the focus, we click the mouse
         to the field in case there are functions tied to that event.
         """
@@ -608,6 +618,7 @@ class Salesforce(object):
 
     def _clear(self, element):
         """Clear the field, using any means necessary
+
         This is surprisingly hard to do with a generic solution. Some
         methods work for some components and/or on some browsers but
         not others. Therefore, several techniques are employed.
@@ -634,6 +645,7 @@ class Salesforce(object):
 
     def _force_clear(self, element):
         """Use brute-force to clear an element
+
         This moves the cursor to the end of the input field and
         then issues a series of backspace keys to delete the data
         in the field.
@@ -693,9 +705,12 @@ class Salesforce(object):
 
     def salesforce_delete(self, obj_name, obj_id):
         """Deletes a Salesforce object by object name and Id.
+
         Example:
+
         The following example assumes that ``${contact id}`` has been
         previously set. The example deletes the Contact with that Id.
+
         | Salesforce Delete  Contact  ${contact id}
         """
         self.builtin.log("Deleting {} with Id {}".format(obj_name, obj_id))
@@ -705,12 +720,16 @@ class Salesforce(object):
 
     def salesforce_get(self, obj_name, obj_id):
         """Gets a Salesforce object by Id and returns the result as a dict.
+
         Example:
+
         The following example assumes that ``${contact id}`` has been
         previously set. The example retrieves the Contact object with
         that Id and then logs the Name field.
+
         | &{contact}=  Salesforce Get  Contact  ${contact id}
         | log  Contact name:  ${contact['Name']}
+
         """
         self.builtin.log(f"Getting {obj_name} with Id {obj_id}")
         obj_class = getattr(self.cumulusci.sf, obj_name)
@@ -718,20 +737,27 @@ class Salesforce(object):
 
     def salesforce_insert(self, obj_name, **kwargs):
         """Creates a new Salesforce object and returns the Id.
+
         The fields of the object may be defined with keyword arguments
         where the keyword name is the same as the field name.
+
         The object name and Id is passed to the *Store Session
         Record* keyword, and will be deleted when the keyword
         *Delete Session Records* is called.
+
         As a best practice, either *Delete Session Records* or
         *Delete Records and Close Browser* from Salesforce.robot
         should be called as a suite teardown.
+
         Example:
+
         The following example creates a new Contact with the
         first name of "Eleanor" and the last name of "Rigby".
+
         | ${contact id}=  Salesforce Insert  Contact
         | ...  FirstName=Eleanor
         | ...  LastName=Rigby
+
         """
         self.builtin.log("Inserting {} with values {}".format(obj_name, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
@@ -746,30 +772,45 @@ class Salesforce(object):
 
     def generate_test_data(self, obj_name, number_to_create, **fields):
         """Generate bulk test data
+
         This returns an array of dictionaries with template-formatted
         arguments which can be passed to the *Salesforce Collection Insert*
         keyword.
+
         You can use ``{{number}}`` to represent the unique index of
         the row in the list of rows.  If the entire string consists of
         a number, Salesforce API will treat the value as a number.
+
         Example:
+
         The following example creates three new Contacts:
+
             | @{objects} =  Generate Test Data  Contact  3
             | ...  Name=User {{number}}
             | ...  Age={{number}}
+
         The example code will generate Contact objects with these fields:
+
             | [{'Name': 'User 0', 'Age': '0'},
             |  {'Name': 'User 1', 'Age': '1'},
             |  {'Name': 'User 2', 'Age': '2'}]
+
         Python Expression Syntax is allowed so computed templates like this are also allowed: ``{{1000 + number}}``
+
         Python operators can be used, but no functions or variables are provided, so mostly you just
         have access to mathematical and logical operators. The Python operators are described here:
+
         https://www.digitalocean.com/community/tutorials/how-to-do-math-in-python-3-with-operators
+
         Contact the CCI team if you have a use-case that
         could benefit from more expression language power.
+
         Templates can also be based on faker patterns like those described here:
+
         https://faker.readthedocs.io/en/master/providers.html
+
         Most examples can be pasted into templates verbatim:
+
             | @{objects}=  Generate Test Data  Contact  200
             | ...  Name={{fake.first_name}} {{fake.last_name}}
             | ...  MailingStreet={{fake.street_address}}
@@ -777,6 +818,7 @@ class Salesforce(object):
             | ...  MailingState=NY
             | ...  MailingPostalCode=12345
             | ...  Email={{fake.email(domain="salesforce.com")}}
+
         """
         objs = []
 
