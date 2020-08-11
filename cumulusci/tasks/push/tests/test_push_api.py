@@ -657,7 +657,7 @@ def test_metadata_package_push_requests_by_id(metadata_package_version):
 
 
 def test_version_get_newer_query(metadata_package_version):
-    patch_actual = metadata_package_version._newer_query()
+    patch_actual = metadata_package_version.get_newer_released_version_objs()
     expected_patch_where = (
         "OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion > 3)"
     )
@@ -666,7 +666,7 @@ def test_version_get_newer_query(metadata_package_version):
 
 def test_version_get_older_query(metadata_package_version):
     # metadata_package_version.package.get_package_version_objs = mock.Mock()
-    patch_actual = metadata_package_version._older_query()
+    patch_actual = metadata_package_version.get_older_released_version_objs()
     expected_patch_where = (
         "OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3)"
     )
@@ -685,7 +685,7 @@ def test_version_less_than_query(metadata_package_version, metadata_package):
         patch="2",
         build="1",
     )
-    actual = metadata_package_version._newer_query(less_than)
+    actual = metadata_package_version.get_newer_released_version_objs(less_than)
     expected_where = "AND (MajorVersion < 2 OR (MajorVersion = 2 AND MinorVersion < 2)"
     expected_patch_where = (
         " OR (MajorVersion = 2 AND MinorVersion = 2 AND PatchVersion < 2)"
@@ -706,7 +706,7 @@ def test_version_greater_than_query(metadata_package_version, metadata_package):
         patch="2",
         build="1",
     )
-    actual = metadata_package_version._older_query(greater_than)
+    actual = metadata_package_version.get_older_released_version_objs(greater_than)
     expected_where = "AND (MajorVersion > 2 OR (MajorVersion = 2 AND MinorVersion > 2)"
     expected_patch_where = (
         " OR (MajorVersion = 2 AND MinorVersion = 2 AND PatchVersion > 2)"
@@ -723,24 +723,16 @@ def test_version_base_query(metadata_package_version):
 
 def test_version_get_newer(metadata_package_version):
     metadata_package_version.package.get_package_version_objs = mock.MagicMock()
-    metadata_package_version.get_newer_released_version_objs()
-    expected = f"""
-  MetadataPackageId = '{SF_ID}' AND ReleaseState = 'Released' AND (MajorVersion > 1 OR (MajorVersion = 1 AND MinorVersion > 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion > 3))
-  """
-    metadata_package_version.package.get_package_version_objs.assert_called_with(
-        expected.strip()
-    )
+    expected = f"MetadataPackageId = '{SF_ID}' AND ReleaseState = 'Released' AND (MajorVersion > 1 OR (MajorVersion = 1 AND MinorVersion > 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion > 3))"
+    actual = metadata_package_version.get_newer_released_version_objs()
+    assert actual == expected
 
 
 def test_version_get_older(metadata_package_version):
     metadata_package_version.package.get_package_version_objs = mock.MagicMock()
-    metadata_package_version.get_older_released_version_objs()
-    expected = f"""
-  MetadataPackageId = '{SF_ID}' AND ReleaseState = 'Released' AND (MajorVersion < 1 OR (MajorVersion = 1 AND MinorVersion < 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3))
-  """
-    metadata_package_version.package.get_package_version_objs.assert_called_with(
-        expected.strip()
-    )
+    expected = f"MetadataPackageId = '{SF_ID}' AND ReleaseState = 'Released' AND (MajorVersion < 1 OR (MajorVersion = 1 AND MinorVersion < 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3))"
+    actual = metadata_package_version.get_older_released_version_objs()
+    assert actual == expected
 
 
 def test_package_push_job_get_push_errors(package_push_job):
