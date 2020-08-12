@@ -7,7 +7,7 @@ flake8==3.8.3
 pre-commit==2.6.0
 pytest==6.0.1
 pytest-vcr==1.0.2
-responses==0.10.15
+responses==0.10.16
 Sphinx==3.1.2
 testfixtures==6.14.1
 tox==3.18.1
