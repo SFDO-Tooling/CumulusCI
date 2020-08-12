@@ -2,7 +2,7 @@
 -e .
 black==19.10b0
 coverage[toml]==5.2.1
-coveralls==2.1.1
+coveralls==2.1.2
 flake8==3.8.3
 pre-commit==2.6.0
 pytest==6.0.1
