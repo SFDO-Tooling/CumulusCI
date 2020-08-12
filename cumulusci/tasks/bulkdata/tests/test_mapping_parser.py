@@ -159,7 +159,6 @@ class TestMappingParser:
             ),
             ms.fields_,
             None,
-            None,
             False,
             DataOperationType.INSERT,
         )
@@ -169,7 +168,6 @@ class TestMappingParser:
                 {"Name": {"createable": True}, "Website": {"createable": False}}
             ),
             ms.fields_,
-            None,
             None,
             False,
             DataOperationType.INSERT,
@@ -186,7 +184,6 @@ class TestMappingParser:
             ),
             ms.fields_,
             lambda field: f"npsp__{field}",
-            lambda field: field,
             False,
             DataOperationType.INSERT,
         )
@@ -208,7 +205,6 @@ class TestMappingParser:
             ),
             ms.fields_,
             lambda field: f"npsp__{field}",
-            lambda x: x,
             False,
             DataOperationType.INSERT,
         )
@@ -225,7 +221,6 @@ class TestMappingParser:
                 {"Name": {"createable": True}, "Website": {"createable": False}}
             ),
             ms.fields_,
-            None,
             None,
             True,
             DataOperationType.INSERT,
@@ -278,16 +273,16 @@ class TestMappingParser:
         )
         assert ms.sf_object == "Test__c"
 
-    # @mock.patch(
-    #     "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
-    #     return_value=True,
-    # )
-    # @mock.patch(
-    #     "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
-    #     return_value=True,
-    # )
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
+        return_value=True,
+    )
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
+        return_value=True,
+    )
     def test_validate_and_inject_namespace__injection_fields(
-        self,  # mock_field, mock_sobject
+        self, mock_field, mock_sobject
     ):
         ms = parse_from_yaml(
             StringIO(
@@ -311,33 +306,32 @@ class TestMappingParser:
             org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
         )
 
-        # ms._validate_sobject.assert_called_once_with(
-        #     CaseInsensitiveDict({"Account": {"name": "Account", "createable": True}}),
-        #     mock.ANY,  # This is a function def
-        #     DataOperationType.INSERT,
-        # )
+        ms._validate_sobject.assert_called_once_with(
+            CaseInsensitiveDict({"Account": {"name": "Account", "createable": True}}),
+            mock.ANY,  # This is a function def
+            DataOperationType.INSERT,
+        )
 
-        # ms._validate_field_dict.assert_has_calls(
-        #     [
-        #         mock.call(
-        #             CaseInsensitiveDict(
-        #                 {"ns__Test__c": {"name": "ns__Test__c", "createable": True}}
-        #             ),
-        #             ms.fields,
-        #             mock.ANY,  # local function def
-        #             mock.ANY,  # local function def
-        #             False,
-        #             DataOperationType.INSERT,
-        #         ),
-        #         mock.call(
-        #             {"ns__Test__c": {"name": "ns__Test__c", "createable": True}},
-        #             ms.lookups,
-        #             mock.ANY,  # local function def
-        #             False,
-        #             DataOperationType.INSERT,
-        #         ),
-        #     ]
-        # )
+        ms._validate_field_dict.assert_has_calls(
+            [
+                mock.call(
+                    CaseInsensitiveDict(
+                        {"ns__Test__c": {"name": "ns__Test__c", "createable": True}}
+                    ),
+                    ms.fields,
+                    mock.ANY,  # local function def
+                    False,
+                    DataOperationType.INSERT,
+                ),
+                mock.call(
+                    {"ns__Test__c": {"name": "ns__Test__c", "createable": True}},
+                    ms.lookups,
+                    mock.ANY,  # local function def
+                    False,
+                    DataOperationType.INSERT,
+                ),
+            ]
+        )
 
     @mock.patch(
         "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
@@ -396,7 +390,6 @@ class TestMappingParser:
                         },
                     },
                     ms.fields,
-                    mock.ANY,  # local function def.
                     mock.ANY,  # local function def.
                     False,
                     DataOperationType.INSERT,
@@ -922,26 +915,3 @@ class TestMappingLookup:
         assert mapping["Insert Accounts"].sf_object != "account"
         assert "Name" in mapping["Insert Accounts"].fields
         assert "name" not in mapping["Insert Accounts"].fields
-
-    @responses.activate
-    def test_validate_and_inject_mapping_injects_namespaces(self):
-        mock_describe_calls()
-        # Note: Place__c is a mock field added to our stored, mock describes (in JSON)
-        ms = parse_from_yaml(
-            StringIO(
-                """Insert Accounts:
-                  sf_object: Account
-                  table: Account
-                  fields:
-                    - ns__Place__c"""
-            )
-        )["Insert Accounts"]
-        org_config = DummyOrgConfig(
-            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
-        )
-
-        assert ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
-        )
-
-        assert list(ms.fields.keys()) == ["Place__c"]
