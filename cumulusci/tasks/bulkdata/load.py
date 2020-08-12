@@ -15,12 +15,10 @@ from cumulusci.tasks.bulkdata.utils import (
     RowErrorChecker,
 )
 from cumulusci.tasks.bulkdata.step import (
-    BulkApiDmlOperation,
-    RestApiDmlOperation,
     DataOperationStatus,
     DataOperationType,
     DataOperationJobResult,
-    DataApi,
+    get_dml_operation,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
@@ -146,38 +144,21 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
 
         local_ids = []
         query = self._query_db(mapping)
-
-        api = mapping.api
-        if api is DataApi.SMART:
-            record_count = query.count()
-            api = DataApi.BULK if record_count > 10000 else DataApi.REST
-
-        if api is DataApi.BULK:
-            bulk_mode = mapping.get("bulk_mode") or self.bulk_mode or "Parallel"
-
-            step = BulkApiDmlOperation(
-                sobject=mapping["sf_object"],
-                operation=(
-                    DataOperationType.INSERT
-                    if mapping.get("action") == "insert"
-                    else DataOperationType.UPDATE
-                ),
-                api_options={"bulk_mode": bulk_mode},
-                context=self,
-                fields=self._get_columns(mapping),
-            )
-        elif api is DataApi.REST:
-            step = RestApiDmlOperation(
-                sobject=mapping["sf_object"],
-                operation=(
-                    DataOperationType.INSERT
-                    if mapping.get("action") == "insert"
-                    else DataOperationType.UPDATE
-                ),
-                api_options={"batch_size": mapping.batch_size},
-                context=self,
-                fields=self._get_columns(mapping),
-            )
+        operation = (
+            DataOperationType.INSERT
+            if mapping.get("action") == "insert"
+            else DataOperationType.UPDATE
+        )
+        bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
+        step = get_dml_operation(
+            sobject=mapping["sf_object"],
+            operation=operation,
+            api_options={"batch_size": mapping.batch_size, "bulk_mode": bulk_mode},
+            context=self,
+            fields=self._get_columns(mapping),
+            api=mapping.api,
+            volume=query.count(),
+        )
 
         step.start()
         step.load_records(self._stream_queried_data(mapping, local_ids, query))

@@ -9,6 +9,7 @@ import os
 import pathlib
 import tempfile
 import time
+from typing import Dict, Any, List
 
 import lxml.etree as ET
 import requests
@@ -234,34 +235,27 @@ class BulkApiQueryOperation(BaseQueryOperation, BulkJobMixin):
 class RestApiQueryOperation(BaseQueryOperation):
     """Operation class for REST API query jobs."""
 
-    def query(self):
-        pass
-
-    def get_results(self):
-        yield from self.sf.query_all_iter(self.soql)
-
-
-class RestApiRetrieveOperation(BaseQueryOperation):
-    def __init__(self, *, sobject, api_options, context, ids, fields):
+    def __init__(self, *, sobject, fields, api_options, context, query):
         super().__init__(
-            sobject=sobject,
-            operation=DataOperationType.QUERY,
-            api_options=api_options,
-            context=context,
+            sobject=sobject, api_options=api_options, context=context, query=query
         )
-        self.ids = ids
         self.fields = fields
 
     def query(self):
-        pass
+        # This is not as memory-efficient as we might like.
+        # To preserve the invariant from the Bulk API that
+        # we know the query count before consuming the results,
+        # we use `query_all` instead of `query_all_iter`.
+        self.response = self.sf.query_all(self.soql)
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], self.response["totalSize"], 0
+        )
 
     def get_results(self):
-        for chunk in get_batch_iterator(iter(self.ids), 2000):
-            yield from self.sf.restful(
-                f"composite/sobjects/{self.sobject}",
-                method="POST",
-                json={"ids": chunk, "fields": self.fields},
-            )
+        def convert(rec):
+            return [rec[f] for f in self.fields]
+
+        yield from (convert(rec) for rec in self.response["records"])
 
 
 class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
@@ -427,7 +421,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             records, self.api_options.get("batch_size", 200)
         ):
             if self.operation is DataOperationType.DELETE:
-                url_string = "?ids=" + ",".join(rec["Id"] for rec in chunk)
+                url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
                 json = None
             else:
                 url_string = ""
@@ -461,6 +455,79 @@ class RestApiDmlOperation(BaseDmlOperation):
             else:
                 errors = ""
 
-            return DataOperationResult(res["id"], res["success"], errors)
+            return DataOperationResult(
+                res["id"], res["success"], errors
+            )  # FIXME: make DataOperationResult handle this
 
         yield from (_convert(res) for res in self.results)
+
+
+def get_query_operation(
+    *,
+    sobject: str,
+    fields: List[str],
+    api_options: Dict,
+    context: Any,
+    query: str,
+    api: DataApi,
+) -> BaseQueryOperation:
+    if api is DataApi.SMART:
+        record_count_response = context.sf.restful(
+            f"limits/recordCount?sObjects={sobject}"
+        )
+        sobject_map = {
+            entry["name"]: entry["count"] for entry in record_count_response["sObjects"]
+        }
+        api = (
+            DataApi.BULK
+            if sobject in sobject_map and sobject_map[sobject] >= 2000
+            else DataApi.REST
+        )
+
+    if api is DataApi.BULK:
+        return BulkApiQueryOperation(
+            sobject=sobject, api_options=api_options, context=context, query=query
+        )
+    else:
+        return RestApiQueryOperation(
+            sobject=sobject,
+            api_options=api_options,
+            context=context,
+            query=query,
+            fields=fields,
+        )
+
+
+def get_dml_operation(
+    *,
+    sobject: str,
+    operation: DataOperationType,
+    fields: List[str],
+    api_options: Dict,
+    context: Any,
+    api: DataApi,
+    volume: int,
+) -> BaseQueryOperation:
+    if api is DataApi.SMART:
+        api = (
+            DataApi.BULK
+            if volume > 2000 or operation is DataOperationType.HARD_DELETE
+            else DataApi.REST
+        )
+
+    if api is DataApi.BULK:
+        return BulkApiDmlOperation(
+            sobject=sobject,
+            operation=operation,
+            api_options=api_options,
+            context=context,
+            fields=fields,
+        )
+    else:
+        return RestApiDmlOperation(
+            sobject=sobject,
+            operation=operation,
+            api_options=api_options,
+            context=context,
+            fields=fields,
+        )
