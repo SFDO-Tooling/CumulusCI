@@ -1,8 +1,5 @@
-import os
 import re
-from glob import glob
 import json
-import sys
 from typing import Tuple
 from pathlib import Path
 
@@ -12,20 +9,23 @@ import yaml
 
 fake = Faker()
 ONLY_RELEVANT = True
-relevant = [
-    "Account",
-    "Contact",
-    "Account_Soft_Credit__c",
-    "Affiliation__c",
-    "General_Accounting_Unit__c",
-    "Address__c",
-    "Batch__c" "Allocation__c",
-    "Opportunity",
-    "Partial_Soft_Credit__c",
-    "npe01__OppPayment__c",
-    "npe03__Recurring_Donation__c",
-    "npe4__Relationship__c",
-]
+INCLUDED_STANDARD_SOBJECTS = ["Account", "Contact", "Opportunity"]
+
+
+class SObjectRelevanceChecker:
+    def __init__(self, excluded_sobjects):
+        self.excluded_sobjects = excluded_sobjects
+
+    def __contains__(self, name):
+        return (
+            name in INCLUDED_STANDARD_SOBJECTS
+            or name.endswith("__c")
+            and not any(
+                re.match(exclusion, name) for exclusion in self.excluded_sobjects
+            )
+        )
+
+
 IGNORED_FIELDS = [
     ("*", "jigsaw"),
     ("*", "CleanStatus"),
@@ -51,7 +51,7 @@ def schema2factory(filename, relevant_sobjects, out_macro_yml, out_wrapper_yml):
     with open(filename) as file:
         schema = json.load(file)
 
-    defaults, objects = schema["defaults"], schema["sobjects"]
+    defaults, objects = schema["field_property_defaults"], schema["sobjects"]
 
     chosen_objects = {
         objname: obj
@@ -84,23 +84,33 @@ def render_reference(objname):
     return {"object": objname, "include": f"incl_{objname}", "fields": {}}
 
 
+def should_render(obj, field):
+    field_name = field["name"]
+
+    return (
+        field["createable"]
+        and ((not field["defaultedOnCreate"]) or field["name"] == "Name")
+        and field_name != "Id"
+        and (obj["name"], field_name) not in IGNORED_FIELDS
+        and ("*", field_name) not in IGNORED_FIELDS
+    )
+
+
 def render_macro(obj, defaults, objects):
     rc = {}
     rc["macro"] = f"incl_{obj['name']}"
     fields = {
-        field_name: with_defaults(field, defaults)
+        field_name: with_defaults(field["properties"], defaults)
         for field_name, field in obj["fields"].items()
     }
     rc["fields"] = dict(
         render_field(field_name, field, defaults, objects)
         for field_name, field in fields.items()
-        if field["createable"]
-        and not field["defaultedOnCreate"]
-        and field_name != "Id"
-        and (obj["name"], field_name) not in IGNORED_FIELDS
-        and ("*", field_name) not in IGNORED_FIELDS
+        if should_render(obj, field)
     )
     rc["fields"] = {k: v for k, v in rc["fields"].items() if v is not None}
+    if not rc["fields"]:
+        del rc["fieldss"]
     return rc
 
 
@@ -140,7 +150,11 @@ known_types = {
         "binary",
     ),
     "string": KnownType(
-        lambda length=20, **args: {"fake.text": {"max_nb_chars": min(length, 100)}},
+        lambda length=20, **args: {"fake.text": {"max_nb_chars": min(length, 100)}}
+        if length > 5
+        else {
+            "fake.pystr": {"min_chars": min(length, 100), "max_chars": min(length, 100)}
+        },
         "string",
     ),
     "currency": KnownType(
@@ -175,6 +189,9 @@ known_types = {
     ),
     "latitude": KnownType(simple_fake("latitude"), ("string", "int", "double")),
     "longitude": KnownType(simple_fake("longitude"), ("string", "int", "double")),
+    "4": KnownType(
+        lambda **args: {"fake.random_number": {"digits": 4, "fix_len": True}}, "string"
+    )
     # "Geolocation__Latitude__s": KnownType(
     #     simple_fake("latitude"), ("string", "int", "double")
     # ),
@@ -234,20 +251,43 @@ def render_field(name, field, defaults, objects):
 
     # references
     if field["type"] == "reference":
+        targets = field["referenceTo"]
         if not field["nillable"]:
-            assert isinstance(field["referenceTo"], list)
-            target = field["referenceTo"][0]
+            assert isinstance(targets, list)
+            target = targets[0]
             return (
                 name,
                 {"reference": [render_reference(target)]},
             )
-        else:
+        elif len(targets) == 1:
             return (
-                f"__{name}",
+                f"__{name}__disabled",
                 f"OPTIONAL REFERENCE SKIPPED: {field['referenceTo']}",
             )
 
-    return (f"__{name}", f"DISABLED: UNKNOWN TYPE: {field['type']}")
+        else:
+            return (
+                f"__{name}__disabled",
+                f"OPTIONAL REFERENCE SKIPPED: {field['referenceTo']}",
+            )
+
+    return (f"__{name}", f"SKIPPED: UNKNOWN TYPE: {field['type']}")
 
 
-schema2factory("out.json", relevant, "generated_macros.yml", "generated_file.yml")
+schema2factory(
+    "org_schema.json",
+    SObjectRelevanceChecker(
+        [
+            "npsp__Schedulable__c",
+            ".*Trigger_Handler__c",
+            ".*Settings.*",
+            "npsp__Level__c",
+            ".*Error.*",
+            "npsp__Batch__c",
+            "npsp__Relationship_Sync_Excluded_Fields__c",
+            "npsp__DataImport__c",
+        ]
+    ),
+    "generated_macros.yml",
+    "generated_file.yml",
+)
