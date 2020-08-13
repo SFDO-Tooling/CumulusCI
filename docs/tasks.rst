@@ -1691,8 +1691,6 @@ Options
 
 	 The branch to update in the target repo
 
-	 Default: master
-
 ``-o version VERSION``
 	 *Required*
 
