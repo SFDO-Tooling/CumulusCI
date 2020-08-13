@@ -1,7 +1,8 @@
 import os
-from typing import TextIO, Optional
+from typing import Optional
 from pathlib import Path
 import shutil
+from contextlib import contextmanager
 
 import yaml
 
@@ -114,7 +115,8 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
 
         return old_continuation_file
 
-    def open_new_continuation_file(self) -> Optional[TextIO]:
+    @contextmanager
+    def open_new_continuation_file(self):
         """Create a continuation file based on config or working directory
 
         Return None if there is no config nor working directory.
@@ -123,16 +125,18 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         into the working directory specified by the GenerateAndLoad caller.
         """
         if self.options.get("generate_continuation_file"):
-            new_continuation_file = open(
-                self.options["generate_continuation_file"], "w+"
-            )
+            continuation_path = self.options["generate_continuation_file"]
+
         elif self.working_directory:
-            new_continuation_file = open(
-                Path(self.working_directory) / "continuation_next.yml", "w+"
-            )
+            continuation_path = Path(self.working_directory) / "continuation_next.yml"
         else:
-            new_continuation_file = None
-        return new_continuation_file
+            continuation_path = None
+
+        if continuation_path:
+            with open(continuation_path, "w+") as new_continuation_file:
+                yield new_continuation_file
+        else:
+            yield None
 
     def generate_data(self, db_url, num_records, current_batch_num):
         output_stream = SqlOutputStream.from_url(db_url, self.mapping)
@@ -140,29 +144,28 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         if old_continuation_file:
             # reopen to ensure file pointer is at starting point
             old_continuation_file = open(old_continuation_file, "r")
-        new_continuation_file = self.open_new_continuation_file()
+        with self.open_new_continuation_file() as new_continuation_file:
+            try:
+                with open(self.yaml_file) as open_yaml_file:
+                    summary = generate(
+                        open_yaml_file=open_yaml_file,
+                        user_options=self.vars,
+                        output_stream=output_stream,
+                        stopping_criteria=self.stopping_criteria,
+                        continuation_file=old_continuation_file,
+                        generate_continuation_file=new_continuation_file,
+                    )
+            finally:
+                output_stream.close()
 
-        try:
-            with open(self.yaml_file) as open_yaml_file:
-                summary = generate(
-                    open_yaml_file=open_yaml_file,
-                    user_options=self.vars,
-                    output_stream=output_stream,
-                    stopping_criteria=self.stopping_criteria,
-                    continuation_file=old_continuation_file,
-                    generate_continuation_file=new_continuation_file,
+            if (
+                new_continuation_file
+                and Path(new_continuation_file.name).exists()
+                and self.working_directory
+            ):
+                shutil.copyfile(
+                    new_continuation_file.name, self.default_continuation_file_path()
                 )
-        finally:
-            output_stream.close()
-
-        if (
-            new_continuation_file
-            and Path(new_continuation_file.name).exists()
-            and self.working_directory
-        ):
-            shutil.copyfile(
-                new_continuation_file.name, self.default_continuation_file_path()
-            )
 
         if self.generate_mapping_file:
             with open(self.generate_mapping_file, "w+") as f:
