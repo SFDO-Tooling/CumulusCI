@@ -2,17 +2,14 @@ import pytest  # noqa: F401
 from unittest import mock
 from cumulusci.tasks.salesforce.tests.util import create_task
 
-from cumulusci.tasks.salesforce import (
-    UploadDefaultUserProfilePhoto,  # noqa: F401
-    UploadUserProfilePhoto,  # noqa: F401
-)
+from cumulusci.tasks.salesforce.users import UploadProfilePhoto  # noqa: F401
 from cumulusci.core.exceptions import CumulusCIException  # noqa: F401
 
 
-class TestUploadDefaultUserProfilePhoto:
+class TestUploadProfilePhoto:
     def setup_method(self):
         self.task = create_task(
-            UploadDefaultUserProfilePhoto, {"photo_path": "path/to/profile/photo.png"}
+            UploadProfilePhoto, {"photo_path": "path/to/profile/photo.png"}
         )
 
     def test_get_user_id(self):
@@ -47,15 +44,3 @@ class TestUploadDefaultUserProfilePhoto:
         self.task.logger.info._expected_calls = [
             mock.call(f"Setting user photo to {path}")
         ]
-
-
-class TestUploadUserProfilePhoto:
-    def setup_method(self):
-        self.task = create_task(
-            UploadUserProfilePhoto,
-            {
-                "user_field": "Alias",
-                "user_field_value": "grace",
-                "photo_path": "path/to/profile/photo.png",
-            },
-        )

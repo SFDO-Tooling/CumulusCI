@@ -464,10 +464,6 @@ tasks:
         description: Uploads a beta release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
         group: Release Management
-    upload_default_user_profile_photo:
-        group: Data Operations
-        description: Uploads a profile photo for the default User.
-        class_path: cumulusci.tasks.salesforce.UploadDefaultUserProfilePhoto
     upload_production:
         description: Uploads a production release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
@@ -476,9 +472,9 @@ tasks:
             production: True
         group: Release Management
     upload_user_profile_photo:
-        group: Data Operations
+        group: Salesforce Users
         description: Uploads a profile photo for the User whose user_field equals user_field_value.
-        class_path: cumulusci.tasks.salesforce.UploadUserProfilePhoto
+        class_path: cumulusci.tasks.salesforce.users.UploadProfilePhoto
     util_sleep:
         description: Sleeps for N seconds
         class_path: cumulusci.tasks.util.Sleep
