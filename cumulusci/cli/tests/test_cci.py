@@ -1980,6 +1980,25 @@ Environment Info: Rossian / x68_46
         )
         org_config.delete_org.assert_called_once()
 
+    def test_flow_run_o_error(self):
+        org_config = mock.Mock(scratch=True, config={})
+        runtime = CliRuntime(config={"noop": {}}, load_keychain=False,)
+        runtime.get_org = mock.Mock(return_value=("test", org_config))
+
+        with pytest.raises(click.UsageError) as e:
+            run_click_command(
+                cci.flow_run,
+                runtime=runtime,
+                flow_name="test",
+                org="test",
+                delete_org=True,
+                debug=False,
+                o=[("test_task", "blue")],
+                skip=(),
+                no_prompt=True,
+            )
+        assert "-o" in str(e.value)
+
     def test_flow_run_delete_non_scratch(self,):
         org_config = mock.Mock(scratch=False)
         runtime = mock.Mock()
