@@ -1,9 +1,9 @@
 import base64
 import os
 import json
+from typing import Dict
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import CumulusCIException
-
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
 
 
@@ -39,48 +39,15 @@ class UploadProfilePhoto(BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
+        self._filters = process_list_of_pairs_dict_arg(self.options.get("filters", {}))
 
-        self._filters = {}
-        if self.options.get("filters"):
-            self._filters.update(
-                process_list_of_pairs_dict_arg(self.options["filters"])
-            )
-
-    def _get_user_fields(self):
+    def _get_user_fields(self) -> Dict[str, str]:
         user_fields = {}
         for field in self.sf.User.describe()["fields"]:
             user_fields[field["name"]] = field
         return user_fields
 
-    def _validate_filters(self, filters):
-        """
-        Validates User Fields in filters:
-        - are found
-        - are filterable
-        - are filterable with text
-        """
-        user_fields = self._get_user_fields()
-        for field_name in filters.keys():
-            field = user_fields.get(field_name)
-
-            # Validate field exists.
-            if not field:
-                raise CumulusCIException(
-                    f'User Field "{field_name}" referenced in "filters" option is not found.  Fields are case-sensitive.'
-                )
-
-            # Validate we can filter by field.
-            if not field["filterable"]:
-                raise CumulusCIException(
-                    f'User Field "{field_name}" referenced in "filters" option must be filterable.'
-                )
-            # Validate we can filter by field with text.
-            if field["soapType"] != "xsd:string":
-                raise CumulusCIException(
-                    f'User Field "{field_name}" referenced in "filters" option must be a text field (having Schema.SOAPType.STRING).'
-                )
-
-    def _get_query(self, filters):
+    def _get_query(self, filters: Dict[str, object]) -> str:
         user_fields = self._get_user_fields()
         string_soap_types = ("xsd:string", "tns:ID", "urn:address")
 
@@ -105,17 +72,15 @@ class UploadProfilePhoto(BaseSalesforceApiTask):
             else:
                 query_filters.append(f"{name} = {value}")
 
-        return "SELECT Id FROM User WHERE {} LIMIT 2".format(
-            " AND ".join(query_filters)
-        )
+        return "SELECT Id FROM User WHERE {}".format(" AND ".join(query_filters))
 
-    def _get_user_id_by_query(self):
+    def _get_user_id_by_query(self, filters: Dict[str, object]) -> str:
         # Query for the User.
         query = self._get_query(self._filters)
         self.logger.info(f"Querying User: {query}")
 
         user_ids = []
-        for record in self.sf.query(query)["records"]:
+        for record in self.sf.query_all(query)["records"]:
             user_ids.append(record["Id"])
 
         # Validate only 1 User found.
@@ -132,7 +97,7 @@ class UploadProfilePhoto(BaseSalesforceApiTask):
         self.logger.info(f"Uploading profile photo for the User with ID {user_ids[0]}.")
         return user_ids[0]
 
-    def get_default_user_id(self):
+    def get_default_user_id(self) -> str:
         user_id = self.sf.restful("")["identity"][-18:]
         self.logger.info(
             f"Uploading profile photo for the default User with ID {user_id}."
@@ -142,13 +107,13 @@ class UploadProfilePhoto(BaseSalesforceApiTask):
     def _run_task(self):
         # Get the User Id of the targeted user.
         user_id = (
-            self._get_user_id_by_query()
+            self._get_user_id_by_query(self._filters)
             if self._filters
             else self._get_default_user_id()
         )
 
         # Upload profile photo ContentDocument.
-        path = self.options["photo_path"]
+        path = self.options["photo"]
 
         self.logger.info(f"Setting user photo to {path}")
         with open(path, "rb") as version_data:
