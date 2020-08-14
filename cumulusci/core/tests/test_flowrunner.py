@@ -131,6 +131,15 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual(len(flow.steps), 1)
         self.assertEqual(hasattr(flow, "logger"), True)
 
+    def test_step_sorting(self):
+        self.project_config.config["flows"] = {
+            "test": {"steps": {"1": {"flow": "subflow"}, "1.1": {"task": "pass_name"}}},
+            "subflow": {"steps": {"1": {"task": "pass_name"}}},
+        }
+        flow_config = self.project_config.get_flow("test")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        assert [str(step.step_num) for step in flow.steps] == ["1/1", "1.1"]
+
     def test_get_summary(self):
         self.project_config.config["flows"]["test"] = {
             "description": "test description",
