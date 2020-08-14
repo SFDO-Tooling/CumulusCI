@@ -178,6 +178,7 @@ class ScratchOrgConfig(OrgConfig):
             org_def_has_email = "adminEmail" in org_def_data
 
         devhub = self._choose_devhub()
+        instance = self.instance or os.environ.get("SFDX_SIGNUP_INSTANCE")
         options = {
             "config_file": self.config_file,
             "devhub": f" --targetdevhubusername {devhub}" if devhub else "",
@@ -191,7 +192,7 @@ class ScratchOrgConfig(OrgConfig):
             if self.email_address and not org_def_has_email
             else "",
             "default": " -s" if self.default else "",
-            "instance": f" instance={self.instance}" if self.instance else "",
+            "instance": f" instance={self.instance}" if instance else "",
             "extraargs": os.environ.get("SFDX_ORG_CREATE_ARGS", ""),
         }
 
