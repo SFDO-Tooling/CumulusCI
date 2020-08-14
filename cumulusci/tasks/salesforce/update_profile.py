@@ -237,10 +237,15 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         # If defaults are specified,
         # clear any pre-existing defaults
         if any("default" in rt for rt in record_types):
+            objects_with_defaults = []
+            for rt in record_types:
+                if "default" in rt:
+                    objects_with_defaults.append(rt["record_type"].split(".")[0])
             for default in ("default", "personAccountDefault"):
                 for elem in tree.findall("recordTypeVisibilities"):
                     if elem.find(default):
-                        elem.find(default).text = "false"
+                        if elem.recordType.text.split(".") in objects_with_defaults:
+                            elem.find(default).text = "false"
 
         # Set recordTypeVisibilities
         for rt in record_types:
