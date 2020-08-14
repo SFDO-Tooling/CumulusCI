@@ -9,7 +9,13 @@ VERSION_ID_RE = re.compile(r"version_id: (\S+)")
 
 class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
 
-    task_options = {"context": {"description": "Name of the commit status context"}}
+    task_options = {
+        "context": {
+            "description": "Name of the commit status context",
+            "required": True,
+        },
+        "version_id": {"description": "Package version id"},
+    }
 
     def _run_task(self):
         repo = self.get_repo()
@@ -17,13 +23,13 @@ class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
         commit_sha = self.project_config.repo_commit
 
         dependencies = []
-        version_id = None
-
-        for status in repo.commit(commit_sha).status().statuses:
-            if status.state == "success" and status.context == context:
-                match = VERSION_ID_RE.search(status.description)
-                if match:
-                    version_id = match.group(1)
+        version_id = self.options.get("version_id")
+        if version_id is None:
+            for status in repo.commit(commit_sha).status().statuses:
+                if status.state == "success" and status.context == context:
+                    match = VERSION_ID_RE.search(status.description)
+                    if match:
+                        version_id = match.group(1)
 
         if version_id:
             res = self.tooling.query(
