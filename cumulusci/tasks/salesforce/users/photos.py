@@ -1,11 +1,16 @@
+import re
 import base64
 import pathlib
 import json
 from typing import Dict
+
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.utils import process_list_of_pairs_dict_arg
 from simple_salesforce.exceptions import SalesforceMalformedRequest
+
+
+def join_errors(e: SalesforceMalformedRequest) -> str:
+    "; ".join([error.get("message", "Unknown error.") for error in e.content])
 
 
 class UploadProfilePhoto(BaseSalesforceApiTask):
@@ -28,19 +33,18 @@ class UploadProfilePhoto(BaseSalesforceApiTask):
 
     task_options = {
         "photo": {"description": "Path to user's profile photo.", "required": True},
-        "filters": {
-            "description": """List of key/value pairs of User fields and values to filter for a unique User whom to upload the profile photo for.
-            - Key/value filters are joined with an "AND" in the generated SOQL query.
+        "where": {
+            "description": """WHERE clause when querying for which User to upload the profile photo for.
+            - Don't prefix with ``WHERE ``
             - The SOQL query must return one and only one User record.
-            - If no filters are supplied, uploads the photo for the org's default User.
+            - If no "where" is supplied, uploads the photo for the org's default User.
             """,
             "required": False,
         },
     }
 
-    def _init_options(self, kwargs):
-        super()._init_options(kwargs)
-        self._filters = process_list_of_pairs_dict_arg(self.options.get("filters", {}))
+    def _raise_cumulusci_exception(self, e: SalesforceMalformedRequest) -> None:
+        raise CumulusCIException(join_errors(e))
 
     def _get_user_fields(self) -> Dict[str, str]:
         user_fields = {}
@@ -75,14 +79,19 @@ class UploadProfilePhoto(BaseSalesforceApiTask):
 
         return "SELECT Id FROM User WHERE {}".format(" AND ".join(query_filters))
 
-    def _get_user_id_by_query(self, filters: Dict[str, object]) -> str:
+    def _get_user_id_by_query(self, where: str) -> str:
         # Query for the User.
-        query = self._get_query(self._filters)
+        query = "SELECT Id FROM User WHERE {}".format(
+            re.sub(r"^WHERE ?", "", where, flags=re.I)
+        )
         self.logger.info(f"Querying User: {query}")
 
         user_ids = []
-        for record in self.sf.query_all(query)["records"]:
-            user_ids.append(record["Id"])
+        try:
+            for record in self.sf.query_all(query)["records"]:
+                user_ids.append(record["Id"])
+        except SalesforceMalformedRequest as e:
+            self._raise_cumulusci_exception(e)
 
         # Validate only 1 User found.
         if len(user_ids) < 1:
@@ -146,8 +155,8 @@ class UploadProfilePhoto(BaseSalesforceApiTask):
         # Get the User Id of the targeted user.
         # Validates only one user is found.
         user_id = (
-            self._get_user_id_by_query(self._filters)
-            if self._filters
+            self._get_user_id_by_query(self.options["where"])
+            if self.options.get("where")
             else self._get_default_user_id()
         )
 
@@ -166,8 +175,4 @@ class UploadProfilePhoto(BaseSalesforceApiTask):
             )
             self.logger.error(f"Deleting ContentDocument {content_document_id}")
             self._delete_content_document(content_document_id)
-            raise CumulusCIException(
-                " ".join(
-                    [error.get("message", "Unknown error.") for error in e.args[3]]
-                )
-            )
+            self._raise_cumulusci_exception(e)
