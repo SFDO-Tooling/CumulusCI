@@ -32,7 +32,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             ServiceConfig(
                 {
                     "username": "TestUser",
-                    "password": "TestPass",
+                    "token": "TestPass",
                     "email": "testuser@testdomain.com",
                 }
             ),
