@@ -1,10 +1,11 @@
 import base64
-import os
+import pathlib
 import json
 from typing import Dict
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
+from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 
 class UploadProfilePhoto(BaseSalesforceApiTask):
@@ -94,43 +95,38 @@ class UploadProfilePhoto(BaseSalesforceApiTask):
             )
 
         # Log and return User ID.
-        self.logger.info(f"Uploading profile photo for the User with ID {user_ids[0]}.")
+        self.logger.info(f"Uploading profile photo for the User with ID {user_ids[0]}")
         return user_ids[0]
 
     def get_default_user_id(self) -> str:
         user_id = self.sf.restful("")["identity"][-18:]
         self.logger.info(
-            f"Uploading profile photo for the default User with ID {user_id}."
+            f"Uploading profile photo for the default User with ID {user_id}"
         )
         return user_id
 
-    def _run_task(self):
-        # Get the User Id of the targeted user.
-        user_id = (
-            self._get_user_id_by_query(self._filters)
-            if self._filters
-            else self._get_default_user_id()
-        )
+    def _insert_content_document(self) -> str:
+        """
 
-        # Upload profile photo ContentDocument.
-        path = self.options["photo"]
+        """
+        path = pathlib.Path(self.options["photo"])
+
+        if not path.exists():
+            raise CumulusCIException(f"No photo found at path: {path}")
 
         self.logger.info(f"Setting user photo to {path}")
-        with open(path, "rb") as version_data:
-            result = self.sf.ContentVersion.create(
-                {
-                    "PathOnClient": os.path.split(path)[-1],
-                    "Title": os.path.splitext(os.path.split(path)[-1])[0],
-                    "VersionData": base64.b64encode(version_data.read()).decode(
-                        "utf-8"
-                    ),
-                }
+        result = self.sf.ContentVersion.create(
+            {
+                "PathOnClient": path.name,
+                "Title": path.stem,
+                "VersionData": base64.b64encode(path.read_bytes()).decode("utf-8"),
+            }
+        )
+        if not result["success"]:
+            raise CumulusCIException(
+                "Failed to create photo ContentVersion: {}".format(result["errors"])
             )
-            if not result["success"]:
-                raise CumulusCIException(
-                    "Failed to create ContentVersion: {}".format(result["errors"])
-                )
-            content_version_id = result["id"]
+        content_version_id = result["id"]
 
         # Query the ContentDocumentId for our created record.
         content_document_id = self.sf.query(
@@ -138,12 +134,40 @@ class UploadProfilePhoto(BaseSalesforceApiTask):
         )["records"][0]["ContentDocumentId"]
 
         self.logger.info(
-            f"Uploaded profile photo ContentDocument {content_document_id}."
+            f"Uploaded profile photo ContentDocument {content_document_id}"
         )
 
-        # Call the Connect API to set our user photo.
-        result = self.sf.restful(
-            f"connect/user-profiles/{user_id}/photo",
-            data=json.dumps({"fileId": content_document_id}),
-            method="POST",
+        return content_document_id
+
+    def _delete_content_document(self, content_document_id):
+        self.sf.ContentDocument.delete(content_document_id)
+
+    def _run_task(self):
+        # Get the User Id of the targeted user.
+        # Validates only one user is found.
+        user_id = (
+            self._get_user_id_by_query(self._filters)
+            if self._filters
+            else self._get_default_user_id()
         )
+
+        content_document_id = self._insert_content_document()
+
+        # Call the Connect API to set our user photo.
+        try:
+            self.sf.restful(
+                f"connect/user-profiles/{user_id}/photo",
+                data=json.dumps({"fileId": content_document_id}),
+                method="POST",
+            )
+        except SalesforceMalformedRequest as e:
+            self.logger.error(
+                "An error occured setting the ContentDocument as the users's profile photo."
+            )
+            self.logger.error(f"Deleting ContentDocument {content_document_id}")
+            self._delete_content_document(content_document_id)
+            raise CumulusCIException(
+                " ".join(
+                    [error.get("message", "Unknown error.") for error in e.args[3]]
+                )
+            )
