@@ -192,7 +192,7 @@ class ScratchOrgConfig(OrgConfig):
             if self.email_address and not org_def_has_email
             else "",
             "default": " -s" if self.default else "",
-            "instance": f" instance={self.instance}" if instance else "",
+            "instance": f" instance={instance}" if instance else "",
             "extraargs": os.environ.get("SFDX_ORG_CREATE_ARGS", ""),
         }
 
