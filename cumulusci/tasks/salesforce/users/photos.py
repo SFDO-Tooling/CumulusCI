@@ -66,7 +66,7 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
 
     def _get_user_id_by_query(self, where: str) -> str:
         # Query for the User removing a "WHERE " prefix from where if exists.
-        query = "SELECT Id FROM User WHERE {}".format(
+        query = "SELECT Id FROM User WHERE {} LIMIT 2".format(
             re.sub(r"^WHERE ", "", where, flags=re.I)
         )
         self.logger.info(f"Querying User: {query}")
@@ -84,9 +84,7 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
             raise CumulusCIException("No Users found.")
         if 1 < len(user_ids):
             raise CumulusCIException(
-                "More than one User found ({}): {}".format(
-                    len(user_ids), ", ".join(user_ids)
-                )
+                "More than one User found (at least 2): {}".format(", ".join(user_ids))
             )
 
         # Log and return User ID.
@@ -100,8 +98,8 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
         )
         return user_id
 
-    def _insert_content_document(self) -> str:
-        path = pathlib.Path(self.options["photo"])
+    def _insert_content_document(self, photo_path) -> str:
+        path = pathlib.Path(photo_path)
 
         if not path.exists():
             raise CumulusCIException(f"No photo found at {path}")
@@ -131,20 +129,10 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
 
         return content_document_id
 
-    def _delete_content_document(self, content_document_id):
+    def _delete_content_document(self, content_document_id: str):
         self.sf.ContentDocument.delete(content_document_id)
 
-    def _run_task(self):
-        # Get the User Id of the targeted user.
-        # Validates only one user is found.
-        user_id = (
-            self._get_user_id_by_query(self.options["where"])
-            if self.options.get("where")
-            else self._get_default_user_id()
-        )
-
-        content_document_id = self._insert_content_document()
-
+    def _assign_user_profile_photo(self, user_id: str, content_document_id: str):
         # Call the Connect API to set our user photo.
         try:
             self.sf.restful(
@@ -155,8 +143,19 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
         except SalesforceMalformedRequest as e:
             # Rollback ContentDocument, and raise an easier to digest exception.
             self.logger.error(
-                "An error occured setting the ContentDocument as the users's profile photo."
+                "An error occured assigning the ContentDocument as the users's profile photo."
             )
             self.logger.error(f"Deleting ContentDocument {content_document_id}")
             self._delete_content_document(content_document_id)
             self._raise_cumulusci_exception(e)
+
+    def _run_task(self):
+        user_id = (
+            self._get_user_id_by_query(self.options["where"])
+            if self.options.get("where")
+            else self._get_default_user_id()
+        )
+
+        content_document_id = self._insert_content_document(self.options["photo"])
+
+        self._assign_user_profile_photo(user_id, content_document_id)
