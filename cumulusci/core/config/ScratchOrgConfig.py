@@ -197,7 +197,7 @@ class ScratchOrgConfig(OrgConfig):
 
         # This feels a little dirty, but the use cases for extra args would mostly
         # work best with env vars
-        command = "force:org:create -f {config_file}{devhub}{namespaced}{days}{alias}{default}{wait}{email}{instance}{extraargs}".format(
+        command = "force:org:create -f {config_file}{devhub}{namespaced}{days}{alias}{default}{wait}{email}{instance} {extraargs}".format(
             **options
         )
         p = sfdx(command, username=None, log_note="Creating scratch org")
