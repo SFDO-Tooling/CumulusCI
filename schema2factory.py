@@ -191,6 +191,9 @@ known_types = {
     "longitude": KnownType(simple_fake("longitude"), ("string", "int", "double")),
     "4": KnownType(
         lambda **args: {"fake.random_number": {"digits": 4, "fix_len": True}}, "string"
+    ),
+    "ID": KnownType(
+        lambda **args: {"fake.random_number": {"digits": 10, "fix_len": True}}, "string"
     )
     # "Geolocation__Latitude__s": KnownType(
     #     simple_fake("latitude"), ("string", "int", "double")
