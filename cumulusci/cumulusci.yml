@@ -473,8 +473,8 @@ tasks:
         group: Release Management
     upload_user_profile_photo:
         group: Salesforce Users
-        description: Uploads a profile photo for the User whose user_field equals user_field_value.
-        class_path: cumulusci.tasks.salesforce.users.UploadProfilePhoto
+        description: Uploads a profile photo for a specified or default User.
+        class_path: cumulusci.tasks.salesforce.users.photos.UploadProfilePhoto
     util_sleep:
         description: Sleeps for N seconds
         class_path: cumulusci.tasks.util.Sleep
