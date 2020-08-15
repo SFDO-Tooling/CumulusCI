@@ -1,5 +1,8 @@
 import functools
 import time
+import glob
+import os
+import re
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
@@ -229,3 +232,31 @@ def capture_screenshot_on_error(func):
             raise
 
     return wrapper
+
+
+def get_locator_module_name(version):
+    """Return module name of locator file for the specified version
+
+    If a file for the specified version can't be found, the locator
+    file with the highest number will be returned. Passing in None
+    effectively means "give me the latest version".
+    """
+
+    here = os.path.dirname(__file__)
+    if os.path.exists(os.path.join(here, f"locators_{version}.py")):
+        # our work here is done.
+        locator_filename = f"locators_{version}.py"
+    else:
+
+        def by_num(filename):
+            """Pull out the number from a filename"""
+            nums = re.findall(r"_(\d+)", filename)
+            if nums:
+                return int(nums[-1])
+            return 0
+
+        files = sorted(glob.glob1(here, "locators_*.py"), key=by_num)
+        locator_filename = files[-1]
+
+    locator_module_name = f"cumulusci.robotframework.{locator_filename[:-3]}"
+    return locator_module_name
