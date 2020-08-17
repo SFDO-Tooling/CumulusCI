@@ -1,8 +1,8 @@
 import functools
 import time
-import glob
-import os
 import re
+from pathlib import Path
+
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
@@ -242,21 +242,21 @@ def get_locator_module_name(version):
     effectively means "give me the latest version".
     """
 
-    here = os.path.dirname(__file__)
-    if os.path.exists(os.path.join(here, f"locators_{version}.py")):
+    here = Path(__file__).parent
+    if Path(here, f"locators_{version}.py").exists():
         # our work here is done.
-        locator_filename = f"locators_{version}.py"
+        locator_name = f"locators_{version}"
     else:
 
         def by_num(filename):
-            """Pull out the number from a filename"""
-            nums = re.findall(r"_(\d+)", filename)
+            """Pull out the number from a filename, or return zero"""
+            nums = re.findall(r"_(\d+)", str(filename))
             if nums:
                 return int(nums[-1])
             return 0
 
-        files = sorted(glob.glob1(here, "locators_*.py"), key=by_num)
-        locator_filename = files[-1]
+        files = sorted(here.glob("locators_*.py"), key=by_num)
+        locator_name = files[-1].stem
 
-    locator_module_name = f"cumulusci.robotframework.{locator_filename[:-3]}"
+    locator_module_name = f"cumulusci.robotframework.{locator_name}"
     return locator_module_name
