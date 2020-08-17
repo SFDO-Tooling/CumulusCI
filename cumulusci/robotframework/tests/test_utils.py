@@ -40,6 +40,10 @@ class TestRobotframeworkUtils(unittest.TestCase):
 class TestGetLocatorModule(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # get_locator_module uses __file__ to locate the locator
+        # module. We'll point it to a temporary directory so that
+        # we can control what files we test against.
+
         cls.tempdir = Path(tempfile.mkdtemp())
         # sorted alphabetically, 5 should come after 40. The
         # code should be sorting numerically so that 5 comes
