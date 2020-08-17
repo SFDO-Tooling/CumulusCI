@@ -1278,7 +1278,11 @@ class TestOrgConfig(unittest.TestCase):
         responses.add(
             "GET",
             "https://example.com/services/data/v48.0/sobjects/Organization/OODxxxxxxxxxxxx",
-            json={"OrganizationType": "Enterprise Edition", "IsSandbox": False},
+            json={
+                "OrganizationType": "Enterprise Edition",
+                "IsSandbox": False,
+                "InstanceName": "cs420",
+            },
         )
 
         config._load_orginfo()
