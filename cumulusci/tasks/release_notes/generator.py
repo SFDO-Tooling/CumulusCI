@@ -197,10 +197,10 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.do_publish = publish
         self.has_issues = has_issues
         self.include_empty_pull_requests = include_empty
-        self.version_id = version_id
         self.lines_parser_class = None
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
+        self.version_id = version_id
 
     def __call__(self):
         release = self._get_release()
