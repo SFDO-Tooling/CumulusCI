@@ -10,6 +10,7 @@ from selenium.common.exceptions import NoSuchWindowException
 from selenium.webdriver.remote.command import Command
 from SeleniumLibrary.errors import ElementNotFound
 from robot.libraries.BuiltIn import BuiltIn
+import robot.api as robot_api
 
 
 def set_pdb_trace(pm=False):
@@ -257,6 +258,9 @@ def get_locator_module_name(version):
 
         files = sorted(here.glob("locators_*.py"), key=by_num)
         locator_name = files[-1].stem
+        robot_api.logger.warn(
+            f"Locators for api {version} not found. Falling back to {locator_name} for salesforce locators"
+        )
 
     locator_module_name = f"cumulusci.robotframework.{locator_name}"
     return locator_module_name
