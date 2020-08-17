@@ -80,12 +80,12 @@ class OrganizationReport(BaseGithubTask):
         )
         rc = {
             member: org_members[member]
-            for member in org_members.keys()
+            for member in sorted(org_members.keys(), key=lambda x: x.lower())
             if member in set(relevant_org_members)
         }
         ignored = set(org_members) - relevant_org_members
 
-        return rc, ignored
+        return sorted_dict(rc), sorted(list(ignored), key=lambda x: x.lower())
 
     def _parse_member_extra_info(self, additional_info_csv):
         with open(additional_info_csv) as f:
@@ -111,7 +111,7 @@ class OrganizationReport(BaseGithubTask):
         for member in org.members(role="member"):
             org_members[member.login] = member_dict(member, False)
 
-        return org_members
+        return sorted_dict(org_members)
 
     def _fetch_teams(self, org, relevant_repos: Set[str]):
         teams = {}
@@ -131,7 +131,7 @@ class OrganizationReport(BaseGithubTask):
                 "members": {},
                 "repos": {},
             }
-            for member in team.members():
+            for member in sorted(team.members(), key=lambda u: u.login.lower()):
                 info = {
                     "user": member,
                     "maintainer": False,
@@ -139,7 +139,7 @@ class OrganizationReport(BaseGithubTask):
                 teams[team.name]["members"][member.login] = info
             for member in team.members(role="maintainer"):
                 teams[team.name]["members"][member.login]["maintainer"] = True
-            for repo in repos:
+            for repo in sorted(repos, key=lambda repo: repo.name.lower()):
                 if relevant_repos and repo.name not in relevant_repos:
                     continue
                 info = {
@@ -150,13 +150,13 @@ class OrganizationReport(BaseGithubTask):
                     "admin": repo.permissions["admin"] is True,
                 }
                 teams[team.name]["repos"][repo.name] = info
-        return teams, ignored
+        return sorted_dict(teams), sorted(list(ignored))
 
     def _fetch_repos(self, org, org_members, teams):
         repos = {}
         ignored = set()
-        self.logger.info("Fetching repos...")
-        for repo in org.repositories():
+        org_owners = set(member.login for member in org.members(role="admin"))
+        for repo in sorted(org.repositories(), key=lambda repo: repo.name.lower()):
             if self.repos and repo.name not in self.repos:
                 self.logger.info(f"Skipping Repo '{repo.name}''")
                 ignored.add(repo.name)
@@ -168,7 +168,7 @@ class OrganizationReport(BaseGithubTask):
                 "teams": {},
             }
 
-            for user in repo.collaborators():
+            for user in sorted(repo.collaborators(), key=lambda u: u.login.lower()):
                 info = {
                     "user": user,
                     "read": True,  # All collaborators at least have read
@@ -202,7 +202,7 @@ class OrganizationReport(BaseGithubTask):
 
                 repos[repo.name]["users"][user.login] = info
 
-            for team in repo.teams():
+            for team in sorted(repo.teams(), key=lambda x: x.name.lower()):
                 # Skip teams from another org which can happen when a repo is moved to a different org
                 if "/{}/".format(org.id) not in team.url:
                     continue
@@ -216,25 +216,47 @@ class OrganizationReport(BaseGithubTask):
 
             for username, user_info in repos[repo.name]["users"].items():
                 from_team = False
-                for team_name, team_info in repos[repo.name]["teams"].items():
+                for value in [
+                    user_info["admin"],
+                    user_info["write"],
+                    user_info["read"],
+                ]:
+                    assert isinstance(value, bool)
+                for team_name, team_info in sorted_dict(
+                    repos[repo.name]["teams"]
+                ).items():
                     team = teams.get(team_name)
                     if not team:
                         self.logger.warning(f"Cannot see team {team_name}")
                         continue
                     if username in team["members"]:
-                        if user_info["admin"] is True and team_info["admin"] is True:
-                            from_team = True
-                            break
-                        elif user_info["write"] is True and team_info["write"] is True:
-                            from_team = True
-                            break
-                        elif user_info["read"] == team_info["read"]:
-                            from_team = True
-                            break
-                if from_team is False:
+                        for value in [
+                            team_info["admin"],
+                            team_info["write"],
+                            team_info["read"],
+                        ]:
+                            assert isinstance(value, bool)
+
+                        # do not rewrite these as "ands".
+                        # "ands" work correctly for triggering the from_team
+                        # but it will send you down the wrong "elif" when multiple
+                        # user_info fields are true
+                        if user_info["admin"]:
+                            if team_info["admin"] is True:
+                                from_team = True
+                                break
+                        elif user_info["write"]:
+                            if team_info["write"] is True:
+                                from_team = True
+                                break
+                        elif user_info["read"]:
+                            if team_info["read"] is True:
+                                from_team = True
+                                break
+                if from_team is False and username not in org_owners:
                     repos[repo.name]["users_direct"][username] = user_info
 
-        return repos, ignored
+        return sorted_dict(repos), sorted(list(ignored), key=lambda x: x.lower())
 
     def _report(self, org, org_members, teams, repos, extra_fields, ignored):
         self.logger.info("Writing report to {output}".format(**self.options))
@@ -247,9 +269,9 @@ class OrganizationReport(BaseGithubTask):
         with open(self.options["output"], "w") as f:
             f.write(
                 template.render(
-                    org_members=org_members,
-                    repos=repos,
-                    teams=teams,
+                    org_members=sorted_dict(org_members),
+                    repos=sorted_dict(repos),
+                    teams=sorted_dict(teams),
                     org=org,
                     now=datetime.datetime.now(),
                     check=lambda x: "&#x2713;" if x else "",
@@ -263,20 +285,39 @@ class OrganizationReport(BaseGithubTask):
             )
 
 
+def get_commit():
+    first_line = subprocess.check_output(["git", "show"]).decode("utf-8").split("\n")[0]
+    commit = first_line.split()[1]
+    return commit
+
+
 def script_url(project_config):
     proj = project_config
     diff = subprocess.check_output(["git", "diff"]).decode("utf-8").strip()
+    commit = proj.commit or get_commit()
     mode = "dev" if diff else "prod"
     if mode == "dev":
         print("Warning: Running in dev mode because github repo is dirty.")
     relpath = proj.relpath(__file__)
 
-    url = f"https://github.com/{proj.repo_owner}/{proj.repo_name}/blob/{proj.commit}/{relpath}"
+    url = f"https://{repo_url(project_config)}/blob/{commit}/{relpath}"
     return url, mode
 
 
+def repo_url(project_config):
+    return project_config.repo_url.split("@")[-1].rsplit(".", 1)[0].replace(":", "/")
+
+
 class RelEnvironment(Environment):
-    "Per: https://stackoverflow.com/a/3655911/113477"
+    """Override join_path() to enable relative template paths.
+
+    Per: https://stackoverflow.com/a/3655911/113477"""
 
     def join_path(self, template, parent):
         return os.path.join(os.path.dirname(parent), template)
+
+
+def sorted_dict(d):
+    return {
+        k: v for (k, v) in sorted(d.items(), key=lambda k_v_pair: k_v_pair[0].lower())
+    }
