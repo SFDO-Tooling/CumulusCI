@@ -1003,6 +1003,7 @@ def org_info(runtime, org_name, print_json):
             "default",
             "email_address",
             "instance_url",
+            "instance_name",
             "is_sandbox",
             "namespaced",
             "org_id",
