@@ -1,9 +1,10 @@
 import pytest  # noqa: F401
 from unittest import mock
 from cumulusci.tasks.salesforce.tests.util import create_task
-import shutil
 
+import shutil
 import pathlib
+import os
 import base64
 import json
 from cumulusci.tasks.salesforce.users.photos import UploadProfilePhoto, join_errors
@@ -29,12 +30,16 @@ def test_join_errors():
 
 class TestUploadProfilePhoto:
     def setup_method(self):
-        # Reusable variables
-        self.photo = "photo_mock.txt"
-        self.photo_path = pathlib.Path(self.photo).resolve()
-        assert self.photo_path.exists()
-        assert self.photo_path.is_file()
+        # Photo information
+        self.photo = "photo.mock.txt"
+        self.base_path = os.path.dirname(__file__)
+        self.photo_path = pathlib.Path(
+            os.path.join(self.base_path, self.photo)
+        ).resolve()
+        assert self.photo_path.exists(), "photo mock cannot be found"
+        assert self.photo_path.is_file(), "photo_path should point to a file"
 
+        # Resusable data
         self.content_version_id = "0681k000001YWQ5AAO"
         self.content_document_id = "0691k000001LtfEAAS"
 
@@ -53,6 +58,7 @@ class TestUploadProfilePhoto:
         )
         self.user_id = "0051k000003cEL3AAM"
 
+        # Task with mocks
         self.task = create_task(UploadProfilePhoto, {"photo": self.photo})
         self.task.logger = mock.Mock()
         self.task.sf = mock.Mock()
@@ -181,24 +187,33 @@ class TestUploadProfilePhoto:
         with temporary_dir() as d:
             # Copy photo to temporary direcory.
             shutil.copy(str(self.photo_path), d)
+            temp_photo_path = pathlib.Path(os.path.join(d, self.photo)).resolve()
+            assert (
+                temp_photo_path.exists()
+            ), "photo mock was not copied to the temporary directory"
+            assert (
+                temp_photo_path.is_file()
+            ), "Path the the photo mock in the temporary directory should point to a file"
 
-            temp_photo_path = pathlib.Path(self.photo)
-            assert temp_photo_path.exists()
-            assert temp_photo_path.is_file()
+            self.task.sf.ContentVersion.create._expected_calls = [
+                mock.call(
+                    {
+                        "PathOnClient": temp_photo_path.name,
+                        "Title": temp_photo_path.stem,
+                        "VersionData": base64.b64encode(
+                            temp_photo_path.read_bytes()
+                        ).decode("utf-8"),
+                    }
+                )
+            ]
 
             with pytest.raises(CumulusCIException) as e:
                 self.task._insert_content_document(self.photo)
 
         assert e.value.args[0] == f"Failed to create photo ContentVersion: {errors}"
 
-        self.task.sf.ContentVersion.create.assert_called_once_with(
-            {
-                "PathOnClient": temp_photo_path.name,
-                "Title": temp_photo_path.stem,
-                "VersionData": base64.b64encode(temp_photo_path.read_bytes()).decode(
-                    "utf-8"
-                ),
-            }
+        self.task.sf.ContentVersion.create.assert_has_calls(
+            self.task.sf.ContentVersion.create._expected_calls
         )
 
         self.task.logger.info.assert_called_once_with(
@@ -230,23 +245,32 @@ class TestUploadProfilePhoto:
         with temporary_dir() as d:
             # Copy photo to temporary direcory.
             shutil.copy(str(self.photo_path), d)
+            temp_photo_path = pathlib.Path(os.path.join(d, self.photo)).resolve()
+            assert (
+                temp_photo_path.exists()
+            ), "photo mock was not copied to the temporary directory"
+            assert (
+                temp_photo_path.is_file()
+            ), "Path the the photo mock in the temporary directory should point to a file"
 
-            temp_photo_path = pathlib.Path(self.photo)
-            assert temp_photo_path.exists()
-            assert temp_photo_path.is_file()
+            self.task.sf.ContentVersion.create._expected_calls = [
+                mock.call(
+                    {
+                        "PathOnClient": temp_photo_path.name,
+                        "Title": temp_photo_path.stem,
+                        "VersionData": base64.b64encode(
+                            temp_photo_path.read_bytes()
+                        ).decode("utf-8"),
+                    }
+                )
+            ]
 
             actual = self.task._insert_content_document(self.photo)
 
         assert expected == actual
 
-        self.task.sf.ContentVersion.create.assert_called_once_with(
-            {
-                "PathOnClient": temp_photo_path.name,
-                "Title": temp_photo_path.stem,
-                "VersionData": base64.b64encode(temp_photo_path.read_bytes()).decode(
-                    "utf-8"
-                ),
-            }
+        self.task.sf.ContentVersion.create.assert_has_calls(
+            self.task.sf.ContentVersion.create._expected_calls
         )
 
         self.task.sf.query.assert_called_once_with(
