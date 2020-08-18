@@ -58,7 +58,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+        task.org_config._is_person_accounts_enabled = False
 
         mock_query_households = MockBulkQueryOperation(
             sobject="Account",
@@ -89,8 +89,6 @@ class TestExtractData(unittest.TestCase):
         self.assertFalse(hasattr(contact, "IsPersonAccount"))
         self.assertEqual("1", contact.household_id)
 
-        task._org_has_person_accounts_enabled.assert_called_once_with()
-
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
     def test_run__person_accounts_enabled(self, step_mock):
@@ -109,7 +107,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+        task.org_config._is_person_accounts_enabled = True
 
         mock_query_households = MockBulkQueryOperation(
             sobject="Account",
@@ -142,8 +140,6 @@ class TestExtractData(unittest.TestCase):
         self.assertEqual("true", contact.IsPersonAccount)
         self.assertEqual("1", contact.household_id)
 
-        task._org_has_person_accounts_enabled.assert_called_once_with()
-
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
     def test_run__sql(self, step_mock):
@@ -158,7 +154,7 @@ class TestExtractData(unittest.TestCase):
             )
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
-            task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+            task.org_config._is_person_accounts_enabled = False
 
             mock_query_households = MockBulkQueryOperation(
                 sobject="Account",
@@ -200,7 +196,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+        task.org_config._is_person_accounts_enabled = False
 
         mock_query_households = MockBulkQueryOperation(
             sobject="Account",
@@ -247,7 +243,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+        task.org_config._is_person_accounts_enabled = True
 
         mock_query_households = MockBulkQueryOperation(
             sobject="Account",
@@ -383,7 +379,7 @@ class TestExtractData(unittest.TestCase):
         task._extract_record_types = mock.Mock()
         task._sql_bulk_insert_from_records = mock.Mock()
         task.session = mock.Mock()
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+        task.org_config._is_person_accounts_enabled = False
 
         step = mock.Mock()
         step.get_results.return_value = [["000000000000001", "Test", "012000000000000"]]
@@ -404,8 +400,6 @@ class TestExtractData(unittest.TestCase):
             "Account", "test_rt", task.session.connection.return_value
         )
 
-        task._org_has_person_accounts_enabled.assert_called_once_with()
-
     def test_import_results__person_account_name_stripped(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "recordtypes.yml")
@@ -416,7 +410,7 @@ class TestExtractData(unittest.TestCase):
         task._extract_record_types = mock.Mock()
         task._sql_bulk_insert_from_records = mock.Mock()
         task.session = mock.Mock()
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+        task.org_config._is_person_accounts_enabled = True
 
         step = mock.Mock()
         step.get_results.return_value = [
@@ -440,8 +434,6 @@ class TestExtractData(unittest.TestCase):
             },
             step,
         )
-
-        task._org_has_person_accounts_enabled.assert_called_once()
 
         task._sql_bulk_insert_from_records.assert_called()
         args, kwargs = task._sql_bulk_insert_from_records.call_args_list[0]
@@ -571,7 +563,7 @@ class TestExtractData(unittest.TestCase):
                 }
             },
         )
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+        task.org_config._is_person_accounts_enabled = False
 
         with self.assertRaises(BulkDataException):
             task()
@@ -598,7 +590,7 @@ class TestExtractData(unittest.TestCase):
                 "oid_as_pk": False,
             },
         }
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+        task.org_config._is_person_accounts_enabled = False
 
         def create_table_mock(table_name):
             task.models[table_name] = mock.Mock()
@@ -624,7 +616,7 @@ class TestExtractData(unittest.TestCase):
         }
         task.models = {}
         task.metadata = mock.Mock()
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+        task.org_config._is_person_accounts_enabled = False
 
         task._create_table(mapping)
 
@@ -696,13 +688,12 @@ class TestExtractData(unittest.TestCase):
             ExtractData,
             {"options": {"database_url": "sqlite:///", "mapping": mapping_path}},
         )
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+        task.org_config._is_person_accounts_enabled = False
 
         task._init_mapping()
         assert "Insert Households" in task.mapping
 
         # Person Accounts should not be added to mapping
-        task._org_has_person_accounts_enabled.assert_called_once_with()
         self.assert_person_accounts_in_mapping(task.mapping, False)
 
     @responses.activate
@@ -714,13 +705,12 @@ class TestExtractData(unittest.TestCase):
             ExtractData,
             {"options": {"database_url": "sqlite:///", "mapping": mapping_path}},
         )
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+        task.org_config._is_person_accounts_enabled = True
 
         task._init_mapping()
         assert "Insert Households" in task.mapping
 
         # Person Accounts should not be added to mapping
-        task._org_has_person_accounts_enabled.assert_called_once_with()
         self.assert_person_accounts_in_mapping(task.mapping, True)
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.validate_and_inject_mapping")
@@ -738,7 +728,7 @@ class TestExtractData(unittest.TestCase):
                 }
             },
         )
-        t._org_has_person_accounts_enabled = mock.Mock()
+        t.org_config._is_person_accounts_enabled = True
 
         t._init_mapping()
 
@@ -749,10 +739,8 @@ class TestExtractData(unittest.TestCase):
             data_operation=DataOperationType.QUERY,
             inject_namespaces=True,
             drop_missing=True,
-            org_has_person_accounts_enabled=t._org_has_person_accounts_enabled.return_value,
+            org_has_person_accounts_enabled=t.org_config._is_person_accounts_enabled,
         )
-
-        t._org_has_person_accounts_enabled.assert_called_once_with()
 
     def test_fields_for_mapping(self):
         task = _make_task(
