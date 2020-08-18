@@ -108,6 +108,12 @@ tasks:
         options:
             path: unpackaged/pre
         group: Salesforce Metadata
+    deploy_ip_security_settings:
+        description: Deploys the src directory of the repository to the org
+        class_path: cumulusci.tasks.salesforce.Deploy
+        options:
+            path: cumulusci/files
+        group: Salesforce Metadata
     deploy_post:
         description: Deploys all metadata bundles under unpackaged/post/
         class_path: cumulusci.tasks.salesforce.DeployBundles
