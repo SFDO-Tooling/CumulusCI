@@ -109,7 +109,7 @@ tasks:
             path: unpackaged/pre
         group: Salesforce Metadata
     deploy_ip_security_settings:
-        description: Deploys the src directory of the repository to the org
+        description: Deploys ip ranges 0-255 to enable all network traffic to the org
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
             path: cumulusci/files
