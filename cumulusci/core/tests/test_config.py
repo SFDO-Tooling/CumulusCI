@@ -1440,3 +1440,79 @@ class TestOrgConfig(unittest.TestCase):
 
         with self.assertRaises(CumulusCIException):
             config.has_minimum_package_version("GW_Volunteers", "1.0")
+
+    @responses.activate
+    def test_is_person_accounts_enabled__not_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+        self.assertIsNone(
+            config._is_person_accounts_enabled,
+            "_is_person_accounts_enabled should be initialized as None",
+        )
+
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            json={"fields": [{"name": "Id"}]},
+        )
+
+        # Verify checks describe if _is_person_accounts_enabled is None.
+        actual = config.is_person_accounts_enabled
+
+        self.assertEqual(False, actual, "")
+        self.assertEqual(actual, config._is_person_accounts_enabled)
+
+        # Verify subsequent calls return cached value.
+        config._is_person_accounts_enabled = True
+
+        self.assertEqual(
+            config._is_person_accounts_enabled, config.is_person_accounts_enabled
+        )
+
+    @responses.activate
+    def test_is_person_accounts_enabled__is_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+        self.assertIsNone(
+            config._is_person_accounts_enabled,
+            "_is_person_accounts_enabled should be initialized as None",
+        )
+
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            json={"fields": [{"name": "Id"}, {"name": "IsPersonAccount"}]},
+        )
+
+        # Verify checks describe if _is_person_accounts_enabled is None.
+        actual = config.is_person_accounts_enabled
+
+        self.assertEqual(True, actual, "")
+        self.assertEqual(actual, config._is_person_accounts_enabled)
+
+        # Verify subsequent calls return cached value.
+        config._is_person_accounts_enabled = False
+
+        self.assertEqual(
+            config._is_person_accounts_enabled, config.is_person_accounts_enabled
+        )
