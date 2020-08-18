@@ -33,6 +33,7 @@ class OrgConfig(BaseConfig):
         self._client = None
         self._latest_api_version = None
         self._installed_packages = None
+        self._is_person_accounts_enabled = None
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -273,3 +274,13 @@ class OrgConfig(BaseConfig):
     def save(self):
         assert self.keychain, "Keychain was not set on OrgConfig"
         self.keychain.set_org(self, self.global_org)
+
+    @property
+    def is_person_accounts_enabled(self):
+        """Returns if Account has an "IsPersonAccount" field."""
+        if self._is_person_accounts_enabled is None:
+            self._is_person_accounts_enabled = any(
+                field["name"] == "IsPersonAccount"
+                for field in self.salesforce_client.Account.describe()["fields"]
+            )
+        return self._is_person_accounts_enabled
