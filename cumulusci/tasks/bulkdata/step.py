@@ -253,7 +253,7 @@ class RestApiQueryOperation(BaseQueryOperation):
 
     def get_results(self):
         def convert(rec):
-            return [rec[f] for f in self.fields]
+            return [str(rec[f]) if rec[f] is not None else None for f in self.fields]
 
         yield from (convert(rec) for rec in self.response["records"])
 
@@ -404,9 +404,27 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
 
 class RestApiDmlOperation(BaseDmlOperation):
+    def __init__(self, *, sobject, operation, api_options, context, fields):
+        super().__init__(
+            sobject=sobject,
+            operation=operation,
+            api_options=api_options,
+            context=context,
+            fields=fields,
+        )
+
+        # Because we send values in JSON, we must convert Booleans.
+        describe = {
+            field["name"]: field
+            for field in getattr(context.sf, sobject).describe()["fields"]
+        }
+        self.boolean_fields = [f for f in fields if describe[f]["type"] == "boolean"]
+
     def load_records(self, records):
         def _convert(rec):
             r = dict(zip(self.fields, rec))
+            for boolean_field in self.boolean_fields:
+                r[boolean_field] = bool(r[boolean_field])
             r["attributes"] = {"type": self.sobject}
             return r
 
@@ -449,14 +467,14 @@ class RestApiDmlOperation(BaseDmlOperation):
         def _convert(res):
             if res.get("errors"):
                 errors = "\n".join(
-                    f"{e['statusCode']}: {e['message']} ({','.join(e['fields'])}"
+                    f"{e['statusCode']}: {e['message']} ({','.join(e['fields'])})"
                     for e in res["errors"]
                 )
             else:
                 errors = ""
 
             return DataOperationResult(
-                res["id"], res["success"], errors
+                res.get("id"), res["success"], errors
             )  # FIXME: make DataOperationResult handle this
 
         yield from (_convert(res) for res in self.results)

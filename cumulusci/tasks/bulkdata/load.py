@@ -19,6 +19,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     DataOperationJobResult,
     get_dml_operation,
+    DataApi,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
@@ -149,14 +150,17 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
             if mapping.get("action") == "insert"
             else DataOperationType.UPDATE
         )
-        bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
+        bulk_mode = mapping.get("bulk_mode") or self.bulk_mode or "Parallel"
         step = get_dml_operation(
             sobject=mapping["sf_object"],
             operation=operation,
-            api_options={"batch_size": mapping.batch_size, "bulk_mode": bulk_mode},
+            api_options={
+                "batch_size": mapping.get("batch_size", 200),
+                "bulk_mode": bulk_mode,
+            },
             context=self,
             fields=self._get_columns(mapping),
-            api=mapping.api,
+            api=mapping.get("api", DataApi.SMART),
             volume=query.count(),
         )
 
