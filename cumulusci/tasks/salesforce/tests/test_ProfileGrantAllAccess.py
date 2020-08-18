@@ -124,7 +124,7 @@ ADMIN_PROFILE_BEFORE__MULTI_OBJECT_RT = b"""<?xml version='1.0' encoding='utf-8'
     </recordTypeVisibilities>
 </Profile>"""
 
-ADMIN_PROFILE_EXPECTED__MULTI_OBJECT_RT = b"""<?xml version="1.0" encoding="UTF-8"?>
+ADMIN_PROFILE_EXPECTED__MULTI_OBJECT_RT = """<?xml version="1.0" encoding="UTF-8"?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <recordTypeVisibilities>
         <recordType>Account.Business_Account</recordType>
@@ -183,7 +183,7 @@ def test_run_task():
 
         dest_path = task.deploy_dir / "profiles" / "Admin.profile"
         assert dest_path.exists()
-        print(dest_path.read_text())
+
         assert dest_path.read_text() == ADMIN_PROFILE_EXPECTED
 
 
@@ -229,7 +229,7 @@ def test_transforms_profile__multi_object_rt():
     outbound = task._transform_entity(inbound, "Admin")
 
     xml_output = outbound.tostring(xml_declaration=True)
-    print(xml_output)
+
     assert xml_output == ADMIN_PROFILE_EXPECTED__MULTI_OBJECT_RT
 
 
