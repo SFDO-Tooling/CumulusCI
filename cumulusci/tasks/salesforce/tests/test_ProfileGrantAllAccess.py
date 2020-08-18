@@ -150,6 +150,7 @@ def test_run_task():
 
         dest_path = task.deploy_dir / "profiles" / "Admin.profile"
         assert dest_path.exists()
+        print(dest_path.read_text())
         assert dest_path.read_text() == ADMIN_PROFILE_EXPECTED
 
 

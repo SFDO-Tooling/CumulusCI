@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 
 import pkg_resources
@@ -232,28 +233,36 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             elem.find(inner_tag).text = true_value
 
     def _set_record_types(self, tree, api_name):
+        # Do namespace injection
         record_types = self.options.get("record_types") or []
+        for rt in record_types:
+            rt["record_type"] = rt["record_type"].format(**self.namespace_prefixes)
 
-        # If defaults are specified,
-        # clear any pre-existing defaults
-        if any("default" in rt for rt in record_types):
-            objects_with_defaults = []
+        # If defaults are specified, clear any pre-existing defaults
+        # that apply to the same object
+        defaults = {
+            "default": "default",
+            "person_account_default": "personAccountDefault",
+        }
+        objects_with_defaults = defaultdict(set)
+
+        for option, default_element in defaults.items():
             for rt in record_types:
-                if "default" in rt:
-                    objects_with_defaults.append(rt["record_type"].split(".")[0])
-            for default in ("default", "personAccountDefault"):
-                for elem in tree.findall("recordTypeVisibilities"):
-                    if elem.find(default):
-                        if elem.recordType.text.split(".") in objects_with_defaults:
-                            elem.find(default).text = "false"
+                if option in rt:
+                    objects_with_defaults[option].add(rt["record_type"].split(".")[0])
+
+            for elem in tree.findall("recordTypeVisibilities"):
+                if (
+                    elem.find(default_element)
+                    and elem.recordType.text.split(".")[0]
+                    in objects_with_defaults[option]
+                ):
+                    elem.find(default_element).text = "false"
 
         # Set recordTypeVisibilities
         for rt in record_types:
-            # Replace namespace prefix tokens in rt name
-            rt_prefixed = rt["record_type"].format(**self.namespace_prefixes)
-
-            # Look for the recordTypeVisiblities element
-            elem = tree.find("recordTypeVisibilities", recordType=rt_prefixed)
+            # Look for the recordTypeVisibilities element
+            elem = tree.find("recordTypeVisibilities", recordType=rt["record_type"])
             if elem is None:
                 raise TaskOptionsError(
                     f"Record Type {rt['record_type']} not found in retrieved {api_name}.profile"
