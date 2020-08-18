@@ -277,7 +277,32 @@ class OrgConfig(BaseConfig):
 
     @property
     def is_person_accounts_enabled(self):
-        """Returns if Account has an "IsPersonAccount" field."""
+        """
+        Returns if the org has person accounts enabled, i.e. if Account has an ``IsPersonAccount`` field.
+
+        **Example**
+
+        Selectively run a task in a flow only if Person Accounts is or is not enabled.
+
+        .. code-block:: yaml
+
+            flows:
+                load_storytelling_data:
+                    steps:
+                        1:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/with_person_accounts/mapping.yml
+                                sql_path: datasets/with_person_accounts/data.sql
+                            when: org_config.is_person_accounts_enabled
+                        2:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/without_person_accounts/mapping.yml
+                                sql_path: datasets/without_person_accounts/data.sql
+                            when: not org_config.is_person_accounts_enabled
+
+        """
         if self._is_person_accounts_enabled is None:
             self._is_person_accounts_enabled = any(
                 field["name"] == "IsPersonAccount"
