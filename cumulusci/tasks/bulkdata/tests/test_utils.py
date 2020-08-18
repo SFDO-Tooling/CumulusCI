@@ -10,7 +10,7 @@ from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.tasks.bulkdata.utils import create_table, generate_batches, OrgInfoMixin
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
@@ -209,3 +209,31 @@ class TestBatching(unittest.TestCase):
     def test_batching_with_remainder(self):
         batches = list(generate_batches(num_records=20, batch_size=7))
         assert batches == [(7, 0), (7, 1), (6, 2)]
+
+
+class TestOrgInfoMixin:
+    def test_org_has_person_accounts_enabled__from_cache(self):
+        mixin = OrgInfoMixin()
+        mixin.sf = mock.Mock()
+        mixin._person_accounts_enabled = True
+
+        assert mixin._org_has_person_accounts_enabled
+        mixin.sf.Account.describe.assert_not_called()
+
+    def test_org_has_person_accounts_enabled__uncached_enabled(self):
+        mixin = OrgInfoMixin()
+        mixin.sf = mock.Mock()
+        mixin.sf.Account.describe.return_value = {
+            "fields": [{"name": "Name"}, {"name": "IsPersonAccount"}]
+        }
+
+        assert mixin._org_has_person_accounts_enabled()
+        mixin.sf.Account.describe.assert_called_once_with()
+
+    def test_org_has_person_accounts_enabled__uncached_disabled(self):
+        mixin = OrgInfoMixin()
+        mixin.sf = mock.Mock()
+        mixin.sf.Account.describe.return_value = {"fields": [{"name": "Name"}]}
+
+        assert not mixin._org_has_person_accounts_enabled()
+        mixin.sf.Account.describe.assert_called_once_with()

@@ -387,11 +387,13 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             os.system("git init")
+            with open(os.path.join(d, ".git", "HEAD"), "w") as f:
+                f.write("ref: refs/heads/main\n")
             with open(os.path.join(d, ".git", "packed-refs"), "w") as f:
                 f.write("# pack-refs with: peeled fully-peeled sorted\n")
                 f.write("#\n")
                 f.write(
-                    "8ce67f4519190cd1ec9785105168e21b9599bc27 refs/remotes/origin/master\n"
+                    "8ce67f4519190cd1ec9785105168e21b9599bc27 refs/remotes/origin/main\n"
                 )
 
             self.assertIsNotNone(config.repo_commit)
@@ -1452,3 +1454,79 @@ class TestOrgConfig(unittest.TestCase):
         directory = config.get_orginfo_cache_dir()
         assert directory == Path("/home/project/.cci/orginfo/zombo.com")
         mkdir.assert_called_with(exist_ok=True, parents=True)
+
+    @responses.activate
+    def test_is_person_accounts_enabled__not_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+        self.assertIsNone(
+            config._is_person_accounts_enabled,
+            "_is_person_accounts_enabled should be initialized as None",
+        )
+
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            json={"fields": [{"name": "Id"}]},
+        )
+
+        # Verify checks describe if _is_person_accounts_enabled is None.
+        actual = config.is_person_accounts_enabled
+
+        self.assertEqual(False, actual, "")
+        self.assertEqual(actual, config._is_person_accounts_enabled)
+
+        # Verify subsequent calls return cached value.
+        config._is_person_accounts_enabled = True
+
+        self.assertEqual(
+            config._is_person_accounts_enabled, config.is_person_accounts_enabled
+        )
+
+    @responses.activate
+    def test_is_person_accounts_enabled__is_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+        self.assertIsNone(
+            config._is_person_accounts_enabled,
+            "_is_person_accounts_enabled should be initialized as None",
+        )
+
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            json={"fields": [{"name": "Id"}, {"name": "IsPersonAccount"}]},
+        )
+
+        # Verify checks describe if _is_person_accounts_enabled is None.
+        actual = config.is_person_accounts_enabled
+
+        self.assertEqual(True, actual, "")
+        self.assertEqual(actual, config._is_person_accounts_enabled)
+
+        # Verify subsequent calls return cached value.
+        config._is_person_accounts_enabled = False
+
+        self.assertEqual(
+            config._is_person_accounts_enabled, config.is_person_accounts_enabled
+        )

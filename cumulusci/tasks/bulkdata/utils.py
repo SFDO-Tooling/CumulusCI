@@ -76,6 +76,21 @@ class SqlAlchemyMixin:
             )
 
 
+class OrgInfoMixin:
+    """Bulk data task mixin for accessing info about the org"""
+
+    _person_accounts_enabled = None
+
+    def _org_has_person_accounts_enabled(self):
+        """Does Account have an "IsPersonAccount" field?"""
+        if self._person_accounts_enabled is None:
+            account_fields = self.sf.Account.describe()["fields"]
+            self._person_accounts_enabled = any(
+                field["name"] == "IsPersonAccount" for field in account_fields
+            )
+        return self._person_accounts_enabled
+
+
 def _handle_primary_key(mapping, fields):
     """Provide support for legacy mappings which used the OID as the pk but
     default to using an autoincrementing int pk and a separate sf_id column"""

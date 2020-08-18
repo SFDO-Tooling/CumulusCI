@@ -39,6 +39,7 @@ PARSER_CONFIG = [
         "class_path": "cumulusci.tasks.release_notes.parser.GithubIssuesParser",
         "title": "Issues Closed",
     },
+    {"class_path": None},
 ]
 
 
@@ -109,13 +110,14 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         github_info = self.github_info.copy()
         self.mock_util.mock_get_repo()
         generator = GithubReleaseNotesGenerator(
-            self.gh, github_info, PARSER_CONFIG, self.current_tag
+            self.gh, github_info, PARSER_CONFIG, self.current_tag, version_id="04t"
         )
         self.assertEqual(generator.github_info, github_info)
         self.assertEqual(generator.current_tag, self.current_tag)
         self.assertEqual(generator.last_tag, None)
         self.assertEqual(generator.change_notes.current_tag, self.current_tag)
         self.assertEqual(generator.change_notes._last_tag, None)
+        self.assertEqual("04t", generator.version_id)
 
     @responses.activate
     def test_init_with_last_tag(self):
@@ -437,7 +439,7 @@ class TestParentPullRequestNotesGenerator(GithubApiTestMixin):
         return ParentPullRequestNotesGenerator(gh_api, repo, create_project_config())
 
     def test_init_parsers(self, generator):
-        assert 6 == len(generator.parsers)
+        assert 7 == len(generator.parsers)
         assert generator.parsers[-1]._in_section
 
     @responses.activate

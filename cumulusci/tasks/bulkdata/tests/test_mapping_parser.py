@@ -14,6 +14,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
     validate_and_inject_mapping,
     ValidationError,
+    CaseInsensitiveDict,
 )
 from cumulusci.tasks.bulkdata.step import DataOperationType
 from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
@@ -153,7 +154,9 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            {"Name": {"createable": True}, "Website": {"createable": True}},
+            CaseInsensitiveDict(
+                {"Name": {"createable": True}, "Website": {"createable": True}}
+            ),
             ms.fields_,
             None,
             False,
@@ -161,7 +164,9 @@ class TestMappingParser:
         )
 
         assert not ms._validate_field_dict(
-            {"Name": {"createable": True}, "Website": {"createable": False}},
+            CaseInsensitiveDict(
+                {"Name": {"createable": True}, "Website": {"createable": False}}
+            ),
             ms.fields_,
             None,
             False,
@@ -174,7 +179,9 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            {"Name": {"createable": True}, "npsp__Test__c": {"createable": True}},
+            CaseInsensitiveDict(
+                {"Name": {"createable": True}, "npsp__Test__c": {"createable": True}}
+            ),
             ms.fields_,
             lambda field: f"npsp__{field}",
             False,
@@ -189,11 +196,13 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            {
-                "Name": {"createable": True},
-                "npsp__Test__c": {"createable": True},
-                "Test__c": {"createable": True},
-            },
+            CaseInsensitiveDict(
+                {
+                    "Name": {"createable": True},
+                    "npsp__Test__c": {"createable": True},
+                    "Test__c": {"createable": True},
+                }
+            ),
             ms.fields_,
             lambda field: f"npsp__{field}",
             False,
@@ -208,7 +217,9 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            {"Name": {"createable": True}, "Website": {"createable": False}},
+            CaseInsensitiveDict(
+                {"Name": {"createable": True}, "Website": {"createable": False}}
+            ),
             ms.fields_,
             None,
             True,
@@ -221,24 +232,30 @@ class TestMappingParser:
         ms = MappingStep(sf_object="Account", fields=["Name"], action="insert")
 
         assert ms._validate_sobject(
-            {"Account": {"createable": True}}, None, DataOperationType.INSERT
+            CaseInsensitiveDict({"Account": {"createable": True}}),
+            None,
+            DataOperationType.INSERT,
         )
 
         assert ms._validate_sobject(
-            {"Account": {"queryable": True}}, None, DataOperationType.QUERY
+            CaseInsensitiveDict({"Account": {"queryable": True}}),
+            None,
+            DataOperationType.QUERY,
         )
 
         ms = MappingStep(sf_object="Account", fields=["Name"], action="update")
 
         assert not ms._validate_sobject(
-            {"Account": {"updateable": False}}, None, DataOperationType.INSERT
+            CaseInsensitiveDict({"Account": {"updateable": False}}),
+            None,
+            DataOperationType.INSERT,
         )
 
     def test_validate_sobject__injection(self):
         ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
 
         assert ms._validate_sobject(
-            {"npsp__Test__c": {"createable": True}},
+            CaseInsensitiveDict({"npsp__Test__c": {"createable": True}}),
             lambda obj: f"npsp__{obj}",
             DataOperationType.INSERT,
         )
@@ -248,7 +265,9 @@ class TestMappingParser:
         ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
 
         assert ms._validate_sobject(
-            {"npsp__Test__c": {"createable": True}, "Test__c": {"createable": True}},
+            CaseInsensitiveDict(
+                {"npsp__Test__c": {"createable": True}, "Test__c": {"createable": True}}
+            ),
             lambda obj: f"npsp__{obj}",
             DataOperationType.INSERT,
         )
@@ -288,7 +307,7 @@ class TestMappingParser:
         )
 
         ms._validate_sobject.assert_called_once_with(
-            {"Account": {"name": "Account", "createable": True}},
+            CaseInsensitiveDict({"Account": {"name": "Account", "createable": True}}),
             mock.ANY,  # This is a function def
             DataOperationType.INSERT,
         )
@@ -296,7 +315,9 @@ class TestMappingParser:
         ms._validate_field_dict.assert_has_calls(
             [
                 mock.call(
-                    {"ns__Test__c": {"name": "ns__Test__c", "createable": True}},
+                    CaseInsensitiveDict(
+                        {"ns__Test__c": {"name": "ns__Test__c", "createable": True}}
+                    ),
                     ms.fields,
                     mock.ANY,  # local function def
                     False,
@@ -352,7 +373,7 @@ class TestMappingParser:
         )
 
         ms._validate_sobject.assert_called_once_with(
-            {"Account": {"name": "Account", "createable": True}},
+            CaseInsensitiveDict({"Account": {"name": "Account", "createable": True}}),
             mock.ANY,  # local function def
             DataOperationType.INSERT,
         )
@@ -413,7 +434,7 @@ class TestMappingParser:
         )
 
         ms._validate_sobject.assert_called_once_with(
-            {"Test__c": {"name": "Test__c", "createable": True}},
+            CaseInsensitiveDict({"Test__c": {"name": "Test__c", "createable": True}}),
             None,
             DataOperationType.INSERT,
         )
@@ -793,6 +814,36 @@ class TestMappingParser:
 
         assert list(ms.fields.keys()) == ["ns__Description__c"]
 
+    @responses.activate
+    def test_validate_and_inject_mapping_queries_is_person_account_field(self):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: Account\n  table: Account\n  fields:\n    - Description__c\n"
+                    "Insert Contacts:\n  sf_object: Contact\n  table: Contact\n  lookups:\n    AccountId:\n      table: Account"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            org_config=org_config,
+            namespace=None,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=False,
+            drop_missing=True,
+            org_has_person_accounts_enabled=True,
+        )
+
+        assert "Insert Accounts" in mapping
+        assert "Insert Contacts" in mapping
+        assert "IsPersonAccount" in mapping["Insert Accounts"]["fields"]
+        assert "IsPersonAccount" in mapping["Insert Contacts"]["fields"]
+
 
 class TestMappingLookup:
     def test_get_lookup_key_field__no_model(self):
@@ -831,3 +882,36 @@ class TestMappingLookup:
 
         with pytest.raises(KeyError):
             lookup.get_lookup_key_field(FakeModel())
+
+    @responses.activate
+    def test_validate_and_inject_mapping_works_case_insensitively(self):
+        mock_describe_calls()
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    "Insert Accounts:\n  sf_object: account\n  table: account\n  fields:\n    - name\n"
+                    "Insert Contacts:\n  sf_object: contact\n  table: contact\n  fields:\n    - fIRSTnAME\n  lookups:\n    accountid:\n      table: account"
+                )
+            )
+        )
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        assert mapping["Insert Accounts"].sf_object != "Account"
+        assert mapping["Insert Accounts"].sf_object == "account"
+        assert "name" in mapping["Insert Accounts"].fields
+        assert "Name" not in mapping["Insert Accounts"].fields
+
+        validate_and_inject_mapping(
+            mapping=mapping,
+            org_config=org_config,
+            namespace=None,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=False,
+            drop_missing=False,
+        )
+        assert mapping["Insert Accounts"].sf_object == "Account"
+        assert mapping["Insert Accounts"].sf_object != "account"
+        assert "Name" in mapping["Insert Accounts"].fields
+        assert "name" not in mapping["Insert Accounts"].fields

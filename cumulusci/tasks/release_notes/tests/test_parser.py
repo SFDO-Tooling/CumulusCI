@@ -11,6 +11,7 @@ from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
 from cumulusci.tasks.release_notes.parser import GithubIssuesParser
 from cumulusci.tasks.release_notes.parser import GithubLinesParser
 from cumulusci.tasks.release_notes.parser import IssuesParser
+from cumulusci.tasks.release_notes.parser import InstallLinkParser
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import get_github_api
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
@@ -116,9 +117,17 @@ class TestChangeNotesLinesParser(unittest.TestCase):
         self.assertEqual({"Subheading": ["foo"]}, parser.h2)
         self.assertTrue(line_added)
 
+    def test_parse_subheading_from_another_section(self):
+        change_note = "## Subheading\r\n# {0}\r\nfoo".format(self.title)
+        parser = ChangeNotesLinesParser(None, self.title)
+        line_added = parser.parse(change_note)
+        self.assertEqual(["foo"], parser.content)
+        self.assertEqual({}, parser.h2)
+        self.assertTrue(line_added)
+
     def test_render_no_content(self):
         parser = ChangeNotesLinesParser(None, self.title)
-        self.assertEqual(parser.render(), None)
+        self.assertEqual(parser.render(), "")
 
     def test_render_one_content(self):
         parser = ChangeNotesLinesParser(None, self.title)
@@ -549,3 +558,27 @@ class TestCommentingGithubIssuesParser(unittest.TestCase, GithubApiTestMixin):
         if link_pr:
             render += " [[PR{}]({})]".format(self.pr_number, self.pr_url)
         return render
+
+
+class TestInstallLinkParser:
+    def test_no_package_version(self):
+        generator = mock.Mock(link_pr=True)
+        generator.version_id = None
+        parser = InstallLinkParser(generator, "Title")
+        parser.parse("abc")
+        assert parser.render() == ""
+
+    def test_package_version(self):
+        generator = mock.Mock(link_pr=True)
+        generator.version_id = "foo bar"
+        parser = InstallLinkParser(generator, "Title")
+        parser.parse("abc")
+        output = parser.render()
+        assert (
+            "https://login.salesforce.com/packaging/installPackage.apexp?p0=foo+bar"
+            in output
+        )
+        assert (
+            "https://test.salesforce.com/packaging/installPackage.apexp?p0=foo+bar"
+            in output
+        )
