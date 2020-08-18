@@ -33,6 +33,7 @@ class OrgConfig(BaseConfig):
         self._client = None
         self._latest_api_version = None
         self._installed_packages = None
+        self._is_person_accounts_enabled = None
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -274,3 +275,38 @@ class OrgConfig(BaseConfig):
     def save(self):
         assert self.keychain, "Keychain was not set on OrgConfig"
         self.keychain.set_org(self, self.global_org)
+
+    @property
+    def is_person_accounts_enabled(self):
+        """
+        Returns if the org has person accounts enabled, i.e. if Account has an ``IsPersonAccount`` field.
+
+        **Example**
+
+        Selectively run a task in a flow only if Person Accounts is or is not enabled.
+
+        .. code-block:: yaml
+
+            flows:
+                load_storytelling_data:
+                    steps:
+                        1:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/with_person_accounts/mapping.yml
+                                sql_path: datasets/with_person_accounts/data.sql
+                            when: org_config.is_person_accounts_enabled
+                        2:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/without_person_accounts/mapping.yml
+                                sql_path: datasets/without_person_accounts/data.sql
+                            when: not org_config.is_person_accounts_enabled
+
+        """
+        if self._is_person_accounts_enabled is None:
+            self._is_person_accounts_enabled = any(
+                field["name"] == "IsPersonAccount"
+                for field in self.salesforce_client.Account.describe()["fields"]
+            )
+        return self._is_person_accounts_enabled
