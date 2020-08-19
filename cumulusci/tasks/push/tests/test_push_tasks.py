@@ -242,6 +242,7 @@ def test_get_version(
         metadata_package_version_2,
     ]
     assert task._get_version(metadata_package, "1.2.3.4") == metadata_package_version_1
+    assert task._get_version(metadata_package, "1.2,Beta 3")
 
 
 def test_get_version_error():
