@@ -16,6 +16,50 @@ from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
 
 
+def debug(value, title=None, indent=0, tab="  ", show_list_index=True, logger=None):
+    indentation = tab * (indent)
+    prefix = "" if title is None else str(title) + " : "
+    if isinstance(value, dict):
+        logger(indentation + prefix + "{")
+        for key, dict_value in value.items():
+            debug(
+                dict_value,
+                title=key,
+                indent=(indent + 1),
+                tab=tab,
+                show_list_index=show_list_index,
+                logger=logger,
+            )
+        logger(indentation + "}" + ("," if indent else ""))
+    elif isinstance(value, list):
+        logger(indentation + prefix + "[")
+        for index, list_item in enumerate(value):
+            title = index if show_list_index else None
+            debug(
+                list_item,
+                title=title,
+                indent=(indent + 1),
+                tab=tab,
+                show_list_index=show_list_index,
+                logger=logger,
+            )
+        logger(indentation + "]" + ("," if indent else ""))
+    elif isinstance(value, set):
+        logger(indentation + prefix + "set(")
+        for index, list_item in enumerate(value):
+            debug(
+                list_item,
+                title=index,
+                indent=(indent + 1),
+                tab=tab,
+                show_list_index=show_list_index,
+                logger=logger,
+            )
+        logger(indentation + ")" + ("," if indent else ""))
+    else:
+        logger(indentation + prefix + str(value) + ("," if indent else ""))
+
+
 class DataOperationType(Enum):
     """Enum defining the API data operation requested."""
 
@@ -293,7 +337,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.context.logger.info(f"Uploading batch {count + 1}")
             self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
 
-    def _batch(self, records, n=10000, char_limit=10000000):
+    def _batch(self, records, n=10000, char_limit=10_000_000):
         """Given an iterator of records, yields batches of
         records serialized in .csv format.
 
@@ -365,3 +409,124 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                 raise BulkDataException(
                     f"Failed to download results for batch {batch_id} ({str(e)})"
                 )
+
+
+class UserDmlOperation(BaseDmlOperation):
+    """Operation class for all DML operations run using the Bulk API."""
+
+    def __init__(self, *, sobject, operation, api_options, context, fields, task):
+        super().__init__(
+            sobject=sobject,
+            operation=operation,
+            api_options=api_options,
+            context=context,
+            fields=fields,
+        )
+        self.task = task
+
+    def start(self):
+        debug("UserDmlOperation.start", logger=self.task.logger.debug)
+        self.records_processed = 0
+        self.records = []
+        self.sf_records = []
+        self.sf_ids_by_value_by_field = {field: {} for field in self.fields}
+        self.sf_records_by_id = {}
+
+    def end(self):
+        debug("UserDmlOperation.end", logger=self.task.logger.debug)
+        record_failure_count = 0
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS,
+            [],
+            self.records_processed,
+            record_failure_count,
+        )
+
+    def load_records(self, records):
+        all_records = list(records)
+        self.records.extend(all_records)
+
+        # Collect SF Ids by value
+        fields = set()
+        fields.add("Id")
+        fields.update(self.fields)
+
+        query = f"SELECT {','.join(fields)} FROM User"
+
+        debug(query, logger=self.task.logger.warn)
+
+        for record in self.task.sf.query(query)["records"]:
+            self.sf_records.append(record)
+
+            sf_id = record["Id"]
+
+            self.sf_records_by_id[sf_id] = record
+
+            for field in self.fields:
+                value = record[field]
+
+                sf_ids_by_value = self.sf_ids_by_value_by_field[field]
+                sf_ids = sf_ids_by_value.get(value)
+                if not sf_ids:
+                    sf_ids = set()
+                sf_ids.add(sf_id)
+                sf_ids_by_value[value] = sf_ids
+            self.records_processed += 1
+
+        debug(
+            {
+                "fields": self.fields,
+                "records": self.records,
+                "sf_records": self.sf_records,
+                "records_processed": self.records_processed,
+                "sf_ids_by_value_by_field": self.sf_ids_by_value_by_field,
+            },
+            title="UserDmlOperation.load_records",
+            logger=self.task.logger.debug,
+        )
+
+    def get_results(self):
+        """Return a generator of DataOperationResult objects."""
+        default_user_id = self.task.org_config.user_id
+
+        results = []
+        for record in self.records:
+            all_sf_ids = []
+
+            for index, field in enumerate(self.fields):
+                value = record[index]
+                sf_ids_by_value = self.sf_ids_by_value_by_field[field]
+                if value in sf_ids_by_value:
+                    all_sf_ids.append(sf_ids_by_value[value])
+                else:
+                    all_sf_ids.append(set())
+
+            sf_ids = set.intersection(*all_sf_ids)
+
+            if not sf_ids:
+                sf_ids.add(default_user_id)
+            success = len(sf_ids) == 1
+            error = (
+                None
+                if success
+                else f"More than one User record found with the same field values: {', '.join(self.fields)}"
+            )
+            sf_id = next(iter(sf_ids))
+
+            results.append(DataOperationResult(sf_id, success, error))
+
+        debug(
+            {
+                "default_user_id": default_user_id,
+                "fields": self.fields,
+                "records": self.records,
+                "sf_records": self.sf_records,
+                "sf_ids_by_value_by_field": self.sf_ids_by_value_by_field,
+                "results": results,
+            },
+            title="UserDmlOperation.get_results",
+            logger=self.task.logger.warn,
+        )
+
+        for result in results:
+            yield result

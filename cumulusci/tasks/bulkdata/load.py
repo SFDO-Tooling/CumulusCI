@@ -12,6 +12,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, RowErrorChecker
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
+    UserDmlOperation,
     DataOperationStatus,
     DataOperationType,
     DataOperationJobResult,
@@ -140,17 +141,31 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         bulk_mode = mapping.get("bulk_mode") or self.bulk_mode or "Parallel"
 
-        step = BulkApiDmlOperation(
-            sobject=mapping["sf_object"],
-            operation=(
-                DataOperationType.INSERT
-                if mapping.get("action") == "insert"
-                else DataOperationType.UPDATE
-            ),
-            api_options={"bulk_mode": bulk_mode},
-            context=self,
-            fields=self._get_columns(mapping),
-        )
+        if mapping["table"] == "User":
+            step = UserDmlOperation(
+                sobject=mapping["sf_object"],
+                operation=(
+                    DataOperationType.INSERT
+                    if mapping.get("action") == "insert"
+                    else DataOperationType.UPDATE
+                ),
+                api_options={"bulk_mode": bulk_mode},
+                context=self,
+                fields=self._get_columns(mapping),
+                task=self,
+            )
+        else:
+            step = BulkApiDmlOperation(
+                sobject=mapping["sf_object"],
+                operation=(
+                    DataOperationType.INSERT
+                    if mapping.get("action") == "insert"
+                    else DataOperationType.UPDATE
+                ),
+                api_options={"bulk_mode": bulk_mode},
+                context=self,
+                fields=self._get_columns(mapping),
+            )
 
         local_ids = []
         step.start()
