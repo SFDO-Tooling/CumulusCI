@@ -1442,9 +1442,11 @@ class TestOrgConfig(unittest.TestCase):
         with TemporaryDirectory() as t:
             config.keychain.global_config_dir = Path(t)
 
-            with config.get_orginfo_cache_dir() as directory:
+            with config.get_orginfo_cache_dir("foo") as directory:
                 assert str(t) in directory
-                assert str(directory).replace("\\", "/").endswith("orginfo/zombo.com")
+                assert (
+                    str(directory).replace("\\", "/").endswith("orginfo/zombo.com/foo")
+                )
                 foo = directory / "Foo.txt"
                 with foo.open("w") as f:
                     f.write("Bar")
@@ -1461,9 +1463,11 @@ class TestOrgConfig(unittest.TestCase):
         with TemporaryDirectory() as t:
             config.keychain.project_cache_dir = Path(t)
 
-            with config.get_orginfo_cache_dir() as directory:
+            with config.get_orginfo_cache_dir("bar") as directory:
                 assert str(t) in directory
-                assert str(directory).replace("\\", "/").endswith("orginfo/zombo.com")
+                assert (
+                    str(directory).replace("\\", "/").endswith("orginfo/zombo.com/bar")
+                )
                 foo = directory / "Foo.txt"
                 with foo.open("w") as f:
                     f.write("Bar")

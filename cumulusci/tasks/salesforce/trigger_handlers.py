@@ -51,7 +51,7 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
 
     @contextmanager
     def _default_restore_resource(self):
-        with self.org_config.get_orginfo_cache_dir() as cache:
+        with self.org_config.get_orginfo_cache_dir(self.__module__) as cache:
             yield cache / "trigger_status.yml"
 
     def _run_task(self):
