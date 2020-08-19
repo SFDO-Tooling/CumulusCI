@@ -1735,7 +1735,7 @@ class TestLoadData(unittest.TestCase):
         assert task.session.query.first.return_value is not None
 
         # ✅ The org does not have person accounts enabled
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+        task.org_config._is_person_accounts_enabled = False
 
         with self.assertRaises(BulkDataException):
             task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
@@ -1781,7 +1781,7 @@ class TestLoadData(unittest.TestCase):
         assert task.session.query.first.return_value is not None
 
         # ✅ The org does not have person accounts enabled
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=False)
+        task.org_config._is_person_accounts_enabled = False
 
         with self.assertRaises(BulkDataException):
             task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
@@ -1827,7 +1827,7 @@ class TestLoadData(unittest.TestCase):
         assert task.session.query.first.return_value is not None
 
         # ❌ The org does has person accounts enabled
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+        task.org_config._is_person_accounts_enabled = True
 
         task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
 
@@ -1873,7 +1873,7 @@ class TestLoadData(unittest.TestCase):
         assert task.session.query.first.return_value is None
 
         # ✅ The org does has person accounts enabled
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+        task.org_config._is_person_accounts_enabled = True
 
         task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
 
@@ -1918,7 +1918,7 @@ class TestLoadData(unittest.TestCase):
         assert task.session.query.first.return_value is not None
 
         # ✅ The org does has person accounts enabled
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+        task.org_config._is_person_accounts_enabled = True
 
         task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
 
@@ -1963,7 +1963,7 @@ class TestLoadData(unittest.TestCase):
         assert task.session.query.first.return_value is not None
 
         # ✅ The org does has person accounts enabled
-        task._org_has_person_accounts_enabled = mock.Mock(return_value=True)
+        task.org_config._is_person_accounts_enabled = True
 
         task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
 
