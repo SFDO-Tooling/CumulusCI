@@ -263,18 +263,11 @@ def test_get_version_error():
         task._get_version(package, VERSION)
 
 
-def test_get_package():
+def test_get_package(metadata_package):
     task = create_task(BaseSalesforcePushTask, options={})
     task.push = mock.MagicMock()
-    task.push.get_package_objs.return_value = [
-        {"push_api": "123", "sf_id": SF_ID, "name": NAME, "namespace": NAMESPACE}
-    ]
-    assert task._get_package(NAMESPACE) == {
-        "push_api": "123",
-        "sf_id": SF_ID,
-        "name": NAME,
-        "namespace": NAMESPACE,
-    }
+    task.push.get_package_objs.return_value = [metadata_package]
+    assert task._get_package(NAMESPACE) == metadata_package
 
 
 def test_get_package_error():
