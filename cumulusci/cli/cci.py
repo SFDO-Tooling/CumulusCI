@@ -1003,6 +1003,7 @@ def org_info(runtime, org_name, print_json):
             "default",
             "email_address",
             "instance_url",
+            "instance_name",
             "is_sandbox",
             "namespaced",
             "org_id",
@@ -1536,8 +1537,13 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
     options = defaultdict(dict)
     if o:
         for key, value in o:
-            task_name, option_name = key.split("__")
-            options[task_name][option_name] = value
+            if "__" in key:
+                task_name, option_name = key.split("__")
+                options[task_name][option_name] = value
+            else:
+                raise click.UsageError(
+                    "-o option for flows should contain __ to split task name from option name."
+                )
 
     # Create the flow and handle initialization exceptions
     try:

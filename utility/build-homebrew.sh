@@ -17,7 +17,7 @@ PACKAGE_VERSION="$(cat cumulusci/version.txt)"
 echo " "
 echo "=> Creating a temporary virtualenv and installing CumulusCI..."
 echo " "
-python3.7 -m venv "$ENV_DIR" || exit 1
+python3.8 -m venv "$ENV_DIR" || exit 1
 source "$ENV_DIR/bin/activate" || exit 1
 pip install -U pip
 pip install --no-cache-dir cumulusci==$PACKAGE_VERSION homebrew-pypi-poet || exit 1
@@ -43,7 +43,7 @@ class Cumulusci < Formula
   sha256 $PACKAGE_SHA
   head "https://github.com/SFDO-Tooling/CumulusCI.git"
 
-  depends_on "python"
+  depends_on "python@3.8"
 
 $(cat "$RES_FILE")
 
@@ -63,7 +63,7 @@ $(cat "$RES_FILE")
 
     bin.install Dir["#{libexec}/bin/cci"]
     bin.install Dir["#{libexec}/bin/snowfakery"]
-    bin.env_script_all_files(libexec/"bin", :PYTHONPATH => ENV["PYTHONPATH"])
+    bin.env_script_all_files(libexec/"bin", PYTHONPATH: ENV["PYTHONPATH"])
   end
 
   test do
