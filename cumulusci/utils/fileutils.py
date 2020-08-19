@@ -1,9 +1,11 @@
 from typing import IO, ContextManager, Text, Tuple, Union
 from contextlib import contextmanager
 from pathlib import Path
-from io import TextIOWrapper
+from io import TextIOWrapper, StringIO
+import os
+
 import requests
-from io import StringIO
+from fs import open_fs, path as fspath, copy, base
 from shutil import rmtree
 
 """Utilities for working with files"""
@@ -105,6 +107,101 @@ def cleanup_org_cache_dirs(keychain, project_config):
     for directory in list(project_org_directories) + list(global_org_directories):
         if directory.name not in domains:
             rmtree(directory)
+
+
+def proxy(funcname):
+    def func(self, *args, **kwargs):
+        real_func = getattr(self.fs, funcname)
+        return real_func(self.filename, *args, **kwargs)
+
+    func.__doc__ = getattr(base.FS, funcname).__doc__
+    return func
+
+
+class FSResource(str):
+    """Generalization of pathlib.Path to support S3, FTP, etc
+
+    Should work on Windows, but Windows-style paths are not supported:
+    * no backslashes
+    * no drive letters"""
+
+    def __new__(
+        cls, resource_url_or_path: Union[str, Path], /, filesystem: base.FS = None
+    ):
+        """Create a new fsresource from a URL or path (absolute or relative)"""
+        if filesystem:
+            fs = filesystem
+            filename = resource_url_or_path
+        if isinstance(resource_url_or_path, FSResource):
+            fs = resource_url_or_path.fs
+            filename = resource_url_or_path.filename
+        elif isinstance(resource_url_or_path, Path):
+            fs = open_fs("/")
+            filename = str(resource_url_or_path.absolute())
+        # url
+        elif "://" in resource_url_or_path:
+            path, filename = resource_url_or_path.rsplit("/", 1)
+            fs = open_fs(path)
+        # abspath
+        elif resource_url_or_path.startswith("/"):
+            fs = open_fs("/")
+            filename = resource_url_or_path
+        # relpath
+        elif "/" in resource_url_or_path:
+            fs = open_fs("/")
+            filename = os.path.abspath(resource_url_or_path)
+        else:
+            fs = open_fs(".")
+            filename = os.path.abspath(resource_url_or_path)
+
+        url = fs.geturl(filename)
+        self = str.__new__(cls, url)
+        self.fs = fs
+        self.filename = filename
+        return self
+
+    exists = proxy("exists")
+    open = proxy("open")
+    unlink = proxy("remove")
+    removedir = proxy("removedir")
+    removetree = proxy("removetree")
+
+    def getospath(self):
+        return os.fsdecode(self.fs.getospath(self.filename))
+
+    def joinpath(self, other):
+        path = fspath.join(self.filename, other)
+        return FSResource(self.fs.geturl(path))
+
+    def copy_to(self, other):
+        if isinstance(other, (str, Path)):
+            other = FSResource(other)
+        copy.copy_file(self.fs, self.filename, other.fs, other.filename)
+
+    def mkdir(self, *, parents=False, exist_ok=False):
+        if parents:
+            self.fs.makedirs(self.filename, recreate=exist_ok)
+        else:
+            self.fs.makedir(self.filename, recreate=exist_ok)
+
+    def __truediv__(self, other):
+        return self.joinpath(other)
+
+    def __rtruediv__(self, other):
+        return self.joinpath(other)
+
+
+@contextmanager
+def open_fs_resource(
+    resource_url_or_path: Union[str, Path], /, filesystem: base.FS = None
+):
+    resource = FSResource(resource_url_or_path, filesystem)
+    if not filesystem:
+        filesystem = resource.fs
+    try:
+        yield resource
+    finally:
+        filesystem.close()
 
 
 if __name__ == "__main__":  # pragma: no cover

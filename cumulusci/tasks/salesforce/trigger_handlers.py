@@ -1,10 +1,11 @@
 import yaml
-import os
 from collections import defaultdict
+from contextlib import contextmanager
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
+from cumulusci.utils.fileutils import open_fs_resource, FSResource
 
 
 class SetTDTMHandlerStatus(BaseSalesforceApiTask):
@@ -48,16 +49,27 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
         else:
             self.should_save = has_restore_file
 
-    def _default_restore_path(self) -> str:
-        return str(self.org_config.get_orginfo_cache_dir() / "trigger_status.yml")
+    @contextmanager
+    def _default_restore_resource(self):
+        with self.org_config.get_orginfo_cache_dir() as cache:
+            yield cache / "trigger_status.yml"
 
     def _run_task(self):
-        restore_file = self.options.get("restore_file") or self._default_restore_path()
+        restore_path = self.options.get("restore_file")
+        if restore_path:
+            restore_file = open_fs_resource(restore_path)
+        else:
+            restore_file = self._default_restore_resource()
+
+        with restore_file as f:
+            self._do_trigger_handlers(f)
+
+    def _do_trigger_handlers(self, restore_file: FSResource):
         global_describe = self.sf.describe()
         sobject_names = [x["name"] for x in global_describe["sobjects"]]
 
         if self.should_restore:
-            with open(restore_file, "r") as f:
+            with restore_file.open("r") as f:
                 target_status = yaml.safe_load(f)
                 self.options["handlers"] = list(target_status.keys())
         else:
@@ -100,7 +112,7 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
                 )
 
         if self.should_save:
-            with open(restore_file, "w") as f:
+            with restore_file.open("w") as f:
                 yaml.safe_dump(current_status, f)
         elif self.should_restore:
-            os.remove(restore_file)
+            restore_file.unlink()

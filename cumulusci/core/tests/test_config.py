@@ -3,6 +3,7 @@ from distutils.version import StrictVersion
 import os
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pytest
 from unittest import mock
@@ -1431,29 +1432,43 @@ class TestOrgConfig(unittest.TestCase):
         with self.assertRaises(CumulusCIException):
             config.has_minimum_package_version("GW_Volunteers", "1.0")
 
-    @mock.patch("pathlib.Path.mkdir")
-    def test_orginfo_cache_dir_global(self, mkdir):
+    def test_orginfo_cache_dir_global(self):
         config = OrgConfig(
             {"instance_url": "http://zombo.com/welcome"},
             "test",
             keychain=DummyKeychain(),
             global_org=True,
         )
-        directory = config.get_orginfo_cache_dir()
-        assert directory == Path("/home/.cumulusci/orginfo/zombo.com"), directory
-        mkdir.assert_called_with(exist_ok=True, parents=True)
+        with TemporaryDirectory() as t:
+            config.keychain.global_config_dir = Path(t)
 
-    @mock.patch("pathlib.Path.mkdir")
-    def test_orginfo_cache_dir_local(self, mkdir):
+            with config.get_orginfo_cache_dir() as directory:
+                assert str(t) in directory
+                assert str(directory).replace("\\", "/").endswith("orginfo/zombo.com")
+                foo = directory / "Foo.txt"
+                with foo.open("w") as f:
+                    f.write("Bar")
+                with foo.open("r") as f:
+                    assert f.read() == "Bar"
+
+    def test_orginfo_cache_dir_local(self):
         config = OrgConfig(
             {"instance_url": "http://zombo.com/welcome"},
             "test",
             keychain=DummyKeychain(),
             global_org=False,
         )
-        directory = config.get_orginfo_cache_dir()
-        assert directory == Path("/home/project/.cci/orginfo/zombo.com")
-        mkdir.assert_called_with(exist_ok=True, parents=True)
+        with TemporaryDirectory() as t:
+            config.keychain.project_cache_dir = Path(t)
+
+            with config.get_orginfo_cache_dir() as directory:
+                assert str(t) in directory
+                assert str(directory).replace("\\", "/").endswith("orginfo/zombo.com")
+                foo = directory / "Foo.txt"
+                with foo.open("w") as f:
+                    f.write("Bar")
+                with foo.open("r") as f:
+                    assert f.read() == "Bar"
 
     @responses.activate
     def test_is_person_accounts_enabled__not_enabled(self):

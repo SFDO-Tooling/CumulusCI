@@ -125,6 +125,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     @property
     def project_cache_dir(self):
+        "Helper function to get the project_cache_dir from the project_config"
         return self.project_config.project_cache_dir
 
     @property

@@ -231,13 +231,13 @@ class TestTriggerHandlers:
             json={"npsp__Active__c": True},
         )
 
-        m = mock.mock_open(read_data="'Test__c:TestTDTM': True")
-        with mock.patch("builtins.open", m):
-            with mock.patch("os.remove") as rm_patch:
+        op = mock.mock_open(read_data="'Test__c:TestTDTM': True")
+        with mock.patch("cumulusci.utils.fileutils.FSResource.open", op):
+            with mock.patch("cumulusci.utils.fileutils.FSResource.unlink") as unlink:
                 task()
 
-                m.assert_any_call("resto.yml", "r")
-                rm_patch.assert_called_once_with("resto.yml")
+                op.assert_any_call("r")
+                unlink.assert_called_once()
 
         assert len(responses.calls) == 3
 
@@ -295,14 +295,14 @@ class TestTriggerHandlers:
             status=204,
             json={"Active__c": False},
         )
-        m = mock.mock_open()
-        with mock.patch("builtins.open", m):
+        op = mock.mock_open()
+        with mock.patch("cumulusci.utils.fileutils.FSResource.open", op):
             with mock.patch("yaml.safe_dump") as yaml_mock:
                 task()
 
-            m.assert_any_call("resto.yml", "w")
+            op.assert_any_call("w")
             yaml_mock.assert_called_once_with(
-                {"Test__c:TestTDTM": True, "Test__c:Test": True}, m.return_value
+                {"Test__c:TestTDTM": True, "Test__c:Test": True}, op.return_value
             )
 
         assert len(responses.calls) == 4

@@ -4,6 +4,7 @@ import os
 import re
 from contextlib import contextmanager
 from urllib.parse import urlparse
+from cumulusci.utils.fileutils import open_fs_resource
 
 import requests
 from simple_salesforce import Salesforce
@@ -281,15 +282,15 @@ class OrgConfig(BaseConfig):
         return urlparse(instance_url).hostname or ""
 
     def get_orginfo_cache_dir(self):
+        "Returns a context managed FSResource object"
         assert self.keychain, "Keychain should be set"
         if self.global_org:
             cache_dir = self.keychain.global_config_dir / "orginfo" / self.get_domain()
         else:
             cache_dir = self.keychain.project_cache_dir / "orginfo" / self.get_domain()
 
-        if not cache_dir.exists():
-            cache_dir.mkdir(parents=True, exist_ok=True)
-        return cache_dir
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return open_fs_resource(cache_dir)
 
     @property
     def is_person_accounts_enabled(self):
