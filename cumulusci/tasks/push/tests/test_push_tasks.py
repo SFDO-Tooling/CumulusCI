@@ -100,6 +100,16 @@ PACKAGE_OBJS = {
 
 
 @pytest.fixture
+def org_file():
+    with open(ORG_FILE, "w") as file:
+        file.write(ORG_FILE_TEXT)
+    try:
+        yield  # this is where the test using the fixture runs
+    finally:
+        os.remove(ORG_FILE)
+
+
+@pytest.fixture
 def metadata_package():
     return MetadataPackage(
         push_api=mock.MagicMock(), name=NAME, sf_id=SF_ID, namespace=NAMESPACE
@@ -239,9 +249,7 @@ def test_get_package_error():
         task._get_package(NAMESPACE)
 
 
-def test_schedule_push_org_list_get_orgs():
-    with open(ORG_FILE, "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+def test_schedule_push_org_list_get_orgs(org_file):
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -253,12 +261,9 @@ def test_schedule_push_org_list_get_orgs():
         },
     )
     assert task._get_orgs() == ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"]
-    os.remove(ORG_FILE)
 
 
-def test_schedule_push_org_list_init_options():
-    with open(ORG_FILE, "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+def test_schedule_push_org_list_init_options(org_file):
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -272,12 +277,9 @@ def test_schedule_push_org_list_init_options():
     assert task.options["batch_size"] == 200
     assert task.options["orgs"] == ORG_FILE
     assert task.options["version"] == VERSION
-    os.remove(ORG_FILE)
 
 
-def test_schedule_push_org_list_bad_start_time():
-    with open(ORG_FILE, "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+def test_schedule_push_org_list_bad_start_time(org_file):
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -290,24 +292,15 @@ def test_schedule_push_org_list_bad_start_time():
     task.push = mock.MagicMock()
     with pytest.raises(CumulusCIException):
         task._run_task()
-    os.remove(ORG_FILE)
 
 
-def test_load_orgs_file():
-    # creating sample org file for testing
-    # testing with empty file
-    with open(ORG_FILE, "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
-        task = create_task(BaseSalesforcePushTask, options={})
-        assert task._load_orgs_file(ORG_FILE) == []
-
+def test_load_orgs_file(org_file):
+    task = create_task(BaseSalesforcePushTask, options={})
     # testing with multiple orgs
-    with open(ORG_FILE, "r") as file:
-        assert task._load_orgs_file(ORG_FILE) == [
-            "00DS0000003TJJ6MAO",
-            "00DS0000003TJJ6MAL",
-        ]
-    os.remove(ORG_FILE)
+    assert task._load_orgs_file(ORG_FILE) == [
+        "00DS0000003TJJ6MAO",
+        "00DS0000003TJJ6MAL",
+    ]
 
 
 def test_get_subs_raises_err():
@@ -396,10 +389,8 @@ def test_schedule_push_org_query_get_org():
     assert task._get_orgs() == ["bar", NAME]
 
 
-def test_schedule_push_org_list_run_task_with_time():
+def test_schedule_push_org_list_run_task_with_time(org_file):
     query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
-    with open(ORG_FILE, "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -415,12 +406,9 @@ def test_schedule_push_org_list_run_task_with_time():
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 2)
     task._run_task()
     task.sf.query_all.assert_called_with(query)
-    os.remove(ORG_FILE)
 
 
-def test_schedule_push_org_list_run_task_without_time():
-    with open(ORG_FILE, "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+def test_schedule_push_org_list_run_task_without_time(org_file):
     task = create_task(
         SchedulePushOrgList,
         options={"orgs": ORG_FILE, "version": VERSION, "namespace": NAMESPACE},
@@ -431,12 +419,9 @@ def test_schedule_push_org_list_run_task_without_time():
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 2)
     task._run_task()
     task.push.create_push_request.assert_called_once()
-    os.remove(ORG_FILE)
 
 
-def test_schedule_push_org_list_run_task_without_orgs():
-    with open(ORG_FILE, "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
+def test_schedule_push_org_list_run_task_without_orgs(org_file):
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -453,13 +438,10 @@ def test_schedule_push_org_list_run_task_without_orgs():
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 0)
     task._run_task()
     task.push.create_push_request.assert_called_once()
-    os.remove(ORG_FILE)
 
 
-def test_schedule_push_org_list_run_task_many_orgs():
+def test_schedule_push_org_list_run_task_many_orgs(org_file):
     query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
-    with open(ORG_FILE, "w") as file:
-        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -475,4 +457,3 @@ def test_schedule_push_org_list_run_task_many_orgs():
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1001)
     task._run_task()
     task.sf.query_all.assert_called_with(query)
-    os.remove(ORG_FILE)
