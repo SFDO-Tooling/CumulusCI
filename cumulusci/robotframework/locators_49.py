@@ -24,7 +24,7 @@ lex_locators = {
         "is_open": "css: div.uiModal div.panel.slds-modal",
     },
     "object": {
-        "button": "css: ul.forceActionsContainer.oneActionsRibbon a[title='{}']",
+        "button": "css: ul.forceActionsContainer.oneActionsRibbon a[title='{title}']",
         "field": "//div[contains(@class, "
         "'uiInput')][.//label[contains(@class, "
         "'uiLabel')][.//span[text()='{}']]]//*[self::input or "
