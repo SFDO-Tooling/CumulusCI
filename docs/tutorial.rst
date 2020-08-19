@@ -92,7 +92,7 @@ You can use the `cci project init` command to initialize the configuration:
     Package namespace: mynamespace
     Package api version [38.0]:
     Git prefix feature [feature/]:
-    Git default branch [master]:
+    Git default branch [main]:
     Git prefix beta [beta/]:
     Git prefix release [release/]:
     Test namematch [%_TEST%]:
@@ -406,7 +406,7 @@ Once you have some orgs connected, you can start running tasks against them. Fir
     deploy_post_managed             Deploys all metadata bundles under unpackaged/post/
     get_installed_packages          Retrieves a list of the currently installed managed package namespaces and their versions
     github_clone_tag                Lists open pull requests in project Github repository
-    github_master_to_feature        Merges the latest commit on the master branch into all open feature branches
+    github_master_to_feature        Merges the latest commit on the main branch into all open feature branches
     github_pull_requests            Lists open pull requests in project Github repository
     github_release                  Creates a Github release for a given managed package version number
     github_release_notes            Generates release notes by parsing pull request bodies of merged pull requests between two tags

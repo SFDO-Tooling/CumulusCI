@@ -519,8 +519,18 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         org_config.save()
         with open(self._default_org_path(), "w") as f:
             f.write("test")
-        self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
-        self._default_org_path().unlink()
+        try:
+            self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
+        finally:
+            self._default_org_path().unlink()
+
+    def test_get_default_org__with_files__missing_org(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        with open(self._default_org_path(), "w") as f:
+            f.write("should_not_exist")
+        assert self._default_org_path().exists()
+        assert keychain.get_default_org() == (None, None)
+        assert not self._default_org_path().exists()
 
     @mock.patch("sarge.Command")
     def test_set_default_org__with_files(self, Command):
