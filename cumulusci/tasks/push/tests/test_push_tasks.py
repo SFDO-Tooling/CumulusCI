@@ -6,6 +6,7 @@ import pytest
 from cumulusci.core.exceptions import CumulusCIException, PushApiObjectNotFound
 from cumulusci.tasks.push.push_api import (
     MetadataPackage,
+    MetadataPackageVersion,
     PackagePushRequest,
     PackagePushJob,
 )
@@ -115,6 +116,36 @@ def metadata_package():
 
 
 @pytest.fixture
+def metadata_package_version_1(metadata_package):
+    return MetadataPackageVersion(
+        push_api=mock.MagicMock(),
+        package=metadata_package,
+        name=NAME,
+        sf_id=SF_ID,
+        state="Beta",
+        major="1",
+        minor="2",
+        patch="3",
+        build="4",
+    )
+
+
+@pytest.fixture
+def metadata_package_version_2(metadata_package):
+    return MetadataPackageVersion(
+        push_api=mock.MagicMock(),
+        package=metadata_package,
+        name=NAME,
+        sf_id=SF_ID,
+        state="Beta",
+        major="1",
+        minor="1",
+        patch="1",
+        build="1",
+    )
+
+
+@pytest.fixture
 def package_push_job_success():
     return PackagePushJob(
         push_api=mock.MagicMock(),
@@ -201,20 +232,16 @@ def test_parse_version():
     }
 
 
-def test_get_version():
+def test_get_version(
+    metadata_package, metadata_package_version_1, metadata_package_version_2
+):
     task = create_task(BaseSalesforcePushTask, options={})
-    assert task._get_version(
-        MetadataPackage(
-            push_api=mock.MagicMock(), name=NAME, sf_id=SF_ID, namespace=NAMESPACE
-        ),
-        "1.2.3.4",
-    )
-    assert task._get_version(
-        MetadataPackage(
-            push_api=mock.MagicMock(), name=NAME, sf_id=SF_ID, namespace=NAMESPACE
-        ),
-        "1.2,Beta 3",
-    )
+    metadata_package.push_api = mock.MagicMock()
+    metadata_package.push_api.get_package_version_objs.return_value = [
+        metadata_package_version_1,
+        metadata_package_version_2,
+    ]
+    assert task._get_version(metadata_package, "1.2.3.4") == metadata_package_version_1
 
 
 def test_get_version_error():
