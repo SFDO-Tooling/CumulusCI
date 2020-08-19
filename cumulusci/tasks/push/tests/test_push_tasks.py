@@ -211,7 +211,7 @@ def test_get_version():
 
 def test_get_version_error():
     package = mock.MagicMock()
-    package.get_package_version_objs.return_value = None
+    package.get_package_version_objs.return_value = []
     task = create_task(BaseSalesforcePushTask, options={})
     with pytest.raises(PushApiObjectNotFound):
         task._get_version(package, VERSION)
@@ -234,14 +234,14 @@ def test_get_package():
 def test_get_package_error():
     task = create_task(BaseSalesforcePushTask, options={})
     task.push = mock.MagicMock()
-    task.push.get_package_objs.return_value = None
+    task.push.get_package_objs.return_value = []
     with pytest.raises(PushApiObjectNotFound):
         task._get_package(NAMESPACE)
 
 
 def test_schedule_push_org_list_get_orgs():
     with open(ORG_FILE, "w") as file:
-        file.write(f"{ORG_FILE_TEXT}")
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -258,7 +258,7 @@ def test_schedule_push_org_list_get_orgs():
 
 def test_schedule_push_org_list_init_options():
     with open(ORG_FILE, "w") as file:
-        file.write(f"{ORG_FILE_TEXT}")
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -268,9 +268,6 @@ def test_schedule_push_org_list_init_options():
         },
     )
     task._init_task()
-    task._init_options(
-        {"orgs": ORG_FILE, "version": VERSION, "start_time": datetime.datetime.now()}
-    )
     assert task.options["namespace"] is None
     assert task.options["batch_size"] == 200
     assert task.options["orgs"] == ORG_FILE
@@ -280,7 +277,7 @@ def test_schedule_push_org_list_init_options():
 
 def test_schedule_push_org_list_bad_start_time():
     with open(ORG_FILE, "w") as file:
-        file.write(f"{ORG_FILE_TEXT}")
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -300,7 +297,7 @@ def test_load_orgs_file():
     # creating sample org file for testing
     # testing with empty file
     with open(ORG_FILE, "w") as file:
-        file.write(f"{ORG_FILE_TEXT}")
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
         task = create_task(BaseSalesforcePushTask, options={})
         assert task._load_orgs_file(ORG_FILE) == []
 
@@ -402,7 +399,7 @@ def test_schedule_push_org_query_get_org():
 def test_schedule_push_org_list_run_task_with_time():
     query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
     with open(ORG_FILE, "w") as file:
-        file.write(f"{ORG_FILE_TEXT}")
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -423,7 +420,7 @@ def test_schedule_push_org_list_run_task_with_time():
 
 def test_schedule_push_org_list_run_task_without_time():
     with open(ORG_FILE, "w") as file:
-        file.write(f"{ORG_FILE_TEXT}")
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
     task = create_task(
         SchedulePushOrgList,
         options={"orgs": ORG_FILE, "version": VERSION, "namespace": NAMESPACE},
@@ -439,7 +436,7 @@ def test_schedule_push_org_list_run_task_without_time():
 
 def test_schedule_push_org_list_run_task_without_orgs():
     with open(ORG_FILE, "w") as file:
-        file.write(f"{ORG_FILE_TEXT}")
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -462,7 +459,7 @@ def test_schedule_push_org_list_run_task_without_orgs():
 def test_schedule_push_org_list_run_task_many_orgs():
     query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
     with open(ORG_FILE, "w") as file:
-        file.write(f"{ORG_FILE_TEXT}")
+        file.write("\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL")
     task = create_task(
         SchedulePushOrgList,
         options={
