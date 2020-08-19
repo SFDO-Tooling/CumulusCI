@@ -4,7 +4,6 @@ import time
 
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import PushApiObjectNotFound
-from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
@@ -403,37 +402,3 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
                 orgs.append(subscriber["OrgKey"])
 
         return orgs
-
-
-class GetSubscriberList(BaseSalesforceApiTask):
-    """ Get subscribed org info and write to local CSV file """
-
-    task_options = {
-        "filename": {
-            "description": "File where org IDs will be written",
-            "required": True,
-        }
-    }
-
-    def _run_task(self):
-        raise NotImplementedError
-
-
-class FilterSubscriberList(BaseTask):
-    """
-    Filter subscriber org list by org type, version.
-    Write file with org IDs only
-    """
-
-    task_options = {
-        "file_in": {"description": "CSV file with full org info", "required": True},
-        "file_out": {
-            "description": "File where org IDs will be written",
-            "required": True,
-        },
-        "org_type": {"description": "Filter by org type"},
-        "version": {"description": "Filter by installed package version"},
-    }
-
-    def _run_task(self):
-        raise NotImplementedError

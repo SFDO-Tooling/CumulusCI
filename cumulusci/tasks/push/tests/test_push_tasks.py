@@ -11,8 +11,6 @@ from cumulusci.tasks.push.push_api import (
 )
 from cumulusci.tasks.push.tasks import (
     BaseSalesforcePushTask,
-    FilterSubscriberList,
-    GetSubscriberList,
     SchedulePushOrgList,
     SchedulePushOrgQuery,
 )
@@ -303,31 +301,11 @@ def test_load_orgs_file(org_file):
     ]
 
 
-def test_get_subs_raises_err():
-    task = create_task(GetSubscriberList, options={"filename": "in.csv"})
-    with pytest.raises(NotImplementedError):
-        task()
-
-
-def test_filter_subs_raises_err():
-    task = create_task(
-        FilterSubscriberList, options={"file_in": "in.csv", "file_out": "out.txt"}
-    )
-    with pytest.raises(NotImplementedError):
-        task()
-
-
-def test_base_push_task_raises_err():
-    task = create_task(BaseSalesforcePushTask, options={})
-    with pytest.raises(NotImplementedError):
-        task()
-
-
 def test_report_push_status_error():
     task = create_task(BaseSalesforcePushTask, options={})
     task.sf = mock.MagicMock()
     task.push_report = mock.MagicMock()
-    task.sf.query_all.return_value = {"totalSize": 1, "records": []}
+    task.sf.query_all.return_value = {"totalSize": 0, "records": []}
     with pytest.raises(PushApiObjectNotFound):
         task._report_push_status("0DV1R000000k9dEWAQ")
 
