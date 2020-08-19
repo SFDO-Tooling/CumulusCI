@@ -3,12 +3,11 @@
 black==19.10b0
 coverage==5.1
 coveralls==2.0.0
-flake8==3.8.3
-pre-commit==2.6.0
-pytest==6.0.1
-pytest-vcr==1.0.2
+flake8==3.8.2
+pre-commit==2.4.0
+pytest==5.4.3
 responses==0.10.15
-Sphinx==3.1.2
+Sphinx==3.1.0
 testfixtures==6.14.1
 tox==3.19.0
 twine==3.2.0
