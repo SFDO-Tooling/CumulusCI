@@ -174,6 +174,7 @@ class OrgConfig(BaseConfig):
         result = {
             "org_type": self._org_sobject["OrganizationType"],
             "is_sandbox": self._org_sobject["IsSandbox"],
+            "instance_name": self._org_sobject["InstanceName"],
         }
         self.config.update(result)
 
