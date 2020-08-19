@@ -109,6 +109,16 @@ def org_file():
 
 
 @pytest.fixture
+def empty_org_file():
+    with open(ORG_FILE, "w") as file:
+        file.write("")
+    try:
+        yield  # this is where the test using the fixture runs
+    finally:
+        os.remove(ORG_FILE)
+
+
+@pytest.fixture
 def metadata_package():
     return MetadataPackage(
         push_api=mock.MagicMock(), name=NAME, sf_id=SF_ID, namespace=NAMESPACE
@@ -427,7 +437,7 @@ def test_schedule_push_org_list_run_task_without_time(org_file):
     task.push.create_push_request.assert_called_once()
 
 
-def test_schedule_push_org_list_run_task_without_orgs(org_file):
+def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
     task = create_task(
         SchedulePushOrgList,
         options={
