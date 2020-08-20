@@ -108,6 +108,39 @@ PACKAGE_XML_BEFORE = """<Package xmlns="http://soap.sforce.com/2006/04/metadata"
     <version>39.0</version>
 </Package>"""
 
+ADMIN_PROFILE_BEFORE__MULTI_OBJECT_RT = b"""<?xml version='1.0' encoding='utf-8'?>
+<Profile xmlns="http://soap.sforce.com/2006/04/metadata">
+    <recordTypeVisibilities>
+        <recordType>Account.Business_Account</recordType>
+        <default>false</default>
+        <personAccountDefault>true</personAccountDefault>
+        <visible>true</visible>
+    </recordTypeVisibilities>
+    <recordTypeVisibilities>
+        <recordType>Opportunity.Donation</recordType>
+        <default>true</default>
+        <personAccountDefault>false</personAccountDefault>
+        <visible>false</visible>
+    </recordTypeVisibilities>
+</Profile>"""
+
+ADMIN_PROFILE_EXPECTED__MULTI_OBJECT_RT = """<?xml version="1.0" encoding="UTF-8"?>
+<Profile xmlns="http://soap.sforce.com/2006/04/metadata">
+    <recordTypeVisibilities>
+        <recordType>Account.Business_Account</recordType>
+        <default>true</default>
+        <personAccountDefault>true</personAccountDefault>
+        <visible>true</visible>
+    </recordTypeVisibilities>
+    <recordTypeVisibilities>
+        <recordType>Opportunity.Donation</recordType>
+        <default>true</default>
+        <personAccountDefault>false</personAccountDefault>
+        <visible>false</visible>
+    </recordTypeVisibilities>
+</Profile>
+"""
+
 
 def test_run_task():
     with tempfile.TemporaryDirectory() as tempdir:
@@ -150,6 +183,7 @@ def test_run_task():
 
         dest_path = task.deploy_dir / "profiles" / "Admin.profile"
         assert dest_path.exists()
+
         assert dest_path.read_text() == ADMIN_PROFILE_EXPECTED
 
 
@@ -174,6 +208,29 @@ def test_transforms_profile():
     xml_output = outbound.tostring(xml_declaration=True)
 
     assert xml_output == ADMIN_PROFILE_EXPECTED
+
+
+def test_transforms_profile__multi_object_rt():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {
+            "record_types": [
+                {
+                    "record_type": "Account.Business_Account",
+                    "default": True,
+                    "person_account_default": True,
+                }
+            ],
+            "namespaced_org": True,
+        },
+    )
+
+    inbound = metadata_tree.fromstring(ADMIN_PROFILE_BEFORE__MULTI_OBJECT_RT)
+    outbound = task._transform_entity(inbound, "Admin")
+
+    xml_output = outbound.tostring(xml_declaration=True)
+
+    assert xml_output == ADMIN_PROFILE_EXPECTED__MULTI_OBJECT_RT
 
 
 def test_throws_exception_record_type_not_found():

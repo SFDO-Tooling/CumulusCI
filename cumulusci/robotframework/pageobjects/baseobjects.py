@@ -18,11 +18,30 @@ class BasePage:
         finally:
             self.selenium.set_selenium_implicit_wait(current_wait)
 
-    def _wait_to_appear(self, timeout=None):
-        """This function is called by the keyword 'wait for page object to appear'.
-        Custom page objects can override this to verify that the object is visible.
+    def _wait_to_appear(self, *args, timeout="15s"):
+        """This is the concrete implementation for the 'Wait for page object' keyword
+
+        It can be overridden by a subclass to do whatever is necessary to
+        wait for itself to appear.
         """
-        raise Exception("Unable to wait for this page object")
+
+        try:
+            self.selenium.wait_for_condition(
+                "return (document.readyState == 'complete')"
+            )
+            self.salesforce.wait_for_aura()
+            self.builtin.wait_until_keyword_succeeds(
+                timeout,
+                "2s",
+                "Current page should be",
+                self._page_type,
+                self._object_name,
+            )
+        except Exception as e:
+            self.builtin.log(e, "DEBUG")
+            raise Exception(
+                f"Page object {self._page_type} {self._object_name} did not appear before timeout ({timeout}) expired."
+            )
 
     def _remove_from_library_search_order(self):
         """Remove the current page object from robot's library search order
