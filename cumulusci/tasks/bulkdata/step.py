@@ -412,7 +412,13 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
 
 class UserDmlOperation(BaseDmlOperation):
-    """Operation class for all DML operations run using the Bulk API."""
+    """
+    "DmlOperation" to support User Lookups.
+
+    - Users are not inserted by LoadData.
+    - Instead, we need to query for Users to map the local and Salesforce IDs to populate downstream lookups.
+    - A User is matched""
+    """
 
     def __init__(self, *, sobject, operation, api_options, context, fields, task):
         super().__init__(
