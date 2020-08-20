@@ -222,6 +222,7 @@ Click Header Field Link
     &{contact} =                       Create Contact
     Go To Record Home                  ${contact}[Id]
     Click Header Field Link            Contact Owner
+    Wait for page object               Detail  User
 
 Open App Launcher
     Go To Object Home    Contact

@@ -234,7 +234,7 @@ class Salesforce(object):
     @capture_screenshot_on_error
     def click_object_button(self, title):
         """Clicks a button in an object's actions."""
-        locator = lex_locators["object"]["button"].format(title)
+        locator = lex_locators["object"]["button"].format(title=title)
         self._jsclick(locator)
         self.wait_until_modal_is_open()
 
