@@ -106,7 +106,7 @@ Once your PR has been merged, a GitHub action will automatically create the rele
 
 After a couple minutes, check for the new release's appearance at https://pypi.org/project/cumulusci/
 
-Next, head to the Release object that was autocreated in the GitHub repository, edit it, paste in the changelog notes and hit publish.
+Next, head to the Release object that was autocreated in the GitHub repository, edit it, paste in the changelog notes and hit publish.[#pandoc]_
 
 You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because PyPI is the source CumulusCI checks to see if a new version is available)::
 
@@ -127,6 +127,7 @@ Finally, post the release notes to our usual channels:
 
 .. _Homebrew Tap: https://github.com/SFDO-Tooling/homebrew-sfdo
 .. _jq: https://stedolan.github.io/jq/
+.. [#pandoc] If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy``
 
 Org-reliant Integration tests
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
