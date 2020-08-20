@@ -26,14 +26,14 @@ VERSION = "1.2.3"
 ORG = "00DS0000003TJJ6MAO"
 ORG_FILE_TEXT = "\n00DS0000003TJJ6MAO\n00DS0000003TJJ6MAL"
 
-PACKAGE_OBJS = {
-    "totalSize": 2,
+PACKAGE_OBJ_SUBSCRIBER = {
+    "totalSize": 1,
     "done": True,
     "records": [
         {
             "attributes": {
-                "type": "PackagePushRequest",
-                "url": "/services/data/v48.0/sobjects/PackagePushRequest/0DV1R000000k9dEWAQ",
+                "type": "PackageSubscribers",
+                "url": "/services/data/v48.0/sobjects/PackageSubscribers/0DV1R000000k9dEWAQ",
             },
             "Id": "0DV1R000000k9dEWAQ",
             "NamespacePrefix": "2020-07-02T08:03:49.000+0000",
@@ -61,7 +61,13 @@ PACKAGE_OBJS = {
             "ErrorTitle": "",
             "ErrorMessage": "",
             "ErrorDetails": "",
-        },
+        }
+    ],
+}
+PACKAGE_OBJS = {
+    "totalSize": 1,
+    "done": True,
+    "records": [
         {
             "attributes": {
                 "type": "PackagePushRequest",
@@ -93,7 +99,7 @@ PACKAGE_OBJS = {
             "ErrorTitle": "",
             "ErrorMessage": "",
             "ErrorDetails": "",
-        },
+        }
     ],
 }
 
@@ -394,8 +400,8 @@ def test_schedule_push_org_query_get_org():
     task.push = mock.MagicMock()
     task.push_api = mock.MagicMock()
     task.sf = mock.Mock()
-    task.sf.query_all.return_value = PACKAGE_OBJS
-    assert task._get_orgs() == ["bar", NAME]
+    task.sf.query_all.return_value = PACKAGE_OBJ_SUBSCRIBER
+    assert task._get_orgs() == ["bar"]
 
 
 def test_schedule_push_org_list_run_task_with_time_assertion(org_file):
