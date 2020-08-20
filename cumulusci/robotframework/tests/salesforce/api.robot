@@ -101,21 +101,12 @@ Collection API Errors Test
         ...  FirstName=User {{number}}
         ...  LastName={{fake.last_name}}
         ...  Xyzzy=qwertz
-    Run Keyword And Expect Error   SalesforceMalformedRequest*   Salesforce Collection Insert  ${objects}
+    Run Keyword And Expect Error   *Xyzzy*   Salesforce Collection Insert  ${objects}
 
     @{objects} =  Generate Test Data  Contact  20
         ...  FirstName=User {{number}}
         ...  LastName=
     Run Keyword And Expect Error   Error*  Salesforce Collection Insert  ${objects}
-
-    @{objects} =  Generate Test Data  Contact  20
-        ...  FirstName=User {{number}}
-        ...  LastName={{fake.last_name}}
-    ${records} =     Salesforce Collection Insert  ${objects}
-    FOR     ${record}   IN  @{records}
-        set to dictionary   ${record}   Age    Iron
-    END
-    Run Keyword And Expect Error   SalesforceMalformedRequest*     Salesforce Collection Update  ${objects}
 
 Get Version
     ${version} =   Get Latest Api Version
