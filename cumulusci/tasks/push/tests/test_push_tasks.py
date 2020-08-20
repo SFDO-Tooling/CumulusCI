@@ -398,14 +398,15 @@ def test_schedule_push_org_query_get_org():
     assert task._get_orgs() == ["bar", NAME]
 
 
-def test_schedule_push_org_list_run_task_with_time(org_file):
-    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
+def test_schedule_push_org_list_run_task_with_time_assertion(org_file):
     task = create_task(
         SchedulePushOrgList,
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
-            "start_time": "now",
+            "start_time": datetime.datetime(2021, 8, 20, 3, 55).strftime(
+                "%Y-%m-%dT%H:%M"
+            ),
             "namespace": NAMESPACE,
         },
     )
@@ -414,7 +415,14 @@ def test_schedule_push_org_list_run_task_with_time(org_file):
     task.sf.query_all.return_value = PACKAGE_OBJS
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 2)
     task._run_task()
-    task.sf.query_all.assert_called_with(query)
+    task.push.create_push_request.assert_called_once_with(
+        task.push.get_package_objs()
+        .__getitem__()
+        .get_package_version_objs()
+        .__getitem__(),
+        ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"],
+        datetime.datetime(2021, 8, 20, 3, 55),
+    )
 
 
 def test_schedule_push_org_list_run_task_without_time(org_file):
@@ -437,7 +445,9 @@ def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
             "orgs": ORG_FILE,
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": "now",
+            "start_time": datetime.datetime(2021, 8, 19, 23, 18, 34).strftime(
+                "%Y-%m-%dT%H:%M"
+            ),
         },
     )
     task.push = mock.MagicMock()
@@ -446,10 +456,44 @@ def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
     task.sf.query_all.return_value = PACKAGE_OBJS
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 0)
     task._run_task()
-    task.push.create_push_request.assert_called_once()
+    task.push.create_push_request.assert_called_once_with(
+        task.push.get_package_objs()
+        .__getitem__()
+        .get_package_version_objs()
+        .__getitem__(),
+        [],
+        datetime.datetime(2021, 8, 19, 23, 18),
+    )
 
 
 def test_schedule_push_org_list_run_task_many_orgs(org_file):
+    task = create_task(
+        SchedulePushOrgList,
+        options={
+            "orgs": ORG_FILE,
+            "version": VERSION,
+            "namespace": NAMESPACE,
+            "start_time": datetime.datetime(2021, 8, 19, 23, 18, 34).strftime(
+                "%Y-%m-%dT%H:%M"
+            ),
+        },
+    )
+    task.push = mock.MagicMock()
+    task.sf = mock.MagicMock()
+    task.sf.query_all.return_value = PACKAGE_OBJS
+    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1001)
+    task._run_task()
+    task.push.create_push_request.assert_called_once_with(
+        task.push.get_package_objs()
+        .__getitem__()
+        .get_package_version_objs()
+        .__getitem__(),
+        ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"],
+        datetime.datetime(2021, 8, 19, 23, 18),
+    )
+
+
+def test_schedule_push_org_list_run_task_many_orgs_now(org_file):
     query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Id = '0DV1R000000k9dEWAQ'"
     task = create_task(
         SchedulePushOrgList,
