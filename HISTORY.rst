@@ -2,6 +2,43 @@
 History
 =======
 
+3.17.0 (2020-08-20)
+
+Changes:
+
+- Tasks and automation:
+
+  - We added the  ``upload_user_profile_photo`` and ``upload_default_user_profile_photo`` tasks, which allow for setting Users' profile photos from images stored in the repository. (Thanks to @spelak-salesforce).
+  - We added the property ``is_person_accounts_enabled`` to the ``org_config`` object, which is available in ``when`` clauses. (Thanks to @spelak-salesforce).
+
+- Policies and inclusive language:
+
+  - We added information about Salesforce's Open Source Community Code of Conduct and Security policies.
+  - We updated documentation to more consistently refer to the "main" branch, reflecting CumulusCI's support for per-project specification of main branches other than ``master``.
+
+- User experience:
+
+  - We modified how we handle situations where the default org is not valid for better user experience.
+  - We catch a common mistake in entering command-line options (``-org`` instead of ``--org``, as well as incorrectly-formatted flow options) and show a clearer error.
+  - We now capture and display the ``InstanceName`` of orgs in ``cci org list``'s output.
+
+- Robot Framework:
+
+  - We now cleanly fall back to the latest available API version for Robot locators if the newest API version does not have an available locator file. This change helps support Robot testing on the latest prerelease editions of Salesforce.
+  - We included some updates to locators for API version 50.0.
+
+- Other:
+
+  - We added a new environment variable, ``SFDX_SIGNUP_INSTANCE``, and an ``instance`` key in org definitions, to specify a preferred instance routing. NOTE: this functionality requires Dev Hub permissions that are not Generally Available.
+
+Issues closed:
+
+- Fixed a bug which prevented package install links from getting added to release notes.
+- Fixed a bug (#1914) which caused errors when customizing some Flow steps with decimal step numbers.
+- Fixed a bug making it difficult to troubleshoot issues with Snowfakery and CumulusCI on Windows.
+- Fixed a bug in ``update_admin_profile`` that resulted in errors when attempting to manage Record Types across multiple objects.
+
+
 3.16.0 (2020-08-06)
 -------------------
 
