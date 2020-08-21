@@ -79,6 +79,14 @@ RETURN_VALUE_OPTION_PREFIX = "^^"
 jinja2_env = ImmutableSandboxedEnvironment()
 
 
+class StepVersion(LooseVersion):
+    """Like LooseVersion, but converts "/" into -1 to support comparisons"""
+
+    def parse(self, vstring: str):
+        super().parse(vstring)
+        self.version = tuple(-1 if x == "/" else x for x in self.version)
+
+
 class StepSpec(object):
     """ simple namespace to describe what the flowrunner should do each step """
 
@@ -96,7 +104,7 @@ class StepSpec(object):
 
     def __init__(
         self,
-        step_num,
+        step_num: StepVersion,
         task_name,
         task_config,
         task_class,
@@ -433,7 +441,7 @@ class FlowCoordinator(object):
 
         If it is a flow, we recursively call _visit_step with the rest of the parameters of context.
 
-        :param number: LooseVersion representation of the current step number
+        :param number: StepVersion representation of the current step number
         :param step_config: the current step's config (dict from YAML)
         :param visited_steps: used when called recursively for nested steps, becomes the return value
         :param parent_options: used when called recursively for nested steps, options from parent flow
@@ -441,7 +449,7 @@ class FlowCoordinator(object):
         :param from_flow: used when called recursively for nested steps, name of parent flow
         :return: List[StepSpec] a list of all resolved steps including/under the one passed in
         """
-        number = LooseVersion(str(number))
+        number = StepVersion(str(number))
 
         if visited_steps is None:
             visited_steps = []
@@ -699,7 +707,7 @@ class CachedTaskRunner(object):
         task_config = self.cache.flow.project_config.tasks[self.task_name]
         task_class = import_global(task_config["class_path"])
         step = StepSpec(
-            step_num=1,
+            step_num=StepVersion("1"),
             task_name=self.task_name,
             task_config=task_config,
             task_class=task_class,

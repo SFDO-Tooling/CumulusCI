@@ -9,11 +9,7 @@ from sqlalchemy.ext.automap import automap_base
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import (
-    OrgInfoMixin,
-    SqlAlchemyMixin,
-    RowErrorChecker,
-)
+from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, RowErrorChecker
 from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
@@ -32,7 +28,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
 )
 
 
-class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
+class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     """Perform Bulk API operations to load data defined by a mapping from a local store into an org."""
 
     task_options = {
@@ -561,7 +557,7 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
                     self.session.query(table)
                     .filter(table.columns.get("IsPersonAccount") == "true")
                     .first()
-                    and not self._org_has_person_accounts_enabled()
+                    and not self.org_config.is_person_accounts_enabled
                 ):
                     raise BulkDataException(
                         "Your dataset contains Person Account data but Person Accounts is not enabled for your org."
@@ -582,7 +578,7 @@ class LoadData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
         """
         return (
             self._db_has_person_accounts_column(mapping)
-            and self._org_has_person_accounts_enabled()
+            and self.org_config.is_person_accounts_enabled
         )
 
     def _filter_out_person_account_records(self, query, model):

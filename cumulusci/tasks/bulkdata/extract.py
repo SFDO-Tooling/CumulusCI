@@ -11,7 +11,6 @@ import tempfile
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
-    OrgInfoMixin,
     SqlAlchemyMixin,
     create_table,
     fields_for_mapping,
@@ -31,7 +30,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
 )
 
 
-class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
+class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     """Perform Bulk Queries to extract data for a mapping and persist to a SQL file or database."""
 
     task_options = {
@@ -125,7 +124,7 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
             data_operation=DataOperationType.QUERY,
             inject_namespaces=self.options["inject_namespaces"],
             drop_missing=self.options["drop_missing_schema"],
-            org_has_person_accounts_enabled=self._org_has_person_accounts_enabled(),
+            org_has_person_accounts_enabled=self.org_config.is_person_accounts_enabled,
         )
 
     def _fields_for_mapping(self, mapping):
@@ -204,7 +203,7 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
         if (
             mapping["sf_object"] == "Account"
             and "Name" in mapping.get("fields", {})
-            and self._org_has_person_accounts_enabled()
+            and self.org_config.is_person_accounts_enabled
         ):
             # Bump indices by one since record's ID is the first column.
             Name_index = columns.index(mapping["fields"]["Name"]) + 1
