@@ -8,6 +8,7 @@ import os
 import pathlib
 import tempfile
 import time
+import copy
 
 import lxml.etree as ET
 import requests
@@ -16,6 +17,7 @@ from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
 
 
+# TODO: remove temporary debugging or find a place for code
 def debug(value, title=None, indent=0, tab="  ", show_list_index=True, logger=None):
     indentation = tab * (indent)
     prefix = "" if title is None else str(title) + " : "
@@ -411,6 +413,164 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                 )
 
 
+class ReadOnlyDmlOperation(BaseDmlOperation):
+    """
+    TODO
+    """
+
+    def __init__(
+        self, *, sobject, operation, api_options, context, fields, task, optional_fields
+    ):
+        super().__init__(
+            sobject=sobject,
+            operation=operation,
+            api_options=api_options,
+            context=context,
+            fields=fields,
+        )
+        self.task = task
+        self.optional_fields = set()
+        if optional_fields:
+            self.optional_fields.update(optional_fields)
+        # Only keep optional_fields that are in fields
+        self.optional_fields.intersection_update(self.fields)
+
+    def start(self):
+        # TODO: remove debugging
+        debug("ReadOnlyDmlOperation.start", logger=self.task.logger.debug)
+        self.records_processed = 0
+        self.db_records = []
+        self.sf_records = []
+        self.sf_ids_by_value_by_field = {field: {} for field in self.fields}
+
+    def end(self):
+        # TODO: remove debugging
+        debug("ReadOnlyDmlOperation.end", logger=self.task.logger.debug)
+        record_failure_count = 0
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS,
+            [],
+            self.records_processed,
+            record_failure_count,
+        )
+
+    def load_records(self, db_records):
+        # TODO: use the generator
+        db_records_list = list(db_records)
+        self.db_records.extend(db_records_list)
+        self.records_processed += len(db_records_list)
+
+        # Collect SF Ids by value
+        # TODO: query records in a safe way for largish data volumes
+        fields = set()
+        fields.add("Id")
+        fields.update(self.fields)
+
+        query = f"SELECT {','.join(fields)} FROM {self.sobject}"
+
+        debug(query, logger=self.task.logger.warn)
+
+        for sf_record in self.task.sf.query(query)["records"]:
+            self.sf_records.append(sf_record)
+
+            sf_id = sf_record["Id"]
+
+            # For each field, save which sf_records have the record's field value
+            for field in self.fields:
+                value = sf_record[field]
+
+                sf_ids_by_value = self.sf_ids_by_value_by_field[field]
+                sf_ids = sf_ids_by_value.get(value)
+                if not sf_ids:
+                    sf_ids = set()
+
+                sf_ids.add(sf_id)
+                sf_ids_by_value[value] = sf_ids
+
+        # TODO: remove debugging
+        debug(
+            {
+                "fields": self.fields,
+                "db_records": self.db_records,
+                "sf_records": self.sf_records,
+                "records_processed": self.records_processed,
+                "sf_ids_by_value_by_field": self.sf_ids_by_value_by_field,
+            },
+            title="ReadOnlyDmlOperation.load_records",
+            logger=self.task.logger.debug,
+        )
+
+    def get_results(self):
+        """Return a generator of DataOperationResult objects."""
+
+        # We need to match a sf_record for each db_record.
+        # We say a sf_record "matches" a db_record if:
+        # - We find only one sf_record that has the same field values as the db_record
+        # - We loop through field values until we find only one sf_record that matches db_record's field value
+        # - If no sf_records match a db_record field value, we ignore that field.   e.g. User.Username is different for each default scratch org user.
+        # - When creating a mapping for a Read-Only SObject, try to only include enough field values to uniquly identify records.
+        #   For most SObjects, there is a unique field, e.g. DeveloperName.
+        #   This gets more complicated for User.
+        for db_record in self.db_records:
+            intersection_set = None
+
+            # TODO: remove debugging
+            sf_ids_by_field = {}
+
+            for index, field in enumerate(self.fields):
+                value = db_record[index]
+                sf_ids = self.sf_ids_by_value_by_field[field].get(value, set())
+
+                sf_ids_by_field[field] = sf_ids
+
+                # Do not require finding a field value match for optional_fields
+                if not sf_ids and field in self.optional_fields:
+                    continue
+
+                if intersection_set is None:
+                    intersection_set = copy.deepcopy(sf_ids)
+                else:
+                    # Intersect existing intersection
+                    intersection_set.intersection_update(sf_ids)
+
+                if len(intersection_set) < 2:
+                    break
+
+            if intersection_set:
+                if len(intersection_set) == 1:
+                    sf_id = next(iter(intersection_set))
+                    success = True
+                    error = None
+                else:
+                    sf_id = None
+                    success = False
+                    error = f"More than one {self.sobject} record found with the same field values: {', '.join(self.fields)}"
+
+            else:
+                sf_id = None
+                success = (
+                    True
+                )  # TODO: maybe have a kwarg specify if task should allow records not to be found
+                error = None
+
+            # TODO: remove debugging
+            debug(
+                {
+                    "fields": self.fields,
+                    "db_record": db_record,
+                    "sf_ids_by_field": sf_ids_by_field,
+                    "intersection_set": intersection_set,
+                    "sf_id": sf_id,
+                    "success": success,
+                    "error": error,
+                },
+                title="get_results result",
+                logger=self.task.logger.warn,
+            )
+
+            yield DataOperationResult(sf_id, success, error)
+
+
 class UserDmlOperation(BaseDmlOperation):
     """
     "DmlOperation" to support User Lookups.
@@ -436,7 +596,6 @@ class UserDmlOperation(BaseDmlOperation):
         self.records = []
         self.sf_records = []
         self.sf_ids_by_value_by_field = {field: {} for field in self.fields}
-        self.sf_records_by_id = {}
 
     def end(self):
         debug("UserDmlOperation.end", logger=self.task.logger.debug)
@@ -465,8 +624,6 @@ class UserDmlOperation(BaseDmlOperation):
             self.sf_records.append(record)
 
             sf_id = record["Id"]
-
-            self.sf_records_by_id[sf_id] = record
 
             for field in self.fields:
                 value = record[field]

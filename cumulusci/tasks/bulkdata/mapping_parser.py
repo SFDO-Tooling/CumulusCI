@@ -66,6 +66,10 @@ class MappingLookup(CCIDictModel):
 class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
+    read_only: Optional[bool] = False  # TODO: Uses ReadOnlyDmlOperation
+    optional_fields: Optional[
+        List[str]
+    ] = []  # TODO: Used in ReadOnlyDmlOperation for fields that don't need to have a match between db_records and sf_records
     table: Optional[str] = None
     fields_: Dict[str, str] = Field({}, alias="fields")
     lookups: Dict[str, MappingLookup] = {}
@@ -242,7 +246,14 @@ class MappingStep(CCIDictModel):
             return False
 
         # Validate our access to this sObject.
-        if not self._check_object_permission(
+        # TODO: remove debugging
+        print("")
+        print(f"MappingStep {self.sf_object} is read_only: {self.read_only}")
+        print("")
+
+        # TODO: Don't check Object-level permissions if read_only.  We won't be creating records.
+        # TODO: do we need to check for readability for ExtractData?
+        if not self.read_only and not self._check_object_permission(
             global_describe, self.sf_object, data_operation_type
         ):
             logger.warning(
@@ -290,6 +301,10 @@ class MappingStep(CCIDictModel):
         if not self._validate_sobject(global_describe, inject, operation):
             # Don't attempt to validate field permissions if the object doesn't exist.
             return False
+
+        # TODO: Don't check FLS if read_only.   No fields should be createable/updateable.
+        if self.read_only:
+            return True
 
         # Validate, inject, and drop (if configured) fields.
         # By this point, we know the attribute is valid.

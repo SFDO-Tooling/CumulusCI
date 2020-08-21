@@ -1,0 +1,274 @@
+# WARNING: You need OutboundFunds installed and communities enabled.
+
+Account:
+  sf_object: Account
+  table: Account
+  fields:
+    - Name
+    - AccountNumber
+    - Site
+    - Type
+    - Industry
+    - AnnualRevenue
+    - Rating
+    - Phone
+    - Fax
+    - Website
+    - Ownership
+    - Sic
+    - TickerSymbol
+    - BillingStreet
+    - BillingCity
+    - BillingState
+    - BillingPostalCode
+    - BillingCountry
+    - ShippingStreet
+    - ShippingCity
+    - ShippingState
+    - ShippingPostalCode
+    - ShippingCountry
+    - Description
+    # Person Account Fields
+    - Salutation
+    - FirstName
+    - LastName
+    - PersonTitle
+    - PersonEmail
+    - PersonDepartment
+    - PersonBirthdate
+    - PersonLeadSource
+    - PersonHomePhone
+    - PersonMobilePhone
+    - PersonOtherPhone
+    - PersonAssistantName
+    - PersonAssistantPhone
+    - PersonMailingStreet
+    - PersonMailingCity
+    - PersonMailingState
+    - PersonMailingPostalCode
+    - PersonMailingCountry
+    - PersonOtherStreet
+    - PersonOtherCity
+    - PersonOtherState
+    - PersonOtherPostalCode
+    - PersonOtherCountry
+
+Contact:
+  sf_object: Contact
+  table: Contact
+  fields:
+    - Salutation
+    - FirstName
+    - LastName
+    - Title
+    - Email
+    - Department
+    - Birthdate
+    - LeadSource
+    - Phone
+    - HomePhone
+    - OtherPhone
+    - Fax
+    - AssistantName
+    - AssistantPhone
+    - MailingStreet
+    - MailingCity
+    - MailingState
+    - MailingPostalCode
+    - MailingCountry
+    - OtherStreet
+    - OtherCity
+    - OtherState
+    - OtherPostalCode
+    - OtherCountry
+    - Description
+  lookups:
+    AccountId:
+      table: Account
+    ReportsToId:
+      table: Contact
+      after: Contact
+
+Group:
+  sf_object: Group
+  table: Group
+  read_only: True
+  fields:
+    - DeveloperName
+    - Type
+
+#UserLicense:
+#  sf_object: UserLicense
+#  read_only: True
+#  fields:
+#    - Name
+#    - LicenseDefinitionKey
+
+Profile:
+  sf_object: Profile
+  table: Profile
+  read_only: True
+  fields:
+    - Name
+    - UserType
+#  lookups:
+#    UserLicenseId:
+#      table: UserLicense
+
+Community Users:
+  sf_object: User
+  table: community_users
+  fields:
+    - FirstName
+    - LastName
+    - Email
+    - Username
+    - Alias
+    - LocaleSidKey
+    - TimeZoneSidKey
+    - LanguageLocaleKey
+    - EmailEncodingKey
+    - Phone
+    - Fax
+    - Street
+    - City
+    - State
+    - PostalCode
+    - Country
+    - CommunityNickname
+    - CompanyName
+    - IsActive
+  lookups:
+    ProfileId:
+      table: Profile
+    ContactId:
+      table: Contact
+  filters:
+    - '"community_users".ContactId IN (SELECT id FROM Contact_sf_ids)'
+    - '"community_users".IsActive = "true"'
+
+User:
+  sf_object: User
+  table: User
+  fields:
+    - FirstName
+    - LastName
+    - Username
+    - Email
+    - Alias
+    - CommunityNickname
+    - CompanyName
+    - IsActive
+  read_only: True
+  optional_fields:
+    - Username
+    - Email
+  lookups:
+    ProfileId:
+      table: Profile
+    ContactId:
+      table: Contact
+  filters:
+    - '"User".IsActive = "true"'
+
+outfunds__Funding_Program__c:
+  sf_object: outfunds__Funding_Program__c
+  table: outfunds__Funding_Program__c
+  fields:
+    - Name
+    - outfunds__Description__c
+    - outfunds__End_Date__c
+    - outfunds__Start_Date__c
+    - outfunds__Status__c
+    - outfunds__Top_Level__c
+    - outfunds__Total_Program_Amount__c
+  lookups:
+    outfunds__Parent_Funding_Program__c:
+      table: outfunds__Funding_Program__c
+      after: outfunds__Funding_Program__c
+
+outfunds__Funding_Program__share:
+  sf_object: outfunds__Funding_Program__share
+  fields:
+    - AccessLevel
+    - RowCause
+  lookups:
+    ParentID:
+      table: outfunds__Funding_Program__c
+    UserOrGroupId:
+      table: Group
+  filters:
+    - '"outfunds__Funding_Program__share".RowCause = "Manual"'
+
+outfunds__Funding_Request__c:
+  sf_object: outfunds__Funding_Request__c
+  table: outfunds__Funding_Request__c
+  fields:
+    - Name
+    - outfunds__Application_Date__c
+    - outfunds__Awarded_Amount__c
+    - outfunds__Awarded_Date__c
+    - outfunds__Close_Date__c
+    - outfunds__Closed_reason__c
+    - outfunds__Geographical_Area_Served__c
+    - outfunds__Population_Served__c
+    - outfunds__Recommended_Amount__c
+    - outfunds__Requested_Amount__c
+    - outfunds__Requested_For__c
+    - outfunds__Status__c
+    - outfunds__Term_End_Date__c
+    - outfunds__Term_Start_Date__c
+    - outfunds__Terms__c
+  lookups:
+    outfunds__Applying_Contact__c:
+      table: Contact
+    outfunds__Applying_Organization__c:
+      table: Account
+    outfunds__FundingProgram__c:
+      table: outfunds__Funding_Program__c
+    OwnerId:
+      table: User
+#
+#outfunds__Funding_Request_Role__c:
+#  sf_object: outfunds__Funding_Request_Role__c
+#  table: outfunds__Funding_Request_Role__c
+#  fields:
+#    - outfunds__Role__c
+#    - outfunds__Status__c
+#  lookups:
+#    outfunds__Contact__c:
+#      table: Contact
+#    outfunds__Funding_Request__c:
+#      table: outfunds__Funding_Request__c
+#
+#outfunds__Disbursement__c:
+#  sf_object: outfunds__Disbursement__c
+#  table: outfunds__Disbursement__c
+#  fields:
+#    - outfunds__Amount__c
+#    - outfunds__Disbursement_Date__c
+#    - outfunds__Disbursement_Method__c
+#    - outfunds__Scheduled_Date__c
+#    - outfunds__Status__c
+#    - outfunds__Type__c
+#  lookups:
+#    outfunds__Funding_Request__c:
+#      table: outfunds__Funding_Request__c
+#
+#outfunds__Requirement__c:
+#  sf_object: outfunds__Requirement__c
+#  table: outfunds__Requirement__c
+#  fields:
+#    - Name
+#    - outfunds__Completed_Date__c
+#    - outfunds__Due_Date__c
+#    - outfunds__Requirements__c
+#    - outfunds__Status__c
+#    - outfunds__Type__c
+#  lookups:
+#    outfunds__Disbursement__c:
+#      table: outfunds__Disbursement__c
+#    outfunds__Funding_Request__c:
+#      table: outfunds__Funding_Request__c
+#    outfunds__Primary_Contact__c:
+#      table: Contact

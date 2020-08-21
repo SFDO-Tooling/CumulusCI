@@ -12,7 +12,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, RowErrorChecker
 from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
-    UserDmlOperation,
+    ReadOnlyDmlOperation,
     DataOperationStatus,
     DataOperationType,
     DataOperationJobResult,
@@ -141,8 +141,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         bulk_mode = mapping.get("bulk_mode") or self.bulk_mode or "Parallel"
 
-        if mapping["table"] == "User":
-            step = UserDmlOperation(
+        if mapping.get("read_only"):
+            step = ReadOnlyDmlOperation(
                 sobject=mapping["sf_object"],
                 operation=(
                     DataOperationType.INSERT
@@ -153,6 +153,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 context=self,
                 fields=self._get_columns(mapping),
                 task=self,
+                optional_fields=mapping.get("optional_fields"),
             )
         else:
             step = BulkApiDmlOperation(
