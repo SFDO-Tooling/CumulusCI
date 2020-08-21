@@ -1,12 +1,18 @@
-from time import time
 from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import gzip
+from itertools import chain
+from collections import defaultdict
+from typing import Optional, Dict
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import create_session
+from sqlalchemy.engine import Engine
+from sqlalchemy.sql import select
 from sqlalchemy.orm import sessionmaker, attributes, ColumnProperty, exc
 from cumulusci.utils.org_schema.models import Base, SObject, Field, FileMetadata
+from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
 
 
 def simplify_value(name, value):
@@ -20,14 +26,6 @@ def simplify_value(name, value):
         raise AssertionError(value)
 
 
-def create_row(session, model, valuesdict):
-    values = {name: simplify_value(name, value) for name, value in valuesdict.items()}
-
-    row = model(**values)
-    session.add(row)
-    session.commit()
-
-
 def compute_prop_filter(model):
     return {
         name
@@ -36,11 +34,6 @@ def compute_prop_filter(model):
         and isinstance(value, attributes.InstrumentedAttribute)
         and isinstance(value.prop, ColumnProperty)
     }
-
-
-def create_rows(session, model, dicts):
-    for dict in dicts:
-        create_row(session, model, dict)
 
 
 def _org_max_revision(sf):
@@ -90,7 +83,7 @@ class Schema:
         try:
             return self.session.query(SObject).filter_by(name=name).one()
         except exc.NoResultFound:
-            raise KeyError(f"No sobject named f{name}")
+            raise KeyError(f"No sobject named {name}")
 
     def __contains__(self, name):
         return self.session.query(SObject).filter_by(name=name).all()
@@ -109,36 +102,112 @@ class Schema:
         return self.session.query(FileMetadata).one().schema_revision
 
     def _fill_cache(self, sf, logger=None):
-        all_sobjs = sf.describe()["sobjects"]
-        session = self.session
+        SchemaCacher(self).cache(sf, logger)
 
-        Base.metadata.create_all(self.engine)
 
-        progress = progress_logger(len(all_sobjs) + 1, 10, logger)
+class SchemaCacher:
+    def __init__(self, schema):
+        self.row_buffer_size = 500
+        self.row_buffer_count = 0
+        self.session = schema.session
+        self.engine = schema.engine
+        self.metadata = Base.metadata
 
-        create_rows(
-            session, SObject, all_sobjs,
+    def cache(self, sf, logger=None):
+        sobjs = sf.describe()["sobjects"]
+        sobj_names = [obj["name"] for obj in sobjs]
+        full_sobjs = deep_describe(sf, objs=sobj_names)
+
+        Base.metadata.bind = self.engine
+        Base.metadata.create_all()
+
+        self.buffered_session = BufferedSession(self.engine, Base.metadata)
+
+        self.create_rows(
+            SObject, sobjs,
         )
-        next(progress)
 
-        current_revision = int(_org_max_revision(sf))
-        # picklist_filters = compute_prop_filter(PickListValue)
+        # sobj_rows = self.session.query(SObject).options(load_only("id", "name"))
+        select_sobj_rows = select([SObject.__table__.c.id, SObject.__table__.c.name])
+        result = self.engine.execute(select_sobj_rows)
+        sobj_ids = {obj.name: obj.id for obj in result}
 
-        for sobj in all_sobjs:
-            sobj_data = getattr(sf, sobj["name"]).describe()
+        for sobj_data in full_sobjs:
             for field in sobj_data["fields"]:
-                field["parent_id"] = (
-                    session.query(SObject).filter(SObject.name == sobj["name"]).one().id
-                )
-                create_row(session, Field, field)
-            next(progress)
+                field["parent_id"] = sobj_ids[sobj_data["name"]]
+                self.create_row(Field, field)
+        self.buffered_session.commit()
 
-        create_row(session, FileMetadata, {"schema_revision": current_revision})
+        # create_row(session, FileMetadata, {"schema_revision": current_revision})
         self.engine.execute("vacuum")
         return
 
+    def create_row(self, model, valuesdict):
+        values = {
+            name: simplify_value(name, value) for name, value in valuesdict.items()
+        }
+        self.buffered_session.write_single_row(model.__tablename__, values)
 
-def get_org_schema(sf, project_config, logger=None, recache: bool = None):
+    def create_rows(self, model, dicts):
+        for dict in dicts:
+            self.create_row(model, dict)
+        self.buffered_session.commit()
+
+
+class BufferedSession:
+    def __init__(self, engine: Engine, metadata: MetaData):
+        self.buffered_rows = defaultdict(list)
+        self.engine = engine
+        self.session = create_session(bind=self.engine, autocommit=False)
+        self.metadata = metadata
+        self._prepare()
+
+    def _prepare(self):
+        # Setup table info used by the write-buffering infrastructure
+        assert self.metadata.tables
+        self.insert_statements = {}
+        for tablename, model in self.metadata.tables.items():
+            self.insert_statements[tablename] = model.insert(
+                bind=self.engine, inline=True
+            )
+
+    @classmethod
+    def from_url(cls, db_url: str, mappings: Optional[Dict] = None):
+        engine = create_engine(db_url)
+        self = cls(engine, mappings)
+        return self
+
+    def write_single_row(self, tablename: str, row: Dict) -> None:
+        # cache the value for later insert
+        self.buffered_rows[tablename].append(row)
+        if len(self.buffered_rows[tablename]) > 1000:
+            self.flush()
+
+    def flush(self):
+        for tablename, insert_statement in self.insert_statements.items():
+
+            # Make sure every row has the same records per SQLAlchemy's rules
+
+            # According to the SQL Alchemy docs, every dictionary in a set must
+            # have the same keys.
+
+            # This means that the INSERT statement will be more bloated but it
+            # seems much more efficient than line-by-line inserts.
+            if self.buffered_rows[tablename]:
+                self.session.execute(insert_statement, self.buffered_rows[tablename])
+                self.buffered_rows[tablename] = []
+        self.session.flush()
+
+    def commit(self):
+        self.flush()
+        self.session.commit()
+
+    def close(self) -> None:
+        self.commit()
+        self.session.close()
+
+
+def get_org_schema(sf, project_config, org_config, logger=None, recache: bool = None):
     """
     TODO: docs
     Recache: True - replace cache. False - raise if cache was not used. Default: use cache if available
@@ -173,6 +242,7 @@ def get_org_schema(sf, project_config, logger=None, recache: bool = None):
 
 
 def find_old_schema(schema_path):
+    return None
     old_schema = Schema(schema_path)
 
     if old_schema:
@@ -198,17 +268,27 @@ def _cache_org_schema(schema_path: Path, sf, logger):
             return Schema(schema_path)
 
 
-def progress_logger(target_count, report_when, logger):
-    if not logger:
-        return
-    last_report = time()
-    counter = 0
-    while True:
-        yield counter
-        counter += 1
-        if time() - last_report > report_when:
-            last_report = time()
-            logger.info(f"Completed {counter}/{target_count}")
+def deep_describe(sf, last_modified_date="Fri, 1 Aug 2000 01:01:01 GMT", objs=()):
+    objs = objs or [obj["name"] for obj in sf.describe()["sobjects"]]
+    with CompositeParallelSalesforce(sf, max_workers=8) as cpsf:
+        results = cpsf.composite_requests(
+            (
+                {
+                    "method": "GET",
+                    "url": f"/services/data/v48.0/sobjects/{obj}/describe",
+                    "referenceId": f"ref{obj}",
+                    "httpHeaders": {"If-Modified-Since": last_modified_date},
+                }
+                for obj in objs
+            )
+        )
+        sobjects = chain.from_iterable(
+            result.json()["compositeResponse"] for result in results
+        )
+        changes = (
+            record["body"] for record in sobjects if record["httpStatusCode"] == 200
+        )
+        yield from changes
 
 
 if __name__ == "__main__":
