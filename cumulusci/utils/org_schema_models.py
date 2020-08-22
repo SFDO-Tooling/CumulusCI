@@ -3,14 +3,26 @@ from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
 import sqlalchemy.types as types
+from sqlalchemy import PrimaryKeyConstraint
 
 Base = declarative_base()
 
 
-class SObject(Base):
+class OrgSchemaModelMixin:
+    def __getitem__(self, attr):
+        try:
+            return getattr(self, attr)
+        except AttributeError:
+            raise KeyError(attr)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} {self.name}>"
+
+
+class SObject(OrgSchemaModelMixin, Base):
     __tablename__ = "sobjects"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True)
+    # id = Column(Integer, primary_key=True)
+    name = Column(String, primary_key=True, sqlite_on_conflict_primary_key="REPLACE")
     activateable = Column(Boolean)
     childRelationships = Column(types.PickleType)
     compactLayoutable = Column(Boolean)
@@ -56,22 +68,25 @@ class SObject(Base):
     supportedScopes = Column(types.PickleType)
     actionOverrides = Column(types.PickleType)
 
-    def __repr__(self):
-        return f"<{self.name} at {self.id}>"
-
 
 field_references = Table(
     "references",
     Base.metadata,
-    Column("field_id", Integer, ForeignKey("fields.id")),
-    Column("object_id", Integer, ForeignKey("sobjects.id")),
+    Column("field_name", Integer, ForeignKey("fields.name")),
+    Column("object_name", Integer, ForeignKey("sobjects.name")),
 )
 
 
-class Field(Base):
+class Field(OrgSchemaModelMixin, Base):
     __tablename__ = "fields"
-    id = Column(Integer, primary_key=True)
-    parent_id = Column(Integer, ForeignKey("sobjects.id"), nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint(
+            "sobject", "name", name="foo", sqlite_on_conflict="REPLACE"
+        ),
+    )
+
+    # id = Column(Integer, primary_key=True)
+    sobject = Column(String, ForeignKey("sobjects.name"), nullable=False)
     parent = relationship("SObject")
     name = Column(String, nullable=False)
     aggregatable = Column(Boolean)
@@ -95,9 +110,9 @@ class Field(Base):
     displayLocationInDecimal = Column(Boolean)
     encrypted = Column(Boolean)
     externalId = Column(Boolean)
-    extraTypeInfo = Column(String)
+    extraTypeInfo = Column(types.PickleType)
     filterable = Column(Boolean)
-    filteredLookupInfo = Column(String)
+    filteredLookupInfo = Column(types.PickleType)
     formulaTreatNullNumberAsZero = Column(Boolean)
     groupable = Column(Boolean)
     highScaleNumber = Column(Boolean)
@@ -132,12 +147,8 @@ class Field(Base):
     writeRequiresMasterRead = Column(Boolean)
     picklistValues = Column(types.PickleType)
 
-    def __repr__(self):
-        return f"<{self.name} at {self.id}>"
-
 
 class FileMetadata(Base):
     __tablename__ = "file_metadata"
-    id = Column(Integer, primary_key=True)
-    schema_revision = Column(Integer, default=-1)
-    file_format = Column(Integer, default=1)
+    name = Column(String, primary_key=True, sqlite_on_conflict_primary_key="REPLACE")
+    value = Column(String)
