@@ -523,6 +523,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     name = f"Update {sobject} Dependencies After {after}"
                     mapping = {
                         "sf_object": sobject,
+                        "api": step["api"],
                         "action": "update",
                         "table": step["table"],
                         "lookups": {},
