@@ -133,8 +133,11 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         default_org_path = self._default_org_path
         if default_org_path.exists():
             org_name = default_org_path.read_text().strip()
-            org_config = self.get_org(org_name)
-            return org_name, org_config
+            try:
+                org_config = self.get_org(org_name)
+                return org_name, org_config
+            except OrgNotFound:  # org was deleted
+                default_org_path.unlink()  # we don't really have a usable default anymore
 
         # fallback to old way of doing it
         org_name, org_config = super().get_default_org()

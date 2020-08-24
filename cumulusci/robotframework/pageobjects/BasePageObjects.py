@@ -345,7 +345,7 @@ class DetailPage(BasePage):
         result, and the verify that the returned object id is part of the url.
         """
         if kwargs:
-            # do a lookup to get the object i
+            # do a lookup to get the object id
             object_id = self._get_object(**kwargs)["Id"]
             pattern = r"/lightning/r/{}/{}/view$".format(self.object_name, object_id)
         else:
