@@ -909,6 +909,7 @@ Environment Info: Rossian / x68_46
                 "TrialExpirationDate": None,
                 "OrganizationType": "Developer Edition",
                 "IsSandbox": False,
+                "InstanceName": "CS420",
             },
             status=200,
         )
@@ -953,6 +954,7 @@ Environment Info: Rossian / x68_46
                 "TrialExpirationDate": "1970-01-01T12:34:56.000+0000",
                 "OrganizationType": "Developer Edition",
                 "IsSandbox": True,
+                "InstanceName": "CS420",
             },
             status=200,
         )
