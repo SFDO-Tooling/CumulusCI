@@ -108,6 +108,15 @@ Collection API Errors Test
         ...  LastName=
     Run Keyword And Expect Error   Error*  Salesforce Collection Insert  ${objects}
 
+    @{objects} =  Generate Test Data  Contact  20
+        ...  FirstName=User {{number}}
+        ...  LastName={{fake.last_name}}
+    ${records} =     Salesforce Collection Insert  ${objects}
+    FOR     ${record}   IN  @{records}
+        set to dictionary   ${record}   Age    Iron
+    END
+    Run Keyword And Expect Error   Error*Age*   Salesforce Collection Update  ${objects}
+
 Get Version
     ${version} =   Get Latest Api Version
     Should Be True     ${version} > 46
