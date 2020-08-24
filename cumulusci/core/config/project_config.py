@@ -826,4 +826,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     @property
     def project_cache_dir(self):
         "A project cache which is on the local filesystem. Prefer open_project_cache where possible."
-        return Path(self.repo_root, ".cci")
+        project_cache_dir = Path(self.repo_root, ".cci")
+        project_cache_dir.mkdir(exist_ok=True)
+        return project_cache_dir

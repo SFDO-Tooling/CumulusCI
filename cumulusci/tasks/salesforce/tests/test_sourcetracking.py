@@ -6,7 +6,6 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.salesforce.sourcetracking import ListChanges
 from cumulusci.tasks.salesforce.sourcetracking import RetrieveChanges
 from cumulusci.tasks.salesforce.sourcetracking import SnapshotChanges
-from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 from .util import create_task_fixture
@@ -15,8 +14,8 @@ from .util import create_task_fixture
 class TestListChanges:
     """List the changes from a scratch org"""
 
-    def test_run_task(self):
-        task = create_task(ListChanges, {"exclude": "Ignore"})
+    def test_run_task(self, create_task_fixture):
+        task = create_task_fixture(ListChanges, {"exclude": "Ignore"})
         task._init_task()
         task.tooling = mock.Mock()
         task.logger = mock.Mock()
@@ -38,8 +37,8 @@ class TestListChanges:
         task._run_task()
         assert "CustomObject: Test__c" in task.logger.info.call_args[0][0]
 
-    def test_run_task__no_changes(self):
-        task = create_task(ListChanges)
+    def test_run_task__no_changes(self, create_task_fixture):
+        task = create_task_fixture(ListChanges)
         task._init_task()
         task.tooling = mock.Mock()
         task.logger = mock.Mock()
@@ -92,7 +91,7 @@ class TestListChanges:
             task._run_task()
             assert "Found no changes." in messages
 
-    def test_filter_changes__include(self):
+    def test_filter_changes__include(self, create_task_fixture):
         foo = {
             "MemberType": "CustomObject",
             "MemberName": "foo__c",
@@ -108,11 +107,11 @@ class TestListChanges:
             "MemberName": "foobar__c",
             "RevisionCounter": 1,
         }
-        task = create_task(ListChanges, {"include": "foo", "exclude": "bar"})
+        task = create_task_fixture(ListChanges, {"include": "foo", "exclude": "bar"})
         filtered, ignored = task._filter_changes([foo, bar, foobar])
         assert filtered == [foo]
 
-    def test_filter_changes__null_revnum(self):
+    def test_filter_changes__null_revnum(self, create_task_fixture):
         foo = {
             "MemberType": "CustomObject",
             "MemberName": "foo__c",
@@ -123,7 +122,7 @@ class TestListChanges:
             "MemberName": "bar__c",
             "RevisionCounter": 1,
         }
-        task = create_task(ListChanges, {})
+        task = create_task_fixture(ListChanges, {})
         filtered, ignored = task._filter_changes([foo, bar])
         assert filtered == [foo, bar]
 
@@ -132,7 +131,7 @@ class TestListChanges:
 class TestRetrieveChanges:
     """Retrieve changed components from a scratch org"""
 
-    def test_init_options__sfdx_format(self, sfdx):
+    def test_init_options__sfdx_format(self, sfdx, create_task_fixture):
         with temporary_dir():
             project_config = create_project_config()
             project_config.project__source_format = "sfdx"
@@ -140,7 +139,7 @@ class TestRetrieveChanges:
                 json.dump(
                     {"packageDirectories": [{"path": "force-app", "default": True}]}, f
                 )
-            task = create_task(RetrieveChanges, {}, project_config)
+            task = create_task_fixture(RetrieveChanges, {}, project_config)
             assert not task.md_format
             assert task.options["path"] == "force-app"
 
@@ -149,7 +148,7 @@ class TestRetrieveChanges:
         sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
 
         with temporary_dir():
-            task = create_task(
+            task = create_task_fixture(
                 RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns"}
             )
             task._init_task()
@@ -222,8 +221,8 @@ class TestSnapshotChanges:
             task._run_task()
             task._reset_sfdx_snapshot.assert_called_once()
 
-    def test_freeze(self):
-        task = create_task(SnapshotChanges)
+    def test_freeze(self, create_task_fixture):
+        task = create_task_fixture(SnapshotChanges)
         steps = task.freeze(None)
         assert steps == []
 
