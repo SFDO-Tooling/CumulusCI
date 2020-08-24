@@ -99,14 +99,14 @@ It's easy to release a version of CumulusCI to GitHub and PyPI! First, create a 
 Make the necessary changes to prepare the new release:
 
     1. Update the version in ``cumulusci/version.txt``
-    2. Update the release notes in ``HISTORY.rst``
+    2. Update the release notes in ``HISTORY.rst``. Information in our project history is derived from Pull Request notes found in GitHub and dating back to our previous release.
 
 Commit the changes, open a Pull Request on GitHub and request approval from another committer.
 Once your PR has been merged, a GitHub action will automatically create the release tag and push the artifacts to PyPI.
 
 After a couple minutes, check for the new release's appearance at https://pypi.org/project/cumulusci/
 
-Next, head to the Release object that was autocreated in the GitHub repository, edit it, paste in the changelog notes and hit publish.
+Next, head to the tag that was autocreated in the GitHub repository and edit it. Populate the version number and paste in the changelog notes from ``HISTORY.rst``. Note that some formatting, such as reStructuredText links, need to be converted to Markdown. Publish the release.
 
 .. note::
 If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to Github Flavored Markdown.
@@ -120,7 +120,7 @@ You can then create a pull request to update the `Homebrew Tap`_ by running this
 .. note::
     The ``release-homebrew`` build step depends on the `jq`_ command line utility which is available via Homebrew.
 
-That will create a new pull request in the SFDO-Tooling/homebrew-sfdo repository, which can be merged if its tests pass.
+That will create a new pull request in the ``SFDO-Tooling/homebrew-sfdo`` repository, which can be merged if its tests pass.
 
 Finally, post the release notes to our usual channels:
 
