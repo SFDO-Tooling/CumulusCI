@@ -1,7 +1,8 @@
 from datetime import datetime
 from datetime import timedelta
 import time
-
+import csv
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import PushApiObjectNotFound
 from cumulusci.core.tasks import BaseTask
@@ -89,14 +90,7 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
             for line in f:
                 if line.isspace():
                     continue
-                elif len(line.split(",")) > 1:
-                    for value in line.split(","):
-                        if value.startswith("00D") or value.startswith(
-                            "OrganizationId"
-                        ):
-                            orgs.append(value)
-                else:
-                    orgs.append(line.split()[0])
+                orgs.append(line.split()[0])
         return orgs
 
     def _report_push_status(self, request_id):
@@ -209,6 +203,11 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             "description": "The managed package version to push",
             "required": True,
         },
+        "csv_field_name": {
+            "description": "The CSV field names to parse from the orgs file given. Please provide in list form",
+            "required": False,
+        },
+        "csv": {"description": "The CSV file to read.", "required": False},
         "namespace": {
             "description": (
                 "The managed package namespace to push."
@@ -242,12 +241,23 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             self.options["namespace"] = self.project_config.project__package__namespace
         if "batch_size" not in self.options:
             self.options["batch_size"] = 200
+        if "csv" in self.options and "csv_field_name" not in self.options:
+            self.options["csv_field_name"] = "OrganizationId"
+        if "csv" not in self.options and "csv_field_name" in self.options:
+            raise TaskOptionsError("Please provide a csv file for this task to run.")
 
     def _get_orgs(self):
-        return self._load_orgs_file(self.options.get("orgs"))
+        if "csv_field_name" in self.options:
+            with open(self.options.get("orgs")) as csvfile:
+                reader = csv.DictReader(csvfile)
+                orgs = [row[f"{self.options['csv_field_name']}"] for row in reader]
+                return orgs
+        else:
+            return self._load_orgs_file(self.options.get("orgs"))
 
     def _run_task(self):
         orgs = self._get_orgs()
+
         package = self._get_package(self.options.get("namespace"))
         version = self._get_version(package, self.options.get("version"))
 
