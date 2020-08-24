@@ -126,7 +126,7 @@ class FSResource(str):
     * no drive letters"""
 
     def __new__(
-        cls, resource_url_or_path: Union[str, Path], /, filesystem: base.FS = None
+        cls, resource_url_or_path: Union[str, Path], filesystem: base.FS = None
     ):
         """Create a new fsresource from a URL or path (absolute or relative)"""
         if filesystem:
@@ -193,7 +193,7 @@ class FSResource(str):
 
 @contextmanager
 def open_fs_resource(
-    resource_url_or_path: Union[str, Path], /, filesystem: base.FS = None
+    resource_url_or_path: Union[str, Path], filesystem: base.FS = None
 ):
     resource = FSResource(resource_url_or_path, filesystem)
     if not filesystem:
