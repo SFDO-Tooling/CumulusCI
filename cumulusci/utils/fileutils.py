@@ -118,15 +118,11 @@ def proxy(funcname):
     return func
 
 
-class FSResource(str):
-    """Generalization of pathlib.Path to support S3, FTP, etc
+class FSResource:
+    """Generalization of pathlib.Path to support S3, FTP, etc"""
 
-    Should work on Windows, but Windows-style paths are not supported:
-    * no backslashes
-    * no drive letters"""
-
-    def __new__(
-        cls, resource_url_or_path: Union[str, Path], filesystem: base.FS = None
+    def __init__(
+        self, resource_url_or_path: Union[str, Path], filesystem: base.FS = None
     ):
         """Create a new fsresource from a URL or path (absolute or relative)"""
 
@@ -146,28 +142,28 @@ class FSResource(str):
             fs = resource_url_or_path.fs
             filename = resource_url_or_path.filename
         elif path_type == "path":
-            if resource_url_or_path.absolute():
-                fs = open_fs("/")
+            if resource_url_or_path.is_absolute():
+                parent = resource_url_or_path.parent.absolute()
+                filename = resource_url_or_path.relative_to(parent).as_posix()
             else:
-                fs = open_fs(".")
-            filename = resource_url_or_path.as_posix()
+                parent = Path(".").absolute()
+                filename = resource_url_or_path.as_posix()
+            fs = open_fs(str(parent))
             if filename[1] == ":":  # windows path with colon
                 filename = filename[2:]
         elif path_type == "url":
             path, filename = resource_url_or_path.replace("\\", "/").rsplit("/", 1)
             fs = open_fs(path)
 
-        url = fs.geturl(filename)
-        self = str.__new__(cls, url)
         self.fs = fs
         self.filename = filename
-        return self
 
     exists = proxy("exists")
     open = proxy("open")
     unlink = proxy("remove")
     removedir = proxy("removedir")
     removetree = proxy("removetree")
+    geturl = proxy("geturl")
 
     def getospath(self):
         return os.fsdecode(self.fs.getospath(self.filename))
@@ -187,11 +183,17 @@ class FSResource(str):
         else:
             self.fs.makedir(self.filename, recreate=exist_ok)
 
+    def __contains__(self, other):
+        return other in str(self.geturl())
+
     def __truediv__(self, other):
         return self.joinpath(other)
 
     def __rtruediv__(self, other):
         return self.joinpath(other)
+
+    def __str__(self):
+        return f"<FSResource {self.geturl()}"
 
 
 @contextmanager

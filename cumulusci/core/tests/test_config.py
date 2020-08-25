@@ -1447,7 +1447,8 @@ class TestOrgConfig(unittest.TestCase):
             config.keychain.global_config_dir = Path(t)
 
             with config.get_orginfo_cache_dir("foo") as directory:
-                assert str(t) in directory
+                assert directory.exists()
+                assert str(t) in directory, (t, directory)
                 assert (
                     str(directory).replace("\\", "/").endswith("orginfo/zombo.com/foo")
                 )
@@ -1468,10 +1469,11 @@ class TestOrgConfig(unittest.TestCase):
             config.keychain.project_cache_dir = Path(t)
 
             with config.get_orginfo_cache_dir("bar") as directory:
-                assert str(t) in directory
+                assert str(t) in directory, (t, directory)
                 assert (
                     str(directory).replace("\\", "/").endswith("orginfo/zombo.com/bar")
                 )
+                assert directory.exists()
                 foo = directory / "Foo.txt"
                 with foo.open("w") as f:
                     f.write("Bar")
