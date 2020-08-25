@@ -195,19 +195,19 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 class SchedulePushOrgList(BaseSalesforcePushTask):
 
     task_options = {
+        "csv": {"description": "The CSV file to read.", "required": False},
+        "csv_field_name": {
+            "description": "The CSV field names to parse from the orgs file given. Please provide in string form.",
+            "required": False,
+        },
         "orgs": {
             "description": "The path to a file containing one OrgID per line.",
-            "required": True,
+            "required": False,
         },
         "version": {
             "description": "The managed package version to push",
             "required": True,
         },
-        "csv_field_name": {
-            "description": "The CSV field names to parse from the orgs file given. Please provide in list form",
-            "required": False,
-        },
-        "csv": {"description": "The CSV file to read.", "required": False},
         "namespace": {
             "description": (
                 "The managed package namespace to push."
@@ -237,17 +237,25 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
         # Set the namespace option to the value from cumulusci.yml if not
         # already set
+        if "orgs" not in self.options and "csv" not in self.options:
+            raise TaskOptionsError(
+                "Please call this task with the orgs or csv option. Both of these options require a file name."
+            )
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
         if "batch_size" not in self.options:
             self.options["batch_size"] = 200
-        if "csv" in self.options and "csv_field_name" not in self.options:
-            self.options["csv_field_name"] = "OrganizationId"
         if "csv" not in self.options and "csv_field_name" in self.options:
             raise TaskOptionsError("Please provide a csv file for this task to run.")
+        if (
+            "csv" in self.options
+            or "orgs" in self.options
+            and "csv_field_name" not in self.options
+        ):
+            self.options["csv_field_name"] = "OrganizationId"
 
     def _get_orgs(self):
-        if "csv_field_name" in self.options:
+        if "csv" in self.options:
             with open(self.options.get("orgs")) as csvfile:
                 reader = csv.DictReader(csvfile)
                 orgs = [row[f"{self.options['csv_field_name']}"] for row in reader]
@@ -257,7 +265,6 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
     def _run_task(self):
         orgs = self._get_orgs()
-
         package = self._get_package(self.options.get("namespace"))
         version = self._get_version(package, self.options.get("version"))
 
