@@ -129,30 +129,33 @@ class FSResource(str):
         cls, resource_url_or_path: Union[str, Path], filesystem: base.FS = None
     ):
         """Create a new fsresource from a URL or path (absolute or relative)"""
+
+        if isinstance(resource_url_or_path, str) and "://" in resource_url_or_path:
+            path_type = "url"
+        elif isinstance(resource_url_or_path, FSResource):
+            path_type = "resource"
+        else:
+            resource_url_or_path = Path(resource_url_or_path)
+            path_type = "path"
+
         if filesystem:
+            assert path_type != "resource"
             fs = filesystem
             filename = resource_url_or_path
-        if isinstance(resource_url_or_path, FSResource):
+        elif path_type == "resource":  # clone a resource reference
             fs = resource_url_or_path.fs
             filename = resource_url_or_path.filename
-        elif isinstance(resource_url_or_path, Path):
-            fs = open_fs("/")
-            filename = str(resource_url_or_path.absolute())
-        # url
-        elif "://" in resource_url_or_path:
-            path, filename = resource_url_or_path.rsplit("/", 1)
+        elif path_type == "path":
+            if resource_url_or_path.absolute():
+                fs = open_fs("/")
+            else:
+                fs = open_fs(".")
+            filename = resource_url_or_path.as_posix()
+            if filename[1] == ":":  # windows path with colon
+                filename = filename[2:]
+        elif path_type == "url":
+            path, filename = resource_url_or_path.replace("\\", "/").rsplit("/", 1)
             fs = open_fs(path)
-        # abspath
-        elif resource_url_or_path.startswith("/"):
-            fs = open_fs("/")
-            filename = resource_url_or_path
-        # relpath
-        elif "/" in resource_url_or_path:
-            fs = open_fs("/")
-            filename = os.path.abspath(resource_url_or_path)
-        else:
-            fs = open_fs(".")
-            filename = os.path.abspath(resource_url_or_path)
 
         url = fs.geturl(filename)
         self = str.__new__(cls, url)
