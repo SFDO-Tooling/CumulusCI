@@ -162,7 +162,7 @@ class FSResource:
             filename = resource_url_or_path.filename
         elif path_type == "path":
             if resource_url_or_path.is_absolute():
-                root = resource_url_or_path.root
+                root = resource_url_or_path.drive or resource_url_or_path.root
                 filename = resource_url_or_path.relative_to(root).as_posix()
             else:
                 root = Path("/").absolute()
