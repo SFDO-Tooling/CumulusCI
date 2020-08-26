@@ -95,7 +95,7 @@ class _TestFSResourceShared:
         abspath = os.path.abspath(self.file)
         with open_fs_resource(abspath) as resource:
             assert resource.exists()
-            assert str(resource.getospath()) == abspath
+            assert str(resource.getsyspath()) == abspath
 
     def test_resource_does_not_exist(self):
         abspath = os.path.abspath(self.file)
@@ -149,7 +149,7 @@ class _TestFSResourceShared:
         abspath = "c:\\foo\\bar"
         with open_fs_resource(abspath) as f:
             if sys.platform == "win32":
-                assert "c:/foo/bar" in str(f), str(f)
+                assert "c:\\foo\\bar" == str(f.getsyspath()), str(f.getsyspath())
 
 
 class TestFSResource(_TestFSResourceShared):
@@ -158,7 +158,7 @@ class TestFSResource(_TestFSResourceShared):
         with open_fs_resource(relpath) as resource:
             assert resource.exists()
             assert (
-                str(Path(resource.getospath()).relative_to(Path(".").absolute()))
+                str(Path(resource.getsyspath()).relative_to(Path(".").absolute()))
                 == relpath
             )
 

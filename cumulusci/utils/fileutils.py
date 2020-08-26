@@ -162,11 +162,19 @@ class FSResource:
             filename = resource_url_or_path.filename
         elif path_type == "path":
             if resource_url_or_path.is_absolute():
-                root = resource_url_or_path.drive or resource_url_or_path.root
+                if resource_url_or_path.drive:
+                    root = resource_url_or_path.drive + "/"
+                else:
+                    root = resource_url_or_path.root
                 filename = resource_url_or_path.relative_to(root).as_posix()
             else:
                 root = Path("/").absolute()
-                filename = (Path(".") / resource_url_or_path).absolute().as_posix()
+                filename = (
+                    (Path(".") / resource_url_or_path)
+                    .absolute()
+                    .relative_to(root)
+                    .as_posix()
+                )
             fs = open_fs(str(root))
         elif path_type == "url":
             path, filename = resource_url_or_path.replace("\\", "/").rsplit("/", 1)
@@ -183,8 +191,8 @@ class FSResource:
     removetree = proxy("removetree")
     geturl = proxy("geturl")
 
-    def getospath(self):
-        return Path(os.fsdecode(self.fs.getospath(self.filename)))
+    def getsyspath(self):
+        return Path(os.fsdecode(self.fs.getsyspath(self.filename)))
 
     def joinpath(self, other):
         """Create a new FSResource based on an existing one
@@ -224,12 +232,15 @@ class FSResource:
         return self.joinpath(other)
 
     def __repr__(self):
-        return f"<FSResource {self.geturl()}"
+        return f"<FSResource {self.geturl()}>"
 
     def __str__(self):
         rc = self.geturl()
         if rc.startswith("file://"):
             return rc[6:]
+
+    def __fspath__(self):
+        return self.fs.getsyspath(self.filename)
 
     def close(self):
         self.fs.close()
