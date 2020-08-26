@@ -438,30 +438,62 @@ class ReadOnlyDmlOperation(BaseDmlOperation):
     def start(self):
         # TODO: remove debugging
         debug("ReadOnlyDmlOperation.start", logger=self.task.logger.debug)
-        self.records_processed = 0
         self.db_records = []
-        self.sf_records = []
-        self.sf_ids_by_value_by_field = {field: {} for field in self.fields}
 
     def end(self):
-        # TODO: remove debugging
-        debug("ReadOnlyDmlOperation.end", logger=self.task.logger.debug)
-        record_failure_count = 0
         self.job_result = DataOperationJobResult(
             DataOperationStatus.SUCCESS,
             [],
-            self.records_processed,
-            record_failure_count,
+            len(self.db_records),  # records_processed
+            0,  # record_failure_count
+        )
+        # TODO: remove debugging
+        debug(
+            self.job_result,
+            title="ReadOnlyDmlOperation.end",
+            logger=self.task.logger.debug,
         )
 
     def load_records(self, db_records):
-        # TODO: use the generator
-        db_records_list = list(db_records)
-        self.db_records.extend(db_records_list)
-        self.records_processed += len(db_records_list)
+        """
+        Our goal is to match sf_record to db_records.
 
-        # Collect SF Ids by value
-        # TODO: query records in a safe way for largish data volumes
+        - We do this by returning a list of DataOperationResult in the exact same indexical order
+        as the db_records given to use.
+        - DataOperationResult has no information about the db_record and only has information about the sf_id.
+        - LoadData creates a collection of tuples (db_id, sf_id) to insert into the mapping's ID table by enumerating db_records and the return value of get_results index-wise.
+
+        So the point of load_records is only to collect the db_records given in the exact order retrieved.
+        load_records may be called several times given only a batch of db_records.
+        """
+        self.db_records.extend(list(db_records))
+
+    def get_results(self):
+        """
+        NOTE: Return a generator of DataOperationResult objects.
+
+        We need to match a sf_record for each db_record.  We say a sf_record "matches" a db_record if:
+
+        - We find only one sf_record that has the same field values as the db_record
+        - We loop through field values until we find only one sf_record that matches db_record's field value
+        - If no sf_records match a db_record field value, we ignore that field.   e.g. User.Username is different for each default scratch org user.
+        - When creating a mapping for a Read-Only SObject, try to only include enough field values to uniquly identify records.
+            - For most SObjects, there is a unique field, e.g. DeveloperName.
+            - This gets more complicated for User.
+
+        IDEA
+        ----
+
+        1. Query all records for this object.   TODO: Query records in a safe way for largish data volumes.
+            - Collect the sf_ids by field and field values
+        2. Match db_records to sf_records by loop through db_records and trying to find only one sf_record that matches db_record's field value.
+            - optional_fields can be ignored from matching if no sf_records match db_record's field value.
+            - If no sf_record matches all of db_record's field value (except for optional_fields), map a NULL sf_id to the db_record.
+            - Give an error in DataOperationResult if more than sf_record matches db_record field values.
+
+        """
+        # Query all records for this object.
+        # TODO: do a better job to handle large data volumes.
         fields = set()
         fields.add("Id")
         fields.update(self.fields)
@@ -470,16 +502,16 @@ class ReadOnlyDmlOperation(BaseDmlOperation):
 
         debug(query, logger=self.task.logger.warn)
 
-        for sf_record in self.task.sf.query(query)["records"]:
-            self.sf_records.append(sf_record)
-
+        sf_ids_by_value_by_field = {field: {} for field in self.fields}
+        for sf_record in self.task.sf.query_all_iter(query):
             sf_id = sf_record["Id"]
 
-            # For each field, save which sf_records have the record's field value
+            # For each field, collect which sf_records have each field value.
             for field in self.fields:
                 value = sf_record[field]
 
-                sf_ids_by_value = self.sf_ids_by_value_by_field[field]
+                sf_ids_by_value = sf_ids_by_value_by_field[field]
+
                 sf_ids = sf_ids_by_value.get(value)
                 if not sf_ids:
                     sf_ids = set()
@@ -492,74 +524,59 @@ class ReadOnlyDmlOperation(BaseDmlOperation):
             {
                 "fields": self.fields,
                 "db_records": self.db_records,
-                "sf_records": self.sf_records,
-                "records_processed": self.records_processed,
-                "sf_ids_by_value_by_field": self.sf_ids_by_value_by_field,
+                "sf_ids_by_value_by_field": sf_ids_by_value_by_field,
             },
             title="ReadOnlyDmlOperation.load_records",
             logger=self.task.logger.debug,
         )
 
-    def get_results(self):
-        """Return a generator of DataOperationResult objects."""
-
-        # We need to match a sf_record for each db_record.
-        # We say a sf_record "matches" a db_record if:
-        # - We find only one sf_record that has the same field values as the db_record
-        # - We loop through field values until we find only one sf_record that matches db_record's field value
-        # - If no sf_records match a db_record field value, we ignore that field.   e.g. User.Username is different for each default scratch org user.
-        # - When creating a mapping for a Read-Only SObject, try to only include enough field values to uniquly identify records.
-        #   For most SObjects, there is a unique field, e.g. DeveloperName.
-        #   This gets more complicated for User.
+        # Match db_records to sf_records
         for db_record in self.db_records:
-            intersection_set = None
+            sf_ids_with_all_field_values = None
 
             # TODO: remove debugging
-            sf_ids_by_field = {}
+            _sf_ids_by_field_debug = {}
 
             for index, field in enumerate(self.fields):
                 value = db_record[index]
-                sf_ids = self.sf_ids_by_value_by_field[field].get(value, set())
+                sf_ids_with_value = sf_ids_by_value_by_field[field].get(value, set())
 
-                sf_ids_by_field[field] = sf_ids
+                _sf_ids_by_field_debug[field] = sf_ids_with_value
 
                 # Do not require finding a field value match for optional_fields
-                if not sf_ids and field in self.optional_fields:
+                if not sf_ids_with_value and field in self.optional_fields:
                     continue
 
-                if intersection_set is None:
-                    intersection_set = copy.deepcopy(sf_ids)
+                if sf_ids_with_all_field_values is None:
+                    sf_ids_with_all_field_values = copy.deepcopy(sf_ids_with_value)
                 else:
                     # Intersect existing intersection
-                    intersection_set.intersection_update(sf_ids)
+                    sf_ids_with_all_field_values.intersection_update(sf_ids_with_value)
 
-                if len(intersection_set) < 2:
+                # Stop if we only have 0 or 1 sf_id matching all tested field values.
+                if len(sf_ids_with_all_field_values) < 2:
                     break
 
-            if intersection_set:
-                if len(intersection_set) == 1:
-                    sf_id = next(iter(intersection_set))
-                    success = True
-                    error = None
-                else:
-                    sf_id = None
-                    success = False
-                    error = f"More than one {self.sobject} record found with the same field values: {', '.join(self.fields)}"
-
-            else:
-                sf_id = None
-                success = (
-                    True
-                )  # TODO: maybe have a kwarg specify if task should allow records not to be found
-                error = None
+            sf_id = (
+                next(iter(sf_ids_with_all_field_values))
+                if len(sf_ids_with_all_field_values) == 1
+                else None
+            )
+            success = (
+                len(sf_ids_with_all_field_values) < 2
+            )  # TODO: maybe have a kwarg specify if task should allow records not to be found
+            error = (
+                None
+                if len(sf_ids_with_all_field_values) < 2
+                else f"More than one {self.sobject} record found with the same field values for {', '.join(self.fields)} (except for {', '.join(self.optional_fields)}): {', '.join(sf_ids_with_all_field_values)}"
+            )
 
             # TODO: remove debugging
             debug(
                 {
-                    "fields": self.fields,
                     "db_record": db_record,
-                    "sf_ids_by_field": sf_ids_by_field,
-                    "intersection_set": intersection_set,
+                    "_sf_ids_by_field_debug": _sf_ids_by_field_debug,
+                    "sf_ids_with_all_field_values": sf_ids_with_all_field_values,
                     "sf_id": sf_id,
                     "success": success,
                     "error": error,
@@ -569,127 +586,3 @@ class ReadOnlyDmlOperation(BaseDmlOperation):
             )
 
             yield DataOperationResult(sf_id, success, error)
-
-
-class UserDmlOperation(BaseDmlOperation):
-    """
-    "DmlOperation" to support User Lookups.
-
-    - Users are not inserted by LoadData.
-    - Instead, we need to query for Users to map the local and Salesforce IDs to populate downstream lookups.
-    - A User is matched""
-    """
-
-    def __init__(self, *, sobject, operation, api_options, context, fields, task):
-        super().__init__(
-            sobject=sobject,
-            operation=operation,
-            api_options=api_options,
-            context=context,
-            fields=fields,
-        )
-        self.task = task
-
-    def start(self):
-        debug("UserDmlOperation.start", logger=self.task.logger.debug)
-        self.records_processed = 0
-        self.records = []
-        self.sf_records = []
-        self.sf_ids_by_value_by_field = {field: {} for field in self.fields}
-
-    def end(self):
-        debug("UserDmlOperation.end", logger=self.task.logger.debug)
-        record_failure_count = 0
-        self.job_result = DataOperationJobResult(
-            DataOperationStatus.SUCCESS,
-            [],
-            self.records_processed,
-            record_failure_count,
-        )
-
-    def load_records(self, records):
-        all_records = list(records)
-        self.records.extend(all_records)
-
-        # Collect SF Ids by value
-        fields = set()
-        fields.add("Id")
-        fields.update(self.fields)
-
-        query = f"SELECT {','.join(fields)} FROM User"
-
-        debug(query, logger=self.task.logger.warn)
-
-        for record in self.task.sf.query(query)["records"]:
-            self.sf_records.append(record)
-
-            sf_id = record["Id"]
-
-            for field in self.fields:
-                value = record[field]
-
-                sf_ids_by_value = self.sf_ids_by_value_by_field[field]
-                sf_ids = sf_ids_by_value.get(value)
-                if not sf_ids:
-                    sf_ids = set()
-                sf_ids.add(sf_id)
-                sf_ids_by_value[value] = sf_ids
-            self.records_processed += 1
-
-        debug(
-            {
-                "fields": self.fields,
-                "records": self.records,
-                "sf_records": self.sf_records,
-                "records_processed": self.records_processed,
-                "sf_ids_by_value_by_field": self.sf_ids_by_value_by_field,
-            },
-            title="UserDmlOperation.load_records",
-            logger=self.task.logger.debug,
-        )
-
-    def get_results(self):
-        """Return a generator of DataOperationResult objects."""
-        default_user_id = self.task.org_config.user_id
-
-        results = []
-        for record in self.records:
-            all_sf_ids = []
-
-            for index, field in enumerate(self.fields):
-                value = record[index]
-                sf_ids_by_value = self.sf_ids_by_value_by_field[field]
-                if value in sf_ids_by_value:
-                    all_sf_ids.append(sf_ids_by_value[value])
-                else:
-                    all_sf_ids.append(set())
-
-            sf_ids = set.intersection(*all_sf_ids)
-
-            if not sf_ids:
-                sf_ids.add(default_user_id)
-            success = len(sf_ids) == 1
-            error = (
-                None
-                if success
-                else f"More than one User record found with the same field values: {', '.join(self.fields)}"
-            )
-            sf_id = next(iter(sf_ids))
-
-            results.append(DataOperationResult(sf_id, success, error))
-
-        debug(
-            {
-                "default_user_id": default_user_id,
-                "fields": self.fields,
-                "records": self.records,
-                "sf_records": self.sf_records,
-                "sf_ids_by_value_by_field": self.sf_ids_by_value_by_field,
-                "results": results,
-            },
-            title="UserDmlOperation.get_results",
-            logger=self.task.logger.warn,
-        )
-
-        for result in results:
-            yield result
