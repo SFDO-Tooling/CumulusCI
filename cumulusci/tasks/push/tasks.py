@@ -1,7 +1,7 @@
+import csv
 from datetime import datetime
 from datetime import timedelta
 import time
-import csv
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import PushApiObjectNotFound
@@ -234,12 +234,15 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
     def _init_options(self, kwargs):
         super(SchedulePushOrgList, self)._init_options(kwargs)
-
         # Set the namespace option to the value from cumulusci.yml if not
         # already set
         if "orgs" not in self.options and "csv" not in self.options:
             raise TaskOptionsError(
                 "Please call this task with the orgs or csv option. Both of these options require a file name."
+            )
+        if "orgs" in self.options and "csv" in self.options:
+            raise TaskOptionsError(
+                "Please call this task with either the orgs or csv option not both."
             )
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
@@ -247,11 +250,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             self.options["batch_size"] = 200
         if "csv" not in self.options and "csv_field_name" in self.options:
             raise TaskOptionsError("Please provide a csv file for this task to run.")
-        if (
-            "csv" in self.options
-            or "orgs" in self.options
-            and "csv_field_name" not in self.options
-        ):
+        if "csv" in self.options and "csv_field_name" not in self.options:
             self.options["csv_field_name"] = "OrganizationId"
 
     def _get_orgs(self):
