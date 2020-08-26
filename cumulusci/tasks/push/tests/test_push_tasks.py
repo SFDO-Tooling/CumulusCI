@@ -422,10 +422,7 @@ def test_schedule_push_org_list_run_task_with_time_assertion(org_file):
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 2)
     task._run_task()
     task.push.create_push_request.assert_called_once_with(
-        task.push.get_package_objs()
-        .__getitem__()
-        .get_package_version_objs()
-        .__getitem__(),
+        mock.ANY,
         ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"],
         datetime.datetime(2021, 8, 20, 3, 55),
     )
@@ -463,12 +460,7 @@ def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 0)
     task._run_task()
     task.push.create_push_request.assert_called_once_with(
-        task.push.get_package_objs()
-        .__getitem__()
-        .get_package_version_objs()
-        .__getitem__(),
-        [],
-        datetime.datetime(2021, 8, 19, 23, 18),
+        mock.ANY, [], datetime.datetime(2021, 8, 19, 23, 18)
     )
 
 
@@ -490,10 +482,7 @@ def test_schedule_push_org_list_run_task_many_orgs(org_file):
     task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1001)
     task._run_task()
     task.push.create_push_request.assert_called_once_with(
-        task.push.get_package_objs()
-        .__getitem__()
-        .get_package_version_objs()
-        .__getitem__(),
+        mock.ANY,
         ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"],
         datetime.datetime(2021, 8, 19, 23, 18),
     )
