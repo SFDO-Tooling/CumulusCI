@@ -197,7 +197,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
     task_options = {
         "csv": {"description": "The CSV file to read.", "required": False},
         "csv_field_name": {
-            "description": "The CSV field names to parse from the orgs file given. Please provide in string form.",
+            "description": "The CSV field name that contains organization IDs. Defaults to 'OrganizationID'",
             "required": False,
         },
         "orgs": {
