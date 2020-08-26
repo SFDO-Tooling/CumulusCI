@@ -195,7 +195,7 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 class SchedulePushOrgList(BaseSalesforcePushTask):
 
     task_options = {
-        "csv": {"description": "The CSV file to read.", "required": False},
+        "csv": {"description": "The path to a CSV file to read.", "required": False},
         "csv_field_name": {
             "description": "The CSV field name that contains organization IDs. Defaults to 'OrganizationID'",
             "required": False,
