@@ -289,7 +289,8 @@ class OrgConfig(BaseConfig):
             cache_dir = self.keychain.global_config_dir
         else:
             cache_dir = self.keychain.project_cache_dir
-        cache_dir = cache_dir / "orginfo" / self.get_domain() / cachename
+        uniqifier = self.get_domain() + "__" + str(self.username).replace("@", "__")
+        cache_dir = cache_dir / "orginfo" / uniqifier / cachename
 
         cache_dir.mkdir(parents=True, exist_ok=True)
         return open_fs_resource(cache_dir)

@@ -1438,7 +1438,10 @@ class TestOrgConfig(unittest.TestCase):
 
     def test_orginfo_cache_dir_global(self):
         config = OrgConfig(
-            {"instance_url": "http://zombo.com/welcome"},
+            {
+                "instance_url": "http://zombo.com/welcome",
+                "username": "test-example@example.com",
+            },
             "test",
             keychain=DummyKeychain(),
             global_org=True,
@@ -1450,8 +1453,10 @@ class TestOrgConfig(unittest.TestCase):
                 assert directory.exists()
                 assert str(t) in directory, (t, directory)
                 assert (
-                    str(directory).replace("\\", "/").endswith("orginfo/zombo.com/foo")
-                )
+                    str(directory)
+                    .replace("\\", "/")
+                    .endswith("orginfo/zombo.com__test-example__example.com/foo")
+                ), str(directory).replace("\\", "/")
                 foo = directory / "Foo.txt"
                 with foo.open("w") as f:
                     f.write("Bar")
@@ -1460,7 +1465,10 @@ class TestOrgConfig(unittest.TestCase):
 
     def test_orginfo_cache_dir_local(self):
         config = OrgConfig(
-            {"instance_url": "http://zombo.com/welcome"},
+            {
+                "instance_url": "http://zombo.com/welcome",
+                "username": "test-example@example.com",
+            },
             "test",
             keychain=DummyKeychain(),
             global_org=False,
@@ -1471,7 +1479,9 @@ class TestOrgConfig(unittest.TestCase):
             with config.get_orginfo_cache_dir("bar") as directory:
                 assert str(t) in directory, (t, directory)
                 assert (
-                    str(directory).replace("\\", "/").endswith("orginfo/zombo.com/bar")
+                    str(directory)
+                    .replace("\\", "/")
+                    .endswith("orginfo/zombo.com__test-example__example.com/bar")
                 )
                 assert directory.exists()
                 foo = directory / "Foo.txt"
