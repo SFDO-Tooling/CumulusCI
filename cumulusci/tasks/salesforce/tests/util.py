@@ -50,8 +50,8 @@ def create_task_fixture(request):
     temp_root = Path(temp_dirs.name)
 
     to_patch = {
-        "cumulusci.core.config.project_config.BaseProjectConfig.project_cache_dir": temp_root
-        / "fixture_userhome/project_home/.cci",
+        "cumulusci.core.config.project_config.BaseProjectConfig.repo_root": temp_root
+        / "fixture_userhome/project_home",
         "cumulusci.tests.util.DummyKeychain.project_cache_dir": temp_root
         / "fixture_userhome/project_home/.cci",
     }
