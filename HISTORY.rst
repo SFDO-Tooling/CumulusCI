@@ -2,6 +2,140 @@
 History
 =======
 
+3.17.0 (2020-08-20)
+
+Changes:
+
+- Tasks and automation:
+
+  - We added the  ``upload_user_profile_photo`` and ``upload_default_user_profile_photo`` tasks, which allow for setting Users' profile photos from images stored in the repository. (Thanks to @spelak-salesforce).
+  - We added the property ``is_person_accounts_enabled`` to the ``org_config`` object, which is available in ``when`` clauses. (Thanks to @spelak-salesforce).
+
+- Policies and inclusive language:
+
+  - We added information about Salesforce's Open Source Community Code of Conduct and Security policies.
+  - We updated documentation to more consistently refer to the "main" branch, reflecting CumulusCI's support for per-project specification of main branches other than ``master``.
+
+- User experience:
+
+  - We modified how we handle situations where the default org is not valid for better user experience.
+  - We catch a common mistake in entering command-line options (``-org`` instead of ``--org``, as well as incorrectly-formatted flow options) and show a clearer error.
+  - We now capture and display the ``InstanceName`` of orgs in ``cci org list``'s output.
+
+- Robot Framework:
+
+  - We now cleanly fall back to the latest available API version for Robot locators if the newest API version does not have an available locator file. This change helps support Robot testing on the latest prerelease editions of Salesforce.
+  - We included some updates to locators for API version 50.0.
+
+- Other:
+
+  - We added a new environment variable, ``SFDX_SIGNUP_INSTANCE``, and an ``instance`` key in org definitions, to specify a preferred instance routing. NOTE: this functionality requires Dev Hub permissions that are not Generally Available.
+
+Issues closed:
+
+- Fixed a bug which prevented package install links from getting added to release notes.
+- Fixed a bug (#1914) which caused errors when customizing some Flow steps with decimal step numbers.
+- Fixed a bug making it difficult to troubleshoot issues with Snowfakery and CumulusCI on Windows.
+- Fixed a bug in ``update_admin_profile`` that resulted in errors when attempting to manage Record Types across multiple objects.
+
+
+3.16.0 (2020-08-06)
+-------------------
+
+Changes:
+
+- Project initialization:
+
+  - When starting a new CumulusCI project, the ``cci project init`` command now uses the current git branch as the project's default branch.
+
+  - API version 49.0 is now set as the default for new projects.
+
+- Bulk data tasks:
+
+  - Added a task called ``delete_data`` for deleting all data from specified objects. This was previously available but required manually adding it to ``cumulusci.yml``
+
+  - The ``load_dataset``, ``extract_dataset``, and ``delete_data`` tasks now support automatic namespace injection. When object and field names are specified without namespaces, but the target org only has them with a namespace prefix attached, CumulusCI automatically adds the namespace prefix. This makes it easier for projects to use a single mapping file for unmanaged orgs, namespaced scratch org, and managed orgs.
+
+  This behavior is on by default, but may be disabled by setting the ``inject_namespaces`` option to False. This feature is believed to be backwards-compatible; however, projects that subclass built-in data loading classes, or which use data loading tasks in very unusual ways, might be impacted.
+
+  - The ``load_dataset`` and ``extract_dataset`` tasks have a new option, ``drop_missing_schema``. When enabled, this option causes CumulusCI to silently ignore elements in a dataset or mapping that are not present in the target org. This option is useful when building datasets that support additional, optional managed packages or features, which may or may not be installed.
+
+  - The ``extract_dataset`` and ``load_dataset`` tasks now support Person Accounts. These will be handled automatically as long as both Account and Contact are in the mapping file. Additional fields should be added to the Account mapping rather than Contact. Thanks @spelak-salesforce
+
+  - The ``generate_dataset_mapping`` task generates mappings in line with the latest revisions of load/extract functionality: fields are specified as a list, the ``table`` key is omitted, and namespaces are stripped.
+
+  - The ``generate_dataset_mapping`` has improved logic for resolving reference cycles between objects. If one of the lookup fields is nillable, the object with that field will be listed first in the generated mapping file.
+
+  - The ``generate_and_load_from_yaml`` task has a new option, ``working_directory``, which can be used to keep temporary files for debugging. The ``debug_dir`` option has been removed.
+
+- Robot Framework:
+
+  - The ``robot`` task has a new option, ``processes``. If the value is > 1, tests will be run in parallel in the given number of processes, using `pabot <https://pabot.org/>`_. Note: It's still up to the test author to make sure the tests won't conflict with each other when running in parallel. This feature is considered experimental.
+
+  - Added an ``ObjectManager`` page object for interacting with the Object Manager in Setup. Thanks to @rjanjanam
+
+  - `RequestsLibrary <https://github.com/MarketSquare/robotframework-requests>`_ is now included as a way to test REST APIs from Robot Framework.
+
+- Metadata ETL:
+
+  - Added a new task, ``set_field_help_text``, which can be used to update Help Text values on existing fields.
+
+  - Added a new task, ``update_metadata_first_child_text``, which can be used to update a single value in existing metadata. Thanks @spelak-salesforce
+
+  - Added a new task, ``assign_compact_layout``, which can update a compact layout assignment in existing object metadata. Thanks @spelak-salesforce
+
+- Added a new task, ``github_copy_subtree``, to allow publishing selected files or folders to another repository after a release. This allows publishing a subset of your project's code from a private repository to a public one, for example. 
+
+- The ``create_community`` task has a new option, ``skip_existing``. When True, the task will not error if a community with the specified name already exists.
+
+- The ``release_beta`` and ``release_production`` flows now generate a section in the release notes on GitHub including package install links.
+
+- Task options can now use ``$project_config`` substitutions in any position, not just at the start of the value.
+
+Issues closed:
+
+- Fixed a bug where changes to global orgs would be saved as project-specific orgs.
+
+- Fixed a bug where ``cumulusci.yml`` could fail to parse if certain options were specified in ``cci project init`` (#1780)
+
+- The ``install_managed`` task now recognizes an additional error message that indicates a package version has not yet finished propagating, and performs retries appropriately.
+
+- Fixed a bug in the logic to prevent installing beta packages in non-scratch orgs.
+
+- Fixed a bug where the ``list_changes``, ``retrieve_changes``, and ``snapshot_changes`` tasks could error while trying to reset sfdx source tracking.
+
+- Fixed a bug where the ``push_failure_report`` task could be missing some failed orgs if there were more than 200 errors.
+
+- Fixed a bug where the ``github_release_notes`` task could list a change note under a wrong subheading from a different section.
+
+- Fixed freezing of command tasks for MetaDeploy.
+
+Internal changes (these should not affect you unless you're interacting with CumulusCI at the Python level):
+
+  - Standardized naming of different levels of configuration:
+
+    - ``BaseGlobalConfig`` is now ``UniversalConfig``.
+
+    - ``BaseGlobalConfig.config_global_local_path`` is now ``UniversalConfig.config_global_path``
+
+    - ``BaseGlobalConfig.config_global_path`` is  now ``UniversalConfig.config_universal_path``
+
+    - ``BaseProjectConfig.global_config_obj`` is now ``universal_config_obj``
+
+    - ``BaseProjectConfig.config_global`` is now ``config_universal``
+
+    - ``BaseProjectConfig.config_global_local`` is now ``config_global``
+
+    - ``EncryptedFileProjectKeychain.config_local_dir`` is now ``global_config_dir``
+
+    - ``BaseCumulusCI.global_config_class`` is now ``universal_config_class``
+
+    - ``BaseCumulusCI.global_config`` is now ``universal_config``
+
+  - Added ``UniversalConfig.cumulusci_config_dir`` as a central way to get the path for storing configuration.  ``UniversalConfig.config_local_dir`` was removed.
+
+  - OrgConfigs now keep track of which keychain they were loaded from, and have a new `save` method which is the preferred API for persisting updates to the config.
+
 3.15.0 (2020-07-09)
 -------------------
 
