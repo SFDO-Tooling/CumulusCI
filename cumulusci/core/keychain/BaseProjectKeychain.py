@@ -270,8 +270,3 @@ class BaseProjectKeychain(BaseConfig):
         services = list(self.services.keys())
         services.sort()
         return services
-
-    @property
-    def project_cache_dir(self):
-        "Helper function to get the project_cache_dir from the project_config"
-        return self.project_config.universal_config_obj.cumulusci_config_dir

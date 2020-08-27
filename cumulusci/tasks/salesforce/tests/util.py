@@ -50,10 +50,6 @@ def create_task_fixture(request):
     temp_root = Path(temp_dirs.name)
 
     to_patch = {
-        "cumulusci.core.config.UniversalConfig.cumulusci_config_dir": temp_root
-        / "fixture_userhome/.cumulusci",
-        "cumulusci.tests.util.DummyKeychain.global_config_dir": temp_root
-        / "fixture_userhome/.cumulusci",
         "cumulusci.core.config.project_config.BaseProjectConfig.project_cache_dir": temp_root
         / "fixture_userhome/project_home/.cci",
         "cumulusci.tests.util.DummyKeychain.project_cache_dir": temp_root
@@ -61,8 +57,9 @@ def create_task_fixture(request):
     }
 
     patches = [patch_dir(p, d) for p, d in to_patch.items()]
-    for patch in patches:
-        patch.start()
+    home = mock.patch("pathlib.Path.home", lambda: temp_root)
+    home.start()
+    patches.append(home)
 
     def fin():
         for patch in patches:
