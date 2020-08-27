@@ -124,11 +124,6 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         return org
 
     @property
-    def project_cache_dir(self):
-        "Helper function to get the project_cache_dir from the project_config"
-        return self.project_config.project_cache_dir
-
-    @property
     def _default_org_path(self):
         return Path(self.project_local_dir) / "DEFAULT_ORG.txt"
 
