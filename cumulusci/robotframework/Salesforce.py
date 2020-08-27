@@ -1,13 +1,12 @@
-import glob
 import importlib
 import logging
-import os.path
 import re
 import time
 
 from pprint import pformat
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from robot.utils import timestr_to_secs
+from cumulusci.robotframework.utils import get_locator_module_name
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import (
@@ -72,19 +71,15 @@ class Salesforce(object):
         try:
             version = int(float(self.get_latest_api_version()))
             self.builtin.set_suite_metadata("Salesforce API Version", version)
-            locator_module_name = "locators_{}".format(version)
-
         except RobotNotRunningError:
-            # We aren't part of a running test, likely because we are
-            # generating keyword documentation. If that's the case we'll
-            # use the latest supported version
-            here = os.path.dirname(__file__)
-            files = sorted(glob.glob(os.path.join(here, "locators_*.py")))
-            locator_module_name = os.path.basename(files[-1])[:-3]
+            # Likely this means we are running in the context of
+            # documentation generation. Setting the version to
+            # None will result in using the latest version of
+            # locators.
+            version = None
 
-        self.locators_module = importlib.import_module(
-            "cumulusci.robotframework." + locator_module_name
-        )
+        locator_module_name = get_locator_module_name(version)
+        self.locators_module = importlib.import_module(locator_module_name)
         lex_locators.update(self.locators_module.lex_locators)
 
     @property
@@ -239,7 +234,7 @@ class Salesforce(object):
     @capture_screenshot_on_error
     def click_object_button(self, title):
         """Clicks a button in an object's actions."""
-        locator = lex_locators["object"]["button"].format(title)
+        locator = lex_locators["object"]["button"].format(title=title)
         self._jsclick(locator)
         self.wait_until_modal_is_open()
 
@@ -924,6 +919,12 @@ class Salesforce(object):
 
         for record, obj in zip(records, objects):
             obj[STATUS_KEY] = record
+
+        for idx, (record, obj) in enumerate(zip(records, objects)):
+            if record["errors"]:
+                raise AssertionError(
+                    "Error on Object {idx}: {record} : {obj}".format(**vars())
+                )
 
     def salesforce_query(self, obj_name, **kwargs):
         """Constructs and runs a simple SOQL query and returns a list of dictionaries.

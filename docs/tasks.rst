@@ -1743,8 +1743,6 @@ Options
 
 	 The branch to update in the target repo
 
-	 Default: master
-
 ``-o version VERSION``
 	 *Required*
 
@@ -4089,6 +4087,71 @@ Options
 	 *Optional*
 
 	 The namespace of the package.  Defaults to project__package__namespace
+
+**upload_user_profile_photo**
+==========================================
+
+**Description:** Uploads a profile photo for a specified or default User.
+
+**Class:** cumulusci.tasks.salesforce.users.photos.UploadProfilePhoto
+
+Uploads a profile photo for a specified or default User.
+
+Examples
+--------
+
+Upload a profile photo for the default user.
+
+.. code-block:: yaml
+
+    tasks:
+        upload_profile_photo_default:
+            group: Internal storytelling data
+            class_path: cumulusci.tasks.salesforce.users.UploadProfilePhoto
+            description: Uploads a profile photo for the default user.
+            options:
+                photo: storytelling/photos/default.png
+
+Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is active, and created today.
+
+.. code-block:: yaml
+
+    tasks:
+        upload_profile_photo_grace:
+            group: Internal storytelling data
+            class_path: cumulusci.tasks.salesforce.users.UploadProfilePhoto
+            description: Uploads a profile photo for Grace.
+            options:
+                photo: storytelling/photos/grace.png
+                where: (Alias = 'grace' OR Alias = 'walker') AND IsActive = true AND CreatedDate = TODAY
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run upload_user_profile_photo``
+
+
+Options
+------------------------------------------
+
+
+``-o photo PHOTO``
+	 *Required*
+
+	 Path to user's profile photo.
+
+``-o where WHERE``
+	 *Optional*
+
+	 WHERE clause used querying for which User to upload the profile photo for.
+
+* No need to prefix with ``WHERE``
+
+* The SOQL query must return one and only one User record.
+
+* If no "where" is supplied, uploads the photo for the org's default User.
+
+
 
 **util_sleep**
 ==========================================
