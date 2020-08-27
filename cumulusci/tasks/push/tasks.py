@@ -234,8 +234,6 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
     def _init_options(self, kwargs):
         super(SchedulePushOrgList, self)._init_options(kwargs)
-        # Set the namespace option to the value from cumulusci.yml if not
-        # already set
         if "orgs" not in self.options and "csv" not in self.options:
             raise TaskOptionsError(
                 "Please call this task with the orgs or csv option. Both of these options require a file name."
