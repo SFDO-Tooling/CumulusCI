@@ -272,6 +272,6 @@ class BaseProjectKeychain(BaseConfig):
         return services
 
     @property
-    def project_cache_dir(self):
-        "Helper function to get the project_cache_dir from the project_config"
-        return self.project_config.project_cache_dir
+    def cache_dir(self):
+        "Helper function to get the cache_dir from the project_config"
+        return self.project_config.cache_dir

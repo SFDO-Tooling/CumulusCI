@@ -84,5 +84,5 @@ class UniversalConfig(BaseTaskFlowConfig):
         )
 
     @property
-    def project_cache_dir(self):
+    def cache_dir(self):
         return self.config_global_local_path

@@ -54,7 +54,7 @@ class ListChanges(BaseSalesforceApiTask):
     @property
     @contextlib.contextmanager
     def _snapshot_file(self):
-        with self.project_config.open_project_cache("snapshot") as parent_dir:
+        with self.project_config.open_cache("snapshot") as parent_dir:
             yield parent_dir / f"{self.org_config.name}.json"
 
     def _load_snapshot(self):

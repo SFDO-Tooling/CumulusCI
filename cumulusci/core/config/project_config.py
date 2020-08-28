@@ -824,9 +824,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return os.path.relpath(os.path.join(self.repo_root, path))
 
     @property
-    def project_cache_dir(self):
-        "A project cache which is on the local filesystem. Prefer open_project_cache where possible."
+    def cache_dir(self):
+        "A project cache which is on the local filesystem. Prefer open_cache where possible."
         assert self.repo_root
-        project_cache_dir = Path(self.repo_root, ".cci")
-        project_cache_dir.mkdir(exist_ok=True)
-        return project_cache_dir
+        cache_dir = Path(self.repo_root, ".cci")
+        cache_dir.mkdir(exist_ok=True)
+        return cache_dir

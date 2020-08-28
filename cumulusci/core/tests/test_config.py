@@ -1475,9 +1475,7 @@ class TestOrgConfig(unittest.TestCase):
             global_org=False,
         )
         with TemporaryDirectory() as t:
-            with mock.patch(
-                "cumulusci.tests.util.DummyKeychain.project_cache_dir", Path(t)
-            ):
+            with mock.patch("cumulusci.tests.util.DummyKeychain.cache_dir", Path(t)):
 
                 with config.get_orginfo_cache_dir("bar") as directory:
                     assert str(t) in directory, (t, directory)

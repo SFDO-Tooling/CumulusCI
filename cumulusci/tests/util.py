@@ -85,5 +85,5 @@ class DummyKeychain(object):
         return Path.home() / "cumulusci"
 
     @property
-    def project_cache_dir(self):
+    def cache_dir(self):
         return Path.home() / "project/.cci"

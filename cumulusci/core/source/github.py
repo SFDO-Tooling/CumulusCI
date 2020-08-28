@@ -95,7 +95,7 @@ class GitHubSource:
         # To do: copy this from a shared cache
         if path is None:
             path = (
-                self.project_config.project_cache_dir
+                self.project_config.cache_dir
                 / "projects"
                 / self.repo_name
                 / self.commit

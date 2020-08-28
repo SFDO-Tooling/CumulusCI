@@ -65,9 +65,7 @@ class TestListChanges:
             }
             task._run_task()
             assert os.path.exists(
-                os.path.join(
-                    task.project_config.project_cache_dir, "snapshot", "test.json"
-                )
+                os.path.join(task.project_config.cache_dir, "snapshot", "test.json")
             )
 
             assert "CustomObject: Test__c" in messages

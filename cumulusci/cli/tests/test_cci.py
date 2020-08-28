@@ -1220,7 +1220,7 @@ Environment Info: Rossian / x68_46
 
         runtime.keychain.list_orgs.return_value = list(org_configs.keys())
         runtime.keychain.get_org = lambda orgname: org_configs[orgname]
-        runtime.project_config.project_cache_dir = Path("does_not_possibly_exist")
+        runtime.project_config.cache_dir = Path("does_not_possibly_exist")
 
         runtime.keychain.get_default_org.return_value = (
             "test0",

@@ -517,9 +517,9 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         org_config = new_keychain.get_org("test")
         assert org_config.global_org
 
-    def test_project_cache_dir(self):
+    def test_cache_dir(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        assert keychain.project_cache_dir.name == ".cci"
+        assert keychain.cache_dir.name == ".cci"
 
     def test_get_default_org__with_files(self):
         keychain = self.keychain_class(self.project_config, self.key)

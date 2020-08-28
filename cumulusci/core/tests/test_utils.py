@@ -127,7 +127,7 @@ class TestCleanupCacheDir:
             keychain.global_config_dir = Path(temp_for_global)
             global_org_dir = _touch_test_org_file(keychain.global_config_dir)
             with TemporaryDirectory() as temp_for_project:
-                cache_dir = project_config.project_cache_dir = Path(temp_for_project)
+                cache_dir = project_config.cache_dir = Path(temp_for_project)
                 project_org_dir = _touch_test_org_file(cache_dir)
                 with mock.patch("cumulusci.core.utils.rmtree") as rmtree:
                     cleanup_org_cache_dirs(keychain, project_config)
@@ -150,7 +150,7 @@ class TestCleanupCacheDir:
         with TemporaryDirectory() as temp_for_global:
             keychain.global_config_dir = Path(temp_for_global)
             with TemporaryDirectory() as temp_for_project:
-                cache_dir = project_config.project_cache_dir = Path(temp_for_project)
+                cache_dir = project_config.cache_dir = Path(temp_for_project)
                 org_dir = cache_dir / "orginfo/foo.my.salesforce.com"
                 org_dir.mkdir(parents=True)
                 (org_dir / "schema.json").touch()

@@ -288,7 +288,7 @@ class OrgConfig(BaseConfig):
         if self.global_org:
             cache_dir = self.keychain.global_config_dir
         else:
-            cache_dir = self.keychain.project_cache_dir
+            cache_dir = self.keychain.cache_dir
         uniqifier = self.get_domain() + "__" + str(self.username).replace("@", "__")
         cache_dir = cache_dir / "orginfo" / uniqifier / cachename
 
