@@ -355,12 +355,15 @@ class Publish(BaseMetaDeployTask):
     def _publish_labels(self, slug):
         """Publish labels in all languages to MetaDeploy."""
         for path in Path(self.labels_path).glob("*.json"):
-            lang = path.stem[-2:]
-            if lang == "en":
+            lang = path.stem.split("_")[-1].lower()
+            if lang in ("en", "en-us"):
                 continue
             orig_labels = json.loads(path.read_text())
             prefixed_labels = {}
             for context, labels in orig_labels.items():
                 prefixed_labels[f"{slug}:{context}"] = labels
             self.logger.info(f"Updating {lang} translations")
-            self._call_api("PATCH", f"/translations/{lang}", json=prefixed_labels)
+            try:
+                self._call_api("PATCH", f"/translations/{lang}", json=prefixed_labels)
+            except requests.exceptions.HTTPError as err:
+                self.logger.warn(f"Could not update {lang} translation: {err}")
