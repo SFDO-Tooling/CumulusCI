@@ -249,8 +249,6 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             self.options["batch_size"] = 200
         if "csv" not in self.options and "csv_field_name" in self.options:
             raise TaskOptionsError("Please provide a csv file for this task to run.")
-        if "csv" in self.options and "csv_field_name" not in self.options:
-            self.options["csv_field_name"] = "OrganizationId"
 
     def _get_orgs(self):
         if "csv" in self.options:
