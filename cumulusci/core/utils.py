@@ -183,6 +183,9 @@ def dictmerge(a, b, name=None):
 
 def cleanup_org_cache_dirs(keychain, project_config):
     """Cleanup directories that are not associated with a connected/live org."""
+
+    if not project_config or not project_config.project_cache_dir:
+        return
     domains = set()
     for org in keychain.list_orgs():
         org_config = keychain.get_org(org)
