@@ -266,7 +266,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if path:
             return path
 
+        print("1", Path.cwd())
+        print("2", os.path.splitdrive(Path.cwd()))
+        print("3", os.path.splitdrive(Path.cwd())[1])
+        print("4", Path(os.path.splitdrive(Path.cwd())[1]))
         path = Path(os.path.splitdrive(Path.cwd())[1])
+        print("5", (path / ".git"))
+        print("6", (path / ".git").is_dir())
         while True:
             if (path / ".git").is_dir():
                 return str(path)
@@ -826,6 +832,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     @property
     def project_cache_dir(self):
         "A project cache which is on the local filesystem. Prefer open_project_cache where possible."
+        assert self.repo_root
         project_cache_dir = Path(self.repo_root, ".cci")
         project_cache_dir.mkdir(exist_ok=True)
         return project_cache_dir
