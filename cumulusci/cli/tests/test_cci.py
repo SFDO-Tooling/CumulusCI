@@ -1995,7 +1995,7 @@ Environment Info: Rossian / x68_46
 
     def test_flow_run_o_error(self):
         org_config = mock.Mock(scratch=True, config={})
-        runtime = CliRuntime(config={"noop": {}}, load_keychain=False,)
+        runtime = CliRuntime(config={"noop": {}}, load_keychain=False)
         runtime.get_org = mock.Mock(return_value=("test", org_config))
 
         with pytest.raises(click.UsageError) as e:
@@ -2071,31 +2071,34 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     def test_error_info_no_logfile_present(self, log_path, echo):
         log_path.is_file.return_value = False
-        run_click_command(cci.error_info, max_lines=30)
+        run_click_command(cci.error_info)
 
         echo.assert_called_once_with(f"No logfile found at: {cci.CCI_LOGFILE_PATH}")
 
     @mock.patch("cumulusci.cli.cci.click.echo")
-    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
-    def test_error_info(self, log_path, echo):
-        log_path.is_file.return_value = True
-        log_path.read_text.return_value = (
-            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
+    def test_error_info(self, echo):
+        with temporary_dir() as path:
+            logfile = Path(path) / "cci.log"
+            logfile.write_text(
+                "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n\u2603",
+                encoding="utf-8",
+            )
+            with mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH", logfile):
+                run_click_command(cci.error_info)
+        echo.assert_called_once_with(
+            "\nTraceback (most recent call last):\n1\n2\n3\n\u2603"
         )
-
-        run_click_command(cci.error_info, max_lines=30)
-        echo.assert_called_once_with("\nTraceback (most recent call last):\n1\n2\n3\n4")
 
     @mock.patch("cumulusci.cli.cci.click.echo")
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
-    def test_error_info_output_less(self, log_path, echo):
+    def test_error_info__output_less(self, log_path, echo):
         log_path.is_file.return_value = True
         log_path.read_text.return_value = (
             "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
         )
 
         run_click_command(cci.error_info, max_lines=3)
-        echo.assert_called_once_with("\n1\n2\n3\n4")
+        echo.assert_called_once_with("\n2\n3\n4")
 
     def test_lines_from_traceback_no_traceback(self):
         output = cci.lines_from_traceback("test_content", 10)
