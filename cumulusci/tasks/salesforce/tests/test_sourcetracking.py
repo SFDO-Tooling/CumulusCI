@@ -8,7 +8,6 @@ from cumulusci.tasks.salesforce.sourcetracking import RetrieveChanges
 from cumulusci.tasks.salesforce.sourcetracking import SnapshotChanges
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
-from .util import create_task_fixture
 
 
 class TestListChanges:
@@ -225,6 +224,3 @@ class TestSnapshotChanges:
         task = create_task_fixture(SnapshotChanges)
         steps = task.freeze(None)
         assert steps == []
-
-
-flake8 = (create_task_fixture,)

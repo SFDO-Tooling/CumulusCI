@@ -2,8 +2,6 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 from unittest import mock
 
-import pytest
-
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.tests.util import create_project_config, DummyKeychain
@@ -43,7 +41,6 @@ def patch_dir(patch_path, file_path):
     return patch
 
 
-@pytest.fixture(scope="function")
 def create_task_fixture(request):
     "create_task fixture which does support orginfo cache."
     temp_dirs = TemporaryDirectory()

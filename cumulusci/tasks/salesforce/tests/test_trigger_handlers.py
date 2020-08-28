@@ -5,7 +5,6 @@ import responses
 
 from cumulusci.tasks.salesforce import SetTDTMHandlerStatus
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
-from .util import create_task_fixture
 
 
 class TestTriggerHandlers:
@@ -306,6 +305,3 @@ class TestTriggerHandlers:
             )
 
         assert len(responses.calls) == 4
-
-
-flake8 = (create_task_fixture,)
