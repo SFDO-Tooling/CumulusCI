@@ -112,3 +112,21 @@ def test_schedule_push_org_list_no_orgs(tmp_path):
                 "batch_size": 10,
             },
         )
+
+
+# Should set csv_field_name to OrganizationId by default
+def test_schedule_push_org_list_get_csv_field_non_default(tmp_path):
+    orgs = tmp_path / ORG_FILE
+    orgs.write_text(CSV_FILE_TEXT.replace("OrganizationId", "OrgId"))
+    task = create_task(
+        SchedulePushOrgList,
+        options={
+            "version": VERSION,
+            "namespace": NAMESPACE,
+            "start_time": datetime.datetime.now(),
+            "batch_size": 10,
+            "csv": orgs,
+            "csv_field_name": "OrgId",
+        },
+    )
+    assert task._get_orgs() == ["00D5w000004zXXX", "00D5w000005VXXX"]
