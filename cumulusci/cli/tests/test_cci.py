@@ -85,8 +85,7 @@ class TestCCI(unittest.TestCase):
             "cumulusci.cli.cci.cleanup_org_cache_dirs", self.cleanup_org_cache_dirs
         )
         self.cleanup_org_cache_dirs_fileutils_patch = mock.patch(
-            "cumulusci.utils.fileutils.cleanup_org_cache_dirs",
-            self.cleanup_org_cache_dirs,
+            "cumulusci.core.utils.cleanup_org_cache_dirs", self.cleanup_org_cache_dirs,
         )
         self.cleanup_org_cache_dirs_cli_patch.start()
         self.cleanup_org_cache_dirs_fileutils_patch.start()

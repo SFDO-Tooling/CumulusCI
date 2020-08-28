@@ -14,11 +14,9 @@ import cumulusci
 from cumulusci.utils import fileutils, temporary_dir
 from cumulusci.utils.fileutils import (
     load_from_source,
-    cleanup_org_cache_dirs,
     open_fs_resource,
     FSResource,
 )
-from cumulusci.core.config import OrgConfig
 
 
 class TestFileutils:
@@ -79,13 +77,6 @@ class TestFileutils:
         with open_fs_resource(p) as p2:
             with load_from_source(p2) as (filename, data):
                 assert "tasks:" in data.read()
-
-
-def _touch_test_org_file(directory):
-    org_dir = directory / "orginfo/something.something.saleforce.com"
-    org_dir.mkdir(parents=True)
-    (org_dir / "testfile.json").touch()
-    return org_dir
 
 
 class _TestFSResourceShared:
@@ -244,47 +235,3 @@ class TestFSResourceError:
     def test_fs_resource_init_error(self):
         with pytest.raises(NotImplementedError):
             FSResource()
-
-
-class TestCleanupCacheDir:
-    def test_cleanup_cache_dir(self):
-        keychain = mock.Mock()
-        keychain.list_orgs.return_value = ["qa", "dev"]
-        org = mock.Mock()
-        org.config.get.return_value = "http://foo.my.salesforce.com/"
-        keychain.get_org.return_value = org
-        project_config = mock.Mock()
-        with TemporaryDirectory() as temp_for_global:
-            keychain.global_config_dir = Path(temp_for_global)
-            global_org_dir = _touch_test_org_file(keychain.global_config_dir)
-            with TemporaryDirectory() as temp_for_project:
-                cache_dir = project_config.project_cache_dir = Path(temp_for_project)
-                project_org_dir = _touch_test_org_file(cache_dir)
-                with mock.patch("cumulusci.utils.fileutils.rmtree") as rmtree:
-                    cleanup_org_cache_dirs(keychain, project_config)
-                    rmtree.assert_has_calls(
-                        [mock.call(global_org_dir), mock.call(project_org_dir)],
-                        any_order=True,
-                    )
-
-    def test_cleanup_cache_dir_nothing_to_cleanup(self):
-        keychain = mock.Mock()
-        keychain.list_orgs.return_value = ["qa", "dev"]
-        org = OrgConfig(
-            config={"instance_url": "http://foo.my.salesforce.com/"},
-            name="qa",
-            keychain=keychain,
-            global_org=False,
-        )
-        keychain.get_org.return_value = org
-        project_config = mock.Mock()
-        with TemporaryDirectory() as temp_for_global:
-            keychain.global_config_dir = Path(temp_for_global)
-            with TemporaryDirectory() as temp_for_project:
-                cache_dir = project_config.project_cache_dir = Path(temp_for_project)
-                org_dir = cache_dir / "orginfo/foo.my.salesforce.com"
-                org_dir.mkdir(parents=True)
-                (org_dir / "schema.json").touch()
-                with mock.patch("cumulusci.utils.fileutils.rmtree") as rmtree:
-                    cleanup_org_cache_dirs(keychain, project_config)
-                    assert not rmtree.mock_calls, rmtree.mock_calls

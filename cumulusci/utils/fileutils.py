@@ -6,7 +6,6 @@ import os
 
 import requests
 from fs import open_fs, path as fspath, copy, base
-from shutil import rmtree
 
 """Utilities for working with files"""
 
@@ -90,26 +89,6 @@ def load_from_source(
         path = source
         with open(path, "rt") as f:
             yield path, f
-
-
-def cleanup_org_cache_dirs(keychain, project_config):
-    """Cleanup directories that are not associated with a connected/live org."""
-    domains = set()
-    for org in keychain.list_orgs():
-        org_config = keychain.get_org(org)
-        domain = org_config.get_domain()
-        if domain:
-            domains.add(domain)
-
-    assert project_config.project_cache_dir
-    assert keychain.global_config_dir
-
-    project_org_directories = (project_config.project_cache_dir / "orginfo").glob("*")
-    global_org_directories = (keychain.global_config_dir / "orginfo").glob("*")
-
-    for directory in list(project_org_directories) + list(global_org_directories):
-        if directory.name not in domains:
-            rmtree(directory)
 
 
 def proxy(funcname):

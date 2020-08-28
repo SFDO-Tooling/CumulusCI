@@ -220,7 +220,7 @@ class TestBaseProjectKeychain(ProjectKeychainTestMixin):
         org_config = keychain.set_org.call_args[0][0]
         self.assertEqual(3, org_config.days)
 
-    @mock.patch("cumulusci.utils.fileutils.cleanup_org_cache_dirs")
+    @mock.patch("cumulusci.core.keychain.base_project_keychain.cleanup_org_cache_dirs")
     def test_remove_org(self, cleanup_org_cache_dirs):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)
@@ -473,7 +473,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain._load_file(self.tempdir_home, "config", "from_file")
         self.assertEqual("foo", keychain.config["from_file"])
 
-    @mock.patch("cumulusci.utils.fileutils.cleanup_org_cache_dirs")
+    @mock.patch("cumulusci.core.utils.cleanup_org_cache_dirs")
     def test_remove_org(self, cleanup_org_cache_dirs):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)

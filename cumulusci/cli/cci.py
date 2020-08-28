@@ -52,7 +52,8 @@ from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.git import current_branch
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
-from cumulusci.utils.fileutils import cleanup_org_cache_dirs
+from cumulusci.core.utils import cleanup_org_cache_dirs
+
 
 from .logger import init_logger, get_tempfile_logger
 
