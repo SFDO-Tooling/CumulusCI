@@ -20,7 +20,7 @@ def create_task(task_class, options=None, project_config=None, org_config=None):
                 "username": "test-cci@example.com",
             },
             "test",
-            keychain=DummyKeychain,
+            keychain=DummyKeychain(),
         )
         org_config.refresh_oauth_token = mock.Mock()
     if options is None:
@@ -36,7 +36,7 @@ def create_task(task_class, options=None, project_config=None, org_config=None):
 def patch_dir(patch_path, file_path):
     directory = Path(file_path)
     directory.mkdir(parents=True, exist_ok=True)
-    patch = mock.patch(patch_path, file_path)
+    patch = mock.patch(patch_path, lambda: file_path)
     patch.start()
     return patch
 
@@ -47,16 +47,13 @@ def create_task_fixture(request):
     temp_root = Path(temp_dirs.name)
 
     to_patch = {
-        "cumulusci.core.config.project_config.BaseProjectConfig.repo_root": temp_root
-        / "fixture_userhome/project_home",
-        "cumulusci.tests.util.DummyKeychain.project_cache_dir": temp_root
-        / "fixture_userhome/project_home/.cci",
+        "pathlib.Path.home": temp_root / "fixture_user_home",
+        "pathlib.Path.cwd": temp_root / "fixture_user_home/project",
     }
 
+    pretend_git = temp_root / "fixture_user_home/project/.git"
+    pretend_git.mkdir(parents=True)
     patches = [patch_dir(p, d) for p, d in to_patch.items()]
-    home = mock.patch("pathlib.Path.home", lambda: temp_root)
-    home.start()
-    patches.append(home)
 
     def fin():
         for patch in patches:
