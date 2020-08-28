@@ -366,4 +366,4 @@ class Publish(BaseMetaDeployTask):
             try:
                 self._call_api("PATCH", f"/translations/{lang}", json=prefixed_labels)
             except requests.exceptions.HTTPError as err:
-                self.logger.warn(f"Could not update {lang} translation: {err}")
+                self.logger.warning(f"Could not update {lang} translation: {err}")
