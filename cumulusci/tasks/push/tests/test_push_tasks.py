@@ -64,7 +64,6 @@ def test_schedule_push_org_list_get_csv_field_default(tmp_path):
         },
     )
     assert task._get_orgs() == ["00D5w000004zXXX", "00D5w000005VXXX"]
-    assert task.options["csv_field_name"] == "OrganizationId"
 
 
 def test_schedule_push_org_list_get_error(tmp_path):
