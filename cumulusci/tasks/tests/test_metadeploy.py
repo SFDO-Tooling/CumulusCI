@@ -109,6 +109,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             json=self._get_expected_repo("TestOwner", "TestRepo"),
         )
         responses.add("PATCH", "https://metadeploy/translations/es", json={})
+        responses.add("PATCH", "https://metadeploy/translations/es-bogus", status=404)
         responses.add(
             "GET",
             "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
@@ -172,6 +173,8 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         en_labels_path.write_text('{"test": {"title": {}}}')
         es_labels_path = Path(labels_path, "labels_es.json")
         es_labels_path.write_text('{"test": {"title": {}}}')
+        bogus_labels_path = Path(labels_path, "labels_es-bogus.json")
+        bogus_labels_path.write_text('{"test": {"title": {}}}')
 
         task_config = TaskConfig(
             {

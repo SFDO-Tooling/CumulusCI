@@ -98,7 +98,7 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
         self.logger.info("Loading transformed metadata...")
         target_profile_xml = Path(self.deploy_dir, "package.xml")
         target_profile_xml.write_text(
-            self._generate_package_xml(MetadataOperation.DEPLOY)
+            self._generate_package_xml(MetadataOperation.DEPLOY), encoding="utf-8"
         )
 
         # import is here to avoid an import cycle
