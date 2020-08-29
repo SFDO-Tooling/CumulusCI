@@ -18,8 +18,8 @@ from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
 
 class TestDeleteData(unittest.TestCase):
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
@@ -63,8 +63,8 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.get_results.assert_called_once()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__no_results(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
@@ -87,8 +87,8 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.assert_not_called()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__job_error_delete(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
@@ -108,8 +108,8 @@ class TestDeleteData(unittest.TestCase):
             task()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__job_error_query(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
@@ -123,8 +123,8 @@ class TestDeleteData(unittest.TestCase):
             task()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__row_error(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
@@ -144,8 +144,8 @@ class TestDeleteData(unittest.TestCase):
             task()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__ignore_error(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(
@@ -198,8 +198,8 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.get_results.assert_called_once()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__ignore_error_throttling(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(
@@ -234,8 +234,8 @@ class TestDeleteData(unittest.TestCase):
         assert "warnings suppressed" in str(warning.mock_calls[-1])
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__where(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(
@@ -279,8 +279,8 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.get_results.assert_called_once()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__query_fails(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(
