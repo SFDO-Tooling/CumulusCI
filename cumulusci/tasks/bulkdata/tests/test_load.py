@@ -400,6 +400,7 @@ class TestLoadData(unittest.TestCase):
         self.assertEqual(
             {
                 "sf_object": "Account",
+                "api": DataApi.BULK,
                 "action": "update",
                 "table": "accounts",
                 "fields": {},
@@ -416,15 +417,19 @@ class TestLoadData(unittest.TestCase):
         )
         task.sf = mock.Mock()
 
-        mapping = {
-            "sf_object": "Account",
-            "action": "update",
-            "fields": {},
-            "lookups": {
-                "Id": {"table": "accounts", "key_field": "account_id"},
-                "ParentId": {"table": "accounts"},
-            },
-        }
+        mapping = MappingStep(
+            **{
+                "sf_object": "Account",
+                "action": "update",
+                "fields": {},
+                "lookups": {
+                    "Id": MappingLookup(
+                        **{"table": "accounts", "key_field": "account_id"}
+                    ),
+                    "ParentId": MappingLookup(**{"table": "accounts"}),
+                },
+            }
+        )
 
         task._query_db = mock.Mock()
         task._query_db.return_value.yield_per = mock.Mock(
@@ -1453,6 +1458,7 @@ class TestLoadData(unittest.TestCase):
         task.session = mock.Mock()
         task._load_record_types = mock.Mock()
         task._process_job_results = mock.Mock()
+        task._query_db = mock.Mock()
 
         task._execute_step(
             MappingStep(

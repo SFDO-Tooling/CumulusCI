@@ -9,6 +9,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationJobResult,
     DataOperationType,
+    DataApi,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
@@ -785,17 +786,19 @@ class TestExtractData(unittest.TestCase):
             DataOperationStatus.SUCCESS, [], 1, 0
         )
 
-        task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})
+        task._run_query("SELECT Id FROM Contact", MappingStep(sf_object="Contact"))
 
         query_op_mock.assert_called_once_with(
             sobject="Contact",
+            fields=["Id"],
+            api=DataApi.SMART,
             api_options={},
             context=task,
             query="SELECT Id FROM Contact",
         )
         query_op_mock.return_value.query.assert_called_once_with()
         task._import_results.assert_called_once_with(
-            {"sf_object": "Contact"}, query_op_mock.return_value
+            MappingStep(sf_object="Contact"), query_op_mock.return_value
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -808,10 +811,12 @@ class TestExtractData(unittest.TestCase):
             DataOperationStatus.SUCCESS, [], 0, 0
         )
 
-        task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})
+        task._run_query("SELECT Id FROM Contact", MappingStep(sf_object="Contact"))
 
         query_op_mock.assert_called_once_with(
             sobject="Contact",
+            fields=["Id"],
+            api=DataApi.SMART,
             api_options={},
             context=task,
             query="SELECT Id FROM Contact",
@@ -829,7 +834,7 @@ class TestExtractData(unittest.TestCase):
         )
 
         with self.assertRaises(BulkDataException):
-            task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})
+            task._run_query("SELECT Id FROM Contact", MappingStep(sf_object="Contact"))
 
     def test_init_options__missing_output(self):
         with self.assertRaises(TaskOptionsError):

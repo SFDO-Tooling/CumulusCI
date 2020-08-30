@@ -11,6 +11,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationResult,
     DataOperationJobResult,
     DataOperationType,
+    DataApi,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
@@ -43,9 +44,11 @@ class TestDeleteData(unittest.TestCase):
 
         query_mock.assert_called_once_with(
             sobject="Contact",
+            fields=["Id"],
             api_options={},
             context=task,
             query="SELECT Id FROM Contact",
+            api=DataApi.SMART,
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
@@ -56,6 +59,8 @@ class TestDeleteData(unittest.TestCase):
             api_options={},
             context=task,
             fields=["Id"],
+            api=DataApi.SMART,
+            volume=2,
         )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()
@@ -77,9 +82,11 @@ class TestDeleteData(unittest.TestCase):
 
         query_mock.assert_called_once_with(
             sobject="Contact",
+            fields=["Id"],
             api_options={},
             context=task,
             query="SELECT Id FROM Contact",
+            api=DataApi.SMART,
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_not_called()
@@ -181,6 +188,8 @@ class TestDeleteData(unittest.TestCase):
             api_options={},
             context=task,
             query="SELECT Id FROM Contact",
+            api=DataApi.SMART,
+            fields=["Id"],
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
@@ -191,6 +200,8 @@ class TestDeleteData(unittest.TestCase):
             api_options={},
             context=task,
             fields=["Id"],
+            api=DataApi.SMART,
+            volume=2,
         )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()
@@ -262,6 +273,8 @@ class TestDeleteData(unittest.TestCase):
             api_options={},
             context=task,
             query="SELECT Id FROM Contact WHERE Id != null",
+            fields=["Id"],
+            api=DataApi.SMART,
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
@@ -272,6 +285,8 @@ class TestDeleteData(unittest.TestCase):
             api_options={},
             context=task,
             fields=["Id"],
+            api=DataApi.SMART,
+            volume=2,
         )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()

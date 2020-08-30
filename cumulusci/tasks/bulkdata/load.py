@@ -176,7 +176,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         total_rows = 0
 
-        for row in query:
+        for row in query.yield_per(10000):
             total_rows += 1
             # Add static values to row
             pkey = row[0]
