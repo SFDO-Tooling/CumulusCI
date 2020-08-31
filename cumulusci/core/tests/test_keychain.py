@@ -572,3 +572,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         org_config.config["default"] = True
         org_config.save()
         self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
+
+    def test_get_default_org__outside_project(self):
+        keychain = self.keychain_class(self.universal_config, self.key)
+        assert keychain.get_default_org() == (None, None)
