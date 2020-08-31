@@ -465,6 +465,7 @@ class RestApiDmlOperation(BaseDmlOperation):
         """Return a generator of DataOperationResult objects."""
 
         def _convert(res):
+            # TODO: make DataOperationResult handle this error variant
             if res.get("errors"):
                 errors = "\n".join(
                     f"{e['statusCode']}: {e['message']} ({','.join(e['fields'])})"
@@ -473,9 +474,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             else:
                 errors = ""
 
-            return DataOperationResult(
-                res.get("id"), res["success"], errors
-            )  # FIXME: make DataOperationResult handle this
+            return DataOperationResult(res.get("id"), res["success"], errors)
 
         yield from (_convert(res) for res in self.results)
 
@@ -534,18 +533,14 @@ def get_dml_operation(
         )
 
     if api is DataApi.BULK:
-        return BulkApiDmlOperation(
-            sobject=sobject,
-            operation=operation,
-            api_options=api_options,
-            context=context,
-            fields=fields,
-        )
+        api_class = BulkApiDmlOperation
     else:
-        return RestApiDmlOperation(
-            sobject=sobject,
-            operation=operation,
-            api_options=api_options,
-            context=context,
-            fields=fields,
-        )
+        api_class = RestApiDmlOperation
+
+    return api_class(
+        sobject=sobject,
+        operation=operation,
+        api_options=api_options,
+        context=context,
+        fields=fields,
+    )

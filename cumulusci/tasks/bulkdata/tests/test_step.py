@@ -14,7 +14,12 @@ from cumulusci.tasks.bulkdata.step import (
     BulkJobMixin,
     BulkApiQueryOperation,
     BulkApiDmlOperation,
+    RestApiQueryOperation,
+    RestApiDmlOperation,
 )
+from cumulusci.tasks.bulkdata.load import LoadData
+from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
 
 BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
@@ -598,4 +603,143 @@ class TestBulkApiDmlOperation(unittest.TestCase):
             DataOperationResult("003000000000001", True, None),
             DataOperationResult("003000000000002", True, None),
             DataOperationResult(None, False, "error"),
+        ]
+
+
+class TestRestApiQueryOperation:
+    def test_query(self):
+        context = mock.Mock()
+        context.sf.query_all.return_value = {
+            "totalSize": 2,
+            "done": True,
+            "records": [
+                {
+                    "Id": "003000000000001",
+                    "LastName": "Narvaez",
+                    "Email": "wayne@example.com",
+                },
+                {"Id": "003000000000002", "LastName": "De Vries", "Email": None},
+            ],
+        }
+
+        query_op = RestApiQueryOperation(
+            sobject="Contact",
+            fields=["Id", "LastName", "Email"],
+            api_options={},
+            context=context,
+            query="SELECT Id, LastName,  Email FROM Contact",
+        )
+
+        query_op.query()
+
+        assert query_op.job_result == DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        assert list(query_op.get_results()) == [
+            ["003000000000001", "Narvaez", "wayne@example.com"],
+            ["003000000000002", "De Vries", None],
+        ]
+
+
+class TestRestApiDmlOperation:
+    @responses.activate
+    def test_insert_dml_operation(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = "48.0"
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url="https://example.com/services/data/v48.0/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url="https://example.com/services/data/v48.0/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+
+        recs = [["Fred", "Narvaez"], [None, "De Vries"], ["Hiroko", "Aito"]]
+
+        dml_op = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={"batch_size": 2},
+            context=task,
+            fields=["FirstName", "LastName"],
+        )
+
+        dml_op.start()
+        dml_op.load_records(recs)
+        dml_op.end()
+
+        assert dml_op.job_result == DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 3, 0
+        )
+        assert list(dml_op.get_results()) == [
+            DataOperationResult("003000000000001", True, None),
+            DataOperationResult("003000000000002", True, None),
+            DataOperationResult("003000000000003", True, None),
+        ]
+
+    def test_insert_dml_operation__row_failure(self):
+        mock_describe_calls()
+        context = mock.Mock()
+        context.restful.side_effect = [
+            [
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            [
+                {
+                    "id": "003000000000003",
+                    "success": False,
+                    "errors": [
+                        {
+                            "statusCode": "VALIDATION_ERR",
+                            "message": "Bad data",
+                            "fields": ["FirstName"],
+                        }
+                    ],
+                }
+            ],
+        ]
+
+        recs = [["Fred", "Narvaez"], [None, "De Vries"], ["Hiroko", "Aito"]]
+
+        dml_op = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={"batch_size": 2},
+            context=context,
+            fields=["FirstName", "LastName"],
+        )
+
+        dml_op.start()
+        dml_op.load_records(recs)
+        dml_op.end()
+
+        assert dml_op.job_result == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 3, 1
+        )
+        assert list(dml_op.get_results()) == [
+            DataOperationResult("003000000000001", True, None),
+            DataOperationResult("003000000000002", True, None),
+            DataOperationResult(
+                "003000000000003", False, "VALIDATION_ERR: Bad data (FirstName)"
+            ),
         ]
