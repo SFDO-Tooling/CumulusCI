@@ -4,6 +4,7 @@ import os
 import re
 from pathlib import Path
 from configparser import ConfigParser
+from itertools import chain
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -267,14 +268,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return path
 
         path = Path.cwd().resolve()
-        while True:
+        paths = chain((path,), path.parents)
+        for path in paths:
             if (path / ".git").is_dir():
                 return str(path)
-            parent = path.parent
-            if parent == path:
-                # reached the root
-                break
-            path = parent
 
     @property
     def repo_name(self):
