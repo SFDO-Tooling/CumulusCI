@@ -266,7 +266,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if path:
             return path
 
-        path = Path.cwd()
+        path = Path.cwd().resolve()
         while True:
             if (path / ".git").is_dir():
                 return str(path)
