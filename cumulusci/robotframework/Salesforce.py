@@ -920,6 +920,12 @@ class Salesforce(object):
         for record, obj in zip(records, objects):
             obj[STATUS_KEY] = record
 
+        for idx, (record, obj) in enumerate(zip(records, objects)):
+            if record["errors"]:
+                raise AssertionError(
+                    "Error on Object {idx}: {record} : {obj}".format(**vars())
+                )
+
     def salesforce_query(self, obj_name, **kwargs):
         """Constructs and runs a simple SOQL query and returns a list of dictionaries.
 
