@@ -16,6 +16,9 @@ from cumulusci.tasks.bulkdata.step import (
     BulkApiDmlOperation,
     RestApiQueryOperation,
     RestApiDmlOperation,
+    DataApi,
+    get_query_operation,
+    get_dml_operation,
 )
 from cumulusci.tasks.bulkdata.load import LoadData
 from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
@@ -684,27 +687,46 @@ class TestRestApiDmlOperation:
         )
 
         dml_op.start()
-        dml_op.load_records(recs)
+        dml_op.load_records(iter(recs))
         dml_op.end()
 
         assert dml_op.job_result == DataOperationJobResult(
             DataOperationStatus.SUCCESS, [], 3, 0
         )
         assert list(dml_op.get_results()) == [
-            DataOperationResult("003000000000001", True, None),
-            DataOperationResult("003000000000002", True, None),
-            DataOperationResult("003000000000003", True, None),
+            DataOperationResult("003000000000001", True, ""),
+            DataOperationResult("003000000000002", True, ""),
+            DataOperationResult("003000000000003", True, ""),
         ]
 
+    @responses.activate
     def test_insert_dml_operation__row_failure(self):
         mock_describe_calls()
-        context = mock.Mock()
-        context.restful.side_effect = [
-            [
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = "48.0"
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url="https://example.com/services/data/v48.0/composite/sobjects",
+            json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
             ],
-            [
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url="https://example.com/services/data/v48.0/composite/sobjects",
+            json=[
                 {
                     "id": "003000000000003",
                     "success": False,
@@ -717,7 +739,8 @@ class TestRestApiDmlOperation:
                     ],
                 }
             ],
-        ]
+            status=200,
+        )
 
         recs = [["Fred", "Narvaez"], [None, "De Vries"], ["Hiroko", "Aito"]]
 
@@ -725,21 +748,184 @@ class TestRestApiDmlOperation:
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={"batch_size": 2},
-            context=context,
+            context=task,
             fields=["FirstName", "LastName"],
         )
 
         dml_op.start()
-        dml_op.load_records(recs)
+        dml_op.load_records(iter(recs))
         dml_op.end()
 
         assert dml_op.job_result == DataOperationJobResult(
             DataOperationStatus.ROW_FAILURE, [], 3, 1
         )
         assert list(dml_op.get_results()) == [
-            DataOperationResult("003000000000001", True, None),
-            DataOperationResult("003000000000002", True, None),
+            DataOperationResult("003000000000001", True, ""),
+            DataOperationResult("003000000000002", True, ""),
             DataOperationResult(
                 "003000000000003", False, "VALIDATION_ERR: Bad data (FirstName)"
             ),
         ]
+
+    def test_insert_dml_operation__delete(self):
+        pass
+
+    def test_insert_dml_operation__booleans(self):
+        pass
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
+    def test_get_query_operation(self, rest_query, bulk_query):
+        op = get_query_operation(
+            sobject="Test",
+            fields=["Id"],
+            api_options={},
+            context=mock.Mock(),
+            query="SELECT Id FROM Test",
+            api=DataApi.BULK,
+        )
+        assert op == bulk_query.return_value
+        bulk_query.assert_called_once_with(
+            sobject="Test",
+            api_options={},
+            context=mock.ANY,
+            query="SELECT Id FROM Test",
+        )
+
+        op = get_query_operation(
+            sobject="Test",
+            fields=["Id"],
+            api_options={},
+            context=mock.Mock(),
+            query="SELECT Id FROM Test",
+            api=DataApi.REST,
+        )
+        assert op == rest_query.return_value
+        rest_query.assert_called_once_with(
+            sobject="Test",
+            fields=["Id"],
+            api_options={},
+            context=mock.ANY,
+            query="SELECT Id FROM Test",
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
+    def test_get_query_operation__smart_to_rest(self, rest_query, bulk_query):
+        context = mock.Mock()
+        context.sf.restful.return_value = {"sObjects": [{"name": "Test", "count": 1}]}
+        op = get_query_operation(
+            sobject="Test",
+            fields=["Id"],
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Test",
+            api=DataApi.SMART,
+        )
+        assert op == rest_query.return_value
+
+        bulk_query.assert_not_called()
+        context.sf.restful.assert_called_once_with("limits/recordCount?sObjects=Test")
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
+    def test_get_query_operation__smart_to_bulk(self, rest_query, bulk_query):
+        context = mock.Mock()
+        context.sf.restful.return_value = {
+            "sObjects": [{"name": "Test", "count": 10000}]
+        }
+        op = get_query_operation(
+            sobject="Test",
+            fields=["Id"],
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Test",
+            api=DataApi.SMART,
+        )
+        assert op == bulk_query.return_value
+
+        rest_query.assert_not_called()
+        context.sf.restful.assert_called_once_with("limits/recordCount?sObjects=Test")
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
+    def test_get_dml_operation(self, rest_dml, bulk_dml):
+        op = get_dml_operation(
+            sobject="Test",
+            operation=DataOperationType.INSERT,
+            fields=["Name"],
+            api_options={},
+            context=mock.Mock(),
+            api=DataApi.BULK,
+            volume=1,
+        )
+
+        assert op == bulk_dml.return_value
+        bulk_dml.assert_called_once_with(
+            sobject="Test",
+            operation=DataOperationType.INSERT,
+            fields=["Name"],
+            api_options={},
+            context=mock.ANY,
+        )
+
+        op = get_dml_operation(
+            sobject="Test",
+            operation=DataOperationType.INSERT,
+            fields=["Name"],
+            api_options={},
+            context=mock.Mock(),
+            api=DataApi.REST,
+            volume=1,
+        )
+
+        assert op == rest_dml.return_value
+        rest_dml.assert_called_once_with(
+            sobject="Test",
+            operation=DataOperationType.INSERT,
+            fields=["Name"],
+            api_options={},
+            context=mock.ANY,
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
+    def test_get_dml_operation__smart(self, rest_dml, bulk_dml):
+        assert (
+            get_dml_operation(
+                sobject="Test",
+                operation=DataOperationType.INSERT,
+                fields=["Name"],
+                api_options={},
+                context=mock.Mock(),
+                api=DataApi.SMART,
+                volume=1,
+            )
+            == rest_dml.return_value
+        )
+
+        assert (
+            get_dml_operation(
+                sobject="Test",
+                operation=DataOperationType.INSERT,
+                fields=["Name"],
+                api_options={},
+                context=mock.Mock(),
+                api=DataApi.SMART,
+                volume=10000,
+            )
+            == bulk_dml.return_value
+        )
+
+        assert (
+            get_dml_operation(
+                sobject="Test",
+                operation=DataOperationType.HARD_DELETE,
+                fields=["Name"],
+                api_options={},
+                context=mock.Mock(),
+                api=DataApi.SMART,
+                volume=1,
+            )
+            == bulk_dml.return_value
+        )
