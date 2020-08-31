@@ -12,7 +12,9 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     NoSuchElementException,
+    JavascriptException,
 )
+
 import faker
 
 from simple_salesforce import SalesforceResourceNotFound
@@ -238,26 +240,29 @@ class Salesforce(object):
         self._jsclick(locator)
         self.wait_until_modal_is_open()
 
-    def load_related_list(self, heading):
+    @capture_screenshot_on_error
+    def load_related_list(self, heading, tries=10):
         """Scrolls down until the specified related list loads.
+
+        If the related list isn't found, the keyword will scroll down
+        in 100 pixel increments to trigger lightning into loading the
+        list. This process of scrolling will be repeated until the
+        related list has been loaded or we've tried several times
+        (the default is 10 tries)
+
         """
         locator = lex_locators["record"]["related"]["card"].format(heading)
-        el = None
-        i = 0
-        while el is None:
-            i += 1
-            if i > 50:
-                raise AssertionError(
-                    "Timed out waiting for {} related list to load.".format(heading)
+        for i in range(tries):
+            try:
+                self.selenium.scroll_element_into_view(locator)
+                return
+            except (ElementNotFound, JavascriptException):
+                self.builtin.log(
+                    f"related list '{heading}' not found; scrolling...", "DEBUG"
                 )
             self.selenium.execute_javascript("window.scrollBy(0, 100)")
             self.wait_for_aura()
-            try:
-                self.selenium.get_webelement(locator)
-                break
-            except ElementNotFound:
-                time.sleep(0.2)
-                continue
+        raise AssertionError(f"Timed out waiting for related list '{heading}' to load.")
 
     def click_related_list_button(self, heading, button_title):
         """Clicks a button in the heading of a related list.

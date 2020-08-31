@@ -10,3 +10,7 @@ lex_locators["object"][
 lex_locators["record"]["header"][
     "field_value_link"
 ] = "//records-lwc-highlights-panel//force-highlights-details-item[.//*[.='{}']]//a"
+
+lex_locators["record"]["related"][
+    "card"
+] = "//*[@data-component-id='force_relatedListContainer']//article[.//span[@title='{}']]"
