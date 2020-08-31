@@ -2,6 +2,7 @@ import datetime
 import os
 from unittest import mock
 import pytest
+import logging
 
 from cumulusci.core.exceptions import CumulusCIException, PushApiObjectNotFound
 from cumulusci.tasks.push.push_api import (
@@ -348,8 +349,9 @@ def test_report_push_status_error():
 
 
 def test_get_push_request_job_results(
-    package_push_job_success, package_push_job_failure, package_push_job_cancel
+    package_push_job_success, package_push_job_failure, package_push_job_cancel, caplog
 ):
+    caplog.set_level(logging.INFO)
     task = create_task(BaseSalesforcePushTask, options={})
     task.sf = mock.MagicMock()
     task.push_report = mock.MagicMock()
@@ -361,6 +363,7 @@ def test_get_push_request_job_results(
     ]
     task._get_push_request_job_results()
     task.push_request.get_push_job_objs.assert_called_once()
+    assert "Push complete: 1 succeeded, 1 failed, 1 canceled" in caplog.text
 
 
 def test_schedule_push_org_query_get_org_error():
