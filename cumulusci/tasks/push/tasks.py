@@ -252,7 +252,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
     def _get_orgs(self):
         if "csv" in self.options:
-            with open(self.options.get("csv")) as csvfile:
+            with open(self.options.get("csv"), newline="", encoding="utf-8") as csvfile:
                 reader = csv.DictReader(csvfile)
                 return [
                     row[self.options.get("csv_field_name", "OrganizationId")]
