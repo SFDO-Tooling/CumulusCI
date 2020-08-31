@@ -1,4 +1,5 @@
 import io
+import json
 import unittest
 from unittest import mock
 
@@ -767,11 +768,103 @@ class TestRestApiDmlOperation:
             ),
         ]
 
+    @responses.activate
     def test_insert_dml_operation__delete(self):
-        pass
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = "48.0"
+        task._init_task()
 
+        responses.add(
+            responses.DELETE,
+            url="https://example.com/services/data/v48.0/composite/sobjects?ids=003000000000001,003000000000002",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.DELETE,
+            url="https://example.com/services/data/v48.0/composite/sobjects?ids=003000000000003",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+
+        recs = [["003000000000001"], ["003000000000002"], ["003000000000003"]]
+
+        dml_op = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.DELETE,
+            api_options={"batch_size": 2},
+            context=task,
+            fields=["Id"],
+        )
+
+        dml_op.start()
+        dml_op.load_records(iter(recs))
+        dml_op.end()
+
+        assert dml_op.job_result == DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 3, 0
+        )
+        assert list(dml_op.get_results()) == [
+            DataOperationResult("003000000000001", True, ""),
+            DataOperationResult("003000000000002", True, ""),
+            DataOperationResult("003000000000003", True, ""),
+        ]
+
+    @responses.activate
     def test_insert_dml_operation__booleans(self):
-        pass
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = "48.0"
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url="https://example.com/services/data/v48.0/composite/sobjects",
+            json=[{"id": "003000000000001", "success": True}],
+            status=200,
+        )
+
+        recs = [["Narvaez", "True"]]
+        dml_op = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            api_options={"batch_size": 2},
+            context=task,
+            fields=["LastName", "IsEmailBounced"],  # IsEmailBounced is a Boolean field.
+        )
+
+        dml_op.start()
+        dml_op.load_records(iter(recs))
+        dml_op.end()
+
+        json_body = json.loads(responses.calls[1].request.body)
+        assert json_body["records"] == [
+            {
+                "LastName": "Narvaez",
+                "IsEmailBounced": True,
+                "attributes": {"type": "Contact"},
+            }
+        ]
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
