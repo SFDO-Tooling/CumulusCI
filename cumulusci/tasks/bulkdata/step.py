@@ -413,7 +413,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             fields=fields,
         )
 
-        # Because we send values in JSON, we must convert Booleans.
+        # Because we send values in JSON, we must convert Booleans and nulls
         describe = {
             field["name"]: field
             for field in getattr(context.sf, sobject).describe()["fields"]
@@ -425,6 +425,14 @@ class RestApiDmlOperation(BaseDmlOperation):
             r = dict(zip(self.fields, rec))
             for boolean_field in self.boolean_fields:
                 r[boolean_field] = bool(r[boolean_field])
+
+            # Remove empty fields (different semantics in REST API)
+            # We do this for insert only - on update, any fields set to `null`
+            # are meant to be blanked out.
+            if self.operation is DataOperationType.INSERT:
+                r = {k: r[k] for k in r if r[k] is not None and r[k] != ""}
+
+            print(r)
             r["attributes"] = {"type": self.sobject}
             return r
 
