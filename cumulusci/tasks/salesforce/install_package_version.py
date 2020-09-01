@@ -83,7 +83,11 @@ class InstallPackageVersion(Deploy):
         self.logger.info(f"Installing {self.options['name']} {version}")
         if isinstance(version, str) and version.startswith("04t"):
             install_options = {**self.options, "version_id": version}
-            retry_options = {**self.options}
+            retry_options = {
+                "retries": self.options["retries"],
+                "retry_interval": self.options["retry_interval"],
+                "retry_interval_add": self.options["retry_interval_add"],
+            }
             install_package_version(
                 self.project_config, self.org_config, install_options, retry_options
             )
