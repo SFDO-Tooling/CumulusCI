@@ -11,6 +11,11 @@ lex_locators["record"]["header"][
     "field_value_link"
 ] = "//records-lwc-highlights-panel//force-highlights-details-item[.//*[.='{}']]//a"
 
-lex_locators["record"]["related"][
-    "card"
-] = "//*[@data-component-id='force_relatedListContainer']//article[.//span[@title='{}']]"
+
+lex_locators["record"]["related"] = {
+    "button": "//*[@data-component-id='force_relatedListContainer']//article[.//span[@title='{}']]//a[@title='{}']",
+    "card": "//*[@data-component-id='force_relatedListContainer']//article[.//span[@title='{}']]",
+    "count": "//*[@data-component-id='force_relatedListContainer']//article//span[@title='{}']/following-sibling::span",
+    "link": "//*[@data-component-id='force_relatedListContainer']//article[.//span[@title='{}']]//*[text()='{}']",
+    "popup_trigger": "//*[@data-component-id='force_relatedListContainer']//article[.//span[@title='{}']]//span[text()='Show Actions']",
+}
