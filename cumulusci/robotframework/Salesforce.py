@@ -13,6 +13,7 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
     NoSuchElementException,
     JavascriptException,
+    WebDriverException,
 )
 
 import faker
@@ -256,7 +257,7 @@ class Salesforce(object):
             try:
                 self.selenium.scroll_element_into_view(locator)
                 return
-            except (ElementNotFound, JavascriptException):
+            except (ElementNotFound, JavascriptException, WebDriverException):
                 self.builtin.log(
                     f"related list '{heading}' not found; scrolling...", "DEBUG"
                 )
