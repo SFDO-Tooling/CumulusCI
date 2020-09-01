@@ -1,9 +1,11 @@
 from typing import IO, ContextManager, Text, Tuple, Union
 from contextlib import contextmanager
 from pathlib import Path
-from io import TextIOWrapper
+from io import TextIOWrapper, StringIO
+import os
+
 import requests
-from io import StringIO
+from fs import open_fs, path as fspath, copy, base
 
 """Utilities for working with files"""
 
@@ -20,14 +22,17 @@ def _get_path_from_stream(stream):
 
 @contextmanager
 def load_from_source(
-    source: Union[str, IO, Path]
+    source: Union[str, IO, Path, "FSResource"]
 ) -> ContextManager[Tuple[Text, IO[Text]]]:
     """Normalize potential data sources into uniform tuple
 
-     Take as input a file-like, path-like, or URL-like
-     and convert to an file-file and a string representing
-     where it came from. Pass the open file to the loader
-     to load the data and then return the result.
+    Take as input a file-like, path-like, or URL-like
+    and convert to a file-like and a string representing
+    where it came from. Pass the open file to the loader
+    to load the data and then return the result.
+
+    Think of this function as similar to "curl".
+    Get data from anywhere easily.
 
     For example:
 
@@ -85,6 +90,186 @@ def load_from_source(
         with open(path, "rt") as f:
             yield path, f
 
+
+def proxy(funcname):
+    def func(self, *args, **kwargs):
+        real_func = getattr(self.fs, funcname)
+        return real_func(self.filename, *args, **kwargs)
+
+    func.__doc__ = getattr(base.FS, funcname).__doc__
+    return func
+
+
+class FSResource:
+    """Generalization of pathlib.Path to support S3, FTP, etc
+
+    Create them through the open_fs_resource module function or static
+    function which will create a context manager that generates an FSResource.
+
+    If you don't need the resource management aspects of the context manager,
+    you can call the `new()` classmethod."""
+
+    def __init__(self):
+        raise NotImplementedError("Please use open_fs_resource context manager")
+
+    @classmethod
+    def new(
+        cls,
+        resource_url_or_path: Union[str, Path, "FSResource"],
+        filesystem: base.FS = None,
+    ):
+        """Directly create a new FSResource from a URL or path (absolute or relative)
+
+        You can call this to bypass the context manager in contexts where closing isn't
+        important (e.g. interactive repl experiments)."""
+        self = cls.__new__(cls)
+
+        if isinstance(resource_url_or_path, str) and "://" in resource_url_or_path:
+            path_type = "url"
+        elif isinstance(resource_url_or_path, FSResource):
+            path_type = "resource"
+        else:
+            resource_url_or_path = Path(resource_url_or_path)
+            path_type = "path"
+
+        if filesystem:
+            assert path_type != "resource"
+            fs = filesystem
+            filename = str(resource_url_or_path)
+        elif path_type == "resource":  # clone a resource reference
+            fs = resource_url_or_path.fs
+            filename = resource_url_or_path.filename
+        elif path_type == "path":
+            if resource_url_or_path.is_absolute():
+                if resource_url_or_path.drive:
+                    root = resource_url_or_path.drive + "/"
+                else:
+                    root = resource_url_or_path.root
+                filename = resource_url_or_path.relative_to(root).as_posix()
+            else:
+                root = Path("/").absolute()
+                filename = (
+                    (Path(".") / resource_url_or_path)
+                    .absolute()
+                    .relative_to(root)
+                    .as_posix()
+                )
+            fs = open_fs(str(root))
+        elif path_type == "url":
+            path, filename = resource_url_or_path.replace("\\", "/").rsplit("/", 1)
+            fs = open_fs(path)
+
+        self.fs = fs
+        self.filename = filename
+        return self
+
+    exists = proxy("exists")
+    open = proxy("open")
+    unlink = proxy("remove")
+    rmdir = proxy("removedir")
+    removetree = proxy("removetree")
+    geturl = proxy("geturl")
+
+    def getsyspath(self):
+        return Path(os.fsdecode(self.fs.getsyspath(self.filename)))
+
+    def joinpath(self, other):
+        """Create a new FSResource based on an existing one
+
+        Note that calling .close() on either one (or exiting the
+        context of the original) will close the filesystem that both use.
+
+        In practice, if you use the new one within the open context
+        of the old one, you'll be fine.
+        """
+        path = fspath.join(self.filename, other)
+        return FSResource.new(self.fs.geturl(path))
+
+    def copy_to(self, other):
+        """Create a new FSResource by copying the underlying resource
+
+        Note that calling .close() on either one (or exiting the
+        context of the original) will close the filesystem that both use.
+
+        In practice, if you use the new one within the open context
+        of the old one, you'll be fine.
+        """
+        if isinstance(other, (str, Path)):
+            other = FSResource.new(other)
+        copy.copy_file(self.fs, self.filename, other.fs, other.filename)
+
+    def mkdir(self, *, parents=False, exist_ok=False):
+        if parents:
+            self.fs.makedirs(self.filename, recreate=exist_ok)
+        else:
+            self.fs.makedir(self.filename, recreate=exist_ok)
+
+    def __contains__(self, other):
+        return other in str(self.geturl())
+
+    def __truediv__(self, other):
+        return self.joinpath(other)
+
+    def __repr__(self):
+        return f"<FSResource {self.geturl()}>"
+
+    def __str__(self):
+        rc = self.geturl()
+        if rc.startswith("file://"):
+            return rc[6:]
+
+    def __fspath__(self):
+        return self.fs.getsyspath(self.filename)
+
+    def close(self):
+        self.fs.close()
+
+    @staticmethod
+    @contextmanager
+    def open_fs_resource(
+        resource_url_or_path: Union[str, Path, "FSResource"], filesystem: base.FS = None
+    ):
+        """Create a context-managed FSResource
+
+        Input is a URL, path (absolute or relative) or FSResource
+
+        The function should be used in a context manager. The
+        resource's underlying filesystem will be closed automatically
+        when the context ends and the data will be saved back to the
+        filesystem (local, remote, zipfile, etc.)
+
+        Think of it as a way of "mounting" a filesystem, directory or file.
+
+        For example:
+
+        >>> from tempfile import TemporaryDirectory
+        >>> with TemporaryDirectory() as tempdir:
+        ...     abspath = Path(tempdir) / "blah"
+        ...     with open_fs_resource(abspath) as fs:
+        ...         fs.mkdir()
+        ...     newfile = fs / "newfile"
+        ...     with newfile.open("w") as f:
+        ...         _ = f.write("xyzzy")
+        ...     with newfile.open("r") as f:
+        ...         print(f.read())
+        xyzzy
+
+        >>> with open_fs_resource("cumulusci.yml") as cumulusci_yml:
+        ...      with cumulusci_yml.open() as c:
+        ...          print(c.read(5))
+        proje
+
+        """
+        resource = FSResource.new(resource_url_or_path, filesystem)
+        if not filesystem:
+            filesystem = resource
+        try:
+            yield resource
+        finally:
+            filesystem.close()
+
+
+open_fs_resource = FSResource.open_fs_resource
 
 if __name__ == "__main__":  # pragma: no cover
     import doctest
