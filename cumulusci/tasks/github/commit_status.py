@@ -54,9 +54,10 @@ class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
         )
         if res["records"]:
             subscriber_version = res["records"][0]
+            dependencies = subscriber_version["Dependencies"] or {"ids": []}
             dependencies = [
                 {"version_id": d["subscriberPackageVersionId"]}
-                for d in subscriber_version["Dependencies"]["ids"]
+                for d in dependencies["ids"]
             ]
             return dependencies
         else:
