@@ -247,7 +247,7 @@ class TestLoadData(unittest.TestCase):
 
         assert step.records == [
             ["TestHousehold", "1"],
-            ["Test", "User", "test@example.com", "001000000000000"],
+            ["Test☃", "User", "test@example.com", "001000000000000"],
             ["Error", "User", "error@example.com", "001000000000000"],
         ]
 

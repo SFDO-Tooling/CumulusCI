@@ -432,7 +432,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         """Read a SQLite script and initialize the in-memory database."""
         conn = self.session.connection()
         cursor = conn.connection.cursor()
-        with open(self.options["sql_path"], "r") as f:
+        with open(self.options["sql_path"], "r", encoding="utf-8") as f:
             try:
                 cursor.executescript(f.read())
             finally:

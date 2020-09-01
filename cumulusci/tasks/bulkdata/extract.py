@@ -349,6 +349,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _sqlite_dump(self):
         """Write a SQLite script output file."""
         path = self.options["sql_path"]
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")

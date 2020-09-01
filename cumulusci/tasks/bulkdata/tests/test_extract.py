@@ -171,7 +171,7 @@ class TestExtractData(unittest.TestCase):
             )
             mock_query_households.results = [["1"]]
             mock_query_contacts.results = [
-                ["2", "First", "Last", "test@example.com", "1"]
+                ["2", "First☃", "Last", "test@example.com", "1"]
             ]
             query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
 
