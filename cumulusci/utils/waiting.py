@@ -14,7 +14,7 @@ def retry(
 ):
     while True:
         try:
-            func()
+            return func()
             break
         except Exception as e:
             if not (retries and should_retry(e)):

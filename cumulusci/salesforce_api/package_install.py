@@ -60,13 +60,16 @@ def _should_retry_package_install(err: Exception) -> bool:
     return False
 
 
-def install_package_version(project_config, org_config, options):
+def install_package_version(
+    project_config, org_config, install_options, retry_options=None
+):
+    retry_options = {
+        **(retry_options or {}),
+        "should_retry": _should_retry_package_install,
+    }
     retry(
         functools.partial(
-            _install_package_version, project_config, org_config, options
+            _install_package_version, project_config, org_config, install_options
         ),
-        should_retry=_should_retry_package_install,
-        retries=options.get("retries"),
-        retry_interval=options.get("retry_interval"),
-        retry_interval_add=options.get("retry_interval_add"),
+        **retry_options,
     )

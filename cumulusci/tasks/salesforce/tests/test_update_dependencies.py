@@ -279,6 +279,20 @@ class TestUpdateDependencies(unittest.TestCase):
         )
         api.assert_called_once()
 
+    def test_run_task__version_id(self):
+        project_config = create_project_config()
+        project_config.get_github_api = mock.Mock()
+        task = create_task(
+            UpdateDependencies,
+            {"dependencies": [{"version_id": "04t"}]},
+            project_config=project_config,
+        )
+        with mock.patch(
+            "cumulusci.tasks.salesforce.update_dependencies.install_package_version"
+        ) as api:
+            task()
+        api.assert_called_once()
+
     def test_freeze(self):
         task = create_task(
             UpdateDependencies,
