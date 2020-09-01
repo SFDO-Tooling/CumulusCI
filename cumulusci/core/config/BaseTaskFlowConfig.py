@@ -1,12 +1,10 @@
 from difflib import get_close_matches
-from contextlib import contextmanager
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.exceptions import FlowNotFoundError
-from cumulusci.utils.fileutils import open_fs_resource
 
 
 def list_infos(infos):
@@ -63,11 +61,3 @@ class BaseTaskFlowConfig(BaseConfig):
             return f'. Did you mean "{match_list[0]}"?'
         else:
             return ""
-
-    @contextmanager
-    def open_cache(self, cache_name):
-        "A context managed PyFilesystem-based cache which could theoretically be on any filesystem."
-        with open_fs_resource(self.cache_dir) as cache_dir:
-            cache = cache_dir / cache_name
-            cache.mkdir(exist_ok=True)
-            yield cache
