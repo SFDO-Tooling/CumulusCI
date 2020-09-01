@@ -2,6 +2,8 @@
 from distutils.version import StrictVersion
 import os
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pytest
 from unittest import mock
@@ -25,6 +27,7 @@ from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
+from cumulusci.tests.util import DummyKeychain
 
 
 class TestBaseConfig(unittest.TestCase):
@@ -175,18 +178,6 @@ class DummyGithub(object):
             return self.repositories[name]
         except KeyError:
             raise AssertionError(f"Unexpected repository: {name}")
-
-
-class DummyService(object):
-    password = "password"
-
-    def __init__(self, name):
-        self.name = name
-
-
-class DummyKeychain(object):
-    def get_service(self, name):
-        return DummyService(name)
 
 
 class TestBaseProjectConfig(unittest.TestCase):
@@ -1444,6 +1435,61 @@ class TestOrgConfig(unittest.TestCase):
 
         with self.assertRaises(CumulusCIException):
             config.has_minimum_package_version("GW_Volunteers", "1.0")
+
+    def test_orginfo_cache_dir_global(self):
+        config = OrgConfig(
+            {
+                "instance_url": "http://zombo.com/welcome",
+                "username": "test-example@example.com",
+            },
+            "test",
+            keychain=DummyKeychain(),
+            global_org=True,
+        )
+        with TemporaryDirectory() as t:
+            with mock.patch(
+                "cumulusci.tests.util.DummyKeychain.global_config_dir", Path(t)
+            ):
+                with config.get_orginfo_cache_dir("foo") as directory:
+                    assert directory.exists()
+                    assert str(t) in directory, (t, directory)
+                    assert (
+                        str(directory)
+                        .replace("\\", "/")
+                        .endswith("orginfo/zombo.com__test-example__example.com/foo")
+                    ), str(directory).replace("\\", "/")
+                    foo = directory / "Foo.txt"
+                    with foo.open("w") as f:
+                        f.write("Bar")
+                    with foo.open("r") as f:
+                        assert f.read() == "Bar"
+
+    def test_orginfo_cache_dir_local(self):
+        config = OrgConfig(
+            {
+                "instance_url": "http://zombo.com/welcome",
+                "username": "test-example@example.com",
+            },
+            "test",
+            keychain=DummyKeychain(),
+            global_org=False,
+        )
+        with TemporaryDirectory() as t:
+            with mock.patch("cumulusci.tests.util.DummyKeychain.cache_dir", Path(t)):
+
+                with config.get_orginfo_cache_dir("bar") as directory:
+                    assert str(t) in directory, (t, directory)
+                    assert (
+                        str(directory)
+                        .replace("\\", "/")
+                        .endswith("orginfo/zombo.com__test-example__example.com/bar")
+                    )
+                    assert directory.exists()
+                    foo = directory / "Foo.txt"
+                    with foo.open("w") as f:
+                        f.write("Bar")
+                    with foo.open("r") as f:
+                        assert f.read() == "Bar"
 
     @responses.activate
     def test_is_person_accounts_enabled__not_enabled(self):
