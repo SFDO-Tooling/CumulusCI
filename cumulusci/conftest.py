@@ -7,6 +7,7 @@ from pytest import fixture
 from cumulusci.core.github import get_github_api
 from cumulusci.tests.pytest_plugins.pytest_sf_vcr import vcr_config, salesforce_vcr
 from cumulusci.tests.util import DummyOrgConfig
+from cumulusci.tasks.salesforce.tests.util import create_task_fixture
 
 
 @fixture(scope="session", autouse=True)
@@ -72,3 +73,5 @@ def fallback_orgconfig():
 
 vcr_config = fixture(vcr_config, scope="module")
 vcr = fixture(salesforce_vcr, scope="module")
+
+create_task_fixture = fixture(create_task_fixture, scope="function")
