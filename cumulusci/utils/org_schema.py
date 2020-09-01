@@ -287,7 +287,6 @@ def deep_describe(sf, last_modified_date, objs):
         def validate(x):
             if isinstance(x, list):
                 assert "errorCode" not in x[0], x
-                print(x)
             return x
 
         sobjects = chain.from_iterable(
