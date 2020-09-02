@@ -117,6 +117,12 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.logger.info(line)
 
         self._process_dependencies(dependencies)
+        installs = []
+        for dep in self.install_queue:
+            if dep not in installs:
+                installs.append(dep)
+
+        self.install_queue = installs
 
         # Reverse the uninstall queue
         self.uninstall_queue.reverse()

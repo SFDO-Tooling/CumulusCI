@@ -6,7 +6,7 @@ import pytest
 import responses
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
-from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import GithubException, TaskOptionsError
 from cumulusci.tasks.github.publish import PublishSubtree
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
@@ -40,7 +40,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
 
     @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
     @mock.patch("cumulusci.tasks.github.publish.CommitDir")
-    def test_run_task(self, commit_dir, extract_github):
+    def test_run_task_version(self, commit_dir, extract_github):
         with responses.RequestsMock() as rsps:
             rsps.add(
                 method=responses.GET,
@@ -379,3 +379,61 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         with pytest.raises(GithubException) as exc:
             task()
         assert "Ref for tag release/1.0 already exists in target repo" == str(exc.value)
+
+    def test_ref_nor_version_error(self):
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "branch": "master",
+                    "repo_url": self.public_repo_url,
+                    "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+                }
+            }
+        )
+        with pytest.raises(TaskOptionsError) as exc:
+            PublishSubtree(self.project_config, task_config)
+        assert "Either `ref` or `version` option is required" == str(exc.value)
+
+    @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
+    @mock.patch("cumulusci.tasks.github.publish.CommitDir.__call__")
+    def test_run_task_ref(self, commit_dir, extract_github):
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url,
+                json=self._get_expected_repo(
+                    owner=self.repo_owner, name=self.repo_name
+                ),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.public_repo_url,
+                json=self._get_expected_repo(
+                    owner=self.public_owner, name=self.public_name
+                ),
+            )
+            task_config = TaskConfig(
+                {
+                    "options": {
+                        "branch": "master",
+                        "ref": "feature/publish",
+                        "create_release": False,
+                        "repo_url": self.public_repo_url,
+                        "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+                    }
+                }
+            )
+            extract_github.return_value.namelist.return_value = [
+                "tasks/foo.py",
+                "unpackaged/pre/foo/package.xml",
+                "force-app",
+            ]
+
+            task = PublishSubtree(self.project_config, task_config)
+            task()
+
+            extract_github.assert_called_once()
+            assert "feature/publish" == extract_github.call_args[1]["ref"]
+            commit_dir.assert_called_once()
+            expected_commit_message = "Published content from ref feature/publish"
+            assert commit_dir.call_args[1]["commit_message"] == expected_commit_message

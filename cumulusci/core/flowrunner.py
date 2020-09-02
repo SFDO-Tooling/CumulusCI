@@ -177,8 +177,7 @@ class FlowCallback(object):
 
 
 class TaskRunner(object):
-    """ TaskRunner encapsulates the job of instantiating and running a task.
-    """
+    """TaskRunner encapsulates the job of instantiating and running a task."""
 
     def __init__(self, step, org_config, flow=None):
         self.step = step
@@ -284,9 +283,9 @@ class FlowCoordinator(object):
             self.logger.info("")
 
     def get_summary(self):
-        """ Returns an output string that contains the description of the flow,
-            the sequence of tasks and subflows, and any "when" conditions associated
-            with tasks. """
+        """Returns an output string that contains the description of the flow,
+        the sequence of tasks and subflows, and any "when" conditions associated
+        with tasks."""
         lines = []
         if "description" in self.flow_config.config:
             lines.append(f"Description: {self.flow_config.config['description']}")
@@ -626,8 +625,7 @@ class FlowCoordinator(object):
 
 
 class PreflightFlowCoordinator(FlowCoordinator):
-    """Coordinates running preflight checks instead of the actual flow steps.
-    """
+    """Coordinates running preflight checks instead of the actual flow steps."""
 
     def run(self, org_config):
         self.org_config = org_config

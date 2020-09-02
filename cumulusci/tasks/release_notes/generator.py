@@ -31,8 +31,8 @@ class BaseReleaseNotesGenerator(object):
         self.change_notes = self._init_change_notes()
 
     def _init_change_notes(self):
-        """ Subclasses should override this method to return an initialized
-        subclass of BaseChangeNotesProvider """
+        """Subclasses should override this method to return an initialized
+        subclass of BaseChangeNotesProvider"""
         return []
 
     def init_parsers(self):
@@ -41,18 +41,18 @@ class BaseReleaseNotesGenerator(object):
         self._init_parsers()
 
     def _init_parsers(self):
-        """ Subclasses should override this method to initialize their
-        parsers """
+        """Subclasses should override this method to initialize their
+        parsers"""
         pass
 
     def _parse_change_notes(self):
-        """ Parses all change_notes in self.change_notes() through all parsers
-        in self.parsers """
+        """Parses all change_notes in self.change_notes() through all parsers
+        in self.parsers"""
         for change_note in self.change_notes():
             self._parse_change_note(change_note)
 
     def _parse_change_note(self, change_note):
-        """ Parses an individual change note through all parsers in
+        """Parses an individual change note through all parsers in
         self.parsers. If no lines were added then appends the change
         note to the list of empty PRs"""
         line_added_by_parsers = False

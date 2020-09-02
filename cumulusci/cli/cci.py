@@ -52,6 +52,8 @@ from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.git import current_branch
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+from cumulusci.core.utils import cleanup_org_cache_dirs
+
 
 from .logger import init_logger, get_tempfile_logger
 
@@ -1084,6 +1086,7 @@ def org_list(runtime, plain):
         bool_cols=["Default"],
     )
     persistent_table.echo(plain)
+    cleanup_org_cache_dirs(runtime.keychain, runtime.project_config)
 
 
 @org.command(
@@ -1568,18 +1571,20 @@ CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
 
 @error.command(
     name="info",
-    help="Outputs the last part of the most recent traceback (if one exists in the most recent log)",
+    help="Outputs the most recent traceback (if one exists in the most recent log)",
 )
-@click.option("--max-lines", "-m", default=30, show_default=True, type=int)
-def error_info(max_lines):
+@click.option("--max-lines", "-m", type=int)
+def error_info(max_lines: int = 0):
     if not CCI_LOGFILE_PATH.is_file():
         click.echo(f"No logfile found at: {CCI_LOGFILE_PATH}")
     else:
-        output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), max_lines)
+        output = lines_from_traceback(
+            CCI_LOGFILE_PATH.read_text(encoding="utf-8"), max_lines
+        )
         click.echo(output)
 
 
-def lines_from_traceback(log_content, num_lines):
+def lines_from_traceback(log_content: str, max_lines: int = 0) -> str:
     """Returns the the last max_lines of the logfile,
     or the whole traceback, whichever is shorter. If
     no stacktrace is found in the logfile, the user is
@@ -1590,12 +1595,11 @@ def lines_from_traceback(log_content, num_lines):
         return f"\nNo stacktrace found in: {CCI_LOGFILE_PATH}\n"
 
     stacktrace = ""
-    for line in reversed(log_content.split("\n")):
+    for i, line in enumerate(reversed(log_content.split("\n")), 1):
         stacktrace = "\n" + line + stacktrace
         if stacktrace_start in line:
             break
-        num_lines -= 1
-        if num_lines == -1:
+        if i == max_lines:
             break
 
     return stacktrace
@@ -1605,7 +1609,7 @@ def lines_from_traceback(log_content, num_lines):
 @pass_runtime(require_project=False, require_keychain=True)
 def gist(runtime):
     if CCI_LOGFILE_PATH.is_file():
-        log_content = CCI_LOGFILE_PATH.read_text()
+        log_content = CCI_LOGFILE_PATH.read_text(encoding="utf-8")
     else:
         log_not_found_msg = """No logfile to open at path: {}
         Please ensure you're running this command from the same directory you were experiencing an issue."""

@@ -242,7 +242,7 @@ class SimpleSalesforceUIHelpers:
 
             >>> describe("Account")
             >>> data = describe("Account", detailed=True, format=obj)
-            """
+        """
         from pprint import pprint
 
         data = getattr(self._sf, sobj_name).describe()

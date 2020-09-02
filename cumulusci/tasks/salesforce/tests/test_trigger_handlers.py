@@ -1,27 +1,35 @@
 from unittest import mock
+
+import pytest
 import responses
-import unittest
+
 from cumulusci.tasks.salesforce import SetTDTMHandlerStatus
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
-from .util import create_task
 
 
-class test_trigger_handlers(unittest.TestCase):
-    def test_init_options(self):
-        task = create_task(
+class TestTriggerHandlers:
+    def test_init_options(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus, {"handlers": ["TestTDTM"], "active": False}
         )
 
         assert task.options["handlers"] == ["TestTDTM"]
 
-        with self.assertRaises(TaskOptionsError):
-            task = create_task(
-                SetTDTMHandlerStatus, {"handlers": ["TestTDTM"], "restore": True}
+        with pytest.raises(TaskOptionsError):
+            task = create_task_fixture(
+                SetTDTMHandlerStatus,
+                {"handlers": ["TestTDTM"], "restore": True, "restore_file": False},
+            )
+
+        with pytest.raises(TaskOptionsError):
+            task = create_task_fixture(
+                SetTDTMHandlerStatus,
+                {"handlers": ["TestTDTM"], "restore": True, "restore_file": "False"},
             )
 
     @responses.activate
-    def test_missing_handler_object(self):
-        task = create_task(
+    def test_missing_handler_object(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus, {"handlers": ["TestTDTM"], "active": False}
         )
         task.api_version = "47.0"
@@ -32,12 +40,12 @@ class test_trigger_handlers(unittest.TestCase):
             status=200,
         )
 
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task()
 
     @responses.activate
-    def test_set_status(self):
-        task = create_task(
+    def test_set_status(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus,
             {"handlers": ["TestTDTM"], "active": False, "namespace": "npsp"},
         )
@@ -82,8 +90,10 @@ class test_trigger_handlers(unittest.TestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
-    def test_set_status__all_handlers(self):
-        task = create_task(SetTDTMHandlerStatus, {"active": False, "namespace": "npsp"})
+    def test_set_status__all_handlers(self, create_task_fixture):
+        task = create_task_fixture(
+            SetTDTMHandlerStatus, {"active": False, "namespace": "npsp"}
+        )
         task.api_version = "47.0"
         responses.add(
             method="GET",
@@ -132,8 +142,8 @@ class test_trigger_handlers(unittest.TestCase):
         assert len(responses.calls) == 4
 
     @responses.activate
-    def test_set_status_namespaced(self):
-        task = create_task(
+    def test_set_status_namespaced(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus,
             {"handlers": ["Test__c:TestTDTM"], "active": False, "namespace": "npsp"},
         )
@@ -178,8 +188,8 @@ class test_trigger_handlers(unittest.TestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
-    def test_restore(self):
-        task = create_task(
+    def test_restore(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus,
             {"restore": True, "restore_file": "resto.yml", "namespace": "npsp"},
         )
@@ -220,19 +230,19 @@ class test_trigger_handlers(unittest.TestCase):
             json={"npsp__Active__c": True},
         )
 
-        m = mock.mock_open(read_data="'Test__c:TestTDTM': True")
-        with mock.patch("builtins.open", m):
-            with mock.patch("os.remove") as rm_patch:
+        op = mock.mock_open(read_data="'Test__c:TestTDTM': True")
+        with mock.patch("cumulusci.utils.fileutils.FSResource.open", op):
+            with mock.patch("cumulusci.utils.fileutils.FSResource.unlink") as unlink:
                 task()
 
-                m.assert_any_call("resto.yml", "r")
-                rm_patch.assert_called_once_with("resto.yml")
+                op.assert_any_call("r")
+                unlink.assert_called_once()
 
         assert len(responses.calls) == 3
 
     @responses.activate
-    def test_create_restore_file(self):
-        task = create_task(
+    def test_create_restore_file(self, create_task_fixture):
+        task = create_task_fixture(
             SetTDTMHandlerStatus,
             {
                 "handlers": ["Test__c"],
@@ -284,14 +294,14 @@ class test_trigger_handlers(unittest.TestCase):
             status=204,
             json={"Active__c": False},
         )
-        m = mock.mock_open()
-        with mock.patch("builtins.open", m):
+        op = mock.mock_open()
+        with mock.patch("cumulusci.utils.fileutils.FSResource.open", op):
             with mock.patch("yaml.safe_dump") as yaml_mock:
                 task()
 
-            m.assert_any_call("resto.yml", "w")
+            op.assert_any_call("w")
             yaml_mock.assert_called_once_with(
-                {"Test__c:TestTDTM": True, "Test__c:Test": True}, m.return_value
+                {"Test__c:TestTDTM": True, "Test__c:Test": True}, op.return_value
             )
 
         assert len(responses.calls) == 4

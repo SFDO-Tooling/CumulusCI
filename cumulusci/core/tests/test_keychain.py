@@ -220,11 +220,13 @@ class TestBaseProjectKeychain(ProjectKeychainTestMixin):
         org_config = keychain.set_org.call_args[0][0]
         self.assertEqual(3, org_config.days)
 
-    def test_remove_org(self):
+    @mock.patch("cumulusci.core.keychain.base_project_keychain.cleanup_org_cache_dirs")
+    def test_remove_org(self, cleanup_org_cache_dirs):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)
         keychain.remove_org("test")
         self.assertNotIn("test", keychain.orgs)
+        assert cleanup_org_cache_dirs.called_once_with(keychain, self.project_config)
 
 
 class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
@@ -471,11 +473,13 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain._load_file(self.tempdir_home, "config", "from_file")
         self.assertEqual("foo", keychain.config["from_file"])
 
-    def test_remove_org(self):
+    @mock.patch("cumulusci.core.utils.cleanup_org_cache_dirs")
+    def test_remove_org(self, cleanup_org_cache_dirs):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)
         keychain.remove_org("test")
         self.assertNotIn("test", keychain.orgs)
+        assert cleanup_org_cache_dirs.called_once_with(keychain, self.project_config)
 
     def test_remove_org__not_found(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -512,6 +516,10 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         new_keychain = self.keychain_class(self.project_config, self.key)
         org_config = new_keychain.get_org("test")
         assert org_config.global_org
+
+    def test_cache_dir(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        assert keychain.cache_dir.name == ".cci"
 
     def test_get_default_org__with_files(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -564,3 +572,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         org_config.config["default"] = True
         org_config.save()
         self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
+
+    def test_get_default_org__outside_project(self):
+        keychain = self.keychain_class(self.universal_config, self.key)
+        assert keychain.get_default_org() == (None, None)

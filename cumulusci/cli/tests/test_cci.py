@@ -40,8 +40,7 @@ from cumulusci.utils import temporary_dir
 
 
 def run_click_command(cmd, *args, **kw):
-    """Run a click command with a mock context and injected CCI runtime object.
-    """
+    """Run a click command with a mock context and injected CCI runtime object."""
     runtime = kw.pop("runtime", mock.Mock())
     with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
         with click.Context(command=mock.Mock()):
@@ -78,6 +77,21 @@ class TestCCI(unittest.TestCase):
         cls.environ_mock.stop()
         shutil.rmtree(cls.tempdir)
         assert cls.global_tempdir not in os.environ.get("HOME", "")
+
+    def setUp(self):
+        self.cleanup_org_cache_dirs = mock.Mock(name="cleanup_org_cache_dirs")
+        self.cleanup_org_cache_dirs_cli_patch = mock.patch(
+            "cumulusci.cli.cci.cleanup_org_cache_dirs", self.cleanup_org_cache_dirs
+        )
+        self.cleanup_org_cache_dirs_fileutils_patch = mock.patch(
+            "cumulusci.core.utils.cleanup_org_cache_dirs", self.cleanup_org_cache_dirs
+        )
+        self.cleanup_org_cache_dirs_cli_patch.start()
+        self.cleanup_org_cache_dirs_fileutils_patch.start()
+
+    def tearDown(self):
+        self.cleanup_org_cache_dirs_cli_patch.stop()
+        self.cleanup_org_cache_dirs_fileutils_patch.stop()
 
     def test_get_installed_version(self):
         result = cci.get_installed_version()
@@ -1119,17 +1133,8 @@ Environment Info: Rossian / x68_46
     def test_org_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.universal_config.cli__plain_output = None
-        runtime.keychain.list_orgs.return_value = [
-            "test0",
-            "test1",
-            "test2",
-            "test3",
-            "test4",
-            "test5",
-            "test6",
-        ]
-        runtime.keychain.get_org.side_effect = [
-            ScratchOrgConfig(
+        org_configs = {
+            "test0": ScratchOrgConfig(
                 {
                     "default": True,
                     "scratch": True,
@@ -1140,7 +1145,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test0",
             ),
-            ScratchOrgConfig(
+            "test1": ScratchOrgConfig(
                 {
                     "default": False,
                     "scratch": True,
@@ -1152,7 +1157,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test1",
             ),
-            OrgConfig(
+            "test2": OrgConfig(
                 {
                     "default": False,
                     "scratch": False,
@@ -1164,7 +1169,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test2",
             ),
-            OrgConfig(
+            "test3": OrgConfig(
                 {
                     "default": False,
                     "scratch": False,
@@ -1176,7 +1181,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test3",
             ),
-            OrgConfig(
+            "test4": OrgConfig(
                 {
                     "default": False,
                     "scratch": False,
@@ -1187,7 +1192,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test4",
             ),
-            OrgConfig(
+            "test5": OrgConfig(
                 {
                     "default": False,
                     "scratch": True,
@@ -1199,7 +1204,7 @@ Environment Info: Rossian / x68_46
                 },
                 "test5",
             ),
-            OrgConfig(
+            "test6": OrgConfig(
                 {
                     "default": False,
                     "scratch": True,
@@ -1210,7 +1215,11 @@ Environment Info: Rossian / x68_46
                 },
                 "test6",
             ),
-        ]
+        }
+
+        runtime.keychain.list_orgs.return_value = list(org_configs.keys())
+        runtime.keychain.get_org = lambda orgname: org_configs[orgname]
+        runtime.project_config.cache_dir = Path("does_not_possibly_exist")
 
         runtime.keychain.get_default_org.return_value = (
             "test0",
@@ -1255,6 +1264,7 @@ Environment Info: Rossian / x68_46
 
         self.assertIn(scratch_table_call, cli_tbl.call_args_list)
         self.assertIn(connected_table_call, cli_tbl.call_args_list)
+        self.cleanup_org_cache_dirs.assert_called_once()
 
     @mock.patch("click.echo")
     def test_org_prune(self, echo):
@@ -1984,7 +1994,7 @@ Environment Info: Rossian / x68_46
 
     def test_flow_run_o_error(self):
         org_config = mock.Mock(scratch=True, config={})
-        runtime = CliRuntime(config={"noop": {}}, load_keychain=False,)
+        runtime = CliRuntime(config={"noop": {}}, load_keychain=False)
         runtime.get_org = mock.Mock(return_value=("test", org_config))
 
         with pytest.raises(click.UsageError) as e:
@@ -2001,7 +2011,9 @@ Environment Info: Rossian / x68_46
             )
         assert "-o" in str(e.value)
 
-    def test_flow_run_delete_non_scratch(self,):
+    def test_flow_run_delete_non_scratch(
+        self,
+    ):
         org_config = mock.Mock(scratch=False)
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)
@@ -2060,31 +2072,34 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     def test_error_info_no_logfile_present(self, log_path, echo):
         log_path.is_file.return_value = False
-        run_click_command(cci.error_info, max_lines=30)
+        run_click_command(cci.error_info)
 
         echo.assert_called_once_with(f"No logfile found at: {cci.CCI_LOGFILE_PATH}")
 
     @mock.patch("cumulusci.cli.cci.click.echo")
-    @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
-    def test_error_info(self, log_path, echo):
-        log_path.is_file.return_value = True
-        log_path.read_text.return_value = (
-            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
+    def test_error_info(self, echo):
+        with temporary_dir() as path:
+            logfile = Path(path) / "cci.log"
+            logfile.write_text(
+                "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n\u2603",
+                encoding="utf-8",
+            )
+            with mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH", logfile):
+                run_click_command(cci.error_info)
+        echo.assert_called_once_with(
+            "\nTraceback (most recent call last):\n1\n2\n3\n\u2603"
         )
-
-        run_click_command(cci.error_info, max_lines=30)
-        echo.assert_called_once_with("\nTraceback (most recent call last):\n1\n2\n3\n4")
 
     @mock.patch("cumulusci.cli.cci.click.echo")
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
-    def test_error_info_output_less(self, log_path, echo):
+    def test_error_info__output_less(self, log_path, echo):
         log_path.is_file.return_value = True
         log_path.read_text.return_value = (
             "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
         )
 
         run_click_command(cci.error_info, max_lines=3)
-        echo.assert_called_once_with("\n1\n2\n3\n4")
+        echo.assert_called_once_with("\n2\n3\n4")
 
     def test_lines_from_traceback_no_traceback(self):
         output = cci.lines_from_traceback("test_content", 10)

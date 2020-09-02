@@ -522,14 +522,12 @@ tasks:
         group: NPSP/EDA
         options:
             active: False
-            restore_file: trigger_status.yml
     restore_tdtm_trigger_handlers:
         class_path: cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
         description: "Restore status of TDTM trigger handlers"
         group: NPSP/EDA
         options:
             restore: True
-            restore_file: trigger_status.yml
 
 flows:
     ci_beta:
