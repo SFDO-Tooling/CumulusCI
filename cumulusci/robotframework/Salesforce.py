@@ -567,6 +567,7 @@ class Salesforce(object):
                 break
         self.selenium.set_focus_to_element(menu_locator)
         self._jsclick(menu_locator)
+        self.wait_for_aura()
 
     def _get_input_field_locator(self, name):
         """Given an input field label, return a locator for the related input field
@@ -604,8 +605,7 @@ class Salesforce(object):
         self._focus(field)
         if field.get_attribute("value"):
             self._clear(field)
-        actions = ActionChains(self.selenium.driver)
-        actions.send_keys_to_element(field, value).perform()
+        field.send_keys(value)
 
     def _focus(self, element):
         """Set focus to an element
