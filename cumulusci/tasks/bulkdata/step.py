@@ -432,7 +432,6 @@ class RestApiDmlOperation(BaseDmlOperation):
             if self.operation is DataOperationType.INSERT:
                 r = {k: r[k] for k in r if r[k] is not None and r[k] != ""}
 
-            print(r)
             r["attributes"] = {"type": self.sobject}
             return r
 
