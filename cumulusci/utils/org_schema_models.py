@@ -1,3 +1,5 @@
+from typing import Mapping, Sequence
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Table
 from sqlalchemy.orm import relationship
@@ -6,6 +8,56 @@ import sqlalchemy.types as types
 from sqlalchemy import PrimaryKeyConstraint
 
 Base = declarative_base()
+
+# TODO: try subclassing or a mixin
+
+
+class SpecializedType(types.TypeDecorator):
+    impl = types.PickleType
+
+    def copy(self, **kw):
+        return self.__class__(self.impl.length)
+
+
+class SequenceType(types.TypeDecorator):
+    """Prefixes Unicode values with "PREFIX:" on the way in and
+    strips it off on the way out.
+    """
+
+    impl = types.PickleType
+
+    def process_bind_param(self, value, dialect):
+        assert isinstance(value, Sequence)
+        if value == []:
+            return None
+        return tuple(value)
+
+    def process_result_value(self, value, dialect):
+        if not value:
+            return ()
+        return value
+
+    def copy(self, **kw):
+        return self.__class__(self.impl.length)
+
+
+class MappingType(types.TypeDecorator):
+
+    impl = types.PickleType
+
+    def process_bind_param(self, value, dialect):
+        assert isinstance(value, Mapping)
+        if value == {}:
+            return None
+        return value
+
+    def process_result_value(self, value, dialect):
+        if not value:
+            return {}
+        return value
+
+    def copy(self, **kw):
+        return MappingType(self.impl.length)
 
 
 class OrgSchemaModelMixin:
@@ -16,7 +68,19 @@ class OrgSchemaModelMixin:
             raise KeyError(attr)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} {self.name}>"
+        fields = self.__dict__.copy()
+        name = fields.pop("name", "<UNNAMED>")
+        fields.pop("_sa_instance_state")
+        # fields.pop(_sa_)
+        return f"<{self.__class__.__name__} {name} {fields}>"
+
+    def __eq__(self, other):
+        "Useful mostly for unit tests"
+        my_state = self.__dict__.copy()
+        my_state.pop("_sa_instance_state")
+        other_state = other.__dict__.copy()
+        other_state.pop("_sa_instance_state", None)
+        return my_state == other_state
 
 
 class SObject(OrgSchemaModelMixin, Base):
@@ -24,7 +88,7 @@ class SObject(OrgSchemaModelMixin, Base):
     # id = Column(Integer, primary_key=True)
     name = Column(String, primary_key=True, sqlite_on_conflict_primary_key="REPLACE")
     activateable = Column(Boolean)
-    childRelationships = Column(types.PickleType)
+    childRelationships = Column(SequenceType)
     compactLayoutable = Column(Boolean)
     createable = Column(Boolean)
     custom = Column(Boolean)
@@ -52,10 +116,10 @@ class SObject(OrgSchemaModelMixin, Base):
     lookupLayoutable = Column(String)
     mergeable = Column(Boolean)
     mruEnabled = Column(Boolean)
-    namedLayoutInfos = Column(types.PickleType)
+    namedLayoutInfos = Column(SequenceType)
     networkScopeFieldName = Column(String)
     queryable = Column(Boolean)
-    recordTypeInfos = Column(types.PickleType)
+    recordTypeInfos = Column(SequenceType)
     replicateable = Column(Boolean)
     retrieveable = Column(Boolean)
     searchLayoutable = Column(Boolean)
@@ -64,9 +128,9 @@ class SObject(OrgSchemaModelMixin, Base):
     triggerable = Column(Boolean)
     undeletable = Column(Boolean)
     updateable = Column(Boolean)
-    urls = Column(types.PickleType)
-    supportedScopes = Column(types.PickleType)
-    actionOverrides = Column(types.PickleType)
+    urls = Column(MappingType)
+    supportedScopes = Column(SequenceType)
+    actionOverrides = Column(SequenceType)
 
 
 field_references = Table(

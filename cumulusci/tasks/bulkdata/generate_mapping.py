@@ -7,7 +7,7 @@ import yaml
 from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.utils.org_schema import get_org_schema
+from cumulusci.utils.org_schema import get_org_schema, Field
 
 # FIXME: Investigate why it creates RecordTyped more aggessively than the old code
 
@@ -139,7 +139,7 @@ class GenerateMapping(BaseSalesforceApiTask):
 
     def _build_schema(self, org_schema):
         """Convert self.mapping_objects into a schema, including field details and interobject references,
-        in self.schema and self.refs"""
+        in self.simple_schema and self.refs"""
 
         # Now, find all the fields we need to include.
         # For custom objects, we include all custom fields. This includes custom objects
@@ -147,10 +147,10 @@ class GenerateMapping(BaseSalesforceApiTask):
         # For standard objects, we include all custom fields, all required standard fields,
         # and master-detail relationships. Required means createable and not nillable.
         # In all cases, ensure that RecordTypeId is included if and only if there are Record Types
-        self.schema = {}
+        self.simple_schema = {}
         self.refs = defaultdict(lambda: defaultdict(dict))
         for obj in self.mapping_objects:
-            self.schema[obj] = {}
+            self.simple_schema[obj] = {}
 
             for field in org_schema[obj]["fields"].values():
                 if any(
@@ -162,27 +162,30 @@ class GenerateMapping(BaseSalesforceApiTask):
                     ]
                 ):
                     if self._is_field_mappable(obj, field):
-                        self.schema[obj][field["name"]] = field
+                        self.simple_schema[obj][field["name"]] = field
 
                         if field["type"] == "reference":
                             for target in field["referenceTo"]:
                                 # We've already vetted that this field is referencing
                                 # included objects, via `_is_field_mappable()`
                                 if target != obj:
-                                    self.refs[obj][target][field["name"]] = FieldData(
-                                        field
-                                    )
+                                    self.refs[obj][target][field["name"]] = field
+
+                if field["name"] == "RecordTypeId":
+                    print("RecordTypeInfos", org_schema[obj].recordTypeInfos)
+                    if org_schema[obj].recordTypeInfos:
+                        print(len(org_schema[obj].recordTypeInfos) > 1)
                 if (
                     field["name"] == "RecordTypeId"
                     and org_schema[obj].recordTypeInfos
                     and len(org_schema[obj].recordTypeInfos) > 1
                 ):
-                    # "Master" is included even if no RTs.
-                    self.schema[obj][field["name"]] = field
+                    # "Master" is included even if no RTs.c
+                    self.simple_schema[obj][field["name"]] = field
 
     def _build_mapping(self):
-        """Output self.schema in mapping file format by constructing a dict and serializing to YAML"""
-        objs = list(self.schema.keys())
+        """Output self.simple_schema in mapping file format by constructing a dict and serializing to YAML"""
+        objs = list(self.simple_schema.keys())
 
         stack = self._split_dependencies(objs, self.refs)
         ns = self.project_config.project__package__namespace
@@ -203,7 +206,7 @@ class GenerateMapping(BaseSalesforceApiTask):
             self.mapping[key]["sf_object"] = obj
             fields = []
             lookups = []
-            for field in self.schema[orig_obj].values():
+            for field in self.simple_schema[orig_obj].values():
                 if field["type"] == "reference" and field["name"] != "RecordTypeId":
                     # For lookups, namespace stripping takes place below.
                     lookups.append(field["name"])
@@ -226,7 +229,9 @@ class GenerateMapping(BaseSalesforceApiTask):
                         if strip_namespace(orig_field) not in lookups
                         else orig_field
                     )
-                    referenceTo = self.schema[orig_obj][orig_field]["referenceTo"]
+                    referenceTo = self.simple_schema[orig_obj][orig_field][
+                        "referenceTo"
+                    ]
 
                     if len(referenceTo) > 1:  # Polymorphic lookup
                         self.logger.warning(
@@ -336,11 +341,13 @@ class GenerateMapping(BaseSalesforceApiTask):
             show_choices=True,
         )
 
-    def _is_any_custom_api_name(self, api_name):
+    def _is_any_custom_api_name(self, api_name: str):
         """True if the entity name is custom (including any package)."""
         return api_name.endswith("__c")
 
-    def _is_our_custom_api_name(self, api_name):
+    from pysnooper import snoop
+
+    def _is_our_custom_api_name(self, api_name: str):
         """True if the entity name is custom and has our namespace prefix (if we have one)
         or if the entity does not have a namespace"""
         return self._is_any_custom_api_name(api_name) and (
@@ -429,18 +436,8 @@ class GenerateMapping(BaseSalesforceApiTask):
         )
 
 
-class FieldData:
-    nillable: bool
-
-    def __init__(self, describe_data: dict):
-        self.nillable = describe_data.nillable
-
-    def __eq__(self, other: "FieldData"):
-        return self.__dict__ == other.__dict__
-
-
 def only_has_soft_dependencies(
-    sobj: str, obj_dependencies: Dict[str, Dict[str, FieldData]]
+    sobj: str, obj_dependencies: Dict[str, Dict[str, Field]]
 ):
     for target_obj, field_deps in obj_dependencies.items():
         for field_name, field_data in field_deps.items():

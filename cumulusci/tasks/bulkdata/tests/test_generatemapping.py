@@ -1,18 +1,97 @@
-import json
 import unittest
 from unittest import mock
 import responses
 import yaml
 from tempfile import TemporaryDirectory
 from pathlib import Path
+from contextlib import contextmanager
 
 import pytest
 
 from cumulusci.tasks.bulkdata import GenerateMapping
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.bulkdata.generate_mapping import FieldData
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
+
+from cumulusci.utils.org_schema_models import SObject as SQLSObject, Field as SQLField
+
+
+class FakeSchema:
+    def __init__(self, models=None, describe_data=None):
+        if isinstance(models, list):
+            models = {model["name"] for model in models}
+            print("List")
+        elif models is None:
+            assert describe_data is not None
+            models = describe_data_2_fake_models(describe_data)
+            print("desribe_data")
+        self.models = models
+        self.keys = self.models.keys
+        self.items = self.models.items
+
+    def __getitem__(self, name):
+        return self.models[name]
+
+    def __enter__(self, *args, **kwargs):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        pass
+
+
+class FakeModelObject:
+    def __init__(self, dct=None, **kwargs):
+        self.__dict__.update(dct or kwargs)
+
+    def __getitem__(self, name):
+        return self.__dict__[name]
+
+    def __iter__(self):
+        return iter(self.__dict__.keys())
+
+    # def _new_state_if_none(self, *args, **kwargs):
+    #     return None
+
+    def __setattr__(self, name, value):
+        self.__dict__[name] = value
+
+
+# class _SObject(FakeModelObject):
+#     def __init__(self, name, fields, **kwargs):
+#         if isinstance(fields, list):
+#             fields = {field["name"]: field for field in fields}
+#         FakeModelObject.__init__(
+#             self, name=name, fields=fields, customSetting=False, **kwargs
+#         )
+
+
+def _SObject(name, fields, **kwargs):
+    assert name
+    if isinstance(fields, list):
+        fields = {field["name"]: field for field in fields}
+    return SQLSObject(name=name, fields=fields, **kwargs)
+
+
+# class _Field(FakeModelObject):
+#     def __init__(self, name: str, **kwargs):
+#         FakeModelObject.__init__(self, name=name, **kwargs)
+
+
+def _Field(name: str, dct=None, **kwargs):
+    dct = dct or {}
+    kwargs.update(kwargs)
+    return SQLField(name=name, **kwargs)
+
+
+def describe_data_2_fake_models(describe_data):
+    def fields_2_fake_model(fields):
+        return {field.name: field for field in fields}
+
+    models = {
+        name: _SObject(name, **{**m, "fields": fields_2_fake_model(m["fields"])})
+        for name, m in describe_data.items()
+    }
+    return models
 
 
 class TestMappingGenerator(unittest.TestCase):
@@ -60,11 +139,11 @@ class TestMappingGenerator(unittest.TestCase):
         )
         t.project_config.project__package__api_version = "45.0"
 
-        self._prepare_describe_mock(t, {})
-        t._init_task()
+        with self._prepare_describe_mock(t, {}):
+            t._init_task()
 
         with pytest.raises(TaskOptionsError):
-            t._collect_objects()
+            t._collect_objects({})
 
     def test_is_any_custom_api_name(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
@@ -177,15 +256,17 @@ class TestMappingGenerator(unittest.TestCase):
 
     def test_has_our_custom_fields(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
-
-        self.assertTrue(t._has_our_custom_fields({"fields": [{"name": "Custom__c"}]}))
+        sobject = _SObject("Blah", [_Field(name="CustomObject__c")])
+        self.assertTrue(t._has_our_custom_fields(sobject))
         self.assertTrue(
             t._has_our_custom_fields(
-                {"fields": [{"name": "Custom__c"}, {"name": "Standard"}]}
+                _SObject("Blah", [_Field("Custom__c"), _Field("Standard")])
             )
         )
-        self.assertFalse(t._has_our_custom_fields({"fields": [{"name": "Standard"}]}))
-        self.assertFalse(t._has_our_custom_fields({"fields": []}))
+        self.assertFalse(
+            t._has_our_custom_fields(_SObject("Blah", [_Field("Standard")]))
+        )
+        self.assertFalse(t._has_our_custom_fields(_SObject("Blah", [])))
 
     def test_is_lookup_to_included_object(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
@@ -208,28 +289,14 @@ class TestMappingGenerator(unittest.TestCase):
             )
         )
 
+    @contextmanager
     def _prepare_describe_mock(self, task, describe_data):
-        responses.add(
-            method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v45.0/sobjects",
-            body=json.dumps(
-                {
-                    "sobjects": [
-                        {"name": s, "customSetting": False} for s in describe_data
-                    ]
-                }
-            ),
-            status=200,
-        )
-        for s in describe_data:
-            body = {"name": s, "customSetting": False}
-            body.update(describe_data[s])
-            responses.add(
-                method="GET",
-                url=f"{task.org_config.instance_url}/services/data/v45.0/sobjects/{s}/describe",
-                body=json.dumps(body),
-                status=200,
-            )
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.generate_mapping.get_org_schema",
+            lambda *args, **kwargs: fake_schema,
+        ):
+            fake_schema = FakeSchema(describe_data=describe_data)
+            yield fake_schema
 
     def _mock_field(self, name, field_type="string", **kwargs):
         field_data = {
@@ -240,7 +307,7 @@ class TestMappingGenerator(unittest.TestCase):
             "label": name,
         }
         field_data.update(kwargs)
-        return field_data
+        return _Field(**field_data)
 
     @responses.activate
     def test_run_task(self):
@@ -263,8 +330,7 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
 
-        self._prepare_describe_mock(t, describe_data)
-        with temporary_dir():
+        with temporary_dir(), self._prepare_describe_mock(t, describe_data):
             t()
 
             with open("mapping.yaml", "r") as fh:
@@ -299,9 +365,9 @@ class TestMappingGenerator(unittest.TestCase):
             "User": {"fields": [self._mock_field("Name")]},
         }
 
-        self._prepare_describe_mock(t, describe_data)
-        t._init_task()
-        t._collect_objects()
+        with self._prepare_describe_mock(t, describe_data) as schema:
+            t._init_task()
+            t._collect_objects(schema)
 
         self.assertEqual(set(["Account", "Custom__c"]), set(t.mapping_objects))
 
@@ -323,9 +389,9 @@ class TestMappingGenerator(unittest.TestCase):
             "User": {"fields": [self._mock_field("Name")]},
         }
 
-        self._prepare_describe_mock(t, describe_data)
-        t._init_task()
-        t._collect_objects()
+        with self._prepare_describe_mock(t, describe_data) as schema:
+            t._init_task()
+            t._collect_objects(schema)
 
         self.assertEqual(
             set(["Account", "Custom__c", "Contact", "User"]), set(t.mapping_objects)
@@ -350,9 +416,9 @@ class TestMappingGenerator(unittest.TestCase):
             "User": {"fields": [self._mock_field("Name")]},
         }
 
-        self._prepare_describe_mock(t, describe_data)
-        t._init_task()
-        t._collect_objects()
+        with self._prepare_describe_mock(t, describe_data) as schema:
+            t._init_task()
+            t._collect_objects(schema)
         assert len(t.mapping_objects) == 3
 
         self.assertEqual(
@@ -383,9 +449,9 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
 
-        self._prepare_describe_mock(t, describe_data)
-        t._init_task()
-        t._collect_objects()
+        with self._prepare_describe_mock(t, describe_data) as schema:
+            t._init_task()
+            t._collect_objects(schema)
 
         self.assertEqual(
             set(["Account", "Custom__c", "Contact"]), set(t.mapping_objects)
@@ -415,9 +481,9 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
 
-        self._prepare_describe_mock(t, describe_data)
-        t._init_task()
-        t._collect_objects()
+        with self._prepare_describe_mock(t, describe_data) as schema:
+            t._init_task()
+            t._collect_objects(schema)
 
         self.assertEqual(
             set(["Account", "OpportunityLineItem", "Opportunity"]),
@@ -454,9 +520,9 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
 
-        self._prepare_describe_mock(t, describe_data)
-        t._init_task()
-        t._collect_objects()
+        with self._prepare_describe_mock(t, describe_data) as schema:
+            t._init_task()
+            t._collect_objects(schema)
 
         self.assertEqual(
             set(["Account", "OpportunityLineItem", "Opportunity"]),
@@ -467,9 +533,9 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         t.mapping_objects = ["Account", "Opportunity", "Child__c"]
-        stage_name = self._mock_field("StageName")
-        stage_name["nillable"] = False
-        t.describes = {
+        stage_name = self._mock_field("StageName", {"nillable": False})
+
+        describe_data = {
             "Account": {
                 "fields": [self._mock_field("Name"), self._mock_field("Industry")]
             },
@@ -482,8 +548,9 @@ class TestMappingGenerator(unittest.TestCase):
                 ]
             },
         }
-
-        t._build_schema()
+        with self._prepare_describe_mock(t, describe_data) as org_schema:
+            t._build_schema(org_schema)
+        self.maxDiff = None
         self.assertEqual(
             {
                 "Account": {"Name": self._mock_field("Name")},
@@ -496,14 +563,14 @@ class TestMappingGenerator(unittest.TestCase):
                     "Test__c": self._mock_field("Test__c"),
                 },
             },
-            t.schema,
+            t.simple_schema,
         )
 
     def test_build_schema__tracks_references(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         t.mapping_objects = ["Account", "Opportunity"]
-        t.describes = {
+        describe_data = {
             "Account": {"fields": [self._mock_field("Name")]},
             "Opportunity": {
                 "fields": [
@@ -517,11 +584,15 @@ class TestMappingGenerator(unittest.TestCase):
                 ]
             },
         }
-
-        t._build_schema()
+        with self._prepare_describe_mock(t, describe_data) as org_schema:
+            t._build_schema(org_schema)
 
         self.assertEqual(
-            {"Opportunity": {"Account": {"AccountId": FieldData({"nillable": True})}}},
+            {
+                "Opportunity": {
+                    "Account": {"AccountId": _Field("AccountId", nillable=True)}
+                }
+            },
             dict(t.refs),
         )
 
@@ -529,7 +600,7 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         t.mapping_objects = ["Account", "Opportunity"]
-        t.describes = {
+        describe_data = {
             "Account": {"fields": [self._mock_field("Name")]},
             "Opportunity": {
                 "fields": [
@@ -545,17 +616,17 @@ class TestMappingGenerator(unittest.TestCase):
                 "recordTypeInfos": [{"Name": "Master"}, {"Name": "Donation"}],
             },
         }
-
-        t._build_schema()
-        self.assertIn("RecordTypeId", t.schema["Opportunity"])
-        self.assertNotIn("RecordTypeId", t.schema["Account"])
+        with self._prepare_describe_mock(t, describe_data) as org_schema:
+            t._build_schema(org_schema)
+        self.assertIn("RecordTypeId", t.simple_schema["Opportunity"])
+        self.assertNotIn("RecordTypeId", t.simple_schema["Account"])
 
     @mock.patch("click.prompt")
     def test_build_mapping(self, prompt):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
         prompt.return_value = "Account"
 
-        t.schema = {
+        t.simple_schema = {
             "Account": {
                 "Name": self._mock_field("Name"),
                 "Dependent__c": self._mock_field(
@@ -573,8 +644,12 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
         t.refs = {
-            "Child__c": {"Account": {"Account__c": FieldData({"nillable": True})}},
-            "Account": {"Child__c": {"Dependent__c": FieldData({"nillable": True})}},
+            "Child__c": {
+                "Account": {"Account__c": _Field("Account__c", {"nillable": True})}
+            },
+            "Account": {
+                "Child__c": {"Dependent__c": _Field("Dependent__c", {"nillable": True})}
+            },
         }
 
         t._build_mapping()
@@ -607,7 +682,7 @@ class TestMappingGenerator(unittest.TestCase):
         t.project_config.project__package__namespace = "ns"
         prompt.return_value = "ns__Parent__c"
 
-        t.schema = {
+        t.simple_schema = {
             "ns__Parent__c": {
                 "Name": self._mock_field("Name"),
                 "ns__Dependent__c": self._mock_field(
@@ -630,10 +705,14 @@ class TestMappingGenerator(unittest.TestCase):
         }
         t.refs = {
             "ns__Child__c": {
-                "ns__Parent__c": {"ns__Parent__c": FieldData({"nillable": False})}
+                "ns__Parent__c": {
+                    "ns__Parent__c": _Field("ns__Parent__c", {"nillable": False})
+                }
             },
             "ns__Parent__c": {
-                "ns__Child__c": {"ns__Dependent__c": FieldData({"nillable": True})}
+                "ns__Child__c": {
+                    "ns__Dependent__c": _Field("ns__Dependent__c", {"nillable": True})
+                }
             },
         }
 
@@ -670,7 +749,7 @@ class TestMappingGenerator(unittest.TestCase):
         t.project_config.project__package__namespace = "ns"
         prompt.return_value = "ns__Parent__c"
 
-        t.schema = {
+        t.simple_schema = {
             "ns__Parent__c": {"Name": self._mock_field("Name")},
             "ns__Child__c": {
                 "Name": self._mock_field("Name"),
@@ -687,7 +766,11 @@ class TestMappingGenerator(unittest.TestCase):
             },
             "Child__c": {"Name": self._mock_field("Name")},
         }
-        t.refs = {"ns__Child__c": {"ns__Parent__c": {"ns__Parent__c": FieldData({})}}}
+        t.refs = {
+            "ns__Child__c": {
+                "ns__Parent__c": {"ns__Parent__c": _Field("ns__Parent__c", {})}
+            }
+        }
 
         t._build_mapping()
 
@@ -721,7 +804,7 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         t.mapping_objects = ["Account", "Contact", "Custom__c"]
-        t.schema = {
+        t.simple_schema = {
             "Account": {"Name": self._mock_field("Name")},
             "Contact": {"Name": self._mock_field("Name")},
             "Custom__c": {
@@ -735,8 +818,8 @@ class TestMappingGenerator(unittest.TestCase):
         }
         t.refs = {
             "Custom__c": {
-                "Account": {"PolyLookup__c": FieldData({})},
-                "Contact": {"PolyLookup__c": FieldData({})},
+                "Account": {"PolyLookup__c": _Field("PolyLookup__c", {})},
+                "Contact": {"PolyLookup__c": _Field("PolyLookup__c", {})},
             }
         }
         t.logger = mock.Mock()
@@ -752,15 +835,15 @@ class TestMappingGenerator(unittest.TestCase):
         stack = t._split_dependencies(
             ["Account", "Contact", "Opportunity", "Custom__c"],
             {
-                "Contact": {"Account": {"AccountId": FieldData({})}},
+                "Contact": {"Account": {"AccountId": _Field("AccountId", {})}},
                 "Opportunity": {
-                    "Account": {"AccountId": FieldData({})},
-                    "Contact": {"Primary_Contact__c": FieldData({})},
+                    "Account": {"AccountId": _Field("AccountId", {})},
+                    "Contact": {"Primary_Contact__c": _Field("Primary_Contact__c", {})},
                 },
                 "Custom__c": {
-                    "Account": {"Account__c": FieldData({})},
-                    "Contact": {"Contact__c": FieldData({})},
-                    "Opportunity": {"Opp__c": FieldData({})},
+                    "Account": {"Account__c": _Field("Account__c", {})},
+                    "Contact": {"Contact__c": _Field("Contact__c", {})},
+                    "Opportunity": {"Opp__c": _Field("Opp__c", {})},
                 },
             },
         )
@@ -779,15 +862,25 @@ class TestMappingGenerator(unittest.TestCase):
                 ["Account", "Contact", "Opportunity", "Custom__c"],
                 {
                     "Account": {
-                        "Contact": {"Primary_Contact__c": FieldData({"nillable": True})}
+                        "Contact": {
+                            "Primary_Contact__c": _Field(
+                                "Primary_Contact__c", {"nillable": True}
+                            )
+                        }
                     },
                     "Contact": {
-                        "Account": {"AccountId": FieldData({"nillable": True})}
+                        "Account": {
+                            "AccountId": _Field("AccountId", {"nillable": True})
+                        }
                     },
                     "Opportunity": {
-                        "Account": {"AccountId": FieldData({"nillable": True})},
+                        "Account": {
+                            "AccountId": _Field("AccountId", {"nillable": True})
+                        },
                         "Contact": {
-                            "Primary_Contact__c": FieldData({"nillable": True})
+                            "Primary_Contact__c": _Field(
+                                "Primary_Contact__c", {"nillable": True}
+                            )
                         },
                     },
                 },
@@ -809,12 +902,22 @@ class TestMappingGenerator(unittest.TestCase):
             ["Account", "Contact", "Opportunity", "Custom__c"],
             {
                 "Account": {
-                    "Contact": {"Primary_Contact__c": FieldData({"nillable": False})}
+                    "Contact": {
+                        "Primary_Contact__c": _Field(
+                            "Primary_Contact__c", {"nillable": False}
+                        )
+                    }
                 },
-                "Contact": {"Account": {"AccountId": FieldData({"nillable": False})}},
+                "Contact": {
+                    "Account": {"AccountId": _Field("AccountId", {"nillable": False})}
+                },
                 "Opportunity": {
-                    "Account": {"AccountId": FieldData({"nillable": False})},
-                    "Contact": {"Primary_Contact__c": FieldData({"nillable": False})},
+                    "Account": {"AccountId": _Field("AccountId", {"nillable": False})},
+                    "Contact": {
+                        "Primary_Contact__c": _Field(
+                            "Primary_Contact__c", {"nillable": False}
+                        )
+                    },
                 },
             },
         )
@@ -836,10 +939,14 @@ class TestMappingGenerator(unittest.TestCase):
             {
                 "Account": {
                     "Custom__c": {
-                        "Non_Nillable_Custom__c": FieldData({"nillable": False})
+                        "Non_Nillable_Custom__c": _Field(
+                            "Non_Nillable_Custom__c", {"nillable": False}
+                        )
                     }
                 },
-                "Custom__c": {"Account": {"AccountId": FieldData({"nillable": False})}},
+                "Custom__c": {
+                    "Account": {"AccountId": _Field("AccountId", {"nillable": False})}
+                },
             },
         )
 
@@ -866,16 +973,22 @@ class TestMappingGenerator(unittest.TestCase):
                 # AccountLike__c despite the cycle
                 "AccountLike__c": {
                     "ContactLike__c": {
-                        "Primary_Contact__c": FieldData({"nillable": False})
+                        "Primary_Contact__c": _Field(
+                            "Primary_Contact__c", nillable=False
+                        )
                     }
                 },
                 "ContactLike__c": {
-                    "AccountLike__c": {"AccountId": FieldData({"nillable": True})}
+                    "AccountLike__c": {
+                        "AccountId": _Field("AccountLike__c", nillable=True)
+                    }
                 },
                 "OpportunityLike__c": {
-                    "AccountLike__c": {"AccountId": FieldData({"nillable": True})},
+                    "AccountLike__c": {
+                        "AccountId": _Field("AccountLike__c", nillable=True)
+                    },
                     "ContactLike__c": {
-                        "Primary_Contact__c": FieldData({"nillable": True})
+                        "Primary_Contact__c": _Field("AccountLike__c", nillable=True)
                     },
                 },
             },
@@ -903,16 +1016,24 @@ class TestMappingGenerator(unittest.TestCase):
                     {
                         "Account": {
                             "Contact": {
-                                "Primary_Contact__c": FieldData({"nillable": True})
+                                "Primary_Contact__c": _Field(
+                                    "Primary_Contact__c", {"nillable": True}
+                                )
                             }
                         },
                         "Contact": {
-                            "Account": {"AccountId": FieldData({"nillable": True})}
+                            "Account": {
+                                "AccountId": _Field("AccountId", {"nillable": True})
+                            }
                         },
                         "Opportunity": {
-                            "Account": {"AccountId": FieldData({"nillable": True})},
+                            "Account": {
+                                "AccountId": _Field("AccountId", {"nillable": True})
+                            },
                             "Contact": {
-                                "Primary_Contact__c": FieldData({"nillable": True})
+                                "Primary_Contact__c": _Field(
+                                    "Primary_Contact__c", {"nillable": True}
+                                )
                             },
                         },
                     },
@@ -934,10 +1055,14 @@ class TestMappingGenerator(unittest.TestCase):
                     ["Account", "Contact", "Opportunity", "Custom__c"],
                     {
                         "Account": {
-                            "Custom__c": {"Custom__c": FieldData({"nillable": False})}
+                            "Custom__c": {
+                                "Custom__c": _Field("Custom__c", {"nillable": False})
+                            }
                         },
                         "Custom__c": {
-                            "Account": {"Account__c": FieldData({"nillable": False})}
+                            "Account": {
+                                "Account__c": _Field("Account__c", {"nillable": False})
+                            }
                         },
                     },
                 )

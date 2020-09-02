@@ -1,3 +1,4 @@
+from itertools import chain
 from concurrent.futures import as_completed
 
 from requests_futures.sessions import FuturesSession
@@ -18,7 +19,7 @@ class ParallelSalesforce:
 
     def async_request(self, path, method, json=None, headers={}):
 
-        headers = {**self.sf.headers, **headers}
+        headers = {**self.sf.headers, **headers, "Accept-Encoding": "gzip"}
         return self.session.request(
             method=method,
             url=self.base_url + path.lstrip("/"),
@@ -57,8 +58,19 @@ class CompositeParallelSalesforce:
             self._do_composite_request(chunk)
             for chunk in chunks(list(requests), self.chunk_size)
         ]
-        objs = (future.result() for future in as_completed(futures))
-        return objs
+
+        def validate(x):
+            if isinstance(x, list):
+                assert "errorCode" not in x[0], x
+            return x
+
+        composite_results = (future.result() for future in as_completed(futures))
+
+        individual_results = chain.from_iterable(
+            validate(result.json())["compositeResponse"] for result in composite_results
+        )
+
+        return individual_results
 
 
 def chunks(lst, n):

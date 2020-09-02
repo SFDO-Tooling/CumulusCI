@@ -2,7 +2,6 @@ from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import gzip
-from itertools import chain
 from collections import defaultdict
 from typing import Optional, Dict
 from email.utils import parsedate
@@ -16,17 +15,6 @@ from cumulusci.utils.org_schema_models import Base, SObject, Field, FileMetadata
 from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
 
 y2k = "Sat, 1 Jan 2000 00:00:01 GMT"
-
-
-def simplify_value(name, value):
-    if value == []:
-        return None
-    elif isinstance(value, (list, dict)):
-        return value
-    elif isinstance(value, (bool, int, str, type(None))):
-        return value
-    else:
-        raise AssertionError(value)
 
 
 def compute_prop_filter(model):
@@ -56,10 +44,11 @@ def unzip_database(gzipfile, outfile):
 class Schema:
     _last_modified_date = None
 
-    def __init__(self, engine):
+    def __init__(self, engine, schema_path):
         self.engine = engine
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
+        self.schema_path = schema_path
 
     @property
     def sobjects(self):
@@ -83,6 +72,13 @@ class Schema:
     def items(self):
         return ((obj.name, obj) for obj in self.session.query(SObject).all())
 
+    def block_writing(self):
+        def closed():
+            raise IOError("Database is not open for writing")
+
+        self.session.__real_commit = self.session.commit
+        self.session.commit = closed
+
     @property
     def last_modified_date(self):
         if not self._last_modified_date:
@@ -97,6 +93,9 @@ class Schema:
                 pass
         return self._last_modified_date
 
+    def __repr__(self):
+        return f"<Schema {self.schema_path} : {self.engine}>"
+
 
 class SchemaDatabasePopulater:
     def __init__(self, schema):
@@ -110,6 +109,8 @@ class SchemaDatabasePopulater:
         sobj_names = [obj["name"] for obj in sobjs]
 
         full_sobjs = deep_describe(sf, last_modified_date, sobj_names)
+        full_sobjs = list(full_sobjs)
+        print("XXX", len(full_sobjs))
 
         Base.metadata.bind = self.engine
         self.metadata.reflect()
@@ -119,6 +120,7 @@ class SchemaDatabasePopulater:
         max_last_modified = (parsedate(last_modified_date), last_modified_date)
         for (sobj_data, last_modified) in full_sobjs:
             fields = sobj_data.pop("fields")
+            sobj_data["actionOverrides"] = []
             self.create_row(SObject, sobj_data)
             for field in fields:
                 field["sobject"] = sobj_data["name"]
@@ -136,10 +138,7 @@ class SchemaDatabasePopulater:
         return
 
     def create_row(self, model, valuesdict):
-        values = {
-            name: simplify_value(name, value) for name, value in valuesdict.items()
-        }
-        self.buffered_session.write_single_row(model.__tablename__, values)
+        self.buffered_session.write_single_row(model.__tablename__, valuesdict)
 
     def create_rows(self, model, dicts):
         for dict in dicts:
@@ -179,13 +178,6 @@ class BufferedSession:
 
     def flush(self):
         for tablename, insert_statement in self.insert_statements.items():
-
-            # Make sure every row has the same records per SQLAlchemy's rules
-
-            # According to the SQL Alchemy docs, every dictionary in a set must
-            # have the same keys.
-
-            # This means that the INSERT statement will be more bloated but it
             # seems much more efficient than line-by-line inserts.
             if self.buffered_rows[tablename]:
                 self.session.execute(insert_statement, self.buffered_rows[tablename])
@@ -228,7 +220,7 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                 try:
                     engine = create_engine(f"sqlite:///{str(tempfile)}")
 
-                    schema = Schema(engine)
+                    schema = Schema(engine, schema_path)
                     schema.from_cache = True
                 except Exception as e:
                     logger.warning(
@@ -240,39 +232,22 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                 engine = create_engine(f"sqlite:///{str(tempfile)}")
                 Base.metadata.bind = engine
                 Base.metadata.create_all()
-                schema = Schema(engine)
+                schema = Schema(engine, schema_path)
                 schema.from_cache = False
 
             SchemaDatabasePopulater(schema).cache(
                 sf, schema.last_modified_date or y2k, logger,
             )
+            schema.block_writing()
             # save a gzipped copy for later
             zip_database(tempfile, schema_path)
             yield schema
 
 
-def _cache_org_schema(schema_path: Path, sf, logger):
-    if schema_path.suffix != ".gz":
-        schema = Schema(schema_path)
-        schema._fill_cache(sf, logger)
-        return schema
-    else:
-        with TemporaryDirectory() as tempdir:
-            tempfile = Path(tempdir) / "temp_org_schema.db"
-            with Schema(tempfile) as schema:
-                schema._fill_cache(sf, logger)
-
-            with tempfile.open("rb") as db, gzip.GzipFile(
-                fileobj=schema_path.open("wb")
-            ) as gzipped:
-                gzipped.write(db.read())
-            return Schema(schema_path)
-
-
 def deep_describe(sf, last_modified_date, objs):
     last_modified_date = last_modified_date or y2k
     with CompositeParallelSalesforce(sf, max_workers=8) as cpsf:
-        results = cpsf.composite_requests(
+        responses = cpsf.composite_requests(
             (
                 {
                     "method": "GET",
@@ -284,34 +259,17 @@ def deep_describe(sf, last_modified_date, objs):
             )
         )
 
-        def validate(x):
-            if isinstance(x, list):
-                assert "errorCode" not in x[0], x
-            return x
-
-        sobjects = chain.from_iterable(
-            validate(result.json())["compositeResponse"] for result in results
-        )
         changes = (
-            (record["body"], record["httpHeaders"]["Last-Modified"])
-            for record in sobjects
-            if record["httpStatusCode"] == 200
+            (response["body"], response["httpHeaders"]["Last-Modified"])
+            for response in responses
+            if response["httpStatusCode"] == 200
         )
         yield from changes
 
 
-if __name__ == "__main__":
-    import logging
-
-    logging.basicConfig(level=logging.INFO)
-
-    def test(schema):
-        print(schema["Account"].fields["Id"].label)
-        print(list(schema.keys())[0:10])
-        print(list(schema.values())[0:10])
-        assert "npsp__Foo__c" not in schema
-        assert "Contact" in schema
-        print(schema.sobjects.filter(SObject.name.like(r"%\_\_c")).all())
+if __name__ == "__main__":  # pragma: no cover
+    # Run this to do a smoke test of the basic functionality of saving a schema
+    # from your org named "qa"
 
     def init_cci():
         from cumulusci.cli.runtime import CliRuntime
@@ -326,9 +284,4 @@ if __name__ == "__main__":
     sf, org_config, runtime = init_cci()
 
     with get_org_schema(sf, org_config, force_recache=True) as schema:
-        print(schema.from_cache)
-        test(schema)
-
-    with get_org_schema(sf, org_config) as schema:
-        print(schema.from_cache)
-        test(schema)
+        print(str([obj for obj in schema.keys()])[0:100], "...")
