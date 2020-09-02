@@ -143,7 +143,7 @@ class Command(BaseTask):
 
 
 class SalesforceCommand(Command):
-    """ Execute a Command with SF credentials provided on the environment.
+    """Execute a Command with SF credentials provided on the environment.
 
     Provides:
      * SF_INSTANCE_URL

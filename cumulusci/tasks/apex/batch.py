@@ -12,8 +12,8 @@ FAILED_STATUSES = ["Failed"]
 
 
 class BatchApexWait(BaseSalesforceApiTask):
-    """ BatchApexWait polls an org until the latest batch job
-        for an apex class completes or fails."""
+    """BatchApexWait polls an org until the latest batch job
+    for an apex class completes or fails."""
 
     name = "BatchApexWait"
     original_created_date = None

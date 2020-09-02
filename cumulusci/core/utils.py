@@ -128,11 +128,11 @@ def merge_config(configs):
 
 
 def dictmerge(a, b, name=None):
-    """ Deeply merge two ``dict``s that consist of lists, dicts, and scalars.
+    """Deeply merge two ``dict``s that consist of lists, dicts, and scalars.
     This function (recursively) merges ``b`` INTO ``a``, does not copy any values, and returns ``a``.
 
     based on https://stackoverflow.com/a/15836901/5042831
-    NOTE: tuples and arbitrary objects are NOT handled and will raise TypeError """
+    NOTE: tuples and arbitrary objects are NOT handled and will raise TypeError"""
 
     key = None
 

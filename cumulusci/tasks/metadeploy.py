@@ -42,8 +42,7 @@ class BaseMetaDeployTask(BaseTask):
 
 
 class Publish(BaseMetaDeployTask):
-    """Publishes installation plans to MetaDeploy.
-    """
+    """Publishes installation plans to MetaDeploy."""
 
     task_options = {
         "tag": {"description": "Name of the git tag to publish"},
@@ -259,8 +258,7 @@ class Publish(BaseMetaDeployTask):
         return product
 
     def _find_or_create_version(self, product):
-        """Create a Version in MetaDeploy if it doesn't already exist
-        """
+        """Create a Version in MetaDeploy if it doesn't already exist"""
         if self.tag:
             label = self.project_config.get_version_for_tag(self.tag)
         else:

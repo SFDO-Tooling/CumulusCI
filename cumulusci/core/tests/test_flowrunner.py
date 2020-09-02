@@ -242,8 +242,8 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             FlowCoordinator(self.project_config, flow_config, name="test")
 
     def test_init__task_not_found(self):
-        """ A flow with reference to a task that doesn't exist in the
-        project will throw a TaskNotFoundError """
+        """A flow with reference to a task that doesn't exist in the
+        project will throw a TaskNotFoundError"""
 
         flow_config = FlowConfig(
             {

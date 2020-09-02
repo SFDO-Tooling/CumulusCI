@@ -355,7 +355,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         assert isinstance(project_config, BaseProjectConfig)
         assert pathlib.Path(project_config.repo_root).samefile(
             os.path.join(
-                self.project_config.cache_dir, "projects", "TestRepo", "tag_sha",
+                self.project_config.cache_dir, "projects", "TestRepo", "tag_sha"
             )
         )
 

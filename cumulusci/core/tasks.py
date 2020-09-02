@@ -31,7 +31,7 @@ def stacked_task(task):
 
 
 class BaseTask(object):
-    """ BaseTask provides the core execution logic for a Task
+    """BaseTask provides the core execution logic for a Task
 
     Subclass BaseTask and provide a `_run_task()` method with your
     code.

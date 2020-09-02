@@ -545,10 +545,14 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         IsPersonAccount as 'true' but the org does not have person accounts enabled.
         """
         for mapping in self.mapping.values():
-            if mapping["sf_object"] in (
-                "Account",
-                "Contact",
-            ) and self._db_has_person_accounts_column(mapping):
+            if (
+                mapping["sf_object"]
+                in (
+                    "Account",
+                    "Contact",
+                )
+                and self._db_has_person_accounts_column(mapping)
+            ):
                 table = self.models[mapping.get("table")].__table__
                 if (
                     self.session.query(table)
@@ -561,8 +565,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     )
 
     def _db_has_person_accounts_column(self, mapping):
-        """Returns whether "IsPersonAccount" is a column in mapping's table.
-        """
+        """Returns whether "IsPersonAccount" is a column in mapping's table."""
         return (
             self.models[mapping.get("table")].__table__.columns.get("IsPersonAccount")
             is not None
