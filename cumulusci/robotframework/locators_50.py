@@ -3,6 +3,12 @@ import copy
 
 lex_locators = copy.deepcopy(locators_49.lex_locators)
 
+lex_locators["actions"] = (
+    "//runtime_platform_actions-actions-ribbon//ul"
+    "|"
+    "//ul[contains(concat(' ',normalize-space(@class),' '),' oneActionsRibbon ')]"
+)
+
 lex_locators["object"][
     "button"
 ] = "//div[contains(@class, 'slds-page-header')]//*[self::a[@title='{title}'] or self::button[@name='{title}']]"
