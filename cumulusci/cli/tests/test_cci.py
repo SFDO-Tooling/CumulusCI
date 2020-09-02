@@ -2011,7 +2011,9 @@ Environment Info: Rossian / x68_46
             )
         assert "-o" in str(e.value)
 
-    def test_flow_run_delete_non_scratch(self,):
+    def test_flow_run_delete_non_scratch(
+        self,
+    ):
         org_config = mock.Mock(scratch=False)
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)
