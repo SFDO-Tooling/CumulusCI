@@ -2,7 +2,7 @@ import tempfile
 from datetime import datetime
 
 import github3.exceptions
-from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import GithubException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.github.util import CommitDir
@@ -17,8 +17,12 @@ class PublishSubtree(BaseGithubTask):
             "required": True,
         },
         "version": {
-            "description": "The version number to release.  Also supports latest and latest_beta to look up the latest releases.",
-            "required": True,
+            "description": "The version number to release. "
+            "Also supports latest and latest_beta to look up the latest releases. "
+            "Required if 'ref' is not set."
+        },
+        "ref": {
+            "description": "The git reference to publish.  Takes precedence over 'version'."
         },
         "include": {
             "description": "A list of paths from repo root to include. Directories must end with a trailing slash."
@@ -41,12 +45,13 @@ class PublishSubtree(BaseGithubTask):
                 "include", ["datasets/", "documentation/", "tasks/", "unpackaged/"]
             )
         )
-        if self.options["version"] == "latest":
-            self.options["version"] = str(self.project_config.get_latest_version())
-        elif self.options["version"] == "latest_beta":
+        if self.options.get("version") in ("latest", "latest_beta"):
+            get_beta = self.options["version"] == "latest_beta"
             self.options["version"] = str(
-                self.project_config.get_latest_version(beta=True)
+                self.project_config.get_latest_version(beta=get_beta)
             )
+        if "ref" not in self.options and "version" not in self.options:
+            raise TaskOptionsError("Either `ref` or `version` option is required")
         self.options["create_release"] = process_bool_arg(
             self.options.get("create_release", True)
         )
@@ -64,7 +69,7 @@ class PublishSubtree(BaseGithubTask):
 
     def _run_task(self):
         self.target_repo = self._get_target_repo_api()
-        self.tag_name = self.project_config.get_tag_for_version(self.options["version"])
+        self._set_ref()
 
         with tempfile.TemporaryDirectory() as target:
             self._download_repo_and_extract(target)
@@ -72,10 +77,17 @@ class PublishSubtree(BaseGithubTask):
             if commit and self.options["create_release"]:
                 self._create_release(target, commit.sha)
 
+    def _set_ref(self):
+        if "ref" in self.options:
+            self.ref = self.options["ref"]
+        else:
+            self.tag_name = self.project_config.get_tag_for_version(
+                self.options["version"]
+            )
+            self.ref = f"tags/{self.tag_name}"
+
     def _download_repo_and_extract(self, path):
-        zf = download_extract_github_from_repo(
-            self.get_repo(), ref=f"tags/{self.tag_name}"
-        )
+        zf = download_extract_github_from_repo(self.get_repo(), ref=self.ref)
         included_members = self._filter_namelist(
             includes=self.options["include"], namelist=zf.namelist()
         )
@@ -89,7 +101,9 @@ class PublishSubtree(BaseGithubTask):
 
     def _create_commit(self, path):
         committer = CommitDir(self.target_repo, logger=self.logger)
-        message = f"Publishing release {self.options['version']}"
+        message = f"Published content from ref {self.ref}"
+        if "version" in self.options:
+            message += f'\n\nVersion {self.options["version"]}'
         return committer(
             path,
             self.options["branch"],
