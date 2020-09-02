@@ -935,6 +935,9 @@ flows:
         description: Create a namespaced unlocked package version
         steps:
             1:
+                task: update_package_xml
+                when: project_config.project__source_format != "sfdx"
+            2:
                 task: create_package_version
                 options:
                     package_type: Unlocked
