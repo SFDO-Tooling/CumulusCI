@@ -40,8 +40,7 @@ from cumulusci.utils import temporary_dir
 
 
 def run_click_command(cmd, *args, **kw):
-    """Run a click command with a mock context and injected CCI runtime object.
-    """
+    """Run a click command with a mock context and injected CCI runtime object."""
     runtime = kw.pop("runtime", mock.Mock())
     with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
         with click.Context(command=mock.Mock()):
@@ -85,7 +84,7 @@ class TestCCI(unittest.TestCase):
             "cumulusci.cli.cci.cleanup_org_cache_dirs", self.cleanup_org_cache_dirs
         )
         self.cleanup_org_cache_dirs_fileutils_patch = mock.patch(
-            "cumulusci.core.utils.cleanup_org_cache_dirs", self.cleanup_org_cache_dirs,
+            "cumulusci.core.utils.cleanup_org_cache_dirs", self.cleanup_org_cache_dirs
         )
         self.cleanup_org_cache_dirs_cli_patch.start()
         self.cleanup_org_cache_dirs_fileutils_patch.start()

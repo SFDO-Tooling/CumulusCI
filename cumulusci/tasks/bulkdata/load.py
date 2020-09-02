@@ -561,8 +561,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     )
 
     def _db_has_person_accounts_column(self, mapping):
-        """Returns whether "IsPersonAccount" is a column in mapping's table.
-        """
+        """Returns whether "IsPersonAccount" is a column in mapping's table."""
         return (
             self.models[mapping.get("table")].__table__.columns.get("IsPersonAccount")
             is not None

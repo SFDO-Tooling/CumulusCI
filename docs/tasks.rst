@@ -1692,9 +1692,14 @@ Options
 	 The branch to update in the target repo
 
 ``-o version VERSION``
-	 *Required*
+	 *Optional*
 
-	 The version number to release.  Also supports latest and latest_beta to look up the latest releases.
+	 The version number to release. Also supports latest and latest_beta to look up the latest releases. Required if 'ref' is not set.
+
+``-o ref REF``
+	 *Optional*
+
+	 The git reference to publish.  Takes precedence over 'version'.
 
 ``-o include INCLUDE``
 	 *Optional*

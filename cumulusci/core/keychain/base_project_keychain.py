@@ -68,8 +68,8 @@ class BaseProjectKeychain(BaseConfig):
         pass
 
     def _load_scratch_orgs(self):
-        """ Creates all scratch org configs for the project in the keychain if
-            a keychain org doesn't already exist """
+        """Creates all scratch org configs for the project in the keychain if
+        a keychain org doesn't already exist"""
         current_orgs = self.list_orgs()
         if not self.project_config.orgs__scratch:
             return
@@ -222,7 +222,7 @@ class BaseProjectKeychain(BaseConfig):
         self.services[name] = service_config
 
     def get_service(self, name):
-        """ Retrieve a stored ServiceConfig from the keychain or exception
+        """Retrieve a stored ServiceConfig from the keychain or exception
 
         :param name: the service name to retrieve
         :type name: str

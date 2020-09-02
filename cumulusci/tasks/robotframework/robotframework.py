@@ -163,8 +163,7 @@ class KeywordLogger(object):
 
 
 def patch_statusreporter():
-    """Monkey patch robotframework to do postmortem debugging
-    """
+    """Monkey patch robotframework to do postmortem debugging"""
     from robot.running.statusreporter import StatusReporter
 
     orig_exit = StatusReporter.__exit__

@@ -15,7 +15,7 @@ class TestActivateFlow(unittest.TestCase):
                 "developer_names": [
                     "Auto_Populate_Date_And_Name_On_Program_Engagement",
                     "ape",
-                ],
+                ]
             },
         )
         record_id = "3001F0000009GFwQAM"

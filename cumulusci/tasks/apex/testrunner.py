@@ -78,7 +78,7 @@ WHERE AsyncApexJobId='{}'
 
 
 class RunApexTests(BaseSalesforceApiTask):
-    """ Task to run Apex tests with the Tooling API and report results.
+    """Task to run Apex tests with the Tooling API and report results.
 
     This task optionally supports retrying unit tests that fail due to
     transitory issues or concurrency-related row locks. To enable retries,
@@ -107,8 +107,7 @@ class RunApexTests(BaseSalesforceApiTask):
 
     Some projects' unit tests produce so many concurrency errors that
     it's faster to execute the entire run in serial mode than to use retries.
-    Serial and parallel mode are configured in the scratch org definition file.
-"""
+    Serial and parallel mode are configured in the scratch org definition file."""
 
     api_version = "38.0"
     name = "RunApexTests"

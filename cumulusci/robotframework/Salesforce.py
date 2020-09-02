@@ -239,8 +239,7 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     def load_related_list(self, heading):
-        """Scrolls down until the specified related list loads.
-        """
+        """Scrolls down until the specified related list loads."""
         locator = lex_locators["record"]["related"]["card"].format(heading)
         el = None
         i = 0
@@ -275,7 +274,7 @@ class Salesforce(object):
     def click_related_item_link(self, heading, title):
         """Clicks a link in the related list with the specified heading.
 
-         This keyword will automatically call *Wait until loading is complete*.
+        This keyword will automatically call *Wait until loading is complete*.
         """
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
@@ -361,8 +360,8 @@ class Salesforce(object):
         return driver_ids
 
     def get_current_record_id(self):
-        """ Parses the current url to get the object id of the current record.
-            Expects url format like: [a-zA-Z0-9]{15,18}
+        """Parses the current url to get the object id of the current record.
+        Expects url format like: [a-zA-Z0-9]{15,18}
         """
         url = self.selenium.get_location()
         for part in url.split("/"):
@@ -380,9 +379,9 @@ class Salesforce(object):
         return value
 
     def get_locator(self, path, *args, **kwargs):
-        """ Returns a rendered locator string from the Salesforce lex_locators
-            dictionary.  This can be useful if you want to use an element in
-            a different way than the built in keywords allow.
+        """Returns a rendered locator string from the Salesforce lex_locators
+        dictionary.  This can be useful if you want to use an element in
+        a different way than the built in keywords allow.
         """
         locator = lex_locators
         for key in path.split("."):
@@ -440,15 +439,15 @@ class Salesforce(object):
         self.wait_until_loading_is_complete()
 
     def header_field_should_have_value(self, label):
-        """ Validates that a field in the record header has a text value.
-            NOTE: Use other keywords for non-string value types
+        """Validates that a field in the record header has a text value.
+        NOTE: Use other keywords for non-string value types
         """
         locator = lex_locators["record"]["header"]["field_value"].format(label)
         self.selenium.page_should_contain_element(locator)
 
     def header_field_should_not_have_value(self, label):
-        """ Validates that a field in the record header does not have a value.
-            NOTE: Use other keywords for non-string value types
+        """Validates that a field in the record header does not have a value.
+        NOTE: Use other keywords for non-string value types
         """
         locator = lex_locators["record"]["header"]["field_value"].format(label)
         self.selenium.page_should_not_contain_element(locator)
@@ -541,8 +540,7 @@ class Salesforce(object):
         self._populate_field(locator, value)
 
     def populate_lookup_field(self, name, value):
-        """Enters a value into a lookup field.
-        """
+        """Enters a value into a lookup field."""
         input_locator = self._get_input_field_locator(name)
         menu_locator = lex_locators["object"]["field_lookup_link"].format(value)
 
@@ -963,7 +961,7 @@ class Salesforce(object):
         return self.cumulusci.sf.query_all(query).get("records", [])
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
-        """ Updates a Salesforce object by Id.
+        """Updates a Salesforce object by Id.
 
         The keyword returns the result from the underlying
         simple_salesforce ``insert`` method, which is an HTTP
@@ -986,7 +984,7 @@ class Salesforce(object):
         return obj_class.update(obj_id, kwargs)
 
     def soql_query(self, query):
-        """ Runs a simple SOQL query and returns the dict results
+        """Runs a simple SOQL query and returns the dict results
 
         The _query_ parameter must be a properly quoted SOQL query statement. The
         return value is a dictionary. The dictionary contains the keys
@@ -1011,7 +1009,7 @@ class Salesforce(object):
         return self.cumulusci.sf.query_all(query)
 
     def store_session_record(self, obj_type, obj_id):
-        """ Stores a Salesforce record's Id for use in the *Delete Session Records* keyword.
+        """Stores a Salesforce record's Id for use in the *Delete Session Records* keyword.
 
         This keyword is automatically called by *Salesforce Insert*.
         """
@@ -1165,14 +1163,14 @@ class Salesforce(object):
     def _check_for_login_failure(self):
         """Handle the case where we land on a login screen
 
-           Sometimes we get redirected to a login URL rather than
-           being logged in, and we've yet to figure out precisely why
-           that happens. Experimentation shows that authentication has
-           already happened, so in this case we'll try going back to
-           the instance url rather than the front door servlet.
+        Sometimes we get redirected to a login URL rather than
+        being logged in, and we've yet to figure out precisely why
+        that happens. Experimentation shows that authentication has
+        already happened, so in this case we'll try going back to
+        the instance url rather than the front door servlet.
 
-           Admittedly, this is a bit of a hack, but it's better than
-           never getting past this redirect.
+        Admittedly, this is a bit of a hack, but it's better than
+        never getting past this redirect.
         """
 
         location = self.selenium.get_location()
