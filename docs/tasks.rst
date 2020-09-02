@@ -2248,15 +2248,25 @@ Options
 ------------------------------------------
 
 
-``-o orgs ORGS``
-	 *Required*
-
-	 The path to a file containing one OrgID per line.
-
 ``-o version VERSION``
 	 *Required*
 
 	 The managed package version to push
+
+``-o csv CSV``
+	 *Optional*
+
+	 The path to a CSV file to read.
+
+``-o csv_field_name CSVFIELDNAME``
+	 *Optional*
+
+	 The CSV field name that contains organization IDs. Defaults to 'OrganizationID'
+
+``-o orgs ORGS``
+	 *Optional*
+
+	 The path to a file containing one OrgID per line.
 
 ``-o namespace NAMESPACE``
 	 *Optional*
@@ -2290,17 +2300,27 @@ Options
 ------------------------------------------
 
 
-``-o orgs ORGS``
-	 *Required*
-
-	 The path to a file containing one OrgID per line.
-
-	 Default: push/orgs_qa.txt
-
 ``-o version VERSION``
 	 *Required*
 
 	 The managed package version to push
+
+``-o csv CSV``
+	 *Optional*
+
+	 The path to a CSV file to read.
+
+``-o csv_field_name CSVFIELDNAME``
+	 *Optional*
+
+	 The CSV field name that contains organization IDs. Defaults to 'OrganizationID'
+
+``-o orgs ORGS``
+	 *Optional*
+
+	 The path to a file containing one OrgID per line.
+
+	 Default: push/orgs_qa.txt
 
 ``-o namespace NAMESPACE``
 	 *Optional*
@@ -2378,17 +2398,27 @@ Options
 ------------------------------------------
 
 
-``-o orgs ORGS``
-	 *Required*
-
-	 The path to a file containing one OrgID per line.
-
-	 Default: push/orgs_trial.txt
-
 ``-o version VERSION``
 	 *Required*
 
 	 The managed package version to push
+
+``-o csv CSV``
+	 *Optional*
+
+	 The path to a CSV file to read.
+
+``-o csv_field_name CSVFIELDNAME``
+	 *Optional*
+
+	 The CSV field name that contains organization IDs. Defaults to 'OrganizationID'
+
+``-o orgs ORGS``
+	 *Optional*
+
+	 The path to a file containing one OrgID per line.
+
+	 Default: push/orgs_trial.txt
 
 ``-o namespace NAMESPACE``
 	 *Optional*
@@ -4436,14 +4466,12 @@ Options
 ``-o restore_file RESTOREFILE``
 	 *Optional*
 
-	 Path to the state file to store the current trigger handler state.
-
-	 Default: trigger_status.yml
+	 Path to the state file to store or restore the current trigger handler state. Set to False to discard trigger state information. By default the state is cached in an org-specific directory for later restore.
 
 ``-o restore RESTORE``
 	 *Optional*
 
-	 If True, restore the state of Trigger Handlers to that stored in the restore file.
+	 If True, restore the state of Trigger Handlers to that stored in the (specified or default) restore file.
 
 **restore_tdtm_trigger_handlers**
 ==========================================
@@ -4480,14 +4508,12 @@ Options
 ``-o restore_file RESTOREFILE``
 	 *Optional*
 
-	 Path to the state file to store the current trigger handler state.
-
-	 Default: trigger_status.yml
+	 Path to the state file to store or restore the current trigger handler state. Set to False to discard trigger state information. By default the state is cached in an org-specific directory for later restore.
 
 ``-o restore RESTORE``
 	 *Optional*
 
-	 If True, restore the state of Trigger Handlers to that stored in the restore file.
+	 If True, restore the state of Trigger Handlers to that stored in the (specified or default) restore file.
 
 	 Default: True
 

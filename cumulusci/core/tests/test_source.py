@@ -5,6 +5,7 @@ import pathlib
 import unittest
 import yaml
 import zipfile
+from tempfile import TemporaryDirectory
 
 import pytest
 import responses
@@ -27,6 +28,8 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(universal_config)
         self.project_config.set_keychain(BaseProjectKeychain(self.project_config, None))
+        self.repo_root = TemporaryDirectory()
+        self.project_config.repo_info["root"] = pathlib.Path(self.repo_root.name)
         self.project_config.keychain.set_service(
             "github",
             ServiceConfig(
@@ -37,6 +40,9 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
                 }
             ),
         )
+
+    def tearDown(self):
+        self.repo_root.cleanup()
 
     @responses.activate
     def test_resolve__default(self):
@@ -345,12 +351,13 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         source = GitHubSource(
             self.project_config, {"github": "https://github.com/TestOwner/TestRepo.git"}
         )
-        with temporary_dir() as d:
-            project_config = source.fetch()
-            assert isinstance(project_config, BaseProjectConfig)
-            assert project_config.repo_root == os.path.join(
-                os.path.realpath(d), ".cci", "projects", "TestRepo", "tag_sha"
+        project_config = source.fetch()
+        assert isinstance(project_config, BaseProjectConfig)
+        assert pathlib.Path(project_config.repo_root).samefile(
+            os.path.join(
+                self.project_config.cache_dir, "projects", "TestRepo", "tag_sha",
             )
+        )
 
     @responses.activate
     @mock.patch("cumulusci.core.source.github.download_extract_github")
