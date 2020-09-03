@@ -942,7 +942,6 @@ flows:
                 options:
                     package_type: Unlocked
                     package_name: $project_config.project__package__name Unlocked Feature Test
-                    skip_validation: True
 
     retrieve_scratch:
         description: Retrieves declarative changes made in a scratch org and converts to src directory

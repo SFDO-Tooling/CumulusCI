@@ -6,7 +6,7 @@ import json
 import pathlib
 import zipfile
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.exceptions import DependencyLookupError
@@ -35,10 +35,17 @@ class PackageConfig(BaseModel):
     package_name: str
     description: str = ""
     package_type: PackageTypeEnum
+    org_dependent: bool = False
     namespace: Optional[str]
     branch: Optional[str] = None
     version_name: str
     version_type: VersionTypeEnum = VersionTypeEnum.minor
+
+    @validator("org_dependent")
+    def org_dependent_must_be_unlocked(cls, v, values):
+        if v and values["package_type"] != PackageTypeEnum.unlocked:
+            raise ValueError("Only unlocked packages can be org-dependent.")
+        return v
 
 
 class CreatePackageVersion(BaseSalesforceApiTask):
@@ -47,7 +54,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     If a package named ``package_name`` does not yet exist in the Dev Hub, it will be created.
     """
 
-    api_version = "48.0"
+    api_version = "49.0"
 
     task_options = {
         "package_name": {"description": "Name of package"},
@@ -68,6 +75,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "description": "If true, skip validation of the package version. Default: false. "
             "Skipping validation creates packages more quickly, but they cannot be promoted for release."
         },
+        "org_dependent": {
+            "description": "If true, create an org-dependent unlocked package."
+        },
         "force_upload": {
             "description": "If true, force creating a new package version even if one with the same contents already exists"
         },
@@ -81,6 +91,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             or self.project_config.project__package__name,
             package_type=self.options.get("package_type")
             or self.project_config.project__package__type,
+            org_dependent=self.options.get("org_dependent", False),
             namespace=self.options.get("namespace")
             or self.project_config.project__package__namespace,
             branch=self.project_config.repo_branch,
@@ -164,6 +175,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         query = (
             f"SELECT Id, ContainerOptions FROM Package2 WHERE IsDeprecated = FALSE "
             f"AND ContainerOptions='{package_config.package_type}' "
+            f"AND IsOrgDependent={package_config.org_dependent} "
             f"AND Name='{package_config.package_name}'"
         )
         if package_config.namespace:
@@ -202,6 +214,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package = Package2.create(
             {
                 "ContainerOptions": package_config.package_type,
+                "IsOrgDependent": package_config.org_dependent,
                 "Name": package_config.package_name,
                 "Description": package_config.description,
                 "NamespacePrefix": package_config.namespace,
@@ -258,7 +271,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
             # Get the dependencies for the package
             is_dependency = package_config is not self.package_config
-            if not is_dependency:
+            if not package_config.org_dependent and not is_dependency:
                 self.logger.info("Determining dependencies for package")
                 dependencies = self._get_dependencies()
                 if dependencies:
@@ -457,8 +470,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         return new_dependencies
 
     def _get_unpackaged_pre_dependencies(self, dependencies):
-        """Create package for unpackaged/pre metadata, if necessary
-        """
+        """Create package for unpackaged/pre metadata, if necessary"""
         path = pathlib.Path("unpackaged", "pre")
         if not path.exists():
             return dependencies
