@@ -2,6 +2,51 @@
 History
 =======
 
+3.17.2 (2020-09-03)
+
+Changes:
+
+-  Tasks and automation:
+
+   -  CumulusCI now tries 10 times (instead of 5) to install managed package versions, which helps ameliorate timeouts when new versions are released.
+   -  We added support for CSV files to the ``push_list`` task.
+   -  We added a ``ref`` option to ``github_copy_subtree`` to allow publishing a git reference (commit hash, branch, or tag).
+   -  ``update_dependencies`` deduplicates its package install list, making it possible to handle situations where the same beta package is reached by two dependency paths.
+   -  Changed the ``disable_tdtm_trigger_handlers`` (SetTDTMHandlerStatus) task so that trigger handler state is remembered in the cache directory instead of ``REPO_ROOT``.
+
+-  User experience:
+
+   -  The ``cci error info`` command now defaults to showing the entire traceback when it is more than 30 lines.
+
+-  Robot Framework:
+
+   -  The following robot keywords have been updated to work with Winter '21:
+
+      -  ``Load related list``
+      -  ``Click related list button``
+      -  ``Click related item link``
+      -  ``Click related item popup link``
+      -  ``Go to object home``
+      -  ``Go to object list``
+      -  ``Go to record home``
+      -  ``Populate lookup field``
+
+   -  The keyword ``Load related list`` has been rewritten to be slightly more efficient. It also has a new parameter ``tries`` which can be used if the target is more than 1000 pixels below the bottom of the window.
+
+Issues Closed:
+
+-  Fixed a bug where ``cci error gist`` could throw a UnicodeDecodeError
+   (fixes #1977)
+-  Fixed a bug in ``cci org list`` could throw a TypeError when run
+   outside a project directory (fixes #1998)
+-  Fixed a regression where connections to Salesforce could fail with a
+   ReadTimeout or other connection error if more than 10 minutes elapsed
+   since a prior task that interacted with an org.
+-  The ``metadeploy_publish`` task can now update translations for
+   language codes with more than 2 letters.
+-  Fixed a bug where the ``extract_dataset`` task could fail with a
+   UnicodeEncodeError on Windows.
+
 3.17.0 (2020-08-20)
 
 Changes:
