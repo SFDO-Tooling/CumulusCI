@@ -5,6 +5,8 @@ import os
 import re
 from pathlib import Path
 from configparser import ConfigParser
+from itertools import chain
+from contextlib import contextmanager
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -30,6 +32,7 @@ from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
 from cumulusci.utils.git import current_branch, git_path
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from cumulusci.utils.fileutils import open_fs_resource
 
 from github3.exceptions import NotFoundError
 
@@ -185,7 +188,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return self._repo_info
 
     def _apply_repo_env_var_overrides(self, info):
-        """ Apply CUMULUSCI_REPO_* environment variables last so they can
+        """Apply CUMULUSCI_REPO_* environment variables last so they can
         override and fill in missing values from the CI environment"""
         self._override_repo_env_var("CUMULUSCI_REPO_BRANCH", "branch", info)
         self._override_repo_env_var("CUMULUSCI_REPO_COMMIT", "commit", info)
@@ -252,7 +255,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """Returns the url under the [remote origin]
         section of the .git/config file. Returns None
         if .git/config file not present or no matching
-        line is found. """
+        line is found."""
         config = ConfigParser(strict=False)
         try:
             config.read(git_path(self.repo_root, "config"))
@@ -267,16 +270,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if path:
             return path
 
-        drive, path = os.path.splitdrive(Path.cwd())
-        path = Path(path)
-        while True:
+        path = Path.cwd().resolve()
+        paths = chain((path,), path.parents)
+        for path in paths:
             if (path / ".git").is_dir():
-                return str(path.resolve())
-            head, tail = os.path.split(path)
-            if not tail:
-                # reached the root
-                break
-            path = Path(head)
+                return str(path)
 
     @property
     def repo_name(self):
@@ -423,8 +421,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def project_local_dir(self):
-        """ location of the user local directory for the project
-        e.g., ~/.cumulusci/NPSP-Extension-Test/ """
+        """location of the user local directory for the project
+        e.g., ~/.cumulusci/NPSP-Extension-Test/"""
 
         # depending on where we are in bootstrapping the UniversalConfig
         # the canonical projectname could be located in one of two places
@@ -841,3 +839,19 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def relpath(self, path):
         """Convert path to be relative to the project repo root."""
         return os.path.relpath(os.path.join(self.repo_root, path))
+
+    @property
+    def cache_dir(self):
+        "A project cache which is on the local filesystem. Prefer open_cache where possible."
+        assert self.repo_root
+        cache_dir = Path(self.repo_root, ".cci")
+        cache_dir.mkdir(exist_ok=True)
+        return cache_dir
+
+    @contextmanager
+    def open_cache(self, cache_name):
+        "A context managed PyFilesystem-based cache which could theoretically be on any filesystem."
+        with open_fs_resource(self.cache_dir) as cache_dir:
+            cache = cache_dir / cache_name
+            cache.mkdir(exist_ok=True)
+            yield cache

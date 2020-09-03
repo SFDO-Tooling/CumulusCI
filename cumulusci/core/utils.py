@@ -9,6 +9,7 @@ import copy
 import glob
 import pytz
 import time
+from shutil import rmtree
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 
@@ -127,11 +128,11 @@ def merge_config(configs):
 
 
 def dictmerge(a, b, name=None):
-    """ Deeply merge two ``dict``s that consist of lists, dicts, and scalars.
+    """Deeply merge two ``dict``s that consist of lists, dicts, and scalars.
     This function (recursively) merges ``b`` INTO ``a``, does not copy any values, and returns ``a``.
 
     based on https://stackoverflow.com/a/15836901/5042831
-    NOTE: tuples and arbitrary objects are NOT handled and will raise TypeError """
+    NOTE: tuples and arbitrary objects are NOT handled and will raise TypeError"""
 
     key = None
 
@@ -178,3 +179,26 @@ def dictmerge(a, b, name=None):
             config_name=name,
         )
     return a
+
+
+def cleanup_org_cache_dirs(keychain, project_config):
+    """Cleanup directories that are not associated with a connected/live org."""
+
+    if not project_config or not project_config.cache_dir:
+        return
+    domains = set()
+    for org in keychain.list_orgs():
+        org_config = keychain.get_org(org)
+        domain = org_config.get_domain()
+        if domain:
+            domains.add(domain)
+
+    assert project_config.cache_dir
+    assert keychain.global_config_dir
+
+    project_org_directories = (project_config.cache_dir / "orginfo").glob("*")
+    global_org_directories = (keychain.global_config_dir / "orginfo").glob("*")
+
+    for directory in list(project_org_directories) + list(global_org_directories):
+        if directory.name not in domains:
+            rmtree(directory)

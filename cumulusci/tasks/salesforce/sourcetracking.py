@@ -52,18 +52,18 @@ class ListChanges(BaseSalesforceApiTask):
         self._exclude.extend(self.project_config.project__source__ignore or [])
 
     @property
-    def _snapshot_path(self):
-        parent_dir = os.path.join(".cci", "snapshot")
-        if not os.path.isdir(parent_dir):
-            os.makedirs(parent_dir)
-        return os.path.join(parent_dir, "{}.json".format(self.org_config.name))
+    @contextlib.contextmanager
+    def _snapshot_file(self):
+        with self.project_config.open_cache("snapshot") as parent_dir:
+            yield parent_dir / f"{self.org_config.name}.json"
 
     def _load_snapshot(self):
         """Load the snapshot of which component revisions have been retrieved."""
         self._snapshot = {}
-        if os.path.isfile(self._snapshot_path):
-            with open(self._snapshot_path, "r") as f:
-                self._snapshot = json.load(f)
+        with self._snapshot_file as sf:
+            if sf.exists():
+                with sf.open("r") as f:
+                    self._snapshot = json.load(f)
 
     def _run_task(self):
         self._load_snapshot()
@@ -130,8 +130,9 @@ class ListChanges(BaseSalesforceApiTask):
             name = change["MemberName"]
             revnum = change["RevisionCounter"] or -1
             self._snapshot.setdefault(mdtype, {})[name] = revnum
-        with open(self._snapshot_path, "w") as f:
-            json.dump(self._snapshot, f)
+        with self._snapshot_file as sf:
+            with sf.open("w") as f:
+                json.dump(self._snapshot, f)
 
     def _reset_sfdx_snapshot(self):
         # If org is from sfdx, reset sfdx source tracking

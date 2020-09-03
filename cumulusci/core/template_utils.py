@@ -5,21 +5,21 @@ from jinja2 import Template
 
 
 class StringGenerator:
-    """ Sometimes in templates you want a reference to a variable to
-        call a function.
+    """Sometimes in templates you want a reference to a variable to
+    call a function.
 
-        For example:
+    For example:
 
-        >>> x = template_utils.StringGenerator(datetime.today().isoformat)
-        >>> print(f"{x}")
-        2019-09-23T11:49:01.994453
+    >>> x = template_utils.StringGenerator(datetime.today().isoformat)
+    >>> print(f"{x}")
+    2019-09-23T11:49:01.994453
 
-        >>> x = template_utils.StringGenerator(lambda:str(random.random()))
-        >>> print(f"{x}")
-        0.795273959965055
-        >>> print(f"{x}")
-        0.053061903749985206
-         """
+    >>> x = template_utils.StringGenerator(lambda:str(random.random()))
+    >>> print(f"{x}")
+    0.795273959965055
+    >>> print(f"{x}")
+    0.053061903749985206
+    """
 
     def __init__(self, func):
         self.func = func

@@ -15,8 +15,8 @@ class BaseChangeNotesProvider(object):
         self.release_notes_generator = release_notes_generator
 
     def __call__(self):
-        """ Subclasses should provide an implementation that returns an
-        iterable of each change note """
+        """Subclasses should provide an implementation that returns an
+        iterable of each change note"""
         raise NotImplementedError()
 
 
@@ -41,7 +41,7 @@ class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
 
 
 class GithubChangeNotesProvider(BaseChangeNotesProvider):
-    """ Provides changes notes by finding all merged pull requests to
+    """Provides changes notes by finding all merged pull requests to
     the default branch between two tags.
 
     Expects the passed release_notes_generator instance to have a github_info
@@ -145,8 +145,8 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
             return "{}{}".format(self.github_info["prefix_prod"], versions[-1])
 
     def _get_pull_requests(self):
-        """ Gets all pull requests from the repo since we can't do a filtered
-        date merged search """
+        """Gets all pull requests from the repo since we can't do a filtered
+        date merged search"""
         for pull in self.repo.pull_requests(
             state="closed", base=self.github_info["default_branch"], direction="asc"
         ):
@@ -154,8 +154,8 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
                 yield pull
 
     def _include_pull_request(self, pull_request):
-        """ Checks if the given pull_request was merged to the default branch
-        between self.start_date and self.end_date """
+        """Checks if the given pull_request was merged to the default branch
+        between self.start_date and self.end_date"""
 
         merged_date = pull_request.merged_at
         if not merged_date:
