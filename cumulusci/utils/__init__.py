@@ -33,7 +33,7 @@ PIPX_UPDATE_CMD = "pipx upgrade cumulusci"
 
 
 def parse_api_datetime(value):
-    """ parse a datetime returned from the salesforce API.
+    """parse a datetime returned from the salesforce API.
 
     in python 3 we should just use a strptime %z, but until then we're just going
     to assert that its a fixed offset of +0000 since thats the observed behavior. getting
@@ -231,8 +231,8 @@ def inject_namespace(
     namespaced_org=None,
     logger=None,
 ):
-    """ Replaces %%%NAMESPACE%%% in file content and ___NAMESPACE___ in file name
-        with either '' if no namespace is provided or 'namespace__' if provided.
+    """Replaces %%%NAMESPACE%%% in file content and ___NAMESPACE___ in file name
+    with either '' if no namespace is provided or 'namespace__' if provided.
     """
 
     # Handle namespace and filename tokens
@@ -306,8 +306,7 @@ def inject_namespace(
 
 
 def strip_namespace(name, content, namespace, logger=None):
-    """ Given a namespace, strips 'namespace__' from file name and content
-    """
+    """Given a namespace, strips 'namespace__' from file name and content"""
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
 
@@ -325,7 +324,7 @@ def strip_namespace(name, content, namespace, logger=None):
 
 
 def tokenize_namespace(name, content, namespace, logger=None):
-    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%%
+    """Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%%
     in file content and ___NAMESPACE___ in file name
     """
     if not namespace:
@@ -342,7 +341,7 @@ def tokenize_namespace(name, content, namespace, logger=None):
 
 
 def zip_clean_metaxml(zip_src, logger=None):
-    """ Given a zipfile, cleans all ``*-meta.xml`` files in the zip for
+    """Given a zipfile, cleans all ``*-meta.xml`` files in the zip for
     deployment by stripping all ``<packageVersions/>`` elements
     """
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
@@ -509,8 +508,7 @@ def package_xml_from_dict(items, api_version, package_name=None):
 
 @contextlib.contextmanager
 def cd(path):
-    """Context manager that changes to another directory
-    """
+    """Context manager that changes to another directory"""
     if not path:
         yield
         return
@@ -565,8 +563,7 @@ def log_progress(
     progress_message="Processing... ({})",
     done_message="Done! (Total: {})",
 ):
-    """Log progress while iterating.
-    """
+    """Log progress while iterating."""
     i = 0
     for x in iterable:
         yield x

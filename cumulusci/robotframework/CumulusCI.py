@@ -14,21 +14,21 @@ from cumulusci.tasks.robotframework.robotframework import Robot
 
 
 class CumulusCI(object):
-    """ Library for accessing CumulusCI for the local git project
+    """Library for accessing CumulusCI for the local git project
 
-        This library allows Robot Framework tests to access credentials to a
-        Salesforce org created by CumulusCI, including Scratch Orgs.  It also
-        exposes the core logic of CumulusCI including interactions with the
-        Salesforce API's and project specific configuration including custom
-        and customized tasks and flows.
+    This library allows Robot Framework tests to access credentials to a
+    Salesforce org created by CumulusCI, including Scratch Orgs.  It also
+    exposes the core logic of CumulusCI including interactions with the
+    Salesforce API's and project specific configuration including custom
+    and customized tasks and flows.
 
-        Initialization requires a single argument, the org name for the target
-        CumulusCI org.  If running your tests via cci's robot task (recommended),
-        you can initialize the library in your tests taking advantage of the
-        variable set by the robot task:
-        | ``*** Settings ***``
-        |
-        | Library  cumulusci.robotframework.CumulusCI  ${ORG}
+    Initialization requires a single argument, the org name for the target
+    CumulusCI org.  If running your tests via cci's robot task (recommended),
+    you can initialize the library in your tests taking advantage of the
+    variable set by the robot task:
+    | ``*** Settings ***``
+    |
+    | Library  cumulusci.robotframework.CumulusCI  ${ORG}
 
     """
 
@@ -84,24 +84,24 @@ class CumulusCI(object):
         return self._init_api("tooling/")
 
     def set_login_url(self):
-        """ Sets the LOGIN_URL variable in the suite scope which will
-            automatically log into the target Salesforce org.
+        """Sets the LOGIN_URL variable in the suite scope which will
+        automatically log into the target Salesforce org.
 
-            Typically, this is run during Suite Setup
+        Typically, this is run during Suite Setup
         """
         BuiltIn().set_suite_variable("${LOGIN_URL}", self.org.start_url)
 
     def get_org_info(self):
-        """ Returns a dictionary of the org information for the current target
-            Salesforce org
+        """Returns a dictionary of the org information for the current target
+        Salesforce org
         """
         return self.org.config
 
     def login_url(self, org=None):
-        """ Returns the login url which will automatically log into the target
-            Salesforce org.  By default, the org_name passed to the library
-            constructor is used but this can be overridden with the org option
-            to log into a different org.
+        """Returns the login url which will automatically log into the target
+        Salesforce org.  By default, the org_name passed to the library
+        constructor is used but this can be overridden with the org option
+        to log into a different org.
         """
         if org is None:
             org = self.org
@@ -140,7 +140,7 @@ class CumulusCI(object):
             return community_info[key]
 
     def get_namespace_prefix(self, package=None):
-        """ Returns the namespace prefix (including __) for the specified package name.
+        """Returns the namespace prefix (including __) for the specified package name.
         (Defaults to project__package__name_managed from the current project config.)
 
         Returns an empty string if the package is not installed as a managed package.
@@ -160,13 +160,13 @@ class CumulusCI(object):
         return result
 
     def run_task(self, task_name, **options):
-        """ Runs a named CumulusCI task for the current project with optional
-            support for overriding task options via kwargs.
+        """Runs a named CumulusCI task for the current project with optional
+        support for overriding task options via kwargs.
 
-            Examples:
-            | =Keyword= | =task_name= | =task_options=             | =comment=                        |
-            | Run Task  | deploy      |                            | Run deploy with standard options |
-            | Run Task  | deploy      | path=path/to/some/metadata | Run deploy with custom path      |
+        Examples:
+        | =Keyword= | =task_name= | =task_options=             | =comment=                        |
+        | Run Task  | deploy      |                            | Run deploy with standard options |
+        | Run Task  | deploy      | path=path/to/some/metadata | Run deploy with custom path      |
         """
         task_config = self.project_config.get_task(task_name)
         class_path = task_config.class_path
@@ -175,17 +175,17 @@ class CumulusCI(object):
         return self._run_task(task_class, task_config)
 
     def run_task_class(self, class_path, **options):
-        """ Runs a CumulusCI task class with task options via kwargs.
+        """Runs a CumulusCI task class with task options via kwargs.
 
-            Use this keyword to run logic from CumulusCI tasks which have not
-            been configured in the project's cumulusci.yml file.  This is
-            most useful in cases where a test needs to use task logic for
-            logic unique to the test and thus not worth making into a named
-            task for the project
+        Use this keyword to run logic from CumulusCI tasks which have not
+        been configured in the project's cumulusci.yml file.  This is
+        most useful in cases where a test needs to use task logic for
+        logic unique to the test and thus not worth making into a named
+        task for the project
 
-            Examples:
-            | =Keyword=      | =task_class=                     | =task_options=                            |
-            | Run Task Class | cumulusci.task.utils.DownloadZip | url=http://test.com/test.zip dir=test_zip |
+        Examples:
+        | =Keyword=      | =task_class=                     | =task_options=                            |
+        | Run Task Class | cumulusci.task.utils.DownloadZip | url=http://test.com/test.zip dir=test_zip |
         """
         logger.console("\n")
         task_class, task_config = self._init_task(class_path, options, TaskConfig())

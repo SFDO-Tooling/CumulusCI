@@ -64,8 +64,7 @@ def sf(request, project_config, org_config):
 
 @pytest.fixture
 def create_task(request, project_config, org_config):
-    """Get a task _factory_ which can be used to construct task instances.
-    """
+    """Get a task _factory_ which can be used to construct task instances."""
     session_project_config = project_config
     session_org_config = org_config
 

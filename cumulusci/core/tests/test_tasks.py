@@ -30,7 +30,7 @@ class _SfdcTask(BaseTask):
 
 
 class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
-    """ Tests for the BaseTask callable interface.
+    """Tests for the BaseTask callable interface.
 
     BaseTask is a callable interface
     BaseTask has return_values and results
