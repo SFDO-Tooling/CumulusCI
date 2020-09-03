@@ -35,7 +35,7 @@ Changes:
 
 Issues Closed:
 
--  Fixed a bug where ``cci error gist`` could throw a UnicodeDecodeError
+-  Fixed a bug where ``cci error gist`` could throw a UnicodeDecodeError on Windows
    (fixes #1977)
 -  Fixed a bug in ``cci org list`` could throw a TypeError when run
    outside a project directory (fixes #1998)
