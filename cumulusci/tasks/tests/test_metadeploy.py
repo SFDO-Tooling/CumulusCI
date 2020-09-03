@@ -203,7 +203,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                         "options": {
                             "activateRSS": True,
                             "namespace": "ns",
-                            "retries": 5,
+                            "retries": 10,
                             "retry_interval": 5,
                             "retry_interval_add": 30,
                             "security_type": "FULL",

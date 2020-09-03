@@ -8,7 +8,7 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.sfdx import sfdx
-
+from cumulusci.core.utils import cleanup_org_cache_dirs
 
 DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
     {
@@ -68,8 +68,8 @@ class BaseProjectKeychain(BaseConfig):
         pass
 
     def _load_scratch_orgs(self):
-        """ Creates all scratch org configs for the project in the keychain if
-            a keychain org doesn't already exist """
+        """Creates all scratch org configs for the project in the keychain if
+        a keychain org doesn't already exist"""
         current_orgs = self.list_orgs()
         if not self.project_config.orgs__scratch:
             return
@@ -137,6 +137,7 @@ class BaseProjectKeychain(BaseConfig):
     def remove_org(self, name, global_org=None):
         if name in self.orgs.keys():
             self._remove_org(name, global_org)
+        cleanup_org_cache_dirs(self, self.project_config)
 
     def _remove_org(self, name, global_org):
         del self.orgs[name]
@@ -221,7 +222,7 @@ class BaseProjectKeychain(BaseConfig):
         self.services[name] = service_config
 
     def get_service(self, name):
-        """ Retrieve a stored ServiceConfig from the keychain or exception
+        """Retrieve a stored ServiceConfig from the keychain or exception
 
         :param name: the service name to retrieve
         :type name: str
@@ -269,3 +270,8 @@ class BaseProjectKeychain(BaseConfig):
         services = list(self.services.keys())
         services.sort()
         return services
+
+    @property
+    def cache_dir(self):
+        "Helper function to get the cache_dir from the project_config"
+        return self.project_config.cache_dir

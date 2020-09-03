@@ -3,6 +3,8 @@ from distutils.version import StrictVersion
 import os
 import re
 from contextlib import contextmanager
+from urllib.parse import urlparse
+from cumulusci.utils.fileutils import open_fs_resource
 
 import requests
 from simple_salesforce import Salesforce
@@ -24,7 +26,7 @@ class OrgConfig(BaseConfig):
     # make sure it can be mocked for tests
     SalesforceOAuth2 = SalesforceOAuth2
 
-    def __init__(self, config, name, keychain=None, global_org=False):
+    def __init__(self, config: dict, name: str, keychain=None, global_org=False):
         self.keychain = keychain
         self.global_org = global_org
 
@@ -275,6 +277,23 @@ class OrgConfig(BaseConfig):
     def save(self):
         assert self.keychain, "Keychain was not set on OrgConfig"
         self.keychain.set_org(self, self.global_org)
+
+    def get_domain(self):
+        instance_url = self.config.get("instance_url", "")
+        return urlparse(instance_url).hostname or ""
+
+    def get_orginfo_cache_dir(self, cachename):
+        "Returns a context managed FSResource object"
+        assert self.keychain, "Keychain should be set"
+        if self.global_org:
+            cache_dir = self.keychain.global_config_dir
+        else:
+            cache_dir = self.keychain.cache_dir
+        uniqifier = self.get_domain() + "__" + str(self.username).replace("@", "__")
+        cache_dir = cache_dir / "orginfo" / uniqifier / cachename
+
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return open_fs_resource(cache_dir)
 
     @property
     def is_person_accounts_enabled(self):
