@@ -1,5 +1,6 @@
 from itertools import chain
 from concurrent.futures import as_completed
+from typing import Iterable, Dict
 
 from requests_futures.sessions import FuturesSession
 
@@ -17,8 +18,7 @@ class ParallelSalesforce:
     def __exit__(self, *args):
         self.session.close()
 
-    def async_request(self, path, method, json=None, headers={}):
-
+    def _async_request(self, path, method, json=None, headers={}):
         headers = {**self.sf.headers, **headers, "Accept-Encoding": "gzip"}
         return self.session.request(
             method=method,
@@ -28,49 +28,74 @@ class ParallelSalesforce:
             json=json,
         )
 
+    def do_requests(self, requests: Iterable[Dict]):
+        futures = (self._async_request(**request) for request in requests)
+        results = (future.result() for future in as_completed(futures))
+        return results
+
+
+class CompositeSalesforce:
+    def create_composite_requests(self, requests, chunk_size):
+        def ensure_request_id(idx, request):
+            # generate a new record with a defaulted
+            return {"referenceId": f"CCI__RefId__{idx}__", **request}
+
+        requests = [
+            ensure_request_id(idx, request) for idx, request in enumerate(requests)
+        ]
+
+        return (
+            {"path": "composite", "method": "POST", "json": {"compositeRequest": chunk}}
+            for chunk in chunks(requests, chunk_size)
+        )
+
+    def parse_composite_results(self, composite_results):
+        individual_results = chain.from_iterable(
+            result.json()["compositeResponse"] for result in composite_results
+        )
+
+        return individual_results
+
 
 class CompositeParallelSalesforce:
+    """Salesforce Session which uses the Composite API multiple times
+    in parallel.
+    """
+
     max_workers = 32
     chunk_size = 25  # max composite batch size
+    psf = None
 
     def __init__(self, sf, chunk_size=25, max_workers=32):
         self.sf = sf
         self.chunk_size = chunk_size
         self.max_workers = max_workers
 
-    def __enter__(self, *args):
+    def open(self):
         self.psf = ParallelSalesforce(self.sf, self.max_workers)
-        self.psf.__enter__(*args)
+        self.psf.__enter__()
+
+    def close(self):
+        self.psf.__exit__()
+
+    def __enter__(self, *args):
+        self.open()
         return self
 
     def __exit__(self, *args):
-        self.psf.__exit__(*args)
+        self.close()
 
-    def _do_composite_request(self, requests: list):
-        request = {
-            "compositeRequest": requests,
-        }
+    def do_composite_requests(self, requests):
+        if not self.psf:
+            raise AssertionError(
+                "Session was not opened. Please call open() or use as a context manager"
+            )
 
-        return self.psf.async_request(path="composite", method="POST", json=request,)
-
-    def composite_requests(self, requests):
-        futures = [
-            self._do_composite_request(chunk)
-            for chunk in chunks(list(requests), self.chunk_size)
-        ]
-
-        def validate(x):
-            if isinstance(x, list):
-                assert "errorCode" not in x[0], x
-            return x
-
-        composite_results = (future.result() for future in as_completed(futures))
-
-        individual_results = chain.from_iterable(
-            validate(result.json())["compositeResponse"] for result in composite_results
-        )
-
-        return individual_results
+        comp = CompositeSalesforce()
+        composite_requests = comp.create_composite_requests(requests, self.chunk_size)
+        composite_results = self.psf.do_requests(composite_requests)
+        individual_results = comp.parse_composite_results(composite_results)
+        return list(individual_results)
 
 
 def chunks(lst, n):

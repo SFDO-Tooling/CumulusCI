@@ -11,18 +11,6 @@ from cumulusci.tests.util import DummyOrgConfig, DummyKeychain
 from cumulusci.utils.org_schema import get_org_schema
 
 
-# FIXME: Unused
-def find_response_in_cassette(cassette_data, method, uri, body):
-    for interaction in cassette_data["interactions"]:
-        request = interaction["request"]
-        if (
-            request["method"] == method
-            and request["uri"] == uri
-            and request["body"] == body
-        ):
-            return interaction["response"]
-
-
 class MockSF:
     base_url = "https://innovation-page-2420-dev-ed.cs50.my.salesforce.com/"
     headers = {}
@@ -49,7 +37,7 @@ def makeMockCompositeParallelSalesforce(responses):
         def __exit__(self, *args, **kwargs):
             pass
 
-        def composite_requests(self, requests):
+        def do_composite_requests(self, requests):
             return responses
 
     return MockCompositeParallelSalesforce
@@ -121,7 +109,7 @@ class TestDescribeOrg:
 
     def test_describe_to_sql(self):
         with TemporaryDirectory() as t:
-            keychain = DummyKeychain(project_cache_dir=Path(t))
+            keychain = DummyKeychain(cache_dir=Path(t))
             org_config = DummyOrgConfig(keychain=keychain)
 
             # Step 1: Pretend to download data from server
@@ -241,6 +229,7 @@ account_data = {
     "triggerable": True,
     "undeletable": True,
     "updateable": True,
+    "urls": {"a": "b"},
 }
 
 

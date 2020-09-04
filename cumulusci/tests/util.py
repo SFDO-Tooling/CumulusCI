@@ -93,11 +93,19 @@ class DummyService(object):
 class DummyKeychain(object):
 
     global_config_dir = Path("/home/.cumulusci")
-    project_cache_dir = Path("/home/project/.cci")
+    cache_dir = Path("/home/project/.cci")
 
-    def __init__(self, global_config_dir=None, project_cache_dir=None):
-        self.global_config_dir = global_config_dir or DummyKeychain.global_config_dir
-        self.project_cache_dir = project_cache_dir or DummyKeychain.project_cache_dir
+    def __init__(self, global_config_dir=None, cache_dir=None):
+        self._global_config_dir = global_config_dir
+        self._cache_dir = cache_dir
+
+    @property
+    def global_config_dir(self):
+        return self._global_config_dir or Path.home() / "cumulusci"
+
+    @property
+    def cache_dir(self):
+        return self._cache_dir or Path.home() / "project/.cci"
 
     def get_service(self, name):
         return DummyService(name)

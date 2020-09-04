@@ -83,7 +83,7 @@ class GenerateMapping(BaseSalesforceApiTask):
         self.logger.info("Collecting sObject information")
         with get_org_schema(self.sf, self.org_config) as org_schema:
             self._collect_objects(org_schema)
-            self._build_schema(org_schema)
+            self._simplify_schema(org_schema)
         filename = self.options["path"]
         self.logger.info(f"Creating mapping schema {filename}")
         self._build_mapping()
@@ -137,9 +137,9 @@ class GenerateMapping(BaseSalesforceApiTask):
 
             index += 1
 
-    def _build_schema(self, org_schema):
-        """Convert self.mapping_objects into a schema, including field details and interobject references,
-        in self.simple_schema and self.refs"""
+    def _simplify_schema(self, org_schema):
+        """Simplify and filter schema, including field details and interobject
+        references, into self.simple_schema and self.refs"""
 
         # Now, find all the fields we need to include.
         # For custom objects, we include all custom fields. This includes custom objects

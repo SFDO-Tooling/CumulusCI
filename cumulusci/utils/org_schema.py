@@ -10,21 +10,11 @@ from contextlib import ExitStack, contextmanager
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import create_session
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import sessionmaker, attributes, ColumnProperty, exc
+from sqlalchemy.orm import sessionmaker, exc
 from cumulusci.utils.org_schema_models import Base, SObject, Field, FileMetadata
 from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
 
 y2k = "Sat, 1 Jan 2000 00:00:01 GMT"
-
-
-def compute_prop_filter(model):
-    return {
-        name
-        for name, value in vars(model).items()
-        if not name.startswith("_")
-        and isinstance(value, attributes.InstrumentedAttribute)
-        and isinstance(value.prop, ColumnProperty)
-    }
 
 
 def zip_database(tempfile, schema_path):
@@ -110,7 +100,6 @@ class SchemaDatabasePopulater:
 
         full_sobjs = deep_describe(sf, last_modified_date, sobj_names)
         full_sobjs = list(full_sobjs)
-        print("XXX", len(full_sobjs))
 
         Base.metadata.bind = self.engine
         self.metadata.reflect()
@@ -149,6 +138,7 @@ class SchemaDatabasePopulater:
 class BufferedSession:
     def __init__(self, engine: Engine, metadata: MetaData, max_buffer_size: int = 1000):
         self.buffered_rows = defaultdict(list)
+        self.columns = {}
         self.engine = engine
         self.session = create_session(bind=self.engine, autocommit=False)
         self.metadata = metadata
@@ -163,6 +153,9 @@ class BufferedSession:
             self.insert_statements[tablename] = model.insert(
                 bind=self.engine, inline=True
             )
+            self.columns[tablename] = {
+                colname: None for colname in model.columns.keys()
+            }
 
     @classmethod
     def from_url(cls, db_url: str, mappings: Optional[Dict] = None):
@@ -171,8 +164,13 @@ class BufferedSession:
         return self
 
     def write_single_row(self, tablename: str, row: Dict) -> None:
+        # but first, normalize it so all keys have a value. SQLite Requires it.
+        row = {**self.columns[tablename], **row}
+
         # cache the value for later insert
         self.buffered_rows[tablename].append(row)
+
+        # flush if buffer is full
         if len(self.buffered_rows[tablename]) > self.max_buffer_size:
             self.flush()
 
@@ -236,7 +234,9 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                 schema.from_cache = False
 
             SchemaDatabasePopulater(schema).cache(
-                sf, schema.last_modified_date or y2k, logger,
+                sf,
+                schema.last_modified_date or y2k,
+                logger,
             )
             schema.block_writing()
             # save a gzipped copy for later
@@ -247,7 +247,7 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
 def deep_describe(sf, last_modified_date, objs):
     last_modified_date = last_modified_date or y2k
     with CompositeParallelSalesforce(sf, max_workers=8) as cpsf:
-        responses = cpsf.composite_requests(
+        responses = cpsf.do_composite_requests(
             (
                 {
                     "method": "GET",

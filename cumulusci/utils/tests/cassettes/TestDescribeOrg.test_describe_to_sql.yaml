@@ -14,7 +14,7 @@ interactions:
     response:
       body:
         string:
-          '{"compositeResponse": [{"body": {"actionOverrides": [], "activateable":
+          '{"compositeResponse": [{"body": {"urls": {"a":"b"}, "actionOverrides": [], "activateable":
           false, "compactLayoutable": true, "createable": true, "custom": false, "customSetting":
           false, "deepCloneable": false, "defaultImplementation": null, "deletable":
           true, "deprecatedAndHidden": false, "extendedBy": null, "extendsInterfaces":

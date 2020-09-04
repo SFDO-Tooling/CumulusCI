@@ -529,11 +529,11 @@ class TestMappingGenerator(unittest.TestCase):
             set(t.mapping_objects),
         )
 
-    def test_build_schema(self):
+    def test_simplify_schema(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         t.mapping_objects = ["Account", "Opportunity", "Child__c"]
-        stage_name = self._mock_field("StageName", {"nillable": False})
+        stage_name = self._mock_field("StageName", nillable=False)
 
         describe_data = {
             "Account": {
@@ -549,8 +549,7 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
         with self._prepare_describe_mock(t, describe_data) as org_schema:
-            t._build_schema(org_schema)
-        self.maxDiff = None
+            t._simplify_schema(org_schema)
         self.assertEqual(
             {
                 "Account": {"Name": self._mock_field("Name")},
@@ -566,37 +565,29 @@ class TestMappingGenerator(unittest.TestCase):
             t.simple_schema,
         )
 
-    def test_build_schema__tracks_references(self):
+    def test_simplify_schema__tracks_references(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         t.mapping_objects = ["Account", "Opportunity"]
+        account_id = self._mock_field(
+            "AccountId",
+            field_type="reference",
+            referenceTo=["Account"],
+            relationshipOrder=1,
+        )
         describe_data = {
             "Account": {"fields": [self._mock_field("Name")]},
-            "Opportunity": {
-                "fields": [
-                    self._mock_field("Name"),
-                    self._mock_field(
-                        "AccountId",
-                        field_type="reference",
-                        referenceTo=["Account"],
-                        relationshipOrder=1,
-                    ),
-                ]
-            },
+            "Opportunity": {"fields": [self._mock_field("Name"), account_id]},
         }
         with self._prepare_describe_mock(t, describe_data) as org_schema:
-            t._build_schema(org_schema)
+            t._simplify_schema(org_schema)
 
         self.assertEqual(
-            {
-                "Opportunity": {
-                    "Account": {"AccountId": _Field("AccountId", nillable=True)}
-                }
-            },
+            {"Opportunity": {"Account": {"AccountId": account_id}}},
             dict(t.refs),
         )
 
-    def test_build_schema__includes_recordtypeid(self):
+    def test_simplify_schema__includes_recordtypeid(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         t.mapping_objects = ["Account", "Opportunity"]
@@ -617,7 +608,7 @@ class TestMappingGenerator(unittest.TestCase):
             },
         }
         with self._prepare_describe_mock(t, describe_data) as org_schema:
-            t._build_schema(org_schema)
+            t._simplify_schema(org_schema)
         self.assertIn("RecordTypeId", t.simple_schema["Opportunity"])
         self.assertNotIn("RecordTypeId", t.simple_schema["Account"])
 

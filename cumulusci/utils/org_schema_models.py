@@ -9,8 +9,6 @@ from sqlalchemy import PrimaryKeyConstraint
 
 Base = declarative_base()
 
-# TODO: try subclassing or a mixin
-
 
 class SpecializedType(types.TypeDecorator):
     impl = types.PickleType
@@ -18,46 +16,30 @@ class SpecializedType(types.TypeDecorator):
     def copy(self, **kw):
         return self.__class__(self.impl.length)
 
-
-class SequenceType(types.TypeDecorator):
-    """Prefixes Unicode values with "PREFIX:" on the way in and
-    strips it off on the way out.
-    """
-
-    impl = types.PickleType
-
     def process_bind_param(self, value, dialect):
-        assert isinstance(value, Sequence)
-        if value == []:
+        assert isinstance(value, (self.typ, type(None))), (value, self.typ)
+        if not value:
             return None
-        return tuple(value)
+        return self.empty_value.__class__(value)
 
     def process_result_value(self, value, dialect):
         if not value:
-            return ()
+            return self.empty_value
         return value
 
-    def copy(self, **kw):
-        return self.__class__(self.impl.length)
+
+class SequenceType(SpecializedType):
+    """Store sequences in an optimized tuple format"""
+
+    typ = Sequence
+    empty_value = ()
 
 
-class MappingType(types.TypeDecorator):
+class MappingType(SpecializedType):
+    """Store mappings in an optimized dict format"""
 
-    impl = types.PickleType
-
-    def process_bind_param(self, value, dialect):
-        assert isinstance(value, Mapping)
-        if value == {}:
-            return None
-        return value
-
-    def process_result_value(self, value, dialect):
-        if not value:
-            return {}
-        return value
-
-    def copy(self, **kw):
-        return MappingType(self.impl.length)
+    typ = Mapping
+    empty_value = {}
 
 
 class OrgSchemaModelMixin:
@@ -101,7 +83,8 @@ class SObject(OrgSchemaModelMixin, Base):
     extendsInterfaces = Column(String)
     feedEnabled = Column(Boolean)
     fields = relationship(
-        "Field", collection_class=attribute_mapped_collection("name"),
+        "Field",
+        collection_class=attribute_mapped_collection("name"),
     )
     hasSubtypes = Column(Boolean)
     label = Column(String)
@@ -128,7 +111,7 @@ class SObject(OrgSchemaModelMixin, Base):
     triggerable = Column(Boolean)
     undeletable = Column(Boolean)
     updateable = Column(Boolean)
-    urls = Column(MappingType)
+    urls = Column(types.PickleType)
     supportedScopes = Column(SequenceType)
     actionOverrides = Column(SequenceType)
 
