@@ -16,6 +16,8 @@ from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 
 import responses
+from sqlalchemy.orm import create_session
+from sqlalchemy import create_engine
 
 
 class MockBulkQueryOperation(BaseQueryOperation):
@@ -78,13 +80,13 @@ class TestExtractData(unittest.TestCase):
         step_mock.side_effect = [mock_query_households, mock_query_contacts]
 
         task()
-
-        household = task.session.query(task.models["households"]).one()
+        session = create_session(bind=task.engine, autocommit=False)
+        household = session.query(task.models["households"]).one()
         self.assertEqual("1", household.sf_id)
         self.assertFalse(hasattr(household, "IsPersonAccount"))
         self.assertEqual("HH_Account", household.record_type)
 
-        contact = task.session.query(task.models["contacts"]).one()
+        contact = session.query(task.models["contacts"]).one()
         self.assertEqual("2", contact.sf_id)
         self.assertFalse(hasattr(contact, "IsPersonAccount"))
         self.assertEqual("1", contact.household_id)
@@ -129,13 +131,14 @@ class TestExtractData(unittest.TestCase):
         step_mock.side_effect = [mock_query_households, mock_query_contacts]
 
         task()
+        session = create_session(bind=task.engine, autocommit=False)
 
-        household = task.session.query(task.models["households"]).one()
+        household = session.query(task.models["households"]).one()
         self.assertEqual("1", household.sf_id)
         self.assertEqual("false", household.IsPersonAccount)
         self.assertEqual("HH_Account", household.record_type)
 
-        contact = task.session.query(task.models["contacts"]).one()
+        contact = session.query(task.models["contacts"]).one()
         self.assertEqual("2", contact.sf_id)
         self.assertEqual("true", contact.IsPersonAccount)
         self.assertEqual("1", contact.household_id)
@@ -174,9 +177,18 @@ class TestExtractData(unittest.TestCase):
             ]
             step_mock.side_effect = [mock_query_households, mock_query_contacts]
 
-            task()
+            with mock.patch(
+                "cumulusci.tasks.bulkdata.extract.create_engine", wraps=create_engine
+            ) as ce_mock:
+                task()
 
             assert os.path.exists("testdata.sql")
+            assert (
+                ce_mock.mock_calls[0].args[0].endswith("temp_db.db")
+            ), ce_mock.mock_calls[0].args
+            assert (
+                ce_mock.mock_calls[0].args[0].startswith("sqlite:////")
+            ), ce_mock.mock_calls[0].args
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
@@ -216,12 +228,14 @@ class TestExtractData(unittest.TestCase):
         step_mock.side_effect = [mock_query_households, mock_query_contacts]
 
         task()
-        household = task.session.query(task.models["households"]).one()
+        session = create_session(bind=task.engine, autocommit=False)
+
+        household = session.query(task.models["households"]).one()
         assert household.name == "TestHousehold"
         assert not hasattr(household, "IsPersonAccount")
         assert household.record_type == "HH_Account"
 
-        contact = task.session.query(task.models["contacts"]).one()
+        contact = session.query(task.models["contacts"]).one()
         assert contact.household_id == "1"
         assert not hasattr(contact, "IsPersonAccount")
 
@@ -265,12 +279,14 @@ class TestExtractData(unittest.TestCase):
         step_mock.side_effect = [mock_query_households, mock_query_contacts]
 
         task()
-        household = task.session.query(task.models["households"]).one()
+        session = create_session(bind=task.engine, autocommit=False)
+
+        household = session.query(task.models["households"]).one()
         assert household.name == "TestHousehold"
         assert household.IsPersonAccount == "false"
         assert household.record_type == "HH_Account"
 
-        contact = task.session.query(task.models["contacts"]).one()
+        contact = session.query(task.models["contacts"]).one()
         assert contact.household_id == "1"
         assert contact.IsPersonAccount == "true"
 
@@ -632,8 +648,8 @@ class TestExtractData(unittest.TestCase):
             task.models[table_name] = mock.Mock()
 
         task._create_record_type_table = mock.Mock(side_effect=create_table_mock)
-        task._init_db()
-        task._create_record_type_table.assert_called_once_with("Account_rt_mapping")
+        with task._init_db():
+            task._create_record_type_table.assert_called_once_with("Account_rt_mapping")
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.create_table")
     @mock.patch("cumulusci.tasks.bulkdata.extract.Table")
@@ -678,33 +694,15 @@ class TestExtractData(unittest.TestCase):
         )
         task.metadata.create_all.assert_called_once_with()
 
-    @mock.patch("cumulusci.tasks.bulkdata.extract.create_engine")
-    @mock.patch("cumulusci.tasks.bulkdata.extract.MetaData")
-    @mock.patch("cumulusci.tasks.bulkdata.extract.automap_base")
-    @mock.patch("cumulusci.tasks.bulkdata.extract.create_session")
-    def test_init_db(self, session_mock, automap_mock, metadata_mock, engine_mock):
+    def test_init_db(self):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
         task._create_tables = mock.Mock()
-        task._init_db()
-
-        assert task.models == {}
-        engine_mock.assert_called_once_with("sqlite:///")
-        metadata_mock.assert_called_once_with()
-        assert task.engine == engine_mock.return_value
-        assert task.metadata.bind == task.engine
-        task._create_tables.assert_called_once_with()
-        automap_mock.assert_called_once_with(
-            bind=engine_mock.return_value, metadata=metadata_mock.return_value
-        )
-        automap_mock.return_value.prepare.assert_called_once_with(
-            engine_mock.return_value, reflect=True
-        )
-        session_mock.assert_called_once_with(
-            bind=engine_mock.return_value, autocommit=False
-        )
-        assert task.session == session_mock.return_value
+        with task._init_db():
+            assert task.models == {}
+            assert task.session.query
+            assert task.engine.execute
 
     def assert_person_accounts_in_mapping(
         self, mapping, org_has_person_accounts_enabled

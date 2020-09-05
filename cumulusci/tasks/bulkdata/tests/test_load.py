@@ -7,6 +7,7 @@ import random
 import string
 import unittest
 from unittest import mock
+from contextlib import nullcontext
 
 import responses
 from sqlalchemy import Column, Table, Unicode
@@ -142,7 +143,7 @@ class TestLoadData(unittest.TestCase):
                 }
             },
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task.mapping = {}
         task.mapping["Insert Households"] = MappingStep(sf_object="one", fields={})
@@ -161,7 +162,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
         task.mapping = {}
@@ -187,7 +188,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
         task.mapping = {}
@@ -249,11 +250,6 @@ class TestLoadData(unittest.TestCase):
             ["Test☃", "User", "test@example.com", "001000000000000"],
             ["Error", "User", "error@example.com", "001000000000000"],
         ]
-
-        hh_ids = task.session.query(
-            *task.metadata.tables["households_sf_ids"].columns
-        ).one()
-        assert hh_ids == ("1", "001000000000000")
 
     def test_init_options__missing_input(self):
         with self.assertRaises(TaskOptionsError):
@@ -844,14 +840,16 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
         task.mapping = {}
-        task._init_db()
-        id_table = Table(
-            "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
-        )
-        id_table.create()
-        task._initialize_id_table({"table": "test"}, True)
-        new_id_table = task.metadata.tables["test_sf_ids"]
-        self.assertFalse(new_id_table is id_table)
+        with task._init_db():
+            id_table = Table(
+                "test_sf_ids",
+                task.metadata,
+                Column("id", Unicode(255), primary_key=True),
+            )
+            id_table.create()
+            task._initialize_id_table({"table": "test"}, True)
+            new_id_table = task.metadata.tables["test_sf_ids"]
+            self.assertFalse(new_id_table is id_table)
 
     def test_initialize_id_table__already_exists_and_should_not_reset_table(self):
         task = _make_task(
@@ -859,22 +857,24 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
         task.mapping = {}
-        task._init_db()
-        id_table = Table(
-            "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
-        )
-        id_table.create()
-        table_name = task._initialize_id_table({"table": "test"}, False)
-        assert table_name == "test_sf_ids"
-        new_id_table = task.metadata.tables["test_sf_ids"]
-        assert new_id_table is id_table
+        with task._init_db():
+            id_table = Table(
+                "test_sf_ids",
+                task.metadata,
+                Column("id", Unicode(255), primary_key=True),
+            )
+            id_table.create()
+            table_name = task._initialize_id_table({"table": "test"}, False)
+            assert table_name == "test_sf_ids"
+            new_id_table = task.metadata.tables["test_sf_ids"]
+            assert new_id_table is id_table
 
     def test_run_task__exception_failure(self):
         task = _make_task(
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._execute_step = mock.Mock(
             return_value=DataOperationJobResult(
@@ -1540,11 +1540,11 @@ class TestLoadData(unittest.TestCase):
 
         task._init_mapping()
         task.mapping["Insert Households"]["fields"]["RecordTypeId"] = "RecordTypeId"
-        task._init_db()
-        task._create_record_type_table.assert_called_once_with(
-            "Account_rt_target_mapping"
-        )
-        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists.assert_called_once_with()
+        with task._init_db():
+            task._create_record_type_table.assert_called_once_with(
+                "Account_rt_target_mapping"
+            )
+            task._validate_org_has_person_accounts_enabled_if_person_account_data_exists.assert_called_once_with()
 
     def test_load_record_types(self):
         task = _make_task(

@@ -1,4 +1,7 @@
 import csv
+import tempfile
+from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -7,7 +10,7 @@ from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import create_session, mapper
 from sqlalchemy.ext.automap import automap_base
-import tempfile
+from contextlib import contextmanager, nullcontext
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
@@ -60,8 +63,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             # prefer database_url if it's set
             self.options["sql_path"] = None
         elif self.options.get("sql_path"):
-            self.logger.info("Using in-memory sqlite database")
-            self.options["database_url"] = "sqlite://"
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
         else:
             raise TaskOptionsError(
@@ -77,37 +78,61 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _run_task(self):
         self._init_mapping()
-        self._init_db()
+        with self._init_db():
+            for mapping in self.mapping.values():
+                soql = self._soql_for_mapping(mapping)
+                self._run_query(soql, mapping)
 
-        for mapping in self.mapping.values():
-            soql = self._soql_for_mapping(mapping)
-            self._run_query(soql, mapping)
+            self._drop_sf_id_columns()
+
+            if self.options.get("sql_path"):
+                self._sqlite_dump()
 
         self._map_autopks()
 
-        if self.options.get("sql_path"):
-            self._sqlite_dump()
+    @contextmanager
+    def _temp_database_url(self):
+        with tempfile.TemporaryDirectory() as t:
+            tempdb = Path(t) / "temp_db.db"
 
+            self.logger.info(f"Using temporary database {tempdb}")
+            database_url = f"sqlite:///{tempdb}"
+            yield database_url
+
+    def _database_url(self):
+        database_url = self.options.get("database_url")
+        if database_url:
+            return nullcontext(enter_result=database_url)
+        else:
+            return self._temp_database_url()
+
+    @contextmanager
     def _init_db(self):
         """Initialize the database and automapper."""
         self.models = {}
 
-        # initialize the DB engine
-        self.engine = create_engine(self.options["database_url"])
+        with self._database_url() as database_url:
 
-        # initialize DB metadata
-        self.metadata = MetaData()
-        self.metadata.bind = self.engine
+            # initialize the DB engine
+            self.engine = create_engine(database_url)
+            with self.engine.connect() as connection:
 
-        # Create the tables
-        self._create_tables()
+                # initialize DB metadata
+                self.metadata = MetaData()
+                self.metadata.bind = connection
 
-        # initialize the automap mapping
-        self.base = automap_base(bind=self.engine, metadata=self.metadata)
-        self.base.prepare(self.engine, reflect=True)
+                # Create the tables
+                self._create_tables()
 
-        # initialize session
-        self.session = create_session(bind=self.engine, autocommit=False)
+                # TODO: do we use base anywhere?
+                # initialize the automap mapping
+                self.base = automap_base(bind=connection, metadata=self.metadata)
+                self.base.prepare(connection, reflect=True)
+
+                # initialize session
+                self.session = create_session(bind=connection, autocommit=False)
+
+                yield self.session, self.metadata, connection
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
