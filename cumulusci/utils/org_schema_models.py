@@ -13,9 +13,6 @@ Base = declarative_base()
 class SpecializedType(types.TypeDecorator):
     impl = types.PickleType
 
-    def copy(self, **kw):
-        return self.__class__(self.impl.length)
-
     def process_bind_param(self, value, dialect):
         assert isinstance(value, (self.typ, type(None))), (value, self.typ)
         if not value:
@@ -26,6 +23,9 @@ class SpecializedType(types.TypeDecorator):
         if not value:
             return self.empty_value
         return value
+
+    def copy(self, **kw):
+        return self.__class__(self.impl.length)
 
 
 class SequenceType(SpecializedType):
@@ -111,7 +111,7 @@ class SObject(OrgSchemaModelMixin, Base):
     triggerable = Column(Boolean)
     undeletable = Column(Boolean)
     updateable = Column(Boolean)
-    urls = Column(types.PickleType)
+    urls = Column(MappingType)
     supportedScopes = Column(SequenceType)
     actionOverrides = Column(SequenceType)
 

@@ -3,12 +3,16 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 from pathlib import Path
 from itertools import chain
+from contextlib import contextmanager
 
+import pytest
 import yaml
 
-from cumulusci.tests.util import DummyOrgConfig, DummyKeychain
+from sqlalchemy import create_engine
 
-from cumulusci.utils.org_schema import get_org_schema
+from cumulusci.tests.util import DummyOrgConfig, DummyKeychain
+from cumulusci.utils.org_schema import get_org_schema, BufferedSession, zip_database
+from cumulusci.utils.org_schema_models import Base
 
 
 class MockSF:
@@ -38,7 +42,7 @@ def makeMockCompositeParallelSalesforce(responses):
             pass
 
         def do_composite_requests(self, requests):
-            return responses
+            return responses()
 
     return MockCompositeParallelSalesforce
 
@@ -60,18 +64,16 @@ cached_responses = [{"body": None, "httpHeaders": {}, "httpStatusCode": 304}] * 
 
 
 def mock_return_uncached_responses(cassette_data):
-    responses = uncached_responses(cassette_data)
-
     return patch(
         "cumulusci.utils.org_schema.CompositeParallelSalesforce",
-        makeMockCompositeParallelSalesforce(responses),
+        makeMockCompositeParallelSalesforce(lambda: uncached_responses(cassette_data)),
     )
 
 
 def mock_return_cached_responses():
     return patch(
         "cumulusci.utils.org_schema.CompositeParallelSalesforce",
-        makeMockCompositeParallelSalesforce(cached_responses),
+        makeMockCompositeParallelSalesforce(lambda: cached_responses.copy()),
     )
 
 
@@ -107,11 +109,15 @@ class TestDescribeOrg:
                     db_field[name],
                 )
 
-    def test_describe_to_sql(self):
+    @contextmanager
+    def tempdir_orgconfig(self):
         with TemporaryDirectory() as t:
             keychain = DummyKeychain(cache_dir=Path(t))
             org_config = DummyOrgConfig(keychain=keychain)
+            yield org_config
 
+    def test_describe_to_sql(self):
+        with self.tempdir_orgconfig() as org_config:
             # Step 1: Pretend to download data from server
             with mock_return_uncached_responses(self.cassette_data):
                 with get_org_schema(MockSF(), org_config) as schema:
@@ -127,6 +133,96 @@ class TestDescribeOrg:
                 self.validate_schema_data(schema)
                 for call in create_row.mock_calls:
                     assert call.args[0].__name__ == "FileMetadata"
+
+    def test_errors(self):
+        with self.tempdir_orgconfig() as org_config, mock_return_uncached_responses(
+            self.cassette_data
+        ), get_org_schema(MockSF(), org_config) as schema:
+            with pytest.raises(KeyError):
+                schema["Foo"]
+
+    def test_forced_recache(self):
+        with self.tempdir_orgconfig() as org_config, mock_return_uncached_responses(
+            self.cassette_data
+        ):
+            with get_org_schema(MockSF(), org_config) as schema:
+                schema.session.execute("insert into sobjects (name) values ('Foo')")
+                assert "Foo" in schema
+                schema.session._real_commit__()
+                dbpath = schema.engine.url.translate_connect_args()["database"]
+                zip_database(Path(dbpath), schema.path)
+            with get_org_schema(MockSF(), org_config) as schema:
+                assert "Foo" in schema
+            with get_org_schema(MockSF(), org_config, force_recache=True) as schema:
+                assert "Foo" not in schema
+
+    def test_dict_like(self):
+        with self.tempdir_orgconfig() as org_config:
+            with mock_return_uncached_responses(self.cassette_data):
+                with get_org_schema(MockSF(), org_config) as schema:
+                    assert schema["Account"]
+                    assert "Account" in schema
+                    assert sorted(schema.keys())[0] == "Account"
+                    assert (
+                        sorted(schema.values(), key=lambda x: x.name)[0].name
+                        == "Account"
+                    )
+                    a, b = sorted(schema.items())[0]
+                    assert a == "Account"
+                    assert "Account" in schema.keys()
+                    assert "<Schema" in repr(schema)
+
+    def test_misuse(self):
+        with self.tempdir_orgconfig() as org_config:
+            with mock_return_uncached_responses(self.cassette_data):
+                with get_org_schema(MockSF(), org_config) as schema:
+                    pass
+        with pytest.raises(IOError):
+            schema.session.commit()
+
+    def test_corrupted_schema(self, caplog):
+        with self.tempdir_orgconfig() as org_config:
+            with mock_return_uncached_responses(self.cassette_data):
+                with get_org_schema(MockSF(), org_config) as schema:
+                    assert "Account" in schema
+                    path = schema.path
+                assert not caplog.text
+                with open(path, "w") as p:
+                    p.write("xxx")
+
+                with get_org_schema(MockSF(), org_config) as schema:
+                    assert "Account" in schema
+                assert caplog.text
+
+    def test_corrupted_schema__sqlite(self, caplog):
+        with self.tempdir_orgconfig() as org_config:
+            with mock_return_uncached_responses(self.cassette_data):
+                with get_org_schema(MockSF(), org_config) as schema:
+                    assert "Account" in schema
+                    path = schema.path
+                assert not caplog.text
+                with open(path, "w") as p:
+                    p.write("xxx")
+
+                with get_org_schema(MockSF(), org_config) as schema:
+                    assert "Account" in schema
+                assert caplog.text
+
+
+class TestBufferedSession:
+    def test_buffer_empties(self):
+        engine = create_engine("sqlite:///")
+        Base.metadata.bind = engine
+        Base.metadata.create_all()
+        bs = BufferedSession(engine, Base.metadata, 5)
+        with patch.object(bs, "flush") as flush:
+            for i in range(0, 3):
+                bs.write_single_row("sobjects", {"name": str(i)})
+            assert not flush.mock_calls
+            for i in range(0, 3):
+                bs.write_single_row("sobjects", {"name": str(i)})
+
+        assert flush.mock_calls
 
 
 account_data = {
@@ -231,6 +327,11 @@ account_data = {
     "updateable": True,
     "urls": {"a": "b"},
 }
+
+
+## These are helper functions for managing the sample data used above.
+## The functions aren't called above, but test maintainers could use
+## them to update sample data.
 
 
 def reduce_data(filename):

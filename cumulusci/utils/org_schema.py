@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import gzip
 from collections import defaultdict
-from typing import Optional, Dict
+from typing import Dict
 from email.utils import parsedate
 from contextlib import ExitStack, contextmanager
 
@@ -38,7 +38,7 @@ class Schema:
         self.engine = engine
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
-        self.schema_path = schema_path
+        self.path = schema_path
 
     @property
     def sobjects(self):
@@ -63,10 +63,12 @@ class Schema:
         return ((obj.name, obj) for obj in self.session.query(SObject).all())
 
     def block_writing(self):
+        # changes don't get saved back to the gzip
+        # so there is no point writing to the DB
         def closed():
             raise IOError("Database is not open for writing")
 
-        self.session.__real_commit = self.session.commit
+        self.session._real_commit__ = self.session.commit
         self.session.commit = closed
 
     @property
@@ -84,7 +86,7 @@ class Schema:
         return self._last_modified_date
 
     def __repr__(self):
-        return f"<Schema {self.schema_path} : {self.engine}>"
+        return f"<Schema {self.path} : {self.engine}>"
 
 
 class SchemaDatabasePopulater:
@@ -101,38 +103,33 @@ class SchemaDatabasePopulater:
         full_sobjs = deep_describe(sf, last_modified_date, sobj_names)
         full_sobjs = list(full_sobjs)
 
-        Base.metadata.bind = self.engine
+        self.metadata.bind = self.engine
         self.metadata.reflect()
 
-        self.buffered_session = BufferedSession(self.engine, Base.metadata)
+        with BufferedSession(self.engine, self.metadata) as self.buffered_session:
 
-        max_last_modified = (parsedate(last_modified_date), last_modified_date)
-        for (sobj_data, last_modified) in full_sobjs:
-            fields = sobj_data.pop("fields")
-            sobj_data["actionOverrides"] = []
-            self.create_row(SObject, sobj_data)
-            for field in fields:
-                field["sobject"] = sobj_data["name"]
-                self.create_row(Field, field)
-                sortable = parsedate(last_modified), last_modified
-                if sortable > max_last_modified:
-                    max_last_modified = sortable
+            max_last_modified = (parsedate(last_modified_date), last_modified_date)
+            for (sobj_data, last_modified) in full_sobjs:
+                fields = sobj_data.pop("fields")
+                sobj_data["actionOverrides"] = []
+                self.create_row(SObject, sobj_data)
+                for field in fields:
+                    field["sobject"] = sobj_data["name"]
+                    self.create_row(Field, field)
+                    sortable = parsedate(last_modified), last_modified
+                    if sortable > max_last_modified:
+                        max_last_modified = sortable
 
-        self.create_row(
-            FileMetadata, {"name": "Last-Modified", "value": max_last_modified[1]}
-        )
-        self.create_row(FileMetadata, {"name": "FormatVersion", "value": 1})
-        self.buffered_session.commit()
+            self.create_row(
+                FileMetadata, {"name": "Last-Modified", "value": max_last_modified[1]}
+            )
+            self.create_row(FileMetadata, {"name": "FormatVersion", "value": 1})
+
         self.engine.execute("vacuum")
         return
 
     def create_row(self, model, valuesdict):
         self.buffered_session.write_single_row(model.__tablename__, valuesdict)
-
-    def create_rows(self, model, dicts):
-        for dict in dicts:
-            self.create_row(model, dict)
-        self.buffered_session.commit()
 
 
 class BufferedSession:
@@ -140,28 +137,26 @@ class BufferedSession:
         self.buffered_rows = defaultdict(list)
         self.columns = {}
         self.engine = engine
-        self.session = create_session(bind=self.engine, autocommit=False)
         self.metadata = metadata
         self._prepare()
         self.max_buffer_size = max_buffer_size
+
+    def __enter__(self, *args):
+        self.session = create_session(bind=self.engine, autocommit=False)
+        return self
+
+    def __exit__(self, *args):
+        self.close()
 
     def _prepare(self):
         # Setup table info used by the write-buffering infrastructure
         assert self.metadata.tables
         self.insert_statements = {}
         for tablename, model in self.metadata.tables.items():
-            self.insert_statements[tablename] = model.insert(
-                bind=self.engine, inline=True
-            )
+            self.insert_statements[tablename] = model.insert(bind=self.engine)
             self.columns[tablename] = {
                 colname: None for colname in model.columns.keys()
             }
-
-    @classmethod
-    def from_url(cls, db_url: str, mappings: Optional[Dict] = None):
-        engine = create_engine(db_url)
-        self = cls(engine, mappings)
-        return self
 
     def write_single_row(self, tablename: str, row: Dict) -> None:
         # but first, normalize it so all keys have a value. SQLite Requires it.
@@ -214,17 +209,23 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
             tempfile = Path(tempdir.name) / "temp_org_schema.db"
             schema = None
             if schema_path.exists():
-                unzip_database(schema_path, tempfile)
                 try:
+                    unzip_database(schema_path, tempfile)
                     engine = create_engine(f"sqlite:///{str(tempfile)}")
 
                     schema = Schema(engine, schema_path)
+                    assert schema.sobjects.first().name
                     schema.from_cache = True
                 except Exception as e:
                     logger.warning(
-                        f"Cannot read `{schema_path}` due to {e}: recreating`"
+                        f"Cannot read `{schema_path}`. Recreating it. Reason `{e}`."
                     )
+                    schema = None
                     schema_path.unlink()
+                    try:
+                        tempfile.unlink()  # emulate missing_ok=True until we drop Py3.7
+                    except IOError:  # pragma: no cover
+                        pass
 
             if not schema:
                 engine = create_engine(f"sqlite:///{str(tempfile)}")
