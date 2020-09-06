@@ -83,7 +83,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             soql = self._soql_for_mapping(mapping)
             self._run_query(soql, mapping)
 
-        self._drop_sf_id_columns()
+        self._map_autopks()
 
         if self.options.get("sql_path"):
             self._sqlite_dump()
@@ -171,13 +171,11 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Map SF field names to local db column names
         fields = self._fields_for_mapping(mapping)
         columns = []
-        lookup_keys = []
         for field_name in fields:
             column = mapping.get("fields", {}).get(field_name)
             if not column:
                 lookup = mapping.get("lookups", {}).get(field_name, {})
                 if lookup:
-                    lookup_keys.append(field_name)
                     column = lookup.get_lookup_key_field()
             if column:
                 columns.append(column)
@@ -251,8 +249,18 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         self.session.commit()
 
-        if lookup_keys and not mapping["oid_as_pk"]:
-            self._convert_lookups_to_id(mapping, lookup_keys)
+    def _map_autopks(self):
+        # Convert Salesforce Ids to autopks
+        for m in self.mapping.values():
+            lookup_keys = list(m.get("lookups", {}).keys())
+            if not m["oid_as_pk"]:
+                if lookup_keys:
+                    self._convert_lookups_to_id(m, lookup_keys)
+
+        # Drop sf_id tables
+        for m in self.mapping.values():
+            if not m["oid_as_pk"]:
+                self.metadata.tables[m["sf_id_table"]].drop()
 
     def _get_mapping_for_table(self, table):
         """Return the first mapping for a table name """
@@ -332,13 +340,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 mapper(self.models[mapping["sf_id_table"]], id_t)
 
         mapper(self.models[mapping["table"]], t, **mapper_kwargs)
-
-    def _drop_sf_id_columns(self):
-        """Drop Salesforce Id storage tables after rewriting Ids to auto-PKs."""
-        for mapping in self.mapping.values():
-            if mapping.get("oid_as_pk"):
-                continue
-            self.metadata.tables[mapping["sf_id_table"]].drop()
 
     def _sqlite_dump(self):
         """Write a SQLite script output file."""
