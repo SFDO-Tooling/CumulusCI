@@ -68,7 +68,7 @@ class DeleteData(BaseSalesforceApiTask):
             }[self.options.get("api", "smart").lower()]
         except KeyError:
             raise TaskOptionsError(
-                f"{self.options['api']} is not a valid value for API (valid: bulk, rest, smart"
+                f"{self.options['api']} is not a valid value for API (valid: bulk, rest, smart)"
             )
 
         if self.options["hardDelete"] and self.options["api"] is DataApi.REST:
