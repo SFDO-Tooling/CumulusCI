@@ -324,7 +324,6 @@ class TestExtractData(unittest.TestCase):
         )
         task.session = mock.Mock()
         task._sql_bulk_insert_from_records = mock.Mock()
-        task._convert_lookups_to_id = mock.Mock()
         task._import_results(mapping, step)
 
         task.session.connection.assert_called_once_with()
@@ -345,7 +344,6 @@ class TestExtractData(unittest.TestCase):
                 ),
             ]
         )
-        task._convert_lookups_to_id.assert_called_once_with(mapping, ["AccountId"])
 
     def test_import_results__no_columns(self):
         task = _make_task(
@@ -444,6 +442,44 @@ class TestExtractData(unittest.TestCase):
             ["000000000000001", "", "012000000000001", "true"],
             ["000000000000002", "Business Account", "012000000000002", "false"],
         ] == records
+
+    @responses.activate
+    def test_map_autopks(self):
+        mock_describe_calls()
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v2)
+        mock_describe_calls()
+
+        task = _make_task(
+            ExtractData,
+            {
+                "options": {
+                    "database_url": "sqlite://",  # in memory
+                    "mapping": mapping_path,
+                }
+            },
+        )
+        task._convert_lookups_to_id = mock.Mock()
+        task.metadata = mock.MagicMock()
+
+        task._init_mapping()
+        task.mapping["Insert Contacts"]["sf_id_table"] = "contacts_sf_id"
+        task.mapping["Insert Households"]["sf_id_table"] = "households_sf_id"
+        task._map_autopks()
+
+        task._convert_lookups_to_id.assert_called_once_with(
+            task.mapping["Insert Contacts"], ["AccountId"]
+        )
+        task.metadata.tables.__getitem__.return_value.drop.assert_has_calls(
+            [mock.call(), mock.call()]
+        )
+        task.metadata.tables.__getitem__.assert_has_calls(
+            [
+                mock.call("contacts_sf_id"),
+                mock.call("households_sf_id"),
+            ],
+            any_order=True,
+        )
 
     def test_convert_lookups_to_id(self):
         task = _make_task(
