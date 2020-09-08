@@ -27,7 +27,7 @@ ORG_KEY = "bar"
 
 @pytest.fixture
 def sf_push_api():
-    return SalesforcePushApi(mock.Mock(), mock.Mock())  # sf  # logger
+    return SalesforcePushApi(sf=mock.Mock(), logger=mock.Mock())
 
 
 @pytest.fixture
