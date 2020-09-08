@@ -665,7 +665,6 @@ def test_version_get_newer_query(metadata_package_version):
 
 
 def test_version_get_older_query(metadata_package_version):
-    # metadata_package_version.package.get_package_version_objs = mock.Mock()
     patch_actual = metadata_package_version.get_older_released_version_objs()
     expected_patch_where = (
         "OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3)"
