@@ -624,7 +624,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             .filter(
                 func.lower(contact_model.__table__.columns.get("IsPersonAccount"))
                 == "true"
-            )  # FIXME: Case here.
+            )
             .outerjoin(
                 account_sf_ids_table,
                 account_sf_ids_table.columns["id"] == account_id_column,
