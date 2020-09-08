@@ -152,8 +152,23 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
 
     def _include_directory(self, root_parts):
         """Return boolean for whether this directory should be included in the package."""
-        # include the root directory, all non-lwc directories and sub-directories, and lwc component directories
-        return len(root_parts) == 0 or root_parts[0] != "lwc" or len(root_parts) == 2
+        # include root
+        if len(root_parts) == 0:
+            return True
+
+        # don't include featureParameters for unlocked packages
+        if (
+            self.options.get("package_type") == "unlocked"
+            and root_parts[1] == "featureParameters"
+        ):
+            return False
+
+        # include top level only within lwc
+        if root_parts[0] == "lwc" and len(root_parts) != 2:
+            return False
+
+        # include everything else
+        return True
 
     def _include_file(self, root_parts, f):
         """Return boolean for whether this file should be included in the package."""

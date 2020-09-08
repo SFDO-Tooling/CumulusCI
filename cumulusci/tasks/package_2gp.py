@@ -91,7 +91,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             or self.project_config.project__package__name,
             package_type=self.options.get("package_type")
             or self.project_config.project__package__type,
-            org_dependent=self.options.get("org_dependent", False),
+            org_dependent=self.options.get("org_dependent", True),
             namespace=self.options.get("namespace")
             or self.project_config.project__package__namespace,
             branch=self.project_config.repo_branch,
@@ -121,6 +121,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_zip_builder = MetadataPackageZipBuilder(
             path=self.project_config.default_package_path,
             name=self.package_config.package_name,
+            options={"package_type": self.package_config.package_type.value},
             logger=self.logger,
         )
         self.request_id = self._create_version_request(
