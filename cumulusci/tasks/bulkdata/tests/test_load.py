@@ -2215,9 +2215,7 @@ class TestLoadData(unittest.TestCase):
         task.session.query.assert_called_once_with(
             contact_id_column, account_sf_id_column
         )
-        task.session.query.filter.assert_called_once_with(
-            contact_model.__table__.columns["IsPersonAccount"] == "true"
-        )
+        task.session.query.filter.assert_called_once()
         task.session.query.outerjoin.assert_called_once_with(
             account_sf_ids_table,
             account_sf_ids_table.columns["id"] == account_id_column,

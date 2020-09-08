@@ -641,7 +641,7 @@ class TestRestApiQueryOperation:
         )
         assert list(query_op.get_results()) == [
             ["003000000000001", "Narvaez", "wayne@example.com"],
-            ["003000000000002", "De Vries", None],
+            ["003000000000002", "De Vries", ""],
         ]
 
 

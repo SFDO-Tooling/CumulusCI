@@ -3,7 +3,7 @@ import datetime
 from unittest.mock import MagicMock
 from typing import Union
 
-from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
+from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text, func
 from sqlalchemy.orm import aliased, Session
 from sqlalchemy.ext.automap import automap_base
 
@@ -621,7 +621,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Account SF ID.
         query = (
             self.session.query(contact_id_column, account_sf_id_column)
-            .filter(contact_model.__table__.columns.get("IsPersonAccount") == "true")
+            .filter(
+                func.lower(contact_model.__table__.columns.get("IsPersonAccount"))
+                == "true"
+            )  # FIXME: Case here.
             .outerjoin(
                 account_sf_ids_table,
                 account_sf_ids_table.columns["id"] == account_id_column,

@@ -82,6 +82,11 @@ class MappingStep(CCIDictModel):
     sf_id_table: Optional[str] = None  # populated at runtime in extract.py
     record_type_table: Optional[str] = None  # populated at runtime in extract.py
 
+    @validator("batch_size")
+    @classmethod
+    def validate_batch_size(cls, v):
+        assert v <= 200 and v > 0
+
     @validator("record_type")
     @classmethod
     def record_type_is_deprecated(cls, v):

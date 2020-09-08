@@ -253,7 +253,7 @@ class RestApiQueryOperation(BaseQueryOperation):
 
     def get_results(self):
         def convert(rec):
-            return [str(rec[f]) if rec[f] is not None else None for f in self.fields]
+            return [str(rec[f]) if rec[f] is not None else "" for f in self.fields]
 
         yield from (convert(rec) for rec in self.response["records"])
 
@@ -404,6 +404,8 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
 
 
 class RestApiDmlOperation(BaseDmlOperation):
+    """Operation class for all DML operations run using the REST API."""
+
     def __init__(self, *, sobject, operation, api_options, context, fields):
         super().__init__(
             sobject=sobject,
@@ -422,18 +424,22 @@ class RestApiDmlOperation(BaseDmlOperation):
 
     def load_records(self, records):
         def _convert(rec):
-            r = dict(zip(self.fields, rec))
+            result = dict(zip(self.fields, rec))
             for boolean_field in self.boolean_fields:
-                r[boolean_field] = bool(r[boolean_field])
+                result[boolean_field] = bool(result[boolean_field])
 
             # Remove empty fields (different semantics in REST API)
             # We do this for insert only - on update, any fields set to `null`
             # are meant to be blanked out.
             if self.operation is DataOperationType.INSERT:
-                r = {k: r[k] for k in r if r[k] is not None and r[k] != ""}
+                result = {
+                    k: result[k]
+                    for k in result
+                    if result[k] is not None and result[k] != ""
+                }
 
-            r["attributes"] = {"type": self.sobject}
-            return r
+            result["attributes"] = {"type": self.sobject}
+            return result
 
         self.results = []
         method = {
@@ -495,6 +501,9 @@ def get_query_operation(
     query: str,
     api: DataApi,
 ) -> BaseQueryOperation:
+    """Create an appropriate QueryOperation instance for the given parameters, selecting
+    between REST and Bulk APIs based upon volume (Bulk > 2000 records) if DataApi.SMART
+    is provided."""
     if api is DataApi.SMART:
         record_count_response = context.sf.restful(
             f"limits/recordCount?sObjects={sobject}"
@@ -531,11 +540,14 @@ def get_dml_operation(
     context: Any,
     api: DataApi,
     volume: int,
-) -> BaseQueryOperation:
+) -> BaseDmlOperation:
+    """Create an appropriate DmlOperation instance for the given parameters, selecting
+    between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
+    or if the operation is HARD_DELETE, which is only available for Bulk)."""
     if api is DataApi.SMART:
         api = (
             DataApi.BULK
-            if volume > 2000 or operation is DataOperationType.HARD_DELETE
+            if volume >= 2000 or operation is DataOperationType.HARD_DELETE
             else DataApi.REST
         )
 

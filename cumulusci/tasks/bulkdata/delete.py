@@ -33,6 +33,10 @@ class DeleteData(BaseSalesforceApiTask):
             "description": "If True, the package namespace prefix will be automatically added to objects "
             "and fields for which it is present in the org. Defaults to True."
         },
+        "api": {
+            "description": "The desired Salesforce API to use, which may be 'rest', 'bulk', or "
+            "'smart' to auto-select based on record volume. The default is 'smart'."
+        },
     }
     row_warning_limit = 10
 
