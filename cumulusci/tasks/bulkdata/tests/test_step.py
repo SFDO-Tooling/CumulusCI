@@ -613,7 +613,7 @@ class TestBulkApiDmlOperation(unittest.TestCase):
 class TestRestApiQueryOperation:
     def test_query(self):
         context = mock.Mock()
-        context.sf.query_all.return_value = {
+        context.sf.query.return_value = {
             "totalSize": 2,
             "done": True,
             "records": [
@@ -623,6 +623,47 @@ class TestRestApiQueryOperation:
                     "Email": "wayne@example.com",
                 },
                 {"Id": "003000000000002", "LastName": "De Vries", "Email": None},
+            ],
+        }
+
+        query_op = RestApiQueryOperation(
+            sobject="Contact",
+            fields=["Id", "LastName", "Email"],
+            api_options={},
+            context=context,
+            query="SELECT Id, LastName,  Email FROM Contact",
+        )
+
+        query_op.query()
+
+        assert query_op.job_result == DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], 2, 0
+        )
+        assert list(query_op.get_results()) == [
+            ["003000000000001", "Narvaez", "wayne@example.com"],
+            ["003000000000002", "De Vries", ""],
+        ]
+
+    def test_query_batches(self):
+        context = mock.Mock()
+        context.sf.query.return_value = {
+            "totalSize": 2,
+            "done": False,
+            "records": [
+                {
+                    "Id": "003000000000001",
+                    "LastName": "Narvaez",
+                    "Email": "wayne@example.com",
+                }
+            ],
+            "nextRecordsUrl": "test",
+        }
+
+        context.sf.query_more.return_value = {
+            "totalSize": 2,
+            "done": True,
+            "records": [
+                {"Id": "003000000000002", "LastName": "De Vries", "Email": None}
             ],
         }
 

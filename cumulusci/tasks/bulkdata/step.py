@@ -242,11 +242,7 @@ class RestApiQueryOperation(BaseQueryOperation):
         self.fields = fields
 
     def query(self):
-        # This is not as memory-efficient as we might like.
-        # To preserve the invariant from the Bulk API that
-        # we know the query count before consuming the results,
-        # we use `query_all` instead of `query_all_iter`.
-        self.response = self.sf.query_all(self.soql)
+        self.response = self.sf.query(self.soql)
         self.job_result = DataOperationJobResult(
             DataOperationStatus.SUCCESS, [], self.response["totalSize"], 0
         )
@@ -255,7 +251,14 @@ class RestApiQueryOperation(BaseQueryOperation):
         def convert(rec):
             return [str(rec[f]) if rec[f] is not None else "" for f in self.fields]
 
-        yield from (convert(rec) for rec in self.response["records"])
+        while True:
+            yield from (convert(rec) for rec in self.response["records"])
+            if not self.response["done"]:
+                self.response = self.sf.query_more(
+                    self.response["nextRecordsUrl"], identifier_is_url=True
+                )
+            else:
+                return
 
 
 class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
