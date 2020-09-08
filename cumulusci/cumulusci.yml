@@ -604,6 +604,11 @@ flows:
                     version: ^^github_package_data.version_id
             4:
                 flow: config_apextest
+                options:
+                    deploy_post:
+                        unmanaged: False
+                    update_admin_profile:
+                        managed: True
             5:
                 task: run_tests
                 options:

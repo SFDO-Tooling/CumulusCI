@@ -1,5 +1,6 @@
 from unittest import mock
 import io
+import json
 import os
 import pathlib
 import shutil
@@ -67,12 +68,25 @@ def project_config(repo_root):
     )
 
     project_config.keychain = BaseProjectKeychain(project_config, key=None)
+    pathlib.Path(repo_root, "orgs").mkdir()
+    pathlib.Path(repo_root, "orgs", "scratch_def.json").write_text(
+        json.dumps(
+            {
+                "edition": "Developer",
+                "settings": {},
+            }
+        )
+    )
+    dev_org_config = OrgConfig({"config_file": "orgs/scratch_def.json"}, "dev")
     dependency_org_config = OrgConfig(
         {"instance_url": "https://test.salesforce.com", "access_token": "token"},
         "2gp_dependencies",
     )
     dependency_org_config._latest_api_version = "49.0"
-    project_config.keychain.orgs = {"2gp_dependencies": dependency_org_config}
+    project_config.keychain.orgs = {
+        "dev": dev_org_config,
+        "2gp_dependencies": dependency_org_config,
+    }
 
     project_config.get_github_api = mock.Mock()
 

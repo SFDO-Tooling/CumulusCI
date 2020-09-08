@@ -10,6 +10,7 @@ from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.exceptions import DependencyLookupError
+from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import FlowCoordinator
@@ -17,6 +18,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils import download_extract_github
 
 
@@ -76,7 +78,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "Skipping validation creates packages more quickly, but they cannot be promoted for release."
         },
         "org_dependent": {
-            "description": "If true, create an org-dependent unlocked package."
+            "description": "If true, create an org-dependent unlocked package. Default: true."
         },
         "force_upload": {
             "description": "If true, force creating a new package version even if one with the same contents already exists"
@@ -256,7 +258,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     )
                     return res["records"][0]["Id"]
 
-            # Create the package2-descriptor.json contents and write to version_info
+            # Create the package descriptor
             # @@@ we should support releasing a successor to an older version by specifying a base version
             last_version_parts = self._get_highest_version_parts(package_id)
             version_number = self._get_next_version_number(
@@ -270,6 +272,34 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 "versionNumber": version_number,
             }
 
+            # Add org shape
+            try:
+                dev_org_config = self.project_config.keychain.get_org("dev")
+            except OrgNotFound:
+                pass
+            else:
+                with open(dev_org_config.config_file, "r") as f:
+                    scratch_org_def = json.load(f)
+                for key in (
+                    "country",
+                    "edition",
+                    "language",
+                    "features",
+                    "snapshot",
+                ):
+                    if key in scratch_org_def:
+                        package_descriptor[key] = scratch_org_def[key]
+
+                # Add settings
+                if "settings" in scratch_org_def:
+                    with build_settings_package(
+                        scratch_org_def["settings"], self.api_version
+                    ) as path:
+                        settings_zip_builder = MetadataPackageZipBuilder(path=path)
+                        version_info.writestr(
+                            "settings.zip", settings_zip_builder.as_bytes()
+                        )
+
             # Get the dependencies for the package
             is_dependency = package_config is not self.package_config
             if not package_config.org_dependent and not is_dependency:
@@ -278,7 +308,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 if dependencies:
                     package_descriptor["dependencies"] = dependencies
 
-            # Finish constructing the request
+            # Add package descriptor to version info
             version_info.writestr(
                 "package2-descriptor.json", json.dumps(package_descriptor)
             )
