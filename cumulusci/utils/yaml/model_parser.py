@@ -92,14 +92,14 @@ class CCIModel(BaseModel):
         the parameter below too.
 
         https://pydantic-docs.helpmanual.io/usage/model_config/
-           """
+        """
 
         extra = "forbid"
 
 
 class CCIDictModel(CCIModel):
     """A base class that acts as both a model and a dict. For transitioning from
-       one to the other."""
+    one to the other."""
 
     def __getitem__(self, name):
         """Pretend to a do my_dict[name]"""

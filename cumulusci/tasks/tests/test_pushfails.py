@@ -32,7 +32,9 @@ def error_record(gack=False, ErrorTitle="Unexpected Error"):  # type: (bool) -> 
 
 
 class TestPushFailureTask(unittest.TestCase):
-    def test_run_task(self,):
+    def test_run_task(
+        self,
+    ):
         task = create_task(
             ReportPushFailures,
             options={"request_id": "123", "ignore_errors": "IgnoreMe"},

@@ -15,12 +15,14 @@ class TestActivateFlow(unittest.TestCase):
                 "developer_names": [
                     "Auto_Populate_Date_And_Name_On_Program_Engagement",
                     "ape",
-                ],
+                ]
             },
         )
         record_id = "3001F0000009GFwQAM"
-        activate_url = "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
-            cc_task.org_config.instance_url, record_id
+        activate_url = (
+            "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
+                cc_task.org_config.instance_url, record_id
+            )
         )
         responses.add(
             method="GET",
@@ -57,11 +59,15 @@ class TestActivateFlow(unittest.TestCase):
         )
         record_id = "3001F0000009GFwQAM"
         record_id2 = "3001F0000009GFwQAW"
-        activate_url = "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
-            cc_task.org_config.instance_url, record_id
+        activate_url = (
+            "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
+                cc_task.org_config.instance_url, record_id
+            )
         )
-        activate_url2 = "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
-            cc_task.org_config.instance_url, record_id2
+        activate_url2 = (
+            "{}/services/data/v43.0/tooling/sobjects/FlowDefinition/{}".format(
+                cc_task.org_config.instance_url, record_id2
+            )
         )
         responses.add(
             method="GET",

@@ -37,9 +37,9 @@ lookup_locator = object_manager["input"].format("dtypeY")
 @pageobject(page_type="ObjectManager")
 class ObjectManagerPage(BasePage):
     """A page object representing the Object Manager of an object.
-        Example
-        | Go to page   ObjectManager  Contact
-        """
+    Example
+    | Go to page   ObjectManager  Contact
+    """
 
     def _go_to_page(self):
         url_template = "{root}/lightning/setup/ObjectManager/home"

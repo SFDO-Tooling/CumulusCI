@@ -90,10 +90,10 @@ def _handle_primary_key(mapping, fields):
 
 def create_table(mapping, metadata):
     """Given a mapping data structure (from mapping.yml) and SQLAlchemy
-       metadata, create a table matching the mapping.
+    metadata, create a table matching the mapping.
 
-       Mapping should be a dict-like with keys "fields", "table" and
-       optionally "oid_as_pk" and "record_type" """
+    Mapping should be a dict-like with keys "fields", "table" and
+    optionally "oid_as_pk" and "record_type" """
 
     fields = []
     _handle_primary_key(mapping, fields)

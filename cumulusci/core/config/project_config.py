@@ -187,7 +187,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return self._repo_info
 
     def _apply_repo_env_var_overrides(self, info):
-        """ Apply CUMULUSCI_REPO_* environment variables last so they can
+        """Apply CUMULUSCI_REPO_* environment variables last so they can
         override and fill in missing values from the CI environment"""
         self._override_repo_env_var("CUMULUSCI_REPO_BRANCH", "branch", info)
         self._override_repo_env_var("CUMULUSCI_REPO_COMMIT", "commit", info)
@@ -254,7 +254,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """Returns the url under the [remote origin]
         section of the .git/config file. Returns None
         if .git/config file not present or no matching
-        line is found. """
+        line is found."""
         config = ConfigParser(strict=False)
         try:
             config.read(git_path(self.repo_root, "config"))
@@ -420,8 +420,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def project_local_dir(self):
-        """ location of the user local directory for the project
-        e.g., ~/.cumulusci/NPSP-Extension-Test/ """
+        """location of the user local directory for the project
+        e.g., ~/.cumulusci/NPSP-Extension-Test/"""
 
         # depending on where we are in bootstrapping the UniversalConfig
         # the canonical projectname could be located in one of two places
