@@ -156,13 +156,6 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         if len(root_parts) == 0:
             return True
 
-        # don't include featureParameters for unlocked packages
-        if (
-            self.options.get("package_type") == "unlocked"
-            and root_parts[1] == "featureParameters"
-        ):
-            return False
-
         # include top level only within lwc
         if root_parts[0] == "lwc" and len(root_parts) != 2:
             return False
@@ -188,6 +181,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         self._process_namespace_tokens()
         self._clean_meta_xml()
         self._bundle_staticresources()
+        self._remove_feature_parameters()
 
     def _process_namespace_tokens(self):
         zipf = self.zf
@@ -304,6 +298,42 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             section.insert_before(section.find("name"), tag="members", text=name)
         package_xml = Package.tostring(xml_declaration=True)
         zip_dest.writestr("package.xml", package_xml)
+
+        self.zf.close()
+        self.zf = zip_dest
+
+    def _remove_feature_parameters(self):
+        # Remove feature parameters from unlocked packages only
+        if self.options.get("package_type") != "Unlocked":
+            return
+
+        # Copy existing files to new zipfile
+        package_xml = None
+        zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
+        for name in self.zf.namelist():
+            if name == "package.xml":
+                package_xml = self.zf.open(name)
+            elif name.startswith("featureParameters/"):
+                # skip feature parameters
+                self.logger.info(f"Skipping {name} in unlocked package")
+                continue
+            else:
+                content = self.zf.read(name)
+                zip_dest.writestr(name, content)
+
+        # Remove from package.xml
+        if package_xml is not None:
+            Package = metadata_tree.parse(package_xml)
+            for mdtype in (
+                "FeatureParameterInteger",
+                "FeatureParameterString",
+                "FeatureParameterBoolean",
+            ):
+                section = Package.find("types", name=mdtype)
+                if section is not None:
+                    Package.remove(section)
+            package_xml = Package.tostring(xml_declaration=True)
+            zip_dest.writestr("package.xml", package_xml)
 
         self.zf.close()
         self.zf = zip_dest
