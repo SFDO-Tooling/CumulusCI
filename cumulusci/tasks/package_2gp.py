@@ -231,6 +231,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_config: PackageConfig,
         package_zip_builder: BasePackageZipBuilder,
         skip_validation: bool = False,
+        dependencies: list = None,
     ):
         # Prepare the VersionInfo file
         version_bytes = io.BytesIO()
@@ -300,13 +301,13 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                             "settings.zip", settings_zip_builder.as_bytes()
                         )
 
-            # Get the dependencies for the package
+            # Add the dependencies for the package
             is_dependency = package_config is not self.package_config
             if not package_config.org_dependent and not is_dependency:
                 self.logger.info("Determining dependencies for package")
                 dependencies = self._get_dependencies()
-                if dependencies:
-                    package_descriptor["dependencies"] = dependencies
+            if dependencies:
+                package_descriptor["dependencies"] = dependencies
 
             # Add package descriptor to version info
             version_info.writestr(
@@ -480,7 +481,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 new_dependency["subscriberPackageVersionId"] = dependency["version_id"]
 
             elif dependency.get("repo_name"):
-                version_id = self._create_unlocked_package_from_github(dependency)
+                version_id = self._create_unlocked_package_from_github(
+                    dependency, new_dependencies
+                )
                 self.logger.info(
                     "Adding dependency {}/{} {} with id {}".format(
                         dependency["repo_owner"],
@@ -508,7 +511,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
         for item_path in sorted(path.iterdir(), key=str):
             if item_path.is_dir():
-                version_id = self._create_unlocked_package_from_local(item_path)
+                version_id = self._create_unlocked_package_from_local(
+                    item_path, dependencies
+                )
                 self.logger.info(
                     "Adding dependency {}/{} {} with id {}".format(
                         self.project_config.repo_owner,
@@ -521,7 +526,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
         return dependencies
 
-    def _create_unlocked_package_from_github(self, dependency):
+    def _create_unlocked_package_from_github(self, dependency, dependencies):
         gh_for_repo = self.project_config.get_github_api(
             dependency["repo_owner"], dependency["repo_name"]
         )
@@ -546,7 +551,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         package_id = self._get_or_create_package(package_config)
         self.request_id = self._create_version_request(
-            package_id, package_config, package_zip_builder
+            package_id,
+            package_config,
+            package_zip_builder,
+            dependencies=dependencies,
         )
 
         self._poll()
@@ -558,7 +566,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package2_version = res["records"][0]
         return package2_version["SubscriberPackageVersionId"]
 
-    def _create_unlocked_package_from_local(self, path):
+    def _create_unlocked_package_from_local(self, path, dependencies):
         """Create an unlocked package version from a local directory."""
         self.logger.info("Creating package for dependencies in {}".format(path))
         package_name = (
@@ -577,7 +585,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         package_id = self._get_or_create_package(package_config)
         self.request_id = self._create_version_request(
-            package_id, package_config, package_zip_builder
+            package_id, package_config, package_zip_builder, dependencies=dependencies
         )
         self._poll()
         self._reset_poll()
