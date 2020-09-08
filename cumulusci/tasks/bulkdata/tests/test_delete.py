@@ -378,10 +378,13 @@ class TestDeleteData(unittest.TestCase):
             _make_task(DeleteData, {"options": {"objects": "a,b", "where": "x='y'"}})
 
         with self.assertRaises(TaskOptionsError):
-            _make_task(DeleteData, {"options": {"api": "blah"}})
+            _make_task(DeleteData, {"options": {"objects": "a", "api": "blah"}})
 
         with self.assertRaises(TaskOptionsError):
-            _make_task(DeleteData, {"options": {"api": "rest", "hardDelete": True}})
+            _make_task(
+                DeleteData,
+                {"options": {"objects": "a", "api": "rest", "hardDelete": True}},
+            )
 
         t = _make_task(
             DeleteData,
