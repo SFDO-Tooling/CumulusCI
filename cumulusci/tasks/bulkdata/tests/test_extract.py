@@ -197,7 +197,7 @@ class TestExtractData(unittest.TestCase):
                 "temp_db.db"
             ), ce_mock.mock_calls[0][1][0]
             assert ce_mock.mock_calls[0][1][0].startswith(
-                "sqlite:////"
+                "sqlite:///"
             ), ce_mock.mock_calls[0][1][0]
 
     @responses.activate

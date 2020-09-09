@@ -3,6 +3,7 @@ import tempfile
 from pathlib import Path
 import itertools
 import collections
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column
@@ -11,8 +12,6 @@ from sqlalchemy import MetaData
 from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import create_session, mapper
-from sqlalchemy.ext.automap import automap_base
-from contextlib import contextmanager
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
@@ -33,14 +32,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
     validate_and_inject_mapping,
 )
-
-try:
-    from contextlib import nullcontext  # Python 3.7+
-except ImportError:
-
-    @contextmanager
-    def nullcontext(enter_result):
-        yield enter_result
+from cumulusci.utils.backports.py36 import nullcontext
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -131,11 +123,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
                 # Create the tables
                 self._create_tables()
-
-                # TODO: do we use base anywhere?
-                # initialize the automap mapping
-                self.base = automap_base(bind=connection, metadata=self.metadata)
-                self.base.prepare(connection, reflect=True)
 
                 # initialize session
                 self.session = create_session(bind=connection, autocommit=False)

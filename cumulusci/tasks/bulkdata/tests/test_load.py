@@ -7,7 +7,6 @@ import random
 import string
 import unittest
 from unittest import mock
-from contextlib import contextmanager
 import tempfile
 
 import responses
@@ -28,13 +27,7 @@ from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tests.util import assert_max_memory_usage
 
-try:
-    from contextlib import nullcontext  # Python 3.7+
-except ImportError:
-
-    @contextmanager
-    def nullcontext(enter_result=None):
-        yield enter_result
+from cumulusci.utils.backports.py36 import nullcontext
 
 
 class MockBulkApiDmlOperation(BaseDmlOperation):

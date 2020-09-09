@@ -28,14 +28,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     MappingStep,
     MappingLookup,
 )
-
-try:
-    from contextlib import nullcontext  # Python 3.7+
-except ImportError:
-
-    @contextmanager
-    def nullcontext(enter_result):
-        yield enter_result
+from cumulusci.utils.backports.py36 import nullcontext
 
 
 class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -200,7 +193,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             local_ids.write(str(pkey) + "\n")
             yield row
 
-        self.logger.warn(
+        self.logger.info(
             f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}."
         )
 
