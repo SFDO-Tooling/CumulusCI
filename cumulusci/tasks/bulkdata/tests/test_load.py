@@ -679,7 +679,10 @@ class TestLoadData(unittest.TestCase):
         model = mock.Mock()
         task.models = {"contacts": model}
         task.metadata = mock.Mock()
-        task.metadata.tables = {"contacts_sf_ids": mock.Mock()}
+        task.metadata.tables = {
+            "contacts_sf_ids": mock.Mock(),
+            "accounts_sf_ids": mock.Mock(),
+        }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
         task._filter_out_person_account_records = mock.Mock()
@@ -734,7 +737,10 @@ class TestLoadData(unittest.TestCase):
         model = mock.Mock()
         task.models = {"contacts": model}
         task.metadata = mock.Mock()
-        task.metadata.tables = {"contacts_sf_ids": mock.Mock()}
+        task.metadata.tables = {
+            "contacts_sf_ids": mock.Mock(),
+            "accounts_sf_ids": mock.Mock(),
+        }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=False)
         task._filter_out_person_account_records = mock.Mock()
@@ -789,7 +795,10 @@ class TestLoadData(unittest.TestCase):
         model = mock.Mock()
         task.models = {"requests": model}
         task.metadata = mock.Mock()
-        task.metadata.tables = {"requests_sf_ids": mock.Mock()}
+        task.metadata.tables = {
+            "requests_sf_ids": mock.Mock(),
+            "accounts_sf_ids": mock.Mock(),
+        }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
         task._filter_out_person_account_records = mock.Mock()
@@ -989,7 +998,7 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {"table": "Account", "action": "update"}
+        mapping = MappingStep(sf_object="Account", action=DataOperationType.UPDATE)
         task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_not_called()
@@ -1297,7 +1306,7 @@ class TestLoadData(unittest.TestCase):
         can_load_person_accounts = True
 
         # ✅ an account_id_lookup is found in the mapping
-        account_id_lookup = mock.Mock()
+        account_id_lookup = MappingLookup(table="accounts")
 
         task = _make_task(
             LoadData,
@@ -1335,7 +1344,7 @@ class TestLoadData(unittest.TestCase):
         task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
-            mapping, account_id_lookup, task.session.connection.return_value
+            mapping, mapping.lookups["AccountId"], task.session.connection.return_value
         )
 
         task._sql_bulk_insert_from_records.assert_called_with(

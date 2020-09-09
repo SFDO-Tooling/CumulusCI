@@ -245,7 +245,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         columns = [getattr(model, id_column)]
 
         for name, f in mapping.fields.items():
-            if name not in ("RecordTypeId", "RecordType"):
+            if name not in ("Id", "RecordTypeId", "RecordType"):
                 columns.append(model.__table__.columns[f])
 
         lookups = {
