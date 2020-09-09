@@ -1,6 +1,7 @@
 import os
 import unittest
 from unittest import mock
+from tempfile import TemporaryDirectory
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata import ExtractData
@@ -11,6 +12,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.tests.util import assert_max_memory_usage
 from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
@@ -35,6 +37,14 @@ class MockBulkQueryOperation(BaseQueryOperation):
 
     def get_results(self):
         return iter(self.results)
+
+
+class MockScalableBulkQueryOperation(MockBulkQueryOperation):
+    def query(self):
+        self.job_id = "JOB"
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], self.result_len, 0
+        )
 
 
 class TestExtractData(unittest.TestCase):
@@ -339,24 +349,27 @@ class TestExtractData(unittest.TestCase):
             [["111", "Test Opportunity", "1"], ["222", "Test Opportunity 2", "1"]]
         )
         task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
+        task._sql_bulk_insert_from_records_incremental = mock.Mock(
+            return_value=[None, None]
+        )
+        task._convert_lookups_to_id = mock.Mock()
         task._import_results(mapping, step)
 
         task.session.connection.assert_called_once_with()
         step.get_results.assert_called_once_with()
-        task._sql_bulk_insert_from_records.assert_has_calls(
+        task._sql_bulk_insert_from_records_incremental.assert_has_calls(
             [
                 mock.call(
                     connection=task.session.connection.return_value,
                     table="Opportunity",
                     columns=["Name", "AccountId"],
-                    record_iterable=csv_mock.return_value,
+                    record_iterable=mock.ANY,
                 ),
                 mock.call(
                     connection=task.session.connection.return_value,
                     table="Opportunity_sf_ids",
                     columns=["sf_id"],
-                    record_iterable=csv_mock.return_value,
+                    record_iterable=mock.ANY,
                 ),
             ]
         )
@@ -391,7 +404,9 @@ class TestExtractData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         task._extract_record_types = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
+        task._sql_bulk_insert_from_records_incremental = mock.Mock(
+            return_value=[None, None]
+        )
         task.session = mock.Mock()
         task.org_config._is_person_accounts_enabled = False
 
@@ -490,10 +505,7 @@ class TestExtractData(unittest.TestCase):
             [mock.call(), mock.call()]
         )
         task.metadata.tables.__getitem__.assert_has_calls(
-            [
-                mock.call("contacts_sf_id"),
-                mock.call("households_sf_id"),
-            ],
+            [mock.call("contacts_sf_id"), mock.call("households_sf_id"),],
             any_order=True,
         )
 
@@ -901,3 +913,48 @@ class TestExtractData(unittest.TestCase):
             columns=["sf_id", "Name", "account_id"],
             record_iterable=log_mock.return_value,
         )
+
+    @responses.activate
+    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
+    def test_extract_memory_usage(self, step_mock):
+        with TemporaryDirectory() as t:
+            base_path = os.path.dirname(__file__)
+            mapping_path = os.path.join(base_path, self.mapping_file_v1)
+            mock_describe_calls()
+
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{t}/foo.db",  # tempdir database
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task.org_config._is_person_accounts_enabled = False
+
+            mock_query_households = MockScalableBulkQueryOperation(
+                sobject="Account",
+                api_options={},
+                context=task,
+                query="SELECT Id FROM Account",
+            )
+            mock_query_contacts = MockScalableBulkQueryOperation(
+                sobject="Contact",
+                api_options={},
+                context=task,
+                query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
+            )
+            mock_query_households.results = ([str(num)] for num in range(1, 20000))
+            mock_query_households.result_len = 20000
+            mock_query_contacts.results = [
+                ["2", "First", "Last", "test@example.com", "1"]
+            ]
+            mock_query_contacts.result_len = 1
+
+            step_mock.side_effect = [mock_query_households, mock_query_contacts]
+
+            with assert_max_memory_usage(7 * 10 ** 6):
+                task()

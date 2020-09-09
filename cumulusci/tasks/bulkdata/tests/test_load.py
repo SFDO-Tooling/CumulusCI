@@ -8,6 +8,7 @@ import string
 import unittest
 from unittest import mock
 from contextlib import nullcontext
+import tempfile
 
 import responses
 from sqlalchemy import Column, Table, Unicode
@@ -25,6 +26,7 @@ from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
+from cumulusci.tests.util import assert_max_memory_usage
 
 
 class MockBulkApiDmlOperation(BaseDmlOperation):
@@ -64,6 +66,30 @@ class MockBulkApiDmlOperation(BaseDmlOperation):
     def results(self, results):
         self._results = results
         self.end()
+
+
+class MockBulkAPI:
+    next_job_id = 0
+    next_batch_id = 0
+
+    @classmethod
+    def create_job(cls, *args, **kwargs):
+        cls.next_job_id += 1
+        return cls.next_job_id
+
+    @classmethod
+    def post_batch(cls, *args, **kwargs):
+        cls.next_batch_id += 1
+        return cls.next_batch_id
+
+    def close_job(self, *args, **kwargs):
+        pass
+
+    def job_status(self, job_id):
+        return {
+            "numberBatchesCompleted": self.next_batch_id,
+            "numberBatchesTotal": self.next_batch_id,
+        }
 
 
 class TestLoadData(unittest.TestCase):
@@ -429,12 +455,12 @@ class TestLoadData(unittest.TestCase):
             ]
         )
 
-        local_ids = []
-        records = list(task._stream_queried_data(mapping, local_ids))
-        self.assertEqual(
-            [["001000000005", "001000000007"], ["001000000006", "001000000008"]],
-            records,
-        )
+        with tempfile.TemporaryFile("w+t") as local_ids:
+            records = list(task._stream_queried_data(mapping, local_ids))
+            self.assertEqual(
+                [["001000000005", "001000000007"], ["001000000006", "001000000008"]],
+                records,
+            )
 
     def test_get_columns(self):
         task = _make_task(
@@ -2219,3 +2245,81 @@ class TestLoadData(unittest.TestCase):
 
         query_result.fetchmany.assert_has_calls(query_result.fetchmany.expected_calls)
         task.sf.query_all.assert_has_calls(task.sf.query_all.expected_calls)
+
+    @responses.activate
+    def test_load_memory_usage(self):
+        responses.add(
+            method="GET",
+            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            body=json.dumps({"records": [{"Id": "1"}]}),
+            status=200,
+        )
+
+        base_path = os.path.dirname(__file__)
+        sql_path = os.path.join(base_path, "testdata.sql")
+        mapping_path = os.path.join(base_path, self.mapping_file)
+
+        with temporary_dir() as d:
+            tmp_sql_path = os.path.join(d, "testdata.sql")
+            shutil.copyfile(sql_path, tmp_sql_path)
+
+            class NetworklessLoadData(LoadData):
+                def _query_db(self, mapping):
+                    if mapping.sf_object == "Account":
+                        return FakeQueryResult((f"{i}",) for i in range(0, numrecords))
+                    elif mapping.sf_object == "Contact":
+                        return FakeQueryResult(
+                            (
+                                (f"{i}", "Test☃", "User", "test@example.com", 0)
+                                for i in range(0, numrecords)
+                            )
+                        )
+
+                def _init_task(self):
+                    super()._init_task()
+                    task.bulk = MockBulkAPI()
+
+            task = _make_task(
+                NetworklessLoadData,
+                {"options": {"sql_path": tmp_sql_path, "mapping": mapping_path}},
+            )
+
+            numrecords = 5000
+
+            class FakeQueryResult:
+                def __init__(self, results):
+                    self.results = results
+
+                def yield_per(self, number):
+                    return self.results
+
+            mock_describe_calls()
+
+            def get_results(self):
+                return (
+                    DataOperationResult(i, True, None) for i in range(0, numrecords)
+                )
+
+            def _job_state_from_batches(self, job_id):
+                return DataOperationJobResult(
+                    DataOperationStatus.SUCCESS,
+                    [],
+                    numrecords,
+                    0,
+                )
+
+            MEGABYTE = 2 ** 20
+
+            # FIXME: more anlysis about the number below
+            with mock.patch(
+                "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
+                _job_state_from_batches,
+            ), mock.patch(
+                "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation.get_results",
+                get_results,
+            ), assert_max_memory_usage(
+                15 * MEGABYTE
+            ):
+                task()
+            task.session.close()
+            task.engine.dispose()

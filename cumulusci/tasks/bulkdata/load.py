@@ -155,15 +155,16 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             fields=self._get_columns(mapping),
         )
 
-        local_ids = []
-        step.start()
-        step.load_records(self._stream_queried_data(mapping, local_ids))
-        step.end()
+        with tempfile.TemporaryFile(mode="w+t") as local_ids:
+            step.start()
+            step.load_records(self._stream_queried_data(mapping, local_ids))
+            step.end()
 
-        if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
-            self._process_job_results(mapping, step, local_ids)
+            if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
+                local_ids.seek(0)
+                self._process_job_results(mapping, step, local_ids)
 
-        return step.job_result
+            return step.job_result
 
     def _stream_queried_data(self, mapping, local_ids):
         """Get data from the local db"""
@@ -188,11 +189,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     total_rows -= 1
                     continue
 
-            local_ids.append(pkey)
+            local_ids.write(str(pkey) + "\n")
             yield row
 
-        self.logger.info(
-            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}"
+        self.logger.warn(
+            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}."
         )
 
     def _get_columns(self, mapping):
@@ -390,6 +391,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         error_checker = RowErrorChecker(
             self.logger, self.options["ignore_row_errors"], self.row_warning_limit
         )
+        local_ids = (lid.strip("\n") for lid in local_ids)
         for result, local_id in zip(step.get_results(), local_ids):
             if result.success:
                 yield (local_id, result.id)

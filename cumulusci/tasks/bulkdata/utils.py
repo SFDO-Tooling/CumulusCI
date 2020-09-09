@@ -1,4 +1,6 @@
 import datetime
+import itertools
+import collections
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -37,13 +39,27 @@ class SqlAlchemyMixin:
         self, *, connection, table, columns, record_iterable
     ):
         """Persist records from the given generator into the local database."""
-        table = self.metadata.tables[table]
-
-        connection.execute(
-            table.insert(), [dict(zip(columns, row)) for row in record_iterable]
+        _consume(
+            self._sql_bulk_insert_from_records_incremental(
+                connection=connection,
+                table=table,
+                columns=columns,
+                record_iterable=record_iterable,
+            )
         )
 
-        self.session.flush()
+    def _sql_bulk_insert_from_records_incremental(
+        self, *, connection, table, columns, record_iterable
+    ):
+        """Generator that persists batches of records from the given generator into the local database
+
+        Yields after every batch."""
+        table = self.metadata.tables[table]
+        dict_iterable = (dict(zip(columns, row)) for row in record_iterable)
+        for group in _grouper(10000, dict_iterable):
+            with connection.begin():
+                yield connection.execute(table.insert(), group)
+            self.session.flush()
 
     def _create_record_type_table(self, table_name):
         """Create a table to store mapping between Record Type Ids and Developer Names."""
@@ -154,3 +170,17 @@ class RowErrorChecker:
                 return self.row_error_count
             else:
                 raise BulkDataException(msg)
+
+
+def _consume(iterator):
+    # simplied from Python docs
+    collections.deque(iterator, maxlen=0)
+
+
+def _grouper(n, iterable):
+    it = iter(iterable)
+    while True:
+        chunk = tuple(itertools.islice(it, n))
+        if not chunk:
+            return
+        yield chunk

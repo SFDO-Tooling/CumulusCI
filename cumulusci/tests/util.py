@@ -1,6 +1,10 @@
 import copy
 import random
 from pathlib import Path
+import tracemalloc
+import gc
+import sys
+from contextlib import contextmanager
 
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -87,3 +91,27 @@ class DummyKeychain(object):
     @property
     def cache_dir(self):
         return Path.home() / "project/.cci"
+
+
+@contextmanager
+def assert_max_memory_usage(max_usage):
+    "Assert that a test does not exceed a certain memory threshold"
+    tracemalloc.start()
+    yield
+    current, peak = tracemalloc.get_traced_memory()
+    if peak > max_usage:
+        big_objs(traced_only=True)
+        assert peak < max_usage, ("Peak incremental memory usage was high:", peak)
+    tracemalloc.stop()
+
+
+def big_objs(traced_only=False):
+
+    big_objs = (
+        (sys.getsizeof(obj), obj)
+        for obj in gc.get_objects()
+        if sys.getsizeof(obj) > 20000
+        and (tracemalloc.get_object_traceback(obj) if traced_only else True)
+    )
+    for size, obj in big_objs:
+        print(type(obj), size, tracemalloc.get_object_traceback(obj))
