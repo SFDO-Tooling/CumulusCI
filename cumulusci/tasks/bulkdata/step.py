@@ -507,6 +507,12 @@ def get_query_operation(
     """Create an appropriate QueryOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk > 2000 records) if DataApi.SMART
     is provided."""
+
+    # The Record Count endpoint requires API 40.0. REST Collections requires 42.0.
+    api_version = float(context.sf.sf_version)
+    if api_version < 42.0 and api is not DataApi.BULK:
+        api = DataApi.BULK
+
     if api is DataApi.SMART:
         record_count_response = context.sf.restful(
             f"limits/recordCount?sObjects={sobject}"
@@ -547,6 +553,12 @@ def get_dml_operation(
     """Create an appropriate DmlOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
     or if the operation is HARD_DELETE, which is only available for Bulk)."""
+
+    # REST Collections requires 42.0.
+    api_version = float(context.sf.sf_version)
+    if api_version < 42.0 and api is not DataApi.BULK:
+        api = DataApi.BULK
+
     if api is DataApi.SMART:
         api = (
             DataApi.BULK

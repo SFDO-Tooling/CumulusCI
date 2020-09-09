@@ -916,14 +916,18 @@ class TestRestApiDmlOperation:
             }
         ]
 
+
+class TestGetOperationFunctions:
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
     def test_get_query_operation(self, rest_query, bulk_query):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
         op = get_query_operation(
             sobject="Test",
             fields=["Id"],
             api_options={},
-            context=mock.Mock(),
+            context=context,
             query="SELECT Id FROM Test",
             api=DataApi.BULK,
         )
@@ -931,7 +935,7 @@ class TestRestApiDmlOperation:
         bulk_query.assert_called_once_with(
             sobject="Test",
             api_options={},
-            context=mock.ANY,
+            context=context,
             query="SELECT Id FROM Test",
         )
 
@@ -939,7 +943,7 @@ class TestRestApiDmlOperation:
             sobject="Test",
             fields=["Id"],
             api_options={},
-            context=mock.Mock(),
+            context=context,
             query="SELECT Id FROM Test",
             api=DataApi.REST,
         )
@@ -948,7 +952,7 @@ class TestRestApiDmlOperation:
             sobject="Test",
             fields=["Id"],
             api_options={},
-            context=mock.ANY,
+            context=context,
             query="SELECT Id FROM Test",
         )
 
@@ -957,6 +961,7 @@ class TestRestApiDmlOperation:
     def test_get_query_operation__smart_to_rest(self, rest_query, bulk_query):
         context = mock.Mock()
         context.sf.restful.return_value = {"sObjects": [{"name": "Test", "count": 1}]}
+        context.sf.sf_version = "42.0"
         op = get_query_operation(
             sobject="Test",
             fields=["Id"],
@@ -977,6 +982,7 @@ class TestRestApiDmlOperation:
         context.sf.restful.return_value = {
             "sObjects": [{"name": "Test", "count": 10000}]
         }
+        context.sf.sf_version = "42.0"
         op = get_query_operation(
             sobject="Test",
             fields=["Id"],
@@ -990,15 +996,34 @@ class TestRestApiDmlOperation:
         rest_query.assert_not_called()
         context.sf.restful.assert_called_once_with("limits/recordCount?sObjects=Test")
 
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
+    def test_get_query_operation__old_api(self, rest_query, bulk_query):
+        context = mock.Mock()
+        context.sf.sf_version = "39.0"
+        op = get_query_operation(
+            sobject="Test",
+            fields=["Id"],
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Test",
+            api=DataApi.SMART,
+        )
+        assert op == bulk_query.return_value
+
+        context.sf.restful.assert_not_called()
+
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
     def test_get_dml_operation(self, rest_dml, bulk_dml):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
         op = get_dml_operation(
             sobject="Test",
             operation=DataOperationType.INSERT,
             fields=["Name"],
             api_options={},
-            context=mock.Mock(),
+            context=context,
             api=DataApi.BULK,
             volume=1,
         )
@@ -1009,7 +1034,7 @@ class TestRestApiDmlOperation:
             operation=DataOperationType.INSERT,
             fields=["Name"],
             api_options={},
-            context=mock.ANY,
+            context=context,
         )
 
         op = get_dml_operation(
@@ -1017,7 +1042,7 @@ class TestRestApiDmlOperation:
             operation=DataOperationType.INSERT,
             fields=["Name"],
             api_options={},
-            context=mock.Mock(),
+            context=context,
             api=DataApi.REST,
             volume=1,
         )
@@ -1028,19 +1053,21 @@ class TestRestApiDmlOperation:
             operation=DataOperationType.INSERT,
             fields=["Name"],
             api_options={},
-            context=mock.ANY,
+            context=context,
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
     def test_get_dml_operation__smart(self, rest_dml, bulk_dml):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
         assert (
             get_dml_operation(
                 sobject="Test",
                 operation=DataOperationType.INSERT,
                 fields=["Name"],
                 api_options={},
-                context=mock.Mock(),
+                context=context,
                 api=DataApi.SMART,
                 volume=1,
             )
@@ -1053,7 +1080,7 @@ class TestRestApiDmlOperation:
                 operation=DataOperationType.INSERT,
                 fields=["Name"],
                 api_options={},
-                context=mock.Mock(),
+                context=context,
                 api=DataApi.SMART,
                 volume=10000,
             )
@@ -1066,7 +1093,25 @@ class TestRestApiDmlOperation:
                 operation=DataOperationType.HARD_DELETE,
                 fields=["Name"],
                 api_options={},
-                context=mock.Mock(),
+                context=context,
+                api=DataApi.SMART,
+                volume=1,
+            )
+            == bulk_dml.return_value
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
+    def test_get_dml_operation__old_api(self, rest_dml, bulk_dml):
+        context = mock.Mock()
+        context.sf.sf_version = "39.0"
+        assert (
+            get_dml_operation(
+                sobject="Test",
+                operation=DataOperationType.INSERT,
+                fields=["Name"],
+                api_options={},
+                context=context,
                 api=DataApi.SMART,
                 volume=1,
             )
