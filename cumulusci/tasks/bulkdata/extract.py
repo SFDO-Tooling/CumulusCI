@@ -12,7 +12,7 @@ from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import create_session, mapper
 from sqlalchemy.ext.automap import automap_base
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
@@ -33,6 +33,14 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
     validate_and_inject_mapping,
 )
+
+try:
+    from contextlib import nullcontext  # Python 3.7+
+except ImportError:
+
+    @contextmanager
+    def nullcontext():
+        yield
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):

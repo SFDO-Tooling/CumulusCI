@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 from typing import Union
 import tempfile
 from pathlib import Path
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
 from sqlalchemy.orm import aliased, Session
@@ -28,6 +28,14 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     MappingStep,
     MappingLookup,
 )
+
+try:
+    from contextlib import nullcontext  # Python 3.7+
+except ImportError:
+
+    @contextmanager
+    def nullcontext():
+        yield
 
 
 class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
