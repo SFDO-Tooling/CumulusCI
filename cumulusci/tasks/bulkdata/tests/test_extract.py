@@ -193,12 +193,12 @@ class TestExtractData(unittest.TestCase):
                 task()
 
             assert os.path.exists("testdata.sql")
-            assert (
-                ce_mock.mock_calls[0].args[0].endswith("temp_db.db")
-            ), ce_mock.mock_calls[0].args
-            assert (
-                ce_mock.mock_calls[0].args[0].startswith("sqlite:////")
-            ), ce_mock.mock_calls[0].args
+            assert ce_mock.mock_calls[0][1][0].endswith(
+                "temp_db.db"
+            ), ce_mock.mock_calls[0][1][0]
+            assert ce_mock.mock_calls[0][1][0].startswith(
+                "sqlite:////"
+            ), ce_mock.mock_calls[0][1][0]
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
@@ -505,7 +505,10 @@ class TestExtractData(unittest.TestCase):
             [mock.call(), mock.call()]
         )
         task.metadata.tables.__getitem__.assert_has_calls(
-            [mock.call("contacts_sf_id"), mock.call("households_sf_id"),],
+            [
+                mock.call("contacts_sf_id"),
+                mock.call("households_sf_id"),
+            ],
             any_order=True,
         )
 

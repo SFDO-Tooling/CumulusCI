@@ -34,8 +34,8 @@ try:
 except ImportError:
 
     @contextmanager
-    def nullcontext():
-        yield
+    def nullcontext(enter_result):
+        yield enter_result
 
 
 class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):

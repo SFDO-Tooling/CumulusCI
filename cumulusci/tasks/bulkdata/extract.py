@@ -39,8 +39,8 @@ try:
 except ImportError:
 
     @contextmanager
-    def nullcontext():
-        yield
+    def nullcontext(enter_result):
+        yield enter_result
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -93,12 +93,10 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 soql = self._soql_for_mapping(mapping)
                 self._run_query(soql, mapping)
 
-            self._drop_sf_id_columns()
+            self._map_autopks()
 
             if self.options.get("sql_path"):
                 self._sqlite_dump()
-
-        self._map_autopks()
 
     @contextmanager
     def _temp_database_url(self):
