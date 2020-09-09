@@ -71,7 +71,7 @@ class MappingStep(CCIDictModel):
     lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
-    action: str = "insert"
+    action: DataOperationType = DataOperationType.INSERT
     api: DataApi = DataApi.SMART
     batch_size: int = 200
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
@@ -79,8 +79,18 @@ class MappingStep(CCIDictModel):
     bulk_mode: Optional[
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
-    sf_id_table: Optional[str] = None  # populated at runtime in extract.py
-    record_type_table: Optional[str] = None  # populated at runtime in extract.py
+
+    def get_oid_as_pk(self):
+        return "Id" in self.fields
+
+    def get_destination_record_type_table(self):
+        return f"{self.sf_object}_rt_target_mapping"
+
+    def get_source_record_type_table(self):
+        return f"{self.sf_object}_rt_mapping"
+
+    def get_sf_id_table(self):
+        return f"{self.table}_sf_id"
 
     @validator("batch_size")
     @classmethod
@@ -98,10 +108,9 @@ class MappingStep(CCIDictModel):
     @validator("oid_as_pk")
     @classmethod
     def oid_as_pk_is_deprecated(cls, v):
-        logger.warning(
-            "oid_as_pk is deprecated. Just supply an Id column declaration and it will be inferred."
+        raise ValueError(
+            "oid_as_pk is no longer supported. Include the Id field if desired."
         )
-        return v
 
     @validator("fields_", pre=True)
     @classmethod
@@ -137,7 +146,7 @@ class MappingStep(CCIDictModel):
     def _get_permission_type(self, operation: DataOperationType) -> str:
         if operation is DataOperationType.QUERY:
             return "queryable"
-        if operation is DataOperationType.INSERT and self.action == "update":
+        if operation is DataOperationType.UPDATE:
             return "updateable"
 
         return "createable"

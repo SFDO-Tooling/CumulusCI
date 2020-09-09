@@ -130,7 +130,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _fields_for_mapping(self, mapping):
         """Return a flat list of fields for this mapping."""
         fields = []
-        if not mapping["oid_as_pk"]:
+        if not mapping.get_oid_as_pk():
             fields.append("Id")
         fields += [field["sf"] for field in fields_for_mapping(mapping)]
 
@@ -138,7 +138,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _soql_for_mapping(self, mapping):
         """Return a SOQL query suitable for extracting data for this mapping."""
-        sf_object = mapping["sf_object"]
+        sf_object = mapping.sf_object
         fields = self._fields_for_mapping(mapping)
         soql = f"SELECT {', '.join(fields)} FROM {sf_object}"
         if mapping.record_type:
@@ -149,8 +149,8 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _run_query(self, soql, mapping):
         """Execute a Bulk or REST API query job and store the results."""
         step = get_query_operation(
-            sobject=mapping["sf_object"],
-            api=mapping["api"],
+            sobject=mapping.sf_object,
+            api=mapping.api,
             fields=self._fields_for_mapping(mapping),
             api_options={},
             context=self,
@@ -178,9 +178,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         fields = self._fields_for_mapping(mapping)
         columns = []
         for field_name in fields:
-            column = mapping.get("fields", {}).get(field_name)
+            column = mapping.fields.get(field_name)
             if not column:
-                lookup = mapping.get("lookups", {}).get(field_name, {})
+                lookup = mapping.lookups.get(field_name, {})
                 if lookup:
                     column = lookup.get_lookup_key_field()
             if column:
@@ -188,7 +188,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         if not columns:
             return
-        record_type = mapping.get("record_type")
+        record_type = mapping.record_type
         if record_type:
             columns.append("record_type")
 
@@ -199,15 +199,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # Set Name field as blank for Person Account "Account" records.
         if (
-            mapping["sf_object"] == "Account"
-            and "Name" in mapping.get("fields", {})
+            mapping.sf_object == "Account"
+            and "Name" in mapping.fields
             and self.org_config.is_person_accounts_enabled
         ):
             # Bump indices by one since record's ID is the first column.
-            Name_index = columns.index(mapping["fields"]["Name"]) + 1
-            IsPersonAccount_index = (
-                columns.index(mapping["fields"]["IsPersonAccount"]) + 1
-            )
+            Name_index = columns.index(mapping.fields["Name"]) + 1
+            IsPersonAccount_index = columns.index(mapping.fields["IsPersonAccount"]) + 1
 
             def strip_name_field(record):
                 nonlocal Name_index, IsPersonAccount_index
@@ -217,10 +215,10 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             record_iterator = (strip_name_field(record) for record in record_iterator)
 
-        if mapping["oid_as_pk"]:
+        if mapping.get_oid_as_pk():
             self._sql_bulk_insert_from_records(
                 connection=conn,
-                table=mapping["table"],
+                table=mapping.table,
                 columns=columns,
                 record_iterable=record_iterator,
             )
@@ -237,20 +235,20 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     )
                     self._sql_bulk_insert_from_records(
                         connection=conn,
-                        table=mapping["table"],
+                        table=mapping.table,
                         columns=columns,
                         record_iterable=csv.reader(data_file_values),
                     )
                     self._sql_bulk_insert_from_records(
                         connection=conn,
-                        table=mapping["sf_id_table"],
+                        table=mapping.get_sf_id_table(),
                         columns=["sf_id"],
                         record_iterable=csv.reader(data_file_ids),
                     )
 
-        if "RecordTypeId" in mapping["fields"]:
+        if "RecordTypeId" in mapping.fields:
             self._extract_record_types(
-                mapping["sf_object"], mapping["record_type_table"], conn
+                mapping.sf_object, mapping.get_source_record_type_table(), conn
             )
 
         self.session.commit()
@@ -258,15 +256,15 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _map_autopks(self):
         # Convert Salesforce Ids to autopks
         for m in self.mapping.values():
-            lookup_keys = list(m.get("lookups", {}).keys())
-            if not m["oid_as_pk"]:
+            lookup_keys = list(m.lookups.keys())
+            if not m.get_oid_as_pk():
                 if lookup_keys:
                     self._convert_lookups_to_id(m, lookup_keys)
 
         # Drop sf_id tables
         for m in self.mapping.values():
-            if not m["oid_as_pk"]:
-                self.metadata.tables[m["sf_id_table"]].drop()
+            if not m.get_oid_as_pk():
+                self.metadata.tables[m.get_sf_id_table()].drop()
 
     def _get_mapping_for_table(self, table):
         """Return the first mapping for a table name """
@@ -289,10 +287,10 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
         for lookup_key in lookup_keys:
-            lookup_info = mapping["lookups"][lookup_key]
-            model = self.models[mapping["table"]]
-            lookup_mapping = self._get_mapping_for_table(lookup_info["table"])
-            lookup_model = self.models[lookup_mapping["sf_id_table"]]
+            lookup_info = mapping.lookups[lookup_key]
+            model = self.models[mapping.table]
+            lookup_mapping = self._get_mapping_for_table(lookup_info.table)
+            lookup_model = self.models[lookup_mapping.get_sf_id_table()]
             key_field = lookup_info.get_lookup_key_field()
             key_attr = getattr(model, key_field)
             try:
@@ -317,35 +315,33 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _create_table(self, mapping):
         """Create a table for the given mapping."""
-        model_name = f"{mapping['table']}Model"
+        model_name = f"{mapping.table}Model"
         mapper_kwargs = {}
-        self.models[mapping["table"]] = type(model_name, (object,), {})
+        self.models[mapping.table] = type(model_name, (object,), {})
 
         t = create_table(mapping, self.metadata)
 
-        if "RecordTypeId" in mapping["fields"]:
+        if "RecordTypeId" in mapping.fields:
             # We're using Record Type Mapping support.
-            mapping["record_type_table"] = mapping["sf_object"] + "_rt_mapping"
             # If multiple mappings point to the same table, don't recreate the table
-            if mapping["record_type_table"] not in self.models:
-                self._create_record_type_table(mapping["record_type_table"])
+            if mapping.get_source_record_type_table() not in self.models:
+                self._create_record_type_table(mapping.get_source_record_type_table())
 
-        if not mapping["oid_as_pk"]:
-            mapping["sf_id_table"] = mapping["table"] + "_sf_id"
+        if not mapping.get_oid_as_pk():
             # If multiple mappings point to the same table, don't recreate the table
-            if mapping["sf_id_table"] not in self.models:
-                sf_id_model_name = f"{mapping['sf_id_table']}Model"
-                self.models[mapping["sf_id_table"]] = type(
+            if mapping.get_sf_id_table() not in self.models:
+                sf_id_model_name = f"{mapping.get_sf_id_table()}Model"
+                self.models[mapping.get_sf_id_table()] = type(
                     sf_id_model_name, (object,), {}
                 )
                 sf_id_fields = [
                     Column("id", Integer(), primary_key=True, autoincrement=True),
                     Column("sf_id", Unicode(24)),
                 ]
-                id_t = Table(mapping["sf_id_table"], self.metadata, *sf_id_fields)
-                mapper(self.models[mapping["sf_id_table"]], id_t)
+                id_t = Table(mapping.get_sf_id_table(), self.metadata, *sf_id_fields)
+                mapper(self.models[mapping.get_sf_id_table()], id_t)
 
-        mapper(self.models[mapping["table"]], t, **mapper_kwargs)
+        mapper(self.models[mapping.table], t, **mapper_kwargs)
 
     def _sqlite_dump(self):
         """Write a SQLite script output file."""

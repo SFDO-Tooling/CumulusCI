@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 import os
 import json
@@ -362,14 +361,14 @@ class TestLoadData(unittest.TestCase):
             table="contacts", name="Primary_Contact__c"
         )
         self.assertEqual(
-            {
-                "sf_object": "Account",
-                "api": DataApi.BULK,
-                "action": "update",
-                "table": "accounts",
-                "lookups": lookups,
-                "fields": {},
-            },
+            MappingStep(
+                sf_object="Account",
+                api=DataApi.BULK,
+                action=DataOperationType.UPDATE,
+                table="accounts",
+                lookups=lookups,
+                fields={},
+            ),
             task.after_steps["Insert Contacts"][
                 "Update Account Dependencies After Insert Contacts"
             ],
@@ -378,14 +377,14 @@ class TestLoadData(unittest.TestCase):
         lookups["Id"] = MappingLookup(name="Id", table="contacts", key_field="sf_id")
         lookups["ReportsToId"] = MappingLookup(table="contacts", name="ReportsToId")
         self.assertEqual(
-            {
-                "sf_object": "Contact",
-                "api": DataApi.BULK,
-                "action": "update",
-                "table": "contacts",
-                "fields": {},
-                "lookups": lookups,
-            },
+            MappingStep(
+                sf_object="Contact",
+                api=DataApi.BULK,
+                action=DataOperationType.UPDATE,
+                table="contacts",
+                fields={},
+                lookups=lookups,
+            ),
             task.after_steps["Insert Contacts"][
                 "Update Contact Dependencies After Insert Contacts"
             ],
@@ -398,14 +397,14 @@ class TestLoadData(unittest.TestCase):
         lookups["Id"] = MappingLookup(name="Id", table="accounts", key_field="sf_id")
         lookups["ParentId"] = MappingLookup(table="accounts", name="ParentId")
         self.assertEqual(
-            {
-                "sf_object": "Account",
-                "api": DataApi.BULK,
-                "action": "update",
-                "table": "accounts",
-                "fields": {},
-                "lookups": lookups,
-            },
+            MappingStep(
+                sf_object="Account",
+                api=DataApi.BULK,
+                action=DataOperationType.UPDATE,
+                table="accounts",
+                fields={},
+                lookups=lookups,
+            ),
             task.after_steps["Insert Accounts"][
                 "Update Account Dependencies After Insert Accounts"
             ],
@@ -462,25 +461,24 @@ class TestLoadData(unittest.TestCase):
         self.assertEqual(
             ["Name", "Industry", "RecordTypeId"],
             task._get_columns(
-                {
-                    "sf_object": "Account",
-                    "action": "insert",
-                    "fields": fields,
-                    "static": {"Industry": "Technology"},
-                    "record_type": "Organization",
-                }
+                MappingStep(
+                    sf_object="Account",
+                    fields=fields,
+                    static={"Industry": "Technology"},
+                    record_type="Organization",
+                )
             ),
         )
         self.assertEqual(
             ["Id", "Name", "Industry", "RecordTypeId"],
             task._get_columns(
-                {
-                    "sf_object": "Account",
-                    "action": "update",
-                    "fields": fields,
-                    "static": {"Industry": "Technology"},
-                    "record_type": "Organization",
-                }
+                MappingStep(
+                    sf_object="Account",
+                    action=DataOperationType.UPDATE,
+                    fields=fields,
+                    static={"Industry": "Technology"},
+                    record_type="Organization",
+                )
             ),
         )
 
@@ -490,12 +488,12 @@ class TestLoadData(unittest.TestCase):
         self.assertEqual(
             ["Id", "Name", "AccountSite", "Industry", "RecordTypeId"],
             task._get_columns(
-                {
-                    "sf_object": "Account",
-                    "action": "update",
-                    "fields": fields,
-                    "static": {"Industry": "Technology"},
-                }
+                MappingStep(
+                    sf_object="Account",
+                    action=DataOperationType.UPDATE,
+                    fields=fields,
+                    static={"Industry": "Technology"},
+                )
             ),
         )
 
@@ -509,13 +507,12 @@ class TestLoadData(unittest.TestCase):
         self.assertEqual(
             ["Technology", "012000000000000"],
             task._get_statics(
-                {
-                    "sf_object": "Account",
-                    "action": "insert",
-                    "fields": {"Id": "sf_id", "Name": "Name"},
-                    "static": {"Industry": "Technology"},
-                    "record_type": "Organization",
-                }
+                MappingStep(
+                    sf_object="Account",
+                    fields={"Id": "sf_id", "Name": "Name"},
+                    static={"Industry": "Technology"},
+                    record_type="Organization",
+                )
             ),
         )
 
@@ -527,13 +524,13 @@ class TestLoadData(unittest.TestCase):
         task.sf.query.return_value = {"records": []}
         with self.assertRaises(BulkDataException) as e:
             task._get_statics(
-                {
-                    "sf_object": "Account",
-                    "action": "insert",
-                    "fields": {"Id": "sf_id", "Name": "Name"},
-                    "static": {"Industry": "Technology"},
-                    "record_type": "Organization",
-                }
+                MappingStep(
+                    sf_object="Account",
+                    action="insert",
+                    fields={"Id": "sf_id", "Name": "Name"},
+                    static={"Industry": "Technology"},
+                    record_type="Organization",
+                )
             ),
         assert "RecordType" in str(e.exception)
 
@@ -553,18 +550,17 @@ class TestLoadData(unittest.TestCase):
         columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Account",
-            "table": "accounts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Account",
+            table="accounts",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
                     table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -603,18 +599,17 @@ class TestLoadData(unittest.TestCase):
         }
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Account",
-            "table": "accounts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Account",
+            table="accounts",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
                     table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -651,18 +646,17 @@ class TestLoadData(unittest.TestCase):
         }
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Account",
-            "table": "accounts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Account",
+            table="accounts",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
                     table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -705,18 +699,17 @@ class TestLoadData(unittest.TestCase):
         }
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Contact",
-            "table": "contacts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Contact",
+            table="contacts",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
-                    table="contacts", key_field="parent_id", name="ParentId"
+                    table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -761,18 +754,17 @@ class TestLoadData(unittest.TestCase):
         }
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Contact",
-            "table": "contacts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Contact",
+            table="contacts",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
-                    table="contacts", key_field="parent_id", name="ParentId"
+                    table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -813,18 +805,17 @@ class TestLoadData(unittest.TestCase):
         columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Request__c",
-            "table": "requests",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Request__c",
+            table="requests",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
-                    table="requests", key_field="parent_id", name="ParentId"
+                    table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -891,7 +882,7 @@ class TestLoadData(unittest.TestCase):
                 DataOperationStatus.JOB_FAILURE, [], 0, 0
             )
         )
-        task.mapping = {"Test": {"test": "test"}}
+        task.mapping = {"Test": MappingStep(sf_object="Account")}
 
         with self.assertRaises(BulkDataException):
             task()
@@ -919,7 +910,7 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {"sf_object": "Account", "table": "Account", "action": "insert"}
+        mapping = MappingStep(sf_object="Account")
         task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
@@ -966,7 +957,7 @@ class TestLoadData(unittest.TestCase):
             DataOperationResult("001111111111114", False, None),
         ]
 
-        mapping = {"sf_object": "Account", "table": "Account", "action": "insert"}
+        mapping = MappingStep(sf_object="Account", table="Account")
         task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
@@ -1030,7 +1021,7 @@ class TestLoadData(unittest.TestCase):
         step.results = [DataOperationResult(None, False, "message")]
         step.end()
 
-        mapping = {"table": "Account", "action": "update"}
+        mapping = MappingStep(sf_object="Account", action=DataOperationType.UPDATE)
 
         with self.assertRaises(BulkDataException) as ex:
             task._process_job_results(mapping, step, local_ids)
@@ -1051,7 +1042,7 @@ class TestLoadData(unittest.TestCase):
         """
 
         # ❌ mapping's action is "insert"
-        action = "update"
+        action = DataOperationType.UPDATE
 
         # ✅ mapping's sf_object is Contact
         sf_object = "Contact"
@@ -1088,14 +1079,14 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {
-            "sf_object": sf_object,
-            "table": "Account",
-            "action": action,
-            "lookups": {},
-        }
+        mapping = MappingStep(
+            sf_object=sf_object,
+            table="Account",
+            action=action,
+            lookups={},
+        )
         if account_id_lookup:
-            mapping["lookups"]["AccountId"] = account_id_lookup
+            mapping.lookups["AccountId"] = account_id_lookup
         task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
@@ -1113,7 +1104,7 @@ class TestLoadData(unittest.TestCase):
         """
 
         # ✅ mapping's action is "insert"
-        action = "insert"
+        action = DataOperationType.INSERT
 
         # ❌ mapping's sf_object is Contact
         sf_object = "Opportunity"
@@ -1150,14 +1141,14 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {
-            "sf_object": sf_object,
-            "table": "Account",
-            "action": action,
-            "lookups": {},
-        }
+        mapping = MappingStep(
+            sf_object=sf_object,
+            table="Account",
+            action=action,
+            lookups={},
+        )
         if account_id_lookup:
-            mapping["lookups"]["AccountId"] = account_id_lookup
+            mapping.lookups["AccountId"] = account_id_lookup
         task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
@@ -1175,7 +1166,7 @@ class TestLoadData(unittest.TestCase):
         """
 
         # ✅ mapping's action is "insert"
-        action = "insert"
+        action = DataOperationType.INSERT
 
         # ✅ mapping's sf_object is Contact
         sf_object = "Contact"
@@ -1212,14 +1203,14 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {
-            "sf_object": sf_object,
-            "table": "Account",
-            "action": action,
-            "lookups": {},
-        }
+        mapping = MappingStep(
+            sf_object=sf_object,
+            table="Account",
+            action=action,
+            lookups={},
+        )
         if account_id_lookup:
-            mapping["lookups"]["AccountId"] = account_id_lookup
+            mapping.lookups["AccountId"] = account_id_lookup
         task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
@@ -1237,7 +1228,7 @@ class TestLoadData(unittest.TestCase):
         """
 
         # ✅ mapping's action is "insert"
-        action = "insert"
+        action = DataOperationType.INSERT
 
         # ✅ mapping's sf_object is Contact
         sf_object = "Contact"
@@ -1274,14 +1265,14 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {
-            "sf_object": sf_object,
-            "table": "Account",
-            "action": action,
-            "lookups": {},
-        }
+        mapping = MappingStep(
+            sf_object=sf_object,
+            table="Account",
+            action=action,
+            lookups={},
+        )
         if account_id_lookup:
-            mapping["lookups"]["AccountId"] = account_id_lookup
+            mapping.lookups["AccountId"] = account_id_lookup
         task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
@@ -1297,7 +1288,7 @@ class TestLoadData(unittest.TestCase):
         """
 
         # ✅ mapping's action is "insert"
-        action = "insert"
+        action = DataOperationType.INSERT
 
         # ✅ mapping's sf_object is Contact
         sf_object = "Contact"
@@ -1334,12 +1325,12 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {
-            "sf_object": sf_object,
-            "table": "Account",
-            "action": action,
-            "lookups": {"AccountId": account_id_lookup},
-        }
+        mapping = MappingStep(
+            sf_object=sf_object,
+            table="Account",
+            action=action,
+            lookups={"AccountId": account_id_lookup},
+        )
 
         task._process_job_results(mapping, step, local_ids)
 
@@ -1503,12 +1494,10 @@ class TestLoadData(unittest.TestCase):
         columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
         model.__table__.columns = columns
 
-        mapping = OrderedDict(
+        mapping = MappingStep(
             sf_object="Account",
             table="accounts",
-            action="insert",
-            oid_as_pk=True,
-            fields=OrderedDict(Id="sf_id", Name="name", RecordTypeId="RecordTypeId"),
+            fields={"Id": "sf_id", "Name": "name", "RecordTypeId": "RecordTypeId"},
         )
 
         task._query_db(mapping)
@@ -1728,7 +1717,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping = MappingStep(sf_object="Account", table="account")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1774,7 +1763,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ A Contact object is mapped
-        mapping = {"table": "contact", "sf_object": "Contact"}
+        mapping = MappingStep(sf_object="Contact", table="contact")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1820,7 +1809,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping = MappingStep(table="account", sf_object="Account")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1865,7 +1854,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping = MappingStep(sf_object="Account", table="account")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1911,7 +1900,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping = MappingStep(sf_object="Account", table="account")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1956,7 +1945,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ❌ An Account object is mapped
-        mapping = {"table": "custom_object", "sf_object": "CustomObject__c"}
+        mapping = MappingStep(sf_object="CustomObject__c", table="custom_object")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1988,7 +1977,7 @@ class TestLoadData(unittest.TestCase):
             ({"IsPersonAccount": None}, False),
             ({"IsPersonAccount": "Not None"}, True),
         ]:
-            mapping = {"table": "table"}
+            mapping = MappingStep(sf_object="Account")
 
             model = mock.Mock()
             model.__table__ = mock.Mock()
@@ -1999,7 +1988,7 @@ class TestLoadData(unittest.TestCase):
                 {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
             )
             task.models = {}
-            task.models[mapping["table"]] = model
+            task.models[mapping.table] = model
 
             actual = task._db_has_person_accounts_column(mapping)
 
@@ -2083,7 +2072,7 @@ class TestLoadData(unittest.TestCase):
         account_id_lookup = MappingLookup(
             table="accounts", key_field="account_id", name="AccountId"
         )
-        account_id_lookup["aliased_table"] = account_sf_ids_table
+        account_id_lookup.aliased_table = account_sf_ids_table
 
         # Calculated values
         contact_id_column = getattr(
@@ -2095,18 +2084,17 @@ class TestLoadData(unittest.TestCase):
         account_sf_ids_table = account_id_lookup["aliased_table"]
         account_sf_id_column = account_sf_ids_table.columns["sf_id"]
 
-        contact_mapping = {
-            "sf_object": "Contact",
-            "table": "contacts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {
+        contact_mapping = MappingStep(
+            sf_object="Contact",
+            table="contacts",
+            action=DataOperationType.UPDATE,
+            fields={
                 "Id": "sf_id",
                 "LastName": "LastName",
                 "IsPersonAccount": "IsPersonAccount",
             },
-            "lookups": {"AccountId": account_id_lookup},
-        }
+            lookups={"AccountId": account_id_lookup},
+        )
 
         conn = mock.Mock()
         conn.execution_options.return_value = conn

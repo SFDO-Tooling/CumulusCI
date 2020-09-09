@@ -5,7 +5,7 @@ import logging
 import pytest
 
 import responses
-from yaml import safe_load, dump, YAMLError
+from yaml import YAMLError
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.mapping_parser import (
@@ -45,13 +45,6 @@ class TestMappingParser:
 
         parse_from_yaml(base_path)
         assert "record_type" in caplog.text
-
-        with open(base_path) as f:
-            raw_mapping = safe_load(f)
-        raw_mapping["Insert Households"]["oid_as_pk"] = True
-
-        parse_from_yaml(StringIO(dump(raw_mapping)))
-        assert "oid_as_pk" in caplog.text
 
     def test_bad_mapping_syntax(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"

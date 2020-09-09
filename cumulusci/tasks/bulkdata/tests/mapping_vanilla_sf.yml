@@ -54,7 +54,6 @@ Insert Contacts:
 Insert Opportunities:
   api: bulk
   sf_object: Opportunity
-  action: insert
   table: Opportunity
   fields:
     Name: Name
