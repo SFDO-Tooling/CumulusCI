@@ -162,7 +162,10 @@ class MappingStep(CCIDictModel):
     def _get_permission_type(self, operation: DataOperationType) -> str:
         if operation is DataOperationType.QUERY:
             return "queryable"
-        if operation is DataOperationType.UPDATE:
+        if (
+            operation is DataOperationType.INSERT
+            and self.action is DataOperationType.UPDATE
+        ):
             return "updateable"
 
         return "createable"
