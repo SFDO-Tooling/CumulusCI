@@ -7,7 +7,7 @@ from pydantic import Field, validator, root_validator, ValidationError
 
 from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.tasks.bulkdata.step import DataOperationType
+from cumulusci.tasks.bulkdata.step import DataOperationType, DataApi
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 from cumulusci.utils import convert_to_snake_case
 
@@ -72,6 +72,8 @@ class MappingStep(CCIDictModel):
     static: Dict[str, str] = {}
     filters: List[str] = []
     action: str = "insert"
+    api: DataApi = DataApi.SMART
+    batch_size: int = 200
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: Optional[str] = None  # should be discussed and probably deprecated
     bulk_mode: Optional[
@@ -79,6 +81,11 @@ class MappingStep(CCIDictModel):
     ] = None  # default should come from task options
     sf_id_table: Optional[str] = None  # populated at runtime in extract.py
     record_type_table: Optional[str] = None  # populated at runtime in extract.py
+
+    @validator("batch_size")
+    @classmethod
+    def validate_batch_size(cls, v):
+        assert v <= 200 and v > 0
 
     @validator("record_type")
     @classmethod
