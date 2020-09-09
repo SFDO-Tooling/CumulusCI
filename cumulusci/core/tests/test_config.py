@@ -627,7 +627,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Install CumulusCI-Test-Dep 2.0",
@@ -643,7 +642,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -654,7 +652,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -690,7 +687,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -759,7 +755,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Install CumulusCI-Test-Dep 1.1 (Beta 1)",
@@ -775,7 +770,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -786,7 +780,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -818,7 +811,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Install CumulusCI-Test-Dep 2.0",
@@ -834,7 +826,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -845,7 +836,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -878,7 +868,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy CumulusCI-Test",
@@ -889,7 +878,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -900,7 +888,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
