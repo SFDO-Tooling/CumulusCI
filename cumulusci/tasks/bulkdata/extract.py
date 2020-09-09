@@ -13,7 +13,6 @@ from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
     SqlAlchemyMixin,
     create_table,
-    fields_for_mapping,
 )
 from cumulusci.core.utils import process_bool_arg
 
@@ -127,20 +126,12 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             org_has_person_accounts_enabled=self.org_config.is_person_accounts_enabled,
         )
 
-    def _fields_for_mapping(self, mapping):
-        """Return a flat list of fields for this mapping."""
-        fields = []
-        if not mapping.get_oid_as_pk():
-            fields.append("Id")
-        fields += [field["sf"] for field in fields_for_mapping(mapping)]
-
-        return fields
-
     def _soql_for_mapping(self, mapping):
         """Return a SOQL query suitable for extracting data for this mapping."""
         sf_object = mapping.sf_object
-        fields = self._fields_for_mapping(mapping)
+        fields = mapping.get_complete_field_map(include_id=True).keys()
         soql = f"SELECT {', '.join(fields)} FROM {sf_object}"
+
         if mapping.record_type:
             soql += f" WHERE RecordType.DeveloperName = '{mapping.record_type}'"
 
@@ -151,7 +142,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         step = get_query_operation(
             sobject=mapping.sf_object,
             api=mapping.api,
-            fields=self._fields_for_mapping(mapping),
+            fields=list(mapping.get_complete_field_map(include_id=True).keys()),
             api_options={},
             context=self,
             query=soql,
@@ -175,24 +166,14 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         conn = self.session.connection()
 
         # Map SF field names to local db column names
-        fields = self._fields_for_mapping(mapping)
-        columns = []
-        for field_name in fields:
-            column = mapping.fields.get(field_name)
-            if not column:
-                lookup = mapping.lookups.get(field_name, {})
-                if lookup:
-                    column = lookup.get_lookup_key_field()
-            if column:
-                columns.append(column)
+        field_map = mapping.get_complete_field_map(include_id=True)
+        columns = [field_map[f] for f in field_map]  # Get values in insertion order.
 
-        if not columns:
-            return
         record_type = mapping.record_type
         if record_type:
             columns.append("record_type")
 
-        # FIXME: log_progress needs to know our batch size, when made configurable.
+        # TODO: log_progress needs to know our batch size, when made configurable.
         record_iterator = log_progress(step.get_results(), self.logger)
         if record_type:
             record_iterator = (record + [record_type] for record in record_iterator)
@@ -200,12 +181,12 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Set Name field as blank for Person Account "Account" records.
         if (
             mapping.sf_object == "Account"
-            and "Name" in mapping.fields
+            and "Name" in field_map
             and self.org_config.is_person_accounts_enabled
         ):
             # Bump indices by one since record's ID is the first column.
-            Name_index = columns.index(mapping.fields["Name"]) + 1
-            IsPersonAccount_index = columns.index(mapping.fields["IsPersonAccount"]) + 1
+            Name_index = columns.index(mapping.fields["Name"])
+            IsPersonAccount_index = columns.index(mapping.fields["IsPersonAccount"])
 
             def strip_name_field(record):
                 nonlocal Name_index, IsPersonAccount_index
@@ -236,7 +217,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     self._sql_bulk_insert_from_records(
                         connection=conn,
                         table=mapping.table,
-                        columns=columns,
+                        columns=columns[1:],  # Strip off the Id column
                         record_iterable=csv.reader(data_file_values),
                     )
                     self._sql_bulk_insert_from_records(

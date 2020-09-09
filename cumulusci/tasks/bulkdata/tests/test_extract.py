@@ -342,27 +342,6 @@ class TestExtractData(unittest.TestCase):
             ]
         )
 
-    def test_import_results__no_columns(self):
-        task = _make_task(
-            ExtractData,
-            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
-        )
-
-        mapping = MappingStep(
-            sf_object="Opportunity",
-            table="Opportunity",
-            fields={},
-            lookups={},
-        )
-        step = mock.Mock()
-        task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
-
-        task._import_results(mapping, step)
-
-        task.session.connection.assert_called_once_with()
-        task._sql_bulk_insert_from_records.assert_not_called()
-
     def test_import_results__record_type_mapping(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "recordtypes.yml")
@@ -456,8 +435,6 @@ class TestExtractData(unittest.TestCase):
         task.metadata = mock.MagicMock()
 
         task._init_mapping()
-        task.mapping["Insert Contacts"]["sf_id_table"] = "contacts_sf_id"
-        task.mapping["Insert Households"]["sf_id_table"] = "households_sf_id"
         task._map_autopks()
 
         task._convert_lookups_to_id.assert_called_once_with(
@@ -467,7 +444,7 @@ class TestExtractData(unittest.TestCase):
             [mock.call(), mock.call()]
         )
         task.metadata.tables.__getitem__.assert_has_calls(
-            [mock.call("contacts_sf_id"), mock.call("households_sf_id")],
+            [mock.call("contacts_sf_ids"), mock.call("households_sf_ids")],
             any_order=True,
         )
 
@@ -743,17 +720,6 @@ class TestExtractData(unittest.TestCase):
             drop_missing=True,
             org_has_person_accounts_enabled=t.org_config._is_person_accounts_enabled,
         )
-
-    def test_fields_for_mapping(self):
-        task = _make_task(
-            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
-        )
-        assert task._fields_for_mapping(
-            MappingStep(sf_object="Account", fields={"Test__c": "Test"})
-        ) == ["Test__c"]
-        assert task._fields_for_mapping(
-            MappingStep(sf_object="Account", fields={"Id": "sf_id", "Test__c": "Test"})
-        ) == ["Id", "Test__c"]
 
     def test_soql_for_mapping(self):
         task = _make_task(

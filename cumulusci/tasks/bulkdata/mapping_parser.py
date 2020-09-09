@@ -90,7 +90,23 @@ class MappingStep(CCIDictModel):
         return f"{self.sf_object}_rt_mapping"
 
     def get_sf_id_table(self):
-        return f"{self.table}_sf_id"
+        return f"{self.table}_sf_ids"
+
+    def get_complete_field_map(self, include_id=False):
+        fields = {}
+
+        if include_id and "Id" not in self.fields:
+            fields["Id"] = "sf_id"
+
+        fields.update(self.fields)
+        fields.update(
+            {
+                lookup: self.lookups[lookup].get_lookup_key_field()
+                for lookup in self.lookups
+            }
+        )
+
+        return fields
 
     @validator("batch_size")
     @classmethod
