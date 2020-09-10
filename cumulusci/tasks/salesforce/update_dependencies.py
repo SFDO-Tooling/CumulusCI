@@ -8,7 +8,9 @@ from cumulusci.salesforce_api.package_install import install_package_version
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
-from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
+from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
+    BaseSalesforceMetadataApiTask,
+)
 from cumulusci.utils import download_extract_zip
 from cumulusci.utils import download_extract_github
 

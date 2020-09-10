@@ -168,7 +168,11 @@ def _write_manifest(changes, path, api_version):
     """Write a package.xml for the specified changes and API version."""
     type_members = defaultdict(list)
     for change in changes:
-        type_members[change["MemberType"]].append(change["MemberName"])
+        mdtype = change["MemberType"]
+        # folders are retrieved along with their contained type
+        if mdtype.endswith("Folder"):
+            mdtype = mdtype[: -len("Folder")]
+        type_members[mdtype].append(change["MemberName"])
 
     generator = PackageXmlGenerator(
         ".",

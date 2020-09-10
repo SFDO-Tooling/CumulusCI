@@ -2,7 +2,9 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
-from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
+from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
+    BaseSalesforceMetadataApiTask,
+)
 
 
 class Deploy(BaseSalesforceMetadataApiTask):
@@ -20,9 +22,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
         },
         "namespace_strip": {
             "description": "If set, all namespace prefixes for the namespace specified are stripped from files and filenames"
-        },
-        "namespace_tokenize": {
-            "description": "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject"
         },
         "check_only": {
             "description": "If True, performs a test deployment (validation) of components without saving the components in the target org"

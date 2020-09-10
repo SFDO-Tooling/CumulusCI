@@ -19,6 +19,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     DataOperationStatus,
     BaseDmlOperation,
+    DataApi,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
@@ -69,8 +70,8 @@ class TestLoadData(unittest.TestCase):
     mapping_file = "mapping_v1.yml"
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
-    def test_run(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test_run(self, dml_mock):
         responses.add(
             method="GET",
             url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
@@ -106,7 +107,7 @@ class TestLoadData(unittest.TestCase):
                 context=task,
                 fields=[],
             )
-            step_mock.return_value = step
+            dml_mock.return_value = step
 
             step.results = [
                 DataOperationResult("001000000000000", True, None),
@@ -210,8 +211,8 @@ class TestLoadData(unittest.TestCase):
             task()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
-    def test_run__sql(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test_run__sql(self, dml_mock):
         responses.add(
             method="GET",
             url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
@@ -235,7 +236,7 @@ class TestLoadData(unittest.TestCase):
             context=task,
             fields=[],
         )
-        step_mock.return_value = step
+        dml_mock.return_value = step
         step.results = [
             DataOperationResult("001000000000000", True, None),
             DataOperationResult("003000000000000", True, None),
@@ -363,6 +364,7 @@ class TestLoadData(unittest.TestCase):
         self.assertEqual(
             {
                 "sf_object": "Account",
+                "api": DataApi.BULK,
                 "action": "update",
                 "table": "accounts",
                 "lookups": lookups,
@@ -378,6 +380,7 @@ class TestLoadData(unittest.TestCase):
         self.assertEqual(
             {
                 "sf_object": "Contact",
+                "api": DataApi.BULK,
                 "action": "update",
                 "table": "contacts",
                 "fields": {},
@@ -397,6 +400,7 @@ class TestLoadData(unittest.TestCase):
         self.assertEqual(
             {
                 "sf_object": "Account",
+                "api": DataApi.BULK,
                 "action": "update",
                 "table": "accounts",
                 "fields": {},
@@ -413,15 +417,19 @@ class TestLoadData(unittest.TestCase):
         )
         task.sf = mock.Mock()
 
-        mapping = {
-            "sf_object": "Account",
-            "action": "update",
-            "fields": {},
-            "lookups": {
-                "Id": {"table": "accounts", "key_field": "account_id"},
-                "ParentId": {"table": "accounts"},
-            },
-        }
+        mapping = MappingStep(
+            **{
+                "sf_object": "Account",
+                "action": "update",
+                "fields": {},
+                "lookups": {
+                    "Id": MappingLookup(
+                        **{"table": "accounts", "key_field": "account_id"}
+                    ),
+                    "ParentId": MappingLookup(**{"table": "accounts"}),
+                },
+            }
+        )
 
         task._query_db = mock.Mock()
         task._query_db.return_value.yield_per = mock.Mock(
@@ -434,7 +442,9 @@ class TestLoadData(unittest.TestCase):
         )
 
         local_ids = []
-        records = list(task._stream_queried_data(mapping, local_ids))
+        records = list(
+            task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
+        )
         self.assertEqual(
             [["001000000005", "001000000007"], ["001000000006", "001000000008"]],
             records,
@@ -1438,8 +1448,8 @@ class TestLoadData(unittest.TestCase):
             ("001000000000011", "001000000000002"),
         ]
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
-    def test_execute_step__record_type_mapping(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test_execute_step__record_type_mapping(self, dml_mock):
         task = _make_task(
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
@@ -1448,6 +1458,7 @@ class TestLoadData(unittest.TestCase):
         task.session = mock.Mock()
         task._load_record_types = mock.Mock()
         task._process_job_results = mock.Mock()
+        task._query_db = mock.Mock()
 
         task._execute_step(
             MappingStep(
@@ -1563,8 +1574,8 @@ class TestLoadData(unittest.TestCase):
         )
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
-    def test_run__autopk(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test_run__autopk(self, dml_mock):
         responses.add(
             method="GET",
             url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
@@ -1598,7 +1609,7 @@ class TestLoadData(unittest.TestCase):
                 context=task,
                 fields=[],
             )
-            step_mock.return_value = step
+            dml_mock.return_value = step
 
             step.results = [
                 DataOperationResult("001000000000000", True, None),
@@ -2204,9 +2215,7 @@ class TestLoadData(unittest.TestCase):
         task.session.query.assert_called_once_with(
             contact_id_column, account_sf_id_column
         )
-        task.session.query.filter.assert_called_once_with(
-            contact_model.__table__.columns["IsPersonAccount"] == "true"
-        )
+        task.session.query.filter.assert_called_once()
         task.session.query.outerjoin.assert_called_once_with(
             account_sf_ids_table,
             account_sf_ids_table.columns["id"] == account_id_column,
