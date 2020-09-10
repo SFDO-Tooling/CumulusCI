@@ -7,13 +7,14 @@ import zipfile
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
-from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
+from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
+    BaseSalesforceMetadataApiTask,
+)
 from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import zip_clean_metaxml
 from cumulusci.utils import inject_namespace
 from cumulusci.utils import strip_namespace
-from cumulusci.utils import tokenize_namespace
 from cumulusci.utils import process_text_in_zipfile
 from cumulusci.utils.xml import metadata_tree
 
@@ -33,9 +34,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
         },
         "namespace_strip": {
             "description": "If set, all namespace prefixes for the namespace specified are stripped from files and filenames"
-        },
-        "namespace_tokenize": {
-            "description": "If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject"
         },
         "check_only": {
             "description": "If True, performs a test deployment (validation) of components without saving the components in the target org"
@@ -144,20 +142,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
         return zipf
 
     def _process_namespace(self, zipf):
-        if self.options.get("namespace_tokenize"):
-            self.logger.info(
-                "Tokenizing namespace prefix {}__".format(
-                    self.options["namespace_tokenize"]
-                )
-            )
-            zipf = process_text_in_zipfile(
-                zipf,
-                functools.partial(
-                    tokenize_namespace,
-                    namespace=self.options["namespace_tokenize"],
-                    logger=self.logger,
-                ),
-            )
         if self.options.get("namespace_inject"):
             managed = not process_bool_arg(self.options.get("unmanaged", True))
             if managed:
