@@ -1297,7 +1297,7 @@ class RunTaskCommand(click.MultiCommand):
         the old option syntax to the new option syntax"""
 
         # TODO: What's a good way to account for scenarios where
-        # the user for gets option name/value. Example would be:
+        # the user forgets option name/value. Example would be:
         # cci task run task_name -o name1 -o name2 value2
         task_name = args[0]
         while "-o" in args:
@@ -1310,10 +1310,11 @@ class RunTaskCommand(click.MultiCommand):
 
         return click.MultiCommand.resolve_command(self, ctx, args)
 
-    def _option_in_task(opt_name, task_name):
+    def _option_in_task(self, opt_name, task_name):
         """Returns True if opt_name is the name of an
         option in the given task, else False"""
-        pass
+        task = RUNTIME.project_config.get_task(task_name)
+        return opt_name in task.config["options"].keys()
 
     def _get_click_options_for_task(self, task_options):
         """Given a dict of options in a task, constructs and returns the
