@@ -1,15 +1,18 @@
 -r requirements.txt
 -e .
-black==19.10b0
-coverage==5.1
-coveralls==2.0.0
-flake8==3.7.9
-pre-commit==2.3.0
-pytest==5.4.1
-responses==0.10.14
-Sphinx==3.0.2
-testfixtures==6.14.1
-tox==3.14.6
-twine==3.1.1
-typeguard==2.7.1
-wheel==0.34.2
+black==20.8b1
+coverage[toml]==5.2.1
+coveralls==2.1.2
+flake8==3.8.3
+pre-commit==2.7.1
+pytest==6.0.1
+pytest-vcr==1.0.2
+responses==0.12.0
+Sphinx==3.2.1
+testfixtures==6.14.2
+tox==3.20.0
+twine==3.2.0
+typeguard==2.9.1
+vcrpy==4.1.0
+wheel==0.35.1
+factory-boy==3.0.1

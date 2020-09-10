@@ -20,6 +20,17 @@ The ability to create rich, single file integration tests that interact with Cum
 
 The integration with Robot Framework adds a new dimension to CumulusCI.  Before, automating the recreation of a test environment for an edge case bug reported in a custom org would have required creating new tasks in cumulusci.yml which pollute the project's task list used by everyone on the project for an obscure scenario needed only for regression testing.  Now, you can create the test scenario in a .robot test file and run it through the standard **robot** task in CumulusCI.  Adding a new test scenario just adds a new file in the repository rather than a new task in CumulusCI.
 
+Included Libraries
+==================
+
+CumulusCI comes bundled with the following additional third-party keyword libraries in addition to the libraries that come with robot framework itself:
+
+* `SeleniumLibrary <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html>`_ for browser testing
+* `RequestsLibrary <https://marketsquare.github.io/robotframework-requests/doc/RequestsLibrary.html>`_  for testing REST APIs
+
+SeleniumLibrary is automatically imported when you import Salesforce.robot. To use RequestsLibrary you need to explicitly import it in the settings section of your robot test.
+
+
 Example Robot Test
 ==================
 
@@ -83,8 +94,8 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
 
        # Validate via API
        &{contact} =     Salesforce Get  Contact  ${contact_id}
-       Should Be Equal  ${first_name}  &{contact}[FirstName]
-       Should Be Equal  ${last_name}  &{contact}[LastName]
+       Should Be Equal  ${first_name}  ${contact}[FirstName]
+       Should Be Equal  ${last_name}   ${contact}[LastName]
 
 
 Settings
@@ -257,10 +268,10 @@ The **Run Task Class** keyword is for use cases where you want to use one of Cum
 Full Documentation
 ------------------
 
-Use the following links to download generated documentation for the CumulusCI Library and Resource file:
+Use the following links to download generated documentation for both
+the CumulusCI and Salesforce keywords
 
-* :download:`CumulusCI Robot Library <../docs/robot/CumulusCI_Library.html>`
-* :download:`CumulusCI Robot Resource <../docs/robot/CumulusCI_Resource.html>`
+* :download:`CumulusCI Keyword Documentation <../docs/robot/Keywords.html>`
 
 .. _salesforce-library-overview:
 
@@ -370,6 +381,8 @@ which should be used for all classes that use the ``pageobject`` decorator:
   page object which represents a listing page
 - ``cumulusci.robotframework.pageobject.NewModal`` - a class for a
   page object which represents the "new object" modal
+- ``cumulusci.robotframework.pageobject.ObjectManagerPage`` - a class
+  for interacting with the object manager.
 
 The ``BasePage`` class adds the following keyword to every page object:
 

@@ -8,33 +8,33 @@ from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 
 class LoadCustomSettings(BaseSalesforceApiTask):
     """Load Custom Settings (both List and Hierarchy) into an org
-    from a YAML-format settings file.
+     from a YAML-format settings file.
 
-    Each top-level YAML key should be the API name of a Custom Setting.
-    List Custom Settings should contain a nested map of names to values.
-    Hierarchy Custom settings should contain a list, each of which contains
-    a ``data`` key and a ``location`` key. The ``location`` key may contain either
-    ``profile: <profile name>``, ``user: name: <username>``, ``user: email: <email>``,
-    or ``org``. Example:
+     Each top-level YAML key should be the API name of a Custom Setting.
+     List Custom Settings should contain a nested map of names to values.
+     Hierarchy Custom settings should contain a list, each of which contains
+     a ``data`` key and a ``location`` key. The ``location`` key may contain either
+     ``profile: <profile name>``, ``user: name: <username>``, ``user: email: <email>``,
+     or ``org``. Example:
 
-   .. code-block:: yaml
+    .. code-block:: yaml
 
-        List__c:
-            Test:
-                MyField__c: 1
-            Test 2:
-                MyField__c: 2
-        Hierarchy__c:
-            -
-                location: org
-                data:
-                    MyField__c: 1
-            -
-                location:
-                    user:
-                        name: test@example.com
-                data:
-                    MyField__c: 2
+         List__c:
+             Test:
+                 MyField__c: 1
+             Test 2:
+                 MyField__c: 2
+         Hierarchy__c:
+             -
+                 location: org
+                 data:
+                     MyField__c: 1
+             -
+                 location:
+                     user:
+                         name: test@example.com
+                 data:
+                     MyField__c: 2
     """
 
     task_options = {

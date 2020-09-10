@@ -72,10 +72,10 @@ class SetOrgWideDefaults(MetadataSingleEntityTransformTask, BaseSalesforceApiTas
     def _post_deploy(self, result):
         if result == "Success":
             super()._post_deploy(result)
-            self.logger.info(f"Waiting for sharing enablement to complete.")
+            self.logger.info("Waiting for sharing enablement to complete.")
             self.time_start = datetime.now()
             self._poll()
-            self.logger.info(f"Sharing enablement is complete.")
+            self.logger.info("Sharing enablement is complete.")
 
     def _transform_entity(
         self, metadata: MetadataElement, api_name: str

@@ -40,7 +40,6 @@ class ReleaseReport(BaseGithubTask):
 
     def _run_task(self):
         releases = []
-        last_time = None
         repo = self.get_repo()
         regex_compiled_prefix = re.compile(
             r"^((?P<sandbox>{})|(?P<production>{}))(?P<remaining>.*)$".format(

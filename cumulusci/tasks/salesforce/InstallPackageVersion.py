@@ -1,3 +1,4 @@
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
@@ -31,6 +32,9 @@ class InstallPackageVersion(Deploy):
         "retry_interval_add": {
             "description": "Number of seconds to add before each retry (default=30),"
         },
+        "security_type": {
+            "description": "Which users to install package for (FULL = all users, NONE = admins only)"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -44,7 +48,7 @@ class InstallPackageVersion(Deploy):
                 or self.options["namespace"]
             )
         if "retries" not in self.options:
-            self.options["retries"] = 5
+            self.options["retries"] = 10
         if "retry_interval" not in self.options:
             self.options["retry_interval"] = 5
         if "retry_interval_add" not in self.options:
@@ -57,6 +61,11 @@ class InstallPackageVersion(Deploy):
         elif version == "previous":
             self.options["version"] = self.project_config.get_previous_version()
         self.options["activateRSS"] = process_bool_arg(self.options.get("activateRSS"))
+        self.options["security_type"] = self.options.get("security_type", "FULL")
+        if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
+            raise TaskOptionsError(
+                f"Unsupported value for security_type: {self.options['security_type']}"
+            )
 
     def _get_api(self, path=None):
         package_zip = InstallPackageZipBuilder(
@@ -64,6 +73,7 @@ class InstallPackageVersion(Deploy):
             version=self.options["version"],
             activateRSS=self.options["activateRSS"],
             password=self.options.get("password"),
+            securityType=self.options.get("security_type", "FULL"),
         )
         return self.api_class(self, package_zip(), purge_on_delete=False)
 
@@ -72,6 +82,7 @@ class InstallPackageVersion(Deploy):
             f"Installing {self.options['name']} release: {self.options['version']}"
         )
         self._retry()
+        self.org_config.reset_installed_packages()
 
     def _try(self):
         api = self._get_api()
@@ -81,6 +92,7 @@ class InstallPackageVersion(Deploy):
         if isinstance(e, MetadataApiError) and (
             "This package is not yet available" in str(e)
             or "InstalledPackage version number" in str(e)
+            or "The requested package doesn't yet exist or has been deleted" in str(e)
         ):
             return True
 

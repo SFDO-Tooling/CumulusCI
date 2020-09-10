@@ -5,14 +5,16 @@ import tempfile
 from lxml import etree
 import pytest
 
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl import (
     BaseMetadataETLTask,
     BaseMetadataSynthesisTask,
     BaseMetadataTransformTask,
     MetadataSingleEntityTransformTask,
+    UpdateMetadataFirstChildTextTask,
 )
+from cumulusci.utils.xml.metadata_tree import fromstring
 
 
 class MetadataETLTask(BaseMetadataETLTask):
@@ -26,6 +28,10 @@ class TestBaseMetadataETLTask:
 
         assert task.options["managed"]
         assert task.options["api_version"] == "47.0"
+
+    def test_init_options_raises_invalid_api_value(self):
+        with pytest.raises(TaskOptionsError):
+            create_task(MetadataETLTask, {"api_version": "aaa"})
 
     def test_inject_namespace(self):
         task = create_task(
@@ -379,3 +385,128 @@ class TestMetadataSingleEntityTransformTask:
             test_path.write_text(">>>>>NOT XML<<<<<")
             with pytest.raises(etree.ParseError):
                 task._transform()
+
+
+class TestUpdateMetadataFirstChildTextTask:
+    def test_init_options__namespace_injected_in_value(self):
+        options = {
+            "managed": True,
+            "namespace_inject": "namespace",
+            "metadata_type": "CustomObject",
+            "tag": "customObjectAttribute",
+            "value": "%%%NAMESPACE%%%newAttributeValue",
+        }
+
+        expected_value = "namespace__newAttributeValue"
+
+        task = create_task(UpdateMetadataFirstChildTextTask, options)
+
+        assert expected_value == task.options["value"]
+
+        # task.entity should always be set as options["metadata_type"]
+        assert options["metadata_type"] == task.entity
+
+    def test_transform_entity__child_found(self):
+        api_name = "Supercalifragilisticexpialidocious__c"
+
+        entity = "CustomObject"
+        tag = "customObjectAttribute"
+        value = "newAttributeValue"
+
+        ORIGINAL_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<{entity} xmlns="http://soap.sforce.com/2006/04/metadata">
+    <name>{api_name}</name>
+    <{tag}>oldAttributeValue</{tag}>
+    <anotherTag>value</anotherTag>
+</{entity}>
+"""
+
+        EXPECTED_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<{entity} xmlns="http://soap.sforce.com/2006/04/metadata">
+    <name>{api_name}</name>
+    <{tag}>{value}</{tag}>
+    <anotherTag>value</anotherTag>
+</{entity}>
+"""
+
+        metadata = fromstring(ORIGINAL_XML.encode("utf-8"))
+
+        task = create_task(
+            UpdateMetadataFirstChildTextTask,
+            {
+                "managed": False,
+                "namespace_inject": None,
+                "metadata_type": entity,
+                "tag": tag,
+                "value": value,
+            },
+        )
+        task.logger = mock.Mock()
+        assert tag == task.options.get("tag")
+        assert value == task.options.get("value")
+
+        actual = task._transform_entity(metadata, api_name)
+
+        assert metadata == actual
+
+        assert actual.tostring(xml_declaration=True) == EXPECTED_XML
+
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(f'Updating {entity} "{api_name}":'),
+                mock.call(f'    {tag} as "{value}"'),
+            ]
+        )
+
+    def test_transform_entity__child_not_found(self):
+        api_name = "Supercalifragilisticexpialidocious__c"
+
+        entity = "CustomObject"
+        tag = "customObjectAttribute"
+        value = "newAttributeValue"
+
+        ORIGINAL_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<{entity} xmlns="http://soap.sforce.com/2006/04/metadata">
+    <name>{api_name}</name>
+    <anotherTag>value</anotherTag>
+</{entity}>
+"""
+
+        EXPECTED_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<{entity} xmlns="http://soap.sforce.com/2006/04/metadata">
+    <name>{api_name}</name>
+    <anotherTag>value</anotherTag>
+    <{tag}>{value}</{tag}>
+</{entity}>
+"""
+
+        metadata = fromstring(ORIGINAL_XML.encode("utf-8"))
+
+        expected_metadata = fromstring(EXPECTED_XML.encode("utf-8"))
+
+        task = create_task(
+            UpdateMetadataFirstChildTextTask,
+            {
+                "managed": False,
+                "namespace_inject": None,
+                "metadata_type": entity,
+                "tag": tag,
+                "value": value,
+            },
+        )
+        task.logger = mock.Mock()
+        assert tag == task.options.get("tag")
+        assert value == task.options.get("value")
+
+        actual = task._transform_entity(metadata, api_name)
+
+        assert metadata == actual
+
+        assert actual.tostring() == expected_metadata.tostring()
+
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(f'Updating {entity} "{api_name}":'),
+                mock.call(f'    {tag} as "{value}"'),
+            ]
+        )

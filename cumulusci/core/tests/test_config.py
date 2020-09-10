@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+from distutils.version import StrictVersion
 import os
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pytest
 from unittest import mock
@@ -8,11 +11,12 @@ import responses
 
 from github3.exceptions import NotFoundError
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import KeychainNotFound
@@ -23,6 +27,7 @@ from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
+from cumulusci.tests.util import DummyKeychain
 
 
 class TestBaseConfig(unittest.TestCase):
@@ -100,7 +105,7 @@ class DummyResponse(object):
 
 
 class DummyRepository(object):
-    default_branch = "master"
+    default_branch = "main"
     _api = "http://"
 
     def __init__(self, owner, name, contents, releases=None):
@@ -175,18 +180,6 @@ class DummyGithub(object):
             raise AssertionError(f"Unexpected repository: {name}")
 
 
-class DummyService(object):
-    password = "password"
-
-    def __init__(self, name):
-        self.name = name
-
-
-class DummyKeychain(object):
-    def get_service(self, name):
-        return DummyService(name)
-
-
 class TestBaseProjectConfig(unittest.TestCase):
     maxDiff = None
 
@@ -257,22 +250,22 @@ class TestBaseProjectConfig(unittest.TestCase):
             }
         )
 
-    def test_config_global_local(self):
-        global_config = BaseGlobalConfig()
-        global_config.config_global_local = {}
-        config = BaseProjectConfig(global_config)
-        self.assertIs(global_config.config_global_local, config.config_global_local)
-
     def test_config_global(self):
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
-        self.assertIs(global_config.config_global, config.config_global)
+        universal_config = UniversalConfig()
+        universal_config.config_global = {}
+        config = BaseProjectConfig(universal_config)
+        self.assertIs(universal_config.config_global, config.config_global)
+
+    def test_config_universal(self):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        self.assertIs(universal_config.config_universal, config.config_universal)
 
     def test_repo_info(self):
         env = {
             "CUMULUSCI_AUTO_DETECT": "1",
             "HEROKU_TEST_RUN_ID": "TEST1",
-            "HEROKU_TEST_RUN_BRANCH": "master",
+            "HEROKU_TEST_RUN_BRANCH": "main",
             "HEROKU_TEST_RUN_COMMIT_VERSION": "HEAD",
             "CUMULUSCI_REPO_BRANCH": "feature/test",
             "CUMULUSCI_REPO_COMMIT": "HEAD~1",
@@ -280,7 +273,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             "CUMULUSCI_REPO_URL": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
         }
         with mock.patch.dict(os.environ, env):
-            config = BaseProjectConfig(BaseGlobalConfig())
+            config = BaseProjectConfig(UniversalConfig())
             result = config.repo_info
         self.assertEqual(
             {
@@ -299,7 +292,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         env = {
             "CUMULUSCI_AUTO_DETECT": "1",
             "HEROKU_TEST_RUN_ID": "TEST1",
-            "HEROKU_TEST_RUN_BRANCH": "master",
+            "HEROKU_TEST_RUN_BRANCH": "main",
             "HEROKU_TEST_RUN_COMMIT_VERSION": "HEAD",
             "CUMULUSCI_REPO_BRANCH": "feature/test",
             "CUMULUSCI_REPO_COMMIT": "HEAD~1",
@@ -307,39 +300,39 @@ class TestBaseProjectConfig(unittest.TestCase):
         }
         with mock.patch.dict(os.environ, env):
             with self.assertRaises(ConfigError):
-                config = BaseProjectConfig(BaseGlobalConfig())
+                config = BaseProjectConfig(UniversalConfig())
                 config.repo_info
 
     def test_repo_root_from_env(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"root": "."}
         self.assertEqual(".", config.repo_root)
 
     def test_repo_name_from_repo_info(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"name": "CumulusCI"}
         self.assertEqual("CumulusCI", config.repo_name)
 
     def test_repo_name_no_repo_root(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
             self.assertIsNone(config.repo_name)
 
     def test_repo_name_from_git(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         self.assertEqual("CumulusCI", config.repo_name)
 
     def test_repo_url_from_repo_info(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"url": "https://github.com/SFDO-Tooling/CumulusCI"}
         self.assertEqual("https://github.com/SFDO-Tooling/CumulusCI", config.repo_url)
 
     def test_repo_url_no_repo_root(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
             self.assertIsNone(config.repo_url)
 
-    @mock.patch("cumulusci.core.config.project_config.BaseProjectConfig.git_path")
+    @mock.patch("cumulusci.core.config.project_config.git_path")
     def test_repo_url_from_git(self, git_path):
         git_config_file = "git_config"
         git_path.return_value = git_config_file
@@ -347,43 +340,43 @@ class TestBaseProjectConfig(unittest.TestCase):
         with open(git_config_file, "w") as f:
             f.writelines(['[remote "origin"]\n' f"\turl = {repo_url}"])
 
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         assert repo_url == config.repo_url
 
         os.remove(git_config_file)
 
     def test_repo_owner_from_repo_info(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"owner": "SFDO-Tooling"}
         self.assertEqual("SFDO-Tooling", config.repo_owner)
 
     def test_repo_owner_no_repo_root(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
             self.assertIsNone(config.repo_owner)
 
     def test_repo_branch_from_repo_info(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
-        config._repo_info = {"branch": "master"}
-        self.assertEqual("master", config.repo_branch)
+        config = BaseProjectConfig(UniversalConfig())
+        config._repo_info = {"branch": "main"}
+        self.assertEqual("main", config.repo_branch)
 
     def test_repo_branch_no_repo_root(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
             self.assertIsNone(config.repo_branch)
 
     def test_repo_commit_from_repo_info(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"commit": "abcdef"}
         self.assertEqual("abcdef", config.repo_commit)
 
     def test_repo_commit_no_repo_root(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
             self.assertIsNone(config.repo_commit)
 
     def test_repo_commit_no_repo_branch(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             os.mkdir(os.path.join(d, ".git"))
             with open(os.path.join(d, ".git", "HEAD"), "w") as f:
@@ -392,21 +385,23 @@ class TestBaseProjectConfig(unittest.TestCase):
             self.assertIsNone(config.repo_commit)
 
     def test_repo_commit_packed_refs(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             os.system("git init")
+            with open(os.path.join(d, ".git", "HEAD"), "w") as f:
+                f.write("ref: refs/heads/main\n")
             with open(os.path.join(d, ".git", "packed-refs"), "w") as f:
                 f.write("# pack-refs with: peeled fully-peeled sorted\n")
                 f.write("#\n")
                 f.write(
-                    "8ce67f4519190cd1ec9785105168e21b9599bc27 refs/remotes/origin/master\n"
+                    "8ce67f4519190cd1ec9785105168e21b9599bc27 refs/remotes/origin/main\n"
                 )
 
             self.assertIsNotNone(config.repo_commit)
 
     def test_get_latest_tag(self):
         config = BaseProjectConfig(
-            BaseGlobalConfig(),
+            UniversalConfig(),
             {
                 "project": {
                     "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
@@ -419,7 +414,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_get_latest_tag_matching_prefix(self):
         config = BaseProjectConfig(
-            BaseGlobalConfig(),
+            UniversalConfig(),
             {"project": {"git": {"prefix_beta": "beta/", "prefix_release": "rel/"}}},
         )
         github = self._make_github()
@@ -432,7 +427,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_get_latest_tag_beta(self):
         config = BaseProjectConfig(
-            BaseGlobalConfig(),
+            UniversalConfig(),
             {
                 "project": {
                     "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
@@ -444,7 +439,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertEqual("beta/1.0-Beta_2", result)
 
     def test_get_latest_tag__beta_not_found(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         github = self._make_github()
         github.repositories["CumulusCI"]._releases = []
         config.get_github_api = mock.Mock(return_value=github)
@@ -452,7 +447,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             config.get_latest_tag(beta=True)
 
     def test_get_latest_tag__repo_not_found(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         github = self._make_github()
         github.repositories["CumulusCI"] = None
         config.get_github_api = mock.Mock(return_value=github)
@@ -460,7 +455,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             config.get_latest_tag()
 
     def test_get_latest_tag__release_not_found(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         github = self._make_github()
         github.repositories["CumulusCI"]._releases = []
         config.get_github_api = mock.Mock(return_value=github)
@@ -469,7 +464,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_get_latest_version(self):
         config = BaseProjectConfig(
-            BaseGlobalConfig(),
+            UniversalConfig(),
             {
                 "project": {
                     "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
@@ -482,7 +477,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_get_latest_version_beta(self):
         config = BaseProjectConfig(
-            BaseGlobalConfig(),
+            UniversalConfig(),
             {
                 "project": {
                     "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
@@ -495,7 +490,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_get_previous_version(self):
         config = BaseProjectConfig(
-            BaseGlobalConfig(),
+            UniversalConfig(),
             {
                 "project": {
                     "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
@@ -507,25 +502,25 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertEqual("1.0", result)
 
     def test_config_project_path_no_repo_root(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
             self.assertIsNone(config.config_project_path)
 
     def test_get_tag_for_version(self):
         config = BaseProjectConfig(
-            BaseGlobalConfig(), {"project": {"git": {"prefix_release": "release/"}}}
+            UniversalConfig(), {"project": {"git": {"prefix_release": "release/"}}}
         )
         self.assertEqual("release/1.0", config.get_tag_for_version("1.0"))
 
     def test_get_tag_for_version_beta(self):
         config = BaseProjectConfig(
-            BaseGlobalConfig(), {"project": {"git": {"prefix_beta": "beta/"}}}
+            UniversalConfig(), {"project": {"git": {"prefix_beta": "beta/"}}}
         )
         self.assertEqual("beta/1.0-Beta_1", config.get_tag_for_version("1.0 (Beta 1)"))
 
     def test_get_version_for_tag(self):
         config = BaseProjectConfig(
-            BaseGlobalConfig(),
+            UniversalConfig(),
             {
                 "project": {
                     "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
@@ -536,7 +531,7 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_get_version_for_tag_invalid_beta(self):
         config = BaseProjectConfig(
-            BaseGlobalConfig(),
+            UniversalConfig(),
             {
                 "project": {
                     "git": {"prefix_beta": "beta/", "prefix_release": "release/"}
@@ -546,20 +541,52 @@ class TestBaseProjectConfig(unittest.TestCase):
         self.assertEqual(None, config.get_version_for_tag("beta/invalid-format"))
 
     def test_check_keychain(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         with self.assertRaises(KeychainNotFound):
             config._check_keychain()
 
     def test_get_static_dependencies(self):
         dep = {"namespace": "npsp", "version": "3"}
         config = BaseProjectConfig(
-            BaseGlobalConfig(), {"project": {"dependencies": [dep]}}
+            UniversalConfig(), {"project": {"dependencies": [dep]}}
         )
         self.assertEqual([dep], config.get_static_dependencies())
 
     def test_get_static_dependencies_no_dependencies(self):
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         self.assertEqual([], config.get_static_dependencies())
+
+    def test_get_static_dependencies__skipped_dependencies(self):
+        config = BaseProjectConfig(UniversalConfig())
+        deps = [
+            {"namespace": "npsp", "version": "3"},
+            {"namespace": "foo", "version": "1"},
+        ]
+        config = BaseProjectConfig(
+            UniversalConfig(), {"project": {"dependencies": deps}}
+        )
+        self.assertEqual(
+            deps[1:],
+            config.get_static_dependencies(ignore_deps=[{"namespace": "npsp"}]),
+        )
+
+    def test_should_ignore_dependency(self):
+        ignore_deps = [{"namespace": "npsp"}, {"github": "https://test/"}]
+        config = BaseProjectConfig(UniversalConfig(), {})
+
+        assert config._should_ignore_dependency(
+            {"namespace": "npsp", "version": "3"}, ignore_deps
+        )
+        assert not config._should_ignore_dependency(
+            {"namespace": "foo", "version": "1"}, ignore_deps
+        )
+        assert config._should_ignore_dependency(
+            {"github": "https://test/"}, ignore_deps
+        )
+        assert not config._should_ignore_dependency(
+            {"github": "https://example/"}, ignore_deps
+        )
+        assert not config._should_ignore_dependency({}, ignore_deps)
 
     def test_pretty_dependencies(self):
         dep = {
@@ -568,7 +595,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             "boolean": False,
             "dependencies": [{"repo_name": "TestRepo", "dependencies": []}],
         }
-        config = BaseProjectConfig(BaseGlobalConfig())
+        config = BaseProjectConfig(UniversalConfig())
         result = "\n".join(config.pretty_dependencies([dep]))
         self.assertEqual(
             """  - dependencies: \n    \n      - repo_name: TestRepo\n    namespace: npsp\n    version: 3""",
@@ -576,8 +603,8 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
 
     def test_process_github_dependency(self):
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
         config.get_github_api = mock.Mock(return_value=self._make_github())
         config.keychain = DummyKeychain()
 
@@ -600,7 +627,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Install CumulusCI-Test-Dep 2.0",
@@ -616,7 +642,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -627,14 +652,13 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
 
     def test_process_github_dependency_no_unpackaged(self):
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
         github = self._make_github()
         del github.repositories["CumulusCI-Test"]._contents["unpackaged/pre"]
         del github.repositories["CumulusCI-Test"]._contents["unpackaged/post"]
@@ -663,14 +687,13 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
 
     def test_process_github_dependency_with_tag(self):
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
         github = self._make_github()
         github.repositories["CumulusCI-Test"]._releases = [
             DummyRelease("release/1.0", "1.0")
@@ -701,8 +724,8 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
 
     def test_process_github_dependency_latest(self):
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
         config.keychain = DummyKeychain()
         github = self._make_github()
         github.repositories["CumulusCI-Test-Dep"]._releases = [
@@ -732,7 +755,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Install CumulusCI-Test-Dep 1.1 (Beta 1)",
@@ -748,7 +770,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -759,14 +780,13 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
 
     def test_process_github_dependency_ref(self):
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
         config.keychain = DummyKeychain()
         config.get_github_api = mock.Mock(return_value=self._make_github())
 
@@ -791,7 +811,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Install CumulusCI-Test-Dep 2.0",
@@ -807,7 +826,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -818,14 +836,65 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
+                },
+            ],
+        )
+
+    def test_process_github_dependency__with_skipped_deps(self):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.get_github_api = mock.Mock(return_value=self._make_github())
+        config.keychain = DummyKeychain()
+
+        result = config.process_github_dependency(
+            {
+                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
+                "unmanaged": True,
+                "skip": ["unpackaged/pre/skip", "unpackaged/post/skip"],
+            },
+            ignore_deps=[
+                {"github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep"}
+            ],
+        )
+        self.assertEqual(
+            result,
+            [
+                {
+                    "name": "Deploy unpackaged/pre/pre",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "unpackaged/pre/pre",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                },
+                {
+                    "name": "Deploy CumulusCI-Test",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "src",
+                    "unmanaged": True,
+                    "namespace_inject": None,
+                    "namespace_strip": None,
+                },
+                {
+                    "name": "Deploy unpackaged/post/post",
+                    "repo_owner": "SFDO-Tooling",
+                    "repo_name": "CumulusCI-Test",
+                    "ref": "commit_sha",
+                    "subfolder": "unpackaged/post/post",
+                    "unmanaged": True,
+                    "namespace_inject": "ccitest",
+                    "namespace_strip": None,
                 },
             ],
         )
 
     def test_process_github_dependency__cannot_find_repo(self):
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
         config.keychain = DummyKeychain()
         github = self._make_github()
         github.repositories["CumulusCI-Test-Dep"] = None
@@ -837,8 +906,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             )
 
     def test_process_github_dependency_cannot_find_latest(self):
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
         config.keychain = DummyKeychain()
         github = self._make_github()
         github.repositories["CumulusCI-Test-Dep"]._releases = []
@@ -850,8 +919,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             )
 
     def test_process_github_dependency_tag_not_found(self):
-        global_config = BaseGlobalConfig()
-        config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
         config.keychain = DummyKeychain()
         config.get_github_api = mock.Mock(return_value=self._make_github())
 
@@ -864,36 +933,36 @@ class TestBaseProjectConfig(unittest.TestCase):
             )
 
     def test_get_task__included_source(self):
-        global_config = BaseGlobalConfig()
+        universal_config = UniversalConfig()
         with temporary_dir() as d:
             touch("cumulusci.yml")
             project_config = BaseProjectConfig(
-                global_config, {"sources": {"test": {"path": d}}}
+                universal_config, {"sources": {"test": {"path": d}}}
             )
             task_config = project_config.get_task("test:log")
         assert task_config.project_config is not project_config
         assert isinstance(task_config.project_config.source, LocalFolderSource)
 
     def test_get_flow__included_source(self):
-        global_config = BaseGlobalConfig()
+        universal_config = UniversalConfig()
         with temporary_dir() as d:
             touch("cumulusci.yml")
             project_config = BaseProjectConfig(
-                global_config, {"sources": {"test": {"path": d}}}
+                universal_config, {"sources": {"test": {"path": d}}}
             )
             flow_config = project_config.get_flow("test:dev_org")
         assert flow_config.project_config is not project_config
         assert isinstance(flow_config.project_config.source, LocalFolderSource)
 
     def test_get_namespace__not_found(self):
-        global_config = BaseGlobalConfig()
-        project_config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
         with self.assertRaises(NamespaceNotFoundError):
             project_config.get_namespace("test")
 
     def test_include_source__cached(self):
-        global_config = BaseGlobalConfig()
-        project_config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
         with temporary_dir() as d:
             touch("cumulusci.yml")
             other1 = project_config.include_source({"path": d})
@@ -903,20 +972,20 @@ class TestBaseProjectConfig(unittest.TestCase):
     @mock.patch("cumulusci.core.config.project_config.GitHubSource")
     def test_include_source__github(self, source):
         source.return_value = expected_result = mock.Mock()
-        global_config = BaseGlobalConfig()
-        project_config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
         other_config = project_config.include_source({"github": "foo/bar"})
         assert other_config.source is expected_result
 
     def test_include_source__unknown(self):
-        global_config = BaseGlobalConfig()
-        project_config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
         with self.assertRaises(Exception):
             project_config.include_source({"foo": "bar"})
 
     def test_relpath(self):
-        global_config = BaseGlobalConfig()
-        project_config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
         assert project_config.relpath(os.path.abspath(".")) == "."
 
     def test_validate_package_api_version_valid(self):
@@ -924,12 +993,12 @@ class TestBaseProjectConfig(unittest.TestCase):
         it is formatted into API URLS. This also negates the need to
         test an explicit string (i.e. if this passes we know that '46.0'
         will also pass)."""
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         project_config.config["project"]["package"]["api_version"] = str(46.0)
         project_config._validate_package_api_format()
 
     def test_validate_package_api_version_invalid(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         project_config.config["project"]["package"]["api_version"] = str([1, 2, 3])
         with pytest.raises(ConfigError):
             project_config._validate_package_api_format()
@@ -954,7 +1023,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         with pytest.raises(ConfigError):
             project_config._validate_package_api_format()
 
-    @mock.patch("cumulusci.core.config.project_config.BaseProjectConfig.git_path")
+    @mock.patch("cumulusci.core.config.project_config.git_path")
     def test_git_config_remote_origin_line(self, git_path):
         git_config_file = "test_git_config_file"
         git_path.return_value = git_config_file
@@ -970,7 +1039,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 ]
             )
 
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         actual_line = project_config.git_config_remote_origin_url()
         assert actual_line is None  # no url under [remote "origin"]
 
@@ -987,7 +1056,7 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_split_repo_url(self):
         name = "Cumulusci"
         owner = "SFDO-Tooling"
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
 
         https_url = f"https://github.com/{owner}/{name}.git"
         info = project_config._split_repo_url(https_url)
@@ -1059,6 +1128,7 @@ class TestOrgConfig(unittest.TestCase):
     @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
     def test_refresh_oauth_token(self, SalesforceOAuth2):
         config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
+        config._client = mock.Mock()
         config._load_userinfo = mock.Mock()
         config._load_orginfo = mock.Mock()
         keychain = mock.Mock()
@@ -1069,6 +1139,7 @@ class TestOrgConfig(unittest.TestCase):
         config.refresh_oauth_token(keychain)
 
         oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
+        assert config._client is None
 
     def test_refresh_oauth_token_no_connected_app(self):
         config = OrgConfig({}, "test")
@@ -1127,16 +1198,24 @@ class TestOrgConfig(unittest.TestCase):
             config.refresh_oauth_token(None)
             assert config.access_token == "TOKEN"
 
-    def test_lightning_base_url(self):
+    def test_lightning_base_url__instance(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         self.assertEqual("https://na01.lightning.force.com", config.lightning_base_url)
+
+    def test_lightning_base_url__scratch_org(self):
+        config = OrgConfig(
+            {"instance_url": "https://foo.cs42.my.salesforce.com"}, "test"
+        )
+        self.assertEqual("https://foo.lightning.force.com", config.lightning_base_url)
+
+    def test_lightning_base_url__mydomain(self):
+        config = OrgConfig({"instance_url": "https://foo.my.salesforce.com"}, "test")
+        self.assertEqual("https://foo.lightning.force.com", config.lightning_base_url)
 
     @responses.activate
     def test_get_salesforce_version(self):
         responses.add(
-            "GET",
-            f"https://na01.salesforce.com/services/data",
-            json=[{"version": 42.0}],
+            "GET", "https://na01.salesforce.com/services/data", json=[{"version": 42.0}]
         )
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"
@@ -1171,9 +1250,17 @@ class TestOrgConfig(unittest.TestCase):
             "test",
         )
         responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        responses.add(
             "GET",
-            "https://example.com/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
-            json={"OrganizationType": "Enterprise Edition", "IsSandbox": False},
+            "https://example.com/services/data/v48.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            json={
+                "OrganizationType": "Enterprise Edition",
+                "IsSandbox": False,
+                "InstanceName": "cs420",
+            },
         )
 
         config._load_orginfo()
@@ -1197,9 +1284,11 @@ class TestOrgConfig(unittest.TestCase):
         The cache should be refreshed automatically if the requested community
         is not in the cache.
         """
+        responses.add("GET", "https://test/services/data", json=[{"version": 48.0}])
+
         responses.add(
             "GET",
-            "https://test/services/data/v45.0/connect/communities",
+            "https://test/services/data/v48.0/connect/communities",
             json={"communities": [{"name": "Kōkua"}]},
         )
 
@@ -1233,3 +1322,234 @@ class TestOrgConfig(unittest.TestCase):
         expected_exception = "Unable to find community information for 'bogus'"
         with self.assertRaisesRegex(Exception, expected_exception):
             config.get_community_info("bogus")
+
+    MOCK_TOOLING_PACKAGE_RESULTS = {
+        "size": 2,
+        "totalSize": 2,
+        "done": True,
+        "records": [
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz4AAG",
+                    "NamespacePrefix": "GW_Volunteers",
+                },
+                "SubscriberPackageVersion": {
+                    "MajorVersion": 3,
+                    "MinorVersion": 119,
+                    "PatchVersion": 0,
+                    "BuildNumber": 5,
+                    "IsBeta": False,
+                },
+            },
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz5AAG",
+                    "NamespacePrefix": "GW_Volunteers",
+                },
+                "SubscriberPackageVersion": {
+                    "MajorVersion": 12,
+                    "MinorVersion": 0,
+                    "PatchVersion": 0,
+                    "BuildNumber": 1,
+                    "IsBeta": False,
+                },
+            },
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz7AAG",
+                    "NamespacePrefix": "TESTY",
+                },
+                "SubscriberPackageVersion": {
+                    "MajorVersion": 1,
+                    "MinorVersion": 10,
+                    "PatchVersion": 0,
+                    "BuildNumber": 5,
+                    "IsBeta": True,
+                },
+            },
+        ],
+    }
+
+    def test_installed_packages(self):
+        config = OrgConfig({}, "test")
+        config._client = mock.Mock()
+        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+
+        assert config.installed_packages == {
+            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
+            "TESTY": [StrictVersion("1.10.0b5")],
+            "03350000000DEz4AAG": [StrictVersion("3.119")],
+            "03350000000DEz5AAG": [StrictVersion("12.0")],
+            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        }
+        assert config.installed_packages == {
+            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
+            "TESTY": [StrictVersion("1.10.0b5")],
+            "03350000000DEz4AAG": [StrictVersion("3.119")],
+            "03350000000DEz5AAG": [StrictVersion("12.0")],
+            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        }
+        config._client.restful.assert_called_once_with(
+            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
+            "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
+            "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
+            "FROM InstalledSubscriberPackage"
+        )
+
+        config._client.restful.reset_mock()
+        config.reset_installed_packages()
+        assert config.installed_packages == {
+            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
+            "TESTY": [StrictVersion("1.10.0b5")],
+            "03350000000DEz4AAG": [StrictVersion("3.119")],
+            "03350000000DEz5AAG": [StrictVersion("12.0")],
+            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        }
+        config._client.restful.assert_called_once()
+
+    def test_has_minimum_package_version(self):
+        config = OrgConfig({}, "test")
+        config._client = mock.Mock()
+        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+
+        assert config.has_minimum_package_version("TESTY", "1.9")
+        assert config.has_minimum_package_version("TESTY", "1.10b5")
+        assert not config.has_minimum_package_version("TESTY", "1.10b6")
+        assert not config.has_minimum_package_version("TESTY", "1.10")
+        assert not config.has_minimum_package_version("npsp", "1.0")
+
+        assert config.has_minimum_package_version("03350000000DEz4AAG", "3.119")
+
+        with self.assertRaises(CumulusCIException):
+            config.has_minimum_package_version("GW_Volunteers", "1.0")
+
+    def test_orginfo_cache_dir_global(self):
+        config = OrgConfig(
+            {
+                "instance_url": "http://zombo.com/welcome",
+                "username": "test-example@example.com",
+            },
+            "test",
+            keychain=DummyKeychain(),
+            global_org=True,
+        )
+        with TemporaryDirectory() as t:
+            with mock.patch(
+                "cumulusci.tests.util.DummyKeychain.global_config_dir", Path(t)
+            ):
+                with config.get_orginfo_cache_dir("foo") as directory:
+                    assert directory.exists()
+                    assert str(t) in directory, (t, directory)
+                    assert (
+                        str(directory)
+                        .replace("\\", "/")
+                        .endswith("orginfo/zombo.com__test-example__example.com/foo")
+                    ), str(directory).replace("\\", "/")
+                    foo = directory / "Foo.txt"
+                    with foo.open("w") as f:
+                        f.write("Bar")
+                    with foo.open("r") as f:
+                        assert f.read() == "Bar"
+
+    def test_orginfo_cache_dir_local(self):
+        config = OrgConfig(
+            {
+                "instance_url": "http://zombo.com/welcome",
+                "username": "test-example@example.com",
+            },
+            "test",
+            keychain=DummyKeychain(),
+            global_org=False,
+        )
+        with TemporaryDirectory() as t:
+            with mock.patch("cumulusci.tests.util.DummyKeychain.cache_dir", Path(t)):
+
+                with config.get_orginfo_cache_dir("bar") as directory:
+                    assert str(t) in directory, (t, directory)
+                    assert (
+                        str(directory)
+                        .replace("\\", "/")
+                        .endswith("orginfo/zombo.com__test-example__example.com/bar")
+                    )
+                    assert directory.exists()
+                    foo = directory / "Foo.txt"
+                    with foo.open("w") as f:
+                        f.write("Bar")
+                    with foo.open("r") as f:
+                        assert f.read() == "Bar"
+
+    @responses.activate
+    def test_is_person_accounts_enabled__not_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+        self.assertIsNone(
+            config._is_person_accounts_enabled,
+            "_is_person_accounts_enabled should be initialized as None",
+        )
+
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            json={"fields": [{"name": "Id"}]},
+        )
+
+        # Verify checks describe if _is_person_accounts_enabled is None.
+        actual = config.is_person_accounts_enabled
+
+        self.assertEqual(False, actual, "")
+        self.assertEqual(actual, config._is_person_accounts_enabled)
+
+        # Verify subsequent calls return cached value.
+        config._is_person_accounts_enabled = True
+
+        self.assertEqual(
+            config._is_person_accounts_enabled, config.is_person_accounts_enabled
+        )
+
+    @responses.activate
+    def test_is_person_accounts_enabled__is_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+        self.assertIsNone(
+            config._is_person_accounts_enabled,
+            "_is_person_accounts_enabled should be initialized as None",
+        )
+
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            json={"fields": [{"name": "Id"}, {"name": "IsPersonAccount"}]},
+        )
+
+        # Verify checks describe if _is_person_accounts_enabled is None.
+        actual = config.is_person_accounts_enabled
+
+        self.assertEqual(True, actual, "")
+        self.assertEqual(actual, config._is_person_accounts_enabled)
+
+        # Verify subsequent calls return cached value.
+        config._is_person_accounts_enabled = False
+
+        self.assertEqual(
+            config._is_person_accounts_enabled, config.is_person_accounts_enabled
+        )

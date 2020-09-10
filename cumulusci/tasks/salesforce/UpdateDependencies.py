@@ -2,20 +2,20 @@ import functools
 from distutils.version import LooseVersion
 
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import ZipfilePackageZipBuilder
-from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
+from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
+    BaseSalesforceMetadataApiTask,
+)
 from cumulusci.utils import download_extract_zip
 from cumulusci.utils import download_extract_github
 from cumulusci.utils import inject_namespace
 from cumulusci.utils import strip_namespace
 from cumulusci.utils import process_text_in_zipfile
-from cumulusci.utils import tokenize_namespace
 
 
 class UpdateDependencies(BaseSalesforceMetadataApiTask):
@@ -28,6 +28,11 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "or 'namespace' set to a Salesforce package namespace. "
             "Github dependencies may include 'tag' to install a particular git ref. "
             "Package dependencies may include 'version' to install a particular version."
+        },
+        "ignore_dependencies": {
+            "description": "List of dependencies to be ignored, including if they are present as transitive "
+            "dependencies. Dependencies can be specified using the 'github' or 'namespace' keys (all other keys "
+            "are not used). Note that this can cause installations to fail if required prerequisites are not available."
         },
         "namespaced_org": {
             "description": "If True, the changes namespace token injection on any dependencies so tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org."
@@ -45,6 +50,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "description": "Allow uninstalling a beta release or newer final release "
             "in order to install the requested version. Defaults to False. "
             "Warning: Enabling this may destroy data."
+        },
+        "security_type": {
+            "description": "Which users to install packages for (FULL = all users, NONE = admins only)"
         },
     }
 
@@ -69,22 +77,36 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self.options["allow_uninstalls"] = process_bool_arg(
             self.options.get("allow_uninstalls", False)
         )
+        self.options["security_type"] = self.options.get("security_type", "FULL")
+        if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
+            raise TaskOptionsError(
+                f"Unsupported value for security_type: {self.options['security_type']}"
+            )
+
+        if "ignore_dependencies" in self.options:
+            if any(
+                "github" not in dep and "namespace" not in dep
+                for dep in self.options["ignore_dependencies"]
+            ):
+                raise TaskOptionsError(
+                    "An invalid dependency was specified for ignore_dependencies."
+                )
 
     def _run_task(self):
         if not self.options["dependencies"]:
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
-        if self.options["include_beta"] and not isinstance(
-            self.org_config, ScratchOrgConfig
-        ):
+        if self.options["include_beta"] and not self.org_config.scratch:
             raise TaskOptionsError(
                 "Target org must be a scratch org when `include_beta` is true."
             )
 
         self.logger.info("Preparing static dependencies map")
         dependencies = self.project_config.get_static_dependencies(
-            self.options["dependencies"], include_beta=self.options["include_beta"]
+            self.options["dependencies"],
+            include_beta=self.options["include_beta"],
+            ignore_deps=self.options.get("ignore_dependencies"),
         )
 
         self.installed = None
@@ -96,12 +118,19 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.logger.info(line)
 
         self._process_dependencies(dependencies)
+        installs = []
+        for dep in self.install_queue:
+            if dep not in installs:
+                installs.append(dep)
+
+        self.install_queue = installs
 
         # Reverse the uninstall queue
         self.uninstall_queue.reverse()
 
         self._uninstall_dependencies()
         self._install_dependencies()
+        self.org_config.reset_installed_packages()
 
     def _process_dependencies(self, dependencies):
         for dependency in dependencies:
@@ -248,21 +277,6 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 )
 
             if package_zip:
-                if dependency.get("namespace_tokenize"):
-                    self.logger.info(
-                        "Replacing namespace prefix {}__ in files and filenames with namespace token strings".format(
-                            "{}__".format(dependency["namespace_tokenize"])
-                        )
-                    )
-                    package_zip = process_text_in_zipfile(
-                        package_zip,
-                        functools.partial(
-                            tokenize_namespace,
-                            namespace=dependency["namespace_tokenize"],
-                            logger=self.logger,
-                        ),
-                    )
-
                 if dependency.get("namespace_inject"):
                     self.logger.info(
                         "Replacing namespace tokens with {}".format(
@@ -304,9 +318,12 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     )
                 )
                 package_zip = InstallPackageZipBuilder(
-                    dependency["namespace"], dependency["version"]
+                    dependency["namespace"],
+                    dependency["version"],
+                    securityType=self.options["security_type"],
                 )()
-
+        if not package_zip:
+            raise TaskOptionsError(f"Could not find package for {dependency}")
         api = self.api_class(
             self, package_zip, purge_on_delete=self.options["purge_on_delete"]
         )
@@ -325,7 +342,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
     def freeze(self, step):
         ui_options = self.task_config.config.get("ui_options", {})
         dependencies = self.project_config.get_static_dependencies(
-            self.options["dependencies"], include_beta=self.options["include_beta"]
+            self.options["dependencies"],
+            include_beta=self.options["include_beta"],
+            ignore_deps=self.options.get("ignore_dependencies"),
         )
         steps = []
         for i, dependency in enumerate(self._flatten(dependencies), start=1):

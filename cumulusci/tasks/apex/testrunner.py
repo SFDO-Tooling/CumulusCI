@@ -78,7 +78,7 @@ WHERE AsyncApexJobId='{}'
 
 
 class RunApexTests(BaseSalesforceApiTask):
-    """ Task to run Apex tests with the Tooling API and report results.
+    """Task to run Apex tests with the Tooling API and report results.
 
     This task optionally supports retrying unit tests that fail due to
     transitory issues or concurrency-related row locks. To enable retries,
@@ -107,8 +107,7 @@ class RunApexTests(BaseSalesforceApiTask):
 
     Some projects' unit tests produce so many concurrency errors that
     it's faster to execute the entire run in serial mode than to use retries.
-    Serial and parallel mode are configured in the scratch org definition file.
-"""
+    Serial and parallel mode are configured in the scratch org definition file."""
 
     api_version = "38.0"
     name = "RunApexTests"
@@ -160,6 +159,13 @@ class RunApexTests(BaseSalesforceApiTask):
             "description": "By default, all failures must match retry_failures to perform "
             "a retry. Set retry_always to True to retry all failed tests if any failure matches."
         },
+        "required_org_code_coverage_percent": {
+            "description": "Require at least X percent code coverage across the org following the test run."
+        },
+        "verbose": {
+            "description": "By default, only failures get detailed output. "
+            "Set verbose to True to see all passed test methods."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -207,8 +213,21 @@ class RunApexTests(BaseSalesforceApiTask):
         self.options["retry_always"] = process_bool_arg(
             self.options.get("retry_always", False)
         )
+        self.verbose = process_bool_arg(self.options.get("verbose", False))
 
         self.counts = {}
+
+        if "required_org_code_coverage_percent" in self.options:
+            try:
+                self.code_coverage_level = int(
+                    str(self.options["required_org_code_coverage_percent"]).rstrip("%")
+                )
+            except ValueError:
+                raise TaskOptionsError(
+                    f"Invalid code coverage level {self.options['required_org_code_coverage_percent']}"
+                )
+        else:
+            self.code_coverage_level = None
 
     # pylint: disable=W0201
     def _init_class(self):
@@ -380,18 +399,21 @@ class RunApexTests(BaseSalesforceApiTask):
         class_names = list(self.results_by_class_name.keys())
         class_names.sort()
         for class_name in class_names:
-            message = "Class: {}".format(class_name)
-            self.logger.info(message)
+            has_failures = any(
+                result["Outcome"] in ["Fail", "CompileFail"]
+                for result in self.results_by_class_name[class_name].values()
+            )
+            if has_failures or self.verbose:
+                self.logger.info(f"Class: {class_name}")
             method_names = list(self.results_by_class_name[class_name].keys())
             method_names.sort()
             for method_name in method_names:
                 result = self.results_by_class_name[class_name][method_name]
-                message = "\t{}: {}".format(result["Outcome"], result["MethodName"])
+                message = f"\t{result['Outcome']}: {result['MethodName']}"
                 duration = result["RunTime"]
                 result["stats"] = self._get_stats_from_result(result)
                 if duration:
-                    message += " ({}s)".format(duration)
-                self.logger.info(message)
+                    message += f" ({duration}ms)"
                 test_results.append(
                     {
                         "Children": result.get("children", None),
@@ -405,8 +427,11 @@ class RunApexTests(BaseSalesforceApiTask):
                     }
                 )
                 if result["Outcome"] in ["Fail", "CompileFail"]:
-                    self.logger.info("\tMessage: {}".format(result["Message"]))
-                    self.logger.info("\tStackTrace: {}".format(result["StackTrace"]))
+                    self.logger.info(message)
+                    self.logger.info(f"\tMessage: {result['Message']}")
+                    self.logger.info(f"\tStackTrace: {result['StackTrace']}")
+                elif self.verbose:
+                    self.logger.info(message)
         self.logger.info("-" * 80)
         self.logger.info(
             "Pass: {}  Retried: {}  Fail: {}  CompileFail: {}  Skip: {}".format(
@@ -434,8 +459,8 @@ class RunApexTests(BaseSalesforceApiTask):
                             result["Outcome"],
                         )
                     )
-                    self.logger.error("\tMessage: {}".format(result["Message"]))
-                    self.logger.error("\tStackTrace: {}".format(result["StackTrace"]))
+                    self.logger.error(f"\tMessage: {result['Message']}")
+                    self.logger.error(f"\tStackTrace: {result['StackTrace']}")
 
         return test_results
 
@@ -511,6 +536,30 @@ class RunApexTests(BaseSalesforceApiTask):
                     self.counts.get("Fail"), self.counts.get("CompileFail")
                 )
             )
+
+        if self.code_coverage_level:
+            if self.options.get("namespace") not in self.org_config.installed_packages:
+                self._check_code_coverage()
+            else:
+                self.logger.info(
+                    "This org contains a managed installation; not checking code coverage."
+                )
+        else:
+            self.logger.info(
+                "No code coverage level specified; not checking code coverage."
+            )
+
+    def _check_code_coverage(self):
+        result = self.tooling.query("SELECT PercentCovered FROM ApexOrgWideCoverage")
+        coverage = result["records"][0]["PercentCovered"]
+        if coverage < self.code_coverage_level:
+            raise ApexTestException(
+                f"Organization-wide code coverage of {coverage}% is below required level of {self.code_coverage_level}"
+            )
+
+        self.logger.info(
+            f"Organization-wide code coverage of {coverage}% meets expectations."
+        )
 
     def _attempt_retries(self):
         total_method_retries = sum(

@@ -5,6 +5,7 @@ Subclass BaseTask or a descendant to define custom task logic
 import contextlib
 import logging
 import os
+import re
 import time
 import threading
 
@@ -20,6 +21,8 @@ from cumulusci.utils.metaprogramming import classproperty
 CURRENT_TASK = threading.local()
 CURRENT_TASK.stack = []
 
+PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
+
 
 @contextlib.contextmanager
 def stacked_task(task):
@@ -31,7 +34,7 @@ def stacked_task(task):
 
 
 class BaseTask(object):
-    """ BaseTask provides the core execution logic for a Task
+    """BaseTask provides the core execution logic for a Task
 
     Subclass BaseTask and provide a `_run_task()` method with your
     code.
@@ -102,13 +105,13 @@ class BaseTask(object):
             self.options.update(kwargs)
 
         # Handle dynamic lookup of project_config values via $project_config.attr
-        for option, value in list(self.options.items()):
-            try:
-                if value.startswith("$project_config."):
-                    attr = value.replace("$project_config.", "", 1)
-                    self.options[option] = getattr(self.project_config, attr, None)
-            except AttributeError:
-                pass
+        for option, value in self.options.items():
+            if isinstance(value, str):
+                value = PROJECT_CONFIG_RE.sub(
+                    lambda match: getattr(self.project_config, match.group(1), None),
+                    value,
+                )
+                self.options[option] = value
 
         if self.Options:
             try:
@@ -131,15 +134,13 @@ class BaseTask(object):
                 missing_required.append(name)
 
         if missing_required:
+            required_opts = ",".join(missing_required)
             raise TaskOptionsError(
-                "{} requires the options ({}) "
-                "and no values were provided".format(
-                    self.__class__.__name__, ", ".join(missing_required)
-                )
+                f"{self.__class__.__name__} requires the options ({required_opts}) and no values were provided"
             )
 
     def _update_credentials(self):
-        """ Override to do any logic  to refresh credentials """
+        """ Override to do any logic to refresh credentials """
         pass
 
     def _init_task(self):
@@ -185,9 +186,7 @@ class BaseTask(object):
                     raise
                 if self.options["retry_interval"]:
                     self.logger.warning(
-                        "Sleeping for {} seconds before retry...".format(
-                            self.options["retry_interval"]
-                        )
+                        f"Sleeping for {self.options['retry_interval']} seconds before retry..."
                     )
                     time.sleep(self.options["retry_interval"])
                     if self.options["retry_interval_add"]:
@@ -196,7 +195,7 @@ class BaseTask(object):
                         ]
                 self.options["retries"] -= 1
                 self.logger.warning(
-                    "Retrying ({} attempts remaining)".format(self.options["retries"])
+                    f"Retrying ({self.options['retries']} attempts remaining)"
                 )
 
     def _try(self):
@@ -263,14 +262,11 @@ class BaseSalesforceTask(BaseTask):
             app = self.project_config.keychain.get_service("connectedapp")
             return app.client_id
         except (ServiceNotValid, ServiceNotConfigured):
-            return "CumulusCI/{}".format(__version__)
+            return f"CumulusCI/{__version__}"
 
     def _run_task(self):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     def _update_credentials(self):
-        orig_config = self.org_config.config.copy()
-        self.org_config.refresh_oauth_token(self.project_config.keychain)
-        if self.org_config.config != orig_config:
-            self.logger.info("Org info updated, writing to keychain")
-            self.project_config.keychain.set_org(self.org_config)
+        with self.org_config.save_if_changed():
+            self.org_config.refresh_oauth_token(self.project_config.keychain)

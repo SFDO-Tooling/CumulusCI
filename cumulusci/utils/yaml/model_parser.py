@@ -32,7 +32,7 @@ class CCIModel(BaseModel):
 
     @classmethod
     def validate_data(
-        cls, data: Union[dict, list], context: str = None, on_error: callable = None,
+        cls, data: Union[dict, list], context: str = None, on_error: callable = None
     ):
         """Validate data which has already been loaded into a dictionary or list.
 
@@ -92,14 +92,14 @@ class CCIModel(BaseModel):
         the parameter below too.
 
         https://pydantic-docs.helpmanual.io/usage/model_config/
-           """
+        """
 
         extra = "forbid"
 
 
 class CCIDictModel(CCIModel):
     """A base class that acts as both a model and a dict. For transitioning from
-       one to the other."""
+    one to the other."""
 
     def __getitem__(self, name):
         """Pretend to a do my_dict[name]"""
@@ -133,16 +133,16 @@ class CCIDictModel(CCIModel):
 
 
 def _add_filenames(e: ValidationError, filename):
-    def _recursively_add_filenames(l):
+    def _recursively_add_filenames(val):
         processed = False
-        if isinstance(l, Sequence):
-            for e in l:
+        if isinstance(val, Sequence):
+            for e in val:
                 _recursively_add_filenames(e)
             processed = True
-        elif isinstance(l, ErrorWrapper):
-            l._loc = (filename, l._loc)
+        elif isinstance(val, ErrorWrapper):
+            val._loc = (filename, val._loc)
 
             processed = True
-        assert processed, f"Should have processed by now {l}, {repr(l)}"
+        assert processed, f"Should have processed by now {val}, {repr(val)}"
 
     _recursively_add_filenames(e.raw_errors)

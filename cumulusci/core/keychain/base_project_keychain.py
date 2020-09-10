@@ -8,7 +8,7 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.sfdx import sfdx
-
+from cumulusci.core.utils import cleanup_org_cache_dirs
 
 DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
     {
@@ -68,8 +68,8 @@ class BaseProjectKeychain(BaseConfig):
         pass
 
     def _load_scratch_orgs(self):
-        """ Creates all scratch org configs for the project in the keychain if
-            a keychain org doesn't already exist """
+        """Creates all scratch org configs for the project in the keychain if
+        a keychain org doesn't already exist"""
         current_orgs = self.list_orgs()
         if not self.project_config.orgs__scratch:
             return
@@ -98,8 +98,10 @@ class BaseProjectKeychain(BaseConfig):
         scratch_config[
             "sfdx_alias"
         ] = f"{self.project_config.project__name}__{org_name}"
-        org_config = ScratchOrgConfig(scratch_config, org_name)
-        self.set_org(org_config)
+        org_config = ScratchOrgConfig(
+            scratch_config, org_name, keychain=self, global_org=False
+        )
+        org_config.save()
 
     def change_key(self, key):
         """ re-encrypt stored services and orgs with the new key """
@@ -116,7 +118,7 @@ class BaseProjectKeychain(BaseConfig):
 
         if orgs:
             for org_name, org_config in list(orgs.items()):
-                self.set_org(org_config)
+                org_config.save()
 
         if services:
             for service_name, service_config in list(services.items()):
@@ -135,6 +137,7 @@ class BaseProjectKeychain(BaseConfig):
     def remove_org(self, name, global_org=None):
         if name in self.orgs.keys():
             self._remove_org(name, global_org)
+        cleanup_org_cache_dirs(self, self.project_config)
 
     def _remove_org(self, name, global_org):
         del self.orgs[name]
@@ -149,6 +152,11 @@ class BaseProjectKeychain(BaseConfig):
     def _set_org(self, org_config, global_org):
         self.orgs[org_config.name] = org_config
 
+    # This implementation of get_default_org, set_default_org, and unset_default_org
+    # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
+    # now stores the default elsewhere, and EnvironmentProjectKeychain doesn't actually
+    # persist across multiple invocations of cci, so we should consider getting rid of this.
+
     def get_default_org(self):
         """ retrieve the name and configuration of the default org """
         for org in self.list_orgs():
@@ -158,11 +166,11 @@ class BaseProjectKeychain(BaseConfig):
         return None, None
 
     def set_default_org(self, name):
-        """ set the default org for tasks by name key """
+        """ set the default org for tasks and flows by name """
         org = self.get_org(name)
         self.unset_default_org()
         org.config["default"] = True
-        self.set_org(org)
+        org.save()
         if org.created:
             sfdx(
                 sarge.shell_format(
@@ -176,15 +184,18 @@ class BaseProjectKeychain(BaseConfig):
             org_config = self.get_org(org)
             if org_config.default:
                 del org_config.config["default"]
-                self.set_org(org_config)
+                org_config.save()
         sfdx("force:config:set defaultusername=")
 
-    def get_org(self, name):
+    def get_org(self, name: str):
         """ retrieve an org configuration by name key """
         if name not in self.orgs:
             self._raise_org_not_found(name)
         org = self._get_org(name)
-        org.keychain = self
+        if org.keychain:
+            assert org.keychain is self
+        else:
+            org.keychain = self
         return org
 
     def _get_org(self, name):
@@ -211,7 +222,7 @@ class BaseProjectKeychain(BaseConfig):
         self.services[name] = service_config
 
     def get_service(self, name):
-        """ Retrieve a stored ServiceConfig from the keychain or exception
+        """Retrieve a stored ServiceConfig from the keychain or exception
 
         :param name: the service name to retrieve
         :type name: str
@@ -259,3 +270,8 @@ class BaseProjectKeychain(BaseConfig):
         services = list(self.services.keys())
         services.sort()
         return services
+
+    @property
+    def cache_dir(self):
+        "Helper function to get the cache_dir from the project_config"
+        return self.project_config.cache_dir

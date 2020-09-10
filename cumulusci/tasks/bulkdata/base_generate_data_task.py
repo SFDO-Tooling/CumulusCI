@@ -5,10 +5,10 @@ from sqlalchemy import create_engine
 from sqlalchemy import MetaData
 from sqlalchemy.orm import create_session
 from sqlalchemy.ext.automap import automap_base
-import yaml
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 from .utils import create_table
 
@@ -73,8 +73,7 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
         if not mapping_file_path:
             raise TaskOptionsError("Mapping file path required")
 
-        with open(mapping_file_path, "r") as f:
-            return yaml.safe_load(f)
+        return parse_from_yaml(mapping_file_path)
 
     @staticmethod
     def init_db(db_url, mappings):
@@ -82,8 +81,9 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
         metadata = MetaData()
         metadata.bind = engine
         if mappings:
-            for mapping in mappings.values():
-                create_table(mapping, metadata)
+            for name, mapping in mappings.items():
+                if "table" in mapping and mapping["table"] not in metadata.tables:
+                    create_table(mapping, metadata)
         metadata.create_all()
         base = automap_base(bind=engine, metadata=metadata)
         base.prepare(engine, reflect=True)
@@ -93,4 +93,4 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
     @abstractmethod
     def generate_data(self, session, engine, base, num_records, current_batch_num):
         """Abstract methods for base classes to really generate
-           the data into an open session."""
+        the data into an open session."""

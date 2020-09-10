@@ -99,26 +99,76 @@ It's easy to release a version of CumulusCI to GitHub and PyPI! First, create a 
 Make the necessary changes to prepare the new release:
 
     1. Update the version in ``cumulusci/version.txt``
-    2. Update the release notes in ``HISTORY.rst``
+    2. Update the release notes in ``HISTORY.rst``. Information in our project history is derived from Pull Request notes found in GitHub and dating back to our previous release.
 
 Commit the changes, open a Pull Request on GitHub and request approval from another committer.
-Once your PR has been merged, you can create the release tag and then push the artifacts to PyPI with twine::
+Once your PR has been merged, a GitHub action will automatically create the release tag and push the artifacts to PyPI.
+
+After a couple minutes, check for the new release's appearance at https://pypi.org/project/cumulusci/
+
+Next, head to the tag that was autocreated in the GitHub repository and edit it. Populate the version number and paste in the changelog notes from ``HISTORY.rst``. Note that some formatting, such as reStructuredText links, need to be converted to Markdown. Publish the release.
+
+.. note::
+If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to Github Flavored Markdown.
+
+You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because PyPI is the source CumulusCI checks to see if a new version is available)::
 
     $ git checkout master
     $ git pull
-    $ make tag release
-
-You can then create a pull request to update the `Homebrew Tap`_::
-
     $ make release-homebrew
 
-Finally, head to the Release object that was autocreated in the GitHub repository, paste in the changelog notes and hit publish. Tada! You've published a new version of CCI.
+.. note::
+    The ``release-homebrew`` build step depends on the `jq`_ command line utility which is available via Homebrew.
 
-Configuring Your Environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+That will create a new pull request in the ``SFDO-Tooling/homebrew-sfdo`` repository, which can be merged if its tests pass.
 
-To release CCI, you'll need twine, which is installed with the development requirements. You'll also need to configure your `pypirc`_ file with your PyPI credentials. The ``release-homebrew`` build step depends on the `jq`_ command line utility and is available via Homebrew or your package manager.
+Finally, post the release notes to our usual channels:
 
-.. _pypirc: https://docs.python.org/distutils/packageindex.html#the-pypirc-file
+- CumulusCI Release Announcements group in the Power of Us Hub https://powerofus.force.com/s/group/0F91E000000DHjTSAW/cumulusci-release-announcements
+- CumulusCI group in the Trailblazer community https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU
+
+
 .. _Homebrew Tap: https://github.com/SFDO-Tooling/homebrew-sfdo
 .. _jq: https://stedolan.github.io/jq/
+
+Org-reliant Integration tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some tests are marked ``@pytest.mark.vcr()`` which means that they can either
+call into a real (configured) Salesforce org or use a cached YAML file of the request/response.
+To regenerate the VCR file, you can run pytest like this::
+
+    $ pytest cumulusci/.../test_<something>.py --org <orgname>
+
+Where "orgname" is a configured org name like "qa", "dev", etc.
+
+Periodically you can also do this, but it will take a LONG time::
+
+    $ pytest --org <orgname>
+
+That will run all VCR-backed tests against the org, including all of the slow
+integration tests.
+
+Some of these tests generate so much data or run so slowly that even the VCR tool does not
+help much. For example, if you are testing something that needs to download an
+entire org schema.
+
+These tests can be marked with ``@pytest.mark.integration_test()``. In that case,
+you can invoke them the same way as above, but you should not check in their
+YAML file into the repo. One of our files generates more than 300MB of cache data.
+
+You can invoke these tests the same way::
+
+    $ pytest cumulusci/.../test_<something>.py --org qa
+
+This will generate the cached data.
+
+Later, you can use the cached data like this::
+
+    $ pytest cumulusci/.../test_<something>.py --accelerate-integration-tests
+
+It will usually be  much faster than calling into the Salesforce org, but it will
+still be quite slow compared to normal unit tests. Nevertheless, if you are changing feature tested by
+these tests, you should run them periodically.
+
+Do not commit the files ("large_cassettes/\*.yml") to the repository.

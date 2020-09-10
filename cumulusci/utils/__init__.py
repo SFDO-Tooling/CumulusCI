@@ -31,7 +31,7 @@ PIPX_UPDATE_CMD = "pipx upgrade cumulusci"
 
 
 def parse_api_datetime(value):
-    """ parse a datetime returned from the salesforce API.
+    """parse a datetime returned from the salesforce API.
 
     in python 3 we should just use a strptime %z, but until then we're just going
     to assert that its a fixed offset of +0000 since thats the observed behavior. getting
@@ -274,8 +274,8 @@ def inject_namespace(
     namespaced_org=None,
     logger=None,
 ):
-    """ Replaces %%%NAMESPACE%%% in file content and ___NAMESPACE___ in file name
-        with either '' if no namespace is provided or 'namespace__' if provided.
+    """Replaces %%%NAMESPACE%%% in file content and ___NAMESPACE___ in file name
+    with either '' if no namespace is provided or 'namespace__' if provided.
     """
 
     # Handle namespace and filename tokens
@@ -285,8 +285,12 @@ def inject_namespace(
         namespace_token = "%%%NAMESPACE%%%"
     if managed is True and namespace:
         namespace_prefix = namespace + "__"
+        namespace_dot_prefix = namespace + "."
     else:
         namespace_prefix = ""
+        namespace_dot_prefix = ""
+
+    namespace_dot_token = "%%%NAMESPACE_DOT%%%"
 
     # Handle tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___
     namespaced_org_token = "%%%NAMESPACED_ORG%%%"
@@ -306,6 +310,13 @@ def inject_namespace(
     content = content.replace(namespace_token, namespace_prefix)
     if logger and content != prev_content:
         logger.info(f'  {name}: Replaced {namespace_token} with "{namespace_prefix}"')
+
+    prev_content = content
+    content = content.replace(namespace_dot_token, namespace_dot_prefix)
+    if logger and content != prev_content:
+        logger.info(
+            f'  {name}: Replaced {namespace_dot_token} with "{namespace_dot_prefix}"'
+        )
 
     prev_content = content
     content = content.replace(namespace_or_c_token, namespace_or_c)
@@ -338,8 +349,7 @@ def inject_namespace(
 
 
 def strip_namespace(name, content, namespace, logger=None):
-    """ Given a namespace, strips 'namespace__' from file name and content
-    """
+    """Given a namespace, strips 'namespace__' from file name and content"""
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
 
@@ -357,7 +367,7 @@ def strip_namespace(name, content, namespace, logger=None):
 
 
 def tokenize_namespace(name, content, namespace, logger=None):
-    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%%
+    """Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%%
     in file content and ___NAMESPACE___ in file name
     """
     if not namespace:
@@ -374,7 +384,7 @@ def tokenize_namespace(name, content, namespace, logger=None):
 
 
 def zip_clean_metaxml(zip_src, logger=None):
-    """ Given a zipfile, cleans all ``*-meta.xml`` files in the zip for
+    """Given a zipfile, cleans all ``*-meta.xml`` files in the zip for
     deployment by stripping all ``<packageVersions/>`` elements
     """
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
@@ -492,9 +502,9 @@ def create_task_options_doc(task_options):
             doc.append(f"\n``{usage_str}``")
 
         if option.get("required"):
-            doc.append(f"\t *Required*")
+            doc.append("\t *Required*")
         else:
-            doc.append(f"\t *Optional*")
+            doc.append("\t *Optional*")
 
         description = option.get("description")
         if description:
@@ -540,8 +550,7 @@ def package_xml_from_dict(items, api_version, package_name=None):
 
 @contextlib.contextmanager
 def cd(path):
-    """Context manager that changes to another directory
-    """
+    """Context manager that changes to another directory"""
     if not path:
         yield
         return
@@ -596,8 +605,7 @@ def log_progress(
     progress_message="Processing... ({})",
     done_message="Done! (Total: {})",
 ):
-    """Log progress while iterating.
-    """
+    """Log progress while iterating."""
     i = 0
     for x in iterable:
         yield x

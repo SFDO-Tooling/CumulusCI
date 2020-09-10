@@ -9,18 +9,25 @@ from sqlalchemy.orm import create_session, mapper
 from sqlalchemy.ext.automap import automap_base
 import tempfile
 
-import yaml
-
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
     SqlAlchemyMixin,
-    get_lookup_key_field,
     create_table,
     fields_for_mapping,
 )
+from cumulusci.core.utils import process_bool_arg
+
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.tasks.bulkdata.step import BulkApiQueryOperation, DataOperationStatus
+from cumulusci.tasks.bulkdata.step import (
+    DataOperationStatus,
+    DataOperationType,
+    get_query_operation,
+)
 from cumulusci.utils import os_friendly_path, log_progress
+from cumulusci.tasks.bulkdata.mapping_parser import (
+    parse_from_yaml,
+    validate_and_inject_mapping,
+)
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -38,6 +45,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "If set, an SQL script will be generated at the path provided "
             + "This is useful for keeping data in the repository and allowing diffs."
         },
+        "inject_namespaces": {
+            "description": "If True, the package namespace prefix will be automatically added to objects "
+            "and fields for which it is present in the org. Defaults to True."
+        },
+        "drop_missing_schema": {
+            "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -54,15 +68,22 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 "You must set either the database_url or sql_path option."
             )
 
+        self.options["inject_namespaces"] = process_bool_arg(
+            self.options.get("inject_namespaces", True)
+        )
+        self.options["drop_missing_schema"] = process_bool_arg(
+            self.options.get("drop_missing_schema", False)
+        )
+
     def _run_task(self):
         self._init_mapping()
         self._init_db()
 
-        for mapping in self.mappings.values():
+        for mapping in self.mapping.values():
             soql = self._soql_for_mapping(mapping)
             self._run_query(soql, mapping)
 
-        self._drop_sf_id_columns()
+        self._map_autopks()
 
         if self.options.get("sql_path"):
             self._sqlite_dump()
@@ -90,8 +111,21 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
-        with open(self.options["mapping"], "r") as f:
-            self.mappings = yaml.safe_load(f)
+        mapping_file_path = self.options["mapping"]
+        if not mapping_file_path:
+            raise TaskOptionsError("Mapping file path required")
+
+        self.mapping = parse_from_yaml(mapping_file_path)
+
+        validate_and_inject_mapping(
+            mapping=self.mapping,
+            org_config=self.org_config,
+            namespace=self.project_config.project__package__namespace,
+            data_operation=DataOperationType.QUERY,
+            inject_namespaces=self.options["inject_namespaces"],
+            drop_missing=self.options["drop_missing_schema"],
+            org_has_person_accounts_enabled=self.org_config.is_person_accounts_enabled,
+        )
 
     def _fields_for_mapping(self, mapping):
         """Return a flat list of fields for this mapping."""
@@ -107,16 +141,22 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         sf_object = mapping["sf_object"]
         fields = self._fields_for_mapping(mapping)
         soql = f"SELECT {', '.join(fields)} FROM {sf_object}"
-        if "record_type" in mapping:
-            soql += f" WHERE RecordType.DeveloperName = '{mapping['record_type']}'"
+        if mapping.record_type:
+            soql += f" WHERE RecordType.DeveloperName = '{mapping.record_type}'"
 
         return soql
 
     def _run_query(self, soql, mapping):
-        """Execute a Bulk API query job and store the results."""
-        step = BulkApiQueryOperation(
-            sobject=mapping["sf_object"], api_options={}, context=self, query=soql
+        """Execute a Bulk or REST API query job and store the results."""
+        step = get_query_operation(
+            sobject=mapping["sf_object"],
+            api=mapping["api"],
+            fields=self._fields_for_mapping(mapping),
+            api_options={},
+            context=self,
+            query=soql,
         )
+
         self.logger.info(f"Extracting data for sObject {mapping['sf_object']}")
         step.query()
 
@@ -137,14 +177,12 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Map SF field names to local db column names
         fields = self._fields_for_mapping(mapping)
         columns = []
-        lookup_keys = []
-        for sf in fields:
-            column = mapping.get("fields", {}).get(sf)
+        for field_name in fields:
+            column = mapping.get("fields", {}).get(field_name)
             if not column:
-                lookup = mapping.get("lookups", {}).get(sf, {})
+                lookup = mapping.get("lookups", {}).get(field_name, {})
                 if lookup:
-                    lookup_keys.append(sf)
-                    column = get_lookup_key_field(lookup, sf)
+                    column = lookup.get_lookup_key_field()
             if column:
                 columns.append(column)
 
@@ -159,6 +197,26 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if record_type:
             record_iterator = (record + [record_type] for record in record_iterator)
 
+        # Set Name field as blank for Person Account "Account" records.
+        if (
+            mapping["sf_object"] == "Account"
+            and "Name" in mapping.get("fields", {})
+            and self.org_config.is_person_accounts_enabled
+        ):
+            # Bump indices by one since record's ID is the first column.
+            Name_index = columns.index(mapping["fields"]["Name"]) + 1
+            IsPersonAccount_index = (
+                columns.index(mapping["fields"]["IsPersonAccount"]) + 1
+            )
+
+            def strip_name_field(record):
+                nonlocal Name_index, IsPersonAccount_index
+                if record[IsPersonAccount_index].lower() == "true":
+                    record[Name_index] = ""
+                return record
+
+            record_iterator = (strip_name_field(record) for record in record_iterator)
+
         if mapping["oid_as_pk"]:
             self._sql_bulk_insert_from_records(
                 connection=conn,
@@ -170,8 +228,10 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             # If using the autogenerated id field, split out the returned records
             # into two separate files and load into the main table and the sf_id_table
 
-            with tempfile.TemporaryFile("w+", newline="") as f_values:
-                with tempfile.TemporaryFile("w+", newline="") as f_ids:
+            with tempfile.TemporaryFile("w+", newline="", encoding="utf-8") as f_values:
+                with tempfile.TemporaryFile(
+                    "w+", newline="", encoding="utf-8"
+                ) as f_ids:
                     data_file_values, data_file_ids = self._split_batch_csv(
                         record_iterator, f_values, f_ids
                     )
@@ -195,12 +255,22 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         self.session.commit()
 
-        if lookup_keys and not mapping["oid_as_pk"]:
-            self._convert_lookups_to_id(mapping, lookup_keys)
+    def _map_autopks(self):
+        # Convert Salesforce Ids to autopks
+        for m in self.mapping.values():
+            lookup_keys = list(m.get("lookups", {}).keys())
+            if not m["oid_as_pk"]:
+                if lookup_keys:
+                    self._convert_lookups_to_id(m, lookup_keys)
+
+        # Drop sf_id tables
+        for m in self.mapping.values():
+            if not m["oid_as_pk"]:
+                self.metadata.tables[m["sf_id_table"]].drop()
 
     def _get_mapping_for_table(self, table):
         """Return the first mapping for a table name """
-        for mapping in self.mappings.values():
+        for mapping in self.mapping.values():
             if mapping["table"] == table:
                 return mapping
 
@@ -219,11 +289,11 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
         for lookup_key in lookup_keys:
-            lookup_dict = mapping["lookups"][lookup_key]
+            lookup_info = mapping["lookups"][lookup_key]
             model = self.models[mapping["table"]]
-            lookup_mapping = self._get_mapping_for_table(lookup_dict["table"])
+            lookup_mapping = self._get_mapping_for_table(lookup_info["table"])
             lookup_model = self.models[lookup_mapping["sf_id_table"]]
-            key_field = get_lookup_key_field(lookup_dict, lookup_key)
+            key_field = lookup_info.get_lookup_key_field()
             key_attr = getattr(model, key_field)
             try:
                 self.session.query(model).filter(
@@ -241,7 +311,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _create_tables(self):
         """Create a table for each mapping step."""
-        for mapping in self.mappings.values():
+        for mapping in self.mapping.values():
             self._create_table(mapping)
         self.metadata.create_all()
 
@@ -277,16 +347,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         mapper(self.models[mapping["table"]], t, **mapper_kwargs)
 
-    def _drop_sf_id_columns(self):
-        """Drop Salesforce Id storage tables after rewriting Ids to auto-PKs."""
-        for mapping in self.mappings.values():
-            if mapping.get("oid_as_pk"):
-                continue
-            self.metadata.tables[mapping["sf_id_table"]].drop()
-
     def _sqlite_dump(self):
         """Write a SQLite script output file."""
         path = self.options["sql_path"]
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")

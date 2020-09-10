@@ -8,6 +8,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
 import yaml
+import pytest
 from sqlalchemy import create_engine
 
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
@@ -39,7 +40,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
     def assertRowsCreated(self, database_url):
         engine = create_engine(database_url)
         connection = engine.connect()
-        accounts = connection.execute(f"select * from Account")
+        accounts = connection.execute("select * from Account")
         accounts = list(accounts)
         assert accounts and accounts[0] and accounts[0][1]
         return accounts
@@ -142,6 +143,41 @@ class TestGenerateFromDataTask(unittest.TestCase):
             )
             task()
             assert len(self.assertRowsCreated(database_url)) == 11
+
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
+    )
+    def test_simple_generate_and_load(self, _dataload):
+        task = _make_task(
+            GenerateAndLoadDataFromYaml,
+            {
+                "options": {
+                    "generator_yaml": simple_yaml,
+                    "num_records": 11,
+                    "num_records_tablename": "Account",
+                }
+            },
+        )
+        task()
+        assert len(_dataload.mock_calls) == 1
+
+    @mock.patch("cumulusci.tasks.bulkdata.generate_from_yaml.generate")
+    def test_exception_handled_cleanly(self, generate):
+        generate.side_effect = AssertionError("Foo")
+        with pytest.raises(AssertionError) as e:
+            task = _make_task(
+                GenerateAndLoadDataFromYaml,
+                {
+                    "options": {
+                        "generator_yaml": simple_yaml,
+                        "num_records": 11,
+                        "num_records_tablename": "Account",
+                    }
+                },
+            )
+            task()
+            assert "Foo" in str(e.value)
+        assert len(generate.mock_calls) == 1
 
     @mock.patch(
         "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"

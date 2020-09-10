@@ -59,7 +59,7 @@ class AbstractFlowCoordinatorTest(object):
     def setUp(self):
         self.project_config = create_project_config("TestOwner", "TestRepo")
         self.org_config = OrgConfig(
-            {"username": "sample@example", "org_id": ORG_ID}, "test"
+            {"username": "sample@example", "org_id": ORG_ID}, "test", mock.Mock()
         )
         self.org_config.refresh_oauth_token = mock.Mock()
 
@@ -130,6 +130,15 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
 
         self.assertEqual(len(flow.steps), 1)
         self.assertEqual(hasattr(flow, "logger"), True)
+
+    def test_step_sorting(self):
+        self.project_config.config["flows"] = {
+            "test": {"steps": {"1": {"flow": "subflow"}, "1.1": {"task": "pass_name"}}},
+            "subflow": {"steps": {"1": {"task": "pass_name"}}},
+        }
+        flow_config = self.project_config.get_flow("test")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        assert [str(step.step_num) for step in flow.steps] == ["1/1", "1.1"]
 
     def test_get_summary(self):
         self.project_config.config["flows"]["test"] = {
@@ -233,8 +242,8 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             FlowCoordinator(self.project_config, flow_config, name="test")
 
     def test_init__task_not_found(self):
-        """ A flow with reference to a task that doesn't exist in the
-        project will throw a TaskNotFoundError """
+        """A flow with reference to a task that doesn't exist in the
+        project will throw a TaskNotFoundError"""
 
         flow_config = FlowConfig(
             {
@@ -466,7 +475,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual(1, len(org_id_logs))
 
     def test_init_org_updates_keychain(self):
-        self.project_config.keychain.set_org = set_org = mock.Mock()
+        self.org_config.save = save = mock.Mock()
 
         def change_username(keychain):
             self.org_config.config["username"] = "sample2@example"
@@ -478,7 +487,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow.org_config = self.org_config
         flow._init_org()
 
-        set_org.assert_called_once()
+        save.assert_called_once()
 
 
 class StepSpecTest(unittest.TestCase):
