@@ -134,21 +134,3 @@ class ReportPushFailures(BaseSalesforceApiTask):
 
         self.logger.debug("Written out to {file_name}.".format(file_name=file_name))
         return file_name
-
-    def _get_errors(self):
-        """Query for push job results"""
-        formatted_query = self.job_query.format(**self.options)
-        self.logger.debug("Running query for job errors: " + formatted_query)
-        result = self.sf.query(formatted_query)
-        job_records = result["records"]
-        self.logger.debug(
-            "Query is complete: {done}. Found {n} results.".format(
-                done=result["done"], n=result["totalSize"]
-            )
-        )
-
-        if not result["totalSize"]:
-            self.logger.info("No errors found.")
-            return None
-
-        return job_records

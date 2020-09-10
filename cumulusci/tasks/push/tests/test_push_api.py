@@ -38,17 +38,6 @@ def metadata_package():
 
 
 @pytest.fixture
-def metadata_package_package_push_job():
-    return PackagePushJob(
-        push_api=mock.MagicMock(),
-        request=mock.Mock(),
-        org="00D63000000ApoXEAS",
-        status="Succeeded",
-        sf_id=SF_ID,
-    )
-
-
-@pytest.fixture
 def metadata_package_version(metadata_package):
     return MetadataPackageVersion(
         push_api=mock.MagicMock(),
