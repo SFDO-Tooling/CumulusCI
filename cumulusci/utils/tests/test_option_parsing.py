@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from cumulusci.core.config import (
-    BaseGlobalConfig,
+    UniversalConfig,
     BaseProjectConfig,
     OrgConfig,
     TaskConfig,
@@ -27,10 +27,12 @@ USERNAME = "sample@example"
 class TaskToTestTypes(BaseTask):
     class Options(CCIOptions):
         the_list: ListOfStringsOption = Field(
-            default=[], description="A list of strings",
+            default=[],
+            description="A list of strings",
         )
         the_mapping: MappingOption = Field(
-            default=[], description="A list of strings",
+            default=[],
+            description="A list of strings",
         )
         the_date: date = Field(default=None, description="A date")
         the_bool: bool = Field(default=True, description="A bool")
@@ -47,7 +49,7 @@ class TaskToTestTypes(BaseTask):
 
 class TestTaskOptionsParsing:
     def setup_class(self):
-        self.global_config = BaseGlobalConfig()
+        self.global_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.global_config, config={"noyaml": True}
         )
