@@ -121,7 +121,7 @@ def test_base_push_format_where():
     base_obj.sf_id = sf_id
 
     returned = base_obj.format_where(field_name, where_clause)
-    assert "{} = '{}' AND ({})".format(field_name, sf_id, where_clause)
+    assert "{} = '{}' AND ({})".format(field_name, sf_id, where_clause) == returned
 
     returned = base_obj.format_where(field_name, None)
     assert "{} = '{}'".format(field_name, sf_id) == returned
@@ -145,15 +145,15 @@ def test_metadata_package_init():
 def test_metadata_package_get_versions(metadata_package):
     expected = f"MetadataPackageId = '{SF_ID}'"
     metadata_package.get_package_versions()
-    metadata_package.push_api.get_package_versions.assert_called_once()
-    metadata_package.push_api.get_package_versions.assert_called_with(expected, None)
+    metadata_package.push_api.get_package_versions.assert_called_once_with(
+        expected, None
+    )
 
 
 def test_metadata_package_get_version_objs(metadata_package):
     expected = f"MetadataPackageId = '{SF_ID}'"
     metadata_package.get_package_version_objs()
-    metadata_package.push_api.get_package_version_objs.assert_called_once()
-    metadata_package.push_api.get_package_version_objs.assert_called_with(
+    metadata_package.push_api.get_package_version_objs.assert_called_once_with(
         expected, None
     )
 
@@ -167,9 +167,6 @@ def test_metadata_package_get_versions_by_id(metadata_package):
 
 
 def test_metadata_package_version_version_number(metadata_package_version):
-    beta_expected = "1.2.3 (Beta 4)"
-    beta_actual = metadata_package_version.version_number
-    assert beta_expected == beta_actual
     expected = "1.2.3 (Beta 4)"
     actual = metadata_package_version.version_number
     assert expected == actual
