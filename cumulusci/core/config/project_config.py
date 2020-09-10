@@ -638,7 +638,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         "ref": ref,
                         "subfolder": subfolder,
                         "unmanaged": dependency.get("unmanaged"),
-                        "namespace_tokenize": dependency.get("namespace_tokenize"),
                         "namespace_inject": dependency.get("namespace_inject"),
                         "namespace_strip": dependency.get("namespace_strip"),
                     }
@@ -658,7 +657,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
-                    "namespace_tokenize": dependency.get("namespace_tokenize"),
                     "namespace_inject": dependency.get("namespace_inject"),
                     "namespace_strip": dependency.get("namespace_strip"),
                 }
@@ -685,7 +683,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
-                    "namespace_tokenize": dependency.get("namespace_tokenize"),
                     "namespace_inject": dependency.get("namespace_inject"),
                     "namespace_strip": dependency.get("namespace_strip"),
                 }
