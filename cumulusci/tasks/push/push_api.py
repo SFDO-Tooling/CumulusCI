@@ -135,6 +135,12 @@ class MetadataPackageVersion(BasePushApiObject):
 
         return where
 
+    def _base_query(self):
+        return (
+            f"MetadataPackageId = '{self.package.sf_id}' AND "
+            + "ReleaseState = 'Released' AND "
+        )
+
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where("MetadataPackageVersionId", where)
         return self.push_api.get_subscribers(where, limit)
