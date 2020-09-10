@@ -1,6 +1,10 @@
 import os
 import unittest
 from unittest import mock
+from contextlib import contextmanager
+import json
+
+from sqlalchemy.orm import create_session
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata import ExtractData
@@ -9,13 +13,110 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationJobResult,
     DataOperationType,
+    DataOperationResult,
 )
+
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
+from .test_utils import read_mock
 
 import responses
+
+
+class MockBulkAPI:
+    next_job_id = 0
+    next_batch_id = 0
+
+    @classmethod
+    def create_job(cls, *args, **kwargs):
+        cls.next_job_id += 1
+        return cls.next_job_id
+
+    @classmethod
+    def create_query_job(cls, *args, **kwargs):
+        cls.next_job_id += 1
+        return cls.next_job_id
+
+    @classmethod
+    def post_batch(cls, *args, **kwargs):
+        cls.next_batch_id += 1
+        return cls.next_batch_id
+
+    def close_job(self, *args, **kwargs):
+        pass
+
+    def job_status(self, job_id):
+        return {
+            "numberBatchesCompleted": self.next_batch_id,
+            "numberBatchesTotal": self.next_batch_id,
+        }
+
+    def query(self, job_id, soql):
+        return self.post_batch()
+
+    def get_query_batch_result_ids(self, batch_id, job_id):
+        return range(0, 10)
+
+
+class MockSF:
+    describe_data = json.loads(read_mock("global_describe"))
+
+    def describe(self):
+        return self.describe_data
+
+
+@contextmanager
+def mock_extract_jobs(task, extracted_records):
+    def _job_state_from_batches(self, job_id):
+        return DataOperationJobResult(
+            DataOperationStatus.SUCCESS,
+            [],
+            10,
+            0,
+        )
+
+    def get_bulk_results(self):
+        assert 0
+        return (DataOperationResult(i, True, None) for i in range(0, 10))
+
+    def get_results(self):
+        return extracted_records[self.sobject]
+
+    with mock.patch(
+        "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation.get_results",
+        get_bulk_results,
+    ), mock.patch(
+        "cumulusci.tasks.bulkdata.step.BulkApiQueryOperation.get_results",
+        get_results,
+    ), mock.patch(
+        "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
+        _job_state_from_batches,
+    ), mock.patch(
+        "cumulusci.tasks.bulkdata.step.BulkApiQueryOperation.get_results",
+        get_results,
+    ):
+        yield
+
+
+@contextmanager
+def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
+    mock_describe_calls("test.salesforce.com")
+
+    real_init = task._init_task
+    salesforce_client = MockSF()
+
+    def _init_task():
+        real_init()
+        task.bulk = MockBulkAPI()
+        task.sf = salesforce_client
+
+    with mock.patch(
+        "cumulusci.core.config.OrgConfig.is_person_accounts_enabled",
+        lambda: is_person_accounts_enabled,
+    ), mock.patch.object(task, "_init_task", _init_task):
+        yield
 
 
 class MockBulkQueryOperation(BaseQueryOperation):
@@ -303,49 +404,16 @@ class TestExtractData(unittest.TestCase):
             record_iterable=log_mock.return_value,
         )
 
-    @mock.patch("cumulusci.tasks.bulkdata.extract.csv.reader")
-    def test_import_results__autopk(self, csv_mock):
-        task = _make_task(
-            ExtractData,
-            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
-        )
-
-        mapping = {
-            "sf_object": "Opportunity",
-            "table": "Opportunity",
-            "sf_id_table": "Opportunity_sf_ids",
-            "oid_as_pk": False,
-            "fields": {"Name": "Name"},
-            "lookups": {"AccountId": MappingLookup(table="Account", name="AccountId")},
-        }
-        step = mock.Mock()
-        step.get_results.return_value = iter(
-            [["111", "Test Opportunity", "1"], ["222", "Test Opportunity 2", "1"]]
-        )
-        task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
-        task._convert_lookups_to_id = mock.Mock()
-        task._import_results(mapping, step)
-
-        task.session.connection.assert_called_once_with()
-        step.get_results.assert_called_once_with()
-        task._sql_bulk_insert_from_records.assert_has_calls(
-            [
-                mock.call(
-                    connection=task.session.connection.return_value,
-                    table="Opportunity",
-                    columns=["Name", "AccountId"],
-                    record_iterable=csv_mock.return_value,
-                ),
-                mock.call(
-                    connection=task.session.connection.return_value,
-                    table="Opportunity_sf_ids",
-                    columns=["sf_id"],
-                    record_iterable=csv_mock.return_value,
-                ),
-            ]
-        )
-        task._convert_lookups_to_id.assert_called_once_with(mapping, ["AccountId"])
+    # @responses.activate
+    # def test_import_results__autopk(self):
+    #     base_path = os.path.dirname(__file__)
+    #     mapping_path = os.path.join(base_path, self.mapping_file_v1)
+    #     task = _make_task(
+    #         NetworklessExtractData,
+    #         {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+    #     )
+    #     with mock_networking(task):
+    #         task()
 
     def test_import_results__no_columns(self):
         task = _make_task(
@@ -867,3 +935,52 @@ class TestExtractData(unittest.TestCase):
             columns=["sf_id", "Name", "account_id"],
             record_iterable=log_mock.return_value,
         )
+
+
+class TestExtractPytest:
+    mapping_file_v1 = "mapping_vanilla_sf.yml"
+
+    @responses.activate
+    def test_import_results__autopk(self, create_task_fixture):
+        mock_describe_calls()
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        task = create_task_fixture(
+            ExtractData,
+            {"database_url": "sqlite://", "mapping": mapping_path},
+        )
+
+        extracted_records = {
+            # ['Name', 'Description', 'BillingStreet', 'BillingCity', 'BillingState', 'BillingPostalCode', 'BillingCountry', 'ParentId', 'ShippingStreet', 'ShippingCity', 'ShippingState', 'ShippingPostalCode', 'ShippingCountry', 'Phone', 'Fax', 'Website', 'NumberOfEmployees', 'AccountNumber', 'Site', 'Type', 'IsPersonAccount']
+            "Account": [
+                ["002", "Account1"] + ["Q"] * 20 + [False],
+                ["003", "Account2"] + ["V"] * 20 + [False],
+            ],
+            # Salutation|FirstName|LastName|Email|Phone|MobilePhone|OtherPhone|HomePhone|Title|Birthdate|MailingStreet|MailingCity|MailingState|MailingPostalCode|MailingCountry|AccountId
+            "Contact": [
+                ["002", "", "Bob 1", "Barker 2"],
+                [""] * 4,
+                ["003", "", "Sam 2", "Smith 2"],
+                [""] * 4,
+            ],
+            # id|Name|StageName|CloseDate|Amount|AccountId|ContactId|record_type
+            "Opportunity": [
+                [
+                    "Dickenson Mobile Generators",
+                    "Qualification",
+                    "2020-07-18",
+                    "15000.0",
+                    "",
+                    "",
+                ]
+            ],
+        }
+        with mock_extract_jobs(task, extracted_records), mock_salesforce_client(task):
+            task()
+            session = create_session(bind=task.engine, autocommit=False)
+            output_accounts = list(session.execute("select * from Account"))
+            assert output_accounts[0][0:2] == (1, "Account1")
+            assert output_accounts[0].record_type is None
+            assert output_accounts[1][0:2] == (2, "Account2")
+            assert output_accounts[1].record_type is None
+            assert len(output_accounts) == 2

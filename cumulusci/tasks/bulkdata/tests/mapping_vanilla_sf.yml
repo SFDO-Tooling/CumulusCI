@@ -57,8 +57,6 @@ Insert Opportunities:
     Name: Name
     StageName: StageName
     CloseDate: CloseDate
-    ContactId: ContactId
-    AccountId: AccountId
     Amount: Amount
   lookups:
     AccountId:
