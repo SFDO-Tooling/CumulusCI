@@ -4,16 +4,27 @@ from contextlib import contextmanager
 import csv
 from enum import Enum
 import io
+import itertools
 import os
 import pathlib
 import tempfile
 import time
+from typing import Dict, Any, List
 
 import lxml.etree as ET
 import requests
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
+
+
+def get_batch_iterator(iterator, n):
+    while True:
+        batch = list(itertools.islice(iterator, n))
+        if not batch:
+            return
+
+        yield batch
 
 
 class DataOperationType(Enum):
@@ -31,6 +42,7 @@ class DataApi(Enum):
 
     BULK = "bulk"
     REST = "rest"
+    SMART = "smart"
 
 
 class DataOperationStatus(Enum):
@@ -220,6 +232,35 @@ class BulkApiQueryOperation(BaseQueryOperation, BulkJobMixin):
                 yield from reader
 
 
+class RestApiQueryOperation(BaseQueryOperation):
+    """Operation class for REST API query jobs."""
+
+    def __init__(self, *, sobject, fields, api_options, context, query):
+        super().__init__(
+            sobject=sobject, api_options=api_options, context=context, query=query
+        )
+        self.fields = fields
+
+    def query(self):
+        self.response = self.sf.query(self.soql)
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS, [], self.response["totalSize"], 0
+        )
+
+    def get_results(self):
+        def convert(rec):
+            return [str(rec[f]) if rec[f] is not None else "" for f in self.fields]
+
+        while True:
+            yield from (convert(rec) for rec in self.response["records"])
+            if not self.response["done"]:
+                self.response = self.sf.query_more(
+                    self.response["nextRecordsUrl"], identifier_is_url=True
+                )
+            else:
+                return
+
+
 class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
     """Abstract base class for DML operations in all APIs."""
 
@@ -239,7 +280,6 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
     def __exit__(self, exc_type, exc_value, traceback):
         self.end()
 
-    @abstractmethod
     def start(self):
         """Perform any required setup, such as job initialization, for the operation."""
         pass
@@ -249,7 +289,6 @@ class BaseDmlOperation(BaseDataOperation, metaclass=ABCMeta):
         """Perform the requested DML operation on the supplied row iterator."""
         pass
 
-    @abstractmethod
     def end(self):
         """Perform any required teardown for the operation before results are returned."""
         pass
@@ -297,7 +336,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
         """Given an iterator of records, yields batches of
         records serialized in .csv format.
 
-        Batches adhere to the following, in order of presedence:
+        Batches adhere to the following, in order of precedence:
         (1) They do not exceed the given character limit
         (2) They do not contain more than n records per batch
         """
@@ -365,3 +404,177 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
                 raise BulkDataException(
                     f"Failed to download results for batch {batch_id} ({str(e)})"
                 )
+
+
+class RestApiDmlOperation(BaseDmlOperation):
+    """Operation class for all DML operations run using the REST API."""
+
+    def __init__(self, *, sobject, operation, api_options, context, fields):
+        super().__init__(
+            sobject=sobject,
+            operation=operation,
+            api_options=api_options,
+            context=context,
+            fields=fields,
+        )
+
+        # Because we send values in JSON, we must convert Booleans and nulls
+        describe = {
+            field["name"]: field
+            for field in getattr(context.sf, sobject).describe()["fields"]
+        }
+        self.boolean_fields = [f for f in fields if describe[f]["type"] == "boolean"]
+
+    def load_records(self, records):
+        def _convert(rec):
+            result = dict(zip(self.fields, rec))
+            for boolean_field in self.boolean_fields:
+                result[boolean_field] = bool(result[boolean_field])
+
+            # Remove empty fields (different semantics in REST API)
+            # We do this for insert only - on update, any fields set to `null`
+            # are meant to be blanked out.
+            if self.operation is DataOperationType.INSERT:
+                result = {
+                    k: result[k]
+                    for k in result
+                    if result[k] is not None and result[k] != ""
+                }
+
+            result["attributes"] = {"type": self.sobject}
+            return result
+
+        self.results = []
+        method = {
+            DataOperationType.INSERT: "POST",
+            DataOperationType.UPDATE: "PATCH",
+            DataOperationType.DELETE: "DELETE",
+        }[self.operation]
+
+        for chunk in get_batch_iterator(
+            records, self.api_options.get("batch_size", 200)
+        ):
+            if self.operation is DataOperationType.DELETE:
+                url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
+                json = None
+            else:
+                url_string = ""
+                json = {"allOrNone": False, "records": [_convert(rec) for rec in chunk]}
+
+            self.results.extend(
+                self.sf.restful(
+                    f"composite/sobjects{url_string}", method=method, json=json
+                )
+            )
+
+        row_errors = len([res for res in self.results if not res["success"]])
+        self.job_result = DataOperationJobResult(
+            DataOperationStatus.SUCCESS
+            if not row_errors
+            else DataOperationStatus.ROW_FAILURE,
+            [],
+            len(self.results),
+            row_errors,
+        )
+
+    def get_results(self):
+        """Return a generator of DataOperationResult objects."""
+
+        def _convert(res):
+            # TODO: make DataOperationResult handle this error variant
+            if res.get("errors"):
+                errors = "\n".join(
+                    f"{e['statusCode']}: {e['message']} ({','.join(e['fields'])})"
+                    for e in res["errors"]
+                )
+            else:
+                errors = ""
+
+            return DataOperationResult(res.get("id"), res["success"], errors)
+
+        yield from (_convert(res) for res in self.results)
+
+
+def get_query_operation(
+    *,
+    sobject: str,
+    fields: List[str],
+    api_options: Dict,
+    context: Any,
+    query: str,
+    api: DataApi,
+) -> BaseQueryOperation:
+    """Create an appropriate QueryOperation instance for the given parameters, selecting
+    between REST and Bulk APIs based upon volume (Bulk > 2000 records) if DataApi.SMART
+    is provided."""
+
+    # The Record Count endpoint requires API 40.0. REST Collections requires 42.0.
+    api_version = float(context.sf.sf_version)
+    if api_version < 42.0 and api is not DataApi.BULK:
+        api = DataApi.BULK
+
+    if api is DataApi.SMART:
+        record_count_response = context.sf.restful(
+            f"limits/recordCount?sObjects={sobject}"
+        )
+        sobject_map = {
+            entry["name"]: entry["count"] for entry in record_count_response["sObjects"]
+        }
+        api = (
+            DataApi.BULK
+            if sobject in sobject_map and sobject_map[sobject] >= 2000
+            else DataApi.REST
+        )
+
+    if api is DataApi.BULK:
+        return BulkApiQueryOperation(
+            sobject=sobject, api_options=api_options, context=context, query=query
+        )
+    else:
+        return RestApiQueryOperation(
+            sobject=sobject,
+            api_options=api_options,
+            context=context,
+            query=query,
+            fields=fields,
+        )
+
+
+def get_dml_operation(
+    *,
+    sobject: str,
+    operation: DataOperationType,
+    fields: List[str],
+    api_options: Dict,
+    context: Any,
+    api: DataApi,
+    volume: int,
+) -> BaseDmlOperation:
+    """Create an appropriate DmlOperation instance for the given parameters, selecting
+    between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
+    or if the operation is HARD_DELETE, which is only available for Bulk)."""
+
+    # REST Collections requires 42.0.
+    api_version = float(context.sf.sf_version)
+    if api_version < 42.0 and api is not DataApi.BULK:
+        api = DataApi.BULK
+
+    if api is DataApi.SMART:
+        api = (
+            DataApi.BULK
+            if volume >= 2000 or operation is DataOperationType.HARD_DELETE
+            else DataApi.REST
+        )
+
+    if api is DataApi.BULK:
+        api_class = BulkApiDmlOperation
+    else:
+        api_class = RestApiDmlOperation
+
+    return api_class(
+        sobject=sobject,
+        operation=operation,
+        api_options=api_options,
+        context=context,
+        fields=fields,
+    )

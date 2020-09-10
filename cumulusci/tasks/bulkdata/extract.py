@@ -19,9 +19,9 @@ from cumulusci.core.utils import process_bool_arg
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata.step import (
-    BulkApiQueryOperation,
     DataOperationStatus,
     DataOperationType,
+    get_query_operation,
 )
 from cumulusci.utils import os_friendly_path, log_progress
 from cumulusci.tasks.bulkdata.mapping_parser import (
@@ -147,10 +147,16 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         return soql
 
     def _run_query(self, soql, mapping):
-        """Execute a Bulk API query job and store the results."""
-        step = BulkApiQueryOperation(
-            sobject=mapping["sf_object"], api_options={}, context=self, query=soql
+        """Execute a Bulk or REST API query job and store the results."""
+        step = get_query_operation(
+            sobject=mapping["sf_object"],
+            api=mapping["api"],
+            fields=self._fields_for_mapping(mapping),
+            api_options={},
+            context=self,
+            query=soql,
         )
+
         self.logger.info(f"Extracting data for sObject {mapping['sf_object']}")
         step.query()
 
@@ -205,7 +211,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             def strip_name_field(record):
                 nonlocal Name_index, IsPersonAccount_index
-                if record[IsPersonAccount_index] == "true":
+                if record[IsPersonAccount_index].lower() == "true":
                     record[Name_index] = ""
                 return record
 

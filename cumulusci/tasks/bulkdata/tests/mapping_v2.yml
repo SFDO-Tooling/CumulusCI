@@ -1,10 +1,12 @@
 Insert Households:
+    api: bulk
     sf_object: Account
     table: households
     fields:
         Name: name
     record_type: HH_Account
 Insert Contacts:
+    api: bulk
     sf_object: Contact
     table: contacts
     filters:

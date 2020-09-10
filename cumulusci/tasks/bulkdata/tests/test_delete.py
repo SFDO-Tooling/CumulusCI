@@ -11,6 +11,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationResult,
     DataOperationJobResult,
     DataOperationType,
+    DataApi,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
@@ -18,8 +19,8 @@ from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
 
 class TestDeleteData(unittest.TestCase):
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
@@ -43,9 +44,11 @@ class TestDeleteData(unittest.TestCase):
 
         query_mock.assert_called_once_with(
             sobject="Contact",
+            fields=["Id"],
             api_options={},
             context=task,
             query="SELECT Id FROM Contact",
+            api=DataApi.SMART,
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
@@ -56,6 +59,8 @@ class TestDeleteData(unittest.TestCase):
             api_options={},
             context=task,
             fields=["Id"],
+            api=DataApi.SMART,
+            volume=2,
         )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()
@@ -63,8 +68,8 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.get_results.assert_called_once()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__no_results(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
@@ -77,9 +82,11 @@ class TestDeleteData(unittest.TestCase):
 
         query_mock.assert_called_once_with(
             sobject="Contact",
+            fields=["Id"],
             api_options={},
             context=task,
             query="SELECT Id FROM Contact",
+            api=DataApi.SMART,
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_not_called()
@@ -87,8 +94,8 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.assert_not_called()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__job_error_delete(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
@@ -108,8 +115,8 @@ class TestDeleteData(unittest.TestCase):
             task()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__job_error_query(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
@@ -123,8 +130,8 @@ class TestDeleteData(unittest.TestCase):
             task()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__row_error(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(DeleteData, {"options": {"objects": "Contact"}})
@@ -144,8 +151,8 @@ class TestDeleteData(unittest.TestCase):
             task()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__ignore_error(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(
@@ -181,6 +188,8 @@ class TestDeleteData(unittest.TestCase):
             api_options={},
             context=task,
             query="SELECT Id FROM Contact",
+            api=DataApi.SMART,
+            fields=["Id"],
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
@@ -191,6 +200,8 @@ class TestDeleteData(unittest.TestCase):
             api_options={},
             context=task,
             fields=["Id"],
+            api=DataApi.SMART,
+            volume=2,
         )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()
@@ -198,8 +209,8 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.get_results.assert_called_once()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__ignore_error_throttling(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(
@@ -234,8 +245,8 @@ class TestDeleteData(unittest.TestCase):
         assert "warnings suppressed" in str(warning.mock_calls[-1])
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__where(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(
@@ -262,6 +273,8 @@ class TestDeleteData(unittest.TestCase):
             api_options={},
             context=task,
             query="SELECT Id FROM Contact WHERE Id != null",
+            fields=["Id"],
+            api=DataApi.SMART,
         )
         query_mock.return_value.query.assert_called_once()
         query_mock.return_value.get_results.assert_called_once()
@@ -272,6 +285,8 @@ class TestDeleteData(unittest.TestCase):
             api_options={},
             context=task,
             fields=["Id"],
+            api=DataApi.SMART,
+            volume=2,
         )
         dml_mock.return_value.start.assert_called_once()
         dml_mock.return_value.end.assert_called_once()
@@ -279,8 +294,8 @@ class TestDeleteData(unittest.TestCase):
         dml_mock.return_value.get_results.assert_called_once()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiQueryOperation")
-    @mock.patch("cumulusci.tasks.bulkdata.delete.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
+    @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
     def test_run__query_fails(self, dml_mock, query_mock):
         mock_describe_calls()
         task = _make_task(
@@ -361,6 +376,15 @@ class TestDeleteData(unittest.TestCase):
 
         with self.assertRaises(TaskOptionsError):
             _make_task(DeleteData, {"options": {"objects": "a,b", "where": "x='y'"}})
+
+        with self.assertRaises(TaskOptionsError):
+            _make_task(DeleteData, {"options": {"objects": "a", "api": "blah"}})
+
+        with self.assertRaises(TaskOptionsError):
+            _make_task(
+                DeleteData,
+                {"options": {"objects": "a", "api": "rest", "hardDelete": True}},
+            )
 
         t = _make_task(
             DeleteData,

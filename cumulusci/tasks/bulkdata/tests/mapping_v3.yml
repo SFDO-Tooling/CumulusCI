@@ -1,8 +1,10 @@
 Insert Accounts:
+    api: bulk
     sf_object: Account
     fields:
         - Name
 Insert Contacts:
+    api: bulk
     sf_object: Contact
     fields:
         - FirstName
@@ -12,6 +14,7 @@ Insert Contacts:
         AccountId:
             table: Account
 Insert Junction Objects:
+    api: bulk
     sf_object: AccountContactRelation
     lookups:
         AccountId:
@@ -19,6 +22,7 @@ Insert Junction Objects:
         ContactId:
             table: Contact
 Insert Other Junction Objects:
+    api: bulk
     sf_object: AccountContactRelation
     fields:
     lookups:
