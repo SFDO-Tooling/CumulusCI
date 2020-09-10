@@ -23,14 +23,14 @@ def sfdx(
 
     Returns a `sarge` Command instance with returncode, stdout, stderr
     """
-    command = "sfdx {}".format(command)
+    command = f"sfdx {command}"
     if args is not None:
         for arg in args:
             command += " " + shell_quote(arg)
     if username:
         command += f" -u {shell_quote(username)}"
     if log_note:
-        logger.info("{} with command: {}".format(log_note, command))
+        logger.info(f"{log_note} with command: {command}")
     # Avoid logging access token
     if access_token:
         command += f" -u {shell_quote(access_token)}"
