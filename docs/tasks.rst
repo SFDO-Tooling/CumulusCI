@@ -766,6 +766,11 @@ Options
 
 	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
 
+``-o api API``
+	 *Optional*
+
+	 The desired Salesforce API to use, which may be 'rest', 'bulk', or 'smart' to auto-select based on record volume. The default is 'smart'.
+
 **deploy**
 ==========================================
 
@@ -804,11 +809,6 @@ Options
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-
-``-o namespace_tokenize NAMESPACETOKENIZE``
-	 *Optional*
-
-	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
 ``-o check_only CHECKONLY``
 	 *Optional*
@@ -878,11 +878,6 @@ Options
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-
-``-o namespace_tokenize NAMESPACETOKENIZE``
-	 *Optional*
-
-	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
 ``-o check_only CHECKONLY``
 	 *Optional*
@@ -957,11 +952,6 @@ Options
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``-o namespace_tokenize NAMESPACETOKENIZE``
-	 *Optional*
-
-	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-
 ``-o check_only CHECKONLY``
 	 *Optional*
 
@@ -1034,11 +1024,6 @@ Options
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-
-``-o namespace_tokenize NAMESPACETOKENIZE``
-	 *Optional*
-
-	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
 ``-o check_only CHECKONLY``
 	 *Optional*
@@ -2535,16 +2520,6 @@ Options
 
 	 The package name to retrieve.  Defaults to project__package__name
 
-``-o unmanaged UNMANAGED``
-	 *Optional*
-
-	 If True, changes namespace_inject to replace tokens with a blank string
-
-``-o namespace_inject NAMESPACEINJECT``
-	 *Optional*
-
-	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
-
 ``-o namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
@@ -2594,16 +2569,6 @@ Options
 
 	 The package name to retrieve.  Defaults to project__package__name
 
-``-o unmanaged UNMANAGED``
-	 *Optional*
-
-	 If True, changes namespace_inject to replace tokens with a blank string
-
-``-o namespace_inject NAMESPACEINJECT``
-	 *Optional*
-
-	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
-
 ``-o namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
@@ -2650,16 +2615,6 @@ Options
 	 *Required*
 
 	 The path to a package.xml manifest to use for the retrieve.
-
-``-o unmanaged UNMANAGED``
-	 *Optional*
-
-	 If True, changes namespace_inject to replace tokens with a blank string
-
-``-o namespace_inject NAMESPACEINJECT``
-	 *Optional*
-
-	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
 ``-o namespace_strip NAMESPACESTRIP``
 	 *Optional*
@@ -3486,11 +3441,6 @@ Options
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``-o namespace_tokenize NAMESPACETOKENIZE``
-	 *Optional*
-
-	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
-
 ``-o check_only CHECKONLY``
 	 *Optional*
 
@@ -3564,11 +3514,6 @@ Options
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
-
-``-o namespace_tokenize NAMESPACETOKENIZE``
-	 *Optional*
-
-	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
 ``-o check_only CHECKONLY``
 	 *Optional*

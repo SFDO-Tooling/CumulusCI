@@ -172,6 +172,10 @@ class MockSF:
     def describe(self):
         return getattr(self, "global_describe")
 
+    @property
+    def sf_version(self):
+        return 47
+
     def __getattr__(self, sobjname):
         self.mocks[sobjname] = self.mocks.get("sobjname", None) or read_mock(sobjname)
         return self.mocks[sobjname]

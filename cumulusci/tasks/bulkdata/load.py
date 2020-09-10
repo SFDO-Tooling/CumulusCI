@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from contextlib import contextmanager
 
-from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text
+from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text, func
 from sqlalchemy.orm import aliased, Session
 from sqlalchemy.ext.automap import automap_base
 
@@ -14,10 +14,11 @@ from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, RowErrorChecker
 from cumulusci.tasks.bulkdata.step import (
-    BulkApiDmlOperation,
     DataOperationStatus,
     DataOperationType,
     DataOperationJobResult,
+    get_dml_operation,
+    DataApi,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
@@ -142,23 +143,30 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
+        local_ids = []
+        query = self._query_db(mapping)
+        operation = (
+            DataOperationType.INSERT
+            if mapping.get("action") == "insert"
+            else DataOperationType.UPDATE
+        )
         bulk_mode = mapping.get("bulk_mode") or self.bulk_mode or "Parallel"
-
-        step = BulkApiDmlOperation(
+        step = get_dml_operation(
             sobject=mapping["sf_object"],
-            operation=(
-                DataOperationType.INSERT
-                if mapping.get("action") == "insert"
-                else DataOperationType.UPDATE
-            ),
-            api_options={"bulk_mode": bulk_mode},
+            operation=operation,
+            api_options={
+                "batch_size": mapping.get("batch_size", 200),
+                "bulk_mode": bulk_mode,
+            },
             context=self,
             fields=self._get_columns(mapping),
+            api=mapping.get("api", DataApi.SMART),
+            volume=query.count(),
         )
 
         with tempfile.TemporaryFile(mode="w+t") as local_ids:
             step.start()
-            step.load_records(self._stream_queried_data(mapping, local_ids))
+            step.load_records(self._stream_queried_data(mapping, local_ids, query))
             step.end()
 
             if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
@@ -167,17 +175,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             return step.job_result
 
-    def _stream_queried_data(self, mapping, local_ids):
+    def _stream_queried_data(self, mapping, local_ids, query):
         """Get data from the local db"""
 
         statics = self._get_statics(mapping)
-        query = self._query_db(mapping)
 
         total_rows = 0
 
-        # 10,000 is the maximum Bulk API size. Clamping the yield from the query ensures we do not
-        # create more Bulk API batches than expected, regardless of batch size, while capping
-        # memory usage.
         for row in query.yield_per(10000):
             total_rows += 1
             # Add static values to row
@@ -542,6 +546,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     name = f"Update {sobject} Dependencies After {after}"
                     mapping = {
                         "sf_object": sobject,
+                        "api": step["api"],
                         "action": "update",
                         "table": step["table"],
                         "lookups": {},
@@ -642,7 +647,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Account SF ID.
         query = (
             self.session.query(contact_id_column, account_sf_id_column)
-            .filter(contact_model.__table__.columns.get("IsPersonAccount") == "true")
+            .filter(
+                func.lower(contact_model.__table__.columns.get("IsPersonAccount"))
+                == "true"
+            )
             .outerjoin(
                 account_sf_ids_table,
                 account_sf_ids_table.columns["id"] == account_id_column,

@@ -16,6 +16,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationJobResult,
     DataOperationType,
     DataOperationResult,
+    DataApi,
 )
 
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
@@ -90,8 +91,8 @@ class TestExtractData(unittest.TestCase):
     mapping_file_v2 = "mapping_v2.yml"
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
-    def test_run__person_accounts_disabled(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run__person_accounts_disabled(self, query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
         mock_describe_calls()
@@ -124,7 +125,7 @@ class TestExtractData(unittest.TestCase):
         mock_query_households.results = [["1"]]
         mock_query_contacts.results = [["2", "First", "Last", "test@example.com", "1"]]
 
-        step_mock.side_effect = [mock_query_households, mock_query_contacts]
+        query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
 
         task()
         session = create_session(bind=task.engine, autocommit=False)
@@ -139,8 +140,8 @@ class TestExtractData(unittest.TestCase):
         self.assertEqual("1", contact.household_id)
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
-    def test_run__person_accounts_enabled(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run__person_accounts_enabled(self, query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
         mock_describe_calls()
@@ -175,7 +176,7 @@ class TestExtractData(unittest.TestCase):
             ["2", "First", "Last", "test@example.com", "true", "1"]
         ]
 
-        step_mock.side_effect = [mock_query_households, mock_query_contacts]
+        query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
 
         task()
         session = create_session(bind=task.engine, autocommit=False)
@@ -191,8 +192,8 @@ class TestExtractData(unittest.TestCase):
         self.assertEqual("1", contact.household_id)
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
-    def test_run__sql(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run__sql(self, query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
         mock_describe_calls()
@@ -222,7 +223,7 @@ class TestExtractData(unittest.TestCase):
             mock_query_contacts.results = [
                 ["2", "First☃", "Last", "test@example.com", "1"]
             ]
-            step_mock.side_effect = [mock_query_households, mock_query_contacts]
+            query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
 
             with mock.patch(
                 "cumulusci.tasks.bulkdata.extract.create_engine", wraps=create_engine
@@ -238,8 +239,8 @@ class TestExtractData(unittest.TestCase):
             ), ce_mock.mock_calls[0][1][0]
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
-    def test_run__v2__person_accounts_disabled(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run__v2__person_accounts_disabled(self, query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v2)
         mock_describe_calls()
@@ -272,7 +273,7 @@ class TestExtractData(unittest.TestCase):
         mock_query_households.results = [["1", "TestHousehold"]]
         mock_query_contacts.results = [["2", "First", "Last", "test@example.com", "1"]]
 
-        step_mock.side_effect = [mock_query_households, mock_query_contacts]
+        query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
 
         task()
         session = create_session(bind=task.engine, autocommit=False)
@@ -287,8 +288,8 @@ class TestExtractData(unittest.TestCase):
         assert not hasattr(contact, "IsPersonAccount")
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
-    def test_run__v2__person_accounts_enabled(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run__v2__person_accounts_enabled(self, query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v2)
         mock_describe_calls()
@@ -323,7 +324,7 @@ class TestExtractData(unittest.TestCase):
             ["2", "First", "Last", "test@example.com", "true", "1"]
         ]
 
-        step_mock.side_effect = [mock_query_households, mock_query_contacts]
+        query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
 
         task()
         session = create_session(bind=task.engine, autocommit=False)
@@ -813,61 +814,65 @@ class TestExtractData(unittest.TestCase):
             == "SELECT Id, Test__c FROM Contact WHERE RecordType.DeveloperName = 'Devel'"
         )
 
-    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
-    def test_run_query(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run_query(self, query_op_mock):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
         task._import_results = mock.Mock()
-        step_mock.return_value.job_result = DataOperationJobResult(
+        query_op_mock.return_value.job_result = DataOperationJobResult(
             DataOperationStatus.SUCCESS, [], 1, 0
         )
 
-        task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})
+        task._run_query("SELECT Id FROM Contact", MappingStep(sf_object="Contact"))
 
-        step_mock.assert_called_once_with(
+        query_op_mock.assert_called_once_with(
             sobject="Contact",
+            fields=["Id"],
+            api=DataApi.SMART,
             api_options={},
             context=task,
             query="SELECT Id FROM Contact",
         )
-        step_mock.return_value.query.assert_called_once_with()
+        query_op_mock.return_value.query.assert_called_once_with()
         task._import_results.assert_called_once_with(
-            {"sf_object": "Contact"}, step_mock.return_value
+            MappingStep(sf_object="Contact"), query_op_mock.return_value
         )
 
-    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
-    def test_run_query__no_results(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run_query__no_results(self, query_op_mock):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
         task._import_results = mock.Mock()
-        step_mock.return_value.job_result = DataOperationJobResult(
+        query_op_mock.return_value.job_result = DataOperationJobResult(
             DataOperationStatus.SUCCESS, [], 0, 0
         )
 
-        task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})
+        task._run_query("SELECT Id FROM Contact", MappingStep(sf_object="Contact"))
 
-        step_mock.assert_called_once_with(
+        query_op_mock.assert_called_once_with(
             sobject="Contact",
+            fields=["Id"],
+            api=DataApi.SMART,
             api_options={},
             context=task,
             query="SELECT Id FROM Contact",
         )
-        step_mock.return_value.query.assert_called_once_with()
+        query_op_mock.return_value.query.assert_called_once_with()
         task._import_results.assert_not_called()
 
-    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
-    def test_run_query__failure(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    def test_run_query__failure(self, query_op_mock):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
-        step_mock.return_value.job_result = DataOperationJobResult(
+        query_op_mock.return_value.job_result = DataOperationJobResult(
             DataOperationStatus.JOB_FAILURE, [], 1, 0
         )
 
         with self.assertRaises(BulkDataException):
-            task._run_query("SELECT Id FROM Contact", {"sf_object": "Contact"})
+            task._run_query("SELECT Id FROM Contact", MappingStep(sf_object="Contact"))
 
     def test_init_options__missing_output(self):
         with self.assertRaises(TaskOptionsError):
@@ -907,7 +912,7 @@ class TestExtractData(unittest.TestCase):
         )
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.extract.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
     def test_extract_memory_usage(self, step_mock):
         with TemporaryDirectory() as t:
             base_path = os.path.dirname(__file__)

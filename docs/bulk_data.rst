@@ -7,7 +7,7 @@ automation. Within your repository, you can define one or several *datasets*,
 collections of data you use for specific purposes. CumulusCI tasks support
 extracting defined datasets from scratch orgs or persistent orgs,
 storing those snapshots within the repository, and automating the load of datasets 
-into orgs. Data operations are executed via the Bulk API.
+into orgs. Data operations are executed via the Bulk and REST APIs.
 
 A dataset consists of 
 
@@ -85,8 +85,23 @@ referenced record is expected to be available. CumulusCI will defer populating t
 until the referenced step has been completed. In the example above, an ``after`` definition
 is used to support the ``ParentId`` self-lookup on ``Account``.
 
+API Selection
+-------------
+
+By default, CumulusCI will determine the data volume of the specified object and select an API
+for you: for under 2,000 records, the REST Collections API is used; for more, the Bulk API is
+used. The Bulk API is also used for delete operations where the hard delete operation is
+requested, as this is available only in the Bulk API. Smart API selection helps increase
+speed for low- and moderate-volume data loads.
+
+To prefer a specific API, set the ``api`` key within any mapping step; allowed values are
+``"rest"``, ``"bulk"``, and ``"smart"``, the default.
+
 CumulusCI defaults to using the Bulk API in Parallel mode. If required to avoid row locks,
 specify the key ``bulk_mode: Serial`` in each step requiring the use of serial mode.
+
+For REST API and smart-API modes, you can specify a batch size using the ``batch_size`` key.
+Legal values are between 1 and 200. The batch size cannot be set for the Bulk API.
 
 Database Mapping
 ----------------
