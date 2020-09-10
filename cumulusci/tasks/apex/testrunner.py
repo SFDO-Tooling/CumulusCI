@@ -194,8 +194,6 @@ class RunApexTests(BaseSalesforceApiTask):
             "json_output", "test_results.json"
         )
 
-        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
-
         self.options["retry_failures"] = process_list_arg(
             self.options.get("retry_failures", [])
         )
@@ -493,6 +491,17 @@ class RunApexTests(BaseSalesforceApiTask):
         ).json()
 
     def _run_task(self):
+        if "managed" in self.options:
+            self.options["managed"] = process_bool_arg(self.options["managed"])
+        else:
+            namespace = self.options.get("namespace")
+            if namespace:
+                self.options["managed"] = (
+                    namespace in self.org_config.installed_packages
+                )
+            else:
+                self.options["managed"] = False
+
         result = self._get_test_classes()
         if result["totalSize"] == 0:
             return

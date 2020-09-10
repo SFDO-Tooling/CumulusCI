@@ -57,28 +57,9 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
     def _init_options(self, kwargs):
         super(ProfileGrantAllAccess, self)._init_options(kwargs)
 
-        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
-
-        self.options["namespaced_org"] = process_bool_arg(
-            self.options.get("namespaced_org", False)
-        )
-
-        # For namespaced orgs, managed should always be True
-        if self.options["namespaced_org"]:
-            self.options["managed"] = True
-
         self.options["namespace_inject"] = self.options.get(
             "namespace_inject", self.project_config.project__package__namespace
         )
-
-        # Set up namespace prefix strings
-        namespace_prefix = "{}__".format(self.options["namespace_inject"])
-        self.namespace_prefixes = {
-            "managed": namespace_prefix if self.options["managed"] else "",
-            "namespaced_org": namespace_prefix
-            if self.options["namespaced_org"]
-            else "",
-        }
 
         # We enable new functionality to extend the package.xml to packaged objects
         # by default only if we meet specific requirements: the project has to require
@@ -118,19 +99,43 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             if not self.api_names:
                 self.api_names.add("Admin")
 
-            if self.options["namespaced_org"]:
-                # Namespaced orgs don't use the explicit namespace references in `package.xml`.
-                # Preserving historic behavior but guarding here
-                self.options["managed"] = False
-
             self.api_names = {self._inject_namespace(x) for x in self.api_names}
-
-            if self.options["namespaced_org"]:
-                self.options["managed"] = True
 
             self.package_xml_path = os.path.join(
                 CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
             )
+
+    def _run_task(self):
+        self._init_org_based_options()
+        super()._run_task()
+
+    def _init_org_based_options(self):
+        if "managed" in self.options:
+            self.options["managed"] = process_bool_arg(
+                self.options.get("managed", False)
+            )
+        else:
+            self.options["managed"] = (
+                self.options["namespace_inject"] in self.org_config.installed_packages
+            )
+
+        if "namespaced_org" in self.options:
+            self.options["namespaced_org"] = process_bool_arg(
+                self.options.get("namespaced_org", False)
+            )
+        else:
+            self.options["namespaced_org"] = (
+                self.options["namespace_inject"] == self.org_config.namespace
+            )
+
+        # Set up namespace prefix strings
+        namespace_prefix = "{}__".format(self.options["namespace_inject"])
+        self.namespace_prefixes = {
+            "managed": namespace_prefix if self.options["managed"] else "",
+            "namespaced_org": namespace_prefix
+            if self.options["namespaced_org"]
+            else "",
+        }
 
     def freeze(self, step):
         # Preserve behavior from when we subclassed Deploy.

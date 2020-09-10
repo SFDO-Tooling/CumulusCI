@@ -83,16 +83,29 @@ class Deploy(BaseSalesforceMetadataApiTask):
             run_tests=self.specified_tests,
         )
 
+    def _has_namespaced_package(self, ns):
+        if "unmanaged" in self.options:
+            return process_bool_arg(self.options.get("unmanaged", True))
+        return ns in self.org_config.installed_packages
+
+    def _is_namespaced_org(self, ns):
+        if "namespaced_org" in self.options:
+            return process_bool_arg(self.options.get("namespaced_org", False))
+        return ns == self.org_config.namespace
+
     def _get_package_zip(self, path):
+        if "namespace_inject" in self.options:
+            namespace = self.options["namespace_inject"]
+        else:
+            namespace = self.project_config.project__package__namespace
         options = {
             **self.options,
             "clean_meta_xml": process_bool_arg(
                 self.options.get("clean_meta_xml", True)
             ),
-            "unmanaged": process_bool_arg(self.options.get("unmanaged", True)),
-            "namespaced_org": process_bool_arg(
-                self.options.get("namespaced_org", False)
-            ),
+            "namespace_inject": namespace,
+            "unmanaged": not self._has_namespaced_package(namespace),
+            "namespaced_org": self._is_namespaced_org(namespace),
         }
 
         return MetadataPackageZipBuilder(

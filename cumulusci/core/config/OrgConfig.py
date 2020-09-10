@@ -183,6 +183,7 @@ class OrgConfig(BaseConfig):
             "org_type": self._org_sobject["OrganizationType"],
             "is_sandbox": self._org_sobject["IsSandbox"],
             "instance_name": self._org_sobject["InstanceName"],
+            "namespace": self._org_sobject["NamespacePrefix"],
         }
         self.config.update(result)
 

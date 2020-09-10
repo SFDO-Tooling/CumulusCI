@@ -117,18 +117,12 @@ tasks:
         class_path: cumulusci.tasks.salesforce.DeployBundles
         options:
             path: unpackaged/post
-            unmanaged: True
-            namespace_inject: $project_config.project__package__namespace
-            namespace_token: '%%%NAMESPACE%%%'
-            filename_token: '___NAMESPACE___'
         group: Salesforce Metadata
     deploy_qa_config:
         description: Deploys configuration for QA.
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
-            namespace_inject: $project_config.project__package__namespace
             path: unpackaged/config/qa
-            unmanaged: True
         group: Salesforce Metadata
     dx:
         description: Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
@@ -545,8 +539,6 @@ flows:
                 flow: install_beta
             2:
                 task: run_tests
-                options:
-                    managed: True
 
     ci_feature:
         description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
@@ -604,18 +596,10 @@ flows:
                     version: ^^github_package_data.version_id
             4:
                 flow: config_apextest
-                options:
-                    deploy_post:
-                        unmanaged: False
-                    update_admin_profile:
-                        managed: True
             5:
                 task: run_tests
-                options:
-                    managed: True
             6:
                 task: github_parent_to_children
-
 
     ci_master:
         description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
@@ -637,8 +621,6 @@ flows:
                 flow: install_prod
             2:
                 task: run_tests
-                options:
-                    managed: True
 
     config_apextest:
         description: Configure an org to run apex tests after package metadata is deployed
@@ -661,20 +643,14 @@ flows:
         steps:
             1:
                 task: deploy_post
-                options:
-                    unmanaged: False
             2:
                 task: update_admin_profile
-                options:
-                    managed: true
 
     config_packaging:
         description: Configure packaging org for upload after package metadata is deployed
         steps:
             1:
                 task: update_admin_profile
-                options:
-                    managed: True
 
     config_qa:
         description: Configure an org for use as a QA org after package metadata is deployed
@@ -798,19 +774,10 @@ flows:
         steps:
             1:
                 flow: dependencies
-                options:
-                    update_dependencies:
-                        namespaced_org: True
             2:
                 flow: deploy_unmanaged
             3:
                 flow: config_dev
-                options:
-                    deploy_post:
-                        unmanaged: False
-                        namespaced_org: True
-                    update_admin_profile:
-                        namespaced_org: True
             4:
                 task: snapshot_changes
 
@@ -877,8 +844,6 @@ flows:
                 task: install_managed
             3:
                 task: deploy_post
-                options:
-                    unmanaged: False
 
     install_regression:
         description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
