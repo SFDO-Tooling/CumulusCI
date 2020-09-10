@@ -22,10 +22,9 @@ from cumulusci.tasks.bulkdata.step import (
     BaseDmlOperation,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
-from cumulusci.tests.util import assert_max_memory_usage
+from cumulusci.tests.util import assert_max_memory_usage, mock_describe_calls
 
 from cumulusci.utils.backports.py36 import nullcontext
 

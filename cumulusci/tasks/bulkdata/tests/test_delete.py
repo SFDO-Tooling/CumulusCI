@@ -13,7 +13,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
+from cumulusci.tests.util import mock_describe_calls
 
 
 class TestDeleteData(unittest.TestCase):

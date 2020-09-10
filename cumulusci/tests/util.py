@@ -5,6 +5,10 @@ import tracemalloc
 import gc
 import sys
 from contextlib import contextmanager
+import json
+from unittest import mock
+
+import responses
 
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -115,3 +119,124 @@ def big_objs(traced_only=False):
     )
     for size, obj in big_objs:
         print(type(obj), size, tracemalloc.get_object_traceback(obj))
+
+
+class MockBulkAPI:
+    """Extremely simplistic mock of the bulk API
+
+    Can be improved as needed over time.
+    """
+
+    next_job_id = 0
+    next_batch_id = 0
+
+    @classmethod
+    def create_job(cls, *args, **kwargs):
+        cls.next_job_id += 1
+        return cls.next_job_id
+
+    @classmethod
+    def create_query_job(cls, *args, **kwargs):
+        cls.next_job_id += 1
+        return cls.next_job_id
+
+    @classmethod
+    def post_batch(cls, *args, **kwargs):
+        cls.next_batch_id += 1
+        return cls.next_batch_id
+
+    def close_job(self, *args, **kwargs):
+        pass
+
+    def job_status(self, job_id):
+        return {
+            "numberBatchesCompleted": self.next_batch_id,
+            "numberBatchesTotal": self.next_batch_id,
+        }
+
+    def query(self, job_id, soql):
+        return self.post_batch()
+
+    def get_query_batch_result_ids(self, batch_id, job_id):
+        return range(0, 10)
+
+
+class MockSF:
+    """Extremely simplistic mock of the Salesforce API
+
+    Can be improved as needed over time.
+    """
+
+    mocks = {}
+
+    def describe(self):
+        return getattr(self, "global_describe")
+
+    def __getattr__(self, sobjname):
+        self.mocks[sobjname] = self.mocks.get("sobjname", None) or read_mock(sobjname)
+        return self.mocks[sobjname]
+
+
+def read_mock(name: str):
+    base_path = Path(__file__).parent.parent / "tasks/bulkdata/tests"
+
+    with (base_path / f"{name}.json").open("r") as f:
+        return f.read()
+
+
+def mock_describe_calls(domain="example.com"):
+    def mock_sobject_describe(name: str):
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v48.0/sobjects/{name}/describe",
+            body=read_mock(name),
+            status=200,
+        )
+
+    responses.add(
+        method="GET",
+        url=f"https://{domain}/services/data",
+        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        status=200,
+    )
+    responses.add(
+        method="GET",
+        url=f"https://{domain}/services/data",
+        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        status=200,
+    )
+
+    responses.add(
+        method="GET",
+        url=f"https://{domain}/services/data/v48.0/sobjects",
+        body=read_mock("global_describe"),
+        status=200,
+    )
+
+    for sobject in [
+        "Account",
+        "Contact",
+        "Opportunity",
+        "OpportunityContactRole",
+        "Case",
+    ]:
+        mock_sobject_describe(sobject)
+
+
+@contextmanager
+def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
+    mock_describe_calls("test.salesforce.com")
+
+    real_init = task._init_task
+    salesforce_client = MockSF()
+
+    def _init_task():
+        real_init()
+        task.bulk = MockBulkAPI()
+        task.sf = salesforce_client
+
+    with mock.patch(
+        "cumulusci.core.config.OrgConfig.is_person_accounts_enabled",
+        lambda: is_person_accounts_enabled,
+    ), mock.patch.object(task, "_init_task", _init_task):
+        yield
