@@ -112,6 +112,25 @@ class TestMappingParser:
         with open(base_path, "rb") as f:
             assert parse_from_yaml(f)
 
+    def test_get_complete_field_map(self):
+        m = MappingStep(
+            sf_object="Account",
+            fields=["Name", "AccountSite"],
+            lookups={"ParentId": MappingLookup(table="Account")},
+        )
+
+        assert m.get_complete_field_map() == {
+            "Name": "Name",
+            "AccountSite": "AccountSite",
+            "ParentId": "ParentId",
+        }
+        assert m.get_complete_field_map(include_id=True) == {
+            "Id": "sf_id",
+            "Name": "Name",
+            "AccountSite": "AccountSite",
+            "ParentId": "ParentId",
+        }
+
     # Start of FLS/Namespace Injection Unit Tests
 
     def test_is_injectable(self):
