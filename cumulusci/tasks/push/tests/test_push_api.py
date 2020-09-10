@@ -700,12 +700,6 @@ def test_version_greater_than_query(metadata_package_version, metadata_package):
     assert expected_patch_where in actual
 
 
-def test_version_base_query(metadata_package_version):
-    actual = metadata_package_version._base_query()
-    expected = f"MetadataPackageId = '{SF_ID}' AND ReleaseState = 'Released' AND "
-    assert expected == actual
-
-
 def test_version_get_newer(metadata_package_version):
     metadata_package_version.package.get_package_version_objs = mock.MagicMock()
     expected = f"MetadataPackageId = '{SF_ID}' AND ReleaseState = 'Released' AND (MajorVersion > 1 OR (MajorVersion = 1 AND MinorVersion > 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion > 3))"
