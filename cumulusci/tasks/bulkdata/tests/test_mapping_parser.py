@@ -67,6 +67,13 @@ class TestMappingParser:
             with pytest.raises(ValidationError):
                 parse_from_yaml(StringIO(data))
 
+    def test_bad_mapping_oid_as_pk(self):
+        base_path = Path(__file__).parent / "mapping_v1.yml"
+        with open(base_path, "r") as f:
+            data = f.read().replace("api: bulk", "oid_as_pk: True`")
+            with pytest.raises(ValidationError):
+                parse_from_yaml(StringIO(data))
+
     def test_bad_mapping_batch_size(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
