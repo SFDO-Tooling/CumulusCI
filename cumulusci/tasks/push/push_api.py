@@ -108,7 +108,8 @@ class MetadataPackageVersion(BasePushApiObject):
                     less_than_where[:-1] + patch_where + less_than_where[-1:]
                 )
             where += less_than_where
-        return where
+
+        return self.package.get_package_version_objs(where)  # versions
 
     def get_older_released_version_objs(self, greater_than_version=None):
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
@@ -133,7 +134,7 @@ class MetadataPackageVersion(BasePushApiObject):
                 )
             where += greater_than_where
 
-        return where
+        return self.package.get_package_version_objs(where)  # versions
 
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where("MetadataPackageVersionId", where)

@@ -259,7 +259,6 @@ def test_sf_push_get_package_versions(sf_push_api):
     sf_push_api.return_query_records.assert_called_once_with(query)
 
 
-###
 def test_sf_push_get_package_version_objs(sf_push_api):
     query = "SELECT Id, Name, MetadataPackageId, ReleaseState, MajorVersion, MinorVersion, PatchVersion, BuildNumber FROM MetadataPackageVersion WHERE Name='foo' ORDER BY MajorVersion DESC, MinorVersion DESC, PatchVersion, BuildNumber DESC"
     sf_push_api.return_query_records = mock.MagicMock()
@@ -283,7 +282,6 @@ def test_sf_push_get_subscribers(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
-###
 def test_sf_push_get_subscriber_objs(sf_push_api):
     query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
@@ -307,7 +305,6 @@ def test_sf_push_get_push_requests(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
-###
 def test_sf_push_get_push_request_objs(sf_push_api):
     query = "SELECT Id, PackageVersionId, ScheduledStartTime, Status FROM PackagePushRequest WHERE Name='foo' ORDER BY ScheduledStartTime DESC"
     sf_push_api.return_query_records = mock.MagicMock()
@@ -331,7 +328,6 @@ def test_sf_push_get_push_jobs(sf_push_api):
     sf_push_api.return_query_records.assert_called_with(query)
 
 
-###
 def test_sf_push_get_push_job_objs(sf_push_api):
     query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
@@ -643,19 +639,19 @@ def test_metadata_package_push_requests_by_id(metadata_package_version):
 
 
 def test_version_get_newer_query(metadata_package_version):
-    patch_actual = metadata_package_version.get_newer_released_version_objs()
-    expected_patch_where = (
-        "OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion > 3)"
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion > 1 OR (MajorVersion = 1 AND MinorVersion > 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion > 3)))"
+    metadata_package_version.get_newer_released_version_objs(None)
+    metadata_package_version.package.push_api.get_package_version_objs.assert_called_once_with(
+        expected, None
     )
-    assert expected_patch_where in patch_actual
 
 
 def test_version_get_older_query(metadata_package_version):
-    patch_actual = metadata_package_version.get_older_released_version_objs()
-    expected_patch_where = (
-        "OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3)"
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion < 1 OR (MajorVersion = 1 AND MinorVersion < 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3)))"
+    metadata_package_version.get_older_released_version_objs()
+    metadata_package_version.package.push_api.get_package_version_objs.assert_called_once_with(
+        expected, None
     )
-    assert expected_patch_where in patch_actual
 
 
 def test_version_less_than_query(metadata_package_version, metadata_package):
@@ -670,16 +666,15 @@ def test_version_less_than_query(metadata_package_version, metadata_package):
         patch="2",
         build="1",
     )
-    actual = metadata_package_version.get_newer_released_version_objs(less_than)
-    expected_where = "AND (MajorVersion < 2 OR (MajorVersion = 2 AND MinorVersion < 2)"
-    expected_patch_where = (
-        " OR (MajorVersion = 2 AND MinorVersion = 2 AND PatchVersion < 2)"
+    metadata_package_version.get_newer_released_version_objs(less_than)
+    expected_where = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion > 1 OR (MajorVersion = 1 AND MinorVersion > 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion > 3)) AND (MajorVersion < 2 OR (MajorVersion = 2 AND MinorVersion < 2) OR (MajorVersion = 2 AND MinorVersion = 2 AND PatchVersion < 2)))"
+    metadata_package_version.package.push_api.get_package_version_objs.assert_called_once_with(
+        expected_where, None
     )
-    assert expected_where in actual
-    assert expected_patch_where in actual
 
 
 def test_version_greater_than_query(metadata_package_version, metadata_package):
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion < 1 OR (MajorVersion = 1 AND MinorVersion < 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3)) AND (MajorVersion > 2 OR (MajorVersion = 2 AND MinorVersion > 2) OR (MajorVersion = 2 AND MinorVersion = 2 AND PatchVersion > 2)))"
     greater_than = MetadataPackageVersion(
         push_api=PUSH_API,
         package=metadata_package,
@@ -691,27 +686,28 @@ def test_version_greater_than_query(metadata_package_version, metadata_package):
         patch="2",
         build="1",
     )
-    actual = metadata_package_version.get_older_released_version_objs(greater_than)
-    expected_where = "AND (MajorVersion > 2 OR (MajorVersion = 2 AND MinorVersion > 2)"
-    expected_patch_where = (
-        " OR (MajorVersion = 2 AND MinorVersion = 2 AND PatchVersion > 2)"
+    metadata_package_version.get_older_released_version_objs(greater_than)
+    metadata_package_version.package.push_api.get_package_version_objs.assert_called_once_with(
+        expected, None
     )
-    assert expected_where in actual
-    assert expected_patch_where in actual
 
 
 def test_version_get_newer(metadata_package_version):
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion > 1 OR (MajorVersion = 1 AND MinorVersion > 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion > 3))"
     metadata_package_version.package.get_package_version_objs = mock.MagicMock()
-    expected = f"MetadataPackageId = '{SF_ID}' AND ReleaseState = 'Released' AND (MajorVersion > 1 OR (MajorVersion = 1 AND MinorVersion > 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion > 3))"
-    actual = metadata_package_version.get_newer_released_version_objs()
-    assert actual == expected
+    metadata_package_version.get_newer_released_version_objs(None)
+    metadata_package_version.package.get_package_version_objs.assert_called_once_with(
+        expected
+    )
 
 
 def test_version_get_older(metadata_package_version):
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion < 1 OR (MajorVersion = 1 AND MinorVersion < 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3))"
     metadata_package_version.package.get_package_version_objs = mock.MagicMock()
-    expected = f"MetadataPackageId = '{SF_ID}' AND ReleaseState = 'Released' AND (MajorVersion < 1 OR (MajorVersion = 1 AND MinorVersion < 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3))"
-    actual = metadata_package_version.get_older_released_version_objs()
-    assert actual == expected
+    metadata_package_version.get_older_released_version_objs()
+    metadata_package_version.package.get_package_version_objs.assert_called_once_with(
+        expected
+    )
 
 
 def test_package_push_job_get_push_errors(package_push_job):
