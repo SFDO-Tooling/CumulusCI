@@ -1,11 +1,13 @@
 from unittest import mock
 import json
 import os
+import pathlib
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.salesforce.sourcetracking import ListChanges
 from cumulusci.tasks.salesforce.sourcetracking import RetrieveChanges
 from cumulusci.tasks.salesforce.sourcetracking import SnapshotChanges
+from cumulusci.tasks.salesforce.sourcetracking import _write_manifest
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 
@@ -222,3 +224,12 @@ class TestSnapshotChanges:
         task = create_task_fixture(SnapshotChanges)
         steps = task.freeze(None)
         assert steps == []
+
+
+def test_write_manifest__folder():
+    with temporary_dir() as path:
+        _write_manifest(
+            [{"MemberType": "ReportFolder", "MemberName": "TestFolder"}], path, "49.0"
+        )
+        package_xml = pathlib.Path(path, "package.xml").read_text()
+        assert "<name>Report</name>" in package_xml
