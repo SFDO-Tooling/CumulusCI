@@ -8,8 +8,8 @@ from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
 from cumulusci.utils.option_parsing import (
     Field,
+    DirectoryPath,
     CCIOptions,
-    PathOption,
     ListOfStringsOption,
 )
 
@@ -104,7 +104,7 @@ class Delete(BaseTask):
                 "If path is a list, all paths will be deleted"
             ),
         )
-        chdir: PathOption = Field(
+        chdir: DirectoryPath = Field(
             default=None,
             description=(
                 "Change directories before deleting path(s). "
@@ -149,7 +149,7 @@ class FindReplaceOptions(CCIOptions):
         "",
         description="The string to replace matches with. Defaults to an empty string",
     )
-    path: PathOption = Field(..., description="The path to recursively search")
+    path: DirectoryPath = Field(..., description="The path to recursively search")
     file_pattern: ListOfStringsOption = Field(
         "*",
         description="A UNIX like filename pattern used for matching filenames, or a list of them. See python fnmatch docs for syntax. If passed via command line, use a comma separated string. Defaults to *",

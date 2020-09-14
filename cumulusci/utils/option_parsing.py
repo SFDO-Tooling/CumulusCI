@@ -1,9 +1,8 @@
 from typing import List, Dict, Any
 import json
-from pathlib import Path
 from inspect import signature
 
-from pydantic import Field, create_model
+from pydantic import Field, create_model, FilePath, DirectoryPath
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
@@ -80,14 +79,6 @@ class ListOfStringsOption(CCIOptionType):
         return [s.strip() for s in v.split(",")]
 
 
-class PathOption(CCIOptionType):
-    """Parses a Path from a string"""
-
-    @classmethod
-    def from_str(cls, v) -> Path:
-        return Path(v)
-
-
 class MappingOption(CCIOptionType):
     """Parses a Mapping of Str->Any from a string in format a:b,c:d"""
 
@@ -99,4 +90,9 @@ class MappingOption(CCIOptionType):
             raise TypeError(e)
 
 
-Field = Field  # export this and shut up linter
+# These are so that others don't
+# need to import directly from Pydantic
+# TODO: Discuss with @davisagli
+Field = Field
+FilePath = FilePath
+DirectoryPath = DirectoryPath
