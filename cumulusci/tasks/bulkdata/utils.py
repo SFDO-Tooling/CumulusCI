@@ -126,30 +126,8 @@ class RowErrorChecker:
                 raise BulkDataException(msg)
 
 
-def adjust_relative_dates(
-    mapping: MappingStep,
-    org_config: OrgConfig,
-    record: List[str],
-    operation: DataOperationType,
-):
-    """Convert specified date and time fields (in ISO format) relative to the present moment.
-    If some date is 2020-07-30, anchor_date is 2020-07-23, and today's date is 2020-09-01,
-    that date will become 2020-09-07 - the same position in the timeline relative to today."""
-
-    # Determine the direction in which we are converting.
-    # For extracts, we convert the date from today-anchored to mapping.anchor_date-anchored.
-    # For loads, we do the reverse.
-
-    if operation is DataOperationType.QUERY:
-        current_anchor = date.today()
-        target_anchor = mapping.anchor_date
-    else:
-        current_anchor = mapping.anchor_date
-        target_anchor = date.today()
-
+def get_relative_date_context(mapping: MappingStep, org_config: OrgConfig):
     fields = mapping.get_field_list()
-
-    r = record.copy()
 
     date_fields = [
         fields.index(f)
@@ -162,13 +140,45 @@ def adjust_relative_dates(
         if f in mapping.fields
     ]
 
+    return (date_fields, date_time_fields)
+
+
+def adjust_relative_dates(
+    mapping: MappingStep,
+    context,
+    record: List[str],
+    operation: DataOperationType,
+):
+    """Convert specified date and time fields (in ISO format) relative to the present moment.
+    If some date is 2020-07-30, anchor_date is 2020-07-23, and today's date is 2020-09-01,
+    that date will become 2020-09-07 - the same position in the timeline relative to today."""
+
+    date_fields, date_time_fields = context
+
+    # Determine the direction in which we are converting.
+    # For extracts, we convert the date from today-anchored to mapping.anchor_date-anchored.
+    # For loads, we do the reverse.
+
+    if operation is DataOperationType.QUERY:
+        current_anchor = date.today()
+        target_anchor = mapping.anchor_date
+    else:
+        current_anchor = mapping.anchor_date
+        target_anchor = date.today()
+
+    r = record.copy()
+
     for index in date_fields:
+        if operation is DataOperationType.QUERY:
+            index += 1  # For the Id field.
         if r[index]:
             r[index] = _convert_date(
                 target_anchor, current_anchor, date.fromisoformat(r[index])
             ).isoformat()
 
     for index in date_time_fields:
+        if operation is DataOperationType.QUERY:
+            index += 1  # For the Id field.
         if r[index]:
             r[index] = _convert_datetime(
                 target_anchor, current_anchor, datetime.fromisoformat(r[index])
