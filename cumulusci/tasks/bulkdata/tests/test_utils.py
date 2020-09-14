@@ -16,6 +16,7 @@ from cumulusci.tasks.bulkdata.utils import (
     adjust_relative_dates,
 )
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, MappingStep
+from cumulusci.tasks.bulkdata.step import DataOperationType
 
 
 def create_db_file(filename):
@@ -203,15 +204,41 @@ class TestRelativeDates:
         }
 
         target = date.today() + timedelta(days=7)
-        assert adjust_relative_dates(mapping, org_config, ["2020-07-08"]) == [
-            target.isoformat()
-        ]
+        assert adjust_relative_dates(
+            mapping, org_config, ["2020-07-08"], DataOperationType.INSERT
+        ) == [target.isoformat()]
 
-        assert adjust_relative_dates(mapping, org_config, ["2020-07-01"]) == [
-            date.today().isoformat()
-        ]
+        assert adjust_relative_dates(
+            mapping, org_config, ["2020-07-01"], DataOperationType.INSERT
+        ) == [date.today().isoformat()]
 
-        assert adjust_relative_dates(mapping, org_config, [""]) == [""]
+        assert adjust_relative_dates(
+            mapping, org_config, [""], DataOperationType.INSERT
+        ) == [""]
+
+    def test_relative_dates__extract(self):
+        mapping = MappingStep(
+            sf_object="Account", fields=["Some_Date__c"], anchor_date="2020-07-01"
+        )
+
+        org_config = mock.Mock()
+        org_config.salesforce_client.Account.describe.return_value = {
+            "fields": [{"name": "Some_Date__c", "type": "date"}]
+        }
+
+        target = mapping.anchor_date + timedelta(days=7)
+        input_date = (date.today() + timedelta(days=7)).isoformat()
+        assert adjust_relative_dates(
+            mapping, org_config, [input_date], DataOperationType.QUERY
+        ) == [target.isoformat()]
+
+        assert adjust_relative_dates(
+            mapping, org_config, [date.today().isoformat()], DataOperationType.QUERY
+        ) == [mapping.anchor_date.isoformat()]
+
+        assert adjust_relative_dates(
+            mapping, org_config, [""], DataOperationType.QUERY
+        ) == [""]
 
     def test_relative_datetimes(self):
         mapping = MappingStep(
@@ -225,13 +252,15 @@ class TestRelativeDates:
 
         input_dt = datetime.fromisoformat("2020-07-08T09:37:57.373496")
         target = datetime.combine(date.today() + timedelta(days=7), input_dt.time())
-        assert adjust_relative_dates(mapping, org_config, [input_dt.isoformat()]) == [
-            target.isoformat()
-        ]
+        assert adjust_relative_dates(
+            mapping, org_config, [input_dt.isoformat()], DataOperationType.INSERT
+        ) == [target.isoformat()]
 
         now = datetime.combine(mapping.anchor_date, datetime.now().time())
-        assert adjust_relative_dates(mapping, org_config, [now.isoformat()]) == [
-            datetime.combine(date.today(), now.time()).isoformat()
-        ]
+        assert adjust_relative_dates(
+            mapping, org_config, [now.isoformat()], DataOperationType.INSERT
+        ) == [datetime.combine(date.today(), now.time()).isoformat()]
 
-        assert adjust_relative_dates(mapping, org_config, [""]) == [""]
+        assert adjust_relative_dates(
+            mapping, org_config, [""], DataOperationType.INSERT
+        ) == [""]

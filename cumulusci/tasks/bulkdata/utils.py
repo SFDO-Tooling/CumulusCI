@@ -10,6 +10,7 @@ from sqlalchemy.orm import mapper
 from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
+from cumulusci.tasks.bulkdata.step import DataOperationType
 
 
 class SqlAlchemyMixin:
@@ -126,11 +127,25 @@ class RowErrorChecker:
 
 
 def adjust_relative_dates(
-    mapping: MappingStep, org_config: OrgConfig, record: List[str]
+    mapping: MappingStep,
+    org_config: OrgConfig,
+    record: List[str],
+    operation: DataOperationType,
 ):
     """Convert specified date and time fields (in ISO format) relative to the present moment.
     If some date is 2020-07-30, anchor_date is 2020-07-23, and today's date is 2020-09-01,
     that date will become 2020-09-07 - the same position in the timeline relative to today."""
+
+    # Determine the direction in which we are converting.
+    # For extracts, we convert the date from today-anchored to mapping.anchor_date-anchored.
+    # For loads, we do the reverse.
+
+    if operation is DataOperationType.QUERY:
+        current_anchor = date.today()
+        target_anchor = mapping.anchor_date
+    else:
+        current_anchor = mapping.anchor_date
+        target_anchor = date.today()
 
     fields = mapping.get_field_list()
 
@@ -149,17 +164,25 @@ def adjust_relative_dates(
 
     for index in date_fields:
         if r[index]:
-            this_date = date.today() + (
-                date.fromisoformat(r[index]) - mapping.anchor_date
-            )
-            r[index] = this_date.isoformat()
+            r[index] = _convert_date(
+                target_anchor, current_anchor, date.fromisoformat(r[index])
+            ).isoformat()
 
     for index in date_time_fields:
         if r[index]:
-            this_datetime = datetime.fromisoformat(r[index])
-            this_date = date.today() + (this_datetime.date() - mapping.anchor_date)
-
-            new_datetime = datetime.combine(this_date, this_datetime.time())
-            r[index] = new_datetime.isoformat()
+            r[index] = _convert_datetime(
+                target_anchor, current_anchor, datetime.fromisoformat(r[index])
+            ).isoformat()
 
     return r
+
+
+def _convert_date(target_anchor, current_anchor, this_date):
+    return target_anchor + (this_date - current_anchor)
+
+
+def _convert_datetime(target_anchor, current_anchor, this_datetime):
+    return datetime.combine(
+        _convert_date(target_anchor, current_anchor, this_datetime.date()),
+        this_datetime.time(),
+    )
