@@ -611,7 +611,7 @@ Opportunites).
 Imagine if the numbers were more like 1M, 500K and 1.5M. And further,
 imagine if your network crashed after 1M Accounts and 499K Contacts 
 were uploaded. You would not have a single "complete set" of 10/5/15.
-Instad you would have 1M "partial sets".
+Instead you would have 1M "partial sets".
 
 If, by contrast, you had set your batch size to 100_000, your network
 might die more around the 250,000 Account mark, but you would have
