@@ -491,19 +491,19 @@ def test_sf_push_add_push_batch_retry(sf_push_api, metadata_package_version):
     sf_push_api.sf._call_salesforce.side_effect = [
         SalesforceMalformedRequest(
             "base_url/composite/tree/PackagePushJob",
-            401,
+            400,
             "resource_name",
             retry_response,
         ),
         SalesforceMalformedRequest(
             "base_url/composite/tree/PackagePushJob",
-            401,
+            400,
             "resource_name",
             duplicate_response,
         ),
         SalesforceMalformedRequest(
             "base_url/composite/tree/PackagePushJob",
-            401,
+            400,
             "resource_name",
             invalid_response,
         ),
