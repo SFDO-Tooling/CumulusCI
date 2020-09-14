@@ -78,7 +78,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "Skipping validation creates packages more quickly, but they cannot be promoted for release."
         },
         "org_dependent": {
-            "description": "If true, create an org-dependent unlocked package. Default: true."
+            "description": "If true, create an org-dependent unlocked package. Default: false."
         },
         "force_upload": {
             "description": "If true, force creating a new package version even if one with the same contents already exists"
@@ -93,7 +93,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             or self.project_config.project__package__name,
             package_type=self.options.get("package_type")
             or self.project_config.project__package__type,
-            org_dependent=self.options.get("org_dependent", True),
+            org_dependent=self.options.get("org_dependent", False),
             namespace=self.options.get("namespace")
             or self.project_config.project__package__namespace,
             branch=self.project_config.repo_branch,
