@@ -510,7 +510,6 @@ def test_sf_push_add_push_batch_retry(sf_push_api, metadata_package_version):
         [],
     ]
 
-    # with pytest.raises(SalesforceMalformedRequest):
     returned_batch = sf_push_api._add_batch(orgs, push_request_id)
 
     assert [orgs[0]] == returned_batch  # only remaining org should be retry-able

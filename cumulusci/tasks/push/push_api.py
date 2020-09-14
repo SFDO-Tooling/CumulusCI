@@ -583,7 +583,7 @@ class SalesforcePushApi(object):
         )
         return request_id, scheduled_orgs
 
-    def _add_batch(self, batch, request_id):
+    def _add_batch(self, batch: list, request_id) -> list:
 
         # add orgs to batch data
         batch_data = {"records": []}
@@ -604,6 +604,7 @@ class SalesforcePushApi(object):
                 data=json.dumps(batch_data),
             )
         except SalesforceMalformedRequest as e:
+            invalid_orgs = set()
             retry_all = False
             for result in e.content["results"]:
                 for error in result["errors"]:
@@ -616,7 +617,7 @@ class SalesforcePushApi(object):
                         "UNKNOWN_EXCEPTION",
                     ]:
                         org_id = result["referenceId"]
-                        batch.remove(org_id)
+                        invalid_orgs.add(org_id)
                         self.logger.info(
                             "Skipping org {} - {}".format(org_id, error["message"])
                         )
@@ -628,6 +629,8 @@ class SalesforcePushApi(object):
                 self.logger.warning("Retrying batch")
                 batch = self._add_batch(batch, request_id)
             else:
+                for org_id in invalid_orgs:
+                    batch.remove(org_id)
                 if batch:
                     self.logger.warning("Retrying batch without invalid orgs")
                     batch = self._add_batch(batch, request_id)
