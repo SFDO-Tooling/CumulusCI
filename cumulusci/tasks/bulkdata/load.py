@@ -15,7 +15,6 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     DataOperationJobResult,
     get_dml_operation,
-    DataApi,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
@@ -132,31 +131,21 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     ) -> Union[DataOperationJobResult, MagicMock]:
         """Load data for a single step."""
 
-        if mapping.get("fields", {}).get("RecordTypeId"):
+        if "RecordTypeId" in mapping.fields:
             conn = self.session.connection()
-            self._load_record_types([mapping["sf_object"]], conn)
+            self._load_record_types([mapping.sf_object], conn)
             self.session.commit()
-
-        mapping["oid_as_pk"] = bool(mapping.get("fields", {}).get("Id"))
 
         local_ids = []
         query = self._query_db(mapping)
-        operation = (
-            DataOperationType.INSERT
-            if mapping.get("action") == "insert"
-            else DataOperationType.UPDATE
-        )
-        bulk_mode = mapping.get("bulk_mode") or self.bulk_mode or "Parallel"
+        bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
         step = get_dml_operation(
-            sobject=mapping["sf_object"],
-            operation=operation,
-            api_options={
-                "batch_size": mapping.get("batch_size", 200),
-                "bulk_mode": bulk_mode,
-            },
+            sobject=mapping.sf_object,
+            operation=mapping.action,
+            api_options={"batch_size": mapping.batch_size, "bulk_mode": bulk_mode},
             context=self,
             fields=self._get_columns(mapping),
-            api=mapping.get("api", DataApi.SMART),
+            api=mapping.api,
             volume=query.count(),
         )
 
@@ -182,7 +171,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             pkey = row[0]
             row = list(row[1:]) + statics
             row = [self._convert(value) for value in row]
-            if mapping["action"] == "update":
+            if mapping.action is DataOperationType.UPDATE:
                 if len(row) > 1 and all([f is None for f in row[1:]]):
                     # Skip update rows that contain no values
                     total_rows -= 1
@@ -198,23 +187,23 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _get_columns(self, mapping):
         """Build a flat list of columns for the given mapping,
         including fields, lookups, and statics."""
-        lookups = mapping.get("lookups", {})
+        lookups = mapping.lookups
 
         # Build the list of fields to import
         columns = []
-        columns.extend(mapping.get("fields", {}).keys())
+        columns.extend(mapping.fields.keys())
         # Don't include lookups with an `after:` spec (dependent lookups)
-        columns.extend([f for f in lookups if not lookups[f].get("after")])
-        columns.extend(mapping.get("static", {}).keys())
+        columns.extend([f for f in lookups if not lookups[f].after])
+        columns.extend(mapping.static.keys())
         # If we're using Record Type mapping, `RecordTypeId` goes at the end.
         if "RecordTypeId" in columns:
             columns.remove("RecordTypeId")
         if "RecordType" in columns:
             columns.remove("RecordType")
 
-        if mapping["action"] == "insert" and "Id" in columns:
+        if mapping.action is DataOperationType.INSERT and "Id" in columns:
             columns.remove("Id")
-        if mapping.get("record_type") or "RecordTypeId" in mapping.get("fields", {}):
+        if mapping.record_type or "RecordTypeId" in mapping.fields:
             columns.append("RecordTypeId")
 
         return columns
@@ -228,11 +217,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _get_statics(self, mapping):
         """Return the static values (not column names) to be appended to
         records for this mapping."""
-        statics = list(mapping.get("static", {}).values())
-        if mapping.get("record_type"):
+        statics = list(mapping.static.values())
+        if mapping.record_type:
             query = (
-                f"SELECT Id FROM RecordType WHERE SObjectType='{mapping.get('sf_object')}'"
-                f"AND DeveloperName = '{mapping['record_type']}' LIMIT 1"
+                f"SELECT Id FROM RecordType WHERE SObjectType='{mapping.sf_object}'"
+                f"AND DeveloperName = '{mapping.record_type}' LIMIT 1"
             )
             records = self.sf.query(query)["records"]
             if records:
@@ -250,56 +239,53 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         as well as joining to the id tables to get real SF ids
         for lookups.
         """
-        model = self.models[mapping.get("table")]
-
-        # Use primary key instead of the field mapped to SF Id
-        fields = mapping.get("fields", {}).copy()
-        if mapping["oid_as_pk"]:
-            del fields["Id"]
+        model = self.models[mapping.table]
 
         id_column = model.__table__.primary_key.columns.keys()[0]
         columns = [getattr(model, id_column)]
 
-        for name, f in fields.items():
-            if name not in ("RecordTypeId", "RecordType"):
+        for name, f in mapping.fields.items():
+            if name not in ("Id", "RecordTypeId", "RecordType"):
                 columns.append(model.__table__.columns[f])
 
         lookups = {
             lookup_field: lookup
-            for lookup_field, lookup in mapping.get("lookups", {}).items()
-            if not lookup.get("after")
+            for lookup_field, lookup in mapping.lookups.items()
+            if not lookup.after
         }
 
         for lookup in lookups.values():
-            lookup["aliased_table"] = aliased(
-                self.metadata.tables[f"{lookup['table']}_sf_ids"]
+            lookup.aliased_table = aliased(
+                self.metadata.tables[f"{lookup.table}_sf_ids"]
             )
-            columns.append(lookup["aliased_table"].columns.sf_id)
+            columns.append(lookup.aliased_table.columns.sf_id)
 
-        if mapping["fields"].get("RecordTypeId"):
+        if "RecordTypeId" in mapping.fields:
             rt_dest_table = self.metadata.tables[
-                mapping["sf_object"] + "_rt_target_mapping"
+                mapping.get_destination_record_type_table()
             ]
             columns.append(rt_dest_table.columns.record_type_id)
 
         query = self.session.query(*columns)
-        if mapping.get("record_type") and hasattr(model, "record_type"):
-            query = query.filter(model.record_type == mapping["record_type"])
-        if mapping.get("filters"):
+        if mapping.record_type and hasattr(model, "record_type"):
+            query = query.filter(model.record_type == mapping.record_type)
+        if mapping.filters:
             filter_args = []
-            for f in mapping["filters"]:
+            for f in mapping.filters:
                 filter_args.append(text(f))
             query = query.filter(*filter_args)
 
-        if mapping["fields"].get("RecordTypeId"):
-            rt_source_table = self.metadata.tables[mapping["sf_object"] + "_rt_mapping"]
+        if "RecordTypeId" in mapping.fields:
+            rt_source_table = self.metadata.tables[
+                mapping.get_source_record_type_table()
+            ]
             rt_dest_table = self.metadata.tables[
-                mapping["sf_object"] + "_rt_target_mapping"
+                mapping.get_destination_record_type_table()
             ]
             query = query.outerjoin(
                 rt_source_table,
                 rt_source_table.columns.record_type_id
-                == getattr(model, mapping["fields"]["RecordTypeId"]),
+                == getattr(model, mapping.fields["RecordTypeId"]),
             )
             query = query.outerjoin(
                 rt_dest_table,
@@ -313,8 +299,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             key_field = lookup.get_lookup_key_field(model)
             value_column = getattr(model, key_field)
             query = query.outerjoin(
-                lookup["aliased_table"],
-                lookup["aliased_table"].columns.id == value_column,
+                lookup.aliased_table,
+                lookup.aliased_table.columns.id == value_column,
             )
             # Order by foreign key to minimize lock contention
             # by trying to keep lookup targets in the same batch
@@ -323,9 +309,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # Filter out non-person account Contact records.
         # Contact records for person accounts were already created by the system.
-        if mapping["sf_object"] == "Contact" and self._can_load_person_accounts(
-            mapping
-        ):
+        if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):
             query = self._filter_out_person_account_records(query, model)
 
         return query
@@ -340,7 +324,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _process_job_results(self, mapping, step, local_ids):
         """Get the job results and process the results. If we're raising for
         row-level errors, do so; if we're inserting, store the new Ids."""
-        if mapping["action"] == "insert":
+        if mapping.action is DataOperationType.INSERT:
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
             conn = self.session.connection()
 
@@ -348,7 +332,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # If we know we have no successful inserts, don't attempt to persist Ids.
         # Do, however, drain the generator to get error-checking behavior.
-        if mapping["action"] == "insert" and (
+        if mapping.action is DataOperationType.INSERT and (
             step.job_result.records_processed - step.job_result.total_row_errors
         ):
             self._sql_bulk_insert_from_records(
@@ -366,11 +350,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # person account Contact records so lookups to
         # person account Contact records get populated downstream as expected.
         if (
-            mapping["action"] == "insert"
-            and mapping["sf_object"] == "Contact"
+            mapping.action is DataOperationType.INSERT
+            and mapping.sf_object == "Contact"
             and self._can_load_person_accounts(mapping)
         ):
-            account_id_lookup = mapping["lookups"].get("AccountId")
+            account_id_lookup = mapping.lookups.get("AccountId")
             if account_id_lookup:
                 self._sql_bulk_insert_from_records(
                     connection=conn,
@@ -381,7 +365,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     ),
                 )
 
-        if mapping["action"] == "insert":
+        if mapping.action is DataOperationType.INSERT:
             self.session.commit()
 
     def _generate_results_id_map(self, step, local_ids):
@@ -464,13 +448,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Loop through mappings and reflect each referenced table
         self.models = {}
         for name, mapping in self.mapping.items():
-            if "table" in mapping and mapping["table"] not in self.models:
-                self.models[mapping["table"]] = self.base.classes[mapping["table"]]
+            if mapping.table not in self.models:
+                self.models[mapping.table] = self.base.classes[mapping.table]
 
             # create any Record Type tables we need
-            if mapping.get("fields", {}).get("RecordTypeId"):
+            if "RecordTypeId" in mapping.fields:
                 self._create_record_type_table(
-                    mapping["sf_object"] + "_rt_target_mapping"
+                    mapping.get_destination_record_type_table()
                 )
         self.metadata.create_all()
 
@@ -500,36 +484,29 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.after_steps = defaultdict(dict)
 
         for step in self.mapping.values():
-            step["action"] = step.get("action", "insert")
-            if step.get("lookups") and any(
-                [lookup.get("after") for lookup in step["lookups"].values()]
-            ):
+            if any([lookup.after for lookup in step.lookups.values()]):
                 # We have deferred/dependent lookups.
                 # Synthesize mapping steps for them.
 
-                sobject = step["sf_object"]
+                sobject = step.sf_object
                 after_list = {
-                    lookup["after"]
-                    for lookup in step["lookups"].values()
-                    if lookup.get("after")
+                    lookup.after for lookup in step.lookups.values() if lookup.after
                 }
 
                 for after in after_list:
                     lookups = {
                         lookup_field: lookup
-                        for lookup_field, lookup in step["lookups"].items()
-                        if lookup.get("after") == after
+                        for lookup_field, lookup in step.lookups.items()
+                        if lookup.after == after
                     }
                     name = f"Update {sobject} Dependencies After {after}"
-                    mapping = {
-                        "sf_object": sobject,
-                        "api": step["api"],
-                        "action": "update",
-                        "table": step["table"],
-                        "lookups": {},
-                        "fields": {},
-                    }
-                    mapping["lookups"]["Id"] = MappingLookup(
+                    mapping = MappingStep(
+                        sf_object=sobject,
+                        api=step.api,
+                        action="update",
+                        table=step.table,
+                    )
+                    mapping.lookups["Id"] = MappingLookup(
                         name="Id",
                         table=step["table"],
                         key_field=self.models[
@@ -537,8 +514,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         ].__table__.primary_key.columns.keys()[0],
                     )
                     for lookup in lookups:
-                        mapping["lookups"][lookup] = lookups[lookup].copy()
-                        mapping["lookups"][lookup]["after"] = None
+                        mapping.lookups[lookup] = lookups[lookup].copy()
+                        mapping.lookups[lookup].after = None
 
                     self.after_steps[after][name] = mapping
 
@@ -550,14 +527,14 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         """
         for mapping in self.mapping.values():
             if (
-                mapping["sf_object"]
-                in (
+                mapping.sf_object
+                in [
                     "Account",
                     "Contact",
-                )
+                ]
                 and self._db_has_person_accounts_column(mapping)
             ):
-                table = self.models[mapping.get("table")].__table__
+                table = self.models[mapping.table].__table__
                 if (
                     self.session.query(table)
                     .filter(table.columns.get("IsPersonAccount") == "true")
@@ -571,7 +548,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _db_has_person_accounts_column(self, mapping):
         """Returns whether "IsPersonAccount" is a column in mapping's table."""
         return (
-            self.models[mapping.get("table")].__table__.columns.get("IsPersonAccount")
+            self.models[mapping.table].__table__.columns.get("IsPersonAccount")
             is not None
         )
 
@@ -605,7 +582,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         - Merge the maps
         """
         # Contact table columns
-        contact_model = self.models[contact_mapping.get("table")]
+        contact_model = self.models[contact_mapping.table]
 
         contact_id_column = getattr(
             contact_model, contact_model.__table__.primary_key.columns.keys()[0]
@@ -615,7 +592,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         )
 
         # Account ID table + column
-        account_sf_ids_table = account_id_lookup["aliased_table"]
+        account_sf_ids_table = account_id_lookup.aliased_table
         account_sf_id_column = account_sf_ids_table.columns["sf_id"]
 
         # Query the Contact table for person account contact records so we can
