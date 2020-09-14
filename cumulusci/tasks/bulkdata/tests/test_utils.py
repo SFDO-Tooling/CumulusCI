@@ -1,17 +1,21 @@
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import os
 import json
 import unittest
 from unittest import mock
 
 import responses
-from sqlalchemy import create_engine, MetaData, Integer, types, Unicode, Column, Table
+from sqlalchemy import create_engine, MetaData, Integer, Unicode, Column, Table
 from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
-from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
+from cumulusci.tasks.bulkdata.utils import (
+    create_table,
+    generate_batches,
+    adjust_relative_dates,
+)
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, MappingStep
 
 
 def create_db_file(filename):
@@ -68,30 +72,6 @@ def mock_describe_calls():
         "Case",
     ]:
         mock_sobject_describe(sobject)
-
-
-class TestEpochType(unittest.TestCase):
-    def test_process_bind_param(self):
-        obj = bulkdata.utils.EpochType()
-        dt = datetime(1970, 1, 1, 0, 0, 1)
-        result = obj.process_bind_param(dt, None)
-        self.assertEqual(1000, result)
-
-    def test_process_result_value(self):
-        obj = bulkdata.utils.EpochType()
-
-        # Non-None value
-        result = obj.process_result_value(1000, None)
-        self.assertEqual(datetime(1970, 1, 1, 0, 0, 1), result)
-
-        # None value
-        result = obj.process_result_value(None, None)
-        self.assertEqual(None, result)
-
-    def test_setup_epoch(self):
-        column_info = {"type": types.DateTime()}
-        bulkdata.utils.setup_epoch(mock.Mock(), mock.Mock(), column_info)
-        self.assertIsInstance(column_info["type"], bulkdata.utils.EpochType)
 
 
 class TestSqlAlchemyMixin(unittest.TestCase):
@@ -209,3 +189,48 @@ class TestBatching(unittest.TestCase):
     def test_batching_with_remainder(self):
         batches = list(generate_batches(num_records=20, batch_size=7))
         assert batches == [(7, 0), (7, 1), (6, 2)]
+
+
+class TestRelativeDates:
+    def test_relative_dates(self):
+        mapping = MappingStep(
+            sf_object="Account", fields=["Some_Date__c"], anchor_date="2020-07-01"
+        )
+
+        org_config = mock.Mock()
+        org_config.salesforce_client.Account.describe.return_value = {
+            "fields": [{"name": "Some_Date__c", "type": "date"}]
+        }
+
+        target = date.today() + timedelta(days=7)
+        assert adjust_relative_dates(mapping, org_config, ["2020-07-08"]) == [
+            target.isoformat()
+        ]
+
+        assert adjust_relative_dates(mapping, org_config, ["2020-07-01"]) == [
+            date.today().isoformat()
+        ]
+
+        assert adjust_relative_dates(mapping, org_config, [""]) == [""]
+
+    def test_relative_datetimes(self):
+        mapping = MappingStep(
+            sf_object="Account", fields=["Some_Datetime__c"], anchor_date="2020-07-01"
+        )
+
+        org_config = mock.Mock()
+        org_config.salesforce_client.Account.describe.return_value = {
+            "fields": [{"name": "Some_Datetime__c", "type": "datetime"}]
+        }
+
+        input_dt = datetime.fromisoformat("2020-07-08T09:37:57.373496")
+        target = datetime.combine(date.today() + timedelta(days=7), input_dt.time())
+        assert adjust_relative_dates(mapping, org_config, [input_dt.isoformat()]) == [
+            target.isoformat()
+        ]
+
+        assert adjust_relative_dates(
+            mapping, org_config, [datetime.now().isoformat()]
+        ) == [date.today().isoformat()]
+
+        assert adjust_relative_dates(mapping, org_config, [""]) == [""]

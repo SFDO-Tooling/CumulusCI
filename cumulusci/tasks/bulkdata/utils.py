@@ -1,35 +1,15 @@
-import datetime
+from datetime import date, datetime
+from typing import List
 
-from sqlalchemy import types
-from sqlalchemy import event
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
 
+from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
-
-
-# Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
-class EpochType(types.TypeDecorator):
-    impl = types.Integer
-
-    epoch = datetime.datetime(1970, 1, 1, 0, 0, 0)
-
-    def process_bind_param(self, value, dialect):
-        return int((value - self.epoch).total_seconds()) * 1000
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            return self.epoch + datetime.timedelta(seconds=value / 1000)
-
-
-# Listen for sqlalchemy column_reflect event and map datetime fields to EpochType
-@event.listens_for(Table, "column_reflect")
-def setup_epoch(inspector, table, column_info):
-    if isinstance(column_info["type"], types.DateTime):
-        column_info["type"] = EpochType()
+from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
 
 
 class SqlAlchemyMixin:
@@ -143,3 +123,47 @@ class RowErrorChecker:
                 return self.row_error_count
             else:
                 raise BulkDataException(msg)
+
+
+def adjust_relative_dates(
+    mapping: MappingStep, org_config: OrgConfig, record: List[str]
+):
+    """Convert specified date and time fields (in ISO format) relative to the present moment.
+    If some date is 2020-07-30, anchor_date is 2020-07-23, and today's date is 2020-09-01,
+    that date will become 2020-09-07 - the same position in the timeline relative to today."""
+
+    fields = mapping.get_field_list()
+
+    r = record.copy()
+
+    date_fields = [
+        fields.index(f)
+        for f in mapping.get_fields_by_type("date", org_config)
+        if f in mapping.fields
+    ]
+    date_time_fields = [
+        fields.index(f)
+        for f in mapping.get_fields_by_type("datetime", org_config)
+        if f in mapping.fields
+    ]
+
+    for index in date_fields:
+        if r[index]:
+            this_date = date.today() + (
+                date.fromisoformat(record[index]) - mapping.anchor_date
+            )
+            r[index] = this_date.isoformat()
+
+    for index in date_time_fields:
+        if r[index]:
+            this_datetime = datetime.now() + (
+                datetime.fromisoformat(record[index])
+                - datetime(
+                    mapping.anchor_date.year,
+                    mapping.anchor_date.month,
+                    mapping.anchor_date.day,
+                )
+            )
+            record[index] = this_datetime.isoformat()
+
+    return r
