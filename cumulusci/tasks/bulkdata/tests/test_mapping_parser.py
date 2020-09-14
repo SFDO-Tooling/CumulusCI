@@ -5,7 +5,7 @@ import logging
 import pytest
 
 import responses
-from yaml import safe_load, dump, YAMLError
+from yaml import YAMLError
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.mapping_parser import (
@@ -46,13 +46,6 @@ class TestMappingParser:
         parse_from_yaml(base_path)
         assert "record_type" in caplog.text
 
-        with open(base_path) as f:
-            raw_mapping = safe_load(f)
-        raw_mapping["Insert Households"]["oid_as_pk"] = True
-
-        parse_from_yaml(StringIO(dump(raw_mapping)))
-        assert "oid_as_pk" in caplog.text
-
     def test_bad_mapping_syntax(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
@@ -71,6 +64,13 @@ class TestMappingParser:
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
             data = f.read().replace("Name: name", "Id: sf_id")
+            with pytest.raises(ValidationError):
+                parse_from_yaml(StringIO(data))
+
+    def test_bad_mapping_oid_as_pk(self):
+        base_path = Path(__file__).parent / "mapping_v1.yml"
+        with open(base_path, "r") as f:
+            data = f.read().replace("api: bulk", "oid_as_pk: True`")
             with pytest.raises(ValidationError):
                 parse_from_yaml(StringIO(data))
 
@@ -119,6 +119,25 @@ class TestMappingParser:
         with open(base_path, "rb") as f:
             assert parse_from_yaml(f)
 
+    def test_get_complete_field_map(self):
+        m = MappingStep(
+            sf_object="Account",
+            fields=["Name", "AccountSite"],
+            lookups={"ParentId": MappingLookup(table="Account")},
+        )
+
+        assert m.get_complete_field_map() == {
+            "Name": "Name",
+            "AccountSite": "AccountSite",
+            "ParentId": "ParentId",
+        }
+        assert m.get_complete_field_map(include_id=True) == {
+            "Id": "sf_id",
+            "Name": "Name",
+            "AccountSite": "AccountSite",
+            "ParentId": "ParentId",
+        }
+
     # Start of FLS/Namespace Injection Unit Tests
 
     def test_is_injectable(self):
@@ -127,15 +146,21 @@ class TestMappingParser:
         assert not MappingStep._is_injectable("Account")
 
     def test_get_permission_type(self):
-        ms = MappingStep(sf_object="Account", fields=["Name"], action="insert")
+        ms = MappingStep(
+            sf_object="Account", fields=["Name"], action=DataOperationType.INSERT
+        )
         assert ms._get_permission_type(DataOperationType.INSERT) == "createable"
         assert ms._get_permission_type(DataOperationType.QUERY) == "queryable"
 
-        ms = MappingStep(sf_object="Account", fields=["Name"], action="update")
+        ms = MappingStep(
+            sf_object="Account", fields=["Name"], action=DataOperationType.UPDATE
+        )
         assert ms._get_permission_type(DataOperationType.INSERT) == "updateable"
 
     def test_check_field_permission(self):
-        ms = MappingStep(sf_object="Account", fields=["Name"], action="insert")
+        ms = MappingStep(
+            sf_object="Account", fields=["Name"], action=DataOperationType.INSERT
+        )
 
         assert ms._check_field_permission(
             {"Name": {"createable": True}}, "Name", DataOperationType.INSERT
@@ -145,7 +170,9 @@ class TestMappingParser:
             {"Name": {"createable": True}}, "Name", DataOperationType.QUERY
         )
 
-        ms = MappingStep(sf_object="Account", fields=["Name"], action="update")
+        ms = MappingStep(
+            sf_object="Account", fields=["Name"], action=DataOperationType.UPDATE
+        )
 
         assert not ms._check_field_permission(
             {"Name": {"updateable": False}}, "Name", DataOperationType.INSERT
@@ -157,7 +184,9 @@ class TestMappingParser:
 
     def test_validate_field_dict__fls_checks(self):
         ms = MappingStep(
-            sf_object="Account", fields=["Id", "Name", "Website"], action="insert"
+            sf_object="Account",
+            fields=["Id", "Name", "Website"],
+            action=DataOperationType.INSERT,
         )
 
         assert ms._validate_field_dict(
@@ -182,7 +211,9 @@ class TestMappingParser:
 
     def test_validate_field_dict__injection(self):
         ms = MappingStep(
-            sf_object="Account", fields=["Id", "Name", "Test__c"], action="insert"
+            sf_object="Account",
+            fields=["Id", "Name", "Test__c"],
+            action=DataOperationType.INSERT,
         )
 
         assert ms._validate_field_dict(
@@ -199,7 +230,9 @@ class TestMappingParser:
 
     def test_validate_field_dict__injection_duplicate_fields(self):
         ms = MappingStep(
-            sf_object="Account", fields=["Id", "Name", "Test__c"], action="insert"
+            sf_object="Account",
+            fields=["Id", "Name", "Test__c"],
+            action=DataOperationType.INSERT,
         )
 
         assert ms._validate_field_dict(
@@ -220,7 +253,9 @@ class TestMappingParser:
 
     def test_validate_field_dict__drop_missing(self):
         ms = MappingStep(
-            sf_object="Account", fields=["Id", "Name", "Website"], action="insert"
+            sf_object="Account",
+            fields=["Id", "Name", "Website"],
+            action=DataOperationType.INSERT,
         )
 
         assert ms._validate_field_dict(
@@ -236,7 +271,9 @@ class TestMappingParser:
         assert ms.fields_ == {"Id": "Id", "Name": "Name"}
 
     def test_validate_sobject(self):
-        ms = MappingStep(sf_object="Account", fields=["Name"], action="insert")
+        ms = MappingStep(
+            sf_object="Account", fields=["Name"], action=DataOperationType.INSERT
+        )
 
         assert ms._validate_sobject(
             CaseInsensitiveDict({"Account": {"createable": True}}),
@@ -250,7 +287,9 @@ class TestMappingParser:
             DataOperationType.QUERY,
         )
 
-        ms = MappingStep(sf_object="Account", fields=["Name"], action="update")
+        ms = MappingStep(
+            sf_object="Account", fields=["Name"], action=DataOperationType.UPDATE
+        )
 
         assert not ms._validate_sobject(
             CaseInsensitiveDict({"Account": {"updateable": False}}),
@@ -259,7 +298,9 @@ class TestMappingParser:
         )
 
     def test_validate_sobject__injection(self):
-        ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
+        ms = MappingStep(
+            sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
+        )
 
         assert ms._validate_sobject(
             CaseInsensitiveDict({"npsp__Test__c": {"createable": True}}),
@@ -269,7 +310,9 @@ class TestMappingParser:
         assert ms.sf_object == "npsp__Test__c"
 
     def test_validate_sobject__injection_duplicate(self):
-        ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
+        ms = MappingStep(
+            sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
+        )
 
         assert ms._validate_sobject(
             CaseInsensitiveDict(
@@ -427,7 +470,9 @@ class TestMappingParser:
         return_value=True,
     )
     def test_validate_and_inject_namespace__fls(self, mock_field, mock_sobject):
-        ms = MappingStep(sf_object="Test__c", fields=["Field__c"], action="insert")
+        ms = MappingStep(
+            sf_object="Test__c", fields=["Field__c"], action=DataOperationType.INSERT
+        )
 
         org_config = mock.Mock()
         org_config.salesforce_client.describe.return_value = {
@@ -476,7 +521,9 @@ class TestMappingParser:
     def test_validate_and_inject_namespace__fls_sobject_failure(
         self, mock_field, mock_sobject
     ):
-        ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
+        ms = MappingStep(
+            sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
+        )
 
         org_config = mock.Mock()
         org_config.salesforce_client.describe.return_value = {
@@ -508,7 +555,9 @@ class TestMappingParser:
     def test_validate_and_inject_namespace__fls_fields_failure(
         self, mock_field, mock_sobject
     ):
-        ms = MappingStep(sf_object="Test__c", fields=["Name"], action="insert")
+        ms = MappingStep(
+            sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
+        )
 
         org_config = mock.Mock()
         org_config.salesforce_client.describe.return_value = {

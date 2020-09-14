@@ -36,7 +36,7 @@ class MappingLookup(CCIDictModel):
     value_field: Optional[str] = None
     join_field: Optional[str] = None
     after: Optional[str] = None
-    aliased_table: Optional[str] = None
+    aliased_table: Optional[Any] = None
     name: Optional[str] = None  # populated by parent
 
     def get_lookup_key_field(self, model=None):
@@ -71,7 +71,7 @@ class MappingStep(CCIDictModel):
     lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
-    action: str = "insert"
+    action: DataOperationType = DataOperationType.INSERT
     api: DataApi = DataApi.SMART
     batch_size: int = 200
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
@@ -79,8 +79,40 @@ class MappingStep(CCIDictModel):
     bulk_mode: Optional[
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
-    sf_id_table: Optional[str] = None  # populated at runtime in extract.py
-    record_type_table: Optional[str] = None  # populated at runtime in extract.py
+
+    def get_oid_as_pk(self):
+        """Returns True if using Salesforce Ids as primary keys."""
+        return "Id" in self.fields
+
+    def get_destination_record_type_table(self):
+        """Returns the name of the record type table for the target org."""
+        return f"{self.sf_object}_rt_target_mapping"
+
+    def get_source_record_type_table(self):
+        """Returns the name of the record type table for the source org."""
+        return f"{self.sf_object}_rt_mapping"
+
+    def get_sf_id_table(self):
+        """Returns the name of the table for storing Salesforce Ids."""
+        return f"{self.table}_sf_ids"
+
+    def get_complete_field_map(self, include_id=False):
+        """Return a field map that includes both `fields` and `lookups`.
+        If include_id is True, add the Id field if not already present."""
+        fields = {}
+
+        if include_id and "Id" not in self.fields:
+            fields["Id"] = "sf_id"
+
+        fields.update(self.fields)
+        fields.update(
+            {
+                lookup: self.lookups[lookup].get_lookup_key_field()
+                for lookup in self.lookups
+            }
+        )
+
+        return fields
 
     @validator("batch_size")
     @classmethod
@@ -98,10 +130,9 @@ class MappingStep(CCIDictModel):
     @validator("oid_as_pk")
     @classmethod
     def oid_as_pk_is_deprecated(cls, v):
-        logger.warning(
-            "oid_as_pk is deprecated. Just supply an Id column declaration and it will be inferred."
+        raise ValueError(
+            "oid_as_pk is no longer supported. Include the Id field if desired."
         )
-        return v
 
     @validator("fields_", pre=True)
     @classmethod
@@ -137,7 +168,10 @@ class MappingStep(CCIDictModel):
     def _get_permission_type(self, operation: DataOperationType) -> str:
         if operation is DataOperationType.QUERY:
             return "queryable"
-        if operation is DataOperationType.INSERT and self.action == "update":
+        if (
+            operation is DataOperationType.INSERT
+            and self.action is DataOperationType.UPDATE
+        ):
             return "updateable"
 
         return "createable"

@@ -282,13 +282,11 @@ class TestExtractData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
 
-        mapping = {
-            "sf_object": "Opportunity",
-            "table": "Opportunity",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "Name"},
-            "lookups": {"AccountId": MappingLookup(table="Account", name="AccountId")},
-        }
+        mapping = MappingStep(
+            sf_object="Opportunity",
+            fields={"Id": "sf_id", "Name": "Name"},
+            lookups={"AccountId": MappingLookup(table="Account", name="AccountId")},
+        )
         step = mock.Mock()
         task.session = mock.Mock()
         task._sql_bulk_insert_from_records = mock.Mock()
@@ -299,7 +297,7 @@ class TestExtractData(unittest.TestCase):
         step.get_results.assert_called_once_with()
         task._sql_bulk_insert_from_records.assert_called_once_with(
             connection=task.session.connection.return_value,
-            table="Opportunity",
+            table=mapping.table,
             columns=["sf_id", "Name", "AccountId"],
             record_iterable=log_mock.return_value,
         )
@@ -311,14 +309,12 @@ class TestExtractData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
 
-        mapping = {
-            "sf_object": "Opportunity",
-            "table": "Opportunity",
-            "sf_id_table": "Opportunity_sf_ids",
-            "oid_as_pk": False,
-            "fields": {"Name": "Name"},
-            "lookups": {"AccountId": MappingLookup(table="Account", name="AccountId")},
-        }
+        mapping = MappingStep(
+            sf_object="Opportunity",
+            table="Opportunity",
+            fields={"Name": "Name"},
+            lookups={"AccountId": MappingLookup(table="Account", name="AccountId")},
+        )
         step = mock.Mock()
         step.get_results.return_value = iter(
             [["111", "Test Opportunity", "1"], ["222", "Test Opportunity 2", "1"]]
@@ -339,34 +335,12 @@ class TestExtractData(unittest.TestCase):
                 ),
                 mock.call(
                     connection=task.session.connection.return_value,
-                    table="Opportunity_sf_ids",
+                    table=mapping.get_sf_id_table(),
                     columns=["sf_id"],
                     record_iterable=csv_mock.return_value,
                 ),
             ]
         )
-
-    def test_import_results__no_columns(self):
-        task = _make_task(
-            ExtractData,
-            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
-        )
-
-        mapping = {
-            "sf_object": "Opportunity",
-            "table": "Opportunity",
-            "oid_as_pk": False,
-            "fields": {},
-            "lookups": {},
-        }
-        step = mock.Mock()
-        task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
-
-        task._import_results(mapping, step)
-
-        task.session.connection.assert_called_once_with()
-        task._sql_bulk_insert_from_records.assert_not_called()
 
     def test_import_results__record_type_mapping(self):
         base_path = os.path.dirname(__file__)
@@ -383,20 +357,20 @@ class TestExtractData(unittest.TestCase):
         step = mock.Mock()
         step.get_results.return_value = [["000000000000001", "Test", "012000000000000"]]
 
+        mapping = MappingStep(
+            sf_object="Account",
+            fields={"Name": "Name", "RecordTypeId": "RecordTypeId"},
+            lookups={},
+            table="accounts",
+        )
         task._import_results(
-            {
-                "sf_object": "Account",
-                "record_type_table": "test_rt",
-                "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
-                "lookups": {},
-                "table": "accounts",
-                "sf_id_table": "test_ids",
-                "oid_as_pk": False,
-            },
+            mapping,
             step,
         )
         task._extract_record_types.assert_called_once_with(
-            "Account", "test_rt", task.session.connection.return_value
+            "Account",
+            mapping.get_source_record_type_table(),
+            task.session.connection.return_value,
         )
 
     def test_import_results__person_account_name_stripped(self):
@@ -418,19 +392,16 @@ class TestExtractData(unittest.TestCase):
         ]
 
         task._import_results(
-            {
-                "sf_object": "Account",
-                "record_type_table": "test_rt",
-                "fields": {
+            MappingStep(
+                sf_object="Account",
+                fields={
+                    "Id": "sf_id",
                     "Name": "Name",
                     "RecordTypeId": "RecordTypeId",
                     "IsPersonAccount": "IsPersonAccount",
                 },
-                "lookups": {},
-                "table": "accounts",
-                "sf_id_table": "test_ids",
-                "oid_as_pk": True,  # So we can extract record_iterable from _sql_bulk_insert_from_records
-            },
+                lookups={},
+            ),
             step,
         )
 
@@ -464,8 +435,6 @@ class TestExtractData(unittest.TestCase):
         task.metadata = mock.MagicMock()
 
         task._init_mapping()
-        task.mapping["Insert Contacts"]["sf_id_table"] = "contacts_sf_id"
-        task.mapping["Insert Households"]["sf_id_table"] = "households_sf_id"
         task._map_autopks()
 
         task._convert_lookups_to_id.assert_called_once_with(
@@ -475,10 +444,7 @@ class TestExtractData(unittest.TestCase):
             [mock.call(), mock.call()]
         )
         task.metadata.tables.__getitem__.assert_has_calls(
-            [
-                mock.call("contacts_sf_id"),
-                mock.call("households_sf_id"),
-            ],
+            [mock.call("contacts_sf_ids"), mock.call("households_sf_ids")],
             any_order=True,
         )
 
@@ -495,22 +461,15 @@ class TestExtractData(unittest.TestCase):
             "Opportunity_sf_ids": mock.Mock(),
         }
         task.mapping = {
-            "Account": {"table": "Account", "sf_id_table": "Account_sf_ids"},
-            "Opportunity": {
-                "table": "Opportunity",
-                "sf_id_table": "Opportunity_sf_ids",
-            },
+            "Account": MappingStep(sf_object="Account"),
+            "Opportunity": MappingStep(sf_object="Opportunity"),
         }
 
         task._convert_lookups_to_id(
-            {
-                "sf_object": "Opportunity",
-                "table": "Opportunity",
-                "sf_id_table": "Opportunity_sf_ids",
-                "lookups": {
-                    "AccountId": MappingLookup(table="Account", name="AccountId")
-                },
-            },
+            MappingStep(
+                sf_object="Opportunity",
+                lookups={"AccountId": MappingLookup(table="Account", name="AccountId")},
+            ),
             ["AccountId"],
         )
 
@@ -533,11 +492,8 @@ class TestExtractData(unittest.TestCase):
             "Opportunity_sf_ids": mock.Mock(),
         }
         task.mapping = {
-            "Account": {"table": "Account", "sf_id_table": "Account_sf_ids"},
-            "Opportunity": {
-                "table": "Opportunity",
-                "sf_id_table": "Opportunity_sf_ids",
-            },
+            "Account": MappingStep(sf_object="Account"),
+            "Opportunity": MappingStep(sf_object="Opportunity"),
         }
         task.session.query.return_value.filter.return_value.update.side_effect = (
             NotImplementedError
@@ -548,14 +504,10 @@ class TestExtractData(unittest.TestCase):
         task.session.query.return_value.join.return_value = [(item, "1")]
 
         task._convert_lookups_to_id(
-            {
-                "sf_object": "Opportunity",
-                "table": "Opportunity",
-                "sf_id_table": "Opportunity_sf_ids",
-                "lookups": {
-                    "AccountId": MappingLookup(table="Account", name="AccountId")
-                },
-            },
+            MappingStep(
+                sf_object="Opportunity",
+                lookups={"AccountId": MappingLookup(table="Account", name="AccountId")},
+            ),
             ["AccountId"],
         )
 
@@ -570,14 +522,12 @@ class TestExtractData(unittest.TestCase):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
-        mapping = {
-            "sf_object": "Account",
-            "fields": {"Name": "Name"},
-            "lookups": {},
-            "table": "accounts",
-            "sf_id_table": "test_ids",
-            "oid_as_pk": True,
-        }
+        mapping = MappingStep(
+            sf_object="Account",
+            fields={"Name": "Name", "Id": "sf_id"},
+            lookups={},
+            table="accounts",
+        )
         task.models = {}
         task.metadata = mock.Mock()
         task._create_table(mapping)
@@ -610,22 +560,18 @@ class TestExtractData(unittest.TestCase):
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
         task.mapping = {
-            "Insert Accounts": {
-                "sf_object": "Account",
-                "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
-                "lookups": {},
-                "table": "accounts",
-                "sf_id_table": "test_ids",
-                "oid_as_pk": False,
-            },
-            "Insert Other Accounts": {
-                "sf_object": "Account",
-                "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
-                "lookups": {},
-                "table": "accounts_2",
-                "sf_id_table": "test_ids_2",
-                "oid_as_pk": False,
-            },
+            "Insert Accounts": MappingStep(
+                sf_object="Account",
+                table="accounts",
+                fields={"Name": "Name", "RecordTypeId": "RecordTypeId"},
+                lookups={},
+            ),
+            "Insert Other Accounts": MappingStep(
+                sf_object="Account",
+                fields={"Name": "Name", "RecordTypeId": "RecordTypeId"},
+                lookups={},
+                table="accounts_2",
+            ),
         }
         task.org_config._is_person_accounts_enabled = False
 
@@ -643,26 +589,22 @@ class TestExtractData(unittest.TestCase):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
-        mapping = {
-            "sf_object": "Account",
-            "fields": {"Name": "Name"},
-            "lookups": {},
-            "table": "accounts",
-            "sf_id_table": "test_ids",
-            "oid_as_pk": False,
-        }
+        mapping = MappingStep(
+            sf_object="Account",
+            fields={"Name": "Name"},
+            table="accounts",
+        )
         task.models = {}
         task.metadata = mock.Mock()
         task.org_config._is_person_accounts_enabled = False
 
         task._create_table(mapping)
 
-        assert mapping["sf_id_table"] == "accounts_sf_id"
         create_mock.assert_called_once_with(mapping, task.metadata)
         assert len(table_mock.mock_calls) == 1
 
         assert "accounts" in task.models
-        assert "accounts_sf_id" in task.models
+        assert mapping.get_sf_id_table() in task.models
 
     def test_create_tables(self):
         task = _make_task(
@@ -779,24 +721,12 @@ class TestExtractData(unittest.TestCase):
             org_has_person_accounts_enabled=t.org_config._is_person_accounts_enabled,
         )
 
-    def test_fields_for_mapping(self):
-        task = _make_task(
-            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
-        )
-        assert task._fields_for_mapping(
-            {"oid_as_pk": False, "fields": {"Test__c": "Test"}}
-        ) == ["Id", "Test__c"]
-        assert task._fields_for_mapping(
-            {"oid_as_pk": True, "fields": {"Id": "sf_id", "Test__c": "Test"}}
-        ) == ["Id", "Test__c"]
-
     def test_soql_for_mapping(self):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
         )
         mapping = MappingStep(
             sf_object="Contact",
-            oid_as_pk=True,
             fields={"Id": "sf_id", "Test__c": "Test"},
         )
         assert task._soql_for_mapping(mapping) == "SELECT Id, Test__c FROM Contact"
@@ -804,7 +734,6 @@ class TestExtractData(unittest.TestCase):
         mapping = MappingStep(
             sf_object="Contact",
             record_type="Devel",
-            oid_as_pk=True,
             fields={"Id": "sf_id", "Test__c": "Test"},
         )
         assert (
@@ -883,17 +812,16 @@ class TestExtractData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
 
-        mapping = {
-            "sf_object": "Opportunity",
-            "table": "Opportunity",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "Name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Opportunity",
+            table="Opportunity",
+            fields={"Id": "sf_id", "Name": "Name"},
+            lookups={
                 "AccountId": MappingLookup(
                     table="Account", key_field="account_id", name="AccountId"
                 )
             },
-        }
+        )
         step = mock.Mock()
         task.session = mock.Mock()
         task._sql_bulk_insert_from_records = mock.Mock()
