@@ -54,7 +54,7 @@ class MergeBranch(BaseGithubTask):
         try:
             self.repo.branch(self.options["source_branch"])
         except github3.exceptions.NotFoundError:
-            message = "Branch {} not found".format(self.options["source_branch"])
+            message = f"Branch {self.options['source_branch']} not found"
             self.logger.error(message)
             raise GithubApiNotFoundError(message)
 
@@ -76,16 +76,14 @@ class MergeBranch(BaseGithubTask):
             if branch.name == self.options["source_branch"]:
                 if not self.options["children_only"]:
                     self.logger.debug(
-                        "Skipping branch {}: is source branch".format(branch.name)
+                        f"Skipping branch {branch.name}: is source branch"
                     )
                     branches_dict[branch.name] = branch
                     continue
             if not branch.name.startswith(self.options["branch_prefix"]):
                 if not self.options["children_only"]:
                     self.logger.debug(
-                        "Skipping branch {}: does not match prefix {}".format(
-                            branch.name, self.options["branch_prefix"]
-                        )
+                        f"Skipping branch {branch.name}: does not match prefix {self.options['branch_prefix']}"
                     )
                 # The following line isn't included in coverage
                 # due to behavior of the CPython peephole optimizer,
@@ -109,7 +107,7 @@ class MergeBranch(BaseGithubTask):
                 possible_parents.append(branch.name)
 
         for possible_child in possible_children:
-            parent = "{}{}".format(self.options["branch_prefix"], possible_child[0])
+            parent = f"{self.options['branch_prefix']}{possible_child[0]}"
             if parent in possible_parents:
                 child = "__".join(possible_child)
                 child = self.options["branch_prefix"] + child
@@ -144,15 +142,11 @@ class MergeBranch(BaseGithubTask):
             if self.options["children_only"]:
                 if branch_item["children"]:
                     self.logger.info(
-                        "Performing merge from parent branch {} to children".format(
-                            self.options["source_branch"]
-                        )
+                        f"Performing merge from parent branch {self.options['source_branch']} to children"
                     )
                 else:
                     self.logger.info(
-                        "No children found for branch {}".format(
-                            self.options["source_branch"]
-                        )
+                        f"No children found for branch {self.options['source_branch']}"
                     )
                     continue
                 for child in branch_item["children"]:
@@ -181,22 +175,18 @@ class MergeBranch(BaseGithubTask):
 
         compare = self.repo.compare_commits(branch, commit)
         if not compare or not compare.files:
-            self.logger.info(
-                "Skipping {} {}: no file diffs found".format(branch_type, branch)
-            )
+            self.logger.info(f"Skipping {branch_type} {branch}: no file diffs found")
             return
 
         try:
             self.repo.merge(branch, commit)
             self.logger.info(
-                "Merged {} commits into {} {}".format(
-                    compare.behind_by, branch_type, branch
-                )
+                f"Merged {compare.behind_by} commits into {branch_type} {branch}"
             )
             if children and not self.options["children_only"]:
                 self.logger.info("  Skipping merge into the following child branches:")
                 for child in children:
-                    self.logger.info("    {}".format(child.name))
+                    self.logger.info(f"    {child.name}")
 
         except GitHubError as e:
             if e.code != http.client.CONFLICT:
@@ -204,14 +194,12 @@ class MergeBranch(BaseGithubTask):
 
             if branch in self.existing_prs:
                 self.logger.info(
-                    "Merge conflict on {} {}: merge PR already exists".format(
-                        branch_type, branch
-                    )
+                    f"Merge conflict on {branch_type} {branch}: merge PR already exists"
                 )
                 return
 
             pull = self.repo.create_pull(
-                title="Merge {} into {}".format(source, branch),
+                title=f"Merge {source} into {branch}",
                 base=branch,
                 head=source,
                 body="This pull request was automatically generated because "
@@ -219,7 +207,5 @@ class MergeBranch(BaseGithubTask):
             )
 
             self.logger.info(
-                "Merge conflict on {} {}: created pull request #{}".format(
-                    branch_type, branch, pull.number
-                )
+                f"Merge conflict on {branch_type} {branch}: created pull request #{pull.number}"
             )
