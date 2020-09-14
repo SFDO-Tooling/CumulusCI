@@ -587,7 +587,7 @@ Batch Sizes
 You can also control batch sizes with the ``-o batch_size BATCHSIZE``
 parameter. This is not the Salesforce bulk API batch size. No matter
 what batch size you select, CumulusCI will properly split your data
-into 10k batches for the bulk API.
+into batches for the bulk API.
 
 You need to understand the loading process to understand why you
 might want to set the ``batch_size``.
