@@ -15,10 +15,8 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationJobResult,
     DataOperationType,
-    DataOperationResult,
     DataApi,
 )
-
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tests.util import assert_max_memory_usage
 from cumulusci.utils import temporary_dir
@@ -37,17 +35,10 @@ def mock_extract_jobs(task, extracted_records):
             0,
         )
 
-    def get_bulk_results(self):
-        assert 0
-        return (DataOperationResult(i, True, None) for i in range(0, 10))
-
     def get_results(self):
         return extracted_records[self.sobject]
 
     with mock.patch(
-        "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation.get_results",
-        get_bulk_results,
-    ), mock.patch(
         "cumulusci.tasks.bulkdata.step.BulkApiQueryOperation.get_results",
         get_results,
     ), mock.patch(

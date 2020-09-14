@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
 import os
+import re
 import requests
 
 from cumulusci.core.config import BaseProjectConfig
@@ -13,6 +14,8 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils import download_extract_github
 from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
+
+INSTALL_VERSION_RE = re.compile(r"^Install .*\d$")
 
 
 class BaseMetaDeployTask(BaseTask):
@@ -155,7 +158,7 @@ class Publish(BaseMetaDeployTask):
                 self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
                 for step in steps:
                     # avoid separate labels for installing each package
-                    if step["name"].startswith("Install "):
+                    if INSTALL_VERSION_RE.match(step["name"]):
                         self._add_label(
                             "steps",
                             "Install {product} {version}",
