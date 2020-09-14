@@ -70,7 +70,7 @@ class MergeBranch(BaseGithubTask):
 
     def _get_branch_tree(self):
         branches, branches_dict = self._get_list_and_dict_of_branches()
-        children, parents = self._get_parent_child_branches(branches)
+        children, parents = self._get_parent_and_child_branches(branches)
         return self._construct_branch_tree(branches, branches_dict, children, parents)
 
     def _get_list_and_dict_of_branches(self):
@@ -99,7 +99,7 @@ class MergeBranch(BaseGithubTask):
 
         return branches, branches_dict
 
-    def _get_parent_child_branches(self, branches):
+    def _get_parent_and_child_branches(self, branches):
         possible_children = []
         possible_parents = []
         for branch in branches:
