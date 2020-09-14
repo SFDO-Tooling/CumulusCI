@@ -229,8 +229,9 @@ class TestRelativeDates:
             target.isoformat()
         ]
 
-        assert adjust_relative_dates(
-            mapping, org_config, [datetime.now().isoformat()]
-        ) == [date.today().isoformat()]
+        now = datetime.combine(mapping.anchor_date, datetime.now().time())
+        assert adjust_relative_dates(mapping, org_config, [now.isoformat()]) == [
+            datetime.combine(date.today(), now.time()).isoformat()
+        ]
 
         assert adjust_relative_dates(mapping, org_config, [""]) == [""]

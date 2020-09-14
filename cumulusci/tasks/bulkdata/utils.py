@@ -150,20 +150,16 @@ def adjust_relative_dates(
     for index in date_fields:
         if r[index]:
             this_date = date.today() + (
-                date.fromisoformat(record[index]) - mapping.anchor_date
+                date.fromisoformat(r[index]) - mapping.anchor_date
             )
             r[index] = this_date.isoformat()
 
     for index in date_time_fields:
         if r[index]:
-            this_datetime = datetime.now() + (
-                datetime.fromisoformat(record[index])
-                - datetime(
-                    mapping.anchor_date.year,
-                    mapping.anchor_date.month,
-                    mapping.anchor_date.day,
-                )
-            )
-            record[index] = this_datetime.isoformat()
+            this_datetime = datetime.fromisoformat(r[index])
+            this_date = date.today() + (this_datetime.date() - mapping.anchor_date)
+
+            new_datetime = datetime.combine(this_date, this_datetime.time())
+            r[index] = new_datetime.isoformat()
 
     return r
