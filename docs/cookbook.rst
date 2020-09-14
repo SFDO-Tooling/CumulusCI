@@ -145,9 +145,9 @@ Below is an example task that takes two options: (1) A required string (myString
 
 Once the options are defined, they can be accessed via the `parsed_options` property of the task.
 
-Converting from old options style
----------------------------------
-If you have custom tasks that you'd like to convert to using the new Pydantic based options then you will want to do the following:
+Converting from `task_options` to Pydantic Options
+--------------------------------------------------
+If you have custom tasks that you'd like to convert to using Pydantic based options then you will want to do the following:
 
 1. Create the inner `Options` class within the task
 2. For each of the options you have defined in the `task_options` dict you will create a corresponding option property in the `Options` class.
