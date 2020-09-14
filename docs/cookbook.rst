@@ -129,12 +129,12 @@ All tasks in CumulusCI are python classes that subclass `cumulusci.core.tasks.Ba
 
 For most tasks, you'll want to override the `_run_task` method in your subclass to provide the implementation. The return value of this function is saved as part of the StepResult. Exceptions from `cumulusci.core.exceptions` should be raised to communicate task status to the user or flow. If no exceptions are thrown, the task is considered to have completed successfully.
 
-Task options
+Pydantic Task options
 ------------
 
 Task options are defined by declaring an inner `Options` class. This class must sublass `cumulusci.utils.option_parsing.CCIOptions`. These options are validated via the use of `Pydantic models <https://pydantic-docs.helpmanual.io/usage/models/>`_ which are generated dynamically for each `Options` class.
 Each option can define its own type via either a `standard library type <https://pydantic-docs.helpmanual.io/usage/types/>`_ or by utilizing a custom type from `cumulusci.utils.option_parsing`. Current custom types include (but are not limited to): `PathOption`, `MappingOption`, and `ListOfStringsOption`. 
-Additionally the `Field() <https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation>`_ function is useful for further customizing options. This can be imported from `cumulusci.utils.option_parsing` and used when defining individual options. 
+Additionally the `Field() <https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation`_ function is useful for further customizing options. This can be imported from `cumulusci.utils.option_parsing` and used when defining individual options. 
 Below is an example task that takes two options: (1) A required string (myString), and (2) A file path ::
 
     from cumulusci.util.option_parsing import PathOption, Field
@@ -143,7 +143,15 @@ Below is an example task that takes two options: (1) A required string (myString
             myString: str = Field('Hello', description='A string to be used by the task')
             myPath: PathOption = Field(..., description='A filepath to be used by the task')
 
+Once the options are defined, they can be accessed via the `parsed_options` property of the task.
 
+Converting from old options style
+---------------------------------
+If you have custom tasks that you'd like to convert to using the new Pydantic based options then you will want to do the following:
+(1) Create the inner `Options` class within the task
+(2) For each of the options you have defined in the `task_options` dict you will create a corresponding option property in the `Options` class.
+(3) Delete the `task_options` dictionary.
+(4) Delete the `_init_options()` and `_validate_options()` methods (if they exist) on the task class.
 
 Task Exceptions
 ---------------
