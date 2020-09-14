@@ -587,7 +587,7 @@ flows:
                 task: github_parent_to_children
 
     ci_feature_2gp:
-        description: Install as a namespaced unlocked package and run Apex tests. Intended for use after build_feature_test_package.
+        description: Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
         steps:
             1:
                 task: github_package_data
@@ -603,12 +603,7 @@ flows:
                 options:
                     version: ^^github_package_data.version_id
             4:
-                flow: config_apextest
-                options:
-                    deploy_post:
-                        unmanaged: False
-                    update_admin_profile:
-                        managed: True
+                flow: config_managed
             5:
                 task: run_tests
                 options:
@@ -935,7 +930,7 @@ flows:
                     version_id: ^^upload_production.version_id
 
     build_feature_test_package:
-        description: Create a namespaced unlocked package version
+        description: Create a 2gp managed package version
         steps:
             1:
                 task: update_package_xml
@@ -943,8 +938,8 @@ flows:
             2:
                 task: create_package_version
                 options:
-                    package_type: Unlocked
-                    package_name: $project_config.project__package__name Unlocked Feature Test
+                    package_type: Managed
+                    package_name: $project_config.project__package__name Managed Feature Test
 
     retrieve_scratch:
         description: Retrieves declarative changes made in a scratch org and converts to src directory
