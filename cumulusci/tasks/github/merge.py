@@ -69,7 +69,12 @@ class MergeBranch(BaseGithubTask):
                 self.existing_prs.append(pr.base.ref)
 
     def _get_branch_tree(self):
-        # Create list and dict of all target branches
+        branches, branches_dict = self._get_list_and_dict_of_branches()
+        children, parents = self._get_parent_child_branches(branches)
+        return self._construct_branch_tree(branches, branches_dict, children, parents)
+
+    def _get_list_and_dict_of_branches(self):
+        """Returns a list and dict of branches that match the given branch_prefix"""
         branches = []
         branches_dict = {}
         for branch in self.repo.branches():
@@ -92,11 +97,11 @@ class MergeBranch(BaseGithubTask):
             branches.append(branch)
             branches_dict[branch.name] = branch
 
-        # Identify parent/child branches
+        return branches, branches_dict
+
+    def _get_parent_child_branches(self, branches):
         possible_children = []
         possible_parents = []
-        parents = {}
-        children = []
         for branch in branches:
             parts = branch.name.replace(self.options["branch_prefix"], "", 1).split(
                 "__", 1
@@ -106,6 +111,8 @@ class MergeBranch(BaseGithubTask):
             else:
                 possible_parents.append(branch.name)
 
+        parents = {}
+        children = []
         for possible_child in possible_children:
             parent = f"{self.options['branch_prefix']}{possible_child[0]}"
             if parent in possible_parents:
@@ -116,7 +123,10 @@ class MergeBranch(BaseGithubTask):
                 parents[parent].append(child)
                 children.append(child)
 
-        # Build a branch tree list with parent/child branches
+        return children, parents
+
+    def _construct_branch_tree(self, branches, branches_dict, children, parents):
+        """Build a branch tree list with parent/child branches"""
         branch_tree = []
         for branch in branches:
             if branch.name in children:
@@ -131,7 +141,6 @@ class MergeBranch(BaseGithubTask):
             branch_item = {"branch": branch, "children": []}
             for child in parents.get(branch.name, []):
                 branch_item["children"].append(branches_dict[child])
-
             branch_tree.append(branch_item)
 
         return branch_tree
