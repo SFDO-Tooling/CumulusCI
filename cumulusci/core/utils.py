@@ -161,21 +161,15 @@ def dictmerge(a, b, name=None):
                         a[key] = copy.deepcopy(b[key])
             else:
                 raise TypeError(
-                    'Cannot merge non-dict of type "{}" into dict "{}"'.format(
-                        type(b), a
-                    )
+                    f'Cannot merge non-dict of type "{type(b)}" into dict "{a}"'
                 )
         else:
             raise TypeError(
-                'dictmerge does not supporting merging "{}" into "{}"'.format(
-                    type(b), type(a)
-                )
+                f'dictmerge does not supporting merging "{type(b)}" into "{type(a)}"'
             )
     except TypeError as e:
         raise ConfigMergeError(
-            'TypeError "{}" in key "{}" when merging "{}" into "{}"'.format(
-                e, key, type(b), type(a)
-            ),
+            f'TypeError "{e}" in key "{key}" when merging "{type(b)}" into "{type(a)}"',
             config_name=name,
         )
     return a

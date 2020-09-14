@@ -1,8 +1,8 @@
 import functools
 
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
-from cumulusci.utils import inject_namespace
+from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
+    BaseSalesforceMetadataApiTask,
+)
 from cumulusci.utils import strip_namespace
 from cumulusci.utils import process_text_in_zipfile
 from cumulusci.utils import tokenize_namespace
@@ -13,12 +13,6 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
         "path": {
             "description": "The path to write the retrieved metadata",
             "required": True,
-        },
-        "unmanaged": {
-            "description": "If True, changes namespace_inject to replace tokens with a blank string"
-        },
-        "namespace_inject": {
-            "description": "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix"
         },
         "namespace_strip": {
             "description": "If set, all namespace prefixes for the namespace specified are stripped from files and filenames"
@@ -46,19 +40,6 @@ class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
                 functools.partial(
                     tokenize_namespace,
                     namespace=self.options["namespace_tokenize"],
-                    logger=self.logger,
-                ),
-            )
-        if self.options.get("namespace_inject"):
-            src_zip = process_text_in_zipfile(
-                src_zip,
-                functools.partial(
-                    inject_namespace,
-                    namespace=self.options["namespace_inject"],
-                    managed=not process_bool_arg(self.options.get("unmanaged", True)),
-                    namespaced_org=process_bool_arg(
-                        self.options.get("namespaced_org", False)
-                    ),
                     logger=self.logger,
                 ),
             )

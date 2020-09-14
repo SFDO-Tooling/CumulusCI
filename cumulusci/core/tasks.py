@@ -49,7 +49,7 @@ class BaseTask(object):
         flow=None,
         name=None,
         stepnum=None,
-        **kwargs
+        **kwargs,
     ):
         self.project_config = project_config
         self.task_config = task_config
@@ -109,11 +109,9 @@ class BaseTask(object):
                 missing_required.append(name)
 
         if missing_required:
+            required_opts = ",".join(missing_required)
             raise TaskOptionsError(
-                "{} requires the options ({}) "
-                "and no values were provided".format(
-                    self.__class__.__name__, ", ".join(missing_required)
-                )
+                f"{self.__class__.__name__} requires the options ({required_opts}) and no values were provided"
             )
 
     def _update_credentials(self):
@@ -163,9 +161,7 @@ class BaseTask(object):
                     raise
                 if self.options["retry_interval"]:
                     self.logger.warning(
-                        "Sleeping for {} seconds before retry...".format(
-                            self.options["retry_interval"]
-                        )
+                        f"Sleeping for {self.options['retry_interval']} seconds before retry..."
                     )
                     time.sleep(self.options["retry_interval"])
                     if self.options["retry_interval_add"]:
@@ -174,7 +170,7 @@ class BaseTask(object):
                         ]
                 self.options["retries"] -= 1
                 self.logger.warning(
-                    "Retrying ({} attempts remaining)".format(self.options["retries"])
+                    f"Retrying ({self.options['retries']} attempts remaining)"
                 )
 
     def _try(self):
@@ -241,7 +237,7 @@ class BaseSalesforceTask(BaseTask):
             app = self.project_config.keychain.get_service("connectedapp")
             return app.client_id
         except (ServiceNotValid, ServiceNotConfigured):
-            return "CumulusCI/{}".format(__version__)
+            return f"CumulusCI/{__version__}"
 
     def _run_task(self):
         raise NotImplementedError("Subclasses should provide their own implementation")
