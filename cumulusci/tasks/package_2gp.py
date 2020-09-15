@@ -123,7 +123,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_zip_builder = MetadataPackageZipBuilder(
             path=self.project_config.default_package_path,
             name=self.package_config.package_name,
-            options={"package_type": self.package_config.package_type.value},
+            options={
+                "package_type": self.package_config.package_type.value,
+                "namespace_inject": self.package_config.namespace,
+                "namespaced_org": self.package_config.namespace is not None,
+            },
             logger=self.logger,
         )
         self.request_id = self._create_version_request(
