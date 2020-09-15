@@ -204,7 +204,7 @@ def datetime_from_salesforce(d):
 
 def salesforce_from_datetime(d):
     """Create a Salesforce-style ISO8601 string from a Python datetime"""
-    # Set milliseconds to 0. Salesforce uses 3 decimals for milliseconds;
+    # Convert microseconds to milliseconds. Salesforce uses 3 decimals for milliseconds;
     # Python uses 6 for microseconds.
     return d.strftime("%Y-%m-%dT%H:%M:%S.{}+0000").format(str(d.microsecond)[:3])
 

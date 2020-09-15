@@ -14,6 +14,9 @@ from cumulusci.tasks.bulkdata.utils import (
     create_table,
     generate_batches,
     adjust_relative_dates,
+    get_relative_date_context,
+    datetime_from_salesforce,
+    salesforce_from_datetime,
 )
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml, MappingStep
 from cumulusci.tasks.bulkdata.step import DataOperationType
@@ -193,27 +196,43 @@ class TestBatching(unittest.TestCase):
 
 
 class TestRelativeDates:
+    def test_get_relative_date_context(self):
+        mapping = MappingStep(
+            sf_object="Account",
+            fields=["Some_Date__c", "Some_Datetime__c"],
+            anchor_date="2020-07-01",
+        )
+
+        org_config = mock.Mock()
+        org_config.salesforce_client.Account.describe.return_value = {
+            "fields": [
+                {"name": "Some_Date__c", "type": "date"},
+                {"name": "Some_Datetime__c", "type": "datetime"},
+                {"name": "Some_Bool__c", "type": "boolean"},
+            ]
+        }
+
+        assert get_relative_date_context(mapping, org_config) == (
+            [0],
+            [1],
+        )
+
     def test_relative_dates(self):
         mapping = MappingStep(
             sf_object="Account", fields=["Some_Date__c"], anchor_date="2020-07-01"
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.Account.describe.return_value = {
-            "fields": [{"name": "Some_Date__c", "type": "date"}]
-        }
-
         target = date.today() + timedelta(days=7)
         assert adjust_relative_dates(
-            mapping, org_config, ["2020-07-08"], DataOperationType.INSERT
+            mapping, ([0], []), ["2020-07-08"], DataOperationType.INSERT
         ) == [target.isoformat()]
 
         assert adjust_relative_dates(
-            mapping, org_config, ["2020-07-01"], DataOperationType.INSERT
+            mapping, ([0], []), ["2020-07-01"], DataOperationType.INSERT
         ) == [date.today().isoformat()]
 
         assert adjust_relative_dates(
-            mapping, org_config, [""], DataOperationType.INSERT
+            mapping, ([0], []), [""], DataOperationType.INSERT
         ) == [""]
 
     def test_relative_dates__extract(self):
@@ -221,46 +240,51 @@ class TestRelativeDates:
             sf_object="Account", fields=["Some_Date__c"], anchor_date="2020-07-01"
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.Account.describe.return_value = {
-            "fields": [{"name": "Some_Date__c", "type": "date"}]
-        }
-
         target = mapping.anchor_date + timedelta(days=7)
         input_date = (date.today() + timedelta(days=7)).isoformat()
         assert adjust_relative_dates(
-            mapping, org_config, [input_date], DataOperationType.QUERY
-        ) == [target.isoformat()]
+            mapping,
+            ([0], []),
+            ["001000000000000", input_date],
+            DataOperationType.QUERY,
+        ) == ["001000000000000", target.isoformat()]
 
         assert adjust_relative_dates(
-            mapping, org_config, [date.today().isoformat()], DataOperationType.QUERY
-        ) == [mapping.anchor_date.isoformat()]
+            mapping,
+            ([0], []),
+            ["001000000000000", date.today().isoformat()],
+            DataOperationType.QUERY,
+        ) == ["001000000000000", mapping.anchor_date.isoformat()]
 
         assert adjust_relative_dates(
-            mapping, org_config, [""], DataOperationType.QUERY
-        ) == [""]
+            mapping,
+            ([0], []),
+            ["001000000000000", ""],
+            DataOperationType.QUERY,
+        ) == ["001000000000000", ""]
 
     def test_relative_datetimes(self):
         mapping = MappingStep(
             sf_object="Account", fields=["Some_Datetime__c"], anchor_date="2020-07-01"
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.Account.describe.return_value = {
-            "fields": [{"name": "Some_Datetime__c", "type": "datetime"}]
-        }
-
-        input_dt = datetime.fromisoformat("2020-07-08T09:37:57.373496")
+        input_dt = datetime_from_salesforce("2020-07-08T09:37:57.373+0000")
         target = datetime.combine(date.today() + timedelta(days=7), input_dt.time())
         assert adjust_relative_dates(
-            mapping, org_config, [input_dt.isoformat()], DataOperationType.INSERT
-        ) == [target.isoformat()]
+            mapping,
+            ([], [0]),
+            [salesforce_from_datetime(input_dt)],
+            DataOperationType.INSERT
+        ) == [salesforce_from_datetime(target)]
 
         now = datetime.combine(mapping.anchor_date, datetime.now().time())
         assert adjust_relative_dates(
-            mapping, org_config, [now.isoformat()], DataOperationType.INSERT
-        ) == [datetime.combine(date.today(), now.time()).isoformat()]
+            mapping,
+            ([], [0]),
+            [salesforce_from_datetime(now)],
+            DataOperationType.INSERT
+        ) == [salesforce_from_datetime(datetime.combine(date.today(), now.time()))]
 
         assert adjust_relative_dates(
-            mapping, org_config, [""], DataOperationType.INSERT
+            mapping, ([], [0]), [""], DataOperationType.INSERT
         ) == [""]
