@@ -451,9 +451,6 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
     @responses.activate
     def test_parent_merge_to_children_not_grandchildren(self):
         """Tests that when grandchild branches are present we only merge to direct children"""
-        branch = "feature/a-test"
-        self._mock_repo()
-        self._mock_branch(branch)
 
         parent_branch_name = "feature/a-test"
         child1_branch_name = "feature/a-test__a-child1"
@@ -461,6 +458,10 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         grandchild1_branch_name = "feature/a-test__a-child1__grandchild1"
         grandchild2_branch_name = "feature/a-test__a-child2__grandchild2"
         not_grandchild_branch_name = "feature/a-test_foo__bar"
+
+        self._mock_repo()
+        self._mock_branch(parent_branch_name)
+
         branches = []
         branches.append(self._get_expected_branch(parent_branch_name))
         branches.append(self._get_expected_branch(child1_branch_name))
@@ -506,6 +507,84 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
                 task_config={
                     "options": {
                         "source_branch": "feature/a-test",
+                        "children_only": True,
+                    }
+                }
+            )
+            task()
+
+            log_lines = self._get_log_lines(log)
+
+            expected = [
+                ("INFO", "Beginning task: MergeBranch"),
+                ("INFO", ""),
+                (
+                    "INFO",
+                    f"Performing merge from parent branch {branches[1]['name']} to children",
+                ),
+                ("INFO", f"Merged 1 commits into child branch {branches[2]['name']}"),
+                ("INFO", f"Merged 1 commits into child branch {branches[3]['name']}"),
+            ]
+            self.assertEqual(expected, log_lines)
+        self.assertEqual(8, len(responses.calls))
+
+    @responses.activate
+    def test_parent_merge_to_children_not_grandchildren2(self):
+        """Tests that when grandchild branches are present we only merge to direct children"""
+        source_branch_name = "feature/test__work"
+        self._mock_repo()
+        self._mock_branch(source_branch_name)
+
+        child1_branch_name = "feature/test__work__child1"
+        child2_branch_name = "feature/test__work__child2"
+        grandchild1_branch_name = "feature/test__work__child1__grandchild1"
+        grandchild2_branch_name = "feature/test__work__child2__grandchild2"
+        not_quite_child = "feature/test__workchild__2"
+        branches = []
+        branches.append(self._get_expected_branch(source_branch_name))
+        branches.append(self._get_expected_branch(child1_branch_name))
+        branches.append(self._get_expected_branch(child2_branch_name))
+        branches.append(self._get_expected_branch(grandchild1_branch_name))
+        branches.append(self._get_expected_branch(grandchild2_branch_name))
+        branches.append(self._get_expected_branch(not_quite_child))
+        branches = self._mock_branches(branches)
+
+        self.mock_pulls()
+
+        merges = []
+        merges.append(self._mock_merge())
+
+        self._mock_compare(
+            base=branches[2]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test1.txt"}],
+        )
+        self._mock_compare(
+            base=branches[3]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test2.txt"}],
+        )
+        self._mock_compare(
+            base=branches[4]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test3.txt"}],
+        )
+        self._mock_compare(
+            base=branches[5]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test4.txt"}],
+        )
+        self._mock_compare(
+            base=branches[6]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test5.txt"}],
+        )
+
+        with LogCapture() as log:
+            task = self._create_task(
+                task_config={
+                    "options": {
+                        "source_branch": source_branch_name,
                         "children_only": True,
                     }
                 }

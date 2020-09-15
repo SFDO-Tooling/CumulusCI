@@ -102,10 +102,13 @@ class MergeBranch(BaseGithubTask):
     def _get_parent_and_child_branches(self, branches):
         possible_children = []
         possible_parents = []
+        double_underscores_in_source_branch = len(
+            self.options["source_branch"].split("__")
+        )
         for branch in branches:
             no_prefix = branch.name.replace(self.options["branch_prefix"], "", 1)
             parts = no_prefix.split("__")
-            if len(parts) == 2:
+            if len(parts) == double_underscores_in_source_branch + 1:
                 possible_children.append(parts)
             else:
                 possible_parents.append(branch.name)
@@ -113,7 +116,10 @@ class MergeBranch(BaseGithubTask):
         parents = {}
         children = []
         for possible_child in possible_children:
-            parent = f"{self.options['branch_prefix']}{possible_child[0]}"
+            name = "__".join(
+                [part for part in possible_child[:double_underscores_in_source_branch]]
+            )
+            parent = f"{self.options['branch_prefix']}{name}"
             if parent in possible_parents:
                 child = "__".join(possible_child)
                 child = self.options["branch_prefix"] + child
