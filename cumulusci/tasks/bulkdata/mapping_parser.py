@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime
 from typing import Dict, List, Union, IO, Optional, Any, Callable, Mapping
 from logging import getLogger
 from pathlib import Path
@@ -156,7 +156,7 @@ class MappingStep(CCIDictModel):
     @validator("anchor_date")
     @classmethod
     def validate_anchor_date(cls, v):
-        return date.fromisoformat(v)
+        return datetime.strptime(v, "%Y-%m-%d").date()
 
     @validator("record_type")
     @classmethod
