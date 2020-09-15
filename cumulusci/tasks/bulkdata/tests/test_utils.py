@@ -242,26 +242,35 @@ class TestRelativeDates:
 
         target = mapping.anchor_date + timedelta(days=7)
         input_date = (date.today() + timedelta(days=7)).isoformat()
-        assert adjust_relative_dates(
-            mapping,
-            ([0], []),
-            ["001000000000000", input_date],
-            DataOperationType.QUERY,
-        ) == ["001000000000000", target.isoformat()]
+        assert (
+            adjust_relative_dates(
+                mapping,
+                ([0], []),
+                ["001000000000000", input_date],
+                DataOperationType.QUERY,
+            )
+            == ["001000000000000", target.isoformat()]
+        )
 
-        assert adjust_relative_dates(
-            mapping,
-            ([0], []),
-            ["001000000000000", date.today().isoformat()],
-            DataOperationType.QUERY,
-        ) == ["001000000000000", mapping.anchor_date.isoformat()]
+        assert (
+            adjust_relative_dates(
+                mapping,
+                ([0], []),
+                ["001000000000000", date.today().isoformat()],
+                DataOperationType.QUERY,
+            )
+            == ["001000000000000", mapping.anchor_date.isoformat()]
+        )
 
-        assert adjust_relative_dates(
-            mapping,
-            ([0], []),
-            ["001000000000000", ""],
-            DataOperationType.QUERY,
-        ) == ["001000000000000", ""]
+        assert (
+            adjust_relative_dates(
+                mapping,
+                ([0], []),
+                ["001000000000000", ""],
+                DataOperationType.QUERY,
+            )
+            == ["001000000000000", ""]
+        )
 
     def test_relative_datetimes(self):
         mapping = MappingStep(
@@ -270,20 +279,26 @@ class TestRelativeDates:
 
         input_dt = datetime_from_salesforce("2020-07-08T09:37:57.373+0000")
         target = datetime.combine(date.today() + timedelta(days=7), input_dt.time())
-        assert adjust_relative_dates(
-            mapping,
-            ([], [0]),
-            [salesforce_from_datetime(input_dt)],
-            DataOperationType.INSERT
-        ) == [salesforce_from_datetime(target)]
+        assert (
+            adjust_relative_dates(
+                mapping,
+                ([], [0]),
+                [salesforce_from_datetime(input_dt)],
+                DataOperationType.INSERT,
+            )
+            == [salesforce_from_datetime(target)]
+        )
 
         now = datetime.combine(mapping.anchor_date, datetime.now().time())
-        assert adjust_relative_dates(
-            mapping,
-            ([], [0]),
-            [salesforce_from_datetime(now)],
-            DataOperationType.INSERT
-        ) == [salesforce_from_datetime(datetime.combine(date.today(), now.time()))]
+        assert (
+            adjust_relative_dates(
+                mapping,
+                ([], [0]),
+                [salesforce_from_datetime(now)],
+                DataOperationType.INSERT,
+            )
+            == [salesforce_from_datetime(datetime.combine(date.today(), now.time()))]
+        )
 
         assert adjust_relative_dates(
             mapping, ([], [0]), [""], DataOperationType.INSERT
