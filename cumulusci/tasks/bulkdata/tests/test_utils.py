@@ -303,3 +303,22 @@ class TestRelativeDates:
         assert adjust_relative_dates(
             mapping, ([], [0]), [""], DataOperationType.INSERT
         ) == [""]
+
+    def test_relative_datetimes_extract(self):
+        mapping = MappingStep(
+            sf_object="Account", fields=["Some_Datetime__c"], anchor_date="2020-07-01"
+        )
+
+        input_dt = datetime.now() + timedelta(days=7)
+        target = datetime.combine(
+            mapping.anchor_date + timedelta(days=7), input_dt.time()
+        )
+        assert (
+            adjust_relative_dates(
+                mapping,
+                ([], [0]),
+                ["001000000000000", salesforce_from_datetime(input_dt)],
+                DataOperationType.QUERY,
+            )
+            == ["001000000000000", salesforce_from_datetime(target)]
+        )
