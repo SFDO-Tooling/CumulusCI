@@ -18,7 +18,7 @@ class MergeBranch(BaseGithubTask):
             "description": "The source branch to merge from.  Defaults to project__git__default_branch."
         },
         "branch_prefix": {
-            "description": "The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature"
+            "description": "A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature"
         },
         "children_only": {
             "description": "If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False"
@@ -103,9 +103,8 @@ class MergeBranch(BaseGithubTask):
         possible_children = []
         possible_parents = []
         for branch in branches:
-            parts = branch.name.replace(self.options["branch_prefix"], "", 1).split(
-                "__", 1
-            )
+            no_prefix = branch.name.replace(self.options["branch_prefix"], "", 1)
+            parts = no_prefix.split("__")
             if len(parts) == 2:
                 possible_children.append(parts)
             else:
@@ -146,7 +145,7 @@ class MergeBranch(BaseGithubTask):
         return branch_tree
 
     def _merge_branches(self, branch_tree):
-        # Process merge on all branches
+        """Process merge on all branches in the tree"""
         for branch_item in branch_tree:
             if self.options["children_only"]:
                 if branch_item["children"]:

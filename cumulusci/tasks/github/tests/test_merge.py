@@ -20,9 +20,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         # Set up the mock values
         self.repo = "TestRepo"
         self.owner = "TestOwner"
-        self.repo_api_url = "https://api.github.com/repos/{}/{}".format(
-            self.owner, self.repo
-        )
+        self.repo_api_url = f"https://api.github.com/repos/{self.owner}/{self.repo}"
         self.branch = "main"
 
         # Create the project config
@@ -58,13 +56,13 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         return expected_response
 
     def _mock_branch(self, branch, expected_response=None):
-        api_url = "{}/branches/{}".format(self.repo_api_url, branch)
+        api_url = f"{self.repo_api_url}/branches/{branch}"
         if not expected_response:
             expected_response = self._get_expected_branch(branch)
         responses.add(method=responses.GET, url=api_url, json=expected_response)
 
     def _mock_branches(self, branches=None):
-        api_url = "{}/branches".format(self.repo_api_url)
+        api_url = f"{self.repo_api_url}/branches"
         if branches:
             expected_response = branches
         else:
@@ -79,7 +77,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         return expected_response
 
     def _mock_branch_does_not_exist(self, branch):
-        api_url = "{}/branches/{}".format(self.repo_api_url, branch)
+        api_url = f"{self.repo_api_url}/branches/{branch}"
         expected_response = self._get_expected_not_found()
         responses.add(
             method=responses.GET,
@@ -89,7 +87,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         )
 
     def _mock_merge(self, status=http.client.CREATED):
-        api_url = "{}/merges".format(self.repo_api_url)
+        api_url = f"{self.repo_api_url}/merges"
         expected_response = self._get_expected_merge(status == http.client.CONFLICT)
 
         responses.add(
@@ -98,7 +96,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         return expected_response
 
     def _mock_pull_create(self, pull_id, issue_id):
-        api_url = "{}/pulls".format(self.repo_api_url)
+        api_url = f"{self.repo_api_url}/pulls"
         expected_response = self._get_expected_pull_request(pull_id, issue_id)
 
         responses.add(
@@ -109,7 +107,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         )
 
     def _mock_compare(self, base, head, files=None):
-        api_url = "{}/compare/{}...{}".format(self.repo_api_url, base, head)
+        api_url = f"{self.repo_api_url}/compare/{base}...{head}"
         expected_response = self._get_expected_compare(base, head, files)
 
         responses.add(method=responses.GET, url=api_url, json=expected_response)
@@ -341,9 +339,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             ("DEBUG", "Skipping branch main: is source branch"),
             (
                 "INFO",
-                "Merge conflict on parent branch {}: created pull request #2".format(
-                    parent_branch_name
-                ),
+                f"Merge conflict on parent branch {parent_branch_name}: created pull request #2",
             ),
         ]
         self.assertEqual(expected, log_lines)
@@ -385,11 +381,11 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
                 ("DEBUG", "Skipping branch main: is source branch"),
                 (
                     "INFO",
-                    "Merged 1 commits into parent branch {}".format(parent_branch_name),
+                    f"Merged 1 commits into parent branch {parent_branch_name}",
                 ),
                 ("INFO", "  Skipping merge into the following child branches:"),
-                ("INFO", "    {}".format(child1_branch_name)),
-                ("INFO", "    {}".format(child2_branch_name)),
+                ("INFO", f"    {child1_branch_name}"),
+                ("INFO", f"    {child2_branch_name}"),
             ]
             self.assertEqual(expected, log_lines)
         self.assertEqual(6, len(responses.calls))
@@ -441,23 +437,95 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
                 ("INFO", ""),
                 (
                     "INFO",
-                    "Performing merge from parent branch {} to children".format(
-                        branches[1]["name"]
-                    ),
+                    f"Performing merge from parent branch {branches[1]['name']} to children",
                 ),
+                ("INFO", f"Merged 1 commits into child branch {branches[2]['name']}"),
                 (
                     "INFO",
-                    "Merged 1 commits into child branch {}".format(branches[2]["name"]),
-                ),
-                (
-                    "INFO",
-                    "Skipping child branch {}: no file diffs found".format(
-                        branches[3]["name"]
-                    ),
+                    f"Skipping child branch {branches[3]['name']}: no file diffs found",
                 ),
             ]
             self.assertEqual(expected, log_lines)
         self.assertEqual(7, len(responses.calls))
+
+    @responses.activate
+    def test_parent_merge_to_children_not_grandchildren(self):
+        """Tests that when grandchild branches are present we only merge to direct children"""
+        branch = "feature/a-test"
+        self._mock_repo()
+        self._mock_branch(branch)
+
+        parent_branch_name = "feature/a-test"
+        child1_branch_name = "feature/a-test__a-child1"
+        child2_branch_name = "feature/a-test__a-child2"
+        grandchild1_branch_name = "feature/a-test__a-child1__grandchild1"
+        grandchild2_branch_name = "feature/a-test__a-child2__grandchild2"
+        not_grandchild_branch_name = "feature/a-test_foo__bar"
+        branches = []
+        branches.append(self._get_expected_branch(parent_branch_name))
+        branches.append(self._get_expected_branch(child1_branch_name))
+        branches.append(self._get_expected_branch(child2_branch_name))
+        branches.append(self._get_expected_branch(grandchild1_branch_name))
+        branches.append(self._get_expected_branch(grandchild2_branch_name))
+        branches.append(self._get_expected_branch(not_grandchild_branch_name))
+        branches = self._mock_branches(branches)
+
+        self.mock_pulls()
+
+        merges = []
+        merges.append(self._mock_merge())
+
+        self._mock_compare(
+            base=branches[2]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test1.txt"}],
+        )
+        self._mock_compare(
+            base=branches[3]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test2.txt"}],
+        )
+        self._mock_compare(
+            base=branches[4]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test3.txt"}],
+        )
+        self._mock_compare(
+            base=branches[5]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test4.txt"}],
+        )
+        self._mock_compare(
+            base=branches[6]["name"],
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test5.txt"}],
+        )
+
+        with LogCapture() as log:
+            task = self._create_task(
+                task_config={
+                    "options": {
+                        "source_branch": "feature/a-test",
+                        "children_only": True,
+                    }
+                }
+            )
+            task()
+
+            log_lines = self._get_log_lines(log)
+
+            expected = [
+                ("INFO", "Beginning task: MergeBranch"),
+                ("INFO", ""),
+                (
+                    "INFO",
+                    f"Performing merge from parent branch {branches[1]['name']} to children",
+                ),
+                ("INFO", f"Merged 1 commits into child branch {branches[2]['name']}"),
+                ("INFO", f"Merged 1 commits into child branch {branches[3]['name']}"),
+            ]
+            self.assertEqual(expected, log_lines)
+        self.assertEqual(8, len(responses.calls))
 
     @responses.activate
     def test_parent_merge_no_children(self):
@@ -490,7 +558,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             expected = [
                 ("INFO", "Beginning task: MergeBranch"),
                 ("INFO", ""),
-                ("INFO", "No children found for branch {}".format(branches[1]["name"])),
+                ("INFO", f"No children found for branch {branches[1]['name']}"),
             ]
             self.assertEqual(expected, log_lines)
         self.assertEqual(4, len(responses.calls))
