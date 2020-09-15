@@ -57,7 +57,11 @@ class OrgConfig(BaseConfig):
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
             if SFDX_CLIENT_ID and SFDX_HUB_KEY:
                 info = jwt_session(
-                    SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, self.instance_url
+                    SFDX_CLIENT_ID,
+                    SFDX_HUB_KEY,
+                    self.username,
+                    self.instance_url,
+                    auth_url=self.id,
                 )
             else:
                 info = self._refresh_token(keychain, connected_app)
