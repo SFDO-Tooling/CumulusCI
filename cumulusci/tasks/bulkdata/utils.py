@@ -180,18 +180,42 @@ def adjust_relative_dates(
         if operation is DataOperationType.QUERY:
             index += 1  # For the Id field.
         if r[index]:
-            r[index] = _convert_datetime(
-                target_anchor, current_anchor, datetime.fromisoformat(r[index])
-            ).isoformat()
+            r[index] = salesforce_from_datetime(
+                _convert_datetime(
+                    target_anchor,
+                    current_anchor,
+                    datetime_from_salesforce(r[index]),
+                )
+            )
 
     return r
 
 
+# The way Salesforce formats ISO8601 date-times is not quite compatible
+# with Python's datetime. Salesforce returns, e.g., "2020-09-14T20:00:17.000+0000",
+# while Python wants a : character in the timezone: "2020-09-14T20:00:17.000000+00:00".
+
+
+def datetime_from_salesforce(d):
+    """Create a Python datetime from a Salesforce-style ISO8601 string"""
+    # Convert Salesforce's `+0000`, which Python would want as `+00:00`
+    return datetime.strptime(d[:-5] + "+00:00", "%Y-%m-%dT%H:%M:%S.%f%z")
+
+
+def salesforce_from_datetime(d):
+    """Create a Salesforce-style ISO8601 string from a Python datetime"""
+    # Set milliseconds to 0. Salesforce uses 3 decimals for milliseconds;
+    # Python uses 6 for microseconds.
+    return d.strftime("%Y-%m-%dT%H:%M:%S.{}+0000").format(str(d.microsecond)[:3])
+
+
 def _convert_date(target_anchor, current_anchor, this_date):
+    """Adjust this_date to be relative to target_anchor instead of current_anchor"""
     return target_anchor + (this_date - current_anchor)
 
 
 def _convert_datetime(target_anchor, current_anchor, this_datetime):
+    """Adjust this_datetime to be relative to target_anchor instead of current_anchor"""
     return datetime.combine(
         _convert_date(target_anchor, current_anchor, this_datetime.date()),
         this_datetime.time(),
