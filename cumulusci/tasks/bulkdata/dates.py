@@ -69,21 +69,15 @@ def adjust_relative_dates(
     return r
 
 
-# The way Salesforce formats ISO8601 date-times is not quite compatible
-# with Python's datetime. Salesforce returns, e.g., "2020-09-14T20:00:17.000+0000",
-# while Python wants a : character in the timezone: "2020-09-14T20:00:17.000000+00:00".
-
-
 def datetime_from_salesforce(d):
     """Create a Python datetime from a Salesforce-style ISO8601 string"""
-    # Convert Salesforce's `+0000`, which Python would want as `+00:00`
-    return datetime.strptime(d[:-5] + "+00:00", "%Y-%m-%dT%H:%M:%S.%f%z")
+    return datetime.strptime(d, "%Y-%m-%dT%H:%M:%S.%f%z")
 
 
 def salesforce_from_datetime(d):
     """Create a Salesforce-style ISO8601 string from a Python datetime"""
     # Convert microseconds to milliseconds. Salesforce uses 3 decimals for milliseconds;
-    # Python uses 6 for microseconds.
+    # Python uses 6 for microseconds. Truncate here; the final 3 digits should be 0.
     return d.strftime("%Y-%m-%dT%H:%M:%S.{}+0000").format(str(d.microsecond)[:3])
 
 
