@@ -11,6 +11,8 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import (
     SqlAlchemyMixin,
     RowErrorChecker,
+)
+from cumulusci.tasks.bulkdata.dates import (
     adjust_relative_dates,
     get_relative_date_context,
 )

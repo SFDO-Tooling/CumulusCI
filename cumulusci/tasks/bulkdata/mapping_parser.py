@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Dict, List, Union, IO, Optional, Any, Callable, Mapping
 from logging import getLogger
 from pathlib import Path
@@ -9,6 +8,7 @@ from pydantic import Field, validator, root_validator, ValidationError
 from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.step import DataOperationType, DataApi
+from cumulusci.tasks.bulkdata.dates import iso_to_date
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 from cumulusci.utils import convert_to_snake_case
 
@@ -156,7 +156,7 @@ class MappingStep(CCIDictModel):
     @validator("anchor_date")
     @classmethod
     def validate_anchor_date(cls, v):
-        return datetime.strptime(v, "%Y-%m-%d").date()
+        return iso_to_date(v)
 
     @validator("record_type")
     @classmethod

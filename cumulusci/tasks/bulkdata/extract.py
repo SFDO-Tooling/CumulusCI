@@ -22,7 +22,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     get_query_operation,
 )
-from cumulusci.tasks.bulkdata.utils import (
+from cumulusci.tasks.bulkdata.dates import (
     adjust_relative_dates,
     get_relative_date_context,
 )
