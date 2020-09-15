@@ -534,3 +534,107 @@ References
 ~~~~~~~~~~
 
 - `GitHub Actions documentation <https://help.github.com/en/actions>`_
+
+Large Volume Data Synthesis with Snowfakery
+===========================================
+
+It is possible to use CumulusCI to generate arbitrary amounts of
+synthetic data using the ``generate_and_load_from_yaml`` 
+`task <https://cumulusci.readthedocs.io/en/latest/tasks.html#generate-and-load-from-yaml>`_. That
+task is built on the `Snowfakery language
+<https://snowfakery.readthedocs.io/en/docs/>`_. CumulusCI ships
+with Snowfakery embedded, so you do not need to install it.
+
+To start, you will need a Snowfakery recipe. You can learn about
+writing them in the `Snowfakery docs
+<https://snowfakery.readthedocs.io/en/docs/>`_.
+
+Once you have it, you can fill an org with data like this:
+
+
+``$ cci task run generate_and_load_from_yaml -o generator_yaml
+datasets/some_snowfakery_yaml -o num_records 1000 -o num_records_tablename
+Account —org dev``
+
+``generator_yaml`` is a reference to your Snowkfakery recipe.
+
+``num_records_tablename`` says what record type will control how
+many records are created.
+
+``num_records`` says how many of that record type ("Account" in
+this case) to make.
+
+Generated Record Counts
+-----------------------
+
+The counting works like this:
+
+  * Snowfakery always executes a *complete* recipe. It never stops halfway through.
+  
+  * At the end of executing a recipe, it checks whether it has
+    created enough of the object type defined by ``num_records_tablename``
+  
+  * If so, it finishes. If not, it runs the recipe again.
+
+So if your recipe creates 10 Accounts, 5 Contacts and 15 Opportunities,
+then when you run the command above it will run the recipe
+100 times (100*10=1000) which will generate 1000 Accounts, 500 Contacts
+and 1500 Opportunites.
+
+Batch Sizes
+-----------
+
+You can also control batch sizes with the ``-o batch_size BATCHSIZE``
+parameter. This is not the Salesforce bulk API batch size. No matter
+what batch size you select, CumulusCI will properly split your data
+into batches for the bulk API.
+
+You need to understand the loading process to understand why you
+might want to set the ``batch_size``.
+
+If you haven't set the ``batch_size`` then Snowfakery generates all
+of the records for your load job at once.
+
+So the first reason why you might want to set the batch_size is
+because you don't have enough local disk space for the number of
+records you are generating (across all tables).
+
+This isn't usually a problem though.
+
+The more common problem arises from the fact that Salesforce bulk
+uploads are always done in batches of records a particular SObject.
+So in the case above, it would upload 1000 Accounts, then 500
+Contacts, then 1500 Opportunites. (remember that our scenario
+involves a recipe that generates 10 Accounts, 5 Contacts and 15
+Opportunites).
+
+Imagine if the numbers were more like 1M, 500K and 1.5M. And further,
+imagine if your network crashed after 1M Accounts and 499K Contacts 
+were uploaded. You would not have a single "complete set" of 10/5/15.
+Instead you would have 1M "partial sets".
+
+If, by contrast, you had set your batch size to 100_000, your network
+might die more around the 250,000 Account mark, but you would have
+200,000/20 [#]_ =10K *complete sets*  plus some "extra" Accounts 
+which you might ignore or delete. You can restart your load with a 
+smaller goal (800K Accounts) and finish the job.
+
+.. [#] remember that our sets have 20 Accounts each
+
+Another reason you might choose smaller batch sizes is to minimize
+the risk of row locking errors when you have triggers enabled.
+Turning off triggers is generally preferable, and CumulusCI `has a
+task
+<https://cumulusci.readthedocs.io/en/latest/tasks.html#disable-tdtm-trigger-handlers>`_
+for doing for TDTM trigger handlers, but sometimes you cannot avoid
+them. Using smaller batch sizes may be preferable to switching to
+serial mode. If every SObject in a batch uploads less than 10,000
+rows then you are defacto in serial mode (because only one "bulk mode
+batch" at a time is being processed).
+
+In general, bigger batch sizes achieve higher throughput. No batching
+at all is the fastest.
+
+Smaller batch sizes reduce the risk of something going wrong. You
+may need to experiment to find the best batch size for your use
+case.
