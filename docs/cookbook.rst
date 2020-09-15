@@ -132,7 +132,7 @@ For most tasks, you'll want to override the `_run_task` method in your subclass 
 Pydantic Task options
 ---------------------
 
-Task options are defined by declaring an inner `Options` class. This class must sublass `cumulusci.utils.option_parsing.CCIOptions`. These options are validated via the use of `Pydantic models <https://pydantic-docs.helpmanual.io/usage/models/>`_ which are generated dynamically for each `Options` class.
+Task options are defined by declaring a nested `Options` class. This class must sublass `cumulusci.utils.option_parsing.CCIOptions`. These options are validated via the use of `Pydantic models <https://pydantic-docs.helpmanual.io/usage/models/>`_ which are generated dynamically for each `Options` class.
 Each option can define its own type via either a `standard library type <https://pydantic-docs.helpmanual.io/usage/types/>`_ or by utilizing a custom type from `cumulusci.utils.option_parsing`. Current custom types include (but are not limited to): `PathOption`, `MappingOption`, and `ListOfStringsOption`. 
 Additionally the `Field() <https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation`_ function is useful for further customizing options. This can be imported from `cumulusci.utils.option_parsing` and used when defining individual options. 
 Below is an example task that takes two options: (1) A required string (myString), and (2) A file path ::
@@ -149,7 +149,7 @@ Converting from `task_options` to Pydantic Options
 --------------------------------------------------
 If you have custom tasks that you'd like to convert to using Pydantic based options then you will want to do the following:
 
-1. Create the inner `Options` class within the task
+1. Create a nested `Options` class within the task class.
 2. For each of the options you have defined in the `task_options` dict you will create a corresponding option property in the `Options` class.
 3. Delete the `task_options` dictionary.
 4. Delete the `_init_options()` and `_validate_options()` methods (if they exist) on the task class.
