@@ -6,7 +6,7 @@ from io import BytesIO
 
 from sarge import Capture
 
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
@@ -21,16 +21,16 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
     """ Tests for the basic command task """
 
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.task_config = TaskConfig()
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
 
     def test_functional_run_ls(self):
-        """ Functional test that actually subprocesses and runs command.
+        """Functional test that actually subprocesses and runs command.
 
         Checks that command either ran successfully or failed as expected
         so that it can be run on any platform. Other tests will mock
@@ -91,9 +91,9 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
 
 class TestSalesforceCommand(unittest.TestCase):
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.task_config = TaskConfig({"options": {"command": "ls"}})
         self.org_config = OrgConfig(

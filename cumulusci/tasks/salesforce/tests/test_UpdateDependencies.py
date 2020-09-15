@@ -197,15 +197,64 @@ class TestUpdateDependencies(unittest.TestCase):
         task()
         api.assert_not_called()
 
+    @mock.patch(
+        "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
+    )
+    def test_run_task__duplicate_dependencies(self, ApiRetrieveInstalledPackages):
+        project_config = create_project_config()
+        project_config.config["project"]["dependencies"] = (
+            {"namespace": "package", "version": "1.0"},
+        )
+        project_config.get_github_api = mock.Mock()
+        project_config.get_static_dependencies = mock.Mock()
+        project_config.get_static_dependencies.return_value = [
+            {
+                "namespace": "dep1",
+                "version": "1.1",
+                "dependencies": [{"namespace": "dep2", "version": "1.1"}],
+            },
+            {"namespace": "dep2", "version": "1.1"},
+        ]
+        task = create_task(UpdateDependencies, project_config=project_config)
+        ApiRetrieveInstalledPackages.return_value = INSTALLED_PACKAGES
+        task.org_config.reset_installed_packages = mock.Mock()
+        task._uninstall_dependencies = mock.Mock()
+        task._install_dependencies = mock.Mock()
+
+        task()
+
+        assert task.install_queue == [
+            {"namespace": "dep2", "version": "1.1"},
+            {
+                "dependencies": [{"namespace": "dep2", "version": "1.1"}],
+                "namespace": "dep1",
+                "version": "1.1",
+            },
+        ]
+
     def test_update_dependency_latest_option_err(self):
         project_config = create_project_config()
         project_config.config["project"]["dependencies"] = [{"namespace": "foo"}]
         task = create_task(UpdateDependencies, project_config=project_config)
         task.options["include_beta"] = True
-        task.org_config = mock.Mock()
+        task.org_config = mock.Mock(scratch=False)
+        task.org_config.save_if_changed.return_value.__enter__ = lambda *args: ...
+        task.org_config.save_if_changed.return_value.__exit__ = lambda *args: ...
 
         with self.assertRaises(TaskOptionsError):
             task()
+
+    def test_dependency_no_package_zip(self):
+        project_config = create_project_config()
+        project_config.config["project"]["dependencies"] = [{"foo": "bar"}]
+        task = create_task(UpdateDependencies, project_config=project_config)
+        task.org_config = mock.Mock()
+        task.org_config.save_if_changed.return_value.__enter__ = lambda *args: ...
+        task.org_config.save_if_changed.return_value.__exit__ = lambda *args: ...
+
+        with self.assertRaises(TaskOptionsError) as e:
+            task()
+        assert "Could not find package for" in str(e.exception)
 
     def test_run_task__bad_security_type(self):
         project_config = create_project_config()
@@ -214,6 +263,17 @@ class TestUpdateDependencies(unittest.TestCase):
             create_task(
                 UpdateDependencies,
                 {"security_type": "BOGUS"},
+                project_config,
+                mock.Mock(),
+            )
+
+    def test_run_task__bad_ignore_dependencies(self):
+        project_config = create_project_config()
+        project_config.config["project"]["dependencies"] = PROJECT_DEPENDENCIES
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                UpdateDependencies,
+                {"ignore_dependencies": [{"version": "1.3"}, {"namespace": "foo"}]},
                 project_config,
                 mock.Mock(),
             )
@@ -339,5 +399,3 @@ class TestUpdateDependencies(unittest.TestCase):
         task = create_task(UpdateDependencies)
         result = task._flatten(dependencies)
         self.assertEqual([{"namespace": "npe01"}, {"namespace": "npe02"}], result)
-
-    maxDiff = None

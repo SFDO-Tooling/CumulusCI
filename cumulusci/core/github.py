@@ -94,7 +94,7 @@ def get_pull_requests_by_head(repo, branch_name):
 
 def create_pull_request(repo, branch_name, base=None, title=None):
     """Creates a pull request for the given branch"""
-    base = base or "master"
+    base = base or repo.default_branch
     title = title or "Auto-Generated Pull Request"
     pull_request = repo.create_pull(title, base, branch_name)
     return pull_request

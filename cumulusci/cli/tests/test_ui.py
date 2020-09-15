@@ -321,7 +321,7 @@ def test_pretty_soql_query_simple_truncation():
 def pretty_table_raises(*args):
     """If the pretty_table method raises, CliTable will
     use ascii_table which is easier to deal with for
-    checking correctness """
+    checking correctness"""
     raise UnicodeEncodeError("a", "b", 0, 0, "e")
 
 

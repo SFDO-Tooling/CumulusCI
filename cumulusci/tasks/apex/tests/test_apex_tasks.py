@@ -12,7 +12,7 @@ from simple_salesforce import SalesforceGeneralError
 
 
 from cumulusci.core.config import (
-    BaseGlobalConfig,
+    UniversalConfig,
     BaseProjectConfig,
     OrgConfig,
     TaskConfig,
@@ -38,8 +38,10 @@ from cumulusci.core.tests.utils import MockLoggerMixin
 )
 class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
+        self._task_log_handler.reset()
+        self.task_log = self._task_log_handler.messages
         self.api_version = 38.0
-        self.global_config = BaseGlobalConfig(
+        self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
         self.task_config = TaskConfig()
@@ -49,7 +51,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             "test_name_match": "%_TEST",
         }
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
@@ -469,6 +471,40 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         assert "Completed: 0  Processing: 1 (TestClass_TEST)  Queued: 0" in log["info"]
 
     @responses.activate
+    def test_run_task__not_verbose(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_tests_processing()
+        self._mock_get_failed_test_classes()  # this returns all passes
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task()
+        log = self._task_log_handler.messages
+        assert "Class: TestClass_TEST" not in log["info"]
+
+    @responses.activate
+    def test_run_task__verbose(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes_failure()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        self._mock_get_symboltable()
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "verbose": True,
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        with self.assertRaises(CumulusCIException):
+            task()
+        log = self._task_log_handler.messages
+        assert "Class: TestClass_TEST" in log["info"]
+
+    @responses.activate
     def test_run_task__no_code_coverage(self):
         self._mock_apex_class_query()
         self._mock_run_tests()
@@ -732,7 +768,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
 class TestAnonymousApexTask(unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
-        self.global_config = BaseGlobalConfig(
+        self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
         self.tmpdir = tempfile.mkdtemp(dir=".")
@@ -747,7 +783,7 @@ class TestAnonymousApexTask(unittest.TestCase):
             "param1": "StringValue",
         }
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config = {
             "project": {
@@ -900,7 +936,7 @@ class TestAnonymousApexTask(unittest.TestCase):
 class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
-        self.global_config = BaseGlobalConfig(
+        self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
         self.task_config = TaskConfig()
@@ -909,7 +945,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
             "poll_interval": 1,
         }
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}

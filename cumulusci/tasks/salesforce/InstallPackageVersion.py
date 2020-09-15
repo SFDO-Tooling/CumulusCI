@@ -48,7 +48,7 @@ class InstallPackageVersion(Deploy):
                 or self.options["namespace"]
             )
         if "retries" not in self.options:
-            self.options["retries"] = 5
+            self.options["retries"] = 10
         if "retry_interval" not in self.options:
             self.options["retry_interval"] = 5
         if "retry_interval_add" not in self.options:
@@ -92,6 +92,7 @@ class InstallPackageVersion(Deploy):
         if isinstance(e, MetadataApiError) and (
             "This package is not yet available" in str(e)
             or "InstalledPackage version number" in str(e)
+            or "The requested package doesn't yet exist or has been deleted" in str(e)
         ):
             return True
 

@@ -538,7 +538,7 @@ If the metadata being deployed references namespaced metadata that does not exis
 
 The automatic cleaning of meta.xml files can be disabled using by setting the ``clean_meta_xml`` task option to ``False``.
 
-Prior to the addition of this functionality, we often experienced unnecessary delays in our release cycle due to the need to create a new commit on master (and thus a feature branch, PR, code review, etc) just to update the meta.xml files.  CumulusCI's Github Dependency functionality already handles requiring a new production release so the only reason we needed to do this commit was the meta.xml files.  Automatically cleaning the meta.xml files on deploy eliminates the need for this commit.
+Prior to the addition of this functionality, we often experienced unnecessary delays in our release cycle due to the need to create a new commit on ``main`` (and thus a feature branch, PR, code review, etc) just to update the meta.xml files.  CumulusCI's Github Dependency functionality already handles requiring a new production release so the only reason we needed to do this commit was the meta.xml files.  Automatically cleaning the meta.xml files on deploy eliminates the need for this commit.
 
 One drawback of this approach is that there may be diffs in the meta.xml files that developers need to handle by either ignoring them or commiting them as part of their work in a feature branch.  The diffs come from a scenario of Package B which extends Package A.  When a new production release of Package A is published, the ``update_dependencies`` task for Package B will install the new version.  When metadata is then retrieved from the org, the meta.xml files will reference the new version while the repository's meta.xml files reference an older version.  The main difference between this situation and the previous situation without automatically cleaning the meta.xml is that avoiding the diffs in meta.xml files is a convenience for developers rather than a requirement for builds and releases.  Developers can also use the ``meta_xml_dependencies`` task to update the meta.xml files locally using the versions from CumulusCI's calculated project dependencies.
 
@@ -747,7 +747,7 @@ You can include the option ``max_lines`` argument if you want to customize how m
 
 Reporting Error Logs 
 --------------------
-Use the ``cci gist`` command to send the log of your last ``cci`` command to a GitHub gist so you can submit it for support if needed.
+Use the ``cci error gist`` command to send the log of your last ``cci`` command to a GitHub gist so you can submit it for support if needed.
 
 For this feature to work you will need to ensure that your `github service is setup with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
 
@@ -761,3 +761,14 @@ The gist command creates a gist comprised of:
 
 The URL for the gist is displayed on the terminal of the user as output, and a web browser will automatically open a tab to the gist.
 
+Seeing Stack Traces Automatically
+---------------------------------
+If you would like to investigate bugs in CumulusCI when you find
+them, you can set the config option `show_stacktraces` to `True`
+in the `cli` section of `~/.cumulusci/cumulusci.yml` and stacktraces
+will no longer be suppressed when they are thrown within CumulusCI.
+Usage Errors (wrong command line arguments, missing files, etc.)
+will not show you exception tracebacks because they are seldom
+helpful in that case.
+
+CumulusCI also has a `--debug` command line argument that may help you investigate bugs.

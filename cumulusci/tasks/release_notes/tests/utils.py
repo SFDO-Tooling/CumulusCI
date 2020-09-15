@@ -93,10 +93,10 @@ class MockUtil(GithubApiTestMixin):
 
     def mock_issue(self, issue_num, labels=None, owner=None, repo=None):
         """Args:
-            issue_num: int representing number of the issue
-            labels: list(str) of labels to associate with the issue
-            owner: str ownerof the repo
-            repo: str name of the repo"""
+        issue_num: int representing number of the issue
+        labels: list(str) of labels to associate with the issue
+        owner: str ownerof the repo
+        repo: str name of the repo"""
         if not labels:
             labels = []
 

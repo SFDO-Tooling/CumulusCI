@@ -1,6 +1,10 @@
 from collections import defaultdict
 from distutils.version import StrictVersion
 import os
+import re
+from contextlib import contextmanager
+from urllib.parse import urlparse
+from cumulusci.utils.fileutils import open_fs_resource
 
 import requests
 from simple_salesforce import Salesforce
@@ -12,6 +16,8 @@ from cumulusci.oauth.salesforce import jwt_session
 
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
+SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
+MYDOMAIN_RE = re.compile(r"\.my\.(.*)salesforce\.com")
 
 
 class OrgConfig(BaseConfig):
@@ -20,12 +26,16 @@ class OrgConfig(BaseConfig):
     # make sure it can be mocked for tests
     SalesforceOAuth2 = SalesforceOAuth2
 
-    def __init__(self, config, name):
+    def __init__(self, config: dict, name: str, keychain=None, global_org=False):
+        self.keychain = keychain
+        self.global_org = global_org
+
         self.name = name
         self._community_info_cache = {}
         self._client = None
         self._latest_api_version = None
         self._installed_packages = None
+        self._is_person_accounts_enabled = None
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -56,6 +66,14 @@ class OrgConfig(BaseConfig):
         self._load_userinfo()
         self._load_orginfo()
 
+    @contextmanager
+    def save_if_changed(self):
+        orig_config = self.config.copy()
+        yield
+        if self.config != orig_config:
+            self.logger.info("Org info updated, writing to keychain")
+            self.save()
+
     def _refresh_token(self, keychain, connected_app):
         if keychain:  # it might be none'd and caller adds connected_app
             connected_app = keychain.get_service("connected_app")
@@ -84,7 +102,13 @@ class OrgConfig(BaseConfig):
 
     @property
     def lightning_base_url(self):
-        return self.instance_url.split(".")[0] + ".lightning.force.com"
+        instance_url = self.instance_url.rstrip("/")
+        if SANDBOX_MYDOMAIN_RE.search(instance_url):
+            return SANDBOX_MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
+        elif MYDOMAIN_RE.search(instance_url):
+            return MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
+        else:
+            return self.instance_url.split(".")[0] + ".lightning.force.com"
 
     @property
     def salesforce_client(self):
@@ -152,6 +176,7 @@ class OrgConfig(BaseConfig):
         result = {
             "org_type": self._org_sobject["OrganizationType"],
             "is_sandbox": self._org_sobject["IsSandbox"],
+            "instance_name": self._org_sobject["InstanceName"],
         }
         self.config.update(result)
 
@@ -248,3 +273,59 @@ class OrgConfig(BaseConfig):
 
     def reset_installed_packages(self):
         self._installed_packages = None
+
+    def save(self):
+        assert self.keychain, "Keychain was not set on OrgConfig"
+        self.keychain.set_org(self, self.global_org)
+
+    def get_domain(self):
+        instance_url = self.config.get("instance_url", "")
+        return urlparse(instance_url).hostname or ""
+
+    def get_orginfo_cache_dir(self, cachename):
+        "Returns a context managed FSResource object"
+        assert self.keychain, "Keychain should be set"
+        if self.global_org:
+            cache_dir = self.keychain.global_config_dir
+        else:
+            cache_dir = self.keychain.cache_dir
+        uniqifier = self.get_domain() + "__" + str(self.username).replace("@", "__")
+        cache_dir = cache_dir / "orginfo" / uniqifier / cachename
+
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return open_fs_resource(cache_dir)
+
+    @property
+    def is_person_accounts_enabled(self):
+        """
+        Returns if the org has person accounts enabled, i.e. if Account has an ``IsPersonAccount`` field.
+
+        **Example**
+
+        Selectively run a task in a flow only if Person Accounts is or is not enabled.
+
+        .. code-block:: yaml
+
+            flows:
+                load_storytelling_data:
+                    steps:
+                        1:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/with_person_accounts/mapping.yml
+                                sql_path: datasets/with_person_accounts/data.sql
+                            when: org_config.is_person_accounts_enabled
+                        2:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/without_person_accounts/mapping.yml
+                                sql_path: datasets/without_person_accounts/data.sql
+                            when: not org_config.is_person_accounts_enabled
+
+        """
+        if self._is_person_accounts_enabled is None:
+            self._is_person_accounts_enabled = any(
+                field["name"] == "IsPersonAccount"
+                for field in self.salesforce_client.Account.describe()["fields"]
+            )
+        return self._is_person_accounts_enabled

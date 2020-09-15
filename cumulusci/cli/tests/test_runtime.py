@@ -17,18 +17,19 @@ from cumulusci.core.exceptions import OrgNotFound
 class TestCliRuntime(unittest.TestCase):
     key = "1234567890abcdef"
 
-    @classmethod
-    def setUpClass(cls):
+    def setup_method(self, method):
         os.chdir(os.path.dirname(cumulusci.__file__))
+        self.environ_mock = mock.patch.dict(os.environ, {"CUMULUSCI_KEY": self.key})
+        self.environ_mock.start()
 
-    def setUp(self):
-        os.environ["CUMULUSCI_KEY"] = self.key
+    def teardown_method(self, method):
+        self.environ_mock.stop()
 
     def test_init(self):
         config = CliRuntime()
 
         for key in {"cumulusci", "tasks", "flows", "services", "orgs", "project"}:
-            self.assertIn(key, config.global_config.config)
+            self.assertIn(key, config.universal_config.config)
         self.assertEqual("CumulusCI", config.project_config.project__name)
         for key in {"services", "orgs", "app"}:
             self.assertIn(key, config.keychain.config)

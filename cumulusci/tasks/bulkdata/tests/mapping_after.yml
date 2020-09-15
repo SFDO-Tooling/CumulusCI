@@ -1,6 +1,6 @@
 Insert Accounts:
+    api: bulk
     sf_object: Account
-    action: insert
     table: accounts
     fields:
         Id: sf_id
@@ -12,8 +12,8 @@ Insert Accounts:
             after: Insert Contacts
             table: contacts
 Insert Contacts:
+    api: bulk
     sf_object: Contact
-    action: insert
     table: contacts
     fields:
         Id: sf_id
@@ -22,8 +22,8 @@ Insert Contacts:
             after: Insert Contacts
             table: contacts
 Insert Opportunities:
+    api: bulk
     sf_object: Opportunity
-    action: insert
     table: opportunities
     fields:
         Id: sf_id
