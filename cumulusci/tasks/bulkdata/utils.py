@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -146,7 +146,7 @@ def get_relative_date_context(mapping: MappingStep, org_config: OrgConfig):
 def adjust_relative_dates(
     mapping: MappingStep,
     context,
-    record: List[str],
+    record: List[Optional[str]],
     operation: DataOperationType,
 ):
     """Convert specified date and time fields (in ISO format) relative to the present moment.

@@ -185,12 +185,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Convert relative dates to stable dates.
         if mapping.anchor_date:
             date_context = get_relative_date_context(mapping, self.org_config)
-            record_iterator = (
-                adjust_relative_dates(
-                    mapping, date_context, record, DataOperationType.QUERY
+            if date_context[0] or date_context[1]:
+                record_iterator = (
+                    adjust_relative_dates(
+                        mapping, date_context, record, DataOperationType.QUERY
+                    )
+                    for record in record_iterator
                 )
-                for record in record_iterator
-            )
 
         # Set Name field as blank for Person Account "Account" records.
         if (

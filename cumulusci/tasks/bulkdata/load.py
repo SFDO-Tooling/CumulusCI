@@ -168,16 +168,18 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         statics = self._get_statics(mapping)
         total_rows = 0
 
-        date_context = get_relative_date_context(mapping, self.org_config)
+        if mapping.anchor_date:
+            date_context = get_relative_date_context(mapping, self.org_config)
 
         for row in query.yield_per(10000):
             total_rows += 1
             # Add static values to row
             pkey = row[0]
             row = list(row[1:]) + statics
-            row = adjust_relative_dates(
-                mapping, date_context, row, DataOperationType.INSERT
-            )
+            if mapping.anchor_date and (date_context[0] or date_context[1]):
+                row = adjust_relative_dates(
+                    mapping, date_context, row, DataOperationType.INSERT
+                )
             if mapping.action is DataOperationType.UPDATE:
                 if len(row) > 1 and all([f is None for f in row[1:]]):
                     # Skip update rows that contain no values
