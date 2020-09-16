@@ -59,7 +59,7 @@ class MergeBranch(BaseGithubTask):
             raise GithubApiNotFoundError(message)
 
     def _get_existing_prs(self):
-        # Get existing pull requests targeting a target branch
+        """Get existing pull requests targeting the source branch"""
         self.existing_prs = []
         for pr in self.repo.pull_requests(state="open"):
             if (
