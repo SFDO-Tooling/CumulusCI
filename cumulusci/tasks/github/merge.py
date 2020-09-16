@@ -18,7 +18,7 @@ class MergeBranchOld(BaseGithubTask):
             "description": "The source branch to merge from.  Defaults to project__git__default_branch."
         },
         "branch_prefix": {
-            "description": "A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature"
+            "description": "The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature"
         },
         "children_only": {
             "description": "If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False"
