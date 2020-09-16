@@ -201,7 +201,6 @@ tasks:
         description: Merges the latest commit on a parent feature branch into all child feature branches
         class_path: cumulusci.tasks.github.MergeBranch
         options:
-            children_only: True
             source_branch: $project_config.repo_branch
         group: GitHub
     github_copy_subtree:
