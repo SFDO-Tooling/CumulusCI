@@ -416,6 +416,29 @@ name (List) or setup owner (Hierarchy) will be updated with the given data.
 Dataset Tasks
 =============
 
+``create_bulk_data_permission_set``
+-----------------------------------
+
+Create and assign a Permission Set that enables key features used in Bulk Data
+tasks (Hard Delete and Set Audit Fields) for the current user. The Permission
+Set will be called ``CumulusCI Bulk Data``.
+
+Note that prior to running this task you must ensure that your org is configured
+to allow the use of Set Audit Fields. You can do so by manually updating
+the required setting in the User Interface section of Saleforce Setup, or by
+updating your scratch org configuration to include ::
+
+    "securitySettings": {
+      "enableAuditFieldsInactiveOwner": true
+    }
+
+For more information about the Set Audit Fields feature, review `this Knowledge
+article <https://help.salesforce.com/articleView?id=000213290&type=1>`_.
+
+After this task runs, you'll be able to run the ``delete_data`` task with the
+``hardDelete`` option, and you'll be able to map audit fields like ``CreatedDate``.
+
+
 ``extract_dataset``
 -------------------
 
