@@ -5,7 +5,7 @@ from cumulusci.core.utils import process_list_arg
 class CreatePermissionSet(BaseSalesforceApiTask):
     task_options = {
         "api_name": {
-            "description": "API names of generated Permission Set",
+            "description": "API name of generated Permission Set",
             "required": True,
         },
         "label": {"description": "Label of generated Permission Set"},
