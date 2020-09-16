@@ -713,7 +713,7 @@ Options
 ``-o api_name APINAME``
 	 *Required*
 
-	 API names of generated Permission Set
+	 API name of generated Permission Set
 
 ``-o user_permissions USERPERMISSIONS``
 	 *Required*
@@ -4536,4 +4536,3 @@ Options
 	 If True, restore the state of Trigger Handlers to that stored in the (specified or default) restore file.
 
 	 Default: True
-
