@@ -30,6 +30,6 @@ class CreatePermissionSet(BaseSalesforceApiTask):
                 **{perm: True for perm in self.options["user_permissions"]},
             }
         )
-        result = self.sf.PermissionSetAssignment.create(
+        self.sf.PermissionSetAssignment.create(
             {"AssigneeId": self.org_config.user_id, "PermissionSetId": result["id"]}
         )
