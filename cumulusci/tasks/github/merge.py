@@ -45,12 +45,12 @@ class MergeBranch(BaseGithubTask):
     def _run_task(self):
         self.repo = self.get_repo()
 
-        self._validate_branch()
+        self._validate_source_branch()
         self._get_existing_prs()
         branch_tree = self._get_branch_tree()
         self._merge_branches(branch_tree)
 
-    def _validate_branch(self):
+    def _validate_source_branch(self):
         try:
             self.repo.branch(self.options["source_branch"])
         except github3.exceptions.NotFoundError:
