@@ -197,6 +197,22 @@ contains the ``anchor_date`` clause. If orgs are `configured <https://help.sales
 fields upon record creation and the appropriate user permission is enabled,
 CumulusCI can apply relative dating to audit fields, such as ``CreatedDate``. 
 
+For example, this mapping step:
+
+.. code-block:: yaml
+
+    Contacts:
+        sf_object: Contact
+        fields:
+            - FirstName
+            - LastName
+            - Birthdate
+        anchor_date: 1990-07-01
+
+would adjust the ``Birthdate`` field on both load and extract around the anchor date of
+July 1, 1990. Note that date and datetime fields not mapped, as well as fields on other
+steps, are unaffected.
+
 Person Accounts
 ---------------
 
