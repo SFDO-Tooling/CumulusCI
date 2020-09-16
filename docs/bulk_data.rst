@@ -173,6 +173,30 @@ the same Record Type upon load.
 It's recommended that new datasets use Record Type mapping by including the ``RecordTypeId`` 
 field. Using ``record_type`` will result in CumulusCI issuing a warning.
 
+Relative Dates
+--------------
+
+CumulusCI supports maintaining *relative dates*, helping to keep the dataset relevant by
+ensuring that date and date-time fields are updated when loaded.
+
+Relative dates are enabled by defining an *anchor date*, which is specified in each mapping
+step with the ``anchor_date`` key, whose value is a date in the format ``2020-07-01``.
+
+When you specify a relative date, CumulusCI modifies all date and date-time fields on the
+object such that when loaded, they have the same relationship to today as they did to the
+anchor date. Hence, given a stored date of 2020-07-10 and an anchor date of 2020-07-01,
+if you perform a load on 2020-09-10, the date field will be rendered as 2020-09-19 -
+nine days ahead of today's date, as it was nine days ahead of the anchor date.
+
+Relative dates are also adjusted upon extract so that they remain stable. Extracting the same
+data mentioned above would result in CumulusCI adjusting the date back to 2020-07-10 for
+storage, keeping it relative to the anchor date.
+
+Relative dating is applied to all date and date-time fields on any mapping step that
+contains the ``anchor_date`` clause. If orgs are `configured <https://help.salesforce.com/articleView?id=000334139&language=en_US&type=1&mode=1>`_ to permit setting audit 
+fields upon record creation and the appropriate user permission is enabled,
+CumulusCI can apply relative dating to audit fields, such as ``CreatedDate``. 
+
 Person Accounts
 ---------------
 
@@ -200,16 +224,17 @@ CumulusCI supports extracting and loading person account data.  In your dataset 
         - RecordTypeId
 
 Record Types
-************
+++++++++++++
+
 It's recommended, though not required, to extract Account Record Types to support datasets with person accounts so there is consistency in the Account record types loaded.   If Account ``RecordTypeId`` is not extracted, the default business account Record Type and default person account Record Type will be applied to business and person account records respectively.
 
 Extract
-*******
++++++++
 
 During dataset extraction, if the org has person accounts enabled, the ``IsPersonAccount`` field is extracted for **Account** and **Contact** records so CumulusCI can properly load these records later.  Additionally, ``Account.Name`` is not createable for person account **Account** records, so ``Account.Name`` is not extracted for person account **Account** records.
 
 Load
-****
+++++
 
 Before loading, CumulusCI checks if the dataset contains any person account records (i.e. any **Account** or **Contact** records with ``IsPersonAccount`` as ``true``).  If the dataset does contain any person account records, CumulusCI validates the org has person accounts enabled.
 
