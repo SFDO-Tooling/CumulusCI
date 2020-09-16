@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Dict, List, Union, IO, Optional, Any, Callable, Mapping
 from logging import getLogger
 from pathlib import Path
@@ -147,6 +148,22 @@ class MappingStep(CCIDictModel):
             columns.append("RecordTypeId")
 
         return columns
+
+    def get_relative_date_context(self, org_config: OrgConfig):
+        fields = self.get_field_list()
+
+        date_fields = [
+            fields.index(f)
+            for f in self.get_fields_by_type("date", org_config)
+            if f in self.fields
+        ]
+        date_time_fields = [
+            fields.index(f)
+            for f in self.get_fields_by_type("datetime", org_config)
+            if f in self.fields
+        ]
+
+        return (date_fields, date_time_fields, date.today())
 
     @validator("batch_size")
     @classmethod

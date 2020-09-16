@@ -14,7 +14,6 @@ from cumulusci.tasks.bulkdata.utils import (
 )
 from cumulusci.tasks.bulkdata.dates import (
     adjust_relative_dates,
-    get_relative_date_context,
 )
 from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
@@ -171,7 +170,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         total_rows = 0
 
         if mapping.anchor_date:
-            date_context = get_relative_date_context(mapping, self.org_config)
+            date_context = mapping.get_relative_date_context(self.org_config)
 
         for row in query.yield_per(10000):
             total_rows += 1

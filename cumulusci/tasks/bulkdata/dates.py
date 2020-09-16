@@ -1,24 +1,6 @@
-from datetime import date, datetime
+from datetime import datetime
 from typing import List, Optional
-from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.tasks.bulkdata.step import DataOperationType
-
-
-def get_relative_date_context(mapping, org_config: OrgConfig):
-    fields = mapping.get_field_list()
-
-    date_fields = [
-        fields.index(f)
-        for f in mapping.get_fields_by_type("date", org_config)
-        if f in mapping.fields
-    ]
-    date_time_fields = [
-        fields.index(f)
-        for f in mapping.get_fields_by_type("datetime", org_config)
-        if f in mapping.fields
-    ]
-
-    return (date_fields, date_time_fields)
 
 
 def adjust_relative_dates(
@@ -31,18 +13,18 @@ def adjust_relative_dates(
     If some date is 2020-07-30, anchor_date is 2020-07-23, and today's date is 2020-09-01,
     that date will become 2020-09-07 - the same position in the timeline relative to today."""
 
-    date_fields, date_time_fields = context
+    date_fields, date_time_fields, today = context
 
     # Determine the direction in which we are converting.
     # For extracts, we convert the date from today-anchored to mapping.anchor_date-anchored.
     # For loads, we do the reverse.
 
     if operation is DataOperationType.QUERY:
-        current_anchor = date.today()
+        current_anchor = today
         target_anchor = mapping.anchor_date
     else:
         current_anchor = mapping.anchor_date
-        target_anchor = date.today()
+        target_anchor = today
 
     r = record.copy()
 
@@ -51,7 +33,7 @@ def adjust_relative_dates(
             index += 1  # For the Id field.
         if r[index]:
             r[index] = date_to_iso(
-                _convert_date(target_anchor, current_anchor, iso_to_date(r[index]))
+                _offset_date(target_anchor, current_anchor, iso_to_date(r[index]))
             )
 
     for index in date_time_fields:
@@ -59,7 +41,7 @@ def adjust_relative_dates(
             index += 1  # For the Id field.
         if r[index]:
             r[index] = salesforce_from_datetime(
-                _convert_datetime(
+                _offset_datetime(
                     target_anchor,
                     current_anchor,
                     datetime_from_salesforce(r[index]),
@@ -89,7 +71,8 @@ def salesforce_from_datetime(d):
     )
 
 
-# Python 3.6 doesn't support the isoformat()/fromisoformat() methods. Shims.
+# Python 3.6 doesn't support the fromisoformat() method.
+# These functions are explicit and work on all supported versions.
 
 
 def date_to_iso(d):
@@ -102,14 +85,14 @@ def iso_to_date(s):
     return datetime.strptime(s, "%Y-%m-%d").date()
 
 
-def _convert_date(target_anchor, current_anchor, this_date):
+def _offset_date(target_anchor, current_anchor, this_date):
     """Adjust this_date to be relative to target_anchor instead of current_anchor"""
     return target_anchor + (this_date - current_anchor)
 
 
-def _convert_datetime(target_anchor, current_anchor, this_datetime):
+def _offset_datetime(target_anchor, current_anchor, this_datetime):
     """Adjust this_datetime to be relative to target_anchor instead of current_anchor"""
     return datetime.combine(
-        _convert_date(target_anchor, current_anchor, this_datetime.date()),
+        _offset_date(target_anchor, current_anchor, this_datetime.date()),
         this_datetime.time(),
     )

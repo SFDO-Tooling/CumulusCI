@@ -195,7 +195,9 @@ storage, keeping it relative to the anchor date.
 Relative dating is applied to all date and date-time fields on any mapping step that
 contains the ``anchor_date`` clause. If orgs are `configured <https://help.salesforce.com/articleView?id=000334139&language=en_US&type=1&mode=1>`_ to permit setting audit 
 fields upon record creation and the appropriate user permission is enabled,
-CumulusCI can apply relative dating to audit fields, such as ``CreatedDate``. 
+CumulusCI can apply relative dating to audit fields, such as ``CreatedDate``.
+For more about how to automate that setup, review the ``create_bulk_data_permission_set``
+task below.
 
 For example, this mapping step:
 

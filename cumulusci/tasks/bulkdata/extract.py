@@ -24,7 +24,6 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.bulkdata.dates import (
     adjust_relative_dates,
-    get_relative_date_context,
 )
 from cumulusci.utils import os_friendly_path, log_progress
 from cumulusci.tasks.bulkdata.mapping_parser import (
@@ -184,7 +183,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # Convert relative dates to stable dates.
         if mapping.anchor_date:
-            date_context = get_relative_date_context(mapping, self.org_config)
+            date_context = mapping.get_relative_date_context(self.org_config)
             if date_context[0] or date_context[1]:
                 record_iterator = (
                     adjust_relative_dates(

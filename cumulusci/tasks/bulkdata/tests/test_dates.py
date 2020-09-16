@@ -1,8 +1,6 @@
 from datetime import datetime, date, timedelta
-from unittest import mock
 from cumulusci.tasks.bulkdata.dates import (
     adjust_relative_dates,
-    get_relative_date_context,
     datetime_from_salesforce,
     salesforce_from_datetime,
 )
@@ -11,27 +9,6 @@ from cumulusci.tasks.bulkdata.step import DataOperationType
 
 
 class TestRelativeDates:
-    def test_get_relative_date_context(self):
-        mapping = MappingStep(
-            sf_object="Account",
-            fields=["Some_Date__c", "Some_Datetime__c"],
-            anchor_date="2020-07-01",
-        )
-
-        org_config = mock.Mock()
-        org_config.salesforce_client.Account.describe.return_value = {
-            "fields": [
-                {"name": "Some_Date__c", "type": "date"},
-                {"name": "Some_Datetime__c", "type": "datetime"},
-                {"name": "Some_Bool__c", "type": "boolean"},
-            ]
-        }
-
-        assert get_relative_date_context(mapping, org_config) == (
-            [0],
-            [1],
-        )
-
     def test_relative_dates(self):
         mapping = MappingStep(
             sf_object="Account", fields=["Some_Date__c"], anchor_date="2020-07-01"
@@ -39,15 +16,15 @@ class TestRelativeDates:
 
         target = date.today() + timedelta(days=7)
         assert adjust_relative_dates(
-            mapping, ([0], []), ["2020-07-08"], DataOperationType.INSERT
+            mapping, ([0], [], date.today()), ["2020-07-08"], DataOperationType.INSERT
         ) == [target.isoformat()]
 
         assert adjust_relative_dates(
-            mapping, ([0], []), ["2020-07-01"], DataOperationType.INSERT
+            mapping, ([0], [], date.today()), ["2020-07-01"], DataOperationType.INSERT
         ) == [date.today().isoformat()]
 
         assert adjust_relative_dates(
-            mapping, ([0], []), [""], DataOperationType.INSERT
+            mapping, ([0], [], date.today()), [""], DataOperationType.INSERT
         ) == [""]
 
     def test_relative_dates__extract(self):
@@ -60,7 +37,7 @@ class TestRelativeDates:
         assert (
             adjust_relative_dates(
                 mapping,
-                ([0], []),
+                ([0], [], date.today()),
                 ["001000000000000", input_date],
                 DataOperationType.QUERY,
             )
@@ -70,7 +47,7 @@ class TestRelativeDates:
         assert (
             adjust_relative_dates(
                 mapping,
-                ([0], []),
+                ([0], [], date.today()),
                 ["001000000000000", date.today().isoformat()],
                 DataOperationType.QUERY,
             )
@@ -80,7 +57,7 @@ class TestRelativeDates:
         assert (
             adjust_relative_dates(
                 mapping,
-                ([0], []),
+                ([0], [], date.today()),
                 ["001000000000000", ""],
                 DataOperationType.QUERY,
             )
@@ -97,7 +74,7 @@ class TestRelativeDates:
         assert (
             adjust_relative_dates(
                 mapping,
-                ([], [0]),
+                ([], [0], date.today()),
                 [salesforce_from_datetime(input_dt)],
                 DataOperationType.INSERT,
             )
@@ -108,7 +85,7 @@ class TestRelativeDates:
         assert (
             adjust_relative_dates(
                 mapping,
-                ([], [0]),
+                ([], [0], date.today()),
                 [salesforce_from_datetime(now)],
                 DataOperationType.INSERT,
             )
@@ -116,7 +93,7 @@ class TestRelativeDates:
         )
 
         assert adjust_relative_dates(
-            mapping, ([], [0]), [""], DataOperationType.INSERT
+            mapping, ([], [0], date.today()), [""], DataOperationType.INSERT
         ) == [""]
 
     def test_relative_datetimes_extract(self):
@@ -131,7 +108,7 @@ class TestRelativeDates:
         assert (
             adjust_relative_dates(
                 mapping,
-                ([], [0]),
+                ([], [0], date.today()),
                 ["001000000000000", salesforce_from_datetime(input_dt)],
                 DataOperationType.QUERY,
             )
