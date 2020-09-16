@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, timedelta
 import os
 import json
 import shutil
@@ -449,52 +449,37 @@ class TestLoadData(unittest.TestCase):
             records,
         )
 
-    def test_get_columns(self):
+    @responses.activate
+    def test_stream_queried_data__adjusts_relative_dates(self):
+        mock_describe_calls()
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
         )
+        task.sf = mock.Mock()
 
-        fields = {}
-        fields["Id"] = "sf_id"
-        fields["Name"] = "Name"
-
-        self.assertEqual(
-            ["Name", "Industry", "RecordTypeId"],
-            task._get_columns(
-                MappingStep(
-                    sf_object="Account",
-                    fields=fields,
-                    static={"Industry": "Technology"},
-                    record_type="Organization",
-                )
-            ),
-        )
-        self.assertEqual(
-            ["Id", "Name", "Industry", "RecordTypeId"],
-            task._get_columns(
-                MappingStep(
-                    sf_object="Account",
-                    action=DataOperationType.UPDATE,
-                    fields=fields,
-                    static={"Industry": "Technology"},
-                    record_type="Organization",
-                )
-            ),
+        mapping = MappingStep(
+            sf_object="Contact",
+            action="insert",
+            fields=["Birthdate"],
+            anchor_date="2020-07-01",
         )
 
-        fields["RecordTypeId"] = "recordtypeid"
-        fields["AccountSite"] = "accountsite"
+        task._query_db = mock.Mock()
+        task._query_db.return_value.yield_per = mock.Mock(
+            return_value=[
+                # Local Id, Loaded Id, EmailBouncedDate
+                ["001000000001", "2020-07-10"],
+                ["001000000003", None],
+            ]
+        )
 
+        local_ids = []
+        records = list(
+            task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
+        )
         self.assertEqual(
-            ["Id", "Name", "AccountSite", "Industry", "RecordTypeId"],
-            task._get_columns(
-                MappingStep(
-                    sf_object="Account",
-                    action=DataOperationType.UPDATE,
-                    fields=fields,
-                    static={"Industry": "Technology"},
-                )
-            ),
+            [[(date.today() + timedelta(days=9)).isoformat()], [None]],
+            records,
         )
 
     def test_get_statics(self):
@@ -840,13 +825,6 @@ class TestLoadData(unittest.TestCase):
 
         # Validate person contact records were not filtered out
         task._filter_out_person_account_records.assert_not_called()
-
-    def test_convert(self):
-        task = _make_task(
-            LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
-        )
-        self.assertIsInstance(task._convert(datetime.now()), str)
 
     def test_initialize_id_table__already_exists(self):
         task = _make_task(

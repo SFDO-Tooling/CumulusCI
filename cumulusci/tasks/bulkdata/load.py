@@ -1,5 +1,4 @@
 from collections import defaultdict
-import datetime
 from unittest.mock import MagicMock
 from typing import Union
 
@@ -9,7 +8,13 @@ from sqlalchemy.ext.automap import automap_base
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, RowErrorChecker
+from cumulusci.tasks.bulkdata.utils import (
+    SqlAlchemyMixin,
+    RowErrorChecker,
+)
+from cumulusci.tasks.bulkdata.dates import (
+    adjust_relative_dates,
+)
 from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
@@ -144,7 +149,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             operation=mapping.action,
             api_options={"batch_size": mapping.batch_size, "bulk_mode": bulk_mode},
             context=self,
-            fields=self._get_columns(mapping),
+            fields=mapping.get_field_list(),
             api=mapping.api,
             volume=query.count(),
         )
@@ -162,15 +167,20 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         """Get data from the local db"""
 
         statics = self._get_statics(mapping)
-
         total_rows = 0
+
+        if mapping.anchor_date:
+            date_context = mapping.get_relative_date_context(self.org_config)
 
         for row in query.yield_per(10000):
             total_rows += 1
             # Add static values to row
             pkey = row[0]
             row = list(row[1:]) + statics
-            row = [self._convert(value) for value in row]
+            if mapping.anchor_date and (date_context[0] or date_context[1]):
+                row = adjust_relative_dates(
+                    mapping, date_context, row, DataOperationType.INSERT
+                )
             if mapping.action is DataOperationType.UPDATE:
                 if len(row) > 1 and all([f is None for f in row[1:]]):
                     # Skip update rows that contain no values
@@ -183,30 +193,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.logger.info(
             f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}"
         )
-
-    def _get_columns(self, mapping):
-        """Build a flat list of columns for the given mapping,
-        including fields, lookups, and statics."""
-        lookups = mapping.lookups
-
-        # Build the list of fields to import
-        columns = []
-        columns.extend(mapping.fields.keys())
-        # Don't include lookups with an `after:` spec (dependent lookups)
-        columns.extend([f for f in lookups if not lookups[f].after])
-        columns.extend(mapping.static.keys())
-        # If we're using Record Type mapping, `RecordTypeId` goes at the end.
-        if "RecordTypeId" in columns:
-            columns.remove("RecordTypeId")
-        if "RecordType" in columns:
-            columns.remove("RecordType")
-
-        if mapping.action is DataOperationType.INSERT and "Id" in columns:
-            columns.remove("Id")
-        if mapping.record_type or "RecordTypeId" in mapping.fields:
-            columns.append("RecordTypeId")
-
-        return columns
 
     def _load_record_types(self, sobjects, conn):
         """Persist record types for the given sObjects into the database."""
@@ -313,13 +299,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             query = self._filter_out_person_account_records(query, model)
 
         return query
-
-    def _convert(self, value):
-        """If value is a date, return its ISO8601 representation, otherwise return value."""
-        if value:
-            if isinstance(value, datetime.datetime):
-                return value.isoformat()
-            return value
 
     def _process_job_results(self, mapping, step, local_ids):
         """Get the job results and process the results. If we're raising for
