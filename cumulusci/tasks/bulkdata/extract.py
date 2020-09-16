@@ -1,6 +1,4 @@
 import csv
-import tempfile
-from pathlib import Path
 import itertools
 import collections
 from contextlib import contextmanager
@@ -31,7 +29,6 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
     validate_and_inject_mapping,
 )
-from cumulusci.utils.backports.py36 import nullcontext
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -88,22 +85,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             if self.options.get("sql_path"):
                 self._sqlite_dump()
-
-    @contextmanager
-    def _temp_database_url(self):
-        with tempfile.TemporaryDirectory() as t:
-            tempdb = Path(t) / "temp_db.db"
-
-            self.logger.info(f"Using temporary database {tempdb}")
-            database_url = f"sqlite:///{tempdb}"
-            yield database_url
-
-    def _database_url(self):
-        database_url = self.options.get("database_url")
-        if database_url:
-            return nullcontext(enter_result=database_url)
-        else:
-            return self._temp_database_url()
 
     @contextmanager
     def _init_db(self):

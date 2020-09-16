@@ -18,78 +18,21 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationJobResult,
     DataOperationType,
     DataOperationStatus,
-    BaseDmlOperation,
     DataApi,
 )
-from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.tasks.bulkdata.tests.utils import (
+    _make_task,
+    FakeBulkAPI,
+    FakeBulkAPIDmlOperation,
+)
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
-from cumulusci.tests.util import assert_max_memory_usage, mock_describe_calls
+from cumulusci.tests.util import (
+    assert_max_memory_usage,
+    mock_describe_calls,
+)
 
 from cumulusci.utils.backports.py36 import nullcontext
-
-
-class MockBulkApiDmlOperation(BaseDmlOperation):
-    def __init__(
-        self, *, context, sobject=None, operation=None, api_options=None, fields=None
-    ):
-        super().__init__(
-            sobject=sobject,
-            operation=operation,
-            api_options=api_options,
-            context=context,
-            fields=fields,
-        )
-        self._results = []
-        self.records = []
-
-    def start(self):
-        self.job_id = "JOB"
-
-    def end(self):
-        records_processed = len(self.results)
-        self.job_result = DataOperationJobResult(
-            DataOperationStatus.SUCCESS, [], records_processed, 0
-        )
-
-    def load_records(self, records):
-        self.records.extend(records)
-
-    def get_results(self):
-        return iter(self.results)
-
-    @property
-    def results(self):
-        return self._results
-
-    @results.setter
-    def results(self, results):
-        self._results = results
-        self.end()
-
-
-class MockBulkAPI:
-    next_job_id = 0
-    next_batch_id = 0
-
-    @classmethod
-    def create_job(cls, *args, **kwargs):
-        cls.next_job_id += 1
-        return cls.next_job_id
-
-    @classmethod
-    def post_batch(cls, *args, **kwargs):
-        cls.next_batch_id += 1
-        return cls.next_batch_id
-
-    def close_job(self, *args, **kwargs):
-        pass
-
-    def job_status(self, job_id):
-        return {
-            "numberBatchesCompleted": self.next_batch_id,
-            "numberBatchesTotal": self.next_batch_id,
-        }
 
 
 class TestLoadData(unittest.TestCase):
@@ -126,7 +69,7 @@ class TestLoadData(unittest.TestCase):
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
 
-            step = MockBulkApiDmlOperation(
+            step = FakeBulkAPIDmlOperation(
                 sobject="Contact",
                 operation=DataOperationType.INSERT,
                 api_options={},
@@ -255,7 +198,7 @@ class TestLoadData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -936,7 +879,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -974,7 +917,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1", "2", "3", "4"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1015,7 +958,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1046,7 +989,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.UPDATE,
             api_options={},
@@ -1105,7 +1048,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1167,7 +1110,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1229,7 +1172,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1291,7 +1234,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1351,7 +1294,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1626,7 +1569,7 @@ class TestLoadData(unittest.TestCase):
             )
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
-            step = MockBulkApiDmlOperation(
+            step = FakeBulkAPIDmlOperation(
                 sobject="Contact",
                 operation=DataOperationType.INSERT,
                 api_options={},
@@ -2286,7 +2229,7 @@ class TestLoadData(unittest.TestCase):
 
                 def _init_task(self):
                     super()._init_task()
-                    task.bulk = MockBulkAPI()
+                    task.bulk = FakeBulkAPI()
 
             task = _make_task(
                 NetworklessLoadData,

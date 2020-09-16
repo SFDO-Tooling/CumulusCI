@@ -3,7 +3,6 @@ import datetime
 from unittest.mock import MagicMock
 from typing import Union
 import tempfile
-from pathlib import Path
 from contextlib import contextmanager
 
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text, func
@@ -28,7 +27,6 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     MappingStep,
     MappingLookup,
 )
-from cumulusci.utils.backports.py36 import nullcontext
 
 
 class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -140,7 +138,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._load_record_types([mapping.sf_object], conn)
             self.session.commit()
 
-        local_ids = []
         query = self._query_db(mapping)
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
         step = get_dml_operation(
@@ -429,22 +426,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             finally:
                 cursor.close()
         # self.session.flush()
-
-    @contextmanager
-    def _temp_database_url(self):
-        with tempfile.TemporaryDirectory() as t:
-            tempdb = Path(t) / "temp_db.db"
-
-            self.logger.info(f"Using temporary database {tempdb}")
-            database_url = f"sqlite:///{tempdb}"
-            yield database_url
-
-    def _database_url(self):
-        database_url = self.options.get("database_url")
-        if database_url:
-            return nullcontext(enter_result=database_url)
-        else:
-            return self._temp_database_url()
 
     @contextmanager
     def _init_db(self):

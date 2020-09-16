@@ -1,6 +1,10 @@
 import datetime
 import itertools
 import collections
+import tempfile
+from contextlib import contextmanager
+from pathlib import Path
+import typing
 
 from sqlalchemy import types
 from sqlalchemy import event
@@ -11,6 +15,7 @@ from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
 
 from cumulusci.core.exceptions import BulkDataException
+from cumulusci.utils.backports.py36 import nullcontext
 
 
 # Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
@@ -56,7 +61,7 @@ class SqlAlchemyMixin:
         Yields after every batch."""
         table = self.metadata.tables[table]
         dict_iterable = (dict(zip(columns, row)) for row in record_iterable)
-        for group in _grouper(10000, dict_iterable):
+        for group in get_batch_iterator(10000, dict_iterable):
             with connection.begin():
                 yield connection.execute(table.insert(), group)
             self.session.flush()
@@ -90,6 +95,22 @@ class SqlAlchemyMixin:
                     [rt["Id"], rt["DeveloperName"]] for rt in result["records"]
                 ),
             )
+
+    @contextmanager
+    def _temp_database_url(self):
+        with tempfile.TemporaryDirectory() as t:
+            tempdb = Path(t) / "temp_db.db"
+
+            self.logger.info(f"Using temporary database {tempdb}")
+            database_url = f"sqlite:///{tempdb}"
+            yield database_url
+
+    def _database_url(self):
+        database_url = self.options.get("database_url")
+        if database_url:
+            return nullcontext(enter_result=database_url)
+        else:
+            return self._temp_database_url()
 
 
 def _handle_primary_key(mapping, fields):
@@ -166,7 +187,7 @@ def _consume(iterator):
     collections.deque(iterator, maxlen=0)
 
 
-def _grouper(n, iterable):
+def get_batch_iterator(n: int, iterable: typing.Iterable):
     it = iter(iterable)
     while True:
         chunk = tuple(itertools.islice(it, n))

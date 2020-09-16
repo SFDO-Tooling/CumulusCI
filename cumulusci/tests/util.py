@@ -14,6 +14,7 @@ from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.config import OrgConfig
+from cumulusci.tasks.bulkdata.tests import utils as bulkdata_utils
 
 
 def random_sha():
@@ -121,64 +122,27 @@ def big_objs(traced_only=False):
         print(type(obj), size, tracemalloc.get_object_traceback(obj))
 
 
-class MockBulkAPI:
-    """Extremely simplistic mock of the bulk API
+class FakeSF:
+    """Extremely simplistic mock of the Simple-Salesforce API
 
     Can be improved as needed over time.
+    In particular, __getattr__ is not implemented yet.
     """
 
-    next_job_id = 0
-    next_batch_id = 0
-
-    @classmethod
-    def create_job(cls, *args, **kwargs):
-        cls.next_job_id += 1
-        return cls.next_job_id
-
-    @classmethod
-    def create_query_job(cls, *args, **kwargs):
-        cls.next_job_id += 1
-        return cls.next_job_id
-
-    @classmethod
-    def post_batch(cls, *args, **kwargs):
-        cls.next_batch_id += 1
-        return cls.next_batch_id
-
-    def close_job(self, *args, **kwargs):
-        pass
-
-    def job_status(self, job_id):
-        return {
-            "numberBatchesCompleted": self.next_batch_id,
-            "numberBatchesTotal": self.next_batch_id,
-        }
-
-    def query(self, job_id, soql):
-        return self.post_batch()
-
-    def get_query_batch_result_ids(self, batch_id, job_id):
-        return range(0, 10)
-
-
-class MockSF:
-    """Extremely simplistic mock of the Salesforce API
-
-    Can be improved as needed over time.
-    """
-
-    mocks = {}
+    fakes = {}
 
     def describe(self):
-        return getattr(self, "global_describe")
+        return self._get_json("global_describe")
 
     @property
     def sf_version(self):
-        return 47
+        return "47.0"
 
-    def __getattr__(self, sobjname):
-        self.mocks[sobjname] = self.mocks.get("sobjname", None) or read_mock(sobjname)
-        return self.mocks[sobjname]
+    def _get_json(self, fake_dataset):
+        self.fakes[fake_dataset] = self.fakes.get("sobjname", None) or read_mock(
+            fake_dataset
+        )
+        return self.fakes[fake_dataset]
 
 
 def read_mock(name: str):
@@ -232,11 +196,11 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
     mock_describe_calls("test.salesforce.com")
 
     real_init = task._init_task
-    salesforce_client = MockSF()
+    salesforce_client = FakeSF()
 
     def _init_task():
         real_init()
-        task.bulk = MockBulkAPI()
+        task.bulk = bulkdata_utils.FakeBulkAPI()
         task.sf = salesforce_client
 
     with mock.patch(
