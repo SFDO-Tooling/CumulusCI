@@ -17,13 +17,13 @@ Changes:
 
   - The oid_as_pk key is no longer supported in bulk data mappings. (This key was already deprecated). Select object Id mode by including the Id field in mappings.
 
-- Issues closed:
+Issues closed:
 
-  - Fixed an issue (#2001) that caused CumulusCI to extract invalid data sets when using after: steps with autoincrement primary keys.
-  - Fixed an issue where the retrieve_changes task did not actually retrieve folders.
-  - Fixed a bug in the metadeploy_publish task where labels starting with "Install " were not extracted for localization.
-  - Fixed a bug that prevented using JWT auth with sandboxes if the sandbox's instance_url did not include an instance name.
-  - Fixed Account Table referencing lookup spelling error.
+- Fixed an issue (#2001) that caused CumulusCI to extract invalid data sets when using after: steps with autoincrement primary keys.
+- Fixed an issue where the retrieve_changes task did not actually retrieve folders.
+- Fixed a bug in the metadeploy_publish task where labels starting with "Install " were not extracted for localization.
+- Fixed a bug that prevented using JWT auth with sandboxes if the sandbox's instance_url did not include an instance name.
+- Fixed Account Table referencing lookup spelling error.
 
 3.18.0 (2020-09-03)
 
