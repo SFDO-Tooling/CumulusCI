@@ -23,7 +23,7 @@ Changes:
   - Fixed an issue where the retrieve_changes task did not actually retrieve folders.
   - Fixed a bug in the metadeploy_publish task where labels starting with "Install " were not extracted for localization.
   - Fixed a bug that prevented using JWT auth with sandboxes if the sandbox's instance_url did not include an instance name.
-  - Fixed Account Table referencing lookup spelling error.
+  - Fixed a bug where ``cci project init`` generated an invalid mapping for bulk data tasks.
 
 3.18.0 (2020-09-03)
 
