@@ -18,7 +18,7 @@ Changes:
   - Small refactor to use fstring and breakdown the large _get_branch_tree() method into more manageable pieces.
   - The oid_as_pk key is no longer supported in bulk data mappings. (This key was already deprecated). Select object Id mode by including the Id field in mappings.
 
-Issues closed:
+- Issues closed:
 
   - We fixed an issue (#2001) that caused CumulusCI to extract invalid data sets when using after: steps with autoincrement primary keys.
   - Fixed an issue where the retrieve_changes task did not actually retrieve folders.
