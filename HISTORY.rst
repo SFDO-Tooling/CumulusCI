@@ -1,7 +1,9 @@
 =======
 History
 =======
+
 3.19.0 (2020-09-17)
+-------------------
 
 Changes:
 
@@ -19,13 +21,14 @@ Changes:
 
 Issues closed:
 
-- Fixed an issue (#2001) that caused CumulusCI to extract invalid data sets when using after: steps with autoincrement primary keys.
-- Fixed an issue where the retrieve_changes task did not actually retrieve folders.
-- Fixed a bug in the metadeploy_publish task where labels starting with "Install " were not extracted for localization.
-- Fixed a bug that prevented using JWT auth with sandboxes if the sandbox's instance_url did not include an instance name.
-- Fixed Account Table referencing lookup spelling error.
+  - Fixed an issue (#2001) that caused CumulusCI to extract invalid data sets when using after: steps with autoincrement primary keys.
+  - Fixed an issue where the retrieve_changes task did not actually retrieve folders.
+  - Fixed a bug in the metadeploy_publish task where labels starting with "Install " were not extracted for localization.
+  - Fixed a bug that prevented using JWT auth with sandboxes if the sandbox's instance_url did not include an instance name.
+  - Fixed a bug where ``cci project init`` generated an invalid mapping for bulk data tasks.
 
 3.18.0 (2020-09-03)
+-------------------
 
 Changes:
 
@@ -68,6 +71,7 @@ Issues Closed:
 -  ``update_dependencies`` deduplicates its package install list, making it possible to handle situations where the same beta package is reached by two dependency paths.
 
 3.17.0 (2020-08-20)
+-------------------
 
 Changes:
 
