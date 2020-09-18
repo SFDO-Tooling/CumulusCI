@@ -429,7 +429,9 @@ class RestApiDmlOperation(BaseDmlOperation):
         def _convert(rec):
             result = dict(zip(self.fields, rec))
             for boolean_field in self.boolean_fields:
-                result[boolean_field] = bool(result[boolean_field])
+                # This is clumsy but required since Booleans as stored may
+                # differ in case, and Python's `bool()` does not handle that.
+                result[boolean_field] = result[boolean_field].lower() == "true"
 
             # Remove empty fields (different semantics in REST API)
             # We do this for insert only - on update, any fields set to `null`
