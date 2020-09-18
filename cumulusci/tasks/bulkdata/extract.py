@@ -23,6 +23,9 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     get_query_operation,
 )
+from cumulusci.tasks.bulkdata.dates import (
+    adjust_relative_dates,
+)
 from cumulusci.utils import os_friendly_path, log_progress
 from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
@@ -180,6 +183,17 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         record_iterator = log_progress(step.get_results(), self.logger)
         if record_type:
             record_iterator = (record + [record_type] for record in record_iterator)
+
+        # Convert relative dates to stable dates.
+        if mapping.anchor_date:
+            date_context = mapping.get_relative_date_context(self.org_config)
+            if date_context[0] or date_context[1]:
+                record_iterator = (
+                    adjust_relative_dates(
+                        mapping, date_context, record, DataOperationType.QUERY
+                    )
+                    for record in record_iterator
+                )
 
         # Set Name field as blank for Person Account "Account" records.
         if (

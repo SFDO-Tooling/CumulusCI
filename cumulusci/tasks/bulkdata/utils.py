@@ -1,45 +1,32 @@
-import datetime
-import itertools
 import collections
+import itertools
+import logging
 import tempfile
+import typing
 from contextlib import contextmanager
 from pathlib import Path
-import typing
 
-from sqlalchemy import types
-from sqlalchemy import event
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import MetaData
 from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
+from sqlalchemy.orm import Session
+from simple_salesforce import Salesforce
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils.backports.py36 import nullcontext
 
 
-# Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
-class EpochType(types.TypeDecorator):
-    impl = types.Integer
-
-    epoch = datetime.datetime(1970, 1, 1, 0, 0, 0)
-
-    def process_bind_param(self, value, dialect):
-        return int((value - self.epoch).total_seconds()) * 1000
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            return self.epoch + datetime.timedelta(seconds=value / 1000)
-
-
-# Listen for sqlalchemy column_reflect event and map datetime fields to EpochType
-@event.listens_for(Table, "column_reflect")
-def setup_epoch(inspector, table, column_info):
-    if isinstance(column_info["type"], types.DateTime):
-        column_info["type"] = EpochType()
-
-
 class SqlAlchemyMixin:
+    logger: logging.Logger
+    metadata: MetaData
+    models: dict
+    options: dict
+    session: Session
+    sf: Salesforce
+
     def _sql_bulk_insert_from_records(
         self, *, connection, table, columns, record_iterable
     ):

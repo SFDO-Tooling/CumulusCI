@@ -693,6 +693,76 @@ Options
 
 	 Default: src.orig
 
+**create_permission_set**
+==========================================
+
+**Description:** Creates a Permission Set with specified User Permissions and assigns it to the running user.
+
+**Class:** cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run create_permission_set``
+
+
+Options
+------------------------------------------
+
+
+``-o api_name APINAME``
+	 *Required*
+
+	 API name of generated Permission Set
+
+``-o user_permissions USERPERMISSIONS``
+	 *Required*
+
+	 List of User Permissions to include in the Permission Set.
+
+``-o label LABEL``
+	 *Optional*
+
+	 Label of generated Permission Set
+
+**create_bulk_data_permission_set**
+==========================================
+
+**Description:** Creates a Permission Set with the Hard Delete and Set Audit Fields user permissions. NOTE: the org setting to allow Set Audit Fields must be turned on.
+
+**Class:** cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run create_bulk_data_permission_set``
+
+
+Options
+------------------------------------------
+
+
+``-o api_name APINAME``
+	 *Required*
+
+	 API name of generated Permission Set
+
+	 Default: CumulusCI_Bulk_Data
+
+``-o user_permissions USERPERMISSIONS``
+	 *Required*
+
+	 List of User Permissions to include in the Permission Set.
+
+	 Default: ['PermissionsBulkApiHardDelete', 'PermissionsCreateAuditFields']
+
+``-o label LABEL``
+	 *Optional*
+
+	 Label of generated Permission Set
+
+	 Default: CumulusCI Bulk Data
+
 **create_unmanaged_ee_src**
 ==========================================
 
