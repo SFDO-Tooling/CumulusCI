@@ -2,6 +2,13 @@
 History
 =======
 
+3.19.1 (2020-09-18)
+-------------------
+
+Issues closed:
+
+- Fixed an issue (#2032) where REST API data loads incorrectly handled Boolean values.
+
 3.19.0 (2020-09-17)
 -------------------
 
