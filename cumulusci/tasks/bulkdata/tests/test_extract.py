@@ -44,9 +44,6 @@ def mock_extract_jobs(task, extracted_records):
     ), mock.patch(
         "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
         _job_state_from_batches,
-    ), mock.patch(
-        "cumulusci.tasks.bulkdata.step.BulkApiQueryOperation.get_results",
-        get_results,
     ):
         yield
 
