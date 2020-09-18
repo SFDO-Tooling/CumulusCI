@@ -1,6 +1,5 @@
 import csv
 import itertools
-import collections
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine
@@ -29,6 +28,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
     validate_and_inject_mapping,
 )
+from cumulusci.tasks.bulkdata.utils import consume
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -226,13 +226,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 record_iterable=f_ids,
             )
 
-            def _consume(iterator):
-                # simplified from Python docs
-                collections.deque(iterator, maxlen=0)
-
             # do the inserts one chunk at a time based on all of the
             # generators nested previously.
-            _consume(zip(values_chunks, ids_chunks))
+            consume(zip(values_chunks, ids_chunks))
 
         if "RecordTypeId" in mapping.fields:
             self._extract_record_types(

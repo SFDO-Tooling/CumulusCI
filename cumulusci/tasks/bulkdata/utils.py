@@ -44,7 +44,7 @@ class SqlAlchemyMixin:
         self, *, connection, table, columns, record_iterable
     ):
         """Persist records from the given generator into the local database."""
-        _consume(
+        consume(
             self._sql_bulk_insert_from_records_incremental(
                 connection=connection,
                 table=table,
@@ -182,8 +182,11 @@ class RowErrorChecker:
                 raise BulkDataException(msg)
 
 
-def _consume(iterator):
-    # simplied from Python docs
+def consume(iterator):
+    """Consume an iterator for its side effects.
+
+    Simplified from the function in https://docs.python.org/3/library/itertools.html
+    """
     collections.deque(iterator, maxlen=0)
 
 
