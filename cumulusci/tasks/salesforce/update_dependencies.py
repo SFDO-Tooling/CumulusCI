@@ -4,6 +4,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
+from cumulusci.salesforce_api.package_install import install_package_version
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
@@ -289,12 +290,16 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     dependency["version"],
                     securityType=self.options["security_type"],
                 )()
-        if not package_zip:
+        if package_zip:
+            api = self.api_class(
+                self, package_zip, purge_on_delete=self.options["purge_on_delete"]
+            )
+            return api()
+        elif "version_id" in dependency:
+            self.logger.info(f"Installing {dependency['version_id']}")
+            install_package_version(self.project_config, self.org_config, dependency)
+        else:
             raise TaskOptionsError(f"Could not find package for {dependency}")
-        api = self.api_class(
-            self, package_zip, purge_on_delete=self.options["purge_on_delete"]
-        )
-        return api()
 
     def _uninstall_dependency(self, dependency):
         self.logger.info("Uninstalling {}".format(dependency["namespace"]))

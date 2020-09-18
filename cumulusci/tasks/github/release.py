@@ -59,7 +59,10 @@ class CreateRelease(BaseGithubTask):
 
         # Build tag message
         message = self.options.get("message", "Release of version {}".format(version))
-        dependencies = self.options.get("dependencies")
+        dependencies = self.project_config.get_static_dependencies(
+            self.options.get("dependencies")
+            or self.project_config.project__dependencies
+        )
         if dependencies:
             message += "\n\ndependencies: {}".format(json.dumps(dependencies, indent=4))
 

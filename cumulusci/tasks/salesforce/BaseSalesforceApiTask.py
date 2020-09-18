@@ -10,6 +10,7 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
     api_version = None
 
     def _init_task(self):
+        super()._init_task()
         self.sf = self._init_api()
         self.bulk = self._init_bulk()
         self.tooling = self._init_api("tooling")

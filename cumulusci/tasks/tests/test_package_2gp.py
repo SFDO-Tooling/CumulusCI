@@ -1,5 +1,6 @@
 from unittest import mock
 import io
+import json
 import os
 import pathlib
 import shutil
@@ -29,7 +30,9 @@ def repo_root():
     with temporary_dir() as path:
         os.mkdir(".git")
         os.mkdir("src")
-        touch(os.path.join("src", "package.xml"))
+        pathlib.Path(path, "src", "package.xml").write_text(
+            '<?xml version="1.0" encoding="utf-8"?>\n<Package xmlns="http://soap.sforce.com/2006/04/metadata"></Package>'
+        )
         with open("cumulusci.yml", "w") as f:
             yaml.dump(
                 {
@@ -65,12 +68,25 @@ def project_config(repo_root):
     )
 
     project_config.keychain = BaseProjectKeychain(project_config, key=None)
+    pathlib.Path(repo_root, "orgs").mkdir()
+    pathlib.Path(repo_root, "orgs", "scratch_def.json").write_text(
+        json.dumps(
+            {
+                "edition": "Developer",
+                "settings": {},
+            }
+        )
+    )
+    dev_org_config = OrgConfig({"config_file": "orgs/scratch_def.json"}, "dev")
     dependency_org_config = OrgConfig(
         {"instance_url": "https://test.salesforce.com", "access_token": "token"},
         "2gp_dependencies",
     )
-    dependency_org_config._latest_api_version = "48.0"
-    project_config.keychain.orgs = {"2gp_dependencies": dependency_org_config}
+    dependency_org_config._latest_api_version = "49.0"
+    project_config.keychain.orgs = {
+        "dev": dev_org_config,
+        "2gp_dependencies": dependency_org_config,
+    }
 
     project_config.get_github_api = mock.Mock()
 
@@ -91,7 +107,13 @@ def task(project_config, org_config):
     task = CreatePackageVersion(
         project_config,
         TaskConfig(
-            {"options": {"package_type": "Unlocked", "package_name": "Test Package"}}
+            {
+                "options": {
+                    "package_type": "Unlocked",
+                    "org_dependent": False,
+                    "package_name": "Test Package",
+                }
+            }
         ),
         org_config,
     )
@@ -108,7 +130,7 @@ def mock_download_extract_github():
 
 
 class TestCreatePackageVersion:
-    base_url = "https://test.salesforce.com/services/data/v48.0"
+    base_url = "https://test.salesforce.com/services/data/v49.0"
 
     @responses.activate
     def test_run_task(self, task, mock_download_extract_github):

@@ -2,6 +2,7 @@ from unittest import mock
 import base64
 import io
 import os
+import pathlib
 import unittest
 import zipfile
 
@@ -352,6 +353,29 @@ class TestMetadataPackageZipBuilder:
                 with builder._convert_sfdx_format(path, "Test Package"):
                     pass
         sfdx.assert_called_once()
+
+    def test_removes_feature_parameters_from_unlocked_package(self):
+        with temporary_dir() as path:
+            pathlib.Path(path, "package.xml").write_text(
+                """<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <name>FeatureParameterInteger</name>
+    </types>
+</Package>"""
+            )
+            featureParameters = pathlib.Path(path, "featureParameters")
+            featureParameters.mkdir()
+            (featureParameters / "test.featureParameterInteger").touch()
+            builder = MetadataPackageZipBuilder(
+                path=path, options={"package_type": "Unlocked"}
+            )
+            assert (
+                "featureParameters/test.featureParameterInteger"
+                not in builder.zf.namelist()
+            )
+            package_xml = builder.zf.read("package.xml")
+            assert b"FeatureParameterInteger" not in package_xml
 
 
 class TestCreatePackageZipBuilder(unittest.TestCase):

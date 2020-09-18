@@ -6,10 +6,11 @@ import json
 import pathlib
 import zipfile
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.exceptions import DependencyLookupError
+from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import FlowCoordinator
@@ -17,6 +18,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils import download_extract_github
 
 
@@ -35,10 +37,17 @@ class PackageConfig(BaseModel):
     package_name: str
     description: str = ""
     package_type: PackageTypeEnum
+    org_dependent: bool = False
     namespace: Optional[str]
     branch: Optional[str] = None
     version_name: str
     version_type: VersionTypeEnum = VersionTypeEnum.minor
+
+    @validator("org_dependent")
+    def org_dependent_must_be_unlocked(cls, v, values):
+        if v and values["package_type"] != PackageTypeEnum.unlocked:
+            raise ValueError("Only unlocked packages can be org-dependent.")
+        return v
 
 
 class CreatePackageVersion(BaseSalesforceApiTask):
@@ -47,7 +56,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     If a package named ``package_name`` does not yet exist in the Dev Hub, it will be created.
     """
 
-    api_version = "48.0"
+    api_version = "49.0"
 
     task_options = {
         "package_name": {"description": "Name of package"},
@@ -68,6 +77,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "description": "If true, skip validation of the package version. Default: false. "
             "Skipping validation creates packages more quickly, but they cannot be promoted for release."
         },
+        "org_dependent": {
+            "description": "If true, create an org-dependent unlocked package. Default: false."
+        },
         "force_upload": {
             "description": "If true, force creating a new package version even if one with the same contents already exists"
         },
@@ -81,6 +93,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             or self.project_config.project__package__name,
             package_type=self.options.get("package_type")
             or self.project_config.project__package__type,
+            org_dependent=self.options.get("org_dependent", False),
             namespace=self.options.get("namespace")
             or self.project_config.project__package__namespace,
             branch=self.project_config.repo_branch,
@@ -110,6 +123,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_zip_builder = MetadataPackageZipBuilder(
             path=self.project_config.default_package_path,
             name=self.package_config.package_name,
+            options={"package_type": self.package_config.package_type.value},
             logger=self.logger,
         )
         self.request_id = self._create_version_request(
@@ -143,8 +157,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "SELECT Dependencies FROM SubscriberPackageVersion "
             f"WHERE Id='{package2_version['SubscriberPackageVersionId']}'"
         )
-        subscriber_version = res["records"][0]
-        self.return_values["dependencies"] = subscriber_version["Dependencies"]
+        self.return_values["dependencies"] = res["records"][0]["Dependencies"]
 
         self.logger.info("Created package version:")
         self.logger.info(f"  Package2 Id: {self.package_id}")
@@ -165,7 +178,8 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         query = (
             f"SELECT Id, ContainerOptions FROM Package2 WHERE IsDeprecated = FALSE "
             f"AND ContainerOptions='{package_config.package_type}' "
-            "AND Name='{package_config.package_name}'"
+            f"AND IsOrgDependent={package_config.org_dependent} "
+            f"AND Name='{package_config.package_name}'"
         )
         if package_config.namespace:
             query += f" AND NamespacePrefix='{package_config.namespace}'"
@@ -203,6 +217,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package = Package2.create(
             {
                 "ContainerOptions": package_config.package_type,
+                "IsOrgDependent": package_config.org_dependent,
                 "Name": package_config.package_name,
                 "Description": package_config.description,
                 "NamespacePrefix": package_config.namespace,
@@ -216,6 +231,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_config: PackageConfig,
         package_zip_builder: BasePackageZipBuilder,
         skip_validation: bool = False,
+        dependencies: list = None,
     ):
         # Prepare the VersionInfo file
         version_bytes = io.BytesIO()
@@ -243,7 +259,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     )
                     return res["records"][0]["Id"]
 
-            # Create the package2-descriptor.json contents and write to version_info
+            # Create the package descriptor
             # @@@ we should support releasing a successor to an older version by specifying a base version
             last_version_parts = self._get_highest_version_parts(package_id)
             version_number = self._get_next_version_number(
@@ -257,15 +273,43 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 "versionNumber": version_number,
             }
 
-            # Get the dependencies for the package
+            # Add org shape
+            try:
+                dev_org_config = self.project_config.keychain.get_org("dev")
+            except OrgNotFound:
+                pass
+            else:
+                with open(dev_org_config.config_file, "r") as f:
+                    scratch_org_def = json.load(f)
+                for key in (
+                    "country",
+                    "edition",
+                    "language",
+                    "features",
+                    "snapshot",
+                ):
+                    if key in scratch_org_def:
+                        package_descriptor[key] = scratch_org_def[key]
+
+                # Add settings
+                if "settings" in scratch_org_def:
+                    with build_settings_package(
+                        scratch_org_def["settings"], self.api_version
+                    ) as path:
+                        settings_zip_builder = MetadataPackageZipBuilder(path=path)
+                        version_info.writestr(
+                            "settings.zip", settings_zip_builder.as_bytes()
+                        )
+
+            # Add the dependencies for the package
             is_dependency = package_config is not self.package_config
-            if not is_dependency:
+            if not package_config.org_dependent and not is_dependency:
                 self.logger.info("Determining dependencies for package")
                 dependencies = self._get_dependencies()
-                if dependencies:
-                    package_descriptor["dependencies"] = dependencies
+            if dependencies:
+                package_descriptor["dependencies"] = dependencies
 
-            # Finish constructing the request
+            # Add package descriptor to version info
             version_info.writestr(
                 "package2-descriptor.json", json.dumps(package_descriptor)
             )
@@ -437,7 +481,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 new_dependency["subscriberPackageVersionId"] = dependency["version_id"]
 
             elif dependency.get("repo_name"):
-                version_id = self._create_unlocked_package_from_github(dependency)
+                version_id = self._create_unlocked_package_from_github(
+                    dependency, new_dependencies
+                )
                 self.logger.info(
                     "Adding dependency {}/{} {} with id {}".format(
                         dependency["repo_owner"],
@@ -458,15 +504,16 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         return new_dependencies
 
     def _get_unpackaged_pre_dependencies(self, dependencies):
-        """Create package for unpackaged/pre metadata, if necessary
-        """
+        """Create package for unpackaged/pre metadata, if necessary"""
         path = pathlib.Path("unpackaged", "pre")
         if not path.exists():
             return dependencies
 
         for item_path in sorted(path.iterdir(), key=str):
             if item_path.is_dir():
-                version_id = self._create_unlocked_package_from_local(item_path)
+                version_id = self._create_unlocked_package_from_local(
+                    item_path, dependencies
+                )
                 self.logger.info(
                     "Adding dependency {}/{} {} with id {}".format(
                         self.project_config.repo_owner,
@@ -479,7 +526,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
         return dependencies
 
-    def _create_unlocked_package_from_github(self, dependency):
+    def _create_unlocked_package_from_github(self, dependency, dependencies):
         gh_for_repo = self.project_config.get_github_api(
             dependency["repo_owner"], dependency["repo_name"]
         )
@@ -504,7 +551,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         package_id = self._get_or_create_package(package_config)
         self.request_id = self._create_version_request(
-            package_id, package_config, package_zip_builder
+            package_id,
+            package_config,
+            package_zip_builder,
+            dependencies=dependencies,
         )
 
         self._poll()
@@ -516,7 +566,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package2_version = res["records"][0]
         return package2_version["SubscriberPackageVersionId"]
 
-    def _create_unlocked_package_from_local(self, path):
+    def _create_unlocked_package_from_local(self, path, dependencies):
         """Create an unlocked package version from a local directory."""
         self.logger.info("Creating package for dependencies in {}".format(path))
         package_name = (
@@ -535,7 +585,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         package_id = self._get_or_create_package(package_config)
         self.request_id = self._create_version_request(
-            package_id, package_config, package_zip_builder
+            package_id, package_config, package_zip_builder, dependencies=dependencies
         )
         self._poll()
         self._reset_poll()
