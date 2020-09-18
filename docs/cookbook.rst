@@ -129,13 +129,18 @@ All tasks in CumulusCI are python classes that subclass `cumulusci.core.tasks.Ba
 
 For most tasks, you'll want to override the `_run_task` method in your subclass to provide the implementation. The return value of this function is saved as part of the StepResult. Exceptions from `cumulusci.core.exceptions` should be raised to communicate task status to the user or flow. If no exceptions are thrown, the task is considered to have completed successfully.
 
-Pydantic Task options
----------------------
+Task Exceptions
+---------------
+
+If the task has an error that should be considered a build failure (e.g. a metadata deployment failure, test failure, etc) it can raise the exception `cumulusci.core.exceptions.CumulusCIFailure`. If you want to flag a usage error (e.g. the task receives an invalid set of options) it should raise the exception `cumulusci.core.exceptions.CumulusCIUsageError`.
+
+Custom Task options
+-------------------
 
 Task options are defined by declaring a nested `Options` class. This class must sublass `cumulusci.utils.option_parsing.CCIOptions`. These options are validated via the use of `Pydantic models <https://pydantic-docs.helpmanual.io/usage/models/>`_ which are generated dynamically for each `Options` class.
 Each option can define its own type via either a `standard library type <https://pydantic-docs.helpmanual.io/usage/types/>`_ or by utilizing a custom type from `cumulusci.utils.option_parsing`. Current custom types include (but are not limited to): `PathOption`, `MappingOption`, and `ListOfStringsOption`. 
 Additionally the `Field() <https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation`_ function is useful for further customizing options. This can be imported from `cumulusci.utils.option_parsing` and used when defining individual options. 
-Below is an example task that takes two options: (1) A required string (myString), and (2) A file path ::
+Below is an example task that takes two options: (1) A defaulted string (myString), and (2) A required file path ::
 
     from cumulusci.util.option_parsing import PathOption, Field
     class CustomTask(BaseTask):
@@ -145,19 +150,15 @@ Below is an example task that takes two options: (1) A required string (myString
 
 Once the options are defined, they can be accessed via the `parsed_options` property of the task.
 
-Converting from `task_options` to Pydantic Options
---------------------------------------------------
-If you have custom tasks that you'd like to convert to using Pydantic based options then you will want to do the following:
+Converting from `task_options` to new-style Options
+---------------------------------------------------
+If you have custom tasks that you'd like to convert to using the new options API, then you will want to do the following:
 
 1. Create a nested `Options` class within the task class.
 2. For each of the options you have defined in the `task_options` dict you will create a corresponding option property in the `Options` class.
 3. Delete the `task_options` dictionary.
-4. Delete the `_init_options()` and `_validate_options()` methods (if they exist) on the task class.
+4. Review the `_init_options()` and `_validate_options()` methods on the task class if they exist to see whether they are still relevant and correct.
 
-Task Exceptions
----------------
-
-If the task has an error that should be considered a build failure (e.g. a metadata deployment failure, test failure, etc) it can raise the exception `cumulusci.core.exceptions.CumulusCIFailure`. If you want to flag a usage error (e.g. the task receives an invalid set of options) it should raise the exception `cumulusci.core.exceptions.CumulusCIUsageError`.
 
 Query the Enterprise API for Data
 ---------------------------------
