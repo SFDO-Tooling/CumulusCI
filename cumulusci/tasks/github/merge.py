@@ -272,9 +272,21 @@ class MergeBranch(BaseGithubTask):
 
         If source_branch is not the default branch, we gather
         all branches with branch_prefix that are direct decendents of source_branch.
+
+        If update_prerelease is True, and source_branch is a prerelease branch
+        then we also collect all future prerelease branches.
         """
         descendents = []
+        child_branches = []
+        prerelease_branches = []
         for branch in self.repo.branches():
+            if (
+                self._is_prerelease_branch(self.options["source_branch"])
+                and self.options["update_prerelease"]
+                and self._is_future_prerelease_branch(branch.name)
+            ):
+                prerelease_branches.append(branch)
+                continue
             if branch.name == self.options["source_branch"]:
                 self.logger.debug(f"Skipping branch {branch.name}: is source branch")
                 continue
@@ -286,11 +298,27 @@ class MergeBranch(BaseGithubTask):
             elif self.source_branch_is_default and "__" not in branch.name:
                 descendents.append(branch)
             elif self._is_source_branch_direct_descendent(branch):
-                descendents.append(branch)
+                child_branches.append(branch)
             else:
                 self.logger.debug(
                     f"Skipping branch {branch.name}: is not a direct descendent of {self.options['source_branch']}"
                 )
+
+        if child_branches:
+            self.logger.debug(
+                f"Found child branches to update: {[branch.name for branch in child_branches]}"
+            )
+            descendents = descendents + child_branches
+        elif not self.source_branch_is_default:
+            self.logger.debug(
+                f"No children found for branch {self.options['source_branch']}"
+            )
+
+        if prerelease_branches:
+            self.logger.debug(
+                f"Found future prerelease branches to update: {[branch.name for branch in prerelease_branches]}"
+            )
+            descendents = descendents + prerelease_branches
 
         return descendents
 
@@ -304,7 +332,31 @@ class MergeBranch(BaseGithubTask):
         else:
             return False
 
+    def _is_future_prerelease_branch(self, branch_name):
+        return (
+            self._is_prerelease_branch(branch_name)
+            and branch_name != self.options["source_branch"]
+            and self._get_release_num(branch_name)
+            > self._get_release_num(self.options["source_branch"])
+        )
+
+    def _is_prerelease_branch(self, branch_name):
+        """A prerelease branch begins with the given prefix
+        and ends with a three digit number greater than 200.
+        At three Salesforce releases a year, and release numbers
+        incrementing by 2 this will only work until the year 2276"""
+        prefix = self.options["branch_prefix"].replace("/", r"\/")
+        prerelease_regex = "^" + prefix + r"[2-9]\d{2}$"
+        pattern = re.compile(prerelease_regex)
+        return True if pattern.fullmatch(branch_name) else False
+
+    def _get_release_num(self, prerelease_branch_name):
+        """Given a prerelease branch, returns an integer that
+        corresponds toithe release number for that branch"""
+        return int(prerelease_branch_name.split(self.options["branch_prefix"])[1])
+
     def _validate_source_branch(self):
+        """Validates that the source branch exists in the repository"""
         try:
             self.repo.branch(self.options["source_branch"])
         except github3.exceptions.NotFoundError:
@@ -323,17 +375,6 @@ class MergeBranch(BaseGithubTask):
                 self.existing_prs.append(pr.base.ref)
 
     def _merge_branches(self, branches_to_merge):
-        if not self.source_branch_is_default:
-            if branches_to_merge:
-                self.logger.info(
-                    f"Performing merge from parent branch {self.options['source_branch']} to children"
-                )
-            else:
-                self.logger.info(
-                    f"No children found for branch {self.options['source_branch']}"
-                )
-                return
-
         for branch in branches_to_merge:
             self._merge(
                 branch.name,
@@ -342,19 +383,15 @@ class MergeBranch(BaseGithubTask):
             )
 
     def _merge(self, branch_name, source, commit):
-        branch_type = "child branch" if not self.source_branch_is_default else "branch"
-
         compare = self.repo.compare_commits(branch_name, commit)
         if not compare or not compare.files:
-            self.logger.info(
-                f"Skipping {branch_type} {branch_name}: no file diffs found"
-            )
+            self.logger.info(f"Skipping branch {branch_name}: no file diffs found")
             return
 
         try:
             self.repo.merge(branch_name, commit)
             self.logger.info(
-                f"Merged {compare.behind_by} commits into {branch_type} {branch_name}"
+                f"Merged {compare.behind_by} commits into branch: {branch_name}"
             )
 
         except GitHubError as e:
@@ -363,7 +400,7 @@ class MergeBranch(BaseGithubTask):
 
             if branch_name in self.existing_prs:
                 self.logger.info(
-                    f"Merge conflict on {branch_type} {branch_name}: merge PR already exists"
+                    f"Merge conflict on branch {branch_name}: merge PR already exists"
                 )
                 return
 
@@ -376,15 +413,5 @@ class MergeBranch(BaseGithubTask):
             )
 
             self.logger.info(
-                f"Merge conflict on {branch_type} {branch_name}: created pull request #{pull.number}"
+                f"Merge conflict on branch {branch_name}: created pull request #{pull.number}"
             )
-
-    def _is_prerelease_branch(self, prefix, branch_name):
-        """A prerelease branch begins with the given prefix
-        and ends with a three digit number greater than 200.
-        At three Salesforce releases a year, and release numbers
-        incrementing by 2 this will only work until the year 2276"""
-        prefix = prefix.replace("/", r"\/")
-        prerelease_regex = "^" + prefix + r"[2-9]\d{2}$"
-        pattern = re.compile(prerelease_regex)
-        return True if pattern.fullmatch(branch_name) else False
