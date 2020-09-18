@@ -231,6 +231,9 @@ class MergeBranch(BaseGithubTask):
         "branch_prefix": {
             "description": "A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature"
         },
+        "update_prerelease": {
+            "description": "If source_branch is a prerelease branch, then propagate to other prerelease branches that correspond to future releases. Defaults to False."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -246,6 +249,9 @@ class MergeBranch(BaseGithubTask):
             self.options[
                 "source_branch"
             ] = self.project_config.project__git__default_branch
+        self.options["update_prerelease"] = process_bool_arg(
+            self.options.get("update_prerelease", False)
+        )
 
     def _run_task(self):
         self.repo = self.get_repo()
@@ -256,52 +262,47 @@ class MergeBranch(BaseGithubTask):
         self._validate_source_branch()
         self._get_existing_prs()
 
-        branches_to_merge = self._get_direct_descendent_branches()
+        branches_to_merge = self._get_branches_to_merge()
         self._merge_branches(branches_to_merge)
 
-    def _get_direct_descendent_branches(self):
+    def _get_branches_to_merge(self):
         """
         If source_branch is the default branch, we
         gather all branches with branch_prefix that are not child branches.
 
-        If is not the default branch, we gather
-        all branches that are direct decendents of source_branch.
+        If source_branch is not the default branch, we gather
+        all branches with branch_prefix that are direct decendents of source_branch.
         """
         descendents = []
         for branch in self.repo.branches():
             if branch.name == self.options["source_branch"]:
                 self.logger.debug(f"Skipping branch {branch.name}: is source branch")
                 continue
-            elif self.source_branch_is_default:
-                if branch.name.startswith(self.options["branch_prefix"]):
-                    if branch.name.count("__") == 0:
-                        descendents.append(branch)
-                    else:
-                        self.logger.debug(
-                            f"Skipping branch {branch.name}: is not a direct descendent of {self.options['source_branch']}"
-                        )
-                else:
-                    self.logger.debug(
-                        f"Skipping branch {branch.name}: does not match prefix {self.options['branch_prefix']}"
-                    )
-
+            elif not branch.name.startswith(self.options["branch_prefix"]):
+                self.logger.debug(
+                    f"Skipping branch {branch.name}: does not match prefix '{self.options['branch_prefix']}'"
+                )
+                continue
+            elif self.source_branch_is_default and "__" not in branch.name:
+                descendents.append(branch)
             elif self._is_source_branch_direct_descendent(branch):
                 descendents.append(branch)
+            else:
+                self.logger.debug(
+                    f"Skipping branch {branch.name}: is not a direct descendent of {self.options['source_branch']}"
+                )
 
         return descendents
 
-    def _is_default_direct_descendent(self, branch):
-        return (
-            branch.name.startswith(self.options["branch_prefix"])
-            and "__" not in branch.name
-        )
-
     def _is_source_branch_direct_descendent(self, branch):
         dunder_count = self.options["source_branch"].count("__")
-        return (
+        if (
             branch.name.startswith(f"{self.options['source_branch']}__")
             and branch.name.count("__") == dunder_count + 1
-        )
+        ):
+            return True
+        else:
+            return False
 
     def _validate_source_branch(self):
         try:
@@ -340,7 +341,7 @@ class MergeBranch(BaseGithubTask):
                 self.options["commit"],
             )
 
-    def _merge(self, branch_name, source, commit, children=None):
+    def _merge(self, branch_name, source, commit):
         branch_type = "child branch" if not self.source_branch_is_default else "branch"
 
         compare = self.repo.compare_commits(branch_name, commit)
@@ -383,7 +384,7 @@ class MergeBranch(BaseGithubTask):
         and ends with a three digit number greater than 200.
         At three Salesforce releases a year, and release numbers
         incrementing by 2 this will only work until the year 2276"""
-        prefix = prefix.replace("/", "\/")
-        prerelease_regex = f"^{prefix}[2-9]\d" + "{2}$"
+        prefix = prefix.replace("/", r"\/")
+        prerelease_regex = "^" + prefix + r"[2-9]\d{2}$"
         pattern = re.compile(prerelease_regex)
         return True if pattern.fullmatch(branch_name) else False
