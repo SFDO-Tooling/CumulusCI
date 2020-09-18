@@ -85,7 +85,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _has_namespaced_package(self, ns):
         if "unmanaged" in self.options:
-            return process_bool_arg(self.options.get("unmanaged", True))
+            return not process_bool_arg(self.options.get("unmanaged", True))
         return ns in self.org_config.installed_packages
 
     def _is_namespaced_org(self, ns):
