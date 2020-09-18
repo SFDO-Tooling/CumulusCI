@@ -9,8 +9,6 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils.org_schema import get_org_schema, Field
 
-# FIXME: Investigate why it creates RecordTyped more aggessively than the old code
-
 
 class GenerateMapping(BaseSalesforceApiTask):
     task_docs = """
@@ -344,8 +342,6 @@ class GenerateMapping(BaseSalesforceApiTask):
     def _is_any_custom_api_name(self, api_name: str):
         """True if the entity name is custom (including any package)."""
         return api_name.endswith("__c")
-
-    from pysnooper import snoop
 
     def _is_our_custom_api_name(self, api_name: str):
         """True if the entity name is custom and has our namespace prefix (if we have one)
