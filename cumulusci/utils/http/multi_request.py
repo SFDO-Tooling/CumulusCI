@@ -5,11 +5,12 @@ from typing import Iterable, Dict
 from requests_futures.sessions import FuturesSession
 
 
-class ParallelSalesforce:
-    def __init__(self, sf, max_workers=32):
-        self.sf = sf
+class ParallelHTTP:
+    """A parallelized HTTP client as a context manager"""
+
+    def __init__(self, base_url, max_workers=32):
+        self.base_url = base_url
         self.max_workers = max_workers
-        self.base_url = self.sf.base_url.rstrip("/") + "/"
 
     def __enter__(self, *args):
         self.session = FuturesSession(max_workers=self.max_workers)
@@ -19,7 +20,7 @@ class ParallelSalesforce:
         self.session.close()
 
     def _async_request(self, path, method, json=None, headers={}):
-        headers = {**self.sf.headers, **headers, "Accept-Encoding": "gzip"}
+        headers = {**headers, "Accept-Encoding": "gzip"}
         return self.session.request(
             method=method,
             url=self.base_url + path.lstrip("/"),
@@ -34,7 +35,22 @@ class ParallelSalesforce:
         return results
 
 
+class ParallelSalesforce(ParallelHTTP):
+    """A context-managed HTTP client that can parallelize access to a Simple-Salesforce connection"""
+
+    def __init__(self, sf, max_workers=32):
+        self.sf = sf
+        base_url = self.sf.base_url.rstrip("/") + "/"
+        super().__init__(base_url, max_workers)
+
+    def _async_request(self, path, method, json=None, headers={}):
+        headers = {**self.sf.headers, **headers}
+        return super()._async_request(path, method, json, headers)
+
+
 class CompositeSalesforce:
+    """Format Composte Salesforce messages"""
+
     def create_composite_requests(self, requests, chunk_size):
         def ensure_request_id(idx, request):
             # generate a new record with a defaulted
@@ -98,6 +114,7 @@ class CompositeParallelSalesforce:
         return list(individual_results)
 
 
+# TODO: Unify with get_batch_iterator when its merged elsewhere
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
