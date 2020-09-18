@@ -13,7 +13,7 @@ class InsertRecord(BaseSalesforceApiTask):
     task_options = {
         "object": {"description": "An sObject type to insert", "required": True},
         "values": {
-            "description": "Field names and values in the format 'aa:bb,cc:dd', or a YAML dict",
+            "description": "Field names and values in the format 'aa:bb,cc:dd', or a YAML dict in cumulusci.yml.",
             "required": True,
         },
         "tooling": {"description": "If True, use the Tooling API instead of REST API."},
@@ -21,18 +21,13 @@ class InsertRecord(BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        if type(self.options["values"]) is str:
-            self.values = process_list_of_pairs_dict_arg(self.options["values"])
-        else:
-            self.values = self.options["values"]
+        self.values = process_list_of_pairs_dict_arg(self.options["values"])
         self.object = self.options["object"]
         self.use_tooling = process_bool_arg(self.options.get("tooling", False))
 
     def _run_task(self):
-        if not self.use_tooling:
-            object_handler = getattr(self.sf, self.object)
-        else:
-            object_handler = getattr(self.tooling, self.object)
+        api = self.sf if not self.use_tooling else self.tooling
+        object_handler = getattr(api, self.object)
 
         rc = object_handler.create(self.values)
         if rc["success"]:
