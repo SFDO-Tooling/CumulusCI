@@ -1181,7 +1181,7 @@ class TestOrgConfig(unittest.TestCase):
 
     @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
     @responses.activate
-    def test_refresh_oauth_token_jwt(self):
+    def test_refresh_oauth_token__jwt(self):
         responses.add(
             "POST",
             "https://login.salesforce.com/services/oauth2/token",
@@ -1202,7 +1202,7 @@ class TestOrgConfig(unittest.TestCase):
 
     @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
     @responses.activate
-    def test_refresh_oauth_token_jwt_sandbox(self):
+    def test_refresh_oauth_token__jwt_sandbox(self):
         responses.add(
             "POST",
             "https://cs00.salesforce.com/services/oauth2/token",
@@ -1215,7 +1215,39 @@ class TestOrgConfig(unittest.TestCase):
             os.environ,
             {"SFDX_CLIENT_ID": "some client id", "SFDX_HUB_KEY": "some private key"},
         ):
-            config = OrgConfig({"instance_url": "https://cs00.salesforce.com"}, "test")
+            config = OrgConfig(
+                {
+                    "instance_url": "https://cs00.salesforce.com",
+                },
+                "test",
+            )
+            config._load_userinfo = mock.Mock()
+            config._load_orginfo = mock.Mock()
+            config.refresh_oauth_token(None)
+            assert config.access_token == "TOKEN"
+
+    @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
+    @responses.activate
+    def test_refresh_oauth_token__jwt_sandbox_instanceless_url(self):
+        responses.add(
+            "POST",
+            "https://nonobvious--sandbox.my.salesforce.com/services/oauth2/token",
+            json={
+                "access_token": "TOKEN",
+                "instance_url": "https://nonobvious--sandbox.my.salesforce.com",
+            },
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"SFDX_CLIENT_ID": "some client id", "SFDX_HUB_KEY": "some private key"},
+        ):
+            config = OrgConfig(
+                {
+                    "instance_url": "https://nonobvious--sandbox.my.salesforce.com",
+                    "id": "https://test.salesforce.com/asdf",
+                },
+                "test",
+            )
             config._load_userinfo = mock.Mock()
             config._load_orginfo = mock.Mock()
             config.refresh_oauth_token(None)

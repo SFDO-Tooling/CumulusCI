@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 from io import StringIO
 from unittest import mock
@@ -137,6 +138,24 @@ class TestMappingParser:
             "AccountSite": "AccountSite",
             "ParentId": "ParentId",
         }
+
+    def test_get_relative_date_context(self):
+        mapping = MappingStep(
+            sf_object="Account",
+            fields=["Some_Date__c", "Some_Datetime__c"],
+            anchor_date="2020-07-01",
+        )
+
+        org_config = mock.Mock()
+        org_config.salesforce_client.Account.describe.return_value = {
+            "fields": [
+                {"name": "Some_Date__c", "type": "date"},
+                {"name": "Some_Datetime__c", "type": "datetime"},
+                {"name": "Some_Bool__c", "type": "boolean"},
+            ]
+        }
+
+        assert mapping.get_relative_date_context(org_config) == ([0], [1], date.today())
 
     # Start of FLS/Namespace Injection Unit Tests
 
