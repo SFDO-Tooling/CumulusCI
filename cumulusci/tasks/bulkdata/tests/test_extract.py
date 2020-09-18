@@ -1,5 +1,4 @@
 import os
-import unittest
 from unittest import mock
 from tempfile import TemporaryDirectory
 from contextlib import contextmanager
@@ -7,6 +6,8 @@ from cumulusci.tests.util import mock_salesforce_client, mock_describe_calls
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import create_session
+
+import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata import ExtractData
@@ -73,10 +74,11 @@ class MockScalableBulkQueryOperation(MockBulkQueryOperation):
         )
 
 
-class TestExtractData(unittest.TestCase):
+class TestExtractData:
 
     mapping_file_v1 = "mapping_v1.yml"
     mapping_file_v2 = "mapping_v2.yml"
+    mapping_file_vanilla = "mapping_vanilla_sf.yml"
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -118,14 +120,14 @@ class TestExtractData(unittest.TestCase):
         task()
         session = create_session(bind=task.engine, autocommit=False)
         household = session.query(task.models["households"]).one()
-        self.assertEqual("1", household.sf_id)
-        self.assertFalse(hasattr(household, "IsPersonAccount"))
-        self.assertEqual("HH_Account", household.record_type)
+        assert "1" == household.sf_id
+        assert not hasattr(household, "IsPersonAccount")
+        assert "HH_Account" == household.record_type
 
         contact = session.query(task.models["contacts"]).one()
-        self.assertEqual("2", contact.sf_id)
-        self.assertFalse(hasattr(contact, "IsPersonAccount"))
-        self.assertEqual("1", contact.household_id)
+        assert "2" == contact.sf_id
+        assert not hasattr(contact, "IsPersonAccount")
+        assert "1" == contact.household_id
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -170,14 +172,14 @@ class TestExtractData(unittest.TestCase):
         session = create_session(bind=task.engine, autocommit=False)
 
         household = session.query(task.models["households"]).one()
-        self.assertEqual("1", household.sf_id)
-        self.assertEqual("false", household.IsPersonAccount)
-        self.assertEqual("HH_Account", household.record_type)
+        assert "1" == household.sf_id
+        assert "false" == household.IsPersonAccount
+        assert "HH_Account" == household.record_type
 
         contact = session.query(task.models["contacts"]).one()
-        self.assertEqual("2", contact.sf_id)
-        self.assertEqual("true", contact.IsPersonAccount)
-        self.assertEqual("1", contact.household_id)
+        assert "2" == contact.sf_id
+        assert "true" == contact.IsPersonAccount
+        assert "1" == contact.household_id
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -354,7 +356,6 @@ class TestExtractData(unittest.TestCase):
         )
 
     @responses.activate
-    # @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
     def test_import_results__no_columns(self):  # , query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
@@ -374,7 +375,6 @@ class TestExtractData(unittest.TestCase):
         step = mock.Mock()
         step.get_results.return_value = [[1], [2]]
         task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task._init_mapping()
         task.mapping["Opportunity"] = mapping
         with task._init_db():
@@ -595,7 +595,7 @@ class TestExtractData(unittest.TestCase):
         )
         task.org_config._is_person_accounts_enabled = False
 
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             task()
 
     def test_create_table__record_type_mapping(self):
@@ -823,11 +823,11 @@ class TestExtractData(unittest.TestCase):
             DataOperationStatus.JOB_FAILURE, [], 1, 0
         )
 
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             task._run_query("SELECT Id FROM Contact", MappingStep(sf_object="Contact"))
 
     def test_init_options__missing_output(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             _make_task(ExtractData, {"options": {}})
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
@@ -907,15 +907,11 @@ class TestExtractData(unittest.TestCase):
             with assert_max_memory_usage(15 * 10 ** 6):
                 task()
 
-
-class TestExtractPytest:
-    mapping_file_v1 = "mapping_vanilla_sf.yml"
-
     @responses.activate
     def test_import_results__autopk(self, create_task_fixture):
         mock_describe_calls()
         base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        mapping_path = os.path.join(base_path, self.mapping_file_vanilla)
         task = create_task_fixture(
             ExtractData,
             {"database_url": "sqlite://", "mapping": mapping_path},
