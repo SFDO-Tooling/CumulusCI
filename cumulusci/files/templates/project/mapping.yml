@@ -42,4 +42,4 @@ Insert Contacts:
     MailingCountry: MailingCountry
   lookups:
     AccountId:
-      table: accounts
+      table: Account

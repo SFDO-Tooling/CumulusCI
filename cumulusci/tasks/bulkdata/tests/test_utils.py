@@ -1,16 +1,18 @@
-from datetime import datetime
 import os
 import json
 import unittest
 from unittest import mock
 
 import responses
-from sqlalchemy import create_engine, MetaData, Integer, types, Unicode, Column, Table
+from sqlalchemy import create_engine, MetaData, Integer, Unicode, Column, Table
 from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.tasks.bulkdata.utils import (
+    create_table,
+    generate_batches,
+)
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
@@ -68,30 +70,6 @@ def mock_describe_calls():
         "Case",
     ]:
         mock_sobject_describe(sobject)
-
-
-class TestEpochType(unittest.TestCase):
-    def test_process_bind_param(self):
-        obj = bulkdata.utils.EpochType()
-        dt = datetime(1970, 1, 1, 0, 0, 1)
-        result = obj.process_bind_param(dt, None)
-        self.assertEqual(1000, result)
-
-    def test_process_result_value(self):
-        obj = bulkdata.utils.EpochType()
-
-        # Non-None value
-        result = obj.process_result_value(1000, None)
-        self.assertEqual(datetime(1970, 1, 1, 0, 0, 1), result)
-
-        # None value
-        result = obj.process_result_value(None, None)
-        self.assertEqual(None, result)
-
-    def test_setup_epoch(self):
-        column_info = {"type": types.DateTime()}
-        bulkdata.utils.setup_epoch(mock.Mock(), mock.Mock(), column_info)
-        self.assertIsInstance(column_info["type"], bulkdata.utils.EpochType)
 
 
 class TestSqlAlchemyMixin(unittest.TestCase):

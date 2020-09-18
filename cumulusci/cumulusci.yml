@@ -85,6 +85,20 @@ tasks:
             path: src
             revert_path: src.orig
         group: Salesforce Metadata
+    create_permission_set:
+        group: Metadata Transformations
+        description: Creates a Permission Set with specified User Permissions and assigns it to the running user.
+        class_path: cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
+    create_bulk_data_permission_set:
+        group: Data Operations
+        description: "Creates a Permission Set with the Hard Delete and Set Audit Fields user permissions. NOTE: the org setting to allow Set Audit Fields must be turned on."
+        class_path: cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
+        options:
+            api_name: CumulusCI_Bulk_Data
+            label: CumulusCI Bulk Data
+            user_permissions:
+                - PermissionsBulkApiHardDelete
+                - PermissionsCreateAuditFields
     create_unmanaged_ee_src:
         description: Modifies the src directory for unmanaged deployment to an EE org
         class_path: cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc

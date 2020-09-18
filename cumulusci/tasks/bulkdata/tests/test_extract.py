@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import os
 import unittest
 from unittest import mock
@@ -341,6 +342,41 @@ class TestExtractData(unittest.TestCase):
                 ),
             ]
         )
+
+    @responses.activate
+    def test_import_results__relative_dates(self):
+        mock_describe_calls()
+        task = _make_task(
+            ExtractData,
+            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+        )
+
+        mapping = MappingStep(
+            sf_object="Opportunity",
+            fields={"Id": "sf_id", "CloseDate": "CloseDate"},
+            anchor_date="2020-07-01",
+        )
+        step = mock.Mock()
+        step.get_results.return_value = iter(
+            [["006000000000001", (date.today() + timedelta(days=9)).isoformat()]]
+        )
+        task.session = mock.Mock()
+        task._sql_bulk_insert_from_records = mock.Mock()
+        task._import_results(mapping, step)
+
+        task.session.connection.assert_called_once_with()
+        step.get_results.assert_called_once_with()
+        task._sql_bulk_insert_from_records.assert_called_once_with(
+            connection=task.session.connection.return_value,
+            table=mapping.table,
+            columns=["sf_id", "CloseDate"],
+            record_iterable=mock.ANY,
+        )
+
+        result = list(
+            task._sql_bulk_insert_from_records.call_args_list[0][1]["record_iterable"]
+        )
+        assert result == [["006000000000001", "2020-07-10"]]
 
     def test_import_results__record_type_mapping(self):
         base_path = os.path.dirname(__file__)
