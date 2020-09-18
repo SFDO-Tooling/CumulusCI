@@ -18,6 +18,7 @@ y2k = "Sat, 1 Jan 2000 00:00:01 GMT"
 
 
 def zip_database(tempfile, schema_path):
+    """Compress tempfile.db to schema_path.db.gz"""
     with tempfile.open("rb") as db, gzip.GzipFile(
         fileobj=schema_path.open("wb")
     ) as gzipped:
@@ -25,6 +26,7 @@ def zip_database(tempfile, schema_path):
 
 
 def unzip_database(gzipfile, outfile):
+    """Decompress schema_path.db.gz to outfile.db"""
     with gzip.GzipFile(fileobj=gzipfile.open("rb")) as gzipped, open(
         outfile, "wb"
     ) as db:
@@ -32,6 +34,8 @@ def unzip_database(gzipfile, outfile):
 
 
 class Schema:
+    """Represents an org schema"""
+
     _last_modified_date = None
 
     def __init__(self, engine, schema_path):
@@ -63,6 +67,7 @@ class Schema:
         return ((obj.name, obj) for obj in self.session.query(SObject).all())
 
     def block_writing(self):
+        """After this method is called, the database can't be updated again"""
         # changes don't get saved back to the gzip
         # so there is no point writing to the DB
         def closed():
@@ -73,6 +78,7 @@ class Schema:
 
     @property
     def last_modified_date(self):
+        """Date of the most recent schema update"""
         if not self._last_modified_date:
             try:
                 self._last_modified_date = (
@@ -89,47 +95,44 @@ class Schema:
         return f"<Schema {self.path} : {self.engine}>"
 
 
-class SchemaDatabasePopulater:
-    def __init__(self, schema):
-        self.row_buffer_count = 0
-        self.session = schema.session
-        self.engine = schema.engine
-        self.metadata = Base.metadata
+def create_row(buffered_session: "BufferedSession", model, valuesdict: dict):
+    buffered_session.write_single_row(model.__tablename__, valuesdict)
 
-    def cache(self, sf, last_modified_date, logger=None):
-        sobjs = sf.describe()["sobjects"]
-        sobj_names = [obj["name"] for obj in sobjs]
 
-        full_sobjs = deep_describe(sf, last_modified_date, sobj_names)
-        full_sobjs = list(full_sobjs)
+def populate_cache(schema, sf, last_modified_date, logger=None):
+    engine = schema.engine
+    metadata = Base.metadata
 
-        self.metadata.bind = self.engine
-        self.metadata.reflect()
+    sobjs = sf.describe()["sobjects"]
+    sobj_names = [obj["name"] for obj in sobjs]
 
-        with BufferedSession(self.engine, self.metadata) as self.buffered_session:
+    full_sobjs = deep_describe(sf, last_modified_date, sobj_names)
+    full_sobjs = list(full_sobjs)
 
-            max_last_modified = (parsedate(last_modified_date), last_modified_date)
-            for (sobj_data, last_modified) in full_sobjs:
-                fields = sobj_data.pop("fields")
-                sobj_data["actionOverrides"] = []
-                self.create_row(SObject, sobj_data)
-                for field in fields:
-                    field["sobject"] = sobj_data["name"]
-                    self.create_row(Field, field)
-                    sortable = parsedate(last_modified), last_modified
-                    if sortable > max_last_modified:
-                        max_last_modified = sortable
+    metadata.bind = engine
+    metadata.reflect()
 
-            self.create_row(
-                FileMetadata, {"name": "Last-Modified", "value": max_last_modified[1]}
-            )
-            self.create_row(FileMetadata, {"name": "FormatVersion", "value": 1})
+    with BufferedSession(engine, metadata) as sess:
 
-        self.engine.execute("vacuum")
-        return
+        max_last_modified = (parsedate(last_modified_date), last_modified_date)
+        for (sobj_data, last_modified) in full_sobjs:
+            fields = sobj_data.pop("fields")
+            sobj_data["actionOverrides"] = []
+            create_row(sess, SObject, sobj_data)
+            for field in fields:
+                field["sobject"] = sobj_data["name"]
+                create_row(sess, Field, field)
+                sortable = parsedate(last_modified), last_modified
+                if sortable > max_last_modified:
+                    max_last_modified = sortable
 
-    def create_row(self, model, valuesdict):
-        self.buffered_session.write_single_row(model.__tablename__, valuesdict)
+        create_row(
+            sess, FileMetadata, {"name": "Last-Modified", "value": max_last_modified[1]}
+        )
+        create_row(sess, FileMetadata, {"name": "FormatVersion", "value": 1})
+
+    engine.execute("vacuum")
+    return
 
 
 class BufferedSession:
@@ -234,7 +237,8 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                 schema = Schema(engine, schema_path)
                 schema.from_cache = False
 
-            SchemaDatabasePopulater(schema).cache(
+            populate_cache(
+                schema,
                 sf,
                 schema.last_modified_date or y2k,
                 logger,
