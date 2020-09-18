@@ -34,7 +34,7 @@ def unzip_database(gzipfile, outfile):
 
 
 class Schema:
-    """Represents an org schema"""
+    """Represents an org's schema, cached from descibe() calls"""
 
     _last_modified_date = None
 
@@ -192,8 +192,11 @@ class BufferedSession:
 @contextmanager
 def get_org_schema(sf, org_config, force_recache=False, logger=None):
     """
-    TODO: docs
-    Recache: True - replace cache. False - raise if cache was not used. Default: use cache if available
+    Get a read-only representation of an org's schema.
+
+    org_config - an OrgConfig for the relevant org
+    force_recache: True - replace cache. False (default) - use/update cache is available.
+    logger - replace the standard logger "cumulusci.utils.org_schema"
     """
     assert org_config.get_orginfo_cache_dir
 
@@ -204,7 +207,7 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
         if force_recache and schema_path.exists():
             schema_path.unlink()
 
-        logger = logger or getLogger("get_org_schema")
+        logger = logger or getLogger(__name__)
 
         with ExitStack() as e:
             tempdir = TemporaryDirectory()
