@@ -1,3 +1,4 @@
+import re
 import http.client
 
 from github3 import GitHubError
@@ -376,3 +377,13 @@ class MergeBranch(BaseGithubTask):
             self.logger.info(
                 f"Merge conflict on {branch_type} {branch_name}: created pull request #{pull.number}"
             )
+
+    def _is_prerelease_branch(self, prefix, branch_name):
+        """A prerelease branch begins with the given prefix
+        and ends with a three digit number greater than 200.
+        At three Salesforce releases a year, and release numbers
+        incrementing by 2 this will only work until the year 2276"""
+        prefix = prefix.replace("/", "\/")
+        prerelease_regex = f"^{prefix}[2-9]\d" + "{2}$"
+        pattern = re.compile(prerelease_regex)
+        return True if pattern.fullmatch(branch_name) else False
