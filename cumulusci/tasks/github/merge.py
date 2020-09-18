@@ -9,7 +9,6 @@ from cumulusci.tasks.github.base import BaseGithubTask
 
 
 class MergeBranchOld(BaseGithubTask):
-
     task_options = {
         "commit": {
             "description": "The commit to merge into feature branches.  Defaults to the current head commit."
@@ -26,7 +25,7 @@ class MergeBranchOld(BaseGithubTask):
     }
 
     def _init_options(self, kwargs):
-        super(MergeBranch, self)._init_options(kwargs)
+        super(MergeBranchOld, self)._init_options(kwargs)
 
         if "commit" not in self.options:
             self.options["commit"] = self.project_config.repo_commit
@@ -45,12 +44,12 @@ class MergeBranchOld(BaseGithubTask):
     def _run_task(self):
         self.repo = self.get_repo()
 
-        self._validate_source_branch()
+        self._validate_branch()
         self._get_existing_prs()
         branch_tree = self._get_branch_tree()
         self._merge_branches(branch_tree)
 
-    def _validate_source_branch(self):
+    def _validate_branch(self):
         try:
             self.repo.branch(self.options["source_branch"])
         except github3.exceptions.NotFoundError:
@@ -59,7 +58,7 @@ class MergeBranchOld(BaseGithubTask):
             raise GithubApiNotFoundError(message)
 
     def _get_existing_prs(self):
-        """Get existing pull requests targeting the source branch"""
+        # Get existing pull requests targeting a target branch
         self.existing_prs = []
         for pr in self.repo.pull_requests(state="open"):
             if (
@@ -102,13 +101,11 @@ class MergeBranchOld(BaseGithubTask):
     def _get_parent_and_child_branches(self, branches):
         possible_children = []
         possible_parents = []
-        double_underscores_in_source_branch = len(
-            self.options["source_branch"].split("__")
-        )
         for branch in branches:
-            no_prefix = branch.name.replace(self.options["branch_prefix"], "", 1)
-            parts = no_prefix.split("__")
-            if len(parts) == double_underscores_in_source_branch + 1:
+            parts = branch.name.replace(self.options["branch_prefix"], "", 1).split(
+                "__", 1
+            )
+            if len(parts) == 2:
                 possible_children.append(parts)
             else:
                 possible_parents.append(branch.name)
@@ -116,10 +113,7 @@ class MergeBranchOld(BaseGithubTask):
         parents = {}
         children = []
         for possible_child in possible_children:
-            name = "__".join(
-                [part for part in possible_child[:double_underscores_in_source_branch]]
-            )
-            parent = f"{self.options['branch_prefix']}{name}"
+            parent = f"{self.options['branch_prefix']}{possible_child[0]}"
             if parent in possible_parents:
                 child = "__".join(possible_child)
                 child = self.options["branch_prefix"] + child
@@ -151,7 +145,7 @@ class MergeBranchOld(BaseGithubTask):
         return branch_tree
 
     def _merge_branches(self, branch_tree):
-        """Process merge on all branches in the tree"""
+        # Process merge on all branches
         for branch_item in branch_tree:
             if self.options["children_only"]:
                 if branch_item["children"]:
