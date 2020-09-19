@@ -132,7 +132,7 @@ class TestDescribeOrg:
             ) as create_row, get_org_schema(MockSF(), org_config) as schema:
                 self.validate_schema_data(schema)
                 for call in create_row.mock_calls:
-                    assert call.args[1].__name__ == "FileMetadata"
+                    assert call[1][1].__name__ == "FileMetadata"
 
     def test_errors(self):
         with self.tempdir_orgconfig() as org_config, mock_return_uncached_responses(
