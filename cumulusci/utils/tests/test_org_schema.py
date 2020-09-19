@@ -4,6 +4,7 @@ from unittest.mock import patch
 from pathlib import Path
 from itertools import chain
 from contextlib import contextmanager
+import gzip
 
 import pytest
 import yaml
@@ -181,6 +182,7 @@ class TestDescribeOrg:
             schema.session.commit()
 
     def test_corrupted_schema(self, caplog):
+        "What if the schema GZip is corrupted?"
         with self.tempdir_orgconfig() as org_config:
             with mock_return_uncached_responses(self.cassette_data):
                 with get_org_schema(MockSF(), org_config) as schema:
@@ -195,14 +197,16 @@ class TestDescribeOrg:
                 assert caplog.text
 
     def test_corrupted_schema__sqlite(self, caplog):
+        "What if the schema inside the gzip is corrupted"
         with self.tempdir_orgconfig() as org_config:
             with mock_return_uncached_responses(self.cassette_data):
                 with get_org_schema(MockSF(), org_config) as schema:
                     assert "Account" in schema
                     path = schema.path
                 assert not caplog.text
-                with open(path, "w") as p:
-                    p.write("xxx")
+                with open(path, "wb") as p:
+                    with gzip.GzipFile(fileobj=p) as gzipped:
+                        gzipped.write(b"xxx")
 
                 with get_org_schema(MockSF(), org_config) as schema:
                     assert "Account" in schema

@@ -19,18 +19,18 @@ y2k = "Sat, 1 Jan 2000 00:00:01 GMT"
 
 def zip_database(tempfile, schema_path):
     """Compress tempfile.db to schema_path.db.gz"""
-    with tempfile.open("rb") as db, gzip.GzipFile(
-        fileobj=schema_path.open("wb")
-    ) as gzipped:
-        gzipped.write(db.read())
+    with tempfile.open("rb") as db:
+        with schema_path.open("wb") as fileobj:
+            with gzip.GzipFile(fileobj=fileobj) as gzipped:
+                gzipped.write(db.read())
 
 
 def unzip_database(gzipfile, outfile):
     """Decompress schema_path.db.gz to outfile.db"""
-    with gzip.GzipFile(fileobj=gzipfile.open("rb")) as gzipped, open(
-        outfile, "wb"
-    ) as db:
-        db.write(gzipped.read())
+    with gzipfile.open("rb") as fileobj:
+        with gzip.GzipFile(fileobj=fileobj) as gzipped:
+            with open(outfile, "wb") as db:
+                db.write(gzipped.read())
 
 
 class Schema:
@@ -75,6 +75,9 @@ class Schema:
 
         self.session._real_commit__ = self.session.commit
         self.session.commit = closed
+
+    def close(self):
+        self.session.close()
 
     @property
     def last_modified_date(self):
@@ -209,9 +212,9 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
 
         logger = logger or getLogger(__name__)
 
-        with ExitStack() as e:
+        with ExitStack() as closer:
             tempdir = TemporaryDirectory()
-            e.enter_context(tempdir)
+            closer.enter_context(tempdir)
             tempfile = Path(tempdir.name) / "temp_org_schema.db"
             schema = None
             if schema_path.exists():
@@ -220,6 +223,7 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                     engine = create_engine(f"sqlite:///{str(tempfile)}")
 
                     schema = Schema(engine, schema_path)
+                    closer.callback(schema.close)
                     assert schema.sobjects.first().name
                     schema.from_cache = True
                 except Exception as e:
@@ -238,6 +242,7 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                 Base.metadata.bind = engine
                 Base.metadata.create_all()
                 schema = Schema(engine, schema_path)
+                closer.callback(schema.close)
                 schema.from_cache = False
 
             populate_cache(
