@@ -219,10 +219,13 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
             schema = None
             if schema_path.exists():
                 try:
+                    cleanups_on_failure = []
                     unzip_database(schema_path, tempfile)
+                    cleanups_on_failure.extend([schema_path.unlink, tempfile.unlink])
                     engine = create_engine(f"sqlite:///{str(tempfile)}")
 
                     schema = Schema(engine, schema_path)
+                    cleanups_on_failure.extend([schema.close])
                     closer.callback(schema.close)
                     assert schema.sobjects.first().name
                     schema.from_cache = True
@@ -231,11 +234,8 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                         f"Cannot read `{schema_path}`. Recreating it. Reason `{e}`."
                     )
                     schema = None
-                    schema_path.unlink()
-                    try:
-                        tempfile.unlink()  # emulate missing_ok=True until we drop Py3.7
-                    except IOError:  # pragma: no cover
-                        pass
+                    for cleanup_action in reversed(cleanups_on_failure):
+                        cleanup_action()
 
             if not schema:
                 engine = create_engine(f"sqlite:///{str(tempfile)}")
