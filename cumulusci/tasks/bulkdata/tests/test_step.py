@@ -751,6 +751,88 @@ class TestRestApiDmlOperation:
         ]
 
     @responses.activate
+    def test_insert_dml_operation__boolean_conversion(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = "48.0"
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url="https://example.com/services/data/v48.0/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url="https://example.com/services/data/v48.0/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+
+        recs = [
+            ["Narvaez", "true"],
+            ["Chalmers", "True"],
+            ["De Vries", "False"],
+            ["Aito", "false"],
+            ["Boone", None],
+        ]
+
+        dml_op = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            context=task,
+            api_options={},
+            fields=["LastName", "IsEmailBounced"],
+        )
+
+        dml_op.start()
+        dml_op.load_records(iter(recs))
+        dml_op.end()
+
+        assert json.loads(responses.calls[1].request.body) == {
+            "allOrNone": False,
+            "records": [
+                {
+                    "LastName": "Narvaez",
+                    "IsEmailBounced": True,
+                    "attributes": {"type": "Contact"},
+                },
+                {
+                    "LastName": "Chalmers",
+                    "IsEmailBounced": True,
+                    "attributes": {"type": "Contact"},
+                },
+                {
+                    "LastName": "De Vries",
+                    "IsEmailBounced": False,
+                    "attributes": {"type": "Contact"},
+                },
+                {
+                    "LastName": "Aito",
+                    "IsEmailBounced": False,
+                    "attributes": {"type": "Contact"},
+                },
+                {
+                    "LastName": "Boone",
+                    "IsEmailBounced": False,
+                    "attributes": {"type": "Contact"},
+                },
+            ],
+        }
+
+    @responses.activate
     def test_insert_dml_operation__row_failure(self):
         mock_describe_calls()
         task = _make_task(
