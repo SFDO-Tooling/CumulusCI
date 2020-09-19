@@ -60,6 +60,14 @@ class DummyProjectConfig(BaseProjectConfig):
 
 class DummyOrgConfig(OrgConfig):
     def __init__(self, config=None, name=None, keychain=None, global_org=False):
+        if config is None:
+            config = {
+                "instance_url": "https://orgname.salesforce.com",
+                "access_token": "pytest_sf_orgconnect_abc123",
+                "id": "ORGID/ORGID",
+                "username": "sfuser@example.com",
+            }
+
         if not name:
             name = "test"
         super(DummyOrgConfig, self).__init__(config, name, keychain, global_org)

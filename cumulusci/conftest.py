@@ -62,14 +62,7 @@ def mock_http_response():
 @fixture(scope="session")
 def fallback_orgconfig():
     def fallback_orgconfig():
-        return DummyOrgConfig(
-            {
-                "instance_url": "https://orgname.salesforce.com",
-                "access_token": "pytest_sf_orgconnect_abc123",
-                "id": "ORGID/ORGID",
-            },
-            "pytest_sf_orgconnect_dummy_orgconfig",
-        )
+        return DummyOrgConfig(name="pytest_sf_orgconnect_dummy_orgconfig")
 
     return fallback_orgconfig
 
