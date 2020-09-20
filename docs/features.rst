@@ -740,7 +740,7 @@ Errors happen! That's why our team strives to provide our users with both option
 
 The ``--debug`` Argument
 ------------------------
-All CumulusCI commands can be passed the ``--debug`` argument. This can sometimes display additional output from CumulusCI's internal logger, as well as, errors captured by ``requests.packages.urllib3.add_stderr_logger()``. By default, logfiles only include the output from CumulusCI's internal logger.
+All CumulusCI commands can be passed the ``--debug`` argument. This can sometimes display additional output from CumulusCI's internal logger, as well as, errors captured by ``requests.packages.urllib3.add_stderr_logger()``.
 
 Log Files
 ---------
