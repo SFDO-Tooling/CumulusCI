@@ -736,7 +736,7 @@ Caveats:
 
 Working With Errors
 ===================
-Errors happen! That's why our team strives to provide our users with both options and commands that allow for efficiently working with them when they occur.
+Errors happen! That's why our team strives to provide our users with options for efficiently working with them when they occur.
 
 The ``--debug`` Argument
 ------------------------
