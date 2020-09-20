@@ -740,7 +740,11 @@ Errors happen! That's why our team strives to provide our users with options for
 
 The ``--debug`` Argument
 ------------------------
-All CumulusCI commands can be passed the ``--debug`` argument. This can display additional output from CumulusCI's internal logger, errors captured by ``requests.packages.urllib3.add_stderr_logger()``, the stacktrace of the error, and enters `post-mortem debugging<https://docs.python.org/3/library/pdb.html#pdb.post_mortem>`_ session.
+All CumulusCI commands can be passed the ``--debug`` argument. When this is used, the following occurs:
+    * Any calls to CumulusCI's logger at the debug level are shown.
+    * Any errors captured by ``requests.packages.urllib3.add_stderr_logger()`` are shown.
+    * If an error is present, the corresponding stacktrace is shown. 
+    * The user is dropped into a `post-mortem debugging <https://docs.python.org/3/library/pdb.html#pdb.post_mortem>`_ session.
 
 Log Files
 ---------
