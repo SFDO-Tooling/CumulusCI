@@ -95,8 +95,11 @@ CumulusCI facilitates parent-to-child auto-merges via the `github_parent_to_chil
 
 Prerelease Branches
 ===================
-Some teams deliver large releases several times a year. To be able to clearly track what work is associated with a specific release, we further extended our work with Parent/Child feature branches to apply to Prerelease branches as well. 
-Prerelease branches are named in the format of ``feature/release_num`` where ``release_num`` is a valid integer. Developers then branch off of (and merge back into) the prerelease branches, which are in turn merged to master for major releases. 
+Some teams deliver large releases several times a year.
+To be able to clearly track what work is associated with a specific release, we further extended our work with Parent/Child feature branches to apply to Prerelease branches as well. 
+
+Prerelease branches adhere to a strict naming format: ``feature/release_num`` where ``release_num`` is a valid integer. 
+Developers create child branches off of (and merge back into) the prerelease branches, which are in turn merged to master for major releases. 
 Using ``feature/`` branch prefix to allows our prerelease branches to stay in sync with our main branch (they are just another feature branch to CumulusCI).
 Additionally, we ensure that all prerelease branches propogate commits they receive to other existing prerelease branches that correspond to future releases.
 
@@ -112,9 +115,9 @@ Consider the following branches in a GitHub repository:
    * ``feature/003__feature1`` - A single feature associated with release ``003``
 
 CumulusCI ensures that when ``feature/002`` receives a commit, that that commit is also merged into ``feature/003``.
-This causes tests to run and ensure that funcitonality going into ``feature/002`` doesn't break ``feature/003``.
-Once those tests pass, the commit on ``feature/003`` is merged to ``feature/003__feature1`` because they adhere to the parent/child naming convention.
-Commits never propogate in the opposite direction (commits to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
+This kicks off tests and ensure that funcitonality going into ``feature/002`` doesn't break work being done in future releases.
+Once those tests pass, the commit on ``feature/003`` is merged to ``feature/003__feature1`` because they adhere to the parent/child naming convention described above.
+Commits never propogate in the opposite direction. (A commit to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
 
 **This feature is turned off by default.** If you would like to enable it for your GitHub repository, you can set the ``update_prerelease`` option on the `` github_parent_to_children`` task in your ``cumulusci.yml`` file as follows:
 
