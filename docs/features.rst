@@ -236,7 +236,7 @@ Automatic Install, Upgrade, or Uninstall/Install
 When the ``update_dependencies`` task runs, it first retrieves a list of all managed packages in the target org and creates a list of the installed packages and their version numbers.  With the example cumulusci.yml shown above, the following will happen, depending on whether npe01 is currently installed:
 
 * If npe01 is not installed, npe01 version 3.6 is installed
-* If the org already has npe01 version 3.6 installed then nothing will be done
+* If the org already has npe01 version 3.6 installed, nothing will be done
 * If the org has an older version installed, it will be upgraded to version 3.6
 * If the org has a newer version or a beta version installed, it will be uninstalled and then version 3.6 will be installed
 
