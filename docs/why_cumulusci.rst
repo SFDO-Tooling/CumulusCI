@@ -121,6 +121,7 @@ There are some key differentiators to how CumulusCI works in comparison to Sales
 * CumulusCI's ability to encapsulate more complex commands into a single named task via the ``cumulusci.yml`` creates a cleaner CLI user experience that reduces risk of human error from forgetting an option flag
 
 We've been running CumulusCI with Salesforce DX for |num_years| years in over |num_builds| production builds at Salesforce.org.  The combination provides us the best of both worlds while allowing us to incrementally migrate pieces of our orchestration to Salesforce DX where it makes sense.
+
 Only in CumulusCI
 =================
 
