@@ -278,26 +278,18 @@ The ``static`` key allows individual fields to be populated with a fixed, static
             CustomCheckbox__c: True
             CustomDateField__c: 2019-01-01
 
-Primary Keys
-++++++++++++
+Primary Keys and Salesforce Ids
++++++++++++++++++++++++++++++++
 
-CumulusCI offers two modes of managing Salesforce Ids and primary keys within the stored
-database.
+CumulusCI rewrites all Salesforce Ids in the database to strings of the form
+``sObjectName-000``, such as ``Account-984``. Using org-independent Ids helps
+to minimize diffs as the data set is maintained, being loaded into and extracted
+from multiple orgs.
 
-If the ``fields`` list for an sObject contains a mapping::
-
-    Id: sf_id
-
-CumulusCI will extract the Salesforce Id for each record and use that Id as the primary
-key in the stored database.
-
-If no such mapping is provided, CumulusCI will remove the Salesforce Id from extracted
-data and replace it with an autoincrementing integer primary key.
-
-Use of integer primary keys may help yield more readable text diffs when storing data in SQL
-script format. However, it comes at some performance penalty when extracting data. It's
-recommended that most mappings do not map the Id field and allow CumulusCI to utilize
-the automatic primary key.
+Previous versions of CumulusCI offered multiple primary key modes, including using
+Salesforce Ids directly and using automatic integer primary keys. These modes are
+no longer supported for new datasets. CumulusCI will load existing data sets in
+any form, and will always extract data using the new strategy.
 
 Handling Namespaces
 +++++++++++++++++++

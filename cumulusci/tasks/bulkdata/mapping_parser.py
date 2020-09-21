@@ -33,7 +33,7 @@ class CaseInsensitiveDict(RequestsCaseInsensitiveDict):
 
 class MappingLookup(CCIDictModel):
     "Lookup relationship between two tables."
-    table: str
+    table: Optional[str] = None
     key_field: Optional[str] = None
     value_field: Optional[str] = None
     join_field: Optional[str] = None
@@ -76,16 +76,11 @@ class MappingStep(CCIDictModel):
     action: DataOperationType = DataOperationType.INSERT
     api: DataApi = DataApi.SMART
     batch_size: int = 200
-    oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: Optional[str] = None  # should be discussed and probably deprecated
     bulk_mode: Optional[
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
     anchor_date: Optional[str] = None
-
-    def get_oid_as_pk(self):
-        """Returns True if using Salesforce Ids as primary keys."""
-        return "Id" in self.fields
 
     def get_destination_record_type_table(self):
         """Returns the name of the record type table for the target org."""
@@ -95,17 +90,16 @@ class MappingStep(CCIDictModel):
         """Returns the name of the record type table for the source org."""
         return f"{self.sf_object}_rt_mapping"
 
-    def get_sf_id_table(self):
-        """Returns the name of the table for storing Salesforce Ids."""
-        return f"{self.table}_sf_ids"
-
     def get_complete_field_map(self, include_id=False):
         """Return a field map that includes both `fields` and `lookups`.
         If include_id is True, add the Id field if not already present."""
         fields = {}
 
         if include_id and "Id" not in self.fields:
-            fields["Id"] = "sf_id"
+            fields["Id"] = "Id"
+        # For efficiency's sake, ensure that Id comes first.
+        if "Id" in self.fields:
+            fields["Id"] = self.fields["Id"]
 
         fields.update(self.fields)
         fields.update(
@@ -183,13 +177,6 @@ class MappingStep(CCIDictModel):
         )
         return v
 
-    @validator("oid_as_pk")
-    @classmethod
-    def oid_as_pk_is_deprecated(cls, v):
-        raise ValueError(
-            "oid_as_pk is no longer supported. Include the Id field if desired."
-        )
-
     @validator("fields_", pre=True)
     @classmethod
     def standardize_fields_to_dict(cls, values):
@@ -197,6 +184,9 @@ class MappingStep(CCIDictModel):
             values = {}
         if type(values) is list:
             return {elem: elem for elem in values}
+
+        if "Id" not in values:
+            values["Id"] = "sf_id"
 
         return values
 
@@ -411,17 +401,6 @@ class MappingStep(CCIDictModel):
 class MappingSteps(CCIDictModel):
     "Mapping of named steps"
     __root__: Dict[str, MappingStep]
-
-    @root_validator(pre=False)
-    @classmethod
-    def validate_and_inject_mapping(cls, values):
-        if values:
-            oids = ["Id" in s.fields_ for s in values["__root__"].values()]
-            assert all(oids) or not any(
-                oids
-            ), "Id must be mapped in all steps or in no steps."
-
-        return values
 
 
 ValidationError = ValidationError  # export Pydantic's Validation Error under an alias

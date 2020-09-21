@@ -6,13 +6,8 @@ import typing
 from contextlib import contextmanager
 from pathlib import Path
 
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import MetaData
-from sqlalchemy import Table
-from sqlalchemy import Unicode
-from sqlalchemy.orm import mapper
-from sqlalchemy.orm import Session
+from sqlalchemy import Column, MetaData, Table, Unicode
+from sqlalchemy.orm import mapper, Session
 from simple_salesforce import Salesforce
 
 from cumulusci.core.exceptions import BulkDataException
@@ -26,6 +21,8 @@ class SqlAlchemyMixin:
     options: dict
     session: Session
     sf: Salesforce
+
+    ID_TABLE_NAME = "cumulusci_id_table"
 
     def _sql_bulk_insert_from_records(
         self, *, connection, table, columns, record_iterable
@@ -100,17 +97,6 @@ class SqlAlchemyMixin:
             return self._temp_database_url()
 
 
-def _handle_primary_key(mapping, fields):
-    """Provide support for legacy mappings which used the OID as the pk but
-    default to using an autoincrementing int pk and a separate sf_id column"""
-
-    if mapping.get_oid_as_pk():
-        id_column = mapping.fields["Id"]
-        fields.append(Column(id_column, Unicode(255), primary_key=True))
-    else:
-        fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
-
-
 def create_table(mapping, metadata):
     """Given a mapping data structure (from mapping.yml) and SQLAlchemy
     metadata, create a table matching the mapping.
@@ -118,7 +104,8 @@ def create_table(mapping, metadata):
     Mapping should be a MappingStep instance"""
 
     fields = []
-    _handle_primary_key(mapping, fields)
+    id_column = mapping.fields["Id"]  # Guaranteed to be present by mapping parser.
+    fields.append(Column(id_column, Unicode(255), primary_key=True))
 
     # make a field list to create
     for field, db in mapping.get_complete_field_map().items():

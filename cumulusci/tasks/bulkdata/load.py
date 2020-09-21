@@ -56,7 +56,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "If True, allow the load to continue even if individual rows fail to load."
         },
         "reset_oids": {
-            "description": "If True (the default), and the _sf_ids tables exist, reset them before continuing.",
+            "description": "If True (the default), and the Salesforce Id table exists, reset it before continuing.",
             "required": False,
         },
         "bulk_mode": {
@@ -106,6 +106,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self._init_mapping()
         with self._init_db():
             self._expand_mapping()
+
+            self._initialize_id_table(self.reset_oids)
 
             start_step = self.options.get("start_step")
             started = False
@@ -194,7 +196,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             yield row
 
         self.logger.info(
-            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}."
+            f"Prepared {total_rows} rows for {mapping.action.value} to {mapping.sf_object}."
         )
 
     def _load_record_types(self, sobjects, conn):
@@ -244,9 +246,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         }
 
         for lookup in lookups.values():
-            lookup.aliased_table = aliased(
-                self.metadata.tables[f"{lookup.table}_sf_ids"]
-            )
+            lookup.aliased_table = aliased(self.metadata.tables[self.ID_TABLE_NAME])
             columns.append(lookup.aliased_table.columns.sf_id)
 
         if "RecordTypeId" in mapping.fields:
@@ -306,9 +306,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _process_job_results(self, mapping, step, local_ids):
         """Get the job results and process the results. If we're raising for
         row-level errors, do so; if we're inserting, store the new Ids."""
-        if mapping.action is DataOperationType.INSERT:
-            id_table_name = self._initialize_id_table(mapping, self.reset_oids)
-            conn = self.session.connection()
+        conn = self.session.connection()
 
         results_generator = self._generate_results_id_map(step, local_ids)
 
@@ -319,7 +317,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         ):
             self._sql_bulk_insert_from_records(
                 connection=conn,
-                table=id_table_name,
+                table=self.ID_TABLE_NAME,
                 columns=("id", "sf_id"),
                 record_iterable=results_generator,
             )
@@ -340,7 +338,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             if account_id_lookup:
                 self._sql_bulk_insert_from_records(
                     connection=conn,
-                    table=id_table_name,
+                    table=self.ID_TABLE_NAME,
                     columns=("id", "sf_id"),
                     record_iterable=self._generate_contact_id_map_for_person_accounts(
                         mapping, account_id_lookup, conn
@@ -363,37 +361,30 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             else:
                 error_checker.check_for_row_error(result, local_id)
 
-    def _initialize_id_table(self, mapping, should_reset_table):
+    def _initialize_id_table(self, should_reset_table):
         """initalize or find table to hold the inserted SF Ids
 
-        The table has a name like xxx_sf_ids and has just two columns, id and sf_id.
+        The table has a name self.ID_TABLE_TABLE (defined
+        in SqlAlchemyMixin) and holds two columns, id and sf_id.
 
         If the table already exists, should_reset_table determines whether to
         drop and recreate it or not.
         """
-        id_table_name = f"{mapping['table']}_sf_ids"
 
-        already_exists = id_table_name in self.metadata.tables
+        already_exists = self.ID_TABLE_NAME in self.metadata.tables
 
         if already_exists and not should_reset_table:
-            return id_table_name
+            return
 
-        if not hasattr(self, "_initialized_id_tables"):
-            self._initialized_id_tables = set()
-        if id_table_name not in self._initialized_id_tables:
-            if already_exists:
-                self.metadata.remove(self.metadata.tables[id_table_name])
-            id_table = Table(
-                id_table_name,
-                self.metadata,
-                Column("id", Unicode(255), primary_key=True),
-                Column("sf_id", Unicode(18)),
-            )
-            if id_table.exists():
-                id_table.drop()
-            id_table.create()
-            self._initialized_id_tables.add(id_table_name)
-        return id_table_name
+        id_table = Table(
+            self.ID_TABLE_NAME,
+            self.metadata,
+            Column("id", Unicode(255), primary_key=True),
+            Column("sf_id", Unicode(18)),
+        )
+        if id_table.exists():
+            id_table.drop()
+        id_table.create()
 
     def _sqlite_load(self):
         """Read a SQLite script and initialize the in-memory database."""
@@ -404,7 +395,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 cursor.executescript(f.read())
             finally:
                 cursor.close()
-        # self.session.flush()
 
     @contextmanager
     def _init_db(self):
