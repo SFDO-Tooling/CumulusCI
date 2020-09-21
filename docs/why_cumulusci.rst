@@ -98,12 +98,14 @@ With no Python code, we've just added the deployment of an additional directory 
 
 While the goal is to make as much available via YAML, it's still possible and quite simple to write your own custom tasks for CumulusCI in Python.  You can even reuse and subclass our task classes to make the process easier.
 
-Friendly Logging Output
------------------------
+Friendly Logging
+----------------
 
-We invested a lot in making the logging output from running CumulusCI tasks as useful as possible.  For example, we progressively increase the polling interval every 3 polling attempts on polling processes which are known to take a while such as the **Pending** stage of a Metadata API deployment.  For a deploy which is pending for 5 minutes, this could mean the difference of 600 lines of output (1 poll/sec) vs 60 lines of output.  When run through a CI system, this makes our build logs much shorter and easier to read.
+We've invested a lot in making the logging output from running CumulusCI tasks as useful as possible.  For example, we progressively increase the polling interval every 3 polling attempts on polling processes which are known to take a while such as the **Pending** stage of a Metadata API deployment.  For a deploy which is pending for 5 minutes, this could mean the difference of 600 lines of output (1 poll/sec) vs 60 lines of output.  When run through a CI system, this makes our build logs much shorter and easier to read.
 
 As a bonus, features like progressively increasing polling intervals also help reduce the risk of hitting an API Limit in your Salesforce Org!
+
+For more information on what is logged to the screen by default and what is captured in the logfiles CumulusCI stores, see our `log file <https://cumulusci.readthedocs.io/en/latest/features.html#log-files>`_ section of the docs.
 
 Does CumulusCI Compete With Salesforce DX?
 ==========================================
@@ -125,20 +127,47 @@ We've been running CumulusCI with Salesforce DX for |num_years| years in over |n
 Only in CumulusCI
 =================
 
-CumulusCI has a number of unique capabilities that you won't find in any other tooling to work with Salesforce projects:
+CumulusCI includes many unique capabilities for working with Salesforce projects that you can't find anywhere else!
 
-* **Automated Release Notes**: CumulusCI's **release_beta** flow uses the **github_release_notes** task to automatically parse the bodies of pull requests merged since the last production release and generate combined release notes from the content.
-* **Bulk API Query/Load**: CumulusCI includes Python task classes allowing for the creation of multi-object relational data set mappings used to query data from a Salesforce org into a local sqlite database and insert that relational data into another Salesforce org.
-* **Dependency Management**: CumulusCI includes robust support for project dependencies including managed packages, unmanaged metadata, and references to other CumulusCI project repositories to dynamically and recursively inherit the referenced project's dependencies
-* **Apex Limit Reports for Tests**: CumulusCI's Apex test runner outputs a ``test_results.json`` file which includes the duration and Apex limits usage for each test method executed
-* **Update Admin Profile**: All CumulusCI flows run the **update_admin_profile** task to retrieve the Admin.profile from the target org after deploying the package or the package source, grant FLS permissions on all fields and classes, and deploy the updated profile.  This makes it easier to get up and running with a useable environment from a fresh scratch org.
-* **Push API**: Automate push upgrades of your product using the Push API and CumulusCI's built in tasks: **push_all**, **push_sandbox**, **push_trial**, and **push_qa**
-* **meta.xml File Management**: Unmanaged deploys automatically strip namespace, majorVersion, and minorVersion elements from the meta.xml file allowing CumulusCI's dependency management to handle your dependencies.  Also, the **meta_xml_dependencies** and **meta_xml_apiversion** tasks automate updating all local meta.xml files with the api_version specified in ``cumulusci.yml`` and the namespace, majorVersion, and minorVersion of the currently resolved dependencies.
-* **MetaCI**: MetaCI is our custom CI app run on Heroku to automate the execution of builds using CumulusCI flows.  It is Salesforce aware and can handle burst capacity for builds by leveraging Heroku's scalability.
+Automated Release Notes
+-----------------------
+CumulusCI's **release_beta** flow uses the **github_release_notes** task to automatically parse the bodies of pull requests merged since the last production release and generate combined release notes from the content.
+
+Bulk API Query/Load
+-------------------
+CumulusCI includes Python task classes allowing for the creation of multi-object relational data set mappings used to query data from a Salesforce org into a local sqlite database and insert that relational data into another Salesforce org.
+
+Dependency Management
+---------------------
+CumulusCI includes robust support for project dependencies including managed packages, unmanaged metadata, and references to other CumulusCI project repositories to dynamically and recursively inherit the referenced project's dependencies
+
+Apex Limit Reports for Tests
+----------------------------
+CumulusCI's Apex test runner outputs a ``test_results.json`` file which includes the duration and Apex limits usage for each test method executed
+
+Update Admin Profile
+-------------------
+All CumulusCI flows run the **update_admin_profile** task to retrieve the Admin.profile from the target org after deploying the package or the package source, grant FLS permissions on all fields and classes, and deploy the updated profile.  This makes it easier to get up and running with a useable environment from a fresh scratch org.
+
+Push API
+--------
+Automate push upgrades of your product using the Push API and CumulusCI's built in tasks: **push_all**, **push_sandbox**, **push_trial**, and **push_qa**
+
+``meta.xml`` File Management
+----------------------------
+Unmanaged deploys automatically strip namespace, majorVersion, and minorVersion elements from the meta.xml file allowing CumulusCI's dependency management to handle your dependencies.  Also, the **meta_xml_dependencies** and **meta_xml_apiversion** tasks automate updating all local meta.xml files with the api_version specified in ``cumulusci.yml`` and the namespace, majorVersion, and minorVersion of the currently resolved dependencies.
+
+MetaCI
+------
+MetaCI is our custom CI app run on Heroku to automate the execution of builds using CumulusCI flows.  It is Salesforce aware and can handle burst capacity for builds by leveraging Heroku's scalability.
+
+MetaDeploy
+----------
+MetaDeploy is our custom installer app run on Heroku to automate complex installations of managed package projects. It help us to provide our customers with a seemless install experience.
 
 Next Steps
 ==========
 
-Interested in trying it out?  Check out the CumulusCI :doc:`tutorial`
+Interested in trying it out?  Check out the CumulusCI :doc:`tutorial` or our :doc:`usage` screencasts.
 
 Want to find out more about our development and release process?  Check out :doc:`cumulusci_flow`
