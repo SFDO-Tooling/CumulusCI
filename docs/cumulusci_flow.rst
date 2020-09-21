@@ -50,10 +50,10 @@ The name of the main (default) branch, as well as the branch prefixes are config
          prefix_release: release/
 
 
-CumulusCI and Feature Branches
-------------------------------
+Feature Branch Flows
+--------------------
 
-CumulusCI facilitates working with feature branches mostly via two default flows:
+CumulusCI facilitates working with feature branches (mainly) through two default flows:
 
 * **dev_org**: Used to deploy the unmanaged code and all dependencies from the feature branch into a Salesforce org to create a usable development environment.
 * **ci_feature**: Deploys the unmanaged code and all dependencies into a Salesforce org (typically a fresh scratch org) and run the Apex tests.  This flow is typically run by your CI app on new commits to any feature branch.
