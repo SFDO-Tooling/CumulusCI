@@ -5,7 +5,7 @@
 Why CumulusCI?
 ==============
 
-CumulusCI was built to solve common challenges faced the development and release of Salesforce managed package projects such as:
+CumulusCI was built to solve common challenges faced during the development and release of Salesforce managed package projects such as:
 
 * Integration of Salesforce DX into the package release cycle
 * Reducing the burden and risk of cutting managed package releases
