@@ -28,20 +28,6 @@ CumulusCI helps teams build great applications on the Salesforce platform by aut
     * Run builds in continuous integration systems.
     * Create end-to-end browser tests and setup automation using Robot Framework.
 
-
-We've used CumulusCI every day at Salesforce.org to run over 40 thousand builds of 12 Github managed package repositories for our products.  The goal of making CumulusCI available as open source is to empower other Salesforce developers to benefit from the solutions to common challenges faced in managing the development and release cycle of Salesforce managed packages.
-
-Portable Automation
-===================
-
-Portable Automation is a core philosophy of CumulusCI bred from our 4+ years experience building a scalable development and release process for our managed package projects at Salesforce.org.  We started like most people did at the time, writing Ant targets and getting them to run through Jenkins.  After about a year, we came to realize that writing scripts with Jenkins as the primary user persona was missing a lot of potential to reuse the automation we invested in creating for our builds.
-
-If you're creating automation that helps you do something useful with a Salesforce org to prepare a development or test environment, there are likely many people involved in your project who could also benefit from that automation:
-
-)
-
-CumulusCI aims to expand the scope of automation to handle all these use cases through Portable Automation. 
-
 Learn More
 ==========
 
