@@ -1,3 +1,6 @@
+.. |num_years| replace:: 4+
+.. |num_builds| replace:: 300,000
+
 ==============
 Why CumulusCI?
 ==============
@@ -13,12 +16,12 @@ CumulusCI was built to solve common challenges faced the development and release
 
 CumulusCI is a framework for building portable automation for Salesforce projects on Github.  The automation is controlled by a simple **cumulusci.yml** file which is version controlled in the project repository and is available to anyone with CumulusCI configured on their system and able to access the repository.
 
-We've used CumulusCI every day at Salesforce.org to run over 40 thousand builds of 12 Github managed package repositories for our products.  The goal of making CumulusCI available as open source is to empower other Salesforce developers to benefit from the solutions to common challenges faced in managing the development and release cycle of Salesforce managed packages.
+We've used CumulusCI every day at Salesforce.org to run over |num_builds| builds across 12 Github managed package repositories for our products.  The goal of making CumulusCI available as open source is to empower other Salesforce developers to benefit from the solutions to common challenges faced in managing the development and release cycle of Salesforce managed packages.
 
 Portable Automation
 ===================
 
-Portable Automation is a core philosophy of CumulusCI bred from our 4+ years experience building a scalable development and release process for our managed package projects at Salesforce.org.  We started like most people did at the time, writing Ant targets and getting them to run through Jenkins.  After about a year, we came to realize that writing scripts with Jenkins as the primary user persona was missing a lot of potential to reuse the automation we invested in creating for our builds.
+Portable Automation is a core philosophy of CumulusCI bred from our |num_years| years experience building a scalable development and release process for our managed package projects at Salesforce.org.  We started like most people did at the time, writing Ant targets and getting them to run through Jenkins.  After about a year, we came to realize that writing scripts with Jenkins as the primary user persona was missing a lot of potential to reuse the automation we invested in creating for our builds.
 
 If you're creating automation that helps you do something useful with a Salesforce org to prepare a development or test environment, there are likely many people involved in your project who could also benefit from that automation:
 
@@ -117,8 +120,7 @@ There are some key differentiators to how CumulusCI works in comparison to Sales
 * CumulusCI is open source, licensed under a BSD 3-Clause License
 * CumulusCI's ability to encapsulate more complex commands into a single named task via the **cumulusci.yml** creates a cleaner CLI user experience that reduces risk of human error from forgetting an option flag
 
-We've been running CumulusCI with Salesforce DX for over a year in over 17k+ production builds at Salesforce.org.  The combination provides us the best of both worlds while allowing us to incrementally migrate pieces of our orchestration to Salesforce DX where it makes sense.
-
+We've been running CumulusCI with Salesforce DX for |num_years| years in over |num_builds| production builds at Salesforce.org.  The combination provides us the best of both worlds while allowing us to incrementally migrate pieces of our orchestration to Salesforce DX where it makes sense.
 Only in CumulusCI
 =================
 
