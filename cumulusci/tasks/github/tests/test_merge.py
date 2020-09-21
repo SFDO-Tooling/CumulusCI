@@ -646,6 +646,70 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             self.assertEqual(expected_log, actual_log)
         self.assertEqual(10, len(responses.calls))
 
+    @responses.activate
+    def test_merge_to_future_prerelease_branches_and_children(self):
+        """Tests that commits to the main branch are merged to the expected feature branches"""
+
+        prefix = "jupiter/"
+        source_branch = f"{prefix}230"
+        branches_to_merge = [
+            f"{prefix}300",
+            f"{prefix}230__child1",
+        ]
+        other_branches = [
+            f"{prefix}230__child1__grandchild",
+            "prefix-mismatch/230__child2",
+            f"{prefix}130",
+        ]
+        self._setup_mocks([source_branch] + branches_to_merge + other_branches)
+
+        with LogCapture() as log:
+            task = self._create_task(
+                task_config={
+                    "options": {
+                        "source_branch": source_branch,
+                        "branch_prefix": prefix,
+                        "update_prerelease": True,
+                    }
+                }
+            )
+            task()
+
+            expected_log = log_header() + [
+                ("DEBUG", f"Skipping branch {source_branch}: is source branch"),
+                (
+                    "DEBUG",
+                    f"Skipping branch {other_branches[0]}: is not a direct descendent of {source_branch}",
+                ),
+                (
+                    "DEBUG",
+                    f"Skipping branch {other_branches[1]}: does not match prefix '{prefix}'",
+                ),
+                (
+                    "DEBUG",
+                    f"Skipping branch {other_branches[2]}: is not a direct descendent of {source_branch}",
+                ),
+                (
+                    "DEBUG",
+                    f"Found child branches to update: ['{branches_to_merge[1]}']",
+                ),
+                (
+                    "DEBUG",
+                    f"Found future prerelease branches to update: ['{branches_to_merge[0]}']",
+                ),
+                (
+                    "INFO",
+                    f"Merged 1 commits into branch: {branches_to_merge[1]}",
+                ),
+                (
+                    "INFO",
+                    f"Merged 1 commits into branch: {branches_to_merge[0]}",
+                ),
+            ]
+            actual_log = self._get_log_lines(log)
+            self.assertEqual(expected_log, actual_log)
+        self.assertEqual(8, len(responses.calls))
+
     def test_is_prerelease_branch(self):
         prefix = "test/"
         valid_prerelease_branches = [
