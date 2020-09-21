@@ -261,7 +261,9 @@ Managed Package dependencies can handle a hierarchy of dependencies between pack
             - namespace: npe5
               version: 3.5
 
-In the example above, the project requires npo02 version 3.8 which requires npe01 version 3.6.  By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently. Consider the following scenario:  If the target org currently has npe01 version 3.7, npe01 needs to be uninstalled to downgrade to 3.6.  However, npo02 requires npe01 so uninstalling npe01 requires also uninstalling npo02.  In this scenario npe03, npe4, and npe5 do not have to be uninstalled to uninstall npe01.
+In the example above, the project requires npo02 version 3.8 which, requires npe01 version 3.6.  By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently. 
+
+Consider the following scenario:  If the target org currently has npe01 version 3.7, npe01 needs to be uninstalled to downgrade to 3.6.  However, npo02 requires npe01, so uninstalling npe01 requires also uninstalling npo02.  In this scenario npe03, npe4, and npe5 do not have to be uninstalled to uninstall npe01.
 
 
 Unmanaged Metadata Dependencies
