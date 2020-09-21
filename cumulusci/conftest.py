@@ -84,7 +84,7 @@ create_task_fixture = fixture(create_task_fixture, scope="function")
 #       can represent the repo-root, but that will require
 #       test case changes.
 @pytest.fixture(autouse=True, scope="session")
-def patch_home(request):
+def patch_home_and_env(request):
     with TemporaryDirectory(prefix="fake_home_") as home, mock.patch(
         "pathlib.Path.home", lambda: Path(home)
     ), mock.patch.dict(
