@@ -91,6 +91,8 @@ If this combination of named parent and child branches exist, the auto-merging f
 
 This allows us to support multiple developers working on a single large feature while keeping that feature isolated from main until we're ready to release it.  The parent branch is the branch representing the overall feature.  Each developer can create child branches for individual components of the larger feature.  Their child branch still gets CI builds like all feature branches.  When they are ready to merge from their child branch to the parent branch, they create a Pull Request which gets code reviewed by other developers working on the parent feature branch and finally merged to the parent branch.
 
+CumulusCI facilitates parent-to-child auto-merges via the `github_parent_to_children` task, which is included by deault in the `ci_feature` flow.  If a parent feature branch passes the build, it is automatically merged into all child branches.
+
 Prerelease Branches
 ===================
 Some teams deliver large releases several times a year. To be able to clearly track what work is associated with a specific release, we further extended our work with Parent/Child feature branches to apply to Prerelease branches as well. 
@@ -111,14 +113,23 @@ Consider the following branches in a GitHub repository:
 
 CumulusCI ensures that when ``feature/002`` receives a commit, that that commit is also merged into ``feature/003``.
 This causes tests to run and ensure that funcitonality going into ``feature/002`` doesn't break ``feature/003``.
-Once those tests pass then the commit on ``feature/003`` is merged to ``feature/003__feature1``.
+Once those tests pass, the commit on ``feature/003`` is merged to ``feature/003__feature1`` because they adhere to the parent/child naming convention.
 Commits never propogate in the opposite direction (commits to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
 
-CumulusCI and Parent/Child Feature Branches
--------------------------------------------
+**This feature is turned off by default.** If you would like to enable it for your GitHub repository, you can set the ``update_prerelease`` option on the `` github_parent_to_children`` task in your ``cumulusci.yml`` file as follows:
 
-CumulusCI facilitates the auto-merge to feature branches via the task `github_parent_to_children` which is included by deault in the `ci_feature` flow.  If a parent feature branch passes the build, it is automatically merged into all child branches.
+.. code-block:: yaml 
 
+   tasks:
+      github_parent_to_children:
+      options:
+         update_prerelease: True
+
+Orphaned Branches
+-----------------
+If you have both a parent and a child branch, and the parent is deleted, this creates orphaned branch.
+Orphaned branches do not receive any auto-merges from any branches.
+You can rename an orphaned branch to include the ``feature/`` prefix and contain no double underscores ('__') to begin receiving merges from the main branch again.
 
 
 Main Builds
