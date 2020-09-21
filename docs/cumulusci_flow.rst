@@ -119,7 +119,7 @@ This kicks off tests and ensure that funcitonality going into ``feature/002`` do
 Once those tests pass, the commit on ``feature/003`` is merged to ``feature/003__feature1`` because they adhere to the parent/child naming convention described above.
 Commits never propogate in the opposite direction. (A commit to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
 
-**This feature is turned off by default.** If you would like to enable it for your GitHub repository, you can set the ``update_prerelease`` option on the `` github_parent_to_children`` task in your ``cumulusci.yml`` file as follows:
+**Propogating commits between prerelease branches is turned off by default.** If you would like to enable it for your GitHub repository, you can set the ``update_prerelease`` option on the ``github_parent_to_children`` task in your ``cumulusci.yml`` file as follows:
 
 .. code-block:: yaml 
 
