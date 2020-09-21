@@ -36,6 +36,20 @@ When a Pull Request is approved and passing build, it is merged using the Merge 
 
 Once the Pull Request is merged, the feature branch is deleted.
 
+Branch Configuraiton
+--------------------
+The name of the main (default) branch, as well as the branch prefixes are configurable in your projects ``cumulusci.yml`` file. The following shows the default values that CumulusCI comes with:
+
+.. code-block:: yaml
+
+   project:
+      git:
+         default_branch: main
+         prefix_feature: feature/
+         prefix_beta: beta/
+         prefix_release: release/
+
+
 CumulusCI and Feature Branches
 ------------------------------
 
@@ -47,9 +61,9 @@ CumulusCI facilitates working with feature branches mostly via two default flows
 Auto-Merging Main to Feature Branches
 =======================================
 
-One of the bigger differences between CumulusCI Flow and Github Flow or git-flow is that we automate the merging of main commits into all open feature branches the initial main build passes.  This auto-merge does a lot for us:
+One of the bigger differences between CumulusCI Flow and Github Flow or git-flow is that we automate the merging of commits to a projects main branch into all open feature branches.  This auto-merge does a lot for us:
 
-* Ensures feature branches always track with main
+* Ensures feature branches are in sync with the  main branch.
 * Re-tests each feature branch with any changes to main since the merge generates a new commit
 * Eliminates merge conflicts when merging a Pull Request to main
 
@@ -57,15 +71,12 @@ To understand the benefit of auto-merging to feature branches, consider the foll
 
 Without auto-merging, the developer would return, merge main into their feature branch, and then have to sift through all the commits to main during their leave to figure out which one broke their feature branch.  More testing and build history is always a good thing in addition to the other benefits we gain from auto-merging.
 
-CumulusCI and Auto-Merging to Feature Branches
-----------------------------------------------
+CumulusCI facilitates the auto-merge to feature branches via the ``github_master_to_feature`` task which is included by default in the ``release_beta`` flow.
 
-CumulusCI facilitates the auto-merge to feature branches via the task `github_master_to_feature` which is included by default in the `release_beta` flow run to publish a beta release.
+Parent and Child Feature Branches
+=================================
 
-Parent/Child Feature Branches
-=============================
-
-As we've worked in the CumulusCI Flow for the last 4+ years, we started to see a need for longer running, collaborative feature branches used by multiple developers to work on different parts of a bigger feature.  The solution was to expand the concept of auto-merging main to feature branches to also handle the concept of Parent/Child Feature Branches.
+As we've worked in the CumulusCI Flow for the last 4+ years, we've occasionally seen the need for longer running, collaborative feature branches that are used by multiple developers to work on different parts of a single large feature. The solution was to expand the concept of auto-merging main-to-feature branches to also handle the concept of Parent and Child Feature Branches.
 
 Parent/Child Feature Branches are created using a simple naming format for branches:
 
@@ -78,12 +89,37 @@ If this combination of named parent and child branches exist, the auto-merging f
 * Parent branches do receive the merge from main which kicks off a Feature Test build
 * At the end of a successful Feature Test build on a Parent branch, the parent branch is auto-merged into all child branches
 
-This allows us to support multiple developers working on one big feature while keeping the whole feature isolated from main until we're ready to release it.  The parent branch is the branch representing the overall feature.  Each developer can create child branches for individual components of the larger feature.  Their child branch still gets CI builds like all feature branches.  When they are ready to merge from their child branch to the parent branch, they create a Pull Request which gets code reviewed by other developers working on the parent feature branch and finally merged to the parent branch.
+This allows us to support multiple developers working on a single large feature while keeping that feature isolated from main until we're ready to release it.  The parent branch is the branch representing the overall feature.  Each developer can create child branches for individual components of the larger feature.  Their child branch still gets CI builds like all feature branches.  When they are ready to merge from their child branch to the parent branch, they create a Pull Request which gets code reviewed by other developers working on the parent feature branch and finally merged to the parent branch.
+
+Prerelease Branches
+===================
+Some teams deliver large releases several times a year. To be able to clearly track what work is associated with a specific release, we further extended our work with Parent/Child feature branches to apply to Prerelease branches as well. 
+Prerelease branches are named in the format of ``feature/release_num`` where ``release_num`` is a valid integer. Developers then branch off of (and merge back into) the prerelease branches, which are in turn merged to master for major releases. 
+Using ``feature/`` branch prefix to allows our prerelease branches to stay in sync with our main branch (they are just another feature branch to CumulusCI).
+Additionally, we ensure that all prerelease branches propogate commits they receive to other existing prerelease branches that correspond to future releases.
+
+Consider the following branches in a GitHub repository:
+
+   * ``main`` - Source of Truth for Production
+   * ``feature/002`` - The next major production release
+   * ``feature/002__feature1`` - A single feature associated with release ``002``
+   * ``feature/002__large_feature`` - A large feature associated with release ``002``
+   * ``feature/002__large_feature__child1`` - First chunk of work for the large feature
+   * ``feature/002__large_feature__child2`` - Second chunk of work for the large feature
+   * ``feature/003`` - The release that comes after ``002``
+   * ``feature/003__feature1`` - A single feature associated with release ``003``
+
+CumulusCI ensures that when ``feature/002`` receives a commit, that that commit is also merged into ``feature/003``.
+This causes tests to run and ensure that funcitonality going into ``feature/002`` doesn't break ``feature/003``.
+Once those tests pass then the commit on ``feature/003`` is merged to ``feature/003__feature1``.
+Commits never propogate in the opposite direction (commits to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
 
 CumulusCI and Parent/Child Feature Branches
 -------------------------------------------
 
 CumulusCI facilitates the auto-merge to feature branches via the task `github_parent_to_children` which is included by deault in the `ci_feature` flow.  If a parent feature branch passes the build, it is automatically merged into all child branches.
+
+
 
 Main Builds
 =============
