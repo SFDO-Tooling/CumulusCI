@@ -85,6 +85,7 @@ create_task_fixture = fixture(create_task_fixture, scope="function")
 #       test case changes.
 @pytest.fixture(autouse=True, scope="session")
 def patch_home_and_env(request):
+    "Patch the default home directory and $HOME environment for all tests at once."
     with TemporaryDirectory(prefix="fake_home_") as home, mock.patch(
         "pathlib.Path.home", lambda: Path(home)
     ), mock.patch.dict(
