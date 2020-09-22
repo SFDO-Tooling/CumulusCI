@@ -60,11 +60,11 @@ CumulusCI facilitates working with feature branches (mainly) through two default
 
 Auto Merging
 ============
-There several ways that CumulusCI helps to keep large diffs from being the norm. CumulusCI's auto-merge functionality helps teams:
+CumulusCI helps to keep large diffs and merge conflicts from being the norm. CumulusCI's auto-merge functionality helps teams:
 
-   * Keep feature branches up-to-date with the ``main`` branch (main-to-feature merges)
-   * Manage long-lived feature branches for larger features worked on by multiple developers (parent-to-child merges)
-   * Mange large releases that occur several times a year.  
+   * Keep feature branches up-to-date with the ``main`` branch (main to feature merges)
+   * Manage long-lived feature branches for larger features worked on by multiple developers (parent to child merges)
+   * Mange large releases that occur several times a year (release to future release merges).  
 
 
 Main to Feature Merges 
@@ -100,7 +100,7 @@ If this combination of named parent and child branches exist, the auto-merging f
 
 This allows us to support multiple developers working on a single large feature while keeping that feature isolated from main until we're ready to release it.  The parent branch is the branch representing the overall feature.  Each developer can create child branches for individual components of the larger feature.  Their child branch still gets CI builds like all feature branches.  When they are ready to merge from their child branch to the parent branch, they create a Pull Request which gets code reviewed by other developers working on the parent feature branch and finally merged to the parent branch.
 
-CumulusCI facilitates parent-to-child auto-merges via the `github_parent_to_children` task, which is included by deault in the `ci_feature` flow.  If a parent feature branch passes the build, it is automatically merged into all child branches.
+CumulusCI facilitates parent to child auto-merges via the `github_parent_to_children` task, which is included by deault in the `ci_feature` flow.  If a parent feature branch passes the build, it is automatically merged into all child branches.
 
 Release Branches
 ----------------
