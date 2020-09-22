@@ -19,7 +19,7 @@ CumulusCI Flow was designed for Salesforce development projects which inject som
 
 * You cannot re-cut a Salesforce managed package release with the same version as a prior release.  As a result, Git Tags are the best representation of our releases in a repository since they are a read only reference to the exact code we put into a given release.
 * Most Salesforce managed package projects use Push Upgrades to keep all users of the package on the latest release.  This eliminates the need to consider supporting multiple past versions.
-* Releasing managed packages has some overhead involved including manual checks by release managers to ensure nothing gets permanently locked into the package in a release.  As a result, true continuous delivery isn't an option.  We work in 2 week sprints and cut releases at the end of each sprint for all products with any changes.
+* Releasing managed packages has some overhead involved including manual checks by release managers to ensure nothing gets permanently locked into the package in a release.  As a result, true continuous delivery isn't an option.  Whether you're on a team that wants to deliver quickly—say in a two week sprint cycle—or at team that makes several larger releases a year, CumulusCI offers functionality to help cut releases for all products with any changes.
 
 Feature Branches
 ================
@@ -58,8 +58,17 @@ CumulusCI facilitates working with feature branches (mainly) through two default
 * **dev_org**: Used to deploy the unmanaged code and all dependencies from the feature branch into a Salesforce org to create a usable development environment.
 * **ci_feature**: Deploys the unmanaged code and all dependencies into a Salesforce org (typically a fresh scratch org) and run the Apex tests.  This flow is typically run by your CI app on new commits to any feature branch.
 
-Auto-Merging Main to Feature Branches
-=======================================
+Auto Merging
+============
+There several ways that CumulusCI helps to keep large diffs from being the norm. CumulusCI's auto-merge functionality helps teams:
+
+   * Keep feature branches up-to-date with the ``main`` branch (main-to-feature merges)
+   * Manage long-lived feature branches for larger features worked on by multiple developers (parent-to-child merges)
+   * Mange large releases that occur several times a year.  
+
+
+Main to Feature Merges 
+----------------------
 
 One of the bigger differences between CumulusCI Flow and Github Flow or git-flow is that we automate the merging of commits to a projects main branch into all open feature branches.  This auto-merge does a lot for us:
 
@@ -73,8 +82,8 @@ Without auto-merging, the developer would return, merge main into their feature 
 
 CumulusCI facilitates the auto-merge to feature branches via the ``github_master_to_feature`` task which is included by default in the ``release_beta`` flow.
 
-Parent and Child Feature Branches
-=================================
+Parent to Child Merges
+----------------------
 
 As we've worked in the CumulusCI Flow for the last 4+ years, we've occasionally seen the need for longer running, collaborative feature branches that are used by multiple developers to work on different parts of a single large feature. The solution was to expand the concept of auto-merging main-to-feature branches to also handle the concept of Parent and Child Feature Branches.
 
@@ -93,15 +102,23 @@ This allows us to support multiple developers working on a single large feature 
 
 CumulusCI facilitates parent-to-child auto-merges via the `github_parent_to_children` task, which is included by deault in the `ci_feature` flow.  If a parent feature branch passes the build, it is automatically merged into all child branches.
 
-Prerelease Branches
-===================
+Release Branches
+----------------
 Some teams deliver large releases several times a year.
-To be able to clearly track what work is associated with a specific release, we further extended our work with Parent/Child feature branches to apply to Prerelease branches as well. 
+For this type of release cadence, Salesforce.org uses release branches. These long-lived branches are created off of the ``main`` branch, serve as the target branch for all features associated with that release and eventually merged back to the ``main`` branch when a release occurs.
+To be able to clearly track what work is associated with a specific release, release branches adhere to the following:
+   * They are the parent branches of ALL feature work associated with a release. Put another way; all feature branches use the parent-child naming convention with its target release branch.
+   * Use a strict naming format: ``feature/release_num`` where ``release_num`` is a valid integer.
 
-Prerelease branches adhere to a strict naming format: ``feature/release_num`` where ``release_num`` is a valid integer. 
-Developers create child branches off of (and merge back into) the prerelease branches, which are in turn merged to master for major releases. 
-Using ``feature/`` branch prefix to allows our prerelease branches to stay in sync with our main branch (they are just another feature branch to CumulusCI).
-Additionally, we ensure that all prerelease branches propogate commits they receive to other existing prerelease branches that correspond to future releases.
+Using ``feature/`` branch prefix for the release branch names allow those branches to stay in sync with our main branch (they are just another feature branch to CumulusCI).
+The release number immediately after the ``feature/`` prefix allows CumulusCI to perform yet another type of auto-merge for your convenience.
+
+
+Release to (Future) Release Merges
+----------------------------------
+Because release branches are so long-lived, and so much work goes into them, their diffs can get quite large.
+This means headaches are inevitable the day after a major release, and you need to pull down all of the changes from the new release into the next release branch (which has likely been in development for months already).
+To alleviate this pain point, CumulusCI can ensure that all prerelease branches propogate commits they receive to other existing prerelease branches that correspond to future releases.
 
 Consider the following branches in a GitHub repository:
 
@@ -114,12 +131,13 @@ Consider the following branches in a GitHub repository:
    * ``feature/003`` - The release that comes after ``002``
    * ``feature/003__feature1`` - A single feature associated with release ``003``
 
-CumulusCI ensures that when ``feature/002`` receives a commit, that that commit is also merged into ``feature/003``.
-This kicks off tests and ensure that funcitonality going into ``feature/002`` doesn't break work being done in future releases.
+In this scenario, CumulusCI ensures that when ``feature/002`` receives a commit, that that commit is also merged into ``feature/003``.
+This kicks off tests in our CI system and ensures that funcitonality going into ``feature/002`` doesn't break work being done for future releases.
 Once those tests pass, the commit on ``feature/003`` is merged to ``feature/003__feature1`` because they adhere to the parent/child naming convention described above.
-Commits never propogate in the opposite direction. (A commit to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
+Commits **never** propogate in the opposite direction. (A commit to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
 
-**Propogating commits between prerelease branches is turned off by default.** If you would like to enable it for your GitHub repository, you can set the ``update_prerelease`` option on the ``github_parent_to_children`` task in your ``cumulusci.yml`` file as follows:
+**Propogating commits to future release branches is turned off by default.** 
+If you would like to enable this feature for your GitHub repository, you can set the ``update_prerelease`` option on the ``github_parent_to_children`` task in your ``cumulusci.yml`` file: 
 
 .. code-block:: yaml 
 
