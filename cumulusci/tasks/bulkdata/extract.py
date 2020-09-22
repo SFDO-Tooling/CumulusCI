@@ -220,7 +220,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # Compose these generators into streams that can be directly
         # inserted into our database
-        # FIXME: are we guaranteeing the Id is at 0? We are NOT.
         f_ids = ((row[0], next(id_source_global)) for row in ids)
         f_values = ([next(id_source_sobj)] + row[1:] for row in values)
 
