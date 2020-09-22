@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Dict, List, Union, IO, Optional, Any, Callable, Mapping
 from logging import getLogger
 from pathlib import Path
@@ -8,6 +9,7 @@ from pydantic import Field, validator, root_validator, ValidationError
 from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.step import DataOperationType, DataApi
+from cumulusci.tasks.bulkdata.dates import iso_to_date
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 from cumulusci.utils import convert_to_snake_case
 
@@ -79,6 +81,7 @@ class MappingStep(CCIDictModel):
     bulk_mode: Optional[
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
+    anchor_date: Optional[str] = None
 
     def get_oid_as_pk(self):
         """Returns True if using Salesforce Ids as primary keys."""
@@ -114,10 +117,63 @@ class MappingStep(CCIDictModel):
 
         return fields
 
+    def get_fields_by_type(self, field_type: str, org_config: OrgConfig):
+        describe = getattr(org_config.salesforce_client, self.sf_object).describe()
+        describe = CaseInsensitiveDict(
+            {entry["name"]: entry for entry in describe["fields"]}
+        )
+
+        return [f for f in describe if describe[f]["type"] == field_type]
+
+    def get_field_list(self):
+        """Build a flat list of columns for the given mapping,
+        including fields, lookups, and statics."""
+        lookups = self.lookups
+
+        # Build the list of fields to import
+        columns = []
+        columns.extend(self.fields.keys())
+
+        # Don't include lookups with an `after:` spec (dependent lookups)
+        columns.extend([f for f in lookups if not lookups[f].after])
+        columns.extend(self.static.keys())
+
+        # If we're using Record Type mapping, `RecordTypeId` goes at the end.
+        if "RecordTypeId" in columns:
+            columns.remove("RecordTypeId")
+
+        if self.action is DataOperationType.INSERT and "Id" in columns:
+            columns.remove("Id")
+        if self.record_type or "RecordTypeId" in self.fields:
+            columns.append("RecordTypeId")
+
+        return columns
+
+    def get_relative_date_context(self, org_config: OrgConfig):
+        fields = self.get_field_list()
+
+        date_fields = [
+            fields.index(f)
+            for f in self.get_fields_by_type("date", org_config)
+            if f in self.fields
+        ]
+        date_time_fields = [
+            fields.index(f)
+            for f in self.get_fields_by_type("datetime", org_config)
+            if f in self.fields
+        ]
+
+        return (date_fields, date_time_fields, date.today())
+
     @validator("batch_size")
     @classmethod
     def validate_batch_size(cls, v):
         assert v <= 200 and v > 0
+
+    @validator("anchor_date")
+    @classmethod
+    def validate_anchor_date(cls, v):
+        return iso_to_date(v)
 
     @validator("record_type")
     @classmethod
