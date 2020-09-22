@@ -1,31 +1,31 @@
 Key Concepts
 ============
 
-The Product Development Model
+The Product Delivery Model
 -----------------------------
-CumulusCI extends the concepts of the `Org Development Model <https://trailhead.salesforce.com/en/content/learn/modules/org-development-model>`_ and the `Package Development Model <https://trailhead.salesforce.com/en/content/learn/modules/sfdx_dev_model>`_ to form a new model, which we call the Product Development Model.
+CumulusCI extends the concepts of the `Org Development Model <https://trailhead.salesforce.com/en/content/learn/modules/org-development-model>`_ and the `Package Development Model <https://trailhead.salesforce.com/en/content/learn/modules/sfdx_dev_model>`_ to form a new model, which we call the Product Delivery Model.
 
-In the Product Development Model, a product is composed of one or more managed packages, alongside unpackaged customizations and sophisticated setup automation that runs before or after the delivery of the product's packaged elements. The Product Development Model focuses on the customer experience, not on the technical artifacts you're delivering, and focuses on making it possible to deliver a first-class, fully-configured customer experience — no matter how complex the product might be.
+In the Product Delivery Model, a product is composed of one or more managed packages, alongside unpackaged customizations and sophisticated setup automation that runs before or after the delivery of the product's packaged elements. The Product Delivery Model focuses on the customer experience, not on the technical artifacts you're delivering, and focuses on making it possible to deliver a first-class, fully-configured customer experience — no matter how complex the product might be.
 
-CumulusCI automation, which makes it easy to create products that span multiple package repositories and include complex setup operations, is how we implement the Product Development Model, along with MetaDeploy and other applications in the CumulusCI Suite.
+CumulusCI automation, which makes it easy to create products that span multiple package repositories and include complex setup operations, is how we implement the Product Delivery Model, along with MetaDeploy and other applications in the CumulusCI Suite.
 
-The Product Development Model aims to represent a holistic view of delivery of a product instead of simply releasing a package. Here's a real-world example drawn from Salesforce.org's product portfolio.
+The Product Delivery Model aims to represent a holistic view of delivery of a product instead of simply releasing a package. Here's a real-world example drawn from Salesforce.org's product portfolio.
 
-The Nonprofit Success Pack and the Product Development Model
+The Nonprofit Success Pack and the Product Delivery Model
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 The Nonprofit Success Pack, or NPSP, is one of Salesforce.org's flagship products. The NPSP consists of six managed packages, with complex dependency relationships between them, alongside unpackaged metadata and setup automation that helps create a usable NPSP org.
 
-Salesforce.org delivers NPSP using CumulusCI and the Product Development Model because those tools are what make it possible for us to ship this large, complex, heterogeneous application efficiently to tens of thousands of customers — without a lengthy setup guide to be completed by the end user. CumulusCI automation seamlessly deploys all six managed packages in the right sequence, delivers the unpackaged metadata, like Record Types and Page Layouts, we supply to make the customer's life easier, and executes setup automation like populating NPSP relationship values. 
+Salesforce.org delivers NPSP using CumulusCI and the Product Delivery Model because those tools are what make it possible for us to ship this large, complex, heterogeneous application efficiently to tens of thousands of customers — without a lengthy setup guide to be completed by the end user. CumulusCI automation seamlessly deploys all six managed packages in the right sequence, delivers the unpackaged metadata, like Record Types and Page Layouts, we supply to make the customer's life easier, and executes setup automation like populating NPSP relationship values. 
 
 CumulusCI runs this automation throughout our development lifecycle, starting from feature branches in the hands of our developers and culminating the delivery of new versions of the application to our users, including through MetaDeploy — which runs the very same automation we use internally to set up and configure a customer org.
 
-Throughout the CumulusCI documentation, we'll have the Product Development Model in mind. 
+Throughout the CumulusCI documentation, we'll have the Product Delivery Model in mind. 
 
 Projects
 --------
 
-When you work with CumulusCI, you do so inside a project. A project is a version control repository that contains Salesforce metadata as well as the CumulusCI automation that builds and releases the project. A project usually has a one-to-one relationship with a managed package, if building a package, or with an org implementation. A project may constitute the entirety of a product in the Product Development Model, or may be one of multiple projects making up a product.
+When you work with CumulusCI, you do so inside a project. A project is a version control repository that contains Salesforce metadata as well as the CumulusCI automation that builds and releases the project. A project usually has a one-to-one relationship with a managed package, if building a package, or with an org implementation. A project may constitute the entirety of a product in the Product Delivery Model, or may be one of multiple projects making up a product.
 
 CumulusCI scopes many of its activities to the project, so you'll always run your CumulusCI commands inside your repository directory. Each project gets its own keychain, which we'll talk about in detail below. Each project has its own set of scratch orgs, which CumulusCI namespaces in the Salesforce DX keychain to prevent collisions. And each project is linked to a single GitHub repository, so you can always be confident of the scope of the actions you're taking.
 
