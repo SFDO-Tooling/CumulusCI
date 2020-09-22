@@ -1,4 +1,3 @@
-import re
 import http.client
 
 from github3 import GitHubError
@@ -231,8 +230,8 @@ class MergeBranch(BaseGithubTask):
         "branch_prefix": {
             "description": "A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature"
         },
-        "update_prerelease": {
-            "description": "If source_branch is a prerelease branch, then propagate to other prerelease branches that correspond to future releases. Defaults to False."
+        "update_future_releases": {
+            "description": "If source_branch is a release branch, then propagate commit all future release branches that exist. Defaults to False."
         },
     }
 
@@ -249,8 +248,8 @@ class MergeBranch(BaseGithubTask):
             self.options[
                 "source_branch"
             ] = self.project_config.project__git__default_branch
-        self.options["update_prerelease"] = process_bool_arg(
-            self.options.get("update_prerelease", False)
+        self.options["update_future_releases"] = process_bool_arg(
+            self.options.get("update_future_releases", False)
         )
 
     def _run_task(self):
@@ -279,19 +278,19 @@ class MergeBranch(BaseGithubTask):
         If source_branch is not the default branch, we gather
         all branches with branch_prefix that are direct decendents of source_branch.
 
-        If update_prerelease is True, and source_branch is a prerelease branch
-        then we also collect all future prerelease branches.
+        If update_future_releases is True, and source_branch is a release branch
+        then we also collect all future release branches.
         """
         child_branches = []
         main_descendents = []
-        prerelease_branches = []
+        release_branches = []
         for branch in self.repo.branches():
             if (
-                self._is_prerelease_branch(self.options["source_branch"])
-                and self.options["update_prerelease"]
-                and self._is_future_prerelease_branch(branch.name)
+                self._is_release_branch(self.options["source_branch"])
+                and self.options["update_future_releases"]
+                and self._is_future_release_branch(branch.name)
             ):
-                prerelease_branches.append(branch)
+                release_branches.append(branch)
                 continue
             if branch.name == self.options["source_branch"]:
                 self.logger.debug(f"Skipping branch {branch.name}: is source branch")
@@ -321,11 +320,11 @@ class MergeBranch(BaseGithubTask):
                 f"No children found for branch {self.options['source_branch']}"
             )
 
-        if prerelease_branches:
+        if release_branches:
             self.logger.debug(
-                f"Found future prerelease branches to update: {[branch.name for branch in prerelease_branches]}"
+                f"Found future release branches to update: {[branch.name for branch in release_branches]}"
             )
-            to_merge = to_merge + prerelease_branches
+            to_merge = to_merge + release_branches
 
         if main_descendents:
             to_merge = to_merge + main_descendents
@@ -340,25 +339,26 @@ class MergeBranch(BaseGithubTask):
             and branch.name.count("__") == source_dunder_count + 1
         )
 
-    def _is_future_prerelease_branch(self, branch_name):
+    def _is_future_release_branch(self, branch_name):
         return (
-            self._is_prerelease_branch(branch_name)
+            self._is_release_branch(branch_name)
             and branch_name != self.options["source_branch"]
             and self._get_release_num(branch_name)
             > self._get_release_num(self.options["source_branch"])
         )
 
-    def _is_prerelease_branch(self, branch_name):
-        """A prerelease branch begins with the given prefix
-        and ends with a three digit number greater than 200."""
-        prefix = self.options["branch_prefix"].replace("/", r"\/")
-        pattern = re.compile("^" + prefix + r"[2-9]\d{2}$")
-        return True if pattern.fullmatch(branch_name) else False
+    def _is_release_branch(self, branch_name):
+        """A release branch begins with the given prefix"""
+        prefix = self.options["branch_prefix"]
+        if not branch_name.startswith(prefix):
+            return False
+        parts = branch_name[len(prefix) :].split("__")
+        return len(parts) == 1 and parts[0].isdigit()
 
-    def _get_release_num(self, prerelease_branch_name):
-        """Given a prerelease branch, returns an integer that
+    def _get_release_num(self, release_branch_name):
+        """Given a release branch, returns an integer that
         corresponds toithe release number for that branch"""
-        return int(prerelease_branch_name.split(self.options["branch_prefix"])[1])
+        return int(release_branch_name.split(self.options["branch_prefix"])[1])
 
     def _validate_source_branch(self):
         """Validates that the source branch exists in the repository"""

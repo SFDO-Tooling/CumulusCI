@@ -713,22 +713,22 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
     def test_is_prerelease_branch(self):
         prefix = "test/"
         valid_prerelease_branches = [
-            f"{prefix}200",
-            f"{prefix}201",
-            f"{prefix}202",
-            f"{prefix}202",
-            f"{prefix}382",
-            f"{prefix}972",
-        ]
-        invalid_prerelease_branches = [
             f"{prefix}000",
             f"{prefix}100",
             f"{prefix}199",
-            f"{prefix}1000",
-            f"{prefix}1000",
+            f"{prefix}230",
+            f"{prefix}20302",
+            f"{prefix}3810102",
+            f"{prefix}9711112",
+        ]
+        invalid_prerelease_branches = [
             f"{prefix}200_",
             f"{prefix}230_",
+            f"{prefix}230__child",
+            f"{prefix}230__grand__child",
             f"{prefix}230a",
+            f"{prefix}r1",
+            f"{prefix}R1",
         ]
         task = self._create_task(
             task_config={

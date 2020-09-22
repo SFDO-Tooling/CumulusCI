@@ -118,7 +118,7 @@ Release to (Future) Release Merges
 ----------------------------------
 Because release branches are so long-lived, and so much work goes into them, their diffs can get quite large.
 This means headaches are inevitable the day after a major release, and you need to pull down all of the changes from the new release into the next release branch (which has likely been in development for months already).
-To alleviate this pain point, CumulusCI can ensure that all prerelease branches propogate commits they receive to other existing prerelease branches that correspond to future releases.
+To alleviate this pain point, CumulusCI can ensure that all release branches propogate commits they receive to other existing release branches that correspond to future releases.
 
 Consider the following branches in a GitHub repository:
 
@@ -137,14 +137,14 @@ Once those tests pass, the commit on ``feature/003`` is merged to ``feature/003_
 Commits **never** propogate in the opposite direction. (A commit to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
 
 **Propogating commits to future release branches is turned off by default.** 
-If you would like to enable this feature for your GitHub repository, you can set the ``update_prerelease`` option on the ``github_parent_to_children`` task in your ``cumulusci.yml`` file: 
+If you would like to enable this feature for your GitHub repository, you can set the ``update_future_releases`` option on the ``github_parent_to_children`` task in your ``cumulusci.yml`` file: 
 
 .. code-block:: yaml 
 
    tasks:
       github_parent_to_children:
       options:
-         update_prerelease: True
+         update_future_releases: True
 
 Orphaned Branches
 -----------------
