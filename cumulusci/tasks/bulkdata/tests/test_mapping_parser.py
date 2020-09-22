@@ -18,8 +18,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     CaseInsensitiveDict,
 )
 from cumulusci.tasks.bulkdata.step import DataOperationType
-from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
-from cumulusci.tests.util import DummyOrgConfig
+from cumulusci.tests.util import DummyOrgConfig, mock_describe_calls
 
 
 class TestMappingParser:
