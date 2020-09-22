@@ -49,7 +49,7 @@ class ParallelSalesforce(ParallelHTTP):
 
 
 class CompositeSalesforce:
-    """Format Composte Salesforce messages"""
+    """Format Composite Salesforce messages"""
 
     def create_composite_requests(self, requests, chunk_size):
         def ensure_request_id(idx, request):
