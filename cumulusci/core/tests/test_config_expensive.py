@@ -25,10 +25,10 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 
 @mock.patch("pathlib.Path.home")
 class TestUniversalConfig(unittest.TestCase):
-    def setup_method(self, method):
+    def setUp(self):
         self.tempdir_home = Path(tempfile.mkdtemp())
 
-    def teardown_method(self, method):
+    def tearDown(self):
         shutil.rmtree(self.tempdir_home)
 
     def _create_universal_config_local(self, content):
@@ -52,8 +52,9 @@ class TestUniversalConfig(unittest.TestCase):
 
     def test_load_universal_config_empty_local(self, mock_class):
         self._create_universal_config_local("")
+        # clear cache
+        UniversalConfig.config = None
         mock_class.return_value = self.tempdir_home
-
         config = UniversalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
@@ -77,6 +78,17 @@ class TestUniversalConfig(unittest.TestCase):
 
 @mock.patch("pathlib.Path.home")
 class TestBaseProjectConfig(unittest.TestCase):
+    def setUp(self):
+        self.tempdir_home = Path(tempfile.mkdtemp())
+        self.tempdir_project = tempfile.mkdtemp()
+        self.project_name = "TestRepo"
+        self.current_commit = "abcdefg1234567890"
+        self.current_branch = "main"
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir_home)
+        shutil.rmtree(self.tempdir_project)
+
     def _create_git_config(self):
 
         filename = os.path.join(self.tempdir_project, ".git", "config")
@@ -123,17 +135,6 @@ class TestBaseProjectConfig(unittest.TestCase):
     def _write_file(self, filename, content):
         with open(filename, "w") as f:
             f.write(content)
-
-    def setup_method(self, method):
-        self.tempdir_home = Path(tempfile.mkdtemp())
-        self.tempdir_project = tempfile.mkdtemp()
-        self.project_name = "TestRepo"
-        self.current_commit = "abcdefg1234567890"
-        self.current_branch = "main"
-
-    def teardown_method(self, method):
-        shutil.rmtree(self.tempdir_home)
-        shutil.rmtree(self.tempdir_project)
 
     def test_load_project_config_not_repo(self, mock_class):
         mock_class.return_value = self.tempdir_home
