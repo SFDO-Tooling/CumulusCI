@@ -105,7 +105,7 @@ CumulusCI facilitates parent to child auto-merges via the `github_parent_to_chil
 Release Branches
 ----------------
 Some teams deliver large releases several times a year.
-For this type of release cadence, Salesforce.org uses release branches. These long-lived branches are created off of the ``main`` branch, serve as the target branch for all features associated with that release and eventually merged back to the ``main`` branch when a release occurs.
+For this type of release cadence, Salesforce.org uses a special type of branch referred to as a release branch. These long-lived branches are created off of the ``main`` branch, serve as the target branch for all features associated with that release and are eventually merged back to the ``main`` branch when a release occurs.
 To be able to clearly track what work is associated with a specific release, release branches adhere to the following:
    * They are the parent branches of ALL feature work associated with a release. Put another way; all feature branches use the parent-child naming convention with its target release branch.
    * Use a strict naming format: ``feature/release_num`` where ``release_num`` is a valid integer.
