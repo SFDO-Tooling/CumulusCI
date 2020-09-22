@@ -148,7 +148,7 @@ If you would like to enable this feature for your GitHub repository, you can set
 
 Orphaned Branches
 -----------------
-If you have both a parent and a child branch, and the parent is deleted, this creates orphaned branch.
+If you have both a parent and a child branch, and the parent is deleted, this creates an orphaned branch.
 Orphaned branches do not receive any auto-merges from any branches.
 You can rename an orphaned branch to include the ``feature/`` prefix and contain no double underscores ('__') to begin receiving merges from the main branch again.
 
