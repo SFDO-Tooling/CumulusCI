@@ -97,7 +97,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
         # Load the project's yaml config file
-        with open(self.config_project_path, "r") as f_config:
+        with open(self.config_project_path, "r", encoding="utf-8") as f_config:
             project_config = cci_safe_load(f_config)
 
         if project_config:
@@ -105,7 +105,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
-            with open(self.config_project_local_path, "r") as f_local_config:
+            with open(
+                self.config_project_local_path, "r", encoding="utf-8"
+            ) as f_local_config:
                 local_config = cci_safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
@@ -449,7 +451,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def sfdx_project_config(self):
-        with open(Path(self.repo_root) / "sfdx-project.json", "r") as f:
+        with open(
+            Path(self.repo_root) / "sfdx-project.json", "r", encoding="utf-8"
+        ) as f:
             config = json.load(f)
         return config
 
