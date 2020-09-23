@@ -1,5 +1,5 @@
 import github3.exceptions
-
+import datetime
 from cumulusci.core.utils import import_global
 from cumulusci.core.github import (
     markdown_link_to_pr,
@@ -71,7 +71,7 @@ class BaseReleaseNotesGenerator(object):
             parser_content = parser.render()
             if parser_content:
                 release_notes.append(parser_content)
-        return u"\r\n\r\n".join(release_notes)
+        return "\r\n\r\n".join(release_notes)
 
 
 class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
@@ -187,6 +187,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         has_issues=True,
         include_empty=False,
         version_id=None,
+        release_info=False,
+        trial_info=False,
     ):
         self.github = github
         self.github_info = github_info
@@ -201,6 +203,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
         self.version_id = version_id
+        self.release_info = release_info
+        self.trial_info = trial_info
 
     def __call__(self):
         release = self._get_release()
@@ -293,7 +297,13 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         # add empty PR section
         if self.include_empty_pull_requests:
             new_body.extend(render_empty_pr_section(self.empty_change_notes))
-        content = u"\r\n".join(new_body)
+        # add release installation information section
+        if self.release_info:
+            new_body.extend(render_release_installation_section(self))
+        # add trial template information section
+        if self.trial_info:
+            new_body.extend(render_release_installation_template())
+        content = "\r\n".join(new_body)
         return content
 
     def get_repo(self):
@@ -308,4 +318,41 @@ def render_empty_pr_section(empty_change_notes):
         section_lines.append("\n# Pull requests with no release notes")
         for change_note in empty_change_notes:
             section_lines.append("\n* {}".format(markdown_link_to_pr(change_note)))
+    return section_lines
+
+
+def render_release_installation_section(self):
+    section_lines = []
+    section_lines.append("\r\n# Installation Info")
+    section_lines.extend(render_release_schedule())
+    section_lines.extend(render_release_installation_link(self))
+    return section_lines
+
+
+def render_release_schedule():
+    section_lines = []
+    section_lines.append("## Push Schedule")
+    section_lines.append(f"\r\nSandbox orgs: {datetime.date.today().isoformat()}")
+    section_lines.append(
+        f"Production orgs: {(datetime.date.today() + datetime.timedelta(days=6)).isoformat()}"
+    )
+    return section_lines
+
+
+def render_release_installation_link(self):
+    section_lines = []
+    section_lines.append(
+        "\r\nUse the Installation URL below to install this release before the scheduled push dates."
+    )
+    section_lines.append("\r\n## Installation URL")
+    section_lines.append(
+        f"\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={self.version_id}"
+    )
+    return section_lines
+
+
+def render_release_installation_template():
+    section_lines = []
+    section_lines.append("\r\n## Trialforce Template ID")
+    section_lines.append("`TBD`")
     return section_lines

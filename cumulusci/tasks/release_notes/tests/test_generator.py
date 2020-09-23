@@ -5,6 +5,7 @@ import json
 import pytest
 import unittest
 import responses
+import datetime
 
 from github3.repos.repo import Repository
 from github3.pulls import ShortPullRequest
@@ -62,8 +63,8 @@ class TestBaseReleaseNotesGenerator(unittest.TestCase):
         release_notes.parsers.append(DummyParser("Dummy 1"))
         release_notes.parsers.append(DummyParser("Dummy 2"))
         expected = (
-            u"# Dummy 1\r\n\r\ndummy parser output\r\n\r\n"
-            + u"# Dummy 2\r\n\r\ndummy parser output"
+            "# Dummy 1\r\n\r\ndummy parser output\r\n\r\n"
+            + "# Dummy 2\r\n\r\ndummy parser output"
         )
         self.assertEqual(release_notes.render(), expected)
 
@@ -155,6 +156,55 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         )
 
     @responses.activate
+    def test_update_content_with_release_info(self):
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_pull_request(88, body="Just a small note.")
+        self.mock_util.mock_pull_request(89, body="")
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pr1 = repo.pull_request(88)
+        pr2 = repo.pull_request(89)
+        generator.version_id = "0DV3i000000XXXX"
+        generator.release_info = True  # enable release info
+        generator.empty_change_notes = [pr1, pr2]
+        release = mock.Mock(body=None)
+        content = generator._update_release_content(release, "new content")
+        split_content = content.split("\r\n")
+        print(split_content)
+        self.assertEqual(13, len(split_content))
+        self.assertEqual("new content", split_content[0])
+        self.assertIn(
+            f"Sandbox orgs: {datetime.date.today().isoformat()}", split_content
+        )
+        self.assertIn(
+            f"Production orgs: {(datetime.date.today() + datetime.timedelta(days=6)).isoformat()}",
+            split_content,
+        )
+        self.assertIn(
+            f"https://login.salesforce.com/packaging/installPackage.apexp?p0={generator.version_id}",
+            split_content[-1:],
+        )
+
+    @responses.activate
+    def test_update_content_with_trial_info(self):
+        self.mock_util.mock_get_repo()
+        self.mock_util.mock_pull_request(88, body="Just a small note.")
+        self.mock_util.mock_pull_request(89, body="")
+        generator = self._create_generator()
+        repo = generator.get_repo()
+        pr1 = repo.pull_request(88)
+        pr2 = repo.pull_request(89)
+        generator.trial_info = True  # enable release info
+        generator.empty_change_notes = [pr1, pr2]
+        release = mock.Mock(body=None)
+        content = generator._update_release_content(release, "new content")
+        split_content = content.split("\r\n")
+        print(split_content)
+        self.assertEqual(4, len(split_content))
+        self.assertEqual("new content", split_content[0])
+        self.assertIn("## Trialforce Template ID", split_content)
+
+    @responses.activate
     def test_update_content_with_empty_release_body(self):
         self.mock_util.mock_get_repo()
         self.mock_util.mock_pull_request(88, body="Just a small note.")
@@ -225,8 +275,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
     @responses.activate
     def test_publish_update_unicode(self):
         tag = "prod/1.4"
-        note = u"“Unicode quotes”"
-        expected_release_body = u"# Changes\r\n\r\n{}".format(note)
+        note = "“Unicode quotes”"
+        expected_release_body = "# Changes\r\n\r\n{}".format(note)
         # mock GitHub API responses
         self.mock_util.mock_get_repo()
         # create generator instance
