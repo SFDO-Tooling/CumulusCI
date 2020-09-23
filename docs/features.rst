@@ -790,7 +790,7 @@ In order to create unlocked package versions, you need to have a few things set 
 3. Connect the Dev Hub org to the CumulusCI keychain by running ``cci org connect devhub`` (this is necessary even if sfdx has already authenticated to the Dev Hub).
 4. If you want to create an unlocked package with a namespace, you must also create a new Developer Edition org to `Create and Register Your Namespace <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_namespace.htm>`_, and link the namespace to your Dev Hub.
 
-Create a package version
+Create a Package Version
 ------------------------
 
 To create a new unlocked package version, run the ``create_package_version`` task against the Dev Hub org:
@@ -799,13 +799,13 @@ To create a new unlocked package version, run the ``create_package_version`` tas
 
     $ cci task run create_package_version --org devhub -o package_type Unlocked
 
-This task will look for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of ``cumulusci.yml``). If a matching package doesn't exist yet, it will be created. Then the task will start creating a new version of this package.
+This task will look for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of ``cumulusci.yml``). If a matching package doesn't exist yet, it will be created.
 
-Once creation of the package version has completed (which can take some time), the task will output some information including the SubscriberPackageVersion Id, which can be used to install the package in another org.
+The task then submits a request to create the package version, and once completed (which can take some time), the task will output some information including the SubscriberPackageVersion Id, which can be used to install the package in another org.
 
 If a package version already exists with the exact same contents, its Id will be returned instead of creating a new package version.
 
-Handling dependencies
+Handling Dependencies
 ---------------------
 
 If your project has dependencies configured in the ``project`` section of ``cumulusci.yml``, CumulusCI will try to convert them into a Subscriber Package Version Id (``04t`` key prefix), which is the format required for dependencies in the API for creating a package version.
@@ -814,7 +814,7 @@ For dependencies that are specified as a managed package namespace and version, 
 
 For dependencies that are an unpackaged bundle of metadata, CumulusCI will create an additional unlocked package to contain them.
 
-Promote a package version
+Promote a Package Version
 -------------------------
 
 In order to be installed in a production org, an unlocked package version must be
