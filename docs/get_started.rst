@@ -1,58 +1,80 @@
-Get started
+Get Started
 ===========
-
-
+Getting started with CumulusCI is easy, and once installed, you can:
+    * Work on any existing Salesforce projects configured for CumulusCI
+    * Create new Salesforce projects configured for CumulusCI
+    * Convert existing Salesforce projects to work with CumulusCI
 
 Install CumulusCI
 -----------------
 
-macOS
-^^^^^
+macOS / Linux
+^^^^^^^^^^^^^
+`Homebrew <https://brew.sh/>`_ is a prerequisite for installing CumulusCI on macOS and Linux.
+To install homebrew enter the following command into a terminal window:
 
-On Mac, the easiest way to install CumulusCI is using `Homebrew <https://brew.sh/>`_.
-To install homebrew:
+.. code-block:: console
 
-1. Open your preferred terminal application
-   (e.g. `Terminal <https://macpaw.com/how-to/use-terminal-on-mac>`_).
+    $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
-2. Enter::
+If prompted for a password, this is your computer's password.
+Enter it to allow your computer to install Homebrew.
 
-       /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
-3. If you are prompted for a password, this is your computer's password.
-   Enter it to allow your computer to install Homebrew.
+Install via ``pipx`` (recommended)
+*************************************
+To install pipx:
 
-Stay in the terminal application to install CumulusCI and enter the following command::
+.. code-block:: console
 
-    brew tap SFDO-Tooling/homebrew-sfdo && brew install cumulusci
+    $ brew install pipx
+    $ pipx ensurepath
 
-When you run these commands, you'll see many lines of information while it's installing;
-this will take around 4min to complete. When it's done, you'll see your command prompt
-(perhaps a $ symbol) reappear.
+After pipx is installed you can install CumulusCI:
 
-Now `verify your installation`_.
+.. code-block:: console
+
+    $ pipx install cumulusci
+
+Once finished you can `verify your installation`_.
+
+Install via Homebrew
+***********************
+You can also install CumulusCI is using `Homebrew <https://brew.sh/>`_.
+Our team has seen issues related to the way that Homebrew installs an manages project dependencies, that can cause issues with the system keychain.
+This is why we recommend installing via ``pipx`` if it is an available option to you.
+
+With Homebrew already installed, you can install CumulusCI with:
+
+.. code-block:: console
+
+    $ brew tap SFDO-Tooling/homebrew-sfdo && brew install cumulusci
+
+These commands can take several minutes to complete.
+Once finished, you can `verify your installation`_.
 
 Windows
 ^^^^^^^
 
-First install Python 3:
-
+Install Python 3
+********************
 1. Go to the `Python downloads page <https://www.python.org/downloads/windows/>`_.
 2. Download the Latest Python 3 Release. The "Download Windows x86-64 executable installer" link for the most recent stable release is probably right one to use, but it may depend on your particular computer setup.
 3. Use the installation wizard to install.
    *Be sure to check the â€œAdd Python to environment variablesâ€ checkbox at the end of the install wizard*,
-   otherwise you may encounter a â€œcommand not foundâ€ error with the next step.
+   otherwise you may encounter a ``command not found`` error with the next step.
    To access the Advanced Options area, select "Customize Installation" then click through Optional features page.
 
 .. image:: images/windows_python.png
 
-Next install pipx:
+Install ``pipx``
+***********************
 
 Open your preferred terminal application
 (e.g. `CMD.exe <https://www.bleepingcomputer.com/tutorials/windows-command-prompt-introduction/>`_ on Windows).
 If you already have your terminal open, close it and reopen it. Enter the following command::
 
-    python -m pip install --user pipx
+    $ python -m pip install --user pipx
 
 .. image:: images/pipx.png
 
@@ -71,31 +93,22 @@ To permanently modify the default environment variables:
 
 Open a new command prompt and verify that pipx is available::
 
-    pipx --version
+    $ pipx --version
 
 You should see a version number after entering in this command, such as: ``0.12.3.1``.
 If you get an error instead, such as ``'pipx' is not recognized as an internal or external command,
 operable program or batch file.``, please check that your environment variables have been updated.
 
-Finally, install CumulusCI: Still in your terminal application, enter the following command::
+Install CumulusCI
+*************************
+You can now install CumulusCI with::
 
-    pipx install cumulusci
+    $ pipx install cumulusci
 
 Now `verify your installation`_.
 
 
-Linux
-^^^^^
-
-Homebrew can also be used to install CumulusCI on Linux.
-First install Homebrew using the instructions for `Homebrew on Linux <https://docs.brew.sh/Homebrew-on-Linux>`_.
-Then run::
-
-   brew tap SFDO-Tooling/homebrew-sfdo && brew install cumulusci
-
-..  _`verify installation`:
-
-Verify your installation
+Verify Your Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 In a new terminal window or command prompt you can verify that CumulusCI
@@ -103,7 +116,7 @@ is installed correctly by running ``cci version``:
 
 .. code:: console
 
-   $ cci version
+    $ cci version
     CumulusCI version: 3.9.0 (/path/to/bin/cci)
     Python version: 3.7.4 (/path/to/bin/python)
 
@@ -111,7 +124,7 @@ is installed correctly by running ``cci version``:
 
 You can also use this command in the future to check whether your CumulusCI installation is up to date.
 
-Still need help? Search issues on CumulusCI GitHub https://github.com/SFDO-Tooling/CumulusCI/issues
+Still need help? Search through `CumulusCI's issues on GitHub <https://github.com/SFDO-Tooling/CumulusCI/issues>`_
 
 
 
@@ -132,23 +145,17 @@ Next, run the following command and provide your GitHub username and the access 
 Once you've configured the `github` service it will be available to **all** projects.  Services are stored in the global CumulusCI keychain by default.
 
 
+Work on an Existing CumulusCI Project
+-------------------------------------
+If you're new to a team that is using the CumulusCI workflow, or want to work on an existin CumlusCI project all you need is:
+    * Install CumulusCI on you host
+    * Make a local clone of the projects GitHub repository.
 
-Start a new CumulusCI project
------------------------------
-The `cci` command is git repository aware. Changing directories from one local git repository to another will change the project context. Each project context isolates the following:
-
-* Orgs: Connected Salesforce Orgs are stored in a project specific keychain
-* Services: Named service connections such as Github
-
-If you run the `cci` command from outside a git repository, it will generate an error.
-
-If you run the `cci project info` command from inside a git repository that has already been set up for CumulusCI, it will print the project info:
+Once completed, you can change directories into a git repository that has been configured for CumulusCI and run `cci project info` to view information about it: 
 
 .. code-block:: console
 
     $ cd path/to/your/repo
-
-.. code-block:: console
 
     $ cci project info
     name: CumulusCI Test
@@ -185,14 +192,23 @@ If you run the `cci project info` command from inside a git repository that has 
     test:
         name_match: %_TEST%
 
-If you run the same command from inside a git repository that has not yet been set up for CumulusCI, you will get an error:
+
+Starting a New CumulusCI Project
+--------------------------------
+This section assumes that you have CumulusCI and ``git`` installed on your host.
+We first need to make a directory with our projects name, navigate into the directory, and initialize it as a git repository.
 
 .. code-block:: console
 
-    $ cci project info
-    The file cumulusci.yml was not found in the repo root. Are you in a CumulusCI project directory?
+    $ mkdir cci_project; cd cci_project
 
-You can use the `cci project init` command to initialize the configuration:
+    $ git init
+
+We now need to initialize our project as a CumulusCI project.
+
+Project Initialization
+^^^^^^^^^^^^^^^^^^^^^^
+Use the `cci project init` command from within a git repository to generate the initial version of a project's ``cumulusci.yml`` file.
 
 .. code-block:: console
 
@@ -218,27 +234,39 @@ You can use the `cci project init` command to initialize the configuration:
             name: My Repo Name
             namespace: mynamespace
 
-The newly created `cumulusci.yml` file is the configuration file for wiring up any project specific tasks, flows, and CumulusCI customizations for this project. You can add and commit it to your git repository:
+The newly created `cumulusci.yml` file is the configuration file for your project specific tasks, flows, and CumulusCI customizations. 
+For more information regarding configuraiton, checkout our `project configuration <#TODO internal ref here>`_ section of the docs. 
+You can add and commit it to your git repository:
 
 .. code-block:: console
 
     $ git add cumulusci.yml
     $ git commit -m "Initialized CumulusCI Configuration"
 
-Work on an existing CumulusCI project
--------------------------------------
 
-Convert an existing package to CumulusCI
-----------------------------------------
-In order to have an existing Salesforce Package project use CumulusCI the following must be true:
+
+Add Your Repo to GitHub
+^^^^^^^^^^^^^^^^^^^^^^^
+With your ``cumulusci.yml`` file committed, we are now ready 
+
+
+
+Convert an Existing Salesforce Project
+--------------------------------------
+If you have a Salesforce project that currently lives in multiple persistent Salesforce orgs that you would like to begin tracking in version control
+
+In order to configure an existing Salesforce Package project for CumulusCI the following must be true:
     * CumulusCI must be installed on your host.
     * Your project must be located in a GitHub repository.
     * Your project must adhere to either `metadata or source formats<https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_source_file_format.htm?search_text=source%20format>`_.
 
-If the above are both true, then integrating CumulusCI into your project is accomplished in a few simple steps.
+If the above are true, then you run ``cci project init`` from inside the project repository root to generate your projects ``cumulusci.yml`` file.
+See `project initialization`_ for more info.
 
-Generate Your ``cumulusci.yml`` File
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    1. Run ``cci project init``, and provide answers when prompted with questions.
-    2. Configure any org definition files
-    3. 
+Conversion Considerations
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    * Generate your projects ``cumulusci.yml`` with ``cci project init``.
+    * Migrate any existing org.json files under ``orgs/``.
+    * Do you have metadata that you would like deployed pre or post deployment? `pre/post link`_ 
+    * 
