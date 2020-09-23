@@ -1,5 +1,6 @@
 from distutils.version import LooseVersion
 import io
+import json
 import os
 import re
 from pathlib import Path
@@ -96,7 +97,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
         # Load the project's yaml config file
-        with open(self.config_project_path, "r") as f_config:
+        with open(self.config_project_path, "r", encoding="utf-8") as f_config:
             project_config = cci_safe_load(f_config)
 
         if project_config:
@@ -104,7 +105,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
-            with open(self.config_project_local_path, "r") as f_local_config:
+            with open(
+                self.config_project_local_path, "r", encoding="utf-8"
+            ) as f_local_config:
                 local_config = cci_safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
@@ -435,6 +438,25 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             os.makedirs(path)
         return path
 
+    @property
+    def default_package_path(self):
+        if self.project__source_format == "sfdx":
+            relpath = "force-app"
+            for pkg in self.sfdx_project_config.get("packageDirectories", []):
+                if pkg.get("default"):
+                    relpath = pkg["path"]
+        else:
+            relpath = "src"
+        return Path(self.repo_root, relpath).resolve()
+
+    @property
+    def sfdx_project_config(self):
+        with open(
+            Path(self.repo_root) / "sfdx-project.json", "r", encoding="utf-8"
+        ) as f:
+            config = json.load(f)
+        return config
+
     def get_tag_for_version(self, version):
         if "(Beta" in version:
             tag_version = version.replace(" (", "-").replace(")", "").replace(" ", "_")
@@ -579,7 +601,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             indent = ""
 
         self.logger.info(
-            f"{indent}Processing dependencies from Github repo {dependency['github']}"
+            f"{indent}Collecting dependencies from Github repo {dependency['github']}"
         )
 
         skip = dependency.get("skip")
