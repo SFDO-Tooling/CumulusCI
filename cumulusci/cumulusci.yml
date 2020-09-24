@@ -207,7 +207,7 @@ tasks:
         description: Clones a github tag under a new name.
         class_path: cumulusci.tasks.github.CloneTag
         group: GitHub
-    github_master_to_feature:
+    github_automerge_feature:
         description: Merges the latest commit on the main branch into all open feature branches
         class_path: cumulusci.tasks.github.MergeBranch
         group: GitHub
