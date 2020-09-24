@@ -1473,11 +1473,18 @@ def flow_list(runtime, plain, print_json):
         click.echo(json.dumps(flows))
         return None
 
-    data = [["Name", "Description"]]
-    data.extend([flow["name"], flow["description"]] for flow in flows)
+    flow_groups = {}
+    for flow in flows:
+        group = flow["group"] or "Other"
+        if group not in flow_groups:
+            flow_groups[group] = []
+        flow_groups[group].append([flow["name"], flow["description"]])
 
-    table = CliTable(data, title="Flows", wrap_cols=["Description"])
-    table.echo(plain=plain)
+    for group, flows in flow_groups.items():
+        data = [["Flow", "Description"]]
+        data.extend(sorted(flows))
+        table = CliTable(data, group, wrap_cols=["Description"])
+        table.echo(plain)
 
     click.echo(
         "Use "
