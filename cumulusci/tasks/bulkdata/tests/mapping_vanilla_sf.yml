@@ -23,9 +23,10 @@ Insert Accounts:
     AccountNumber: AccountNumber
     Site: Site
     Type: Type
-  # lookups:     # crashes loader
-  #   ParentId:
-  #     table: Account
+  lookups:
+    ParentId:
+      table: Account
+      after: Insert Accounts
 
 Insert Contacts:
   api: bulk
@@ -51,6 +52,7 @@ Insert Contacts:
     AccountId:
       table: Account
       key_field: AccountId
+
 Insert Opportunities:
   api: bulk
   sf_object: Opportunity
@@ -59,8 +61,6 @@ Insert Opportunities:
     Name: Name
     StageName: StageName
     CloseDate: CloseDate
-    ContactId: ContactId
-    AccountId: AccountId
     Amount: Amount
   lookups:
     AccountId:
