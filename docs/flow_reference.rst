@@ -313,6 +313,28 @@ Deploy the unmanaged metadata from the package to an Enterprise Edition org
     6) task: uninstall_packaged_incremental
 |
 
+``unamanged_ee``
+^^^^^^^^^^^^^^^^
+Deploy the unmanaged package metadata and all dependencies to the target EE org
+
+.. code-block:: console
+
+    Flow Steps
+
+    1) flow: dependencies
+        1) task: update_dependencies
+        2) task: deploy_pre
+    2) flow: deploy_unmanaged_ee
+        0) task: dx_convert_from
+            when: project_config.project__source_format == "sfdx"
+        1) task: unschedule_apex
+        2) task: update_package_xml
+        3) task: create_unmanaged_ee_src
+        4) task: deploy
+        5) task: revert_unmanaged_ee_src
+        6) task: uninstall_packaged_incremental
+|
+
 Org Creation
 ------------
 These flows allow for the creation of orgs with various shapes, editions, and purposes.
@@ -598,27 +620,6 @@ Retrieves declarative changes made in a scratch org and converts to src director
     6) task: update_package_xml
 |
 
-``unamanged_ee``
-^^^^^^^^^^^^^^^^
-Deploy the unmanaged package metadata and all dependencies to the target EE org
-
-.. code-block:: console
-
-    Flow Steps
-
-    1) flow: dependencies
-        1) task: update_dependencies
-        2) task: deploy_pre
-    2) flow: deploy_unmanaged_ee
-        0) task: dx_convert_from
-            when: project_config.project__source_format == "sfdx"
-        1) task: unschedule_apex
-        2) task: update_package_xml
-        3) task: create_unmanaged_ee_src
-        4) task: deploy
-        5) task: revert_unmanaged_ee_src
-        6) task: uninstall_packaged_incremental
-|
 
 Testing & Performance
 ---------------------
