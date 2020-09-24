@@ -1,43 +1,36 @@
 Flow Reference
 ==============
-
-Standard Tasks
---------------
-
-
-Standard Flows
---------------
 CumulusCI suite of standard flows can be grouped into various categories depending on their intended purpose.
 
 Continous Integration
-^^^^^^^^^^^^^^^^^^^^^^
+---------------------
 The suite of continuous integration flows are intended to execute in the context of a CI system.
 They typically involve the creation of an org to have tests (Apex and Robot) run against it.
     
 ``ci_beta``
-*****************
+^^^^^^^^^^^
 This flow installs the latest beta version available and runs apex tests from the managed package. 
 
 .. code-block:: console
 
     Flow Steps
 
-    1) flow: install_beta
-        1) flow: dependencies
-            1) task: update_dependencies
-            2) task: deploy_pre
-        2) task: install_managed_beta
-        3) flow: config_managed
-            1) task: deploy_post
-            2) task: update_admin_profile
-        4) task: snapshot_changes
-    2) task: run_tests
-
+    - install_beta (flow)
+        + dependencies (flow)
+            - update_dependencies (task)
+            - deploy_pre (task)
+        + install_managed_beta (task)
+        + config_managed (flow)
+            - deploy_post (task)
+            - update_admin_profile (task)
+        + snapshot_changes (task)
+    - run_tests (task)
+|
 
 ``ci_feature``
-*****************
-This flow prepares an unmanaged metadata test org and runs Apex tests.
-It is intended for use against feature branch commits.
+^^^^^^^^^^^^^^
+Prepares an unmanaged metadata test org and runs Apex tests.
+Intended for use against feature branch commits.
 
 .. code-block:: console
 
@@ -64,16 +57,17 @@ It is intended for use against feature branch commits.
         2) task: update_admin_profile
     4) task: run_tests
     5) task: github_parent_to_children
+|
 
 ``ci_feature_beta_deps``
-******************************
+^^^^^^^^^^^^^^^^^^^^^^^^
 This flow installs the latest beta version of dependencies for the project and runs apex tests against them.
 
 .. code-block:: console
 
     Flow Steps 
 
-    0.5) task: github_parent_pr_notes [from current folder]
+    0.5) task: github_parent_pr_notes
     1) flow: beta_dependencies
         1) task: update_dependencies
         2) task: deploy_pre
@@ -94,15 +88,17 @@ This flow installs the latest beta version of dependencies for the project and r
         2) task: update_admin_profile
     4) task: run_tests
     5) task: github_parent_to_children
+|
 
 ``ci_feature_2gp``
-**********************
+^^^^^^^^^^^^^^^^^^
 Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
 
 .. code-block:: console
 
     Flow Steps
-    1) task: github_package_data [from current folder]
+
+    1) task: github_package_data
     2) flow: dependencies
         1) task: update_dependencies
         2) task: deploy_pre
@@ -112,16 +108,17 @@ Install as a managed 2gp package and run Apex tests. Intended for use after buil
         2) task: update_admin_profile
     5) task: run_tests
     6) task: github_parent_to_children
-
+|
 
 ``ci_master``
-*****************
+^^^^^^^^^^^^^
 Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
 
 .. code-block:: console
 
     Flow Steps 
-    1) flow: dependencies [from current folder]
+
+    1) flow: dependencies
         1) task: update_dependencies
         2) task: deploy_pre
     2) flow: deploy_packaging
@@ -135,15 +132,17 @@ Deploy the package metadata to the packaging org and prepare for managed package
         6) task: uninstall_packaged_incremental
     3) flow: config_packaging
         1) task: update_admin_profile
+|
 
 ``ci_release``
-*****************
+^^^^^^^^^^^^^^
 Install a production release version and runs tests from the managed package
 
 .. code-block:: console
 
     Flow Steps
-    1) flow: install_prod [from current folder]
+
+    1) flow: install_prod
         1) flow: dependencies
             1) task: update_dependencies
             2) task: deploy_pre
@@ -153,104 +152,137 @@ Install a production release version and runs tests from the managed package
             2) task: update_admin_profile
         4) task: snapshot_changes
     2) task: run_tests
+|
 
 Org Configuraiton
-^^^^^^^^^^^^^^^^^
+-----------------
 Org configuration flows perform various configuraiton operations on existing orgs.
 
 ``config_apextest``
-*********************
+^^^^^^^^^^^^^^^^^^^
 Configure an org to run apex tests after package metadata is deployed.
 .. code-block:: console
 
     Flow Steps
+
     1) task: deploy_post
     2) task: update_admin_profile
+|
 
 ``config_dev``
-********************
+^^^^^^^^^^^^^^
 Configure an org for use as a dev org after package metadata is deployed.
 
 .. code-block:: console
 
     Flow Steps
-    1) task: deploy_post [from current folder]
-    2) task: update_admin_profile
-
-``config_managed``
-********************
-Configure an org for use as a dev org after package metadata is deployed.
-
-.. code-block:: console
-
-    Flow Steps
+    
     1) task: deploy_post
     2) task: update_admin_profile
+|
+
+``config_managed``
+^^^^^^^^^^^^^^^^^^
+Configure an org for use as a dev org after package metadata is deployed.
+
+.. code-block:: console
+
+    Flow Steps
+    
+    1) task: deploy_post
+    2) task: update_admin_profile
+|
 
 ``config_packaging``
-********************
+^^^^^^^^^^^^^^^^^^^^
 Configure packaging org for upload after package metadata is deployed.
 
 .. code-block:: console
 
     Flow Steps
+
     1) task: update_admin_profile
+|
 
 ``config_qa``
-********************
+^^^^^^^^^^^^^^^^^^^^
 Configure an org for use as a QA org after package metadata is deployed.
 
 .. code-block:: console
 
     Flow Steps
+
     1) task: deploy_post
     2) task: update_admin_profile
+|
 
 config_regression
-********************
+^^^^^^^^^^^^^^^^^
 Configure an org for QA regression after the package is isntalled.
 
 .. code-block:: console
 
     Flow Steps
+
     1) flow: config_managed
         1) task: deploy_post
         2) task: update_admin_profile
+|
 
 Dependency Management
-^^^^^^^^^^^^^^^^^^^^^
-
-``dependencies``
-************************
-This flow dpeloys the dependencies specified by your CumulusCI project to prepare an org environment for the package metadata.
-
-.. code-block:: console
-
-    Flow Steps
-    1) task: update_dependencies
-    2) task: deploy_pre
+---------------------
 
 ``beta_dependencies``
-************************
+^^^^^^^^^^^^^^^^^^^^^
 This flow deploys the latest beta version of the dependencies to prepare the org environment for the package metadata.
 
 .. code-block:: console
 
     Flow Steps
+   
     1) task: update_dependencies
     2) task: deploy_pre
+|
+
+``dependencies``
+^^^^^^^^^^^^^^^^
+This flow dpeloys the dependencies specified by your CumulusCI project to prepare an org environment for the package metadata.
+
+.. code-block:: console
+
+    Flow Steps
+
+    1) task: update_dependencies
+    2) task: deploy_pre
+|
 
 Deployment
-^^^^^^^^^^
+----------
+
+``deploy_packaging``
+^^^^^^^^^^^^^^^^^^^^
+Process and deploy the package metadata to the packaging org
+
+.. code-block:: console
+    0) task: dx_convert_from
+    when: project_config.project__source_format == "sfdx"
+    1) task: unschedule_apex
+    2) task: create_managed_src
+    3) task: update_package_xml
+    4) task: deploy
+    5) task: revert_managed_src
+    6) task: uninstall_packaged_incremental
+|
 
 ``deploy_unmanaged``
-***************************
+^^^^^^^^^^^^^^^^^^^^
 Deploy the unmanaged metadata from the package.
 
 .. code-block:: console
 
     Flow Steps
-    0) task: dx_convert_from [from current folder]
+
+    0) task: dx_convert_from
         when: project_config.project__source_format == "sfdx" and not org_config.scratch
     1) task: unschedule_apex
     2) task: update_package_xml
@@ -261,15 +293,17 @@ Deploy the unmanaged metadata from the package.
         when: project_config.project__source_format == "sfdx" and org_config.scratch
     4) task: uninstall_packaged_incremental
         when: project_config.project__source_format != "sfdx" or not org_config.scratch
+|
 
 ``deploy_unmanaged_ee``
-***************************
+^^^^^^^^^^^^^^^^^^^^^^^
 Deploy the unmanaged metadata from the package to an Enterprise Edition org
 
 .. code-block:: console
 
     Flow Steps
-    0) task: dx_convert_from [from current folder]
+
+    0) task: dx_convert_from
         when: project_config.project__source_format == "sfdx"
     1) task: unschedule_apex
     2) task: update_package_xml
@@ -277,32 +311,21 @@ Deploy the unmanaged metadata from the package to an Enterprise Edition org
     4) task: deploy
     5) task: revert_unmanaged_ee_src
     6) task: uninstall_packaged_incremental
-
-``deploy_packaging``
-***************************
-Process and deploy the package metadata to the packaging org
-
-.. code-block:: console
-0) task: dx_convert_from [from current folder]
-   when: project_config.project__source_format == "sfdx"
-1) task: unschedule_apex
-2) task: create_managed_src
-3) task: update_package_xml
-4) task: deploy
-5) task: revert_managed_src
-6) task: uninstall_packaged_incremental
-
+|
 
 Org Creation
-^^^^^^^^^^^^
+------------
+These flows allow for the creation of orgs with various shapes, editions, and purposes.
+
 ``dev_org``
-**************
+^^^^^^^^^^^
 Set up an org as a development environment for unmanaged metadata
 
 .. code-block:: console
 
     Flow Steps
-    1) flow: dependencies [from current folder]
+
+    1) flow: dependencies
         1) task: update_dependencies
         2) task: deploy_pre
     2) flow: deploy_unmanaged
@@ -321,14 +344,16 @@ Set up an org as a development environment for unmanaged metadata
         1) task: deploy_post
         2) task: update_admin_profile
     4) task: snapshot_changes
+|
 
 ``dev_org_beta_deps``
-***************************
+^^^^^^^^^^^^^^^^^^^^^
 Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
 
 .. code-block:: console
 
     Flow Steps
+
     1) flow: beta_dependencies
         1) task: update_dependencies
         2) task: deploy_pre
@@ -347,14 +372,16 @@ Set up an org as a development environment for unmanaged metadata based on the l
     3) flow: config_dev
         1) task: deploy_post
         2) task: update_admin_profile
+|
 
 ``dev_org_namespaced``
-***************************
+^^^^^^^^^^^^^^^^^^^^^^
 Set up a namespaced scratch org as a development environment for unmanaged metadata
 
 .. code-block:: console
 
     Flow Steps
+
     1) flow: dependencies
         1) task: update_dependencies
         2) task: deploy_pre
@@ -374,14 +401,16 @@ Set up a namespaced scratch org as a development environment for unmanaged metad
         1) task: deploy_post
         2) task: update_admin_profile
     4) task: snapshot_changes
+|
 
 ``qa_org``
-***************************
+^^^^^^^^^^
 Set up an org as a QA environment for unmanaged metadata
 
 .. code-block:: console
 
     Flow Steps
+
     1) flow: dependencies 
         1) task: update_dependencies
         2) task: deploy_pre
@@ -401,14 +430,16 @@ Set up an org as a QA environment for unmanaged metadata
         1) task: deploy_post
         2) task: update_admin_profile
     4) task: snapshot_changes
+|
 
 ``regression_org``
-***************************
+^^^^^^^^^^^^^^^^^^
 Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
 
 .. code-block:: console
 
     Flow Steps
+
     1) flow: install_regression
         1) flow: beta_dependencies
             1) task: update_dependencies
@@ -420,28 +451,32 @@ Simulates an org that has been upgraded from the latest release of to the curren
             1) task: deploy_post
             2) task: update_admin_profile
     3) task: snapshot_changes
-
+|
 
 Install / Uninstall
-^^^^^^^^^^^^^^^^^^^
+-------------------
+
 ``uninstall_managed``
-*****************************
+^^^^^^^^^^^^^^^^^^^^^
 Uninstall the installed managed version of the package.
 Run this before install_beta or install_prod if a version is already installed in the target org.
 
 .. code-block:: console
 
     Flow Steps
+
     1) task: uninstall_post
     2) task: uninstall_managed
+|
 
 ``install_beta``
-*****************************
+^^^^^^^^^^^^^^^^
 Install and configure the latest beta version
 
 .. code-block:: console
 
     Flow Steps
+
     1) flow: dependencies
         1) task: update_dependencies
         2) task: deploy_pre
@@ -450,15 +485,16 @@ Install and configure the latest beta version
         1) task: deploy_post
         2) task: update_admin_profile
     4) task: snapshot_changes
-
+|
 
 ``install_prod``
-*****************************
+^^^^^^^^^^^^^^^^
 Install and configure the latest production version
 
 .. code-block:: console
 
     Flow Steps
+
     1) flow: dependencies
         1) task: update_dependencies
         2) task: deploy_pre
@@ -467,94 +503,109 @@ Install and configure the latest production version
         1) task: deploy_post
         2) task: update_admin_profile
     4) task: snapshot_changes
-
+|
 
 ``install_prod_no_config``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 *****************************
 Install but do not configure the latest production version
 
 .. code-block:: console
 
     Flow Steps
+
     1) flow: dependencies
         1) task: update_dependencies
         2) task: deploy_pre
     2) task: install_managed
     3) task: deploy_post
+|
 
 ``install_regression``
-*****************************
+^^^^^^^^^^^^^^^^^^^^^^
 Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
 
 .. code-block:: console
 
     Flow Steps
-    1) flow: beta_dependencies [from current folder]
+
+    1) flow: beta_dependencies
         1) task: update_dependencies
         2) task: deploy_pre
     2) task: install_managed
     3) task: install_managed_beta
+|
 
 Release Generation
-^^^^^^^^^^^^^^^^^^
+------------------
+
 ``release_beta``
-*****************************
+^^^^^^^^^^^^^^^^^^^^
 Upload and release a beta version of the metadata currently in packaging
 
 .. code-block:: console
 
     Flow Steps
+
     1) task: upload_beta
     2) task: github_release
     3) task: github_release_notes
     4) task: github_master_to_feature
+|
 
 ``release_production``
-*****************************
+^^^^^^^^^^^^^^^^^^^^^^
 Upload and release a production version of the metadata currently in packaging
 
 .. code-block:: console
 
     Flow Steps
+
     1) task: upload_production
     2) task: github_release
     3) task: github_release_notes
+|
 
 Utility
-^^^^^^^
+-------
+
 ``build_feature_test_package``
-***********************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Create a 2gp managed package version
 
 .. code-block:: console
 
     Flow Steps
+
     1) task: update_package_xml
         when: project_config.project__source_format != "sfdx"
     2) task: create_package_version
+|
 
 ``retrieve_scratch``
-*****************************
+^^^^^^^^^^^^^^^^^^^^
 Retrieves declarative changes made in a scratch org and converts to src directory
 
 .. code-block:: console
 
     Flow Steps
+
     1) task: dx_convert_to
     2) task: dx_pull
     3) task: dx_convert_from
     4) task: update_package_xml
     5) task: retrieve_unpackaged
     6) task: update_package_xml
-
+|
 
 ``unamanged_ee``
-*****************************
+^^^^^^^^^^^^^^^^
 Deploy the unmanaged package metadata and all dependencies to the target EE org
 
 .. code-block:: console
 
     Flow Steps
+
     1) flow: dependencies
         1) task: update_dependencies
         2) task: deploy_pre
@@ -567,33 +618,41 @@ Deploy the unmanaged package metadata and all dependencies to the target EE org
         4) task: deploy
         5) task: revert_unmanaged_ee_src
         6) task: uninstall_packaged_incremental
+|
 
-Automated Testing
-^^^^^^^^^^^^^^^^^
+Testing & Performance
+---------------------
+
 ``robot_docs``
-********************************
+^^^^^^^^^^^^^^
 Generates documentation for robot framework libraries
 
 .. code-block:: console
 
     Flow Steps
+
     1) task: robot_libdoc
     2) task: robot_testdoc
+|
 
 ``test_performance_scratch``
-********************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Test performance of a scratch org
 
 .. code-block:: console
 
     Flow Steps
+
     1) task: robot
+|
 
 ``test_performance_LDV``
-********************************
+^^^^^^^^^^^^^^^^^^^^^^^^
 Test performance in an LDV org
 
 .. code-block:: console
 
     Flow Steps
+
     1) task: robot
+|
