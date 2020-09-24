@@ -174,7 +174,7 @@ If a scratch org in the keychain has actually created a scratch org, you can use
 
     $ cci org scratch_delete feature-123
 
-Using ``scratch_delete`` will not remove the feature-123 org from your org list.  This is the intended behavior allowing you to easily recreate scratch orgs from a stored config instead of searching your command history to remember how you last created the org.
+Using ``scratch_delete`` will not remove the feature-123 org from your org list.  This is the intended behavior, allowing you to easily recreate scratch orgs from a stored config instead of searching your command history to remember how you last created the org.
 
 If you want to permanently remove an org from the org list, you can use ``cci org remove`` which will completely remove the org from the list.  If the a scratch org has already been created from the config, an attempt to delete the scratch org will be made before removing the org from the keychain:
 
@@ -233,10 +233,10 @@ Managed package dependencies are rather simple.  You need the namespace and the 
 Automatic Install, Upgrade, or Uninstall/Install
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When the ``update_dependencies`` task runs, it first retrieves a list of all managed packages in the target org and creates a list of the installed packages and their version numbers.  With the example cumulusci.yml shown above, the following will happen depending on what if npe01 is currently installed:
+When the ``update_dependencies`` task runs, it first retrieves a list of all managed packages in the target org and creates a list of the installed packages and their version numbers.  With the example cumulusci.yml shown above, the following will happen, depending on whether npe01 is currently installed:
 
 * If npe01 is not installed, npe01 version 3.6 is installed
-* If the org already has npe01 version 3.6 installed then nothing will be done
+* If the org already has npe01 version 3.6 installed, nothing will be done
 * If the org has an older version installed, it will be upgraded to version 3.6
 * If the org has a newer version or a beta version installed, it will be uninstalled and then version 3.6 will be installed
 
@@ -261,7 +261,9 @@ Managed Package dependencies can handle a hierarchy of dependencies between pack
             - namespace: npe5
               version: 3.5
 
-In the example above, the project requires npo02 version 3.8 which requires npe01 version 3.6.  By specifying the dependency hierarchy, the ``update_dependencies`` task is able to handle an edge case:  If the target org currently has npe01 version 3.7, npe01 needs to be uninstalled to downgrade to 3.6.  However, npo02 requires npe01 so uninstalling npe01 requires also uninstalling npo02.  In this scenario npe03, npe4, and npe5 do not have to be uninstalled to uninstall npe01.
+In the example above, the project requires npo02 version 3.8, which requires npe01 version 3.6.  By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently. 
+
+Consider the following scenario:  If the target org currently has npe01 version 3.7, npe01 needs to be uninstalled to downgrade to 3.6.  However, npo02 requires npe01, so uninstalling npe01 requires also uninstalling npo02.  In this scenario npe03, npe4, and npe5 do not have to be uninstalled to uninstall npe01.
 
 
 Unmanaged Metadata Dependencies
@@ -645,7 +647,7 @@ You can also include all changed components of specific types:
 Retrieving Changes
 ------------------
 
-When you are ready to capture the changes returned from ``list_changes``, run the ``retrieve_changes`` task::
+When you are ready to capture the changes returned from ``list_changes``, run the ``retrieve_changes`` task:
 
 .. code-block:: console
 
@@ -659,9 +661,11 @@ By default changes are retrieved into the ``src`` directory when using metadata 
 or the default sfdx package directory when using sfdx source format. You can retrieve into a different
 location using the ``path`` option:
 
+.. code-block:: console
+
     cci task run retrieve_changes --org dev -o path unpackaged/config/qa
 
-Creating custom Retrieve Tasks
+Creating Custom Retrieve Tasks
 ------------------------------
 
 If you will be retrieving changes into a directory repeatedly,
@@ -699,13 +703,13 @@ Tell it to use DX format instead in cumulusci.yml:
     project:
         source_format: sfdx
 
-Converting a project to DX format
+Converting a Project to DX Format
 ---------------------------------
 
 Assuming you have existing metadata-format source code in the ``src`` directory,
 follow these steps to convert your project to store DX format source code in the ``force-app`` directory:
 
-1. Make sure sfdx-project.json specifies a path for the default package directory:
+1. Make sure ``sfdx-project.json`` specifies a path for the default package directory:
 
 .. code-block:: yaml
 
@@ -732,26 +736,44 @@ Caveats:
 * See `this link <https://ntotten.com/2018/05/11/convert-metadata-to-source-format-while-maintain-git-history/>`_ for some tips on preserving git history while converting your source format.
 
 
-Working with Errors
+Working With Errors
 ===================
+Errors happen! That's why our team strives to provide our users with options for efficiently working with them when they occur.
+
+The ``--debug`` Argument
+------------------------
+All CumulusCI commands can be passed the ``--debug`` argument. When this is used, the following occurs:
+    * Any calls to CumulusCI's logger at the debug level are shown.
+    * Any errors captured by ``requests.packages.urllib3.add_stderr_logger()`` are shown.
+    * If an error is present, the corresponding stacktrace is shown. 
+    * The user is dropped into a `post-mortem debugging <https://docs.python.org/3/library/pdb.html#pdb.post_mortem>`_ session.
 
 Log Files
 ---------
-CumulusCI creates a log file every time a cci command besides ``gist`` is run. Log files are stored under ``~/.cumulusci/logs``.
+CumulusCI creates a log file every time a cci command besides ``gist`` is run. There are six rotating logfiles (``cci.log, cci.log1...5``) with ``cci.log`` being the most recent. Logfiles are stored under ``~/.cumulusci/logs``. By default, logfiles capture the the following:
+    * The last command that was entered by the user
+    * All output from the command (including debug information)
+    * If an error is present, the corresponding stacktrace is included.
+
+If you want debug information regarding the ``requests`` module to be captured in a logfile you must explicitly run the command with the ``--debug`` argument.
 
 Viewing Stacktraces
 -------------------
-If you encounter an error and want more information on what went wrong, you can use ``cci error info`` to display the last *n* lines (30, by default) of the stacktrace (if present) from the last command you executed in CumulusCI.
+If you encounter an error and want more information on what went wrong, you can use ``cci error info`` to display the last *n* lines of the stacktrace (if present) from the last command you executed in CumulusCI.
 
-You can include the option ``max_lines`` argument if you want to customize how much of the stacktrace you see.
+By default, CumulusCI displays the last 30 lines from the stacktrace. You can use the ``-m`` or ``--max-lines`` option specify how much of the stacktrace you would like to see. The following displays the last 10 lines from the stacktrace:
+
+.. code-block:: console 
+
+    cci error info --max-lines 10
 
 Reporting Error Logs 
 --------------------
-Use the ``cci error gist`` command to send the log of your last ``cci`` command to a GitHub gist so you can submit it for support if needed.
+Use the ``cci error gist`` command to send the most recent logfile to a `GitHub gist <https://docs.github.com/en/github/writing-on-github/creating-gists>`_ so you can quickly and easily share logs with others. 
 
 For this feature to work you will need to ensure that your `github service is setup with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
 
-The gist command creates a gist comprised of:
+The following information is included in the gist:
     * The current version of ``cci``
     * The current python version
     * The path to the python executable
@@ -771,4 +793,53 @@ Usage Errors (wrong command line arguments, missing files, etc.)
 will not show you exception tracebacks because they are seldom
 helpful in that case.
 
-CumulusCI also has a `--debug` command line argument that may help you investigate bugs.
+
+Creating an Unlocked Package
+=============================
+
+While CumulusCI was originally created with a focus on developing managed packages,
+it can also be used to develop and release `unlocked packages <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_intro.htm>`_.
+
+Prerequisites
+-------------
+
+In order to create unlocked package versions, you need to have a few things set up:
+
+1. `Enable Dev Hub in Your Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_devhub.htm>`_
+2. `Enable Unlocked and Second-Generation Managed Packaging <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_secondgen_pkg.htm>`_
+3. Connect the Dev Hub org to the CumulusCI keychain by running ``cci org connect devhub`` (this is necessary even if sfdx has already authenticated to the Dev Hub).
+4. If you want to create an unlocked package with a namespace, you must also create a new Developer Edition org to `Create and Register Your Namespace <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_namespace.htm>`_, and link the namespace to your Dev Hub.
+
+Create a Package Version
+------------------------
+
+To create a new unlocked package version, run the ``create_package_version`` task against the Dev Hub org:
+
+.. code-block:: console
+
+    $ cci task run create_package_version --org devhub -o package_type Unlocked
+
+This task will look for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of ``cumulusci.yml``). If a matching package doesn't exist yet, it will be created.
+
+The task then submits a request to create the package version, and once completed (which can take some time), the task will output some information including the SubscriberPackageVersion Id, which can be used to install the package in another org.
+
+If a package version already exists with the exact same contents, its Id will be returned instead of creating a new package version.
+
+Handling Dependencies
+---------------------
+
+If your project has dependencies configured in the ``project`` section of ``cumulusci.yml``, CumulusCI will try to convert them into a Subscriber Package Version Id (``04t`` key prefix), which is the format required for dependencies in the API for creating a package version.
+
+For dependencies that are specified as a managed package namespace and version, or dependencies specified as a GitHub repository with releases that can be resolved to a namespace and version, CumulusCI needs an org with the dependencies installed in order to do this conversion. By default, it will create a new scratch org named ``2gp_dependencies`` and run the ``dependencies`` flow in order to get an org where these ids can be looked up. If you want to use an existing scratch org rather than creating a new one, set the ``dependency_org`` option for the ``create_package_version`` task.
+
+For dependencies that are an unpackaged bundle of metadata, CumulusCI will create an additional unlocked package to contain them.
+
+Promote a Package Version
+-------------------------
+
+In order to be installed in a production org, an unlocked package version must be
+`promoted <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_pkg_ver_promote.htm>`_
+to mark it as released.
+
+CumulusCI does not yet provide any tools to help with this, so for now you must use the ``sfdx force:package:version:promote`` command.
+If additional unlocked packages were created to hold unpackaged dependencies, they must be promoted as well.

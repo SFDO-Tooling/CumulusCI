@@ -1,6 +1,8 @@
 from collections import defaultdict
 from unittest.mock import MagicMock
 from typing import Union
+import tempfile
+from contextlib import contextmanager
 
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text, func
 from sqlalchemy.orm import aliased, Session
@@ -102,34 +104,34 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _run_task(self):
         self._init_mapping()
-        self._init_db()
-        self._expand_mapping()
+        with self._init_db():
+            self._expand_mapping()
 
-        start_step = self.options.get("start_step")
-        started = False
-        for name, mapping in self.mapping.items():
-            # Skip steps until start_step
-            if not started and start_step and name != start_step:
-                self.logger.info(f"Skipping step: {name}")
-                continue
+            start_step = self.options.get("start_step")
+            started = False
+            for name, mapping in self.mapping.items():
+                # Skip steps until start_step
+                if not started and start_step and name != start_step:
+                    self.logger.info(f"Skipping step: {name}")
+                    continue
 
-            started = True
+                started = True
 
-            self.logger.info(f"Running step: {name}")
-            result = self._execute_step(mapping)
-            if result.status is DataOperationStatus.JOB_FAILURE:
-                raise BulkDataException(
-                    f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
-                )
+                self.logger.info(f"Running step: {name}")
+                result = self._execute_step(mapping)
+                if result.status is DataOperationStatus.JOB_FAILURE:
+                    raise BulkDataException(
+                        f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
+                    )
 
-            if name in self.after_steps:
-                for after_name, after_step in self.after_steps[name].items():
-                    self.logger.info(f"Running post-load step: {after_name}")
-                    result = self._execute_step(after_step)
-                    if result.status is DataOperationStatus.JOB_FAILURE:
-                        raise BulkDataException(
-                            f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
-                        )
+                if name in self.after_steps:
+                    for after_name, after_step in self.after_steps[name].items():
+                        self.logger.info(f"Running post-load step: {after_name}")
+                        result = self._execute_step(after_step)
+                        if result.status is DataOperationStatus.JOB_FAILURE:
+                            raise BulkDataException(
+                                f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
+                            )
 
     def _execute_step(
         self, mapping: MappingStep
@@ -141,7 +143,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._load_record_types([mapping.sf_object], conn)
             self.session.commit()
 
-        local_ids = []
         query = self._query_db(mapping)
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
         step = get_dml_operation(
@@ -154,14 +155,16 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             volume=query.count(),
         )
 
-        step.start()
-        step.load_records(self._stream_queried_data(mapping, local_ids, query))
-        step.end()
+        with tempfile.TemporaryFile(mode="w+t") as local_ids:
+            step.start()
+            step.load_records(self._stream_queried_data(mapping, local_ids, query))
+            step.end()
 
-        if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
-            self._process_job_results(mapping, step, local_ids)
+            if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
+                local_ids.seek(0)
+                self._process_job_results(mapping, step, local_ids)
 
-        return step.job_result
+            return step.job_result
 
     def _stream_queried_data(self, mapping, local_ids, query):
         """Get data from the local db"""
@@ -187,11 +190,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     total_rows -= 1
                     continue
 
-            local_ids.append(pkey)
+            local_ids.write(str(pkey) + "\n")
             yield row
 
         self.logger.info(
-            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}"
+            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}."
         )
 
     def _load_record_types(self, sobjects, conn):
@@ -353,6 +356,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         error_checker = RowErrorChecker(
             self.logger, self.options["ignore_row_errors"], self.row_warning_limit
         )
+        local_ids = (lid.strip("\n") for lid in local_ids)
         for result, local_id in zip(step.get_results(), local_ids):
             if result.success:
                 yield (local_id, result.id)
@@ -402,42 +406,42 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 cursor.close()
         # self.session.flush()
 
+    @contextmanager
     def _init_db(self):
         """Initialize the database and automapper."""
         # initialize the DB engine
-        database_url = self.options["database_url"] or "sqlite://"
-        if database_url == "sqlite://":
-            self.logger.info("Using in-memory SQLite database")
-        self.engine = create_engine(database_url)
+        with self._database_url() as database_url:
+            self.engine = create_engine(database_url)
 
-        # initialize the DB session
-        self.session = Session(self.engine)
+            # initialize the DB session
+            self.session = Session(self.engine)
 
-        if self.options.get("sql_path"):
-            self._sqlite_load()
+            if self.options.get("sql_path"):
+                self._sqlite_load()
 
-        # initialize DB metadata
-        self.metadata = MetaData()
-        self.metadata.bind = self.engine
+            # initialize DB metadata
+            self.metadata = MetaData()
+            self.metadata.bind = self.engine
 
-        # initialize the automap mapping
-        self.base = automap_base(bind=self.engine, metadata=self.metadata)
-        self.base.prepare(self.engine, reflect=True)
+            # initialize the automap mapping
+            self.base = automap_base(bind=self.engine, metadata=self.metadata)
+            self.base.prepare(self.engine, reflect=True)
 
-        # Loop through mappings and reflect each referenced table
-        self.models = {}
-        for name, mapping in self.mapping.items():
-            if mapping.table not in self.models:
-                self.models[mapping.table] = self.base.classes[mapping.table]
+            # Loop through mappings and reflect each referenced table
+            self.models = {}
+            for name, mapping in self.mapping.items():
+                if mapping.table not in self.models:
+                    self.models[mapping.table] = self.base.classes[mapping.table]
 
-            # create any Record Type tables we need
-            if "RecordTypeId" in mapping.fields:
-                self._create_record_type_table(
-                    mapping.get_destination_record_type_table()
-                )
-        self.metadata.create_all()
+                # create any Record Type tables we need
+                if "RecordTypeId" in mapping.fields:
+                    self._create_record_type_table(
+                        mapping.get_destination_record_type_table()
+                    )
+            self.metadata.create_all()
 
-        self._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+            self._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+            yield
 
     def _init_mapping(self):
         """Load a YAML mapping file."""

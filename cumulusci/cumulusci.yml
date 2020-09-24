@@ -78,6 +78,10 @@ tasks:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
         group: Salesforce Packages
+    create_package_version:
+        description: Uploads a 2nd-generation package (2GP) version
+        class_path: cumulusci.tasks.package_2gp.CreatePackageVersion
+        group: Salesforce Packages
     create_managed_src:
         description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
         class_path: cumulusci.tasks.metadata.managed_src.CreateManagedSrc
@@ -221,6 +225,10 @@ tasks:
     github_copy_subtree:
         description: Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
         class_path: cumulusci.tasks.github.publish.PublishSubtree
+        group: GitHub
+    github_package_data:
+        description: Look up 2gp package dependencies for a version id recorded in a commit status.
+        class_path: cumulusci.tasks.github.commit_status.GetPackageDataFromCommitStatus
         group: GitHub
     github_pull_requests:
         description: Lists open pull requests in project Github repository
@@ -555,7 +563,7 @@ flows:
                     managed: True
 
     ci_feature:
-        description: Prepare an unmanaged metadata test org and run apex tests.  Intended for use against feature branch commits.
+        description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
         steps:
             0.5:
                 task: github_parent_pr_notes
@@ -591,6 +599,32 @@ flows:
                 task: run_tests
             5:
                 task: github_parent_to_children
+
+    ci_feature_2gp:
+        description: Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
+        steps:
+            1:
+                task: github_package_data
+                options:
+                    context: "Build Feature Test Package"
+            2:
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        dependencies: ^^github_package_data.dependencies
+            3:
+                task: install_managed
+                options:
+                    version: ^^github_package_data.version_id
+            4:
+                flow: config_managed
+            5:
+                task: run_tests
+                options:
+                    managed: True
+            6:
+                task: github_parent_to_children
+
 
     ci_master:
         description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
@@ -876,6 +910,8 @@ flows:
                 task: github_release
                 options:
                     version: ^^upload_beta.version_number
+                    version_id: ^^upload_beta.version_id
+                    dependencies: ^^upload_beta.dependencies
             3:
                 task: github_release_notes
                 ignore_failure: True  # Attempt to generate release notes but don't fail build
@@ -897,6 +933,8 @@ flows:
                 task: github_release
                 options:
                     version: ^^upload_production.version_number
+                    version_id: ^^upload_production.version_id
+                    dependencies: ^^upload_production.dependencies
             3:
                 task: github_release_notes
                 ignore_failure: True  # Attempt to generate release notes but don't fail build
@@ -904,6 +942,18 @@ flows:
                     publish: True
                     tag: ^^github_release.tag_name
                     version_id: ^^upload_production.version_id
+
+    build_feature_test_package:
+        description: Create a 2gp managed package version
+        steps:
+            1:
+                task: update_package_xml
+                when: project_config.project__source_format != "sfdx"
+            2:
+                task: create_package_version
+                options:
+                    package_type: Managed
+                    package_name: $project_config.project__package__name Managed Feature Test
 
     retrieve_scratch:
         description: Retrieves declarative changes made in a scratch org and converts to src directory
