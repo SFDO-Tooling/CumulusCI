@@ -36,7 +36,7 @@ When a Pull Request is approved and passing build, it is merged using the Merge 
 
 Once the Pull Request is merged, the feature branch is deleted.
 
-Branch Configuraiton
+Branch Configuration
 --------------------
 The name of the main (default) branch, as well as the branch prefixes are configurable in your projects ``cumulusci.yml`` file. The following shows the default values that CumulusCI comes with:
 
@@ -64,7 +64,7 @@ CumulusCI helps to keep large diffs and merge conflicts from being the norm. Cum
 
    * Keep feature branches up-to-date with the ``main`` branch (main to feature merges)
    * Manage long-lived feature branches for larger features worked on by multiple developers (parent to child merges)
-   * Mange large releases that occur several times a year (release to future release merges).  
+   * Manage large releases that occur several times a year (release to future release merges).  
 
 
 Main to Feature Merges 
@@ -107,18 +107,25 @@ Release Branches
 Some teams deliver large releases several times a year.
 For this type of release cadence, Salesforce.org uses a special type of branch referred to as a release branch. These long-lived branches are created off of the ``main`` branch, serve as the target branch for all features associated with that release and are eventually merged back to the ``main`` branch when a release occurs.
 To be able to clearly track what work is associated with a specific release, release branches adhere to the following:
-   * They are the parent branches of ALL feature work associated with a release. Put another way; all feature branches use the parent-child naming convention with its target release branch.
-   * Use a strict naming format: ``feature/release_num`` where ``release_num`` is a valid integer.
+
+* They are the parent branches of ALL feature work associated with a release. Put another way; all feature branches use the parent-child naming convention with its target release branch.
+* Use a strict naming format: ``feature/release_num`` where ``release_num`` is a valid integer.
 
 Using ``feature/`` branch prefix for the release branch names allow those branches to stay in sync with our main branch (they are just another feature branch to CumulusCI).
 The release number immediately after the ``feature/`` prefix allows CumulusCI to perform yet another type of auto-merge for your convenience.
+
+An example release branch with two items of work associated with it could look like this:
+
+* ``feature/001``
+* ``feature/001__feature1``
+* ``feature/001__feature2``
 
 
 Release to (Future) Release Merges
 ----------------------------------
 Because release branches are so long-lived, and so much work goes into them, their diffs can get quite large.
 This means headaches are inevitable the day after a major release, and you need to pull down all of the changes from the new release into the next release branch (which has likely been in development for months already).
-To alleviate this pain point, CumulusCI can ensure that all release branches propogate commits they receive to other existing release branches that correspond to future releases.
+To alleviate this pain point, CumulusCI can ensure that all release branches propagate commits they receive to other existing release branches that correspond to future releases.
 
 Consider the following branches in a GitHub repository:
 
@@ -134,9 +141,9 @@ Consider the following branches in a GitHub repository:
 In this scenario, CumulusCI ensures that when ``feature/002`` receives a commit, that that commit is also merged into ``feature/003``.
 This kicks off tests in our CI system and ensures that funcitonality going into ``feature/002`` doesn't break work being done for future releases.
 Once those tests pass, the commit on ``feature/003`` is merged to ``feature/003__feature1`` because they adhere to the parent/child naming convention described above.
-Commits **never** propogate in the opposite direction. (A commit to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
+Commits **never** propagate in the opposite direction. (A commit to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
 
-**Propogating commits to future release branches is turned off by default.** 
+**Propagating commits to future release branches is turned off by default.** 
 If you would like to enable this feature for your GitHub repository, you can set the ``update_future_releases`` option on the ``github_parent_to_children`` task in your ``cumulusci.yml`` file: 
 
 .. code-block:: yaml 
@@ -151,6 +158,9 @@ Orphaned Branches
 If you have both a parent and a child branch, and the parent is deleted, this creates an orphaned branch.
 Orphaned branches do not receive any auto-merges from any branches.
 You can rename an orphaned branch to include the ``feature/`` prefix and contain no double underscores ('__') to begin receiving merges from the main branch again.
+
+If we have a parent and child branch: ``feature/myFeature`` and ``feature/myFeature__child``, and ``feature/myFeature`` (the parent) is deleted, then ``feature/myFeature__child`` would be considered an orphan.
+Renaming ``feature/myFeature__child`` to ``feature/child`` will allow the orphan to begin receiving automerges from the main branch.
 
 
 Main Builds
@@ -172,7 +182,7 @@ CumulusCI facilitates the main builds mostly through four flows:
 * **ci_master**: Deploys the main branch and all dependencies into the packaging org including incrementally deleting any metadata deleted in the commit.  The end result is a package that is ready to be uploaded from the packaging org.
 * **release_beta**: Uploads a beta release of the code staged in the packaging org, creates a Github Tag and Release, generates release notes and adds to the release, and merges main to feature branches.
 * **ci_beta**: Installs the beta and all dependencies into a fresh scratch org and runs the Apex tests.
-* **ci_beta_install**: Installs the beta and all dependencies into a fresh scratch org.  This is used to prepare environments for non-Apex testing such as automated browser tests.
+* **ci_beta_install**: Installs the beta and all dependencies into a fresh scratch org. This is used to prepare environments for non-Apex testing such as automated browser tests.
 
 Tag Naming Convention
 =====================
