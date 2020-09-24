@@ -7,6 +7,7 @@ import os.path
 import re
 import sys
 from xml.etree import ElementTree as ET
+from pathlib import Path
 
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
@@ -105,6 +106,8 @@ class TestRobot(unittest.TestCase):
             "--pabotlib",
             "--processes",
             "2",
+            "--pythonpath",
+            str(Path.cwd()),
             "--variable",
             "org:test",
             "--outputdir",

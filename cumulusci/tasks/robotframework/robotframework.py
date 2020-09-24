@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import shlex
 import sys
 import subprocess
 
@@ -97,6 +99,11 @@ class Robot(BaseSalesforceTask):
         )
 
         if self.options["processes"] > 1:
+            # Since pabot runs multiple processes, we have to use the
+            # --pythonpath option to make sure the current working
+            # directory is included when pabot spawns each
+            # process. Otherwise, robot can't file libraries and resource
+            # files via relative paths.
             cmd = [
                 sys.executable,
                 "-m",
@@ -104,6 +111,8 @@ class Robot(BaseSalesforceTask):
                 "--pabotlib",
                 "--processes",
                 str(self.options["processes"]),
+                "--pythonpath",
+                str(Path.cwd()),
             ]
             # We need to convert options to their commandline equivalent
             for option, value in options.items():
@@ -114,6 +123,7 @@ class Robot(BaseSalesforceTask):
                     cmd.extend([f"--{option}", str(value)])
 
             cmd.append(self.options["suites"])
+            self.logger.info(f"pabot command: {shlex.join(cmd)}")
             result = subprocess.run(cmd)
             num_failed = result.returncode
 
