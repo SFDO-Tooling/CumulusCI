@@ -154,7 +154,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         task = self._create_task()
         with self.assertRaises(GithubApiNotFoundError):
             task()
-        self.assertEqual(2, len(responses.calls))
+        assert 2 == len(responses.calls)
 
     @responses.activate
     def test_no_descendents_of_main(self):
@@ -176,8 +176,8 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
                     "Skipping branch not-a-feature-branch: does not match prefix 'feature/'",
                 ),
             ]
-            self.assertEqual(expected, log_lines)
-        self.assertEqual(4, len(responses.calls))
+            assert expected == log_lines
+        assert 4 == len(responses.calls)
 
     @responses.activate
     def test_feature_branch_no_diff(self):
@@ -189,10 +189,11 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
 
             expected = log_header() + [
                 ("DEBUG", "Skipping branch main: is source branch"),
+                ("DEBUG", "Found descendents of main to update: ['feature/a-test']"),
                 ("INFO", "Skipping branch feature/a-test: no file diffs found"),
             ]
-            self.assertEqual(expected, log_lines)
-        self.assertEqual(5, len(responses.calls))
+            assert expected == log_lines
+        assert 5 == len(responses.calls)
 
     @responses.activate
     def test_feature_branch_merge(self):
@@ -219,10 +220,11 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
                 ("INFO", "Beginning task: MergeBranch"),
                 ("INFO", ""),
                 ("DEBUG", "Skipping branch main: is source branch"),
+                ("DEBUG", "Found descendents of main to update: ['feature/a-test']"),
                 ("INFO", "Merged 1 commits into branch: feature/a-test"),
             ]
-            self.assertEqual(expected, log_lines)
-        self.assertEqual(6, len(responses.calls))
+            assert expected == log_lines
+        assert 6 == len(responses.calls)
 
     @responses.activate
     def test_feature_branch_merge_github_error(self):
@@ -264,17 +266,18 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         with LogCapture() as log:
             task = self._create_task()
             task()
-            log_lines = self._get_log_lines(log)
+            actual_log = self._get_log_lines(log)
 
-            expected = log_header() + [
+            expected_log = log_header() + [
                 ("DEBUG", "Skipping branch main: is source branch"),
+                ("DEBUG", "Found descendents of main to update: ['feature/a-test']"),
                 (
                     "INFO",
                     "Merge conflict on branch feature/a-test: created pull request #2",
                 ),
             ]
-            self.assertEqual(expected, log_lines)
-        self.assertEqual(7, len(responses.calls))
+            assert expected_log == actual_log
+        assert 7 == len(responses.calls)
 
     @responses.activate
     def test_feature_branch_existing_pull(self):
@@ -307,13 +310,14 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
 
             expected = log_header() + [
                 ("DEBUG", "Skipping branch main: is source branch"),
+                ("DEBUG", "Found descendents of main to update: ['feature/a-test']"),
                 (
                     "INFO",
                     "Merge conflict on branch feature/a-test: merge PR already exists",
                 ),
             ]
-            self.assertEqual(expected, log_lines)
-        self.assertEqual(6, len(responses.calls))
+            assert expected == log_lines
+        assert 6 == len(responses.calls)
 
     @responses.activate
     def test_main_parent_with_child_pr(self):
@@ -346,20 +350,21 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         with LogCapture() as log:
             task = self._create_task()
             task()
-            log_lines = self._get_log_lines(log)
-        expected = log_header() + [
+            actual_log = self._get_log_lines(log)
+        expected_log = log_header() + [
             ("DEBUG", "Skipping branch main: is source branch"),
             (
                 "DEBUG",
-                f"Skipping branch {child_branch_name}: is not a direct descendent of main",
+                "Skipping branch feature/a-test__a-child: is not a direct descendent of main",
             ),
+            ("DEBUG", "Found descendents of main to update: ['feature/a-test']"),
             (
                 "INFO",
-                f"Merge conflict on branch {parent_branch_name}: created pull request #2",
+                "Merge conflict on branch feature/a-test: created pull request #2",
             ),
         ]
-        self.assertEqual(expected, log_lines)
-        self.assertEqual(7, len(responses.calls))
+        assert expected_log == actual_log
+        assert 7 == len(responses.calls)
 
     @responses.activate
     def test_main_merge_to_feature(self):
@@ -391,49 +396,51 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             )
             task()
 
-            expected_log = [
-                ("INFO", "Beginning task: MergeBranch"),
-                ("INFO", ""),
-                ("DEBUG", f"Skipping branch {source_branch}: is source branch"),
+            expected_log = log_header() + [
+                ("DEBUG", "Skipping branch main: is source branch"),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[0]}: does not match prefix '{prefix}'",
+                    "Skipping branch venus/work-a: does not match prefix 'neptune/'",
                 ),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[1]}: is not a direct descendent of {source_branch}",
+                    "Skipping branch neptune/work-a__child_a: is not a direct descendent of main",
                 ),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[2]}: is not a direct descendent of {source_branch}",
+                    "Skipping branch neptune/work-a__child_a__grandchild: is not a direct descendent of main",
                 ),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[3]}: is not a direct descendent of {source_branch}",
+                    "Skipping branch neptune/work-b__child_b: is not a direct descendent of main",
                 ),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[4]}: is not a direct descendent of {source_branch}",
+                    "Skipping branch neptune/orphan__with_child: is not a direct descendent of main",
                 ),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[5]}: is not a direct descendent of {source_branch}",
+                    "Skipping branch neptune/230__cool_feature: is not a direct descendent of main",
                 ),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[6]}: is not a direct descendent of {source_branch}",
+                    "Skipping branch neptune/230__cool_feature__child: is not a direct descendent of main",
+                ),
+                (
+                    "DEBUG",
+                    "Found descendents of main to update: ['neptune/230', 'neptune/work-a', 'neptune/work-b']",
                 ),
                 (
                     "INFO",
-                    f"Merged 1 commits into branch: {child_branches[0]}",
+                    "Merged 1 commits into branch: neptune/230",
                 ),
                 (
                     "INFO",
-                    f"Merged 1 commits into branch: {child_branches[1]}",
+                    "Merged 1 commits into branch: neptune/work-a",
                 ),
                 (
                     "INFO",
-                    f"Merged 1 commits into branch: {child_branches[2]}",
+                    "Merged 1 commits into branch: neptune/work-b",
                 ),
             ]
             actual_log = self._get_log_lines(log)
@@ -460,46 +467,21 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
 
         self._setup_mocks([source_branch] + child_branches + other_branches)
 
-        with LogCapture() as log:
-            task = self._create_task(
-                task_config={
-                    "options": {
-                        "source_branch": source_branch,
-                        "branch_prefix": prefix,
-                    }
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": source_branch,
+                    "branch_prefix": prefix,
                 }
-            )
-            task()
-            expected_log = [
-                ("INFO", "Beginning task: MergeBranch"),
-                ("INFO", ""),
-                ("DEBUG", f"Skipping branch {source_branch}: is source branch"),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[0]}: does not match prefix '{prefix}'",
-                ),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[1]}: does not match prefix '{prefix}'",
-                ),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[2]}: is not a direct descendent of {source_branch}",
-                ),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[3]}: is not a direct descendent of {source_branch}",
-                ),
-                (
-                    "DEBUG",
-                    f"Found child branches to update: {[branch for branch in child_branches]}",
-                ),
-                ("INFO", f"Merged 1 commits into branch: {child_branches[0]}"),
-                ("INFO", f"Merged 1 commits into branch: {child_branches[1]}"),
-            ]
-            actual_log = self._get_log_lines(log)
-            self.assertEqual(expected_log, actual_log)
-        self.assertEqual(8, len(responses.calls))
+            }
+        )
+        task._init_task()
+        task.repo = task.get_repo()
+        task.source_branch_is_default = False
+
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+        assert child_branches == actual_branches
+        assert 2 == len(responses.calls)
 
     @responses.activate
     def test_merge_feature_child_to_grandchildren(self):
@@ -517,40 +499,20 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         ]
         self._setup_mocks([source_branch] + child_branches + other_branches)
 
-        with LogCapture() as log:
-            task = self._create_task(
-                task_config={
-                    "options": {
-                        "source_branch": source_branch,
-                    }
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": source_branch,
                 }
-            )
-            task()
+            }
+        )
+        task._init_task()
+        task.repo = task.get_repo()
+        task.source_branch_is_default = False
 
-            expected_log = log_header() + [
-                ("DEBUG", f"Skipping branch {source_branch}: is source branch"),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[0]}: is not a direct descendent of {source_branch}",
-                ),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[1]}: is not a direct descendent of {source_branch}",
-                ),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[2]}: is not a direct descendent of {source_branch}",
-                ),
-                (
-                    "DEBUG",
-                    f"Found child branches to update: {[branch for branch in child_branches]}",
-                ),
-                ("INFO", f"Merged 1 commits into branch: {child_branches[0]}"),
-                ("INFO", f"Merged 1 commits into branch: {child_branches[1]}"),
-            ]
-            actual_log = self._get_log_lines(log)
-            self.assertEqual(expected_log, actual_log)
-        self.assertEqual(8, len(responses.calls))
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+        assert child_branches == actual_branches
+        assert 2 == len(responses.calls)
 
     @responses.activate
     def test_feature_merge_no_children(self):
@@ -558,27 +520,23 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         other_branch = "feature/b-test"
         self._setup_mocks([source_branch, other_branch])
 
-        with LogCapture() as log:
-            task = self._create_task(
-                task_config={
-                    "options": {
-                        "source_branch": source_branch,
-                    }
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": source_branch,
                 }
-            )
-            task()
+            }
+        )
+        task._init_task()
+        task.repo = task.get_repo()
+        task.source_branch_is_default = False
 
-            expected_log = log_header() + [
-                ("DEBUG", "Skipping branch feature/a-test: is source branch"),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branch}: is not a direct descendent of {source_branch}",
-                ),
-                ("DEBUG", f"No children found for branch {source_branch}"),
-            ]
-            actual_log = self._get_log_lines(log)
-            self.assertEqual(expected_log, actual_log)
-        self.assertEqual(4, len(responses.calls))
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+
+        assert [] == actual_branches
+        # First API call is task.get_repo() (above)
+        # Second API call is to self.repo.branches
+        assert 2 == len(responses.calls)
 
     @responses.activate
     def test_merge_to_future_release_branches(self):
@@ -598,53 +556,25 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         ]
         self._setup_mocks([source_branch] + future_releases + other_branches)
 
-        with LogCapture() as log:
-            task = self._create_task(
-                task_config={
-                    "options": {
-                        "source_branch": source_branch,
-                        "branch_prefix": prefix,
-                        "update_future_releases": True,
-                    }
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": source_branch,
+                    "branch_prefix": prefix,
+                    "update_future_releases": True,
                 }
-            )
-            task()
+            }
+        )
+        task._init_task()
+        task.repo = task.get_repo()
+        task.source_branch_is_default = False
 
-            expected_log = log_header() + [
-                ("DEBUG", f"Skipping branch {source_branch}: is source branch"),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[0]}: is not a direct descendent of {source_branch}",
-                ),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[1]}: is not a direct descendent of {source_branch}",
-                ),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[2]}: is not a direct descendent of {source_branch}",
-                ),
-                ("DEBUG", "No children found for branch jupiter/230"),
-                (
-                    "DEBUG",
-                    f"Found future release branches to update: {[f'{branch}' for branch in future_releases]}",
-                ),
-                (
-                    "INFO",
-                    f"Merged 1 commits into branch: {future_releases[0]}",
-                ),
-                (
-                    "INFO",
-                    f"Merged 1 commits into branch: {future_releases[1]}",
-                ),
-                (
-                    "INFO",
-                    f"Merged 1 commits into branch: {future_releases[2]}",
-                ),
-            ]
-            actual_log = self._get_log_lines(log)
-            self.assertEqual(expected_log, actual_log)
-        self.assertEqual(10, len(responses.calls))
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+
+        assert ["jupiter/232", "jupiter/300", "jupiter/980"] == actual_branches
+        # First API call is task.get_repo() (above)
+        # Second API call is to self.repo.branches
+        assert 2 == len(responses.calls)
 
     @responses.activate
     def test_merge_to_future_release_branches_and_children(self):
@@ -652,7 +582,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
 
         prefix = "jupiter/"
         source_branch = f"{prefix}230"
-        branches_to_merge = [
+        expected_branches_to_merge = [
             f"{prefix}300",
             f"{prefix}230__child1",
         ]
@@ -661,54 +591,26 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             "prefix-mismatch/230__child2",
             f"{prefix}130",
         ]
-        self._setup_mocks([source_branch] + branches_to_merge + other_branches)
+        self._setup_mocks([source_branch] + expected_branches_to_merge + other_branches)
 
-        with LogCapture() as log:
-            task = self._create_task(
-                task_config={
-                    "options": {
-                        "source_branch": source_branch,
-                        "branch_prefix": prefix,
-                        "update_future_releases": True,
-                    }
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": source_branch,
+                    "branch_prefix": prefix,
+                    "update_future_releases": True,
                 }
-            )
-            task()
+            }
+        )
+        task._init_task()
+        task.repo = task.get_repo()
+        task.source_branch_is_default = False
 
-            expected_log = log_header() + [
-                ("DEBUG", f"Skipping branch {source_branch}: is source branch"),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[0]}: is not a direct descendent of {source_branch}",
-                ),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[1]}: does not match prefix '{prefix}'",
-                ),
-                (
-                    "DEBUG",
-                    f"Skipping branch {other_branches[2]}: is not a direct descendent of {source_branch}",
-                ),
-                (
-                    "DEBUG",
-                    f"Found child branches to update: ['{branches_to_merge[1]}']",
-                ),
-                (
-                    "DEBUG",
-                    f"Found future release branches to update: ['{branches_to_merge[0]}']",
-                ),
-                (
-                    "INFO",
-                    f"Merged 1 commits into branch: {branches_to_merge[1]}",
-                ),
-                (
-                    "INFO",
-                    f"Merged 1 commits into branch: {branches_to_merge[0]}",
-                ),
-            ]
-            actual_log = self._get_log_lines(log)
-            self.assertEqual(expected_log, actual_log)
-        self.assertEqual(8, len(responses.calls))
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+        assert ["jupiter/230__child1", "jupiter/300"] == actual_branches
+        # First API call is task.get_repo() (above)
+        # Second API call is to self.repo.branches
+        assert 2 == len(responses.calls)
 
     @responses.activate
     def test_merge_to_children_not_future_releases(self):
@@ -738,35 +640,70 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             task()
 
             expected_log = log_header() + [
-                ("DEBUG", f"Skipping branch {source_branch}: is source branch"),
+                ("DEBUG", "Skipping branch jupiter/230: is source branch"),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[0]}: is not a direct descendent of {source_branch}",
+                    "Skipping branch jupiter/300: is not a direct descendent of jupiter/230",
                 ),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[1]}: is not a direct descendent of {source_branch}",
+                    "Skipping branch jupiter/230__child1__grandchild: is not a direct descendent of jupiter/230",
                 ),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[2]}: does not match prefix '{prefix}'",
+                    "Skipping branch prefix-mistmatch/230__child2: does not match prefix 'jupiter/'",
                 ),
                 (
                     "DEBUG",
-                    f"Skipping branch {other_branches[3]}: is not a direct descendent of {source_branch}",
+                    "Skipping branch jupiter/130: is not a direct descendent of jupiter/230",
                 ),
                 (
                     "DEBUG",
-                    f"Found child branches to update: ['{branch_to_merge}']",
+                    "Found child branches to update: ['jupiter/230__child1']",
                 ),
                 (
                     "INFO",
-                    f"Merged 1 commits into branch: {branch_to_merge}",
+                    "Merged 1 commits into branch: jupiter/230__child1",
                 ),
             ]
             actual_log = self._get_log_lines(log)
-            self.assertEqual(expected_log, actual_log)
-        self.assertEqual(6, len(responses.calls))
+            assert expected_log == actual_log
+        assert 6 == len(responses.calls)
+
+    @responses.activate
+    def test_merge_to_children_not_future_releases(self):
+        """Tests that commits to the main branch are merged to child feature branches
+        and not to future prerelease branches."""
+
+        prefix = "jupiter/"
+        source_branch = f"{prefix}230"
+        branch_to_merge = f"{prefix}230__child"
+        other_branches = [
+            f"{prefix}300",
+            f"{prefix}230__child__grandchild",
+            "prefix-mismatch/230__child2",
+            f"{prefix}130",
+        ]
+        self._setup_mocks([source_branch, branch_to_merge] + other_branches)
+
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": source_branch,
+                    "branch_prefix": prefix,
+                }
+            }
+        )
+        task._init_task()
+        task.repo = task.get_repo()
+        task.source_branch_is_default = False
+
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+        expected_branches = ["jupiter/230__child"]
+        assert expected_branches == actual_branches
+        # First API call is task.get_repo() (above)
+        # Second API call is to self.repo.branches
+        assert 2 == len(responses.calls)
 
     def test_is_release_branch(self):
         prefix = "test/"

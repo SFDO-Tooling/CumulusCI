@@ -231,12 +231,12 @@ class MergeBranch(BaseGithubTask):
             "description": "A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature"
         },
         "update_future_releases": {
-            "description": "If source_branch is a release branch, then propagate commit all future release branches that exist. Defaults to False."
+            "description": "If source_branch is a release branch, then merge all future release branches that exist. Defaults to False."
         },
     }
 
     def _init_options(self, kwargs):
-        super(MergeBranch, self)._init_options(kwargs)
+        super()._init_options(kwargs)
 
         if "commit" not in self.options:
             self.options["commit"] = self.project_config.repo_commit
@@ -270,13 +270,32 @@ class MergeBranch(BaseGithubTask):
                 self.options["commit"],
             )
 
+    def _validate_source_branch(self):
+        """Validates that the source branch exists in the repository"""
+        try:
+            self.repo.branch(self.options["source_branch"])
+        except github3.exceptions.NotFoundError:
+            message = f"Branch {self.options['source_branch']} not found"
+            raise GithubApiNotFoundError(message)
+
+    def _get_existing_prs(self):
+        """Get existing pull requests from the source branch
+        to other branches that are candidates for merging."""
+        self.existing_prs = []
+        for pr in self.repo.pull_requests(state="open"):
+            if (
+                pr.base.ref.startswith(self.options["branch_prefix"])
+                and pr.head.ref == self.options["source_branch"]
+            ):
+                self.existing_prs.append(pr.base.ref)
+
     def _get_branches_to_merge(self):
         """
         If source_branch is the default branch, we
         gather all branches with branch_prefix that are not child branches.
 
         If source_branch is not the default branch, we gather
-        all branches with branch_prefix that are direct decendents of source_branch.
+        all branches with branch_prefix that are direct descendents of source_branch.
 
         If update_future_releases is True, and source_branch is a release branch
         then we also collect all future release branches.
@@ -327,57 +346,12 @@ class MergeBranch(BaseGithubTask):
             to_merge = to_merge + release_branches
 
         if main_descendents:
+            self.logger.debug(
+                f"Found descendents of main to update: {[branch.name for branch in main_descendents]}"
+            )
             to_merge = to_merge + main_descendents
 
         return to_merge
-
-    def _is_source_branch_direct_descendent(self, branch):
-        """Returns True if branch direct descendent of the source branch"""
-        source_dunder_count = self.options["source_branch"].count("__")
-        return (
-            branch.name.startswith(f"{self.options['source_branch']}__")
-            and branch.name.count("__") == source_dunder_count + 1
-        )
-
-    def _is_future_release_branch(self, branch_name):
-        return (
-            self._is_release_branch(branch_name)
-            and branch_name != self.options["source_branch"]
-            and self._get_release_num(branch_name)
-            > self._get_release_num(self.options["source_branch"])
-        )
-
-    def _is_release_branch(self, branch_name):
-        """A release branch begins with the given prefix"""
-        prefix = self.options["branch_prefix"]
-        if not branch_name.startswith(prefix):
-            return False
-        parts = branch_name[len(prefix) :].split("__")
-        return len(parts) == 1 and parts[0].isdigit()
-
-    def _get_release_num(self, release_branch_name):
-        """Given a release branch, returns an integer that
-        corresponds toithe release number for that branch"""
-        return int(release_branch_name.split(self.options["branch_prefix"])[1])
-
-    def _validate_source_branch(self):
-        """Validates that the source branch exists in the repository"""
-        try:
-            self.repo.branch(self.options["source_branch"])
-        except github3.exceptions.NotFoundError:
-            message = f"Branch {self.options['source_branch']} not found"
-            self.logger.error(message)
-            raise GithubApiNotFoundError(message)
-
-    def _get_existing_prs(self):
-        """Get existing pull requests targeting the source branch"""
-        self.existing_prs = []
-        for pr in self.repo.pull_requests(state="open"):
-            if (
-                pr.base.ref.startswith(self.options["branch_prefix"])
-                and pr.head.ref == self.options["source_branch"]
-            ):
-                self.existing_prs.append(pr.base.ref)
 
     def _merge(self, branch_name, source, commit):
         """Attempt to merge a commit from source to branch with branch_name"""
@@ -413,3 +387,32 @@ class MergeBranch(BaseGithubTask):
             self.logger.info(
                 f"Merge conflict on branch {branch_name}: created pull request #{pull.number}"
             )
+
+    def _is_source_branch_direct_descendent(self, branch):
+        """Returns True if branch is a direct descendent of the source branch"""
+        source_dunder_count = self.options["source_branch"].count("__")
+        return (
+            branch.name.startswith(f"{self.options['source_branch']}__")
+            and branch.name.count("__") == source_dunder_count + 1
+        )
+
+    def _is_future_release_branch(self, branch_name):
+        return (
+            self._is_release_branch(branch_name)
+            and branch_name != self.options["source_branch"]
+            and self._get_release_num(branch_name)
+            > self._get_release_num(self.options["source_branch"])
+        )
+
+    def _is_release_branch(self, branch_name):
+        """A release branch begins with the given prefix"""
+        prefix = self.options["branch_prefix"]
+        if not branch_name.startswith(prefix):
+            return False
+        parts = branch_name[len(prefix) :].split("__")
+        return len(parts) == 1 and parts[0].isdigit()
+
+    def _get_release_num(self, release_branch_name):
+        """Given a release branch, returns an integer that
+        corresponds to the release number for that branch"""
+        return int(release_branch_name.split(self.options["branch_prefix"])[1])
