@@ -1316,7 +1316,6 @@ def org_shell(runtime, org_name, script=None, python=None):
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False)
 def task_list(runtime, plain, print_json):
-    task_groups = {}
     tasks = (
         runtime.project_config.list_tasks()
         if runtime.project_config is not None
@@ -1328,6 +1327,7 @@ def task_list(runtime, plain, print_json):
         click.echo(json.dumps(tasks))
         return None
 
+    task_groups = {}
     for task in tasks:
         group = task["group"] or "Other"
         if group not in task_groups:
