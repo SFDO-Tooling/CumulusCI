@@ -553,6 +553,7 @@ tasks:
 
 flows:
     ci_beta:
+        group: Continous Integration
         description: Install the latest beta version and runs apex tests from the managed package
         steps:
             1:
@@ -563,6 +564,7 @@ flows:
                     managed: True
 
     ci_feature:
+        group: Continous Integration
         description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
         steps:
             0.5:
@@ -582,6 +584,7 @@ flows:
                 task: github_parent_to_children
 
     ci_feature_beta_deps:
+        group: Continous Integration
         description: Install the latest beta version of dependencies and run apex tests.
         steps:
             0.5:
@@ -601,6 +604,7 @@ flows:
                 task: github_parent_to_children
 
     ci_feature_2gp:
+        group: Continous Integration
         description: Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
         steps:
             1:
@@ -627,6 +631,7 @@ flows:
 
 
     ci_master:
+        group: Continous Integration
         description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
         steps:
             1:
@@ -640,6 +645,7 @@ flows:
                 flow: config_packaging
 
     ci_release:
+        group: Continous Integration
         description: Install a production release version and runs tests from the managed package
         steps:
             1:
@@ -650,6 +656,7 @@ flows:
                     managed: True
 
     config_apextest:
+        group: Org Configuraiton 
         description: Configure an org to run apex tests after package metadata is deployed
         steps:
             1:
@@ -658,6 +665,7 @@ flows:
                 task: update_admin_profile
 
     config_dev:
+        group: Org Configuraiton 
         description: Configure an org for use as a dev org after package metadata is deployed
         steps:
             1:
@@ -666,6 +674,7 @@ flows:
                 task: update_admin_profile
 
     config_managed:
+        group: Org Configuraiton 
         description: Configure an org for use as a dev org after package metadata is deployed
         steps:
             1:
@@ -678,6 +687,7 @@ flows:
                     managed: true
 
     config_packaging:
+        group: Org Configuraiton 
         description: Configure packaging org for upload after package metadata is deployed
         steps:
             1:
@@ -686,6 +696,7 @@ flows:
                     managed: True
 
     config_qa:
+        group: Org Configuraiton 
         description: Configure an org for use as a QA org after package metadata is deployed
         steps:
             1:
@@ -694,12 +705,14 @@ flows:
                 task: update_admin_profile
 
     config_regression:
+        group: Org Configuraiton 
         description: Configure an org for QA regression after the package is installed
         steps:
             1:
                 flow: config_managed
 
     dependencies:
+        group: Dependency Management
         description: Deploy dependencies to prepare the org environment for the package metadata
         steps:
             1:
@@ -708,6 +721,7 @@ flows:
                 task: deploy_pre
 
     beta_dependencies:
+        group: Dependency Management
         description: Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata
         steps:
             1:
@@ -718,6 +732,7 @@ flows:
                 task: deploy_pre
 
     deploy_unmanaged:
+        group: Deployment
         description: Deploy the unmanaged metadata from the package
         steps:
             0:
@@ -739,6 +754,7 @@ flows:
                 when: project_config.project__source_format != "sfdx" or not org_config.scratch
 
     deploy_unmanaged_ee:
+        group: Deployment
         description: Deploy the unmanaged metadata from the package to an Enterprise Edition org
         steps:
             0:
@@ -760,6 +776,7 @@ flows:
                     purge_on_delete: False
 
     deploy_packaging:
+        group: Deployment
         description: Process and deploy the package metadata to the packaging org
         steps:
             0:
@@ -781,6 +798,7 @@ flows:
                 task: uninstall_packaged_incremental
 
     dev_org:
+        group: Org Creation
         description: Set up an org as a development environment for unmanaged metadata
         steps:
             1:
@@ -793,6 +811,7 @@ flows:
                 task: snapshot_changes
 
     dev_org_beta_deps:
+        group: Org Creation
         description: Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
         steps:
             1:
@@ -803,6 +822,7 @@ flows:
                 flow: config_dev
 
     dev_org_namespaced:
+        group: Org Creation
         description: Set up a namespaced scratch org as a development environment for unmanaged metadata
         steps:
             1:
@@ -824,6 +844,7 @@ flows:
                 task: snapshot_changes
 
     qa_org:
+        group: Org Creation
         description: Set up an org as a QA environment for unmanaged metadata
         steps:
             1:
@@ -836,6 +857,7 @@ flows:
                 task: snapshot_changes
 
     regression_org:
+        group: Org Creation
         description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
         steps:
             1:
@@ -846,6 +868,7 @@ flows:
                 task: snapshot_changes
 
     uninstall_managed:
+        group: Install / Uninstall
         description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
         steps:
             1:
@@ -854,6 +877,7 @@ flows:
                 task: uninstall_managed
 
     install_beta:
+        group: Install / Uninstall
         description: Install and configure the latest beta version
         steps:
             1:
@@ -866,6 +890,7 @@ flows:
                 task: snapshot_changes
 
     install_prod:
+        group: Install / Uninstall
         description: Install and configure the latest production version
         steps:
             1:
@@ -878,6 +903,7 @@ flows:
                 task: snapshot_changes
 
     install_prod_no_config:
+        group: Install / Uninstall
         description: Install but do not configure the latest production version
         steps:
             1:
@@ -890,6 +916,7 @@ flows:
                     unmanaged: False
 
     install_regression:
+        group: Install / Uninstall
         description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
         steps:
             1:
@@ -900,6 +927,7 @@ flows:
                 task: install_managed_beta
 
     release_beta:
+        group: Release Management
         description: Upload and release a beta version of the metadata currently in packaging
         steps:
             1:
@@ -925,6 +953,7 @@ flows:
                 task: github_master_to_feature
 
     release_production:
+        group: Release Management
         description: Upload and release a production version of the metadata currently in packaging
         steps:
             1:
@@ -978,6 +1007,7 @@ flows:
                 task: update_package_xml
 
     unmanaged_ee:
+        group: Deployment
         description: Deploy the unmanaged package metadata and all dependencies to the target EE org
         steps:
             1:
