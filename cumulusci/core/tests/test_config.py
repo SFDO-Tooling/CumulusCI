@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from distutils.version import StrictVersion
+import json
 import os
+import pathlib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -8,6 +10,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from unittest import mock
 import responses
+import yaml
 
 from github3.exceptions import NotFoundError
 from cumulusci.core.config import BaseConfig
@@ -15,6 +18,7 @@ from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config.OrgConfig import VersionInfo
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import DependencyResolutionError
@@ -1070,6 +1074,25 @@ class TestBaseProjectConfig(unittest.TestCase):
         assert info["owner"] == owner
         assert info["url"] == ssh_url
 
+    def test_default_package_path(self):
+        config = BaseProjectConfig(UniversalConfig())
+        assert str(config.default_package_path.relative_to(config.repo_root)) == "src"
+
+    def test_default_package_path__sfdx(self):
+        with temporary_dir() as path:
+            pathlib.Path(path, ".git").mkdir()
+            with pathlib.Path(path, "cumulusci.yml").open("w") as f:
+                yaml.dump({"project": {"source_format": "sfdx"}}, f)
+            with pathlib.Path(path, "sfdx-project.json").open("w") as f:
+                json.dump(
+                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                )
+            config = BaseProjectConfig(UniversalConfig())
+            assert (
+                str(config.default_package_path.relative_to(config.repo_root))
+                == "force-app"
+            )
+
 
 class TestBaseTaskFlowConfig(unittest.TestCase):
     def setUp(self):
@@ -1366,6 +1389,7 @@ class TestOrgConfig(unittest.TestCase):
                     "NamespacePrefix": "GW_Volunteers",
                 },
                 "SubscriberPackageVersion": {
+                    "Id": "04t1T00000070yqQAA",
                     "MajorVersion": 3,
                     "MinorVersion": 119,
                     "PatchVersion": 0,
@@ -1379,9 +1403,10 @@ class TestOrgConfig(unittest.TestCase):
                     "NamespacePrefix": "GW_Volunteers",
                 },
                 "SubscriberPackageVersion": {
+                    "Id": "04t000000000001AAA",
                     "MajorVersion": 12,
                     "MinorVersion": 0,
-                    "PatchVersion": 0,
+                    "PatchVersion": 1,
                     "BuildNumber": 1,
                     "IsBeta": False,
                 },
@@ -1392,6 +1417,7 @@ class TestOrgConfig(unittest.TestCase):
                     "NamespacePrefix": "TESTY",
                 },
                 "SubscriberPackageVersion": {
+                    "Id": "04t000000000002AAA",
                     "MajorVersion": 1,
                     "MinorVersion": 10,
                     "PatchVersion": 0,
@@ -1407,22 +1433,37 @@ class TestOrgConfig(unittest.TestCase):
         config._client = mock.Mock()
         config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
 
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        expected = {
+            "GW_Volunteers": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119")),
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1")),
+            ],
+            "GW_Volunteers@3.119": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
+            ],
+            "GW_Volunteers@12.0.1": [
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))
+            ],
+            "TESTY": [VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))],
+            "TESTY@1.10b5": [
+                VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
+            ],
+            "03350000000DEz4AAG": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
+            ],
+            "03350000000DEz5AAG": [
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))
+            ],
+            "03350000000DEz7AAG": [
+                VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
+            ],
         }
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
-        }
+        # get it twice so we can make sure it is cached
+        assert config.installed_packages == expected
+        assert config.installed_packages == expected
         config._client.restful.assert_called_once_with(
-            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
+            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
+            "SubscriberPackageVersion.Id, SubscriberPackageVersion.MajorVersion, "
             "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
             "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
             "FROM InstalledSubscriberPackage"
@@ -1430,13 +1471,7 @@ class TestOrgConfig(unittest.TestCase):
 
         config._client.restful.reset_mock()
         config.reset_installed_packages()
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
-        }
+        assert config.installed_packages == expected
         config._client.restful.assert_called_once()
 
     def test_has_minimum_package_version(self):
@@ -1585,3 +1620,26 @@ class TestOrgConfig(unittest.TestCase):
         self.assertEqual(
             config._is_person_accounts_enabled, config.is_person_accounts_enabled
         )
+
+    def test_resolve_04t_dependencies(self):
+        config = OrgConfig({}, "test")
+        config._installed_packages = {
+            "dep@1.0": [VersionInfo("04t000000000001AAA", "1.0")]
+        }
+        result = config.resolve_04t_dependencies(
+            [{"namespace": "dep", "version": "1.0", "dependencies": []}]
+        )
+        assert result == [
+            {
+                "namespace": "dep",
+                "version": "1.0",
+                "version_id": "04t000000000001AAA",
+                "dependencies": [],
+            }
+        ]
+
+    def test_resolve_04t_dependencies__not_installed(self):
+        config = OrgConfig({}, "test")
+        config._installed_packages = {}
+        with pytest.raises(DependencyResolutionError):
+            config.resolve_04t_dependencies([{"namespace": "dep", "version": "1.0"}])
