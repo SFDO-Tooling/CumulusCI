@@ -123,7 +123,9 @@ class Robot(BaseSalesforceTask):
                     cmd.extend([f"--{option}", str(value)])
 
             cmd.append(self.options["suites"])
-            self.logger.info(f"pabot command: {shlex.join(cmd)}")
+            self.logger.info(
+                f"pabot command: {' '.join([shlex.quote(x) for x in cmd])}"
+            )
             result = subprocess.run(cmd)
             num_failed = result.returncode
 
