@@ -1703,7 +1703,7 @@ Options
 
 	 The new tag to create by cloning the src tag.  Ex: release/1.0
 
-**github_automerge_main_to_feature**
+**github_automerge_main**
 ==========================================
 
 **Description:** Merges the latest commit on the main branch into all open feature branches
@@ -1713,7 +1713,7 @@ Options
 Command Syntax
 ------------------------------------------
 
-``$ cci task run github_automerge_main_to_feature``
+``$ cci task run github_automerge_main``
 
 
 Options
@@ -1740,17 +1740,17 @@ Options
 
 	 If source_branch is a release branch, then merge all future release branches that exist. Defaults to False.
 
-**github_automerge_parent_to_children**
+**github_automerge_feature**
 ==========================================
 
-**Description:** Merges the latest commit on a parent feature branch into all child feature branches
+**Description:** Merges the latest commit on a source branch to all child branches.
 
 **Class:** cumulusci.tasks.github.MergeBranch
 
 Command Syntax
 ------------------------------------------
 
-``$ cci task run github_automerge_parent_to_children``
+``$ cci task run github_automerge_feature``
 
 
 Options
