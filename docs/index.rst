@@ -30,7 +30,6 @@ Contents:
    flow_reference
    api_reference
 
-
 Indices and tables
 ==================
 
