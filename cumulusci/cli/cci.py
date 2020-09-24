@@ -1327,13 +1327,7 @@ def task_list(runtime, plain, print_json):
         click.echo(json.dumps(tasks))
         return None
 
-    task_groups = {}
-    for task in tasks:
-        group = task["group"] or "Other"
-        if group not in task_groups:
-            task_groups[group] = []
-        task_groups[group].append([task["name"], task["description"]])
-
+    task_groups = group_items(tasks)
     for group, tasks in task_groups.items():
         data = [["Task", "Description"]]
         data.extend(sorted(tasks))
@@ -1473,13 +1467,7 @@ def flow_list(runtime, plain, print_json):
         click.echo(json.dumps(flows))
         return None
 
-    flow_groups = {}
-    for flow in flows:
-        group = flow["group"] or "Other"
-        if group not in flow_groups:
-            flow_groups[group] = []
-        flow_groups[group].append([flow["name"], flow["description"]])
-
+    flow_groups = group_items(flows)
     for group, flows in flow_groups.items():
         data = [["Flow", "Description"]]
         data.extend(sorted(flows))
@@ -1646,3 +1634,14 @@ def gist(runtime):
     else:
         click.echo(f"Gist created: {gist.html_url}")
         webbrowser.open(gist.html_url)
+
+
+def group_items(items):
+    groups = {}
+    for item in items:
+        group = item["group"] or "Other"
+        if group not in groups:
+            groups[group] = []
+        groups[group].append([item["name"], item["description"]])
+
+    return groups
