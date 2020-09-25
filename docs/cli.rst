@@ -75,8 +75,8 @@ If we want help with running a task we could type ``cci task run --help``:
 This gives us a clear usage statement, description, and shows all options available for use with the command.
 
 
-Troubleshooting Errors
-^^^^^^^^^^^^^^^^^^^^^^
+Working with Tasks and Flows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Listing Tasks and Flows
 ****************************
@@ -188,8 +188,9 @@ Example output looks like this:
 
 
 
-What to do When There's an Error
---------------------------------
+Troubleshooting Errors
+----------------------
+
 Errors happen! That’s why our team strives to provide our users with options for efficiently working with them when they occur.
 
 The ``--debug`` Option
