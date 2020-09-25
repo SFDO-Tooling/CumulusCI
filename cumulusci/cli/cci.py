@@ -12,11 +12,11 @@ import shutil
 import sys
 import time
 import traceback
-from datetime import datetime
+import runpy
 import webbrowser
 import contextlib
 from pathlib import Path
-import runpy
+from datetime import datetime
 
 import click
 import github3
@@ -1637,11 +1637,9 @@ def gist(runtime):
 
 
 def group_items(items):
-    groups = {}
+    groups = defaultdict(list)
     for item in items:
-        group = item["group"] or "Other"
-        if group not in groups:
-            groups[group] = []
-        groups[group].append([item["name"], item["description"]])
+        group_name = item["group"] or "Other"
+        groups[group_name].append([item["name"], item["description"]])
 
     return groups
