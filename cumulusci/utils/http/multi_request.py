@@ -25,7 +25,6 @@ class ParallelHTTP:
             method=method,
             url=self.base_url + path.lstrip("/"),
             headers=headers,
-            # data=dumps(json),
             json=json,
         )
 
@@ -48,29 +47,27 @@ class ParallelSalesforce(ParallelHTTP):
         return super()._async_request(path, method, json, headers)
 
 
-class CompositeSalesforce:
+def create_composite_requests(requests, chunk_size):
     """Format Composite Salesforce messages"""
 
-    def create_composite_requests(self, requests, chunk_size):
-        def ensure_request_id(idx, request):
-            # generate a new record with a defaulted
-            return {"referenceId": f"CCI__RefId__{idx}__", **request}
+    def ensure_request_id(idx, request):
+        # generate a new request dicts with a defaulted request_id
+        return {"referenceId": f"CCI__RefId__{idx}__", **request}
 
-        requests = [
-            ensure_request_id(idx, request) for idx, request in enumerate(requests)
-        ]
+    requests = [ensure_request_id(idx, request) for idx, request in enumerate(requests)]
 
-        return (
-            {"path": "composite", "method": "POST", "json": {"compositeRequest": chunk}}
-            for chunk in chunks(requests, chunk_size)
-        )
+    return (
+        {"path": "composite", "method": "POST", "json": {"compositeRequest": chunk}}
+        for chunk in chunks(requests, chunk_size)
+    )
 
-    def parse_composite_results(self, composite_results):
-        individual_results = chain.from_iterable(
-            result.json()["compositeResponse"] for result in composite_results
-        )
 
-        return individual_results
+def parse_composite_results(composite_results):
+    individual_results = chain.from_iterable(
+        result.json()["compositeResponse"] for result in composite_results
+    )
+
+    return individual_results
 
 
 class CompositeParallelSalesforce:
@@ -107,10 +104,9 @@ class CompositeParallelSalesforce:
                 "Session was not opened. Please call open() or use as a context manager"
             )
 
-        comp = CompositeSalesforce()
-        composite_requests = comp.create_composite_requests(requests, self.chunk_size)
+        composite_requests = create_composite_requests(requests, self.chunk_size)
         composite_results = self.psf.do_requests(composite_requests)
-        individual_results = comp.parse_composite_results(composite_results)
+        individual_results = parse_composite_results(composite_results)
         return list(individual_results)
 
 
