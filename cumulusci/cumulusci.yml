@@ -564,7 +564,7 @@ flows:
                     managed: True
 
     ci_feature:
-        group: Continous Integration
+        group: Continuous Integration
         description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
         steps:
             0.5:
@@ -584,7 +584,7 @@ flows:
                 task: github_parent_to_children
 
     ci_feature_beta_deps:
-        group: Continous Integration
+        group: Continuous Integration
         description: Install the latest beta version of dependencies and run apex tests.
         steps:
             0.5:
@@ -604,7 +604,7 @@ flows:
                 task: github_parent_to_children
 
     ci_feature_2gp:
-        group: Continous Integration
+        group: Continuous Integration
         description: Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
         steps:
             1:
@@ -631,7 +631,7 @@ flows:
 
 
     ci_master:
-        group: Continous Integration
+        group: Continuous Integration
         description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
         steps:
             1:
@@ -645,7 +645,7 @@ flows:
                 flow: config_packaging
 
     ci_release:
-        group: Continous Integration
+        group: Continuous Integration
         description: Install a production release version and runs tests from the managed package
         steps:
             1:
