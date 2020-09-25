@@ -46,7 +46,7 @@ We see that there are even more subcommands available under ``cci task``.
 
 Getting ``--help``
 ------------------
-If you aren't sure what a specific command does you can always utilize the ``--help`` flag.
+If you aren't sure what a specific command does you can always utilize the ``--help`` option.
 If we want help with running a task we could type ``cci task run --help``:
 
 .. code-block:: console
@@ -192,9 +192,9 @@ What to do When There's an Error
 --------------------------------
 Errors happen! That’s why our team strives to provide our users with options for efficiently working with them when they occur.
 
-The ``--debug`` Argument
-^^^^^^^^^^^^^^^^^^^^^^^^
-All CumulusCI commands can be passed the ``--debug`` argument. When this is used, the following occurs:
+The ``--debug`` Option
+^^^^^^^^^^^^^^^^^^^^^^
+All CumulusCI commands can be passed the ``--debug`` option. When this is used, the following occurs:
     * Any calls to CumulusCI's logger at the debug level are shown.
     * Any errors captured by ``requests.packages.urllib3.add_stderr_logger()`` are shown.
     * If an error is present, the corresponding stacktrace is shown. 
@@ -207,7 +207,7 @@ CumulusCI creates a log file every time a cci command besides ``gist`` is run. T
     * All output from the command (including debug information)
     * If an error is present, the corresponding stacktrace is included.
 
-If you want debug information regarding the ``requests`` module to be captured in a logfile you must explicitly run the command with the ``--debug`` argument.
+If you want debug information regarding the ``requests`` module to be captured in a logfile you must explicitly run the command with the ``--debug`` option.
 
 Viewing Stacktraces
 ^^^^^^^^^^^^^^^^^^^
