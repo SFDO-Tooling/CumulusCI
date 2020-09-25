@@ -1,11 +1,12 @@
-The ``cci`` command line
+The ``cci`` Command Line
 ========================
 
-Basic operation
+Basic Operation
 ---------------
 
-Getting help
+Getting Help
 ------------
 
-What do do when there's an error
+
+What to do When There's an Error
 --------------------------------
