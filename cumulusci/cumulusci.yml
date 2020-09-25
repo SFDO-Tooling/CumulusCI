@@ -656,7 +656,7 @@ flows:
                     managed: True
 
     config_apextest:
-        group: Org Configuraiton 
+        group: Post-Install Configuration
         description: Configure an org to run apex tests after package metadata is deployed
         steps:
             1:
@@ -665,7 +665,7 @@ flows:
                 task: update_admin_profile
 
     config_dev:
-        group: Org Configuraiton 
+        group: Post-Install Configuration
         description: Configure an org for use as a dev org after package metadata is deployed
         steps:
             1:
@@ -674,7 +674,7 @@ flows:
                 task: update_admin_profile
 
     config_managed:
-        group: Org Configuraiton 
+        group: Post-Install Configuration 
         description: Configure an org for use as a dev org after package metadata is deployed
         steps:
             1:
@@ -687,7 +687,7 @@ flows:
                     managed: true
 
     config_packaging:
-        group: Org Configuraiton 
+        group: Post-Install Configuration 
         description: Configure packaging org for upload after package metadata is deployed
         steps:
             1:
@@ -696,7 +696,7 @@ flows:
                     managed: True
 
     config_qa:
-        group: Org Configuraiton 
+        group: Post-Install Configuration 
         description: Configure an org for use as a QA org after package metadata is deployed
         steps:
             1:
@@ -705,7 +705,7 @@ flows:
                 task: update_admin_profile
 
     config_regression:
-        group: Org Configuraiton 
+        group: Post-Install Configuration 
         description: Configure an org for QA regression after the package is installed
         steps:
             1:
