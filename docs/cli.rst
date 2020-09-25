@@ -81,9 +81,9 @@ Getting More Information
 *******************************
 For additional information on tasks use::
 
-    $ cci task info task_name
+    $ cci task info <task_name>
 
-Where ``task_name`` is the name of a specific task.
+Where ``<task_name>`` is the name of a specific task.
 Information about specific tasks includes:
 
 * A description of what the task does
@@ -121,9 +121,9 @@ Example output looks like this:
 
 For additional information on flows use::
 
-    $ cci flow info flow_name
+    $ cci flow info <flow_name>
 
-Where ``flow_name`` is the actual name of the flow.
+Where ``<flow_name>`` is the actual name of the flow.
 Information on specific flows includes:
 
 * A description of the flow.
