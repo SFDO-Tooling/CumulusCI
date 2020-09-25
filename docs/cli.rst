@@ -23,8 +23,8 @@ To see the available commands, you can simply type ``cci``:
     task     Commands for finding and running tasks for a project
     version  Print the current version of CumulusCI
 
-To get information on a specific command, we can type ``cci <command>``.
-For example, if we want more information on the ``task`` just type ``cci task``:
+To get information on a specific command listed above, we can type ``cci <command>``.
+For example, if we want more information on the ``task`` command just type ``cci task``:
 
 .. code-block:: console
 
@@ -42,7 +42,7 @@ For example, if we want more information on the ``task`` just type ``cci task``:
     list  List available tasks for the current context
     run   Runs a task
 
-We see that there are even more subcommands under ``cci task``.
+We see that there are even more subcommands available under ``cci task``.
 
 Working With Tasks and Flows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -50,27 +50,30 @@ Working With Tasks and Flows
 Listing Tasks and Flows
 ****************************
 ``cci`` ships with many standard tasks and flows.
-Remembering all of the tasks and flows can be difficult. ``cci`` has two commands for listing *all* available tasks and flows for a project:
+``cci`` has two commands for listing available tasks and flows:
 
 .. code-block:: console
 
     $ cci task list
     $ cci flow list
 
-Tasks and Flows are listed grouped by their ``group`` attribute as specified in ``cumulusci.yml``.
-This means it's easy to edit these groups as you see fit! Any changes made will be reflected in these commands.
+The tasks and flows listed are *specific to the project* you're running the command int.
+If you have a custom flow defined in your ``cumulusci.yml`` file for ProjectA, it will only show if you run ``cci flow list`` in ProjectA's repository directory.
+Tasks and Flows are listed grouped by their ``group`` attribute as specified in the ``cumulusci.yml`` file.
+This means it's easy to edit these groups as you see fit!
+Any changes made will be reflected in these commands.
 
 Running Tasks and Flows
 *******************************
-Once you know the specifc task or flow you want to run, they can be executed with the ``run`` commands:
+Once you know the specifc task or flow you want to run, they can be executed with the ``run`` command:
 
 .. code-block:: console
 
     $ cci task run task_name
     $ cci flow run flow_name
 
-Where ``task_name`` and ``flow_name`` are actual name of the task or flow that you would like to run.
-Tasks usually require additional options to be passed when using ``cci task run task_name``.
+Where ``task_name`` and ``flow_name`` are the actual name of the task or flow that you would like to run.
+Tasks usually require additional options to be passed when using the ``cci task run`` command.
 See the next section for how to view task specific option information. 
 
 
