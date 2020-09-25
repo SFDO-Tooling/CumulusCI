@@ -283,7 +283,7 @@ tasks:
     metadeploy_publish:
         description: Publish a release to the MetaDeploy web installer
         class_path: cumulusci.tasks.metadeploy.Publish
-        group: Release Management
+        group: Release Operations
     org_settings:
         description: Apply org settings from a scratch org definition file
         class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
@@ -485,14 +485,14 @@ tasks:
     upload_beta:
         description: Uploads a beta release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
-        group: Release Management
+        group: Release Operations
     upload_production:
         description: Uploads a production release of the metadata currently in the packaging org
         class_path: cumulusci.tasks.salesforce.PackageUpload
         options:
             name: Release
             production: True
-        group: Release Management
+        group: Release Operations
     upload_user_profile_photo:
         group: Salesforce Users
         description: Uploads a profile photo for a specified or default User.
