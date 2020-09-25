@@ -553,7 +553,7 @@ tasks:
 
 flows:
     ci_beta:
-        group: Continous Integration
+        group: Continuous Integration
         description: Install the latest beta version and runs apex tests from the managed package
         steps:
             1:
