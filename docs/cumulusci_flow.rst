@@ -95,7 +95,7 @@ Parent/Child Feature Branches are created using a simple naming format for branc
 If this combination of named parent and child branches exist, the auto-merging functionality changes a bit:
 
 * Child branches never receive the auto-merge from main
-* Parent branches do receive the merge from main which kicks off a Feature Test build. (This assumes the parent branch is not iteself a child.)
+* Parent branches do receive the merge from main which kicks off a Feature Test build. (This assumes the parent branch is not itself a child.)
 * At the end of a successful Feature Test build on a Parent branch, the parent branch is auto-merged into all child branches
 
 This allows us to support multiple developers working on a single large feature while keeping that feature isolated from main until we're ready to release it. 
