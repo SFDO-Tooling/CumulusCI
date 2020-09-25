@@ -44,6 +44,37 @@ For example, if we want more information on the ``task`` command just type ``cci
 
 We see that there are even more subcommands available under ``cci task``.
 
+Getting ``--help``
+------------------
+If you aren't sure what a specific command does you can always utilize the ``--help`` flag.
+If we want help with running a task we could type ``cci task run --help``:
+
+.. code-block:: console
+
+    $ cci task run --help
+    Usage: cci task run [OPTIONS] TASK_NAME
+
+    Runs a task
+
+    Options:
+    --org TEXT      Specify the target org.  By default, runs against the
+                    current default org
+
+    -o TEXT...      Pass task specific options for the task as '-o option
+                    value'.  You can specify more than one option by using -o
+                    more than once.
+
+    --debug         Drops into pdb, the Python debugger, on an exception
+    --debug-before  Drops into the Python debugger right before task start.
+    --debug-after   Drops into the Python debugger at task completion.
+    --no-prompt     Disables all prompts.  Set for non-interactive mode use such
+                    as calling from scripts or CI systems
+
+    --help          Show this message and exit.    
+
+This gives us a clear usage statement, description, and shows all options available for use with the command.
+
+
 Working With Tasks and Flows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -154,36 +185,6 @@ Example output looks like this:
         1) task: deploy_post
         2) task: update_admin_profile
     4) task: snapshot_changes
-
-Getting ``--help``
-------------------
-If you aren't sure what a specific command does you can always utilize the ``--help`` flag.
-If we want help with running a task we could type ``cci task run --help``:
-
-.. code-block:: console
-
-    $ cci task run --help
-    Usage: cci task run [OPTIONS] TASK_NAME
-
-    Runs a task
-
-    Options:
-    --org TEXT      Specify the target org.  By default, runs against the
-                    current default org
-
-    -o TEXT...      Pass task specific options for the task as '-o option
-                    value'.  You can specify more than one option by using -o
-                    more than once.
-
-    --debug         Drops into pdb, the Python debugger, on an exception
-    --debug-before  Drops into the Python debugger right before task start.
-    --debug-after   Drops into the Python debugger at task completion.
-    --no-prompt     Disables all prompts.  Set for non-interactive mode use such
-                    as calling from scripts or CI systems
-
-    --help          Show this message and exit.    
-
-This gives us a clear usage statement, description, and shows all options available for use with the command.
 
 
 
