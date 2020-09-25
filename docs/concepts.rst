@@ -52,7 +52,7 @@ Orgs
 
 Each project's keychain stores authentication information for all of the orgs that are in use by the project, including scratch orgs, persistent orgs like a production or packaging org, and information about scratch orgs that are yet to be created.
 
-The ``cci org list`` command shows all of the connected orgs in the project keychain, as well as defined scratch org configurations that have not yet been built. (We'll talk more about org configurations shortly).
+The ``cci org list`` command shows all of the connected orgs in the project keychain, as well as defined scratch org configurations that have not yet been built. (TODO: reference org configuration section).
 
 When CumulusCI builds a scratch org, it automatically shares the org with your Salesforce DX keychain, but names the org in a way that helps keep orgs separate between projects. For example, if you build a ``dev`` org in the project ``Test``, CumulusCI will call that org ``dev`` in your CumulusCI keychain, and ``Test__dev`` in the Salesforce DX keychain. This prevents your scratch orgs from colliding across projects.
 
