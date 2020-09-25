@@ -19,8 +19,8 @@ class ParallelHTTP:
     def __exit__(self, *args):
         self.session.close()
 
-    def _async_request(self, path, method, json=None, headers={}):
-        headers = {**headers, "Accept-Encoding": "gzip"}
+    def _async_request(self, path, method, json=None, headers=None):
+        headers = {**(headers or {}), "Accept-Encoding": "gzip"}
         return self.session.request(
             method=method,
             url=self.base_url + path.lstrip("/"),
@@ -43,8 +43,8 @@ class ParallelSalesforce(ParallelHTTP):
         base_url = self.sf.base_url.rstrip("/") + "/"
         super().__init__(base_url, max_workers)
 
-    def _async_request(self, path, method, json=None, headers={}):
-        headers = {**self.sf.headers, **headers}
+    def _async_request(self, path, method, json=None, headers=None):
+        headers = {**self.sf.headers, **(headers or {})}
         return super()._async_request(path, method, json, headers)
 
 
