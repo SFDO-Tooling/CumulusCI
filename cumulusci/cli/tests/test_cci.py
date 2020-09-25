@@ -1956,6 +1956,14 @@ Environment Info: Rossian / x68_46
         with self.assertRaises(click.UsageError):
             run_click_command(cci.flow_info, runtime=runtime, flow_name="test")
 
+    @mock.patch("cumulusci.cli.cci.doc_flow")
+    def test_task_flow(self, doc_flow):
+        runtime = mock.Mock()
+        runtime.universal_config.flows = {"test": {}}
+
+        run_click_command(cci.flow_doc, runtime=runtime)
+        doc_flow.assert_called()
+
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})
         runtime = CliRuntime(

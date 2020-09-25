@@ -1365,7 +1365,7 @@ def task_doc(runtime):
 
 
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
-@pass_runtime(require_keychain=True)
+@pass_runtime(require_project=False)
 def flow_doc(runtime):
     config_src = runtime.universal_config
 

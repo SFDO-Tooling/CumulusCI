@@ -288,8 +288,11 @@ class FlowCoordinator(object):
         lines = []
         if "description" in self.flow_config.config:
             lines.append(f"Description: {self.flow_config.config['description']}")
-        lines.append("\nFlow Steps")
-        lines.extend(self.get_flow_steps())
+
+        step_lines = self.get_flow_steps()
+        if step_lines:
+            lines.append("\nFlow Steps")
+        lines.extend(step_lines)
 
         return "\n".join(lines)
 
