@@ -80,7 +80,7 @@ To understand the benefit of auto-merging to feature branches, consider the foll
 
 Without auto-merging, the developer would return, merge main into their feature branch, and then have to sift through all the commits to main during their leave to figure out which one broke their feature branch.  More testing and build history is always a good thing in addition to the other benefits we gain from auto-merging.
 
-CumulusCI facilitates the auto-merge to feature branches via the ``github_master_to_feature`` task which is included by default in the ``release_beta`` flow.
+CumulusCI facilitates the auto-merge to feature branches via the ``github_automerge_main`` task which is included by default in the ``release_beta`` flow.
 
 Parent to Child Merges
 ----------------------
@@ -95,17 +95,38 @@ Parent/Child Feature Branches are created using a simple naming format for branc
 If this combination of named parent and child branches exist, the auto-merging functionality changes a bit:
 
 * Child branches never receive the auto-merge from main
-* Parent branches do receive the merge from main which kicks off a Feature Test build
+* Parent branches do receive the merge from main which kicks off a Feature Test build. (This assumes the parent branch is not iteself a child.)
 * At the end of a successful Feature Test build on a Parent branch, the parent branch is auto-merged into all child branches
 
-This allows us to support multiple developers working on a single large feature while keeping that feature isolated from main until we're ready to release it.  The parent branch is the branch representing the overall feature.  Each developer can create child branches for individual components of the larger feature.  Their child branch still gets CI builds like all feature branches.  When they are ready to merge from their child branch to the parent branch, they create a Pull Request which gets code reviewed by other developers working on the parent feature branch and finally merged to the parent branch.
+This allows us to support multiple developers working on a single large feature while keeping that feature isolated from main until we're ready to release it. 
+The parent branch is the branch representing the overall feature. Each developer can create child branches for individual components of the larger feature.  Their child branch still gets CI builds like all feature branches.  When they are ready to merge from their child branch to the parent branch, they create a Pull Request which gets code reviewed by other developers working on the parent feature branch and finally merged to the parent branch.
 
-CumulusCI facilitates parent to child auto-merges via the `github_parent_to_children` task, which is included by deault in the `ci_feature` flow.  If a parent feature branch passes the build, it is automatically merged into all child branches.
+CumulusCI facilitates parent to child auto-merges via the `github_automerge_feature` task, which is included by deault in the `ci_feature` flow.  If a parent feature branch passes the build, it is automatically merged into all child branches.
+
+The parent to child merge functionality works across multiple levels of branching. The effects of automerging remains the same, with children only receiving merges from their parents only (e.g. no merges from grandparents)
+This allows us to have branching structures such as:
+
+* `main`
+* `feature/large-feature`
+* `feature/large-feature__section1`
+* `feature/large-feature__section1__work-item1`
+* `feature/large-feature__section1__work-item2`
+* `feature/large-feature__section2`
+* `feature/large-feature__section2__work-item1`
+
+In this scenario, a commit to the `main` branch triggers the `github_automerge_main` task to run and will automerge that commit into `feature/large-feature`.
+This triggers a build to run against `feature/large-feature`, and assuming the build passes, runs the `github_automerge_feature` task.
+This task detects two child branches of `feature/large-feature`; `feature/large_feature__section1` and `feature/large-feature__section2`.
+The task automerges the commit from the parent, into the child branches, and builds begin to run against those branches.
+If the build for `feature/large-feature__section1` fails; then it would not trigger `github_automerge_feature` against it.
+This means that despite `feature/large-feature__section1` having two child branches, they would not receive automerges.
+
+You'll see see a great use case for this type of branching strategy in the next section.
 
 Release Branches
 ----------------
 Some teams deliver large releases several times a year.
-For this type of release cadence, Salesforce.org uses a special type of branch referred to as a release branch. These long-lived branches are created off of the ``main`` branch, serve as the target branch for all features associated with that release and are eventually merged back to the ``main`` branch when a release occurs.
+For this type of release cadence, Salesforce.org uses a special type of branch referred to as a release branch. Release branches are simply a feature branch named with a number. These long-lived branches are created off of the ``main`` branch, serve as the target branch for all features associated with that release and are eventually merged back to the ``main`` branch when a release occurs.
 To be able to clearly track what work is associated with a specific release, release branches adhere to the following:
 
 * They are the parent branches of ALL feature work associated with a release. Put another way; all feature branches use the parent-child naming convention with its target release branch.
@@ -144,12 +165,12 @@ Once those tests pass, the commit on ``feature/003`` is merged to ``feature/003_
 Commits **never** propagate in the opposite direction. (A commit to ``feature/002`` would never be merged to ``feature/001`` if it was an existing branch in the GitHub repository).
 
 **Propagating commits to future release branches is turned off by default.** 
-If you would like to enable this feature for your GitHub repository, you can set the ``update_future_releases`` option on the ``github_parent_to_children`` task in your ``cumulusci.yml`` file: 
+If you would like to enable this feature for your GitHub repository, you can set the ``update_future_releases`` option on the ``github_automerge_feature`` task in your ``cumulusci.yml`` file: 
 
 .. code-block:: yaml 
 
    tasks:
-      github_parent_to_children:
+      github_automerge_feature:
       options:
          update_future_releases: True
 
