@@ -927,7 +927,7 @@ flows:
                 task: install_managed_beta
 
     release_beta:
-        group: Release Management
+        group: Release Operations
         description: Upload and release a beta version of the metadata currently in packaging
         steps:
             1:
@@ -953,7 +953,7 @@ flows:
                 task: github_master_to_feature
 
     release_production:
-        group: Release Management
+        group: Release Operations
         description: Upload and release a production version of the metadata currently in packaging
         steps:
             1:
@@ -973,6 +973,7 @@ flows:
                     version_id: ^^upload_production.version_id
 
     build_feature_test_package:
+        group: Release Operations
         description: Create a 2gp managed package version
         steps:
             1:
