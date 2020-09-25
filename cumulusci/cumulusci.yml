@@ -798,7 +798,7 @@ flows:
                 task: uninstall_packaged_incremental
 
     dev_org:
-        group: Org Creation
+        group: Org Setup
         description: Set up an org as a development environment for unmanaged metadata
         steps:
             1:
@@ -811,7 +811,7 @@ flows:
                 task: snapshot_changes
 
     dev_org_beta_deps:
-        group: Org Creation
+        group: Org Setup
         description: Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
         steps:
             1:
@@ -822,7 +822,7 @@ flows:
                 flow: config_dev
 
     dev_org_namespaced:
-        group: Org Creation
+        group: Org Setup
         description: Set up a namespaced scratch org as a development environment for unmanaged metadata
         steps:
             1:
@@ -844,7 +844,7 @@ flows:
                 task: snapshot_changes
 
     qa_org:
-        group: Org Creation
+        group: Org Setup
         description: Set up an org as a QA environment for unmanaged metadata
         steps:
             1:
@@ -857,7 +857,7 @@ flows:
                 task: snapshot_changes
 
     regression_org:
-        group: Org Creation
+        group: Org Setup
         description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
         steps:
             1:
@@ -877,7 +877,7 @@ flows:
                 task: uninstall_managed
 
     install_beta:
-        group: Install / Uninstall
+        group: Org Setup
         description: Install and configure the latest beta version
         steps:
             1:
@@ -890,7 +890,7 @@ flows:
                 task: snapshot_changes
 
     install_prod:
-        group: Install / Uninstall
+        group: Org Setup
         description: Install and configure the latest production version
         steps:
             1:
