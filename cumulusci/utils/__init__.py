@@ -479,6 +479,29 @@ def create_task_options_doc(task_options):
     return doc
 
 
+def doc_flow(flow_name, flow_config, flow_coordinator):
+    """Document (project specifc) flow configurations in RST format"""
+    doc = []
+    doc.append(f"{flow_name}\n{'-' * len(flow_name)}\n")
+    doc.append(f"**Description:** {flow_config['description']}\n")
+
+    # TODO: parse additional flow docs from a flow_ref.rst file?
+
+    doc.append(".. code-block:: console\n")
+    flow_step_lines = flow_coordinator.get_flow_steps(for_docs=True)
+    # extra indent beneath code-block and end with pip for extra space afterwards
+    flow_step_lines = [f"\t{line}" for line in flow_step_lines] + ["\n|"]
+    # fix when clauses
+    lines = []
+    for line in flow_step_lines:
+        if line.startswith("when"):
+            line = f"\t\t{line}"
+        lines.append(line)
+    doc.extend(lines)
+
+    return "\n".join(doc)
+
+
 def package_xml_from_dict(items, api_version, package_name=None):
     lines = []
 

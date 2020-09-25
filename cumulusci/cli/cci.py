@@ -46,7 +46,7 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task
+from cumulusci.utils import doc_task, doc_flow
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.git import current_branch
@@ -1361,6 +1361,25 @@ def task_doc(runtime):
         task_config = TaskConfig(options)
         doc = doc_task(name, task_config)
         click.echo(doc)
+        click.echo("")
+
+
+@flow.command(name="doc", help="Exports RST format documentation for all flows")
+@pass_runtime(require_keychain=True)
+def flow_doc(runtime):
+    config_src = runtime.universal_config
+
+    click.echo("Flow Reference")
+    click.echo("==========================================")
+    click.echo("")
+
+    for name, config in config_src.flows.items():
+        try:
+            flow_coordinator = runtime.get_flow(name)
+        except FlowNotFoundError as e:
+            raise click.UsageError(str(e))
+
+        click.echo(doc_flow(name, config, flow_coordinator))
         click.echo("")
 
 
