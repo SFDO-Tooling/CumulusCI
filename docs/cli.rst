@@ -75,8 +75,8 @@ If we want help with running a task we could type ``cci task run --help``:
 This gives us a clear usage statement, description, and shows all options available for use with the command.
 
 
-Working With Tasks and Flows
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Troubleshooting Errors
+^^^^^^^^^^^^^^^^^^^^^^
 
 Listing Tasks and Flows
 ****************************
