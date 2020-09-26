@@ -480,7 +480,7 @@ def create_task_options_doc(task_options):
 
 
 def document_flow(flow_name, description, flow_coordinator, additional_info=None):
-    """Document (project specifc) flow configurations in RST format"""
+    """Document (project specific) flow configurations in RST format"""
     doc = []
 
     doc.append(f"{flow_name}\n{'^' * len(flow_name)}\n")
