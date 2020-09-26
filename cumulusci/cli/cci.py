@@ -46,13 +46,14 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task, doc_flow
+from cumulusci.utils import document_task, document_flow
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.git import current_branch
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from cumulusci.core.utils import cleanup_org_cache_dirs
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
 from .logger import init_logger, get_tempfile_logger
@@ -1353,7 +1354,7 @@ def task_doc(runtime):
 
     for name, options in config_src.tasks.items():
         task_config = TaskConfig(options)
-        doc = doc_task(name, task_config)
+        doc = document_task(name, task_config)
         click.echo(doc)
         click.echo("")
 
@@ -1361,20 +1362,52 @@ def task_doc(runtime):
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
 @pass_runtime(require_project=False)
 def flow_doc(runtime):
-    config_src = runtime.universal_config
+    # config_src = runtime.universal_config
+
+    with open("docs/flows.yml", "r", encoding="utf-8") as f:
+        flow_info = cci_safe_load(f)
 
     click.echo("Flow Reference")
     click.echo("==========================================")
+    click.echo(flow_info["intro_blurb"])
     click.echo("")
 
-    for name, config in config_src.flows.items():
-        try:
-            flow_coordinator = runtime.get_flow(name)
-        except FlowNotFoundError as e:
-            raise click.UsageError(str(e))
+    flows = (
+        runtime.project_config.list_flows()
+        if runtime.project_config is not None
+        else runtime.universal_config.list_flows()
+    )
+    flows_by_group = group_items(flows)
 
-        click.echo(doc_flow(name, config, flow_coordinator))
-        click.echo("")
+    current_group = ""
+    for group, flows in flows_by_group.items():
+        if group != current_group:
+            current_group = group
+            click.echo(f"{group}\n{'-' * len(group)}")
+            if group in flow_info["groups"]:
+                click.echo(flow_info["groups"][group]["description"])
+
+        for flow in flows:
+            flow_name = flow[0]
+            flow_description = flow[1]
+            try:
+                flow_coordinator = runtime.get_flow(flow_name)
+            except FlowNotFoundError as e:
+                raise click.UsageError(str(e))
+
+            additional_info = None
+            if flow_name in flow_info["flows"]:
+                additional_info = flow_info["flows"][flow_name]["rst_text"]
+
+            click.echo(
+                document_flow(
+                    flow_name,
+                    flow_description,
+                    flow_coordinator,
+                    additional_info=additional_info,
+                )
+            )
+            click.echo("")
 
 
 @task.command(name="info", help="Displays information for a task")
@@ -1387,7 +1420,7 @@ def task_info(runtime, task_name):
         else runtime.universal_config.get_task(task_name)
     )
 
-    doc = doc_task(task_name, task_config).encode()
+    doc = document_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
 
 

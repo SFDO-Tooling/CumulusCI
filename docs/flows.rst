@@ -1,10 +1,29 @@
 Flow Reference
 ==========================================
+CumulusCI's suite of standard flows are grouped into various categories depending on their intended purpose.
+
+
+Continuous Integration
+----------------------
+The suite of continuous integration flows are intended to execute in the context of a CI system. They typically involve the creation of an org to have tests (Apex and Robot) run against it.
 
 ci_beta
--------
+^^^^^^^
 
 **Description:** Install the latest beta version and runs apex tests from the managed package
+
+**This is** some ``rst`` formatted text. It appears on multiple lines in the ``docs/flows.yml`` file.
+
+.. code-block:: console
+    
+    $ it even has
+    some 
+    cool
+    code blocks in it
+
+Text required before header after code block to make things work?
+subheader ***********
+Ugh. This subheader doesn't want to work :(
 
 .. code-block:: console
 
@@ -22,7 +41,7 @@ ci_beta
 |
 
 ci_feature
-----------
+^^^^^^^^^^
 
 **Description:** Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
 
@@ -53,7 +72,7 @@ ci_feature
 |
 
 ci_feature_beta_deps
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 **Description:** Install the latest beta version of dependencies and run apex tests.
 
@@ -84,7 +103,7 @@ ci_feature_beta_deps
 |
 
 ci_feature_2gp
---------------
+^^^^^^^^^^^^^^
 
 **Description:** Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
 
@@ -104,7 +123,7 @@ ci_feature_2gp
 |
 
 ci_master
----------
+^^^^^^^^^
 
 **Description:** Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
 
@@ -128,7 +147,7 @@ ci_master
 |
 
 ci_release
-----------
+^^^^^^^^^^
 
 **Description:** Install a production release version and runs tests from the managed package
 
@@ -147,8 +166,10 @@ ci_release
 
 |
 
+Post-Install Configuration
+--------------------------
 config_apextest
----------------
+^^^^^^^^^^^^^^^
 
 **Description:** Configure an org to run apex tests after package metadata is deployed
 
@@ -160,7 +181,7 @@ config_apextest
 |
 
 config_dev
-----------
+^^^^^^^^^^
 
 **Description:** Configure an org for use as a dev org after package metadata is deployed
 
@@ -172,7 +193,7 @@ config_dev
 |
 
 config_managed
---------------
+^^^^^^^^^^^^^^
 
 **Description:** Configure an org for use as a dev org after package metadata is deployed
 
@@ -184,7 +205,7 @@ config_managed
 |
 
 config_packaging
-----------------
+^^^^^^^^^^^^^^^^
 
 **Description:** Configure packaging org for upload after package metadata is deployed
 
@@ -195,7 +216,7 @@ config_packaging
 |
 
 config_qa
----------
+^^^^^^^^^
 
 **Description:** Configure an org for use as a QA org after package metadata is deployed
 
@@ -207,7 +228,7 @@ config_qa
 |
 
 config_regression
------------------
+^^^^^^^^^^^^^^^^^
 
 **Description:** Configure an org for QA regression after the package is installed
 
@@ -219,8 +240,10 @@ config_regression
 
 |
 
+Dependency Management
+---------------------
 dependencies
-------------
+^^^^^^^^^^^^
 
 **Description:** Deploy dependencies to prepare the org environment for the package metadata
 
@@ -232,7 +255,7 @@ dependencies
 |
 
 beta_dependencies
------------------
+^^^^^^^^^^^^^^^^^
 
 **Description:** Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata
 
@@ -243,8 +266,10 @@ beta_dependencies
 
 |
 
+Deployment
+----------
 deploy_unmanaged
-----------------
+^^^^^^^^^^^^^^^^
 
 **Description:** Deploy the unmanaged metadata from the package
 
@@ -265,7 +290,7 @@ deploy_unmanaged
 |
 
 deploy_unmanaged_ee
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 **Description:** Deploy the unmanaged metadata from the package to an Enterprise Edition org
 
@@ -283,7 +308,7 @@ deploy_unmanaged_ee
 |
 
 deploy_packaging
-----------------
+^^^^^^^^^^^^^^^^
 
 **Description:** Process and deploy the package metadata to the packaging org
 
@@ -300,8 +325,32 @@ deploy_packaging
 
 |
 
+unmanaged_ee
+^^^^^^^^^^^^
+
+**Description:** Deploy the unmanaged package metadata and all dependencies to the target EE org
+
+.. code-block:: console
+
+	1) flow: dependencies
+	    1) task: update_dependencies
+	    2) task: deploy_pre
+	2) flow: deploy_unmanaged_ee
+	    0) task: dx_convert_from
+	       when: project_config.project__source_format == "sfdx"
+	    1) task: unschedule_apex
+	    2) task: update_package_xml
+	    3) task: create_unmanaged_ee_src
+	    4) task: deploy
+	    5) task: revert_unmanaged_ee_src
+	    6) task: uninstall_packaged_incremental
+
+|
+
+Org Setup
+---------
 dev_org
--------
+^^^^^^^
 
 **Description:** Set up an org as a development environment for unmanaged metadata
 
@@ -330,7 +379,7 @@ dev_org
 |
 
 dev_org_beta_deps
------------------
+^^^^^^^^^^^^^^^^^
 
 **Description:** Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
 
@@ -358,7 +407,7 @@ dev_org_beta_deps
 |
 
 dev_org_namespaced
-------------------
+^^^^^^^^^^^^^^^^^^
 
 **Description:** Set up a namespaced scratch org as a development environment for unmanaged metadata
 
@@ -387,7 +436,7 @@ dev_org_namespaced
 |
 
 qa_org
-------
+^^^^^^
 
 **Description:** Set up an org as a QA environment for unmanaged metadata
 
@@ -416,7 +465,7 @@ qa_org
 |
 
 regression_org
---------------
+^^^^^^^^^^^^^^
 
 **Description:** Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
 
@@ -436,20 +485,8 @@ regression_org
 
 |
 
-uninstall_managed
------------------
-
-**Description:** Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
-
-.. code-block:: console
-
-	1) task: uninstall_post
-	2) task: uninstall_managed
-
-|
-
 install_beta
-------------
+^^^^^^^^^^^^
 
 **Description:** Install and configure the latest beta version
 
@@ -467,7 +504,7 @@ install_beta
 |
 
 install_prod
-------------
+^^^^^^^^^^^^
 
 **Description:** Install and configure the latest production version
 
@@ -484,8 +521,22 @@ install_prod
 
 |
 
+Install / Uninstall
+-------------------
+uninstall_managed
+^^^^^^^^^^^^^^^^^
+
+**Description:** Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
+
+.. code-block:: console
+
+	1) task: uninstall_post
+	2) task: uninstall_managed
+
+|
+
 install_prod_no_config
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 **Description:** Install but do not configure the latest production version
 
@@ -500,7 +551,7 @@ install_prod_no_config
 |
 
 install_regression
-------------------
+^^^^^^^^^^^^^^^^^^
 
 **Description:** Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
 
@@ -514,8 +565,10 @@ install_regression
 
 |
 
+Release Operations
+------------------
 release_beta
-------------
+^^^^^^^^^^^^
 
 **Description:** Upload and release a beta version of the metadata currently in packaging
 
@@ -529,7 +582,7 @@ release_beta
 |
 
 release_production
-------------------
+^^^^^^^^^^^^^^^^^^
 
 **Description:** Upload and release a production version of the metadata currently in packaging
 
@@ -542,7 +595,7 @@ release_production
 |
 
 build_feature_test_package
---------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Description:** Create a 2gp managed package version
 
@@ -554,41 +607,39 @@ build_feature_test_package
 
 |
 
-retrieve_scratch
-----------------
+Other
+-----
+robot_docs
+^^^^^^^^^^
 
-**Description:** Retrieves declarative changes made in a scratch org and converts to src directory
+**Description:** Generates documentation for robot framework libraries
 
 .. code-block:: console
 
-	1) task: dx_convert_to
-	2) task: dx_pull
-	3) task: dx_convert_from
-	4) task: update_package_xml
-	5) task: retrieve_unpackaged
-	6) task: update_package_xml
+	1) task: robot_libdoc
+	2) task: robot_testdoc
 
 |
 
-unmanaged_ee
-------------
+test_performance_scratch
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Description:** Deploy the unmanaged package metadata and all dependencies to the target EE org
+**Description:** Test performance of a scratch org
 
 .. code-block:: console
 
-	1) flow: dependencies
-	    1) task: update_dependencies
-	    2) task: deploy_pre
-	2) flow: deploy_unmanaged_ee
-	    0) task: dx_convert_from
-	       when: project_config.project__source_format == "sfdx"
-	    1) task: unschedule_apex
-	    2) task: update_package_xml
-	    3) task: create_unmanaged_ee_src
-	    4) task: deploy
-	    5) task: revert_unmanaged_ee_src
-	    6) task: uninstall_packaged_incremental
+	1) task: robot
+
+|
+
+test_performance_LDV
+^^^^^^^^^^^^^^^^^^^^
+
+**Description:** Test performance in an LDV org
+
+.. code-block:: console
+
+	1) task: robot
 
 |
 

@@ -17,7 +17,7 @@ from cumulusci.core.tasks import BaseTask
 
 
 class FunTestTask(BaseTask):
-    """For testing doc_task"""
+    """For testing document_task"""
 
     task_options = {
         "color": {"description": "What color"},
@@ -34,7 +34,7 @@ class FunTestTask(BaseTask):
 
 
 class FunTestTaskChild(FunTestTask):
-    """For testing doc_task"""
+    """For testing document_task"""
 
     task_options = {
         "flavor": {"description": "What flavor", "required": True},
@@ -189,8 +189,8 @@ class TestUtils:
         result = utils.remove_xml_element("tag", tree)
         assert result is tree
 
-    def test_doc_task(self, task_config):
-        task_doc = utils.doc_task("scoop_icecream", task_config)
+    def test_document_task(self, task_config):
+        task_doc = utils.document_task("scoop_icecream", task_config)
         assert (
             task_doc
             == """**scoop_icecream**
@@ -260,6 +260,44 @@ Options\n------------------------------------------\n\n
         ]
 
         assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
+
+    def test_document_flow(self):
+        flow_steps = ["1) (Task) Extract"]
+        flow_coordinator = mock.Mock(get_flow_steps=mock.Mock(return_value=flow_steps))
+        flow_doc = utils.document_flow(
+            "test flow", "test description.", flow_coordinator
+        )
+
+        expected_doc = (
+            "test flow"
+            "\n^^^^^^^^^\n"
+            "\n**Description:** test description.\n"
+            "\n.. code-block:: console\n"
+            "\n\t1) (Task) Extract\n\n|"
+        )
+        assert expected_doc == flow_doc
+
+    def test_document_flow__additional_info(self):
+        flow_steps = ["1) (Task) Extract"]
+        flow_coordinator = mock.Mock(get_flow_steps=mock.Mock(return_value=flow_steps))
+        other_info = "**this is** just some rst ``formatted`` text."
+
+        flow_doc = utils.document_flow(
+            "test flow",
+            "test description.",
+            flow_coordinator,
+            additional_info=other_info,
+        )
+
+        expected_doc = (
+            "test flow"
+            "\n^^^^^^^^^\n"
+            "\n**Description:** test description.\n"
+            f"\n{other_info}"
+            "\n.. code-block:: console\n"
+            "\n\t1) (Task) Extract\n\n|"
+        )
+        assert expected_doc == flow_doc
 
     @responses.activate
     def test_download_extract_zip(self):
@@ -446,14 +484,14 @@ Options\n------------------------------------------\n\n
         zf = utils.zip_clean_metaxml(zf)
         assert b"<root>\xc3\xb1</root>" == zf.read("classes/test-meta.xml")
 
-    def test_doc_task_not_inherited(self):
+    def test_document_task_not_inherited(self):
         task_config = TaskConfig(
             {
                 "class_path": "cumulusci.tests.test_utils.FunTestTaskChild",
                 "options": {"color": "black"},
             }
         )
-        result = utils.doc_task("command", task_config)
+        result = utils.document_task("command", task_config)
 
         assert "extra docs" not in result
 

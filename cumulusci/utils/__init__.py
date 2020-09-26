@@ -369,7 +369,7 @@ def zip_clean_metaxml(zip_src, logger=None):
     return zip_dest
 
 
-def doc_task(task_name, task_config, project_config=None, org_config=None):
+def document_task(task_name, task_config, project_config=None, org_config=None):
     """ Document a (project specific) task configuration in RST format. """
     from cumulusci.core.utils import import_global
 
@@ -479,17 +479,19 @@ def create_task_options_doc(task_options):
     return doc
 
 
-def doc_flow(flow_name, flow_config, flow_coordinator):
+def document_flow(flow_name, description, flow_coordinator, additional_info=None):
     """Document (project specifc) flow configurations in RST format"""
     doc = []
-    doc.append(f"{flow_name}\n{'-' * len(flow_name)}\n")
-    doc.append(f"**Description:** {flow_config['description']}\n")
 
-    # TODO: parse additional flow docs from a flow_ref.rst file?
+    doc.append(f"{flow_name}\n{'^' * len(flow_name)}\n")
+    doc.append(f"**Description:** {description}\n")
+
+    if additional_info:
+        doc.append(additional_info)
 
     doc.append(".. code-block:: console\n")
     flow_step_lines = flow_coordinator.get_flow_steps(for_docs=True)
-    # extra indent beneath code-block and end with pip for extra space afterwards
+    # extra indent beneath code-block and finish with pipe for extra space afterwards
     flow_step_lines = [f"\t{line}" for line in flow_step_lines] + ["\n|"]
     # fix when clauses
     lines = []

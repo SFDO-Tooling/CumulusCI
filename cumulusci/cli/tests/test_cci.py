@@ -1794,7 +1794,7 @@ Environment Info: Rossian / x68_46
 
         json_.assert_called_with([task_dicts])
 
-    @mock.patch("cumulusci.cli.cci.doc_task")
+    @mock.patch("cumulusci.cli.cci.document_task")
     def test_task_doc(self, doc_task):
         runtime = mock.Mock()
         runtime.universal_config.tasks = {"test": {}}
@@ -1803,7 +1803,7 @@ Environment Info: Rossian / x68_46
         doc_task.assert_called()
 
     @mock.patch("cumulusci.cli.cci.rst2ansi")
-    @mock.patch("cumulusci.cli.cci.doc_task")
+    @mock.patch("cumulusci.cli.cci.document_task")
     def test_task_info(self, doc_task, rst2ansi):
         runtime = mock.Mock()
         runtime.project_config.tasks__test = {"options": {}}
@@ -1956,13 +1956,45 @@ Environment Info: Rossian / x68_46
         with self.assertRaises(click.UsageError):
             run_click_command(cci.flow_info, runtime=runtime, flow_name="test")
 
-    @mock.patch("cumulusci.cli.cci.doc_flow")
-    def test_task_flow(self, doc_flow):
+    @mock.patch("cumulusci.cli.cci.group_items")
+    @mock.patch("cumulusci.cli.cci.document_flow")
+    def test_flow_doc__no_flows_rst_file(self, doc_flow, group_items):
         runtime = mock.Mock()
         runtime.universal_config.flows = {"test": {}}
+        group_items.return_value = {"Group One": ["test flow", "description"]}
 
         run_click_command(cci.flow_doc, runtime=runtime)
+        group_items.assert_called_once()
         doc_flow.assert_called()
+
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.cci_safe_load")
+    @mock.patch("cumulusci.cli.cci.group_items")
+    @mock.patch("cumulusci.cli.cci.document_flow")
+    def test_flow_doc__with_flows_rst_file(
+        self, doc_flow, group_items, safe_load, echo
+    ):
+        runtime = mock.Mock()
+        runtime.universal_config.flows = {"test": {}}
+        safe_load.return_value = {
+            "intro_blurb": "opening blurb for flow reference doc",
+            "groups": {"Group One": {"description": "This is a descripiton"}},
+            "flows": {"test flow1": {"rst_text": "Some ``extra`` **pizzaz**!"}},
+        }
+        group_items.return_value = {
+            "Group One": [
+                ["test flow1", "This is a description."],
+                ["test flow2", "This is another description."],
+            ]
+        }
+
+        run_click_command(cci.flow_doc, runtime=runtime)
+
+        group_items.assert_called_once()
+        doc_flow.assert_called()
+        group_items.assert_called_once()
+        safe_load.assert_called_once()
+        assert 10 == echo.call_count
 
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})

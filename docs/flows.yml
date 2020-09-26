@@ -1,0 +1,29 @@
+intro_blurb: >
+    CumulusCI's suite of standard flows are grouped into various categories depending on their intended purpose.
+
+groups:
+    Continuous Integration:
+        description: >
+            The suite of continuous integration flows are intended to execute in the context of a CI system.
+            They typically involve the creation of an org to have tests (Apex and Robot) run against it.
+flows:
+    ci_beta:
+        rst_text: >
+            **This is** some ``rst`` formatted text.
+            It appears on multiple lines in the ``docs/flows.yml`` file.
+
+
+            .. code-block:: console
+                
+                $ it even has
+                some 
+                cool
+                code blocks in it
+
+            Text required before header after code block to make things work?
+
+            subheader
+            ***********
+
+            Ugh. This subheader doesn't want to work :(
+    
