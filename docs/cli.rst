@@ -88,7 +88,7 @@ Listing Tasks and Flows
     $ cci task list
     $ cci flow list
 
-The tasks and flows listed are *specific to the project* you're running the command int.
+The tasks and flows listed are specific to the project where you run the command.
 If you have a custom flow defined in your ``cumulusci.yml`` file for ProjectA, it will only show if you run ``cci flow list`` in ProjectA's repository directory.
 Tasks and Flows are listed grouped by their ``group`` attribute as specified in the ``cumulusci.yml`` file.
 This means it's easy to edit these groups as you see fit!
