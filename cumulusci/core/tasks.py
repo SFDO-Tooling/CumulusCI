@@ -8,6 +8,7 @@ import os
 import re
 import time
 import threading
+from typing import Type
 
 from pydantic.error_wrappers import ValidationError
 
@@ -22,6 +23,8 @@ CURRENT_TASK = threading.local()
 CURRENT_TASK.stack = []
 
 PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
+
+CCIOptions = "cumulusci.utils.option_parsing.CCIOptions"
 
 
 @contextlib.contextmanager
@@ -41,7 +44,7 @@ class BaseTask(object):
     """
 
     task_docs = ""
-    Options = None
+    Options: Type[CCIOptions] = None
     salesforce_task = False  # Does this task require a salesforce org?
 
     def __init__(
@@ -120,7 +123,7 @@ class BaseTask(object):
                 try:
                     message = f"Task Options Error: '{e.errors()[0]['loc'][0]}' {e.errors()[0]['msg']}"
                 except (AttributeError, IndexError):
-                    message = f"Task Options Error"
+                    message = "Task Options Error"
                 if "extra fields not permitted" in message:
                     message = message.replace("extra fields", "extra options")
                 raise TaskOptionsError(message) from e
