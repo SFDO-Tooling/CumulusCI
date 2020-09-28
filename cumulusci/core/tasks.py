@@ -128,7 +128,7 @@ class BaseTask(object):
                     errorstrs = ", ".join(errors)
                     message = f"Task Options Error{plural}: {errorstrs}"
                 except (AttributeError, IndexError):
-                    message = "Task Options Error"
+                    message = f"Task Options Error: {e.errors()}"
                 if "extra fields not permitted" in message:
                     message = message.replace("extra fields", "extra options")
                 raise TaskOptionsError(message) from e
