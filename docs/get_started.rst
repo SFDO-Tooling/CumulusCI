@@ -263,36 +263,54 @@ Add Your Repo to GitHub
 ^^^^^^^^^^^^^^^^^^^^^^^
 With your ``cumulusci.yml`` file committed, we now want to create a repository on GitHub for our new project and push our changes there.
 
-1) `Create a new repository <https://docs.github.com/en/free-pro-team@latest/articles/creating-a-new-repository>`_ on GitHub.
-2) At the top of your GitHub Repository's Quick Setup page, click the clipboard button to copy the remote repository URL.
-3) In your terminal, `add the URL for the remote repository <https://docs.github.com/en/free-pro-team@latest/articles/adding-a-remote>`_ to where your local repository will be pushed::
+#. `Create a new repository <https://docs.github.com/en/free-pro-team@latest/articles/creating-a-new-repository>`_ on GitHub.
+#. At the top of your GitHub Repository's Quick Setup page, click the clipboard button to copy the remote repository URL.
+#. In your terminal, `add the URL for the remote repository <https://docs.github.com/en/free-pro-team@latest/articles/adding-a-remote>`_ to where your local repository will be pushed::
 
     $ git remote add origin <remote_repository_url>
 
-4) Verify the remote was added successfullly with::
+#. Verify the remote was added successfullly with::
 
     $ git remote -v
 
-5) `Push the changes <https://docs.github.com/en/free-pro-team@latest/github/using-git/pushing-commits-to-a-remote-repository>`_ in your local repository to GitHub::
+#. `Push the changes <https://docs.github.com/en/free-pro-team@latest/github/using-git/pushing-commits-to-a-remote-repository>`_ in your local repository to GitHub::
 
     $ git push -u origin master
 
 Convert an Existing Salesforce Project
 --------------------------------------
-If you have a Salesforce project that currently lives in multiple persistent Salesforce orgs that you would like to begin tracking in version control
+The following steps outline how you can get an existing Salesforce project into source control and configured for CumulusCI:
+
+#. Create a directory for your project to live in, and navigate to it::
+
+    $ mkdir mySalesforceProject; cd mySalesforceProject
+
+#. Initialize the directory as a git repository::
+
+    $ git init 
+    Initialized empty Git repository in /Users/MrCCI/repos/mySalesforceProject/.git/
+
+#. Initialize the repository as a CumulusCI project. See `project initialization`_.
+
+#. Next we need to extract your package metadata. Depending on what type of org your project is in, there are different methods for extracting the desired pieces of metadata.
+    * Production or Developer Edition Orgs
+        #. Create a package for your  
+
+    * Scratch or Sandbox Orgs
+        * Metadata is easier to extract in these orgs as `source tracking <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_source_tracking_sandboxes.htm>`_ can be enabled in them.
+        * With this feature enabled we can easily retrieve all of the metadata changes we've made to an org by running ``sfdx force:source:pull``.
 
 In order to configure an existing Salesforce Package project for CumulusCI the following must be true:
-    * CumulusCI must be installed on your host.
-    * Your project must be located in a GitHub repository.
-    * Your project must adhere to either `metadata or source formats<TODO - link>`.
+* CumulusCI must be installed on your host.
+* Your project must be located in a GitHub repository.
+* Your project must adhere to either `metadata or source formats<TODO - link>`.
 
 If the above are true, then you run ``cci project init`` from inside the project repository root to generate your projects ``cumulusci.yml`` file.
 See `project initialization`_ for more info.
 
-Conversion Considerations
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Other Considerations
+^^^^^^^^^^^^^^^^^^^^
 
-    * Generate your projects ``cumulusci.yml`` with ``cci project init``.
-    * Migrate any existing org.json files under ``orgs/``.
-    * Do you have metadata that you would like deployed pre or post deployment? `TODO: pre/post link` 
-    * 
+* Generate your projects ``cumulusci.yml`` with ``cci project init``.
+* Migrate any existing org.json files under ``orgs/``.
+* Do you have metadata that you would like deployed pre or post deployment? `TODO: pre/post link` 
