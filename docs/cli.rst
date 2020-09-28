@@ -46,7 +46,7 @@ We see that there are even more subcommands available under ``cci task``.
 
 Getting ``--help``
 ------------------
-If you aren't sure what a specific command does you can always utilize the ``--help`` option.
+If you aren't sure what a specific command does, you can utilize the ``--help`` option to get more information. 
 If we want help with running a task we could type ``cci task run --help``:
 
 .. code-block:: console
@@ -245,4 +245,3 @@ will no longer be suppressed when they are thrown within CumulusCI.
 Usage Errors (wrong command line arguments, missing files, etc.)
 will not show you exception tracebacks because they are seldom
 helpful in that case.
-
