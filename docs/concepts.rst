@@ -7,7 +7,7 @@ CumulusCI extends the concepts of the `Org Development Model <https://trailhead.
 
 The Product Delivery Model focuses on the customer experience, not on the technical artifacts you're delivering, and focuses on making it possible to deliver a first-class, fully configured customer experience – no matter how complex the product might be. When building a product, there can be detailed technical considerations for whether a specific component is best distributed within a package, as additional unpackaged metadata, or as sophisticated setup automation that runs before or after a package is installed. And, of course, a product may include not one, but several packages, which must be installed in sequence. CumulusCI makes it possible to deliver a cohesive product that makes use of these different techniques.
 
-CumulusCI automation, which makes it easy to create products that span multiple package repositories and include complex setup operations, is how we implement the Product Delivery Model. We also use MetaDeploy and other applications in the CumulusCI Suite to harness CumulusCI automation as we deliver products directly to customers.
+CumulusCI automation, which makes it easy to create products that span multiple package repositories and include complex setup operations, is how we implement the Product Delivery Model throughout the development lifecycle. We also use MetaDeploy and other applications in the CumulusCI Suite to harness CumulusCI automation as we deliver products directly to customers.
 
 The Product Delivery Model aims to represent a holistic view of delivery of a product instead of simply releasing a package. Here's a real-world example drawn from Salesforce.org's product portfolio.
 
