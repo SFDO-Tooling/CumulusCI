@@ -8,8 +8,8 @@ Getting started with CumulusCI is easy, and once installed, you can:
 Install CumulusCI
 -----------------
 
-macOS / Linux
-^^^^^^^^^^^^^
+On macOS / Linux
+^^^^^^^^^^^^^^^^
 `Homebrew <https://brew.sh/>`_ is a prerequisite for installing CumulusCI on macOS and Linux.
 To install homebrew enter the following command into a terminal window:
 
@@ -23,17 +23,12 @@ Enter it to allow your computer to install Homebrew.
 
 Install via ``pipx`` (recommended)
 *************************************
-To install pipx:
+Once Homebrew is installed, you can install ``pipx`` and CumulusCI.
 
 .. code-block:: console
 
     $ brew install pipx
     $ pipx ensurepath
-
-After pipx is installed you can install CumulusCI:
-
-.. code-block:: console
-
     $ pipx install cumulusci
 
 Once finished you can `verify your installation`_.
@@ -41,8 +36,8 @@ Once finished you can `verify your installation`_.
 Install via Homebrew
 ***********************
 You can also install CumulusCI is using `Homebrew <https://brew.sh/>`_.
-Our team has seen issues related to the way that Homebrew installs an manages project dependencies, that can cause issues with the system keychain.
-This is why we recommend installing via ``pipx`` if it is an available option to you.
+Our team has seen issues related to the way that Homebrew installs and manages project dependencies, that can cause issues with the system keychain.
+This is why we recommend installing via ``pipx`` if it is an available option
 
 With Homebrew already installed, you can install CumulusCI with:
 
@@ -53,8 +48,8 @@ With Homebrew already installed, you can install CumulusCI with:
 These commands can take several minutes to complete.
 Once finished, you can `verify your installation`_.
 
-Windows
-^^^^^^^
+On Windows
+^^^^^^^^^^
 
 Install Python 3
 ********************
@@ -67,7 +62,7 @@ Install Python 3
 
 .. image:: images/windows_python.png
 
-Install ``pipx``
+Install via ``pipx``
 ***********************
 
 Open your preferred terminal application
@@ -99,8 +94,6 @@ You should see a version number after entering in this command, such as: ``0.12.
 If you get an error instead, such as ``'pipx' is not recognized as an internal or external command,
 operable program or batch file.``, please check that your environment variables have been updated.
 
-Install CumulusCI
-*************************
 You can now install CumulusCI with::
 
     $ pipx install cumulusci
@@ -111,21 +104,19 @@ Now `verify your installation`_.
 Verify Your Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-In a new terminal window or command prompt you can verify that CumulusCI
-is installed correctly by running ``cci version``:
+In a new terminal window can verify that CumulusCI is installed correctly by running ``cci version``:
 
 .. code:: console
 
     $ cci version
-    CumulusCI version: 3.9.0 (/path/to/bin/cci)
-    Python version: 3.7.4 (/path/to/bin/python)
+    CumulusCI version: 3.19.0 (/path/to/bin/cci)
+    Python version: 3.8.5 (/path/to/bin/python)
 
     You have the latest version of CumulusCI.
 
 You can also use this command in the future to check whether your CumulusCI installation is up to date.
 
-Still need help? Search through `CumulusCI's issues on GitHub <https://github.com/SFDO-Tooling/CumulusCI/issues>`_
-
+Still need help? `CumulusCI's issues on GitHub <https://github.com/SFDO-Tooling/CumulusCI/issues>`_ may have something useful.
 
 
 Connect to GitHub
@@ -147,15 +138,38 @@ Once you've configured the `github` service it will be available to **all** proj
 
 Work on an Existing CumulusCI Project
 -------------------------------------
-If you're new to a team that is using the CumulusCI workflow, or want to work on an existin CumlusCI project all you need is:
-    * Install CumulusCI on you host
-    * Make a local clone of the projects GitHub repository.
+To work on existing CumulusCI project all you need is to:
 
-Once completed, you can change directories into a git repository that has been configured for CumulusCI and run `cci project info` to view information about it: 
+* `Install CumulusCI`_
+* `Install git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
+* Make a local clone of the projects GitHub repository.
+
+Cloning a GitHub Repository
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Cloning a projects repository gives you a local working copy of the project on your computer.
+The following steps assume that you have `git installed <https://git-scm.com/downloads>`_ on your machine.
+To clone a GitGub repository:
+
+1) Navigate to the repository on GitHub
+2) Click the green 'Code' button
+3) Ensure 'HTTPS' is selected
+4) Click the clipboard button to copy the https repository url to your clipboard.
+5) In a new terminal window exectue the following command:
 
 .. code-block:: console
 
-    $ cd path/to/your/repo
+    $ git clone <repository_url> <project_name>
+
+Replace ``<repository_url>`` with the url copied to your clipboard. 
+Replace ``<project_name>`` with the name of the project.
+
+
+You can now change directorie into the freshly cloned project and begin executing ``cci`` commands.
+`cci project info` can be run to display information about the project: 
+
+.. code-block:: console
+
+    $ cd cumulusci-test
 
     $ cci project info
     name: CumulusCI Test
@@ -247,9 +261,21 @@ You can add and commit it to your git repository:
 
 Add Your Repo to GitHub
 ^^^^^^^^^^^^^^^^^^^^^^^
-With your ``cumulusci.yml`` file committed, we are now ready 
+With your ``cumulusci.yml`` file committed, we now want to create a repository on GitHub for our new project and push our changes there.
 
+1) `Create a new repository <https://docs.github.com/en/free-pro-team@latest/articles/creating-a-new-repository>`_ on GitHub.
+2) At the top of your GitHub Repository's Quick Setup page, click the clipboard button to copy the remote repository URL.
+3) In your terminal, `add the URL for the remote repository <https://docs.github.com/en/free-pro-team@latest/articles/adding-a-remote>`_ to where your local repository will be pushed::
 
+    $ git remote add origin <remote_repository_url>
+
+4) Verify the remote was added successfullly with::
+
+    $ git remote -v
+
+5) `Push the changes <https://docs.github.com/en/free-pro-team@latest/github/using-git/pushing-commits-to-a-remote-repository>`_ in your local repository to GitHub::
+
+    $ git push -u origin master
 
 Convert an Existing Salesforce Project
 --------------------------------------
@@ -258,7 +284,7 @@ If you have a Salesforce project that currently lives in multiple persistent Sal
 In order to configure an existing Salesforce Package project for CumulusCI the following must be true:
     * CumulusCI must be installed on your host.
     * Your project must be located in a GitHub repository.
-    * Your project must adhere to either `metadata or source formats<https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_source_file_format.htm?search_text=source%20format>`_.
+    * Your project must adhere to either `metadata or source formats<TODO - link>`.
 
 If the above are true, then you run ``cci project init`` from inside the project repository root to generate your projects ``cumulusci.yml`` file.
 See `project initialization`_ for more info.
@@ -268,5 +294,5 @@ Conversion Considerations
 
     * Generate your projects ``cumulusci.yml`` with ``cci project init``.
     * Migrate any existing org.json files under ``orgs/``.
-    * Do you have metadata that you would like deployed pre or post deployment? `pre/post link`_ 
+    * Do you have metadata that you would like deployed pre or post deployment? `TODO: pre/post link` 
     * 
