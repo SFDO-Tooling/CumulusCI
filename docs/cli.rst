@@ -228,7 +228,7 @@ For this feature to work you will need to ensure that your `github service is se
 
 The following information is included in the gist:
     * The current version of ``cci``
-    * The current python version
+    * The current Python version
     * The path to the python executable
     * The ``sysname`` of the host (e.g. Darwin)
     * The machine name of the host (e.g. x86_64)
