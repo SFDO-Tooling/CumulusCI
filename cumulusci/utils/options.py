@@ -30,7 +30,7 @@ class CCIOptions(CCIDictModel):
 
 
 class CCIOptionType:
-    """Base class custom option types.
+    """Base class for custom option types.
 
     Subclasses must implement 'from_str' and it must have a type-hinted return value like this:
 
@@ -105,9 +105,13 @@ def parse_list_of_pairs_dict_arg(arg):
         raise TypeError(f"Arg is not a dict or string ({type(arg)}): {arg}")
 
 
-# These are so that others don't
-# need to import directly from Pydantic
-# TODO: Discuss with @davisagli
-Field = Field
-FilePath = FilePath
-DirectoryPath = DirectoryPath
+__all__ = [
+    "Field",
+    "FilePath",
+    "DirectoryPath",
+    "parse_list_of_pairs_dict_arg",
+    "CCIOptions",
+    "CCIOptionType",
+    "ListOfStringsOption",
+    "MappingOption",
+]
