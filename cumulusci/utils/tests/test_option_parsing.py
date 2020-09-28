@@ -148,3 +148,11 @@ class TestTaskOptionsParsing:
             TaskToTestTypes(self.project_config, task_config, self.org_config)
         assert "req" in str(e.value)
         assert "none" in str(e.value)
+
+    def test_multiple_errors(self):
+        task_config = TaskConfig({"options": {"the_bool": "Nope"}})
+        with pytest.raises(TaskOptionsError) as e:
+            TaskToTestTypes(self.project_config, task_config, self.org_config)
+        assert "the_bool" in str(e.value)
+        assert "req" in str(e.value)
+        assert "Errors" in str(e.value)

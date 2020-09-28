@@ -121,7 +121,12 @@ class BaseTask(object):
                 self.parsed_options = self.Options(**self.options)
             except ValidationError as e:
                 try:
-                    message = f"Task Options Error: '{e.errors()[0]['loc'][0]}' {e.errors()[0]['msg']}"
+                    errors = [
+                        f"{error['loc'][0]}: '{error['msg']}'" for error in e.errors()
+                    ]
+                    plural = "s" if len(errors) > 1 else ""
+                    errorstrs = ", ".join(errors)
+                    message = f"Task Options Error{plural}: {errorstrs}"
                 except (AttributeError, IndexError):
                     message = "Task Options Error"
                 if "extra fields not permitted" in message:
