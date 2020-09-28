@@ -168,6 +168,6 @@ MetaDeploy is our custom installer app run on Heroku to automate complex install
 Next Steps
 ==========
 
-Interested in trying it out?  Check out the CumulusCI :doc:`tutorial` or our :doc:`usage` screencasts.
+Interested in trying it out?  Check out the `CumulusCI Basics Module <https://trailhead.salesforce.com/content/learn/modules/cumulusci-basics?trail_id=build-applications-with-cumulusci>`_ on trailhead.
 
 Want to find out more about our development and release process?  Check out :doc:`cumulusci_flow`
