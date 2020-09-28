@@ -122,7 +122,8 @@ class BaseTask(object):
             except ValidationError as e:
                 try:
                     errors = [
-                        f"{error['loc'][0]}: '{error['msg']}'" for error in e.errors()
+                        f"Error in '{error['loc'][0]}' option: '{error['msg']}'"
+                        for error in e.errors()
                     ]
                     plural = "s" if len(errors) > 1 else ""
                     errorstrs = ", ".join(errors)
@@ -133,7 +134,9 @@ class BaseTask(object):
                     message = message.replace("extra fields", "extra options")
                 raise TaskOptionsError(message) from e
             except (TaskOptionsError, TypeError) as e:
-                raise TaskOptionsError(f"Task Options Error: '{option}': {e}")
+                raise TaskOptionsError(
+                    f"Task Options Error: Error in '{option}' option: '{e}'"
+                )
 
     def _validate_options(self):
         missing_required = []
