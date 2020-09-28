@@ -6,7 +6,7 @@ Throughout this section, we'll focus on scratch org management in the CumulusCI 
 What is an Org in CumulusCI?
 ----------------------------
 
-CumulusCI takes a different approach to creating and using scratch orgs that aims to make the process easier, more portable, and more repeatable. CumulusCI's keychain tracks orgs as named, reproducible configurations, from which you can generate scratch orgs at need. An org in CumulusCI's keychain starts out as a configuration. The scratch org is only actually generated the first time you use the scratch org from the project keychain - and once it's expired or been deleted, a new one can easily be created with the same configuration.
+CumulusCI takes a different approach to creating and using scratch orgs that aims to make the process easier, more portable, and more repeatable. An org in CumulusCI's keychain starts out as a named configuration, tailored for a specific purpose within the lifecycle of the project. The scratch org is only actually generated the first time you use the scratch org from the project keychain - and once it's expired or been deleted, a new one can easily be created with the same configuration.
 
 CumulusCI offers tools that make it easy to discover predefined org configurations, create scratch orgs based on those configurations, and define new orgs and new configurations.
 
