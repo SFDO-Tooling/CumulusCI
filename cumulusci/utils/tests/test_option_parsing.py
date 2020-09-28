@@ -11,7 +11,7 @@ from cumulusci.core.config import (
     TaskConfig,
 )
 from cumulusci.core.tasks import BaseTask
-from cumulusci.utils.option_parsing import (
+from cumulusci.utils.options import (
     CCIOptions,
     Field,
     ListOfStringsOption,

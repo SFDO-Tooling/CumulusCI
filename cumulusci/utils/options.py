@@ -5,8 +5,6 @@ from inspect import signature
 from pydantic import Field, create_model, FilePath, DirectoryPath
 
 from cumulusci.utils.yaml.model_parser import CCIDictModel
-from cumulusci.core.utils import process_list_of_pairs_dict_arg
-from cumulusci.core.exceptions import TaskOptionsError
 
 
 def _describe_field(field):
@@ -84,10 +82,27 @@ class MappingOption(CCIOptionType):
 
     @classmethod
     def from_str(cls, v) -> Dict[str, Any]:
-        try:
-            return process_list_of_pairs_dict_arg(v)
-        except TaskOptionsError as e:
-            raise TypeError(e)
+        return parse_list_of_pairs_dict_arg(v)
+
+
+def parse_list_of_pairs_dict_arg(arg):
+    """Process an arg in the format "aa:bb,cc:dd" """
+    if isinstance(arg, dict):
+        return arg
+    elif isinstance(arg, str):
+        rc = {}
+        for key_value in arg.split(","):
+            subparts = key_value.split(":")
+            if len(subparts) == 2:
+                key, value = subparts
+                if key in rc:
+                    raise TypeError(f"Var specified twice: {key}")
+                rc[key] = value
+            else:
+                raise TypeError(f"Var is not a name/value pair: {key_value}")
+        return rc
+    else:
+        raise TypeError(f"Arg is not a dict or string ({type(arg)}): {arg}")
 
 
 # These are so that others don't

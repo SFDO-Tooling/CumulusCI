@@ -6,7 +6,7 @@ from xml.dom.minidom import parse
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
-from cumulusci.utils.option_parsing import (
+from cumulusci.utils.options import (
     Field,
     DirectoryPath,
     CCIOptions,

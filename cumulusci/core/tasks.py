@@ -24,7 +24,7 @@ CURRENT_TASK.stack = []
 
 PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
 
-CCIOptions = "cumulusci.utils.option_parsing.CCIOptions"
+CCIOptions = "cumulusci.utils.options.CCIOptions"
 
 
 @contextlib.contextmanager

@@ -137,12 +137,12 @@ If the task has an error that should be considered a build failure (e.g. a metad
 Custom Task Options
 -------------------
 
-Task options are defined by declaring a nested `Options` class. This class must sublass `cumulusci.utils.option_parsing.CCIOptions`. These options are validated via the use of `Pydantic models <https://pydantic-docs.helpmanual.io/usage/models/>`_ which are generated dynamically for each `Options` class.
-Each option can define its own type via either a `standard library type <https://pydantic-docs.helpmanual.io/usage/types/>`_ or by utilizing a custom type from `cumulusci.utils.option_parsing`. Current custom types include (but are not limited to): `PathOption`, `MappingOption`, and `ListOfStringsOption`. 
-Additionally the `Field() <https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation`_ function is useful for further customizing options. This can be imported from `cumulusci.utils.option_parsing` and used when defining individual options. 
+Task options are defined by declaring a nested `Options` class. This class must sublass `cumulusci.utils.options.CCIOptions`. These options are validated via the use of `Pydantic models <https://pydantic-docs.helpmanual.io/usage/models/>`_ which are generated dynamically for each `Options` class.
+Each option can define its own type via either a `standard library type <https://pydantic-docs.helpmanual.io/usage/types/>`_ or by utilizing a custom type from `cumulusci.utils.options`. Current custom types include (but are not limited to): `PathOption`, `MappingOption`, and `ListOfStringsOption`. 
+Additionally the `Field() <https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation`_ function is useful for further customizing options. This can be imported from `cumulusci.utils.options` and used when defining individual options. 
 Below is an example task that takes two options: (1) A defaulted string (myString), and (2) A required file path ::
 
-    from cumulusci.util.option_parsing import PathOption, Field
+    from cumulusci.util.options import PathOption, Field
     class CustomTask(BaseTask):
         class Options(CCIOptions):
             myString: str = Field('Hello', description='A string to be used by the task')
