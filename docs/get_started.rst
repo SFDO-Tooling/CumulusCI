@@ -1,9 +1,7 @@
 Get Started
 ===========
-Getting started with CumulusCI is easy, and once installed, you can:
-    * Work on any existing Salesforce projects configured for CumulusCI
-    * Create new Salesforce projects configured for CumulusCI
-    * Convert existing Salesforce projects to work with CumulusCI
+
+
 
 Install CumulusCI
 -----------------
@@ -47,6 +45,8 @@ With Homebrew already installed, you can install CumulusCI with:
 
 These commands can take several minutes to complete.
 Once finished, you can `verify your installation`_.
+
+
 
 On Windows
 ^^^^^^^^^^
@@ -101,6 +101,7 @@ You can now install CumulusCI with::
 Now `verify your installation`_.
 
 
+
 Verify Your Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -119,21 +120,26 @@ You can also use this command in the future to check whether your CumulusCI inst
 Still need help? `CumulusCI's issues on GitHub <https://github.com/SFDO-Tooling/CumulusCI/issues>`_ may have something useful.
 
 
+
 Connect to GitHub
 -----------------
 In order to allow CumlusCI to work with your CumulusCI projects in GitHub, you need to connect GitHub as a service in ``cci``.
 
-First, `create a new personal access token <https://github.com/settings/tokens/new>`_ with both "repo" and "gist" scopes specified. 
+First, `create a new personal access token <https://github.com/settings/tokens/new>`_ with both "repo" and "gist" scopes specified.
 (Scopes appear as checkboxes when creating the personal access token in GitHub).
 Copy the access token to use as the password when configuring the GitHub service.
 
-Next, run the following command and provide your GitHub username and the access token as the password:
-
-.. code-block:: console
+Next, run the following command and provide your GitHub username and the access token as the password::
 
     $ cci service connect github
 
-Once you've configured the `github` service it will be available to **all** projects.  Services are stored in the global CumulusCI keychain by default.
+You can verify the GitHub service is connected by running ``cci service list``:
+
+.. image:: images/service-list.png
+
+Once you've configured the ``github`` service it will be available to **all** CumulusCI projects.
+Services are stored in the global CumulusCI keychain by default.
+
 
 
 Work on an Existing CumulusCI Project
@@ -144,28 +150,30 @@ To work on existing CumulusCI project all you need is to:
 * `Install git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
 * Make a local clone of the projects GitHub repository.
 
+
+
 Cloning a GitHub Repository
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Cloning a projects repository gives you a local working copy of the project on your computer.
 The following steps assume that you have `git installed <https://git-scm.com/downloads>`_ on your machine.
+
 To clone a GitGub repository:
 
-1) Navigate to the repository on GitHub
-2) Click the green 'Code' button
-3) Ensure 'HTTPS' is selected
-4) Click the clipboard button to copy the https repository url to your clipboard.
-5) In a new terminal window exectue the following command:
+#.  Navigate to the repository on GitHub
+#.  Click the green 'Code' button
+#.  Ensure 'HTTPS' is selected #TODO: cover ssh or gh cli?
+#.  Click the clipboard button to copy the https repository url to your clipboard.
+#.  In a new terminal window exectue the following command:
 
 .. code-block:: console
 
     $ git clone <repository_url> <project_name>
 
-Replace ``<repository_url>`` with the url copied to your clipboard. 
+Replace ``<repository_url>`` with the url copied to your clipboard.
 Replace ``<project_name>`` with the name of the project.
 
-
-You can now change directorie into the freshly cloned project and begin executing ``cci`` commands.
-`cci project info` can be run to display information about the project: 
+You can now change directories into the freshly cloned project and begin executing ``cci`` commands.
+For example, ``cci project info`` can be run to display information about the project:
 
 .. code-block:: console
 
@@ -207,10 +215,11 @@ You can now change directorie into the freshly cloned project and begin executin
         name_match: %_TEST%
 
 
+
 Starting a New CumulusCI Project
 --------------------------------
 This section assumes that you have CumulusCI and ``git`` installed on your host.
-We first need to make a directory with our projects name, navigate into the directory, and initialize it as a git repository.
+We first need to make a directory with our project's name, navigate into the directory, and initialize it as a git repository.
 
 .. code-block:: console
 
@@ -219,6 +228,8 @@ We first need to make a directory with our projects name, navigate into the dire
     $ git init
 
 We now need to initialize our project as a CumulusCI project.
+
+
 
 Project Initialization
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -248,8 +259,8 @@ Use the `cci project init` command from within a git repository to generate the 
             name: My Repo Name
             namespace: mynamespace
 
-The newly created `cumulusci.yml` file is the configuration file for your project specific tasks, flows, and CumulusCI customizations. 
-For more information regarding configuraiton, checkout our `project configuration <#TODO internal ref here>`_ section of the docs. 
+The newly created `cumulusci.yml` file is the configuration file for your project specific tasks, flows, and CumulusCI customizations.
+For more information regarding configuraiton, checkout our `project configuration <#TODO internal ref here>`_ section of the docs.
 You can add and commit it to your git repository:
 
 .. code-block:: console
@@ -277,40 +288,59 @@ With your ``cumulusci.yml`` file committed, we now want to create a repository o
 
     $ git push -u origin master
 
+
+
 Convert an Existing Salesforce Project
 --------------------------------------
-The following steps outline how you can get an existing Salesforce project into source control and configured for CumulusCI:
 
+Project Setup
+^^^^^^^^^^^^^
 #. Create a directory for your project to live in, and navigate to it::
 
     $ mkdir mySalesforceProject; cd mySalesforceProject
 
 #. Initialize the directory as a git repository::
 
-    $ git init 
+    $ git init
     Initialized empty Git repository in /Users/MrCCI/repos/mySalesforceProject/.git/
 
 #. Initialize the repository as a CumulusCI project. See `project initialization`_.
 
-#. Next we need to extract your package metadata. Depending on what type of org your project is in, there are different methods for extracting the desired pieces of metadata.
-    * Production or Developer Edition Orgs
-        #. Create a package for your  
 
-    * Scratch or Sandbox Orgs
-        * Metadata is easier to extract in these orgs as `source tracking <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_source_tracking_sandboxes.htm>`_ can be enabled in them.
-        * With this feature enabled we can easily retrieve all of the metadata changes we've made to an org by running ``sfdx force:source:pull``.
+Extracting Your Project's Metadata
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Next we need to extract your package metadata.
+Depending on what type of org your project is in, there are different methods for extracting the desired pieces of metadata.
 
-In order to configure an existing Salesforce Package project for CumulusCI the following must be true:
-* CumulusCI must be installed on your host.
-* Your project must be located in a GitHub repository.
-* Your project must adhere to either `metadata or source formats<TODO - link>`.
+Production or Developer Edition Orgs
+*******************************************
+#. Create a package for your - If you're looking to deploy back to the same org, or would like to be able to use ``cci task run retrieve_source`` ensure that your project's name in ``cumulusci.yml`` matches the name of your package.
+#. Add the desired metadata components to the package.
+#. Extract package in either metadata (``src/``) or ``sfdx`` (``force-app/``) formats.
+    * For metadata format::
 
-If the above are true, then you run ``cci project init`` from inside the project repository root to generate your projects ``cumulusci.yml`` file.
-See `project initialization`_ for more info.
+        $ cci task run retrieve_source
+
+    * For ``sfdx`` format, replace <namespace> with the namespace of your package::
+
+        $ sfdx force:source:retrieve -n <namespace>
+
+Scratch or Sandbox Orgs
+*****************************
+Metadata is easier to extract in these orgs as `source tracking <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_source_tracking_sandboxes.htm>`_ can be enabled in them.
+``sfdx`` allows for easy retrieval of all metadata changes made to an org with this feature enbaled::
+
+    $ sfdx force:source:pull
+
+
+That's it! You now have all of the metadata you care about in a single git repository configured for use with CumulusCI.
+You can now set out to, `add your repo to github`_, or perhaps begin configuring CumulusCI <#TODO doc ref>.
+
+
+
 
 Other Considerations
 ^^^^^^^^^^^^^^^^^^^^
-
 * Generate your projects ``cumulusci.yml`` with ``cci project init``.
 * Migrate any existing org.json files under ``orgs/``.
-* Do you have metadata that you would like deployed pre or post deployment? `TODO: pre/post link` 
+* Do you have metadata that you would like deployed pre or post deployment? `TODO: pre/post link`
