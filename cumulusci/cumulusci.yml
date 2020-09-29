@@ -625,8 +625,6 @@ flows:
                 task: run_tests
                 options:
                     managed: True
-            6:
-                task: github_automerge_feature
 
 
     ci_master:
