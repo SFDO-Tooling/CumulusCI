@@ -5,7 +5,7 @@ Manage Scratch Orgs
 
 The CumulusCI Suite offers tools for working with all types of Salesforce orgs, but provides the most value when working with scratch orgs. We strongly encourage building processes around scratch orgs for development, feature and integration testing, demos, and other workflows. CumulusCI automation helps realize the promise of scratch orgs as low cost, repeatable, source-driven environments for every phase of the product lifecycle.
 
-Throughout this section, we'll focus on scratch org management in the CumulusCI keychain. To learn about managing persistent orgs, such as sandboxes, production orgs, and packaging orgs, read TODO: reference "Connecting persistent orgs".
+Throughout this section, we'll focus on managing scratch orgs in a CumulusCI project. To learn about managing persistent orgs, such as sandboxes, production orgs, and packaging orgs, read TODO: reference "Connecting persistent orgs".
 
 What is an Org in CumulusCI?
 ----------------------------
