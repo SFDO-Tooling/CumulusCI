@@ -211,15 +211,14 @@ tasks:
         description: Clones a github tag under a new name.
         class_path: cumulusci.tasks.github.CloneTag
         group: GitHub
-    github_master_to_feature:
+    github_automerge_main:
         description: Merges the latest commit on the main branch into all open feature branches
         class_path: cumulusci.tasks.github.MergeBranch
         group: GitHub
-    github_parent_to_children:
-        description: Merges the latest commit on a parent feature branch into all child feature branches
+    github_automerge_feature:
+        description: Merges the latest commit on a source branch to all child branches.
         class_path: cumulusci.tasks.github.MergeBranch
         options:
-            children_only: True
             source_branch: $project_config.repo_branch
         group: GitHub
     github_copy_subtree:
@@ -581,7 +580,7 @@ flows:
             4:
                 task: run_tests
             5:
-                task: github_parent_to_children
+                task: github_automerge_feature
 
     ci_feature_beta_deps:
         group: Continuous Integration
@@ -601,7 +600,7 @@ flows:
             4:
                 task: run_tests
             5:
-                task: github_parent_to_children
+                task: github_automerge_feature
 
     ci_feature_2gp:
         group: Continuous Integration
@@ -627,7 +626,7 @@ flows:
                 options:
                     managed: True
             6:
-                task: github_parent_to_children
+                task: github_automerge_feature
 
 
     ci_master:
@@ -950,7 +949,7 @@ flows:
                     include_empty: True
                     version_id: ^^upload_beta.version_id
             4:
-                task: github_master_to_feature
+                task: github_automerge_main
 
     release_production:
         group: Release Operations

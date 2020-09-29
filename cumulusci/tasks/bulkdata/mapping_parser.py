@@ -450,7 +450,11 @@ def validate_and_inject_mapping(
     ]
 
     if not drop_missing and not all(should_continue):
-        raise BulkDataException("One or more permissions errors blocked the operation.")
+        raise BulkDataException(
+            "One or more schema or permissions errors blocked the operation.\n"
+            "If you would like to attempt the load regardless, you can specify "
+            "'-o drop_missing_schema True' on the command."
+        )
 
     if drop_missing:
         # Drop any steps with sObjects that are not present.
