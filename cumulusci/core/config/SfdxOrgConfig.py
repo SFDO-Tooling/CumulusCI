@@ -18,13 +18,13 @@ class SfdxOrgConfig(OrgConfig):
             return self._sfdx_info
 
         # On-demand creation of scratch orgs
-        if hasattr(self, "create_org") and not self.created:
+        if self.create_org is not None and not self.created:
             self.create_org()
-
-        self.logger.info("Getting org info from Salesforce CLI")
 
         username = self.config.get("username")
         assert username is not None, "SfdxOrgConfig must have a username"
+
+        self.logger.info(f"Getting org info from Salesforce CLI for {username}")
 
         # Call force:org:display and parse output to get instance_url and
         # access_token
@@ -49,8 +49,7 @@ class SfdxOrgConfig(OrgConfig):
                 org_info = json.loads("".join(stdout_list))
             except Exception as e:
                 raise SfdxOrgException(
-                    "Failed to parse json from output. This can happen if "
-                    "your scratch org gets deleted.\n  "
+                    "Failed to parse json from output.\n  "
                     f"Exception: {e.__class__.__name__}\n  Output: {''.join(stdout_list)}"
                 )
             org_id = org_info["result"]["accessToken"].split("!")[0]

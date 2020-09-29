@@ -13,6 +13,8 @@ import yaml
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config import SfdxOrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.exceptions import DependencyLookupError
@@ -545,3 +547,43 @@ class TestCreatePackageVersion:
 
         task.request_id = "08c000000000002AAA"
         task._poll_action()
+
+    def test_init_devhub__from_sfdx(self, project_config, org_config):
+        task = CreatePackageVersion(
+            project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "package_type": "Unlocked",
+                        "package_name": "Test Package",
+                    }
+                }
+            ),
+            org_config,
+        )
+        with mock.patch(
+            "cumulusci.tasks.package_2gp.get_default_devhub_username",
+            return_value="devhub@example.com",
+        ):
+            result = task._init_devhub()
+        assert isinstance(result, SfdxOrgConfig)
+        assert result.username == "devhub@example.com"
+
+    def test_init_devhub__from_service(self, project_config, org_config):
+        project_config.keychain.services["devhub"] = ServiceConfig(
+            {"username": "devhub@example.com"}
+        )
+        task = CreatePackageVersion(
+            project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "package_type": "Unlocked",
+                        "package_name": "Test Package",
+                    }
+                }
+            ),
+            org_config,
+        )
+        devhub_config = task._init_devhub()
+        assert devhub_config.username == "devhub@example.com"

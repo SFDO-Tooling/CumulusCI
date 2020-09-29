@@ -12,10 +12,11 @@ import pytest
 import yaml
 
 from cumulusci.utils import temporary_dir, cd
-from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import SfdxOrgConfig
 from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
 from cumulusci.core.exceptions import SfdxOrgException
@@ -301,14 +302,14 @@ class TestScratchOrgConfig(unittest.TestCase):
         info = config.scratch_info
         self.assertIs(info, _marker)
 
-    def test_scratch_info_non_json_response(self, Command):
+    def test_sfdx_info_non_json_response(self, Command):
         Command.return_value = mock.Mock(
             stderr=io.BytesIO(b""), stdout=io.BytesIO(b"<html></html>"), returncode=0
         )
 
-        config = ScratchOrgConfig({"username": "test"}, "test")
-        with self.assertRaises(ScratchOrgException):
-            config.scratch_info
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        with self.assertRaises(SfdxOrgException):
+            config.sfdx_info
 
     def test_scratch_info_command_error(self, Command):
         Command.return_value = mock.Mock(

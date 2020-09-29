@@ -78,7 +78,7 @@ def get_default_devhub_username():
         check_return=True,
     )
     result = json.load(p.stdout_text)
-    if "value" not in result["result"][0]:
+    if "result" not in result or "value" not in result["result"][0]:
         raise SfdxOrgException(
             "No sfdx config found for defaultdevhubusername. "
             "Please use the sfdx force:config:set to set the defaultdevhubusername and run again."

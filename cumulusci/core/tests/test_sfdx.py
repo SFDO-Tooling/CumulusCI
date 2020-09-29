@@ -4,6 +4,8 @@ import sys
 
 import pytest
 
+from cumulusci.core.exceptions import SfdxOrgException
+from cumulusci.core.sfdx import get_default_devhub_username
 from cumulusci.core.sfdx import sfdx
 
 
@@ -34,3 +36,21 @@ class TestSfdx:
         with pytest.raises(Exception) as exc_info:
             sfdx("cmd", check_return=True)
         assert str(exc_info.value) == "Command exited with return code 1:\nEgads!"
+
+
+@mock.patch("sarge.Command")
+def test_get_default_devhub_username(Command):
+    Command.return_value.returncode = 0
+    Command.return_value.stdout = io.BytesIO(
+        b'{"result": [{"value": "devhub@example.com"}]}'
+    )
+    result = get_default_devhub_username()
+    assert result == "devhub@example.com"
+
+
+@mock.patch("sarge.Command")
+def test_get_default_devhub_username__no_result(Command):
+    Command.return_value.returncode = 0
+    Command.return_value.stdout = io.BytesIO(b"{}")
+    with pytest.raises(SfdxOrgException):
+        get_default_devhub_username()
