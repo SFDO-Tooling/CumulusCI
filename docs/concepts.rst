@@ -7,7 +7,7 @@ CumulusCI extends the concepts of the `Org Development Model <https://trailhead.
 
 The Product Delivery Model focuses on the customer experience, not on the technical artifacts you're delivering, and focuses on making it possible to deliver a first-class, fully configured customer experience – no matter how complex the product might be. When building a product, there can be detailed technical considerations for whether a specific component is best distributed within a package, as additional unpackaged metadata, or as sophisticated setup automation that runs before or after a package is installed. And, of course, a product may include not one, but several packages, which must be installed in sequence. CumulusCI makes it possible to deliver a cohesive product that makes use of these different techniques.
 
-CumulusCI automation, which makes it easy to create products that span multiple package repositories and include complex setup operations, is how we implement the Product Delivery Model throughout the development lifecycle. We also use MetaDeploy and other applications in the CumulusCI Suite to harness CumulusCI automation as we deliver products directly to customers.
+CumulusCI provides the core framework of operations for automating the Product Delivery Model throughout the development lifecycle, and a command line interface to those operations. Once configured, the same automation can also be used by other applications in the CumulusCI Suite, such as MetaCI for automated testing and MetaDeploy for delivering products to customers.
 
 The Product Delivery Model aims to represent a holistic view of delivery of a product instead of simply releasing a package. Here's a real-world example drawn from Salesforce.org's product portfolio.
 
@@ -23,7 +23,7 @@ Salesforce.org delivers NPSP using CumulusCI and the Product Delivery Model beca
 * installs NPSP;
 * and performs final configuration to make the customer's experience better, like setting up Global Actions and delivering translations.
 
-CumulusCI runs this automation throughout our development lifecycle, starting from feature branches in the hands of our developers and culminating in the delivery of new versions of the application to our users, including through MetaDeploy — which runs the very same automation we use internally to set up and configure a customer org.
+CumulusCI runs this automation throughout our development lifecycle, starting from feature branches in the hands of our developers and culminating in the delivery of new versions of the application to our users through MetaDeploy.
 
 Throughout the CumulusCI documentation, we'll have the Product Delivery Model in mind. 
 
@@ -36,37 +36,75 @@ CumulusCI scopes many of its activities to the project, so you'll always run you
 
 CumulusCI knows which project you are working on by the current working directory of your shell. Make sure to change directories inside your project before you run project-specific commands.
 
-In order to be used as a CumulusCI project, a directory must both be a Git repository and contain a ``cumulusci.yml`` configuration file.
+In order to be used as a CumulusCI project, a directory must both be a Git repository and contain a ``cumulusci.yml`` configuration file. We'll show you how to get set up with a new or existing CumulusCI project in the (TODO link) Get Started section.
 
-Managing Orgs & Services with the Keychain
-------------------------------------------
+Project Structure
+-----------------
 
-CumulusCI gives each project a keychain, and also offers a global keychain that's shared across projects. The keychain's role is to store access information for all of the orgs you're using with the project — both scratch orgs and persistent orgs — and the details of the services you've connected, such as a GitHub account or an instance of MetaDeploy.
+A CumulusCI project represents an application or a major component of an application on the Salesforce platform. Each project corresponds with a single managed package, or with an org-based implementation. In this documentation, we'll often speak about a package; if you're building a project that isn't packaged, please take this to refer to an unmanaged package within which your implementation is deployed.
+
+Together with the core package, a CumulusCI project encompasses a variety of unpackaged application components, automation, tests, and other support material. We'll quickly survey the primary components of a CumulusCI project here. Each component is covered in more depth later in this guide.
+
+Automation Configuration (``cumulusci.yml``)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``cumulusci.yml`` is the definition of the project's automation. It includes information about the project itself as well as customizations that define how scratch orgs are built and provide other important functionality to be used as part of the project's lifecycle.
+
+When you work with CumulusCI in a project, the contents of your ``cumulusci.yml`` are merged with the ``cumulusci.yml`` that comes with CumulusCI and defines out-of-the-box functionality. From time to time we'll refer to that as the standard library. Learn more about customizing CumulusCI automation in TODO: link Customization section.
+
+Project Source Code
+^^^^^^^^^^^^^^^^^^^
+
+The main body of the project's code and metadata lives in the ``force-app`` directory for Salesforce DX-format projects and ``src`` for Metadata API-format projects. For managed package projects, only this metadata is part of the package. Most projects have the vast majority of their components stored here.
 
 Orgs
-++++
+^^^^
 
-Each project's keychain stores authentication information for all of the orgs that are in use by the project, including scratch orgs, persistent orgs like a production or packaging org, and information about scratch orgs that are yet to be created.
+The ``.json`` files found in the ``orgs`` directory define the Salesforce DX org configurations that are available to the project. We cover scratch org management in depth in TODO: link Scratch Org Management. 
 
-The ``cci org list`` command shows all of the connected orgs in the project keychain, as well as defined scratch org configurations that have not yet been built. (TODO: reference org configuration section).
+Datasets
+^^^^^^^^
 
-When CumulusCI builds a scratch org, it automatically shares the org with your Salesforce CLI keychain, but names the org in a way that helps keep orgs separate between projects. For example, if you build a ``dev`` org in the project ``Test``, CumulusCI will call that org ``dev`` in your CumulusCI keychain, and ``Test__dev`` in the Salesforce CLI keychain. This prevents your scratch orgs from colliding across projects.
+Each project may have one or more *datasets*: on-disk representations of record data that can be inserted into Salesforce orgs, and which can also be modified and re-captured during the evolution of the project. Datasets are stored in the ``datasets`` directory. Learn more about datasets in TODO: link Automating Data Operations.
 
-CumulusCI stores org authentication details in an encrypted file in your configuration directory.
+Robot Framework Browser Automation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Configuring orgs in CumulusCI is powerful, but comes with some complexity. To review all of the details, read the section TODO: Reference "Scratch org environments".
+CumulusCI integrates Robot Framework browser automation for end-to-end testing. Each project contains a ``robot`` directory, which stores the resources and test suites for the project's Robot Framework test suites. New CumulusCI projects start with a simple Robot test case that creates a Contact record. 
+
+While Robot Framework is used primarily for browser automation testing, in a small number of situations, Robot Framework may also be harnessed to help configure orgs where other strategies and APIs are insufficient.
+
+Unpackaged Metadata
+^^^^^^^^^^^^^^^^^^^
+
+In the Product Delivery Model, a product doesn't just encompass the contents of a managed package or a single deployment. It also includes *unpackaged metadata*: extra bundles of Salesforce metadata that further tailor an org or complete the product.
+
+In a CumulusCI project, all unpackaged metadata is stored in subdirectories within the ``unpackaged`` directory. Unpackaged metadata plays multiple roles within the Product Delivery Model, including preparing an org for installing packages, adding more customization after the package or application is deployed, and customizing specific orgs that are used in the product's development process.
+
+Learn more about managing unpackaged metadata in TODO: link Managing unpackaged configuration.
+
+Project Orgs & Services
+-----------------------
+
+Orgs and services are external, authenticated resources that each project uses. CumulusCI makes it easy to connect orgs, as well as services like a GitHub account or a MetaDeploy instance, to a single project or to use them across projects. 
+
+Orgs
+^^^^
+
+Each project has its own set of orgs, including active scratch orgs, persistent orgs like a production or packaging org, and predefined scratch org configurations. CumulusCI securely stores org authentication information in its keychain, making it easy to access connected orgs at any time. The ``cci org list`` command shows all of the orgs connected to a project.
+
+In most situations, orgs are connected only to a single project. However, CumulusCI also offers a global keychain, making it possible to share persistent orgs across multiple projects.
+
+Configuring orgs in CumulusCI is powerful, but comes with some complexity. To review all of the details, read the sections TODO: link "Scratch org environments" and TODO: link persistent org section.
 
 Services
-++++++++
+^^^^^^^^
 
-
-Services represent external resources used by CumulusCI automation that are not project-specific orgs, such as access to a GitHub account or a MetaDeploy instance. Services are usually, but not always connected to CumulusCI across projects, and live in the global keychain. 
+Services represent external resources used by CumulusCI automation, such as access to a GitHub account or a MetaDeploy instance. Services are usually, but not always, connected to CumulusCI across projects as part of the global keychain. 
 
 The command ``cci service list`` shows you which services are connected in the context of the current project.
 
 Some services can be connected at the project level, which means that they're scoped to a single project and aren't shared. We recommend primarily using global services because they're easier to use, but you may encounter scenarios where, for example, you need to use a specific Dev Hub for one and only one project. Connecting that service with ``cci service connect devhub --project`` supports that use case.
-
-CumulusCI stores service authentication details in an encrypted file in your configuration directory.
 
 Tasks and Flows
 ---------------
