@@ -1,8 +1,11 @@
 import io
+import json
 import logging
 import platform
 import sarge
 import sys
+
+from cumulusci.core.exceptions import SfdxOrgException
 
 logger = logging.getLogger(__name__)
 
@@ -66,3 +69,19 @@ def shell_quote(s):
         return result
     else:
         return sarge.shell_quote(s)
+
+
+def get_default_devhub_username():
+    p = sfdx(
+        "force:config:get defaultdevhubusername --json",
+        log_note="Getting default Dev Hub username from sfdx",
+        check_return=True,
+    )
+    result = json.load(p.stdout_text)
+    if "value" not in result["result"][0]:
+        raise SfdxOrgException(
+            "No sfdx config found for defaultdevhubusername. "
+            "Please use the sfdx force:config:set to set the defaultdevhubusername and run again."
+        )
+    username = result["result"][0]["value"]
+    return username
