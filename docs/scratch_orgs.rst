@@ -25,8 +25,10 @@ If you haven't already set up the Salesforce CLI, you need to take care of a few
 
 If you already have the ``sfdx`` command installed, have connected to your Dev Hub, and have set the ``defaultdevhubusername`` config setting (use ``sfdx force:org:list`` to verify; the default Dev Hub will be listed with a ``(D)``), you're ready to start using CumulusCI with Salesforce CLI.
 
-You can learn more about the Salesforce CLI at https://developer.salesforce.com/platform/dx.
+See Also
+^^^^^^^^
 
+* `Learn more about the Salesforce CLI <https://developer.salesforce.com/platform/dx>`_.
 
 Predefined Orgs
 ---------------
