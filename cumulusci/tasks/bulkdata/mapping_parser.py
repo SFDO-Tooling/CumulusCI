@@ -190,6 +190,14 @@ class MappingStep(CCIDictModel):
 
         return values
 
+    @validator("lookups")
+    @classmethod
+    def lookups_deprecated(cls, v):
+        logger.warning(
+            "The lookups: key is deprecated. We recommend moving all lookups into fields: and recapturing data sets."
+        )
+        return v
+
     @root_validator
     @classmethod
     def set_default_table(cls, values):
@@ -338,6 +346,8 @@ class MappingStep(CCIDictModel):
             return False
 
         return True
+
+    # TODO: postprocess fields into lookups
 
     def validate_and_inject_namespace(
         self,
