@@ -1,12 +1,16 @@
 Manage Scratch Orgs
 ===================
 
+*Scratch orgs* are ephemeral Salesforce orgs. Scratch orgs are created empty, unlike sandboxes, and configured by deploying metadata into them. Scratch orgs facilitate repeatable, fully source-driven development processes on the Salesforce platform, and help ameliorate many of the challenges inherent in working with *persistent orgs* like sandboxes and Developer Edition orgs. Scratch orgs are intended to be created and destroyed often; they cannot have a lifespan greater than 30 days.
+
+The CumulusCI Suite offers tools for working with all types of Salesforce orgs, but provides the most value when working with scratch orgs. We strongly encourage building processes around scratch orgs for development, feature and integration testing, demos, and other workflows. CumulusCI automation helps realize the promise of scratch orgs as low cost, repeatable, source-driven environments for every phase of the product lifecycle.
+
 Throughout this section, we'll focus on scratch org management in the CumulusCI keychain. To learn about managing persistent orgs, such as sandboxes, production orgs, and packaging orgs, read TODO: reference "Connecting persistent orgs".
 
 What is an Org in CumulusCI?
 ----------------------------
 
-CumulusCI takes a different approach to creating and using scratch orgs that aims to make the process easier, more portable, and more repeatable. An org in CumulusCI's keychain starts out as a named configuration, tailored for a specific purpose within the lifecycle of the project. The scratch org is only actually generated the first time you use the scratch org from the project keychain - and once it's expired or been deleted, a new one can easily be created with the same configuration.
+CumulusCI takes an approach to creating and using scratch orgs that aims to make the process easy, portable, and repeatable. An org in CumulusCI's keychain starts out as a named configuration, tailored for a specific purpose within the lifecycle of the project. The scratch org is only actually generated the first time you use the scratch org from the project keychain - and once it's expired or been deleted, a new one can easily be created with the same configuration.
 
 CumulusCI offers tools that make it easy to discover predefined org configurations, create scratch orgs based on those configurations, and define new orgs and new configurations.
 
@@ -19,7 +23,7 @@ If you haven't already set up the Salesforce CLI, you need to take care of a few
 2. `Enable Dev Hub in Your Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_devhub.htm>`_
 3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_ (be sure to use the ``--setdefaultdevhubusername`` option).
 
-If you already have the ``sfdx`` command installed, have connected to your Dev Hub, and have set the ``defaultdevhubusername`` config setting (use ``sfdx force:config:list`` to verify), you're ready to start using CumulusCI with Salesforce CLI.
+If you already have the ``sfdx`` command installed, have connected to your Dev Hub, and have set the ``defaultdevhubusername`` config setting (use ``sfdx force:org:list`` to verify; the default Dev Hub will be listed with a ``(D)``), you're ready to start using CumulusCI with Salesforce CLI.
 
 You can learn more about the Salesforce CLI at https://developer.salesforce.com/platform/dx.
 
@@ -27,7 +31,11 @@ You can learn more about the Salesforce CLI at https://developer.salesforce.com/
 Predefined Orgs
 ---------------
 
-CumulusCI comes with five org predefined org configurations. Every org's keychain starts with these configurations available and ready to be turned into a live scratch org:
+CumulusCI comes with five org predefined org configurations. Every org's keychain starts with these configurations available and ready to be turned into a live scratch org. You can see the predefined org configurations in your project by running
+
+.. code-block: console
+
+    $ cci org list
 
 * ``dev`` is for development workflows and uses the ``orgs/dev.json`` configuration file. It has a seven-day lifespan.
 * ``qa`` is for testing workflows. ``qa`` and ``dev`` are the same out of the box, but can be customized to suit the needs of the project. It has a seven-day lifespan.
@@ -35,6 +43,7 @@ CumulusCI comes with five org predefined org configurations. Every org's keychai
 * ``beta`` is for use in continuous integration or hands-on testing. It uses the ``orgs/beta.json`` configuration. It has a one-day lifespan.
 * ``release`` is for use in continuous integration, hands-on testing, or demo workflow. It uses the ``orgs/release.json`` configuration. It has a one-day lifespan.
 
+If your project has customized the available orgs, you'll see more orgs, or differences in configuration, compared to a brand-new project.
 
 Create a Scratch Org
 --------------------
@@ -47,7 +56,7 @@ To create a scratch org from a configuration, simply use it as the target of a C
 
 Once the org is created, it's associated with the name ``dev`` in the CumulusCI keychain and can be used with other commands until it expires. Once an org expires or is removed, its associated configuration is left in place, and can be recreated whenever needed.
 
-You can create new org configurations that inherit their configuration from a built-in org. For example, to create a new org name that uses the same configuration as type ``dev``, you can use the command ::
+You can create new orgs in the keychain that inherit their configuration from a built-in org. For example, to create a new org name that uses the same configuration as type ``dev``, you can use the command ::
 
     $ cci org scratch dev new-org
 
@@ -56,6 +65,19 @@ You can then run ::
     $ cci org info new-org
 
 to create this scratch org, independent of the org ``dev`` but sharing its configuration. You can have as many named orgs as you wish, or none at all: many CumulusCI users work only with the built-in orgs.
+
+Scratch Org Limits
+^^^^^^^^^^^^^^^^^^
+
+Each scratch org you create is counted against limits in your Dev Hub. Scratch orgs count against an active scratch org limit, which controls how many orgs you can have at the same time, and a daily scratch org limit, which controls how many total orgs you can create per day.
+
+Scratch org limits are based on your Dev Hub's edition and your Salesforce contract. To review limits and consumption, run the command
+
+.. code-block: console
+
+    $ sfdx force:limits:api:display -u <username>
+
+where  ``<username>`` is your Dev Hub username. The limit names are ``ActiveScratchOrgs`` and ``DailyScratchOrgs``.
 
 List Orgs
 ---------
@@ -114,6 +136,12 @@ If you're running many commands against the same org, you may wish to set a defa
 
     $ cci org default dev
     $ cci flow run dev_org
+
+Alternately, you can set a default org when you create a new named configuration:
+
+.. code-block:: console
+
+    $ cci org scratch dev new-org --default
 
 To remove an existing default, run the command
 
