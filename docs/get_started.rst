@@ -334,13 +334,12 @@ Metadata is easier to extract in these orgs as `source tracking <https://develop
 
 
 That's it! You now have all of the metadata you care about in a single git repository configured for use with CumulusCI.
-You can now set out to, `add your repo to github`_, or perhaps begin configuring CumulusCI <#TODO doc ref>.
-
+At this point you may want to `add your repo to github`_, or perhaps begin `configuring CumulusCI` <#TODO doc ref>.
 
 
 
 Other Considerations
 ^^^^^^^^^^^^^^^^^^^^
-* Generate your projects ``cumulusci.yml`` with ``cci project init``.
-* Migrate any existing org.json files under ``orgs/``.
-* Do you have metadata that you would like deployed pre or post deployment? `TODO: pre/post link`
+* If you or your team have been working with `scratch or definition files <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm>`_ for use with ``sfdx`` you can see our documentation on `configuring orgs` <#TODO doc ref> to utilize them with CumulusCI.
+* If you have metadata that you would like deployed pre or post deployment? `#TODO <pre/post ref>`
+* If you have data that you need to include either for testing or production purposes, see the `Automating Data Operations` <#TODO doc ref> section of our docs.
