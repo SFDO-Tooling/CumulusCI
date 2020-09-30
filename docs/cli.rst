@@ -3,6 +3,11 @@ The ``cci`` Command Line
 
 Basic Operation
 ---------------
+Once CumulusCI is installed, the primary way you will interact with it is using the ``cci`` command in your terminal or command prompt.
+On a macOS this would be Terminal.app, on a Windows machine this would be cmd.exe.
+
+If you are new to working with command line interfaces, CumulusCI has a `trailhead module <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ the covers installing and opening a terminal window in Visual Studio Code.
+
 To see the available commands, you can simply type ``cci``:
 
 .. code-block:: console
@@ -23,8 +28,8 @@ To see the available commands, you can simply type ``cci``:
     task     Commands for finding and running tasks for a project
     version  Print the current version of CumulusCI
 
-To get information on a specific command listed above, we can type ``cci <command>``.
-For example, if we want more information on the ``task`` command just type ``cci task``:
+To get information on a specific command listed above, you can type ``cci <command>``.
+For example, if you woule like more information on the ``task`` command just type ``cci task``:
 
 .. code-block:: console
 
@@ -46,8 +51,8 @@ We see that there are even more subcommands available under ``cci task``.
 
 Getting ``--help``
 ------------------
+If we want help with running a task you could type ``cci task run --help``:
 If you aren't sure what a specific command does you can always utilize the ``--help`` option.
-If we want help with running a task we could type ``cci task run --help``:
 
 .. code-block:: console
 
@@ -77,6 +82,8 @@ This gives us a clear usage statement, description, and shows all options availa
 
 Working with Tasks and Flows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you're just getting started with CumulusCI, don't worry if you aren't sure which of the many tasks and flows to use.
+We'll show you specific tasks and flows in later sections of the documentation. 
 
 Listing Tasks and Flows
 ****************************
@@ -94,18 +101,21 @@ Tasks and Flows are listed grouped by their ``group`` attribute as specified in 
 This means it's easy to edit these groups as you see fit!
 Any changes made will be reflected in these commands.
 
+
 Running Tasks and Flows
 *******************************
-Once you know the specifc task or flow you want to run, they can be executed with the ``run`` command:
+Once you know the specific task or flow you want to run, you can execute it with the ``run`` command:
 
 .. code-block:: console
 
-    $ cci task run task_name
-    $ cci flow run flow_name
+    $ cci task run task_name --org org_name [Options]
+    $ cci flow run flow_name --org org_name [Options]
 
-Where ``task_name`` and ``flow_name`` are the actual name of the task or flow that you would like to run.
+Where ``task_name`` and ``flow_name`` are the actual name of the task or flow that you would like to run, and ``org_name`` is the name of the org that you want to run the task or flow against. 
+(You can see a list of orgs available to you by runnin ``cci org list``).
 Tasks usually require additional options to be passed when using the ``cci task run`` command.
 See the next section for how to view task specific option information. 
+
 
 
 Getting More Information
@@ -190,39 +200,15 @@ Example output looks like this:
 
 Troubleshooting Errors
 ----------------------
+Errors happen!
+That’s why our team strives to provide our users with options for efficiently working with them when they occur.
+If you need additional troubleshooting errors or stacktraces, you can reach out to our team on the `CumulusCI Trailblazer Community Group <https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z>`_.
 
-Errors happen! That’s why our team strives to provide our users with options for efficiently working with them when they occur.
 
-The ``--debug`` Option
-^^^^^^^^^^^^^^^^^^^^^^
-All CumulusCI commands can be passed the ``--debug`` option. When this is used, the following occurs:
-    * Any calls to CumulusCI's logger at the debug level are shown.
-    * Any errors captured by ``requests.packages.urllib3.add_stderr_logger()`` are shown.
-    * If an error is present, the corresponding stacktrace is shown. 
-    * The user is dropped into a `post-mortem debugging <https://docs.python.org/3/library/pdb.html#pdb.post_mortem>`_ session.
-
-Log Files
-^^^^^^^^^
-CumulusCI creates a log file every time a cci command besides ``gist`` is run. There are six rotating logfiles (``cci.log, cci.log1...5``) with ``cci.log`` being the most recent. Logfiles are stored under ``~/.cumulusci/logs``. By default, logfiles capture the the following:
-    * The last command that was entered by the user
-    * All output from the command (including debug information)
-    * If an error is present, the corresponding stacktrace is included.
-
-If you want debug information regarding the ``requests`` module to be captured in a logfile you must explicitly run the command with the ``--debug`` option.
-
-Viewing Stacktraces
-^^^^^^^^^^^^^^^^^^^
-If you encounter an error and want more information on what went wrong, you can use ``cci error info`` to display the last *n* lines of the stacktrace (if present) from the last command you executed in CumulusCI.
-
-By default, CumulusCI displays the last 30 lines from the stacktrace. You can use the ``-m`` or ``--max-lines`` option specify how much of the stacktrace you would like to see. The following displays the last 10 lines from the stacktrace:
-
-.. code-block:: console 
-
-    cci error info --max-lines 10
 
 Reporting Error Logs 
 ^^^^^^^^^^^^^^^^^^^^
-Use the ``cci error gist`` command to send the most recent logfile to a `GitHub gist <https://docs.github.com/en/github/writing-on-github/creating-gists>`_ so you can quickly and easily share logs with others. 
+Use the ``cci error gist`` command to send the most recent log file to a `GitHub gist <https://docs.github.com/en/github/writing-on-github/creating-gists>`_ so you can quickly and easily share logs with others. 
 
 For this feature to work you will need to ensure that your `github service is setup with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
 
@@ -232,9 +218,44 @@ The following information is included in the gist:
     * The path to the python executable
     * The ``sysname`` of the host (e.g. Darwin)
     * The machine name of the host (e.g. x86_64)
-    * The most recent logfile (cci.log) that CumulusCI has created.
+    * The most recent log file (cci.log) that CumulusCI has created.
 
 The URL for the gist is displayed on the terminal of the user as output, and a web browser will automatically open a tab to the gist.
+
+
+
+The ``--debug`` Option
+^^^^^^^^^^^^^^^^^^^^^^
+All CumulusCI commands can be passed the ``--debug`` option. When this is used, the following occurs:
+
+* Any calls to CumulusCI's logger at the debug level are shown.
+* Outgoing HTTP requests will be logged.
+* If an error is present, the corresponding stacktrace is shown, and the user is dropped into a `post-mortem debugging <https://docs.python.org/3/library/pdb.html#pdb.post_mortem>`_ session.
+    * To exit a debugging session type the command: ``quit`` or ``exit`` 
+
+
+
+Log Files
+^^^^^^^^^
+CumulusCI creates a log file every time a cci command run. There are six rotating log files (``cci.log, cci.log1...5``) with ``cci.log`` being the most recent. Log files are stored under ``~/.cumulusci/logs``. By default, log files capture the the following:
+    * The last command that was entered by the user
+    * All output from the command (including debug information)
+    * If an error is present, the corresponding stacktrace is included.
+
+If you want debug information regarding the ``requests`` module to be captured in a log file you must explicitly run the command with the ``--debug`` option.
+
+
+
+Viewing Stacktraces
+^^^^^^^^^^^^^^^^^^^
+If you encounter an error and want more information on what went wrong, you can use ``cci error info`` to display the last ``n`` lines of the stacktrace (if present) from the last command you executed in CumulusCI.
+Note that the stacktrace is a Python stacktrace showing where CumulusCI encountered an error.
+
+.. code-block:: console 
+
+    $ cci error info
+
+
 
 Seeing Stack Traces Automatically
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
