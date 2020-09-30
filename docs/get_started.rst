@@ -54,7 +54,7 @@ On Windows
 Install Python 3
 ********************
 1. Go to the `Python downloads page <https://www.python.org/downloads/windows/>`_.
-2. Download the Latest Python 3 Release. The "Download Windows x86-64 executable installer" link for the most recent stable release is probably right one to use, but it may depend on your particular computer setup.
+2. Download the latest Python 3 release. Most users should select the "Download Windows x86-64 executable installer" link for the most recent stable release, but it may depend on your particular computer setup.
 3. Use the installation wizard to install.
    *Be sure to check the â€œAdd Python to environment variablesâ€ checkbox at the end of the install wizard*,
    otherwise you may encounter a ``command not found`` error with the next step.
