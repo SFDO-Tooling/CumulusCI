@@ -309,7 +309,7 @@ Project Setup
 
 Extracting Your Project's Metadata
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Next we need to extract your package metadata.
+Next, we need to extract your project's metadata.
 Depending on what type of org your project is in, there are different methods for extracting the desired pieces of metadata.
 
 Production or Developer Edition Orgs
