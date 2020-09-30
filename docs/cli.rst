@@ -255,14 +255,11 @@ Note that the stacktrace is a Python stacktrace showing where CumulusCI encounte
 
     $ cci error info
 
+Additionally, there is a ``--max-lines`` option to limit the number of lines of stacktrace shown.
+
 
 
 Seeing Stack Traces Automatically
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you would like to investigate bugs in CumulusCI when you find
-them, you can set the config option `show_stacktraces` to `True`
-in the `cli` section of `~/.cumulusci/cumulusci.yml` and stacktraces
-will no longer be suppressed when they are thrown within CumulusCI.
-Usage Errors (wrong command line arguments, missing files, etc.)
-will not show you exception tracebacks because they are seldom
-helpful in that case.
+If you would like to investigate bugs in CumulusCI when you find them, you can set the config option ``show_stacktraces`` to ``True`` in the ``cli`` section of ``~/.cumulusci/cumulusci.yml`` and stacktraces will no longer be suppressed when they are thrown within CumulusCI.
+Usage Errors (wrong command line arguments, missing files, etc.) will not show you exception tracebacks because they are seldom helpful in that case.
