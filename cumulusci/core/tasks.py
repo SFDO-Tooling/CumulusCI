@@ -54,10 +54,7 @@ class BaseTask(object):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
-        self.poll_count = 0
-        self.poll_interval_level = 0
-        self.poll_interval_s = 1
-        self.poll_complete = False
+        self._reset_poll()
 
         # dict of return_values that can be used by task callers
         self.return_values = {}
@@ -178,6 +175,12 @@ class BaseTask(object):
 
     def _is_retry_valid(self, e):
         return True
+
+    def _reset_poll(self):
+        self.poll_complete = False
+        self.poll_count = 0
+        self.poll_interval_level = 0
+        self.poll_interval_s = 1
 
     def _poll(self):
         """ poll for a result in a loop """

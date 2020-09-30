@@ -21,7 +21,7 @@ ORIGINS = {
     "DeployBundles": "cumulusci.tasks.salesforce.DeployBundles",
     "EnsureRecordTypes": "cumulusci.tasks.salesforce.EnsureRecordTypes",
     "GetInstalledPackages": "cumulusci.tasks.preflight.packages",
-    "InstallPackageVersion": "cumulusci.tasks.salesforce.InstallPackageVersion",
+    "InstallPackageVersion": "cumulusci.tasks.salesforce.install_package_version",
     "ListCommunities": "cumulusci.tasks.salesforce.ListCommunities",
     "ListCommunityTemplates": "cumulusci.tasks.salesforce.ListCommunityTemplates",
     "LoadCustomSettings": "cumulusci.tasks.salesforce.custom_settings",
@@ -39,7 +39,7 @@ ORIGINS = {
     "UninstallPackage": "cumulusci.tasks.salesforce.UninstallPackage",
     "UninstallPackaged": "cumulusci.tasks.salesforce.UninstallPackaged",
     "UninstallPackagedIncremental": "cumulusci.tasks.salesforce.UninstallPackagedIncremental",
-    "UpdateDependencies": "cumulusci.tasks.salesforce.UpdateDependencies",
+    "UpdateDependencies": "cumulusci.tasks.salesforce.update_dependencies",
     "UpdateProfile": "cumulusci.tasks.salesforce.update_profile",
     "UpdateAdminProfile": "cumulusci.tasks.salesforce.update_profile",
 }

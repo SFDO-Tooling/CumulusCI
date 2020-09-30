@@ -12,11 +12,11 @@ import shutil
 import sys
 import time
 import traceback
-from datetime import datetime
+import runpy
 import webbrowser
 import contextlib
 from pathlib import Path
-import runpy
+from datetime import datetime
 
 import click
 import github3
@@ -953,14 +953,14 @@ def org_import(runtime, username_or_alias, org_name):
     )
     scratch_org_config.config["created"] = True
 
-    info = scratch_org_config.scratch_info
+    info = scratch_org_config.sfdx_info
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 
     scratch_org_config.save()
     click.echo(
         "Imported scratch org: {org_id}, username: {username}".format(
-            **scratch_org_config.scratch_info
+            **scratch_org_config.sfdx_info
         )
     )
 
@@ -1316,7 +1316,6 @@ def org_shell(runtime, org_name, script=None, python=None):
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False)
 def task_list(runtime, plain, print_json):
-    task_groups = {}
     tasks = (
         runtime.project_config.list_tasks()
         if runtime.project_config is not None
@@ -1328,12 +1327,7 @@ def task_list(runtime, plain, print_json):
         click.echo(json.dumps(tasks))
         return None
 
-    for task in tasks:
-        group = task["group"] or "Other"
-        if group not in task_groups:
-            task_groups[group] = []
-        task_groups[group].append([task["name"], task["description"]])
-
+    task_groups = group_items(tasks)
     for group, tasks in task_groups.items():
         data = [["Task", "Description"]]
         data.extend(sorted(tasks))
@@ -1473,11 +1467,12 @@ def flow_list(runtime, plain, print_json):
         click.echo(json.dumps(flows))
         return None
 
-    data = [["Name", "Description"]]
-    data.extend([flow["name"], flow["description"]] for flow in flows)
-
-    table = CliTable(data, title="Flows", wrap_cols=["Description"])
-    table.echo(plain=plain)
+    flow_groups = group_items(flows)
+    for group, flows in flow_groups.items():
+        data = [["Flow", "Description"]]
+        data.extend(sorted(flows))
+        table = CliTable(data, group, wrap_cols=["Description"])
+        table.echo(plain)
 
     click.echo(
         "Use "
@@ -1639,3 +1634,12 @@ def gist(runtime):
     else:
         click.echo(f"Gist created: {gist.html_url}")
         webbrowser.open(gist.html_url)
+
+
+def group_items(items):
+    groups = defaultdict(list)
+    for item in items:
+        group_name = item["group"] or "Other"
+        groups[group_name].append([item["name"], item["description"]])
+
+    return groups

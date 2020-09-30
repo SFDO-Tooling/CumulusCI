@@ -207,6 +207,14 @@ class GithubApiTestMixin(object):
             "zipball_url": "",
         }
 
+    def _get_expected_commit(self, sha):
+        return {
+            "url": f"{self.repo_api_url}/commits/{sha}",
+            "sha": sha,
+            "files": [],
+            "stats": {},
+        }
+
     def _get_expected_branches(self, branches=None):
         if not branches:
             branches = []
