@@ -286,7 +286,6 @@ mlDomains:
     - type: MlDomain
       class: MetadataFilenameParser
       extension: mlDomain
-
 MobileApplicationDetails:
     - type: MobileApplicationDetail
       class: MetadataFilenameParser
