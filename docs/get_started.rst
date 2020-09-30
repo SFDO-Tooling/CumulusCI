@@ -6,23 +6,16 @@ Get Started
 Install CumulusCI
 -----------------
 
+
 On macOS / Linux
 ^^^^^^^^^^^^^^^^
 `Homebrew <https://brew.sh/>`_ is a prerequisite for installing CumulusCI on macOS and Linux.
-To install homebrew enter the following command into a terminal window:
 
-.. code-block:: console
-
-    $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-
-If prompted for a password, this is your computer's password.
-Enter it to allow your computer to install Homebrew.
 
 
 Install via ``pipx`` (recommended)
 *************************************
-Once Homebrew is installed, you can install ``pipx`` and CumulusCI.
-
+The following will install ``pipx``, ensure that pipx is in your ``PATH`` environment variable, and then install CumulusCI:
 .. code-block:: console
 
     $ brew install pipx
@@ -31,13 +24,15 @@ Once Homebrew is installed, you can install ``pipx`` and CumulusCI.
 
 Once finished you can `verify your installation`_.
 
+
+
 Install via Homebrew
 ***********************
 You can also install CumulusCI using `Homebrew <https://brew.sh/>`_.
-Our team is aware of issues with Homebrew installations that can cause issues with the system keychain in some situations.
-This is why we recommend installing via ``pipx`` if it is an available option
+Our team is aware of issues with Homebrew installations that can cause problems with the system keychain in some situations.
+This is why we recommend installing via ``pipx`` if it is an available option.
 
-With Homebrew already installed, you can install CumulusCI with:
+With Homebrew installed, you can install CumulusCI with:
 
 .. code-block:: console
 
@@ -51,6 +46,8 @@ Once finished, you can `verify your installation`_.
 On Windows
 ^^^^^^^^^^
 
+
+
 Install Python 3
 ********************
 1. Go to the `Python downloads page <https://www.python.org/downloads/windows/>`_.
@@ -61,6 +58,8 @@ Install Python 3
    To access the Advanced Options area, select "Customize Installation" then click through Optional features page.
 
 .. image:: images/windows_python.png
+
+
 
 Install via ``pipx``
 ***********************
@@ -144,18 +143,17 @@ Services are stored in the global CumulusCI keychain by default.
 
 Work on an Existing CumulusCI Project
 -------------------------------------
-To work on existing CumulusCI project all you need is to:
+Before working on an existing CumulusCI project you need to:
 
 * `Install CumulusCI`_
 * `Install git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
-* Make a local clone of the projects GitHub repository.
 
 
 
 Cloning a GitHub Repository
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Cloning a projects repository gives you a local working copy of the project on your computer.
-The following steps assume that you have `git installed <https://git-scm.com/downloads>`_ on your machine.
+The first step in working on an existing project is cloning a projects repository.
+Cloning gives you a local working copy of the project on your computer.
 
 To clone a GitGub repository:
 
@@ -292,6 +290,9 @@ With your ``cumulusci.yml`` file committed, we now want to create a repository o
 
 Convert an Existing Salesforce Project
 --------------------------------------
+Converting an existing Salesforce project to use CumulusCI may follow a number of different paths, depending on whether you're practicing the Org Development Model or the Package Development Model, whether or not you're already developing in scratch orgs, and the complexity of your project's dependencies on the org environment.
+We'll explore several examples of how an existing project can be built using CumulusCI. Your experience may vary. You're welcome to discuss project conversion in the `CumulusCI Trailblazer group <https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z>`_.
+
 
 Project Setup
 ^^^^^^^^^^^^^
@@ -307,26 +308,29 @@ Project Setup
 #. Initialize the repository as a CumulusCI project. See `project initialization`_.
 
 
+
 Extracting Your Project's Metadata
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Next, we need to extract your project's metadata.
 Depending on what type of org your project is in, there are different methods for extracting the desired pieces of metadata.
 
-Production or Developer Edition Orgs
-*******************************************
-#. Create a package for your - If you're looking to deploy back to the same org, or would like to be able to use ``cci task run retrieve_source`` ensure that your project's name in ``cumulusci.yml`` matches the name of your package.
-#. Add the desired metadata components to the package.
-#. Extract package in either metadata (``src/``) or ``sfdx`` (``force-app/``) formats.
-    * For metadata format::
 
-        $ cci task run retrieve_source
 
-    * For ``sfdx`` format, replace <namespace> with the namespace of your package::
+Existing Persistent Org-Based Project
+******************************************
+For this reason, we recommend a retrieve of MetaData via the MetaData API, followed by converting the source format from "metadata" to "``sfdx``".
 
-        $ sfdx force:source:retrieve -n <namespace>
+#. Curate your ``package.xml`` file
+    * For information on ``package.xml`` files see the `ssample package.xml manifest files <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/manifest_samples.htm>`_ in the Metadata API docs.
+#. `Retrieve <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieve.htm?search_text=retrieve>`_ the metadata specified in your ``package.xml`` file. 
+#. While in the directory where your ``src/`` folder lives, you can now convert your metadata to source (``sfdx``) format with ``cci``::
 
-Scratch or Sandbox Orgs
-*****************************
+    $ cci task run dx_convert_to
+
+
+
+Existing Scratch Org-Based Project
+***************************************
 Metadata is easier to extract in these orgs as `source tracking <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_source_tracking_sandboxes.htm>`_ can be enabled in them.
 ``sfdx`` allows for easy retrieval of all metadata changes made to an org with this feature enbaled::
 
@@ -338,8 +342,8 @@ At this point you may want to `add your repo to github`_, or perhaps begin `conf
 
 
 
-Other Considerations
-^^^^^^^^^^^^^^^^^^^^
+Other Conversion Considerations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * If you or your team have been working with `scratch or definition files <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm>`_ for use with ``sfdx`` you can see our documentation on `configuring orgs` <#TODO doc ref> to utilize them with CumulusCI.
 * If you have metadata that you would like deployed pre or post deployment? `#TODO <pre/post ref>`
 * If you have data that you need to include either for testing or production purposes, see the `Automating Data Operations` <#TODO doc ref> section of our docs.
