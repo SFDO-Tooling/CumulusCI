@@ -73,7 +73,7 @@ If you already have your terminal open, close it and reopen it. Enter the follow
 
 .. image:: images/pipx.png
 
-To permanently modify the default environment variables:
+To permanently modify the default environment variables, follow these steps. Note that to change System variables, you need non-restricted access to your machine (i.e. Administrator rights).
 
 1. Click Start and search for â€˜edit environment variablesâ€™ or open System properties,
    Advanced system settings.
