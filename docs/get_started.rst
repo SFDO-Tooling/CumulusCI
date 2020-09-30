@@ -34,7 +34,7 @@ Once finished you can `verify your installation`_.
 Install via Homebrew
 ***********************
 You can also install CumulusCI using `Homebrew <https://brew.sh/>`_.
-Our team has seen issues related to the way that Homebrew installs and manages project dependencies, that can cause issues with the system keychain.
+Our team is aware of issues with Homebrew installations that can cause issues with the system keychain in some situations.
 This is why we recommend installing via ``pipx`` if it is an available option
 
 With Homebrew already installed, you can install CumulusCI with:
