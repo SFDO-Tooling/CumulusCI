@@ -15,7 +15,7 @@ Tasks, Flows, and Automation:
 - The ``children_only`` option for these tasks has been removed. The strategy for picking which branches to target for merging is now determined by the ``source_branch``.
 - Previously, large data loads and extracts would use enormous amounts of memory. Now they should use roughly constant amounts of memory.
 - Adjusted tasks: ``install_managed`` and ``update_dependencies`` can now install packages from just a version id, using ``PackageInstallRequest``.
-- New task: ``github_package_data gets`` a package version id from a github commit status
+- New task: ``github_package_data`` gets a package version id from a GitHub commit status
 - New task: ``create_package_version``. Builds a 2gp package (managed or unlocked) via a Dev Hub org. Includes some automated handling of dependencies:
 
   - Resolve 1gp managed package dependencies using a scratch org with the dependencies installed (creating it if necessary)
