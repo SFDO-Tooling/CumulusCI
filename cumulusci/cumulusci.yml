@@ -611,7 +611,7 @@ flows:
                 options:
                     context: "Build Feature Test Package"
             2:
-                flow: dependencies
+                flow: beta_dependencies
                 options:
                     update_dependencies:
                         dependencies: ^^github_package_data.dependencies
