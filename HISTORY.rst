@@ -2,6 +2,43 @@
 History
 =======
 
+3.20.0 (2020-09-30)
+-------------------
+Tasks, Flows, and Automation:
+
+- ``cci flow list`` now displays flows in different groups that are organized by functional area. (This is similar to how ``cci task list`` currently works).
+- The ``insert_record`` task can now be used against the Tooling API. We clarified that this task can accept a dict of values if configured in ``cumulusci.yml``.
+- Added support for newer metadata components to the ``update_package_xml`` task.
+- We've deprecated the ``retrieve_scratch`` standard flow. ``retrieve_changes`` is the current recommended way for retrieving source-tracked changes.
+- The ``github_master_to_feature`` task has been renamed to ``github_automerge_main``. It still merges changes from the default branch to feature branches. In the case of an orphaned feature branch (a branch with a name like ``feature/parent__child`` where ``feature/parent`` does not exist as its own branch), the ``github_automerge_main`` branch will no longer merge to the orphaned branch.
+- The ``github_parent_to_children`` task has been renamed to ``github_automerge_feature``. It still merges changes from feature branches to their children (e.g. ``feature/parent`` would be merged to ``feature/parent__child``). It is now possible to use multiple double-underscores to create more deeply nested children, and the task will only merge to the next level (e.g. ``feature/parent`` would merge to ``feature/parent__child`` which would merge to ``feature/parent__child__grandchild``).
+- The ``children_only`` option for these tasks has been removed. The strategy for picking which branches to target for merging is now determined by the ``source_branch``.
+- Previously, large data loads and extracts would use enormous amounts of memory. Now they should use roughly constant amounts of memory.
+- Adjusted tasks: ``install_managed`` and ``update_dependencies`` can now install packages from just a version id, using ``PackageInstallRequest``.
+- New task: ``github_package_data gets`` a package version id from a github commit status
+- New task: ``create_package_version``. Builds a 2gp package (managed or unlocked) via a Dev Hub org. Includes some automated handling of dependencies:
+
+  - Resolve 1gp managed package dependencies using a scratch org with the dependencies installed (creating it if necessary)
+  - Build an additional unlocked package for unpackaged dependencies from github and for the project's own unpackaged/pre metadata
+
+- New flows for use in MetaCI to run feature tests using 2gp packages:
+
+  - ``build_feature_test_package``: Runs the create_package_version task, and in the context of MetaCI it will set a commit status with the package version id.
+  - ``ci_feature_2gp``: Retrieves the package version from the commit status set by build_feature_test_package, installs dependencies and the package itself in a scratch org, and runs Apex tests. (There is another new task, github_package_data, which is used by this flow.)
+
+User Experience:
+
+- Improved error messaging when encountering errors during bulk data mapping validation.
+- Improvements to various documentation sections: Why CumulusCI?, Features 
+
+Issues Closed:
+
+- Fixed bug to prevent null SubscriberPackageVersion in customer orgs from breaking CumulusCI.
+- Fixed ``UnicodeDecodeError`` while opening config files on Windows.
+- CumulusCI now correctly handles converting stored Booleans for REST API data loads
+- Fixed a bug in ``cumulusci.core.sfdx.sfdx`` when capture_output is False
+
+
 3.19.1 (2020-09-18)
 -------------------
 
