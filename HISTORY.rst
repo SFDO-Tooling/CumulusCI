@@ -15,25 +15,20 @@ Tasks, Flows, and Automation:
 - The ``children_only`` option for these tasks has been removed. The strategy for picking which branches to target for merging is now determined by the ``source_branch``.
 - Previously, large data loads and extracts would use enormous amounts of memory. Now they should use roughly constant amounts of memory.
 - Adjusted tasks: ``install_managed`` and ``update_dependencies`` can now install packages from just a version id, using ``PackageInstallRequest``.
-- New task: ``github_package_data`` gets a package version id from a GitHub commit status
-- New task: ``create_package_version``. Builds a 2gp package (managed or unlocked) via a Dev Hub org. Includes some automated handling of dependencies:
+- Added support for creating 2GP packages (experimental)
 
-  - Resolve 1gp managed package dependencies using a scratch org with the dependencies installed (creating it if necessary)
-  - Build an additional unlocked package for unpackaged dependencies from github and for the project's own unpackaged/pre metadata
-
-- New flows for use in MetaCI to run feature tests using 2gp packages:
-
-  - ``build_feature_test_package``: Runs the ``create_package_version task``, and in the context of MetaCI it will set a commit status with the package version id.
-  - ``ci_feature_2gp``: Retrieves the package version from the commit status set by ``build_feature_test_package``, installs dependencies and the package itself in a scratch org, and runs Apex tests. (There is another new task, ``github_package_data``, which is used by this flow.)
+  - New task: ``github_package_data`` gets a package version id from a GitHub commit status. Implementation details can be found in the `features <https://cumulusci.readthedocs.io/en/latest/features.html>`_ section of the documentation.
+  - New task: ``create_package_version`` - Builds a 2gp package (managed or unlocked) via a Dev Hub org. Includes some automated handling of dependencies:
+  - New Flow: ``build_feature_test_package`` - Runs the ``create_package_version task``, and in the context of MetaCI it will set a commit status with the package version id.
+  - New Flow: ``ci_feature_2gp`` - Retrieves the package version from the commit status set by ``build_feature_test_package``, installs dependencies and the package itself in a scratch org, and runs Apex tests. (There is another new task, ``github_package_data``, which is used by this flow.)
 
 User Experience:
 
 - Improved error messaging when encountering errors during bulk data mapping validation.
-- Improvements to various documentation sections: Why CumulusCI?, Features 
 
 Issues Closed:
 
-- Fixed bug to prevent null SubscriberPackageVersion in customer orgs from breaking CumulusCI.
+- Fixed bug to prevent null SubscriberPackageVersion in customer orgs from breaking CumulusCI, when checking what packages are installed.
 - Fixed ``UnicodeDecodeError`` while opening config files on Windows.
 - CumulusCI now correctly handles converting stored Booleans for REST API data loads
 - Fixed a bug in ``cumulusci.core.sfdx.sfdx`` when capture_output is False
