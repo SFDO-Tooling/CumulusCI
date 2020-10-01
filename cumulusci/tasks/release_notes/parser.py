@@ -1,6 +1,5 @@
 import re
 import urllib.parse
-import datetime
 
 import github3.exceptions
 
@@ -317,8 +316,8 @@ class InstallLinkParser(ChangeNotesLinesParser):
                     self._render_header(),
                     "\r\n# Installation Info",
                     "## Push Schedule",
-                    f"\r\nSandbox orgs: {datetime.date.today().isoformat()}",
-                    f"Production orgs: {(datetime.date.today() + datetime.timedelta(days=6)).isoformat()}",
+                    f"\r\nSandbox orgs: {self.release_notes_generator.sandbox_date}",
+                    f"Production orgs: {self.release_notes_generator.production_date}",
                 ]
             )
             if version_id:
