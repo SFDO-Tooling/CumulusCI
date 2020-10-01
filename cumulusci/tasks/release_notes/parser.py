@@ -1,5 +1,6 @@
 import re
 import urllib.parse
+import datetime
 
 import github3.exceptions
 
@@ -295,9 +296,12 @@ class InstallLinkParser(ChangeNotesLinesParser):
 
     def render(self, existing_content=""):
         version_id = self.release_notes_generator.version_id
+        release_info = self.release_notes_generator.release_info
+        trial_info = self.release_notes_generator.trial_info
+
         if version_id:
             version_id = urllib.parse.quote_plus(version_id)
-            return "\r\n".join(
+            existing_content += "\r\n".join(
                 [
                     self._render_header(),
                     "Production & Developer Edition Orgs:",
@@ -307,4 +311,24 @@ class InstallLinkParser(ChangeNotesLinesParser):
                     f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
                 ]
             )
+        if release_info is True:
+            existing_content += "\r\n".join(
+                [
+                    self._render_header(),
+                    "\r\n# Installation Info",
+                    "## Push Schedule",
+                    f"\r\nSandbox orgs: {datetime.date.today().isoformat()}",
+                    f"Production orgs: {(datetime.date.today() + datetime.timedelta(days=6)).isoformat()}",
+                ]
+            )
+            if version_id:
+                existing_content += "\r\n".join(
+                    [
+                        "\r\nUse the Installation URL below to install this release before the scheduled push dates.",
+                        "\r\n## Installation URL",
+                        f"\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}",
+                    ]
+                )
+        if trial_info is True:
+            existing_content += "\r\n".join(["## Trialforce Template ID", "`TBD`"])
         return existing_content
