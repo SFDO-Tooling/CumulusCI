@@ -4,20 +4,25 @@ History
 
 3.20.0 (2020-09-30)
 -------------------
+Critical Changes:
+
+- We've removed the standard flow: ``retrieve_scratch``. The recommended way for retrieving source-tracked changes is to use the ``retrieve_changes`` task.
+- Changes to automatic merging:
+
+  - The ``github_master_to_feature`` task has been renamed to ``github_automerge_main``. It still merges changes from the default branch to feature branches. In the case of an orphaned feature branch (a branch with a name like ``feature/parent__child`` where ``feature/parent`` does not exist as its own branch), the ``github_automerge_main`` branch will no longer merge to the orphaned branch.
+  - The ``github_parent_to_children`` task has been renamed to ``github_automerge_feature``. It still merges changes from feature branches to their children (e.g. ``feature/parent`` would be merged to ``feature/parent__child``). It is now possible to use multiple double-underscores to create more deeply nested children, and the task will only merge to the next level (e.g. ``feature/parent`` would merge to ``feature/parent__child`` which would merge to ``feature/parent__child__grandchild``).
+  - The ``children_only`` option for these tasks has been removed. The strategy for picking which branches to target for merging is now determined by the ``source_branch``.
+
 Tasks, Flows, and Automation:
 
 - ``cci flow list`` now displays flows in different groups that are organized by functional area. (This is similar to how ``cci task list`` currently works).
 - The ``insert_record`` task can now be used against the Tooling API. We clarified that this task can accept a dict of values if configured in ``cumulusci.yml``.
 - Added support for newer metadata types to the ``update_package_xml`` task.
-- We've deprecated the ``retrieve_scratch`` standard flow. ``retrieve_changes`` is the current recommended way for retrieving source-tracked changes.
-- The ``github_master_to_feature`` task has been renamed to ``github_automerge_main``. It still merges changes from the default branch to feature branches. In the case of an orphaned feature branch (a branch with a name like ``feature/parent__child`` where ``feature/parent`` does not exist as its own branch), the ``github_automerge_main`` branch will no longer merge to the orphaned branch.
-- The ``github_parent_to_children`` task has been renamed to ``github_automerge_feature``. It still merges changes from feature branches to their children (e.g. ``feature/parent`` would be merged to ``feature/parent__child``). It is now possible to use multiple double-underscores to create more deeply nested children, and the task will only merge to the next level (e.g. ``feature/parent`` would merge to ``feature/parent__child`` which would merge to ``feature/parent__child__grandchild``).
-- The ``children_only`` option for these tasks has been removed. The strategy for picking which branches to target for merging is now determined by the ``source_branch``.
 - Previously, large data loads and extracts would use enormous amounts of memory. Now they should use roughly constant amounts of memory.
-- Adjusted tasks: ``install_managed`` and ``update_dependencies`` can now install packages from just a version id, using ``PackageInstallRequest``.
+- Adjusted tasks: ``install_managed`` and ``update_dependencies`` can now install packages from just a version id (04t).
 - Added support for creating 2GP packages (experimental)
 
-  - New task: ``github_package_data`` gets a package version id from a GitHub commit status. Implementation details can be found in the `features <https://cumulusci.readthedocs.io/en/latest/features.html>`_ section of the documentation.
+  - New task: ``github_package_data`` gets a package version id from a GitHub commit status. It is intended primarily for use as part of the ``ci_feature_2gp`` flow. Implementation details can be found in the `features <https://cumulusci.readthedocs.io/en/latest/features.html>`_ section of the documentation.
   - New task: ``create_package_version`` - Builds a 2gp package (managed or unlocked) via a Dev Hub org. Includes some automated handling of dependencies:
   - New Flow: ``build_feature_test_package`` - Runs the ``create_package_version task``, and in the context of MetaCI it will set a commit status with the package version id.
   - New Flow: ``ci_feature_2gp`` - Retrieves the package version from the commit status set by ``build_feature_test_package``, installs dependencies and the package itself in a scratch org, and runs Apex tests. (There is another new task, ``github_package_data``, which is used by this flow.)
@@ -28,9 +33,8 @@ User Experience:
 
 Issues Closed:
 
-- Fixed bug to prevent null SubscriberPackageVersion in customer orgs from breaking CumulusCI, when checking what packages are installed.
+- Fixed a very rare bug that caused CumulusCI to fail to retrieve installed packages from an org when running package-related tasks or evaluating ``when`` conditional expressions.
 - Fixed ``UnicodeDecodeError`` while opening config files on Windows.
-- CumulusCI now correctly handles converting stored Booleans for REST API data loads
 - Fixed a bug in ``cumulusci.core.sfdx.sfdx`` when capture_output is False
 
 
