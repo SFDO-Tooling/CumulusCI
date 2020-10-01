@@ -64,13 +64,13 @@ class UniversalConfig(BaseTaskFlowConfig):
             return
 
         # load the global config
-        with open(self.config_universal_path, "r") as f_config:
+        with open(self.config_universal_path, "r", encoding="utf-8") as f_config:
             config = yaml.safe_load(f_config)
         UniversalConfig.config_universal = config
 
         # Load the local config
         if self.config_global_path:
-            with open(self.config_global_path, "r") as f:
+            with open(self.config_global_path, "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
         else:
             config = {}

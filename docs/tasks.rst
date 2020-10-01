@@ -662,6 +662,68 @@ Options
 
 	 The api version to use when creating the package.  Defaults to project__package__api_version
 
+**create_package_version**
+==========================================
+
+**Description:** Uploads a 2nd-generation package (2GP) version
+
+**Class:** cumulusci.tasks.package_2gp.CreatePackageVersion
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run create_package_version``
+
+
+Options
+------------------------------------------
+
+
+``-o package_type PACKAGETYPE``
+	 *Required*
+
+	 Package type (Unlocked or Managed)
+
+``-o package_name PACKAGENAME``
+	 *Optional*
+
+	 Name of package
+
+``-o namespace NAMESPACE``
+	 *Optional*
+
+	 Package namespace
+
+``-o version_name VERSIONNAME``
+	 *Optional*
+
+	 Version name
+
+``-o version_type VERSIONTYPE``
+	 *Optional*
+
+	 The part of the version number to increment. Options are major, minor, patch.  Defaults to minor
+
+``-o dependency_org DEPENDENCYORG``
+	 *Optional*
+
+	 The org name of the org to use for project dependencies lookup. If not provided, a scratch org will be created with the org name 2gp_dependencies.
+
+``-o skip_validation SKIPVALIDATION``
+	 *Optional*
+
+	 If true, skip validation of the package version. Default: false. Skipping validation creates packages more quickly, but they cannot be promoted for release.
+
+``-o org_dependent ORGDEPENDENT``
+	 *Optional*
+
+	 If true, create an org-dependent unlocked package. Default: false.
+
+``-o force_upload FORCEUPLOAD``
+	 *Optional*
+
+	 If true, force creating a new package version even if one with the same contents already exists
+
 **create_managed_src**
 ==========================================
 
@@ -1641,7 +1703,7 @@ Options
 
 	 The new tag to create by cloning the src tag.  Ex: release/1.0
 
-**github_master_to_feature**
+**github_automerge_main**
 ==========================================
 
 **Description:** Merges the latest commit on the main branch into all open feature branches
@@ -1651,7 +1713,7 @@ Options
 Command Syntax
 ------------------------------------------
 
-``$ cci task run github_master_to_feature``
+``$ cci task run github_automerge_main``
 
 
 Options
@@ -1671,24 +1733,24 @@ Options
 ``-o branch_prefix BRANCHPREFIX``
 	 *Optional*
 
-	 The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature
+	 A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature
 
-``-o children_only CHILDRENONLY``
+``-o update_future_releases UPDATEFUTURERELEASES``
 	 *Optional*
 
-	 If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
+	 If source_branch is a release branch, then merge all future release branches that exist. Defaults to False.
 
-**github_parent_to_children**
+**github_automerge_feature**
 ==========================================
 
-**Description:** Merges the latest commit on a parent feature branch into all child feature branches
+**Description:** Merges the latest commit on a source branch to all child branches.
 
 **Class:** cumulusci.tasks.github.MergeBranch
 
 Command Syntax
 ------------------------------------------
 
-``$ cci task run github_parent_to_children``
+``$ cci task run github_automerge_feature``
 
 
 Options
@@ -1710,14 +1772,12 @@ Options
 ``-o branch_prefix BRANCHPREFIX``
 	 *Optional*
 
-	 The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature
+	 A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature
 
-``-o children_only CHILDRENONLY``
+``-o update_future_releases UPDATEFUTURERELEASES``
 	 *Optional*
 
-	 If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
-
-	 Default: True
+	 If source_branch is a release branch, then merge all future release branches that exist. Defaults to False.
 
 **github_copy_subtree**
 ==========================================
@@ -1775,6 +1835,33 @@ Options
 	 *Optional*
 
 	 If True, skip creating Github data.  Defaults to False
+
+**github_package_data**
+==========================================
+
+**Description:** Look up 2gp package dependencies for a version id recorded in a commit status.
+
+**Class:** cumulusci.tasks.github.commit_status.GetPackageDataFromCommitStatus
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run github_package_data``
+
+
+Options
+------------------------------------------
+
+
+``-o context CONTEXT``
+	 *Required*
+
+	 Name of the commit status context
+
+``-o version_id VERSIONID``
+	 *Optional*
+
+	 Package version id
 
 **github_pull_requests**
 ==========================================
