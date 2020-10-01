@@ -1425,6 +1425,13 @@ class TestOrgConfig(unittest.TestCase):
                     "IsBeta": True,
                 },
             },
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz4AAG",
+                    "NamespacePrefix": "blah",
+                },
+                "SubscriberPackageVersion": None,  # This shouldn't happen but has in real orgs.
+            },
         ],
     }
 

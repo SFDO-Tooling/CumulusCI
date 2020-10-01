@@ -611,7 +611,7 @@ flows:
                 options:
                     context: "Build Feature Test Package"
             2:
-                flow: dependencies
+                flow: beta_dependencies
                 options:
                     update_dependencies:
                         dependencies: ^^github_package_data.dependencies
@@ -625,8 +625,6 @@ flows:
                 task: run_tests
                 options:
                     managed: True
-            6:
-                task: github_automerge_feature
 
 
     ci_master:
@@ -976,9 +974,11 @@ flows:
         description: Create a 2gp managed package version
         steps:
             1:
+                flow: dependencies
+            2:
                 task: update_package_xml
                 when: project_config.project__source_format != "sfdx"
-            2:
+            3:
                 task: create_package_version
                 options:
                     package_type: Managed
