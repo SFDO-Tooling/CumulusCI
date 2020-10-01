@@ -24,7 +24,7 @@ Tasks, Flows, and Automation:
 - New flows for use in MetaCI to run feature tests using 2gp packages:
 
   - ``build_feature_test_package``: Runs the create_package_version task, and in the context of MetaCI it will set a commit status with the package version id.
-  - ``ci_feature_2gp``: Retrieves the package version from the commit status set by build_feature_test_package, installs dependencies and the package itself in a scratch org, and runs Apex tests. (There is another new task, github_package_data, which is used by this flow.)
+  - ``ci_feature_2gp``: Retrieves the package version from the commit status set by ``build_feature_test_package``, installs dependencies and the package itself in a scratch org, and runs Apex tests. (There is another new task, ``github_package_data``, which is used by this flow.)
 
 User Experience:
 
