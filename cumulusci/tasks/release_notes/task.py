@@ -11,6 +11,7 @@ from cumulusci.core.github import (
     get_pull_requests_by_commit,
     get_pull_requests_with_base_branch,
 )
+import datetime
 
 
 class GithubReleaseNotes(BaseGithubTask):
@@ -47,6 +48,12 @@ class GithubReleaseNotes(BaseGithubTask):
         "trial_info": {
             "description": "If True, Includes trialforce template text for this product."
         },
+        "sandbox_date": {
+            "description": "The date of the sandbox release in ISO format (Will default to today)"
+        },
+        "production_date": {
+            "description": "The date of the production release in ISO format (Will default to 6 days from now)"
+        },
     }
 
     def _run_task(self):
@@ -73,6 +80,13 @@ class GithubReleaseNotes(BaseGithubTask):
             version_id=self.options.get("version_id"),
             release_info=self.options.get("release_info", False),
             trial_info=self.options.get("trial_info", False),
+            sandbox_date=self.options.get(
+                "sandbox_date", datetime.date.today().isoformat()
+            ),
+            production_date=self.options.get(
+                "production_date",
+                (datetime.date.today() + datetime.timedelta(days=6)).isoformat(),
+            ),
         )
 
         release_notes = generator()

@@ -1,3 +1,4 @@
+import datetime
 import github3.exceptions
 from cumulusci.core.utils import import_global
 from cumulusci.core.github import (
@@ -23,6 +24,10 @@ class BaseReleaseNotesGenerator(object):
         self.version_id = None
         self.release_info = False
         self.trial_info = False
+        self.sandbox_date = datetime.date.today().isoformat()
+        self.production_date = (
+            datetime.date.today() + datetime.timedelta(days=6)
+        ).isoformat()
 
     def __call__(self):
         self._parse_change_notes()
@@ -190,6 +195,10 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         version_id=None,
         release_info=False,
         trial_info=False,
+        sandbox_date=datetime.date.today().isoformat(),
+        production_date=(
+            datetime.date.today() + datetime.timedelta(days=6)
+        ).isoformat(),
     ):
         self.github = github
         self.github_info = github_info
@@ -206,6 +215,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.version_id = version_id
         self.release_info = release_info
         self.trial_info = trial_info
+        self.sandbox_date = sandbox_date
+        self.production_date = production_date
 
     def __call__(self):
         release = self._get_release()
@@ -320,40 +331,3 @@ def render_empty_pr_section(empty_change_notes):
         for change_note in empty_change_notes:
             section_lines.append("\n* {}".format(markdown_link_to_pr(change_note)))
     return section_lines
-
-
-# def render_release_installation_section(self):
-#     section_lines = []
-#     section_lines.append("\r\n# Installation Info")
-#     section_lines.extend(render_release_schedule())
-#     section_lines.extend(render_release_installation_link(self))
-#     return section_lines
-
-
-# def render_release_schedule():
-#     section_lines = []
-#     section_lines.append("## Push Schedule")
-#     section_lines.append(f"\r\nSandbox orgs: {datetime.date.today().isoformat()}")
-#     section_lines.append(
-#         f"Production orgs: {(datetime.date.today() + datetime.timedelta(days=6)).isoformat()}"
-#     )
-#     return section_lines
-
-
-# def render_release_installation_link(self):
-#     section_lines = []
-#     section_lines.append(
-#         "\r\nUse the Installation URL below to install this release before the scheduled push dates."
-#     )
-#     section_lines.append("\r\n## Installation URL")
-#     section_lines.append(
-#         f"\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={self.version_id}"
-#     )
-#     return section_lines
-
-
-# def render_release_installation_template():
-#     section_lines = []
-#     section_lines.append("\r\n## Trialforce Template ID")
-#     section_lines.append("`TBD`")
-#     return section_lines
