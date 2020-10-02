@@ -291,7 +291,10 @@ With your ``cumulusci.yml`` file committed, we now want to create a repository o
 Convert an Existing Salesforce Project
 --------------------------------------
 Converting an existing Salesforce project to use CumulusCI may follow a number of different paths, depending on whether you're practicing the Org Development Model or the Package Development Model, whether or not you're already developing in scratch orgs, and the complexity of your project's dependencies on the org environment.
-We'll explore several examples of how an existing project can be built using CumulusCI. Your experience may vary. You're welcome to discuss project conversion in the `CumulusCI Trailblazer group <https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z>`_.
+If you're coming from developing on scratch orgs, then you likely only need to do `project setup`_ and `org shape setup`.
+If you're working out of persistent orgs, then you will likely want to go through *all* of the following sections.
+Your experience may vary.
+You're welcome to discuss project conversion in the `CumulusCI Trailblazer group <https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z>`_.
 
 
 Project Setup
@@ -309,37 +312,26 @@ Project Setup
 
 
 
-Extracting Your Project's Metadata
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Next, we need to extract your project's metadata.
-Depending on what type of org your project is in, there are different methods for extracting the desired pieces of metadata.
+Metadata Capture
+^^^^^^^^^^^^^^^^
+We're assuming that your project currently lives in a persistent org.
+We recommend a retrieve of MetaData via the MetaData API (via ``sfdx``), followed by converting the source format from "metadata" to "``sfdx``".
 
+#. `Create a package <https://help.salesforce.com/articleView?id=creating_packages.htm&language=en_us&r=https:%2F%2Fwww.google.com%2F&type=5>`_ in the target org.
+    * Ensure that the package namespace matches the namespace you entered when running ``cci project init``.
+#. Run the `retrieve command <https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_mdapi.htm#cli_reference_retrieve>`_ to extract your package metadata::
 
+    $ sfdx force:mdapi:retrieve -p package_name -r /path/to/project/ 
 
-Existing Persistent Org-Based Project
-******************************************
-For this reason, we recommend a retrieve of MetaData via the MetaData API, followed by converting the source format from "metadata" to "``sfdx``".
-
-#. Curate your ``package.xml`` file
-    * For information on ``package.xml`` files see the `ssample package.xml manifest files <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/manifest_samples.htm>`_ in the Metadata API docs.
-#. `Retrieve <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieve.htm?search_text=retrieve>`_ the metadata specified in your ``package.xml`` file. 
-#. While in the directory where your ``src/`` folder lives, you can now convert your metadata to source (``sfdx``) format with ``cci``::
+#. Navigate to your projects root directory (i.e. where the ``src/`` folder lives), and you can now convert your metadata to source (``sfdx``) format with ``cci``::
 
     $ cci task run dx_convert_to
-
-
-
-Existing Scratch Org-Based Project
-***************************************
-Metadata is easier to extract in these orgs as `source tracking <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_source_tracking_sandboxes.htm>`_ can be enabled in them.
-``sfdx`` allows for easy retrieval of all metadata changes made to an org with this feature enbaled::
-
-    $ sfdx force:source:pull
-
 
 That's it! You now have all of the metadata you care about in a single git repository configured for use with CumulusCI.
 At this point you may want to `add your repo to github`_, or perhaps begin `configuring CumulusCI` <#TODO doc ref>.
 
+Org Shape Setup
+^^^^^^^^^^^^^^^
 
 
 Other Conversion Considerations
