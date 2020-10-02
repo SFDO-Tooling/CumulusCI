@@ -85,8 +85,6 @@ Metadata files where a namespace needs to be conditionally applied to components
 * ``%%%NAMESPACED_ORG_OR_C%%%`` is used like ``%%%NAMESPACE_OR_C%%%``, but is replaced with the namespace only in a namespaced scratch org.
 * ``%%%NAMESPACE_DOT%%%`` is used like ``%%%NAMESPACE%%%``, but is replaced with the namespace followed by a period (``.``) rather than two underscores. This token can be used to construct references to packaged Record Types.
 
-  The resolution of component references in namespaced scratch orgs and in managed installations of the same metadaat are not identical. Metadata that is tokenized and can deploy cleanly in a namespaced scratch org may fail in a managed context.
-
 Here's an example from the Nonprofit Success Pack. This metadata is stored in a subdirectory under ``unpackaged/post``, meaning it's deployed after the application metadata. It updates a Compact Layout on the ``Account`` object and references packaged metadata from the application, as well as from other managed packages. This metadata therefore requires the use of namespace tokens to represent the ``npsp`` namespace, allowing CumulusCI to automatically adapt the metadata to deploy into managed and unmanaged contexts.
 
 .. code-block:: xml
@@ -103,6 +101,8 @@ Here's an example from the Nonprofit Success Pack. This metadata is stored in a 
     </CustomObject>
 
 Note that only the reference to the NPSP field ``Number_of_Household_Members__c`` is tokenized. (This field is called ``npsp__Number_of_Household_Members__c`` when installed as part of the managed package). References to NPSP's own managed package dependency, ``npo02``, are not tokenized, because this metadata is always namespaced when installed.
+
+  The resolution of component references in namespaced scratch orgs and in managed installations of the same metadaat are not identical. Metadata that is tokenized and can deploy cleanly in a namespaced scratch org may fail in a managed context.
 
 Capture Unpackaged Metadata
 ---------------------------

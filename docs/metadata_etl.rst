@@ -19,7 +19,7 @@ tasks, projects can often avoid storing and deploying unpackaged metadata
 by instead extracting metadata from the target org, making changes, and
 then re-deploying. This mode of configuration is lower-risk and lower-
 maintenance than storing extensive unpackaged metadata, which may
-become out of sync or entail more destructive deployment operations.
+become out-of-sync or entail more destructive deployment operations.
 
 A primary example use case for Metadata ETL is deployment of Standard Value Sets.
 Standard Value Sets, which define the picklist values available on standard fields
