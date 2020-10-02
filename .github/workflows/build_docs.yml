@@ -29,3 +29,8 @@ jobs:
         pip install -r requirements_dev.txt
     - name: Make docs
       run: make docs
+    - name: Upload docs
+      uses: actions/upload-artifact@v2
+      with:
+        name: docs
+        path: docs/_build
