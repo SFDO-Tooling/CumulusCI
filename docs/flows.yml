@@ -3,12 +3,12 @@ intro_blurb: >
 
 groups:
     Continuous Integration:
-        description: >
+        description: |
             The suite of continuous integration flows are intended to execute in the context of a CI system.
             They typically involve the creation of an org to have tests (Apex and Robot) run against it.
 flows:
     ci_beta:
-        rst_text: >
+        rst_text: |
             **This is** some ``rst`` formatted text.
             It appears on multiple lines in the ``docs/flows.yml`` file.
 
