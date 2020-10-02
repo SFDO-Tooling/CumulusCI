@@ -1365,8 +1365,7 @@ def flow_doc(runtime):
     with open("docs/flows.yml", "r", encoding="utf-8") as f:
         flow_info = cci_safe_load(f)
 
-    for line in flow_ref_title_and_intro(flow_info["intro_blurb"]):
-        click.echo(line)
+    click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
 
     flows = (
         runtime.project_config.list_flows()

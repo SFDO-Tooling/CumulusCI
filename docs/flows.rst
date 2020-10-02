@@ -1,6 +1,11 @@
 Flow Reference
 ==========================================
+
 CumulusCI's suite of standard flows are grouped into various categories depending on their intended purpose.
+
+.. contents::
+    :depth: 2
+    :local:
 
 
 Continuous Integration
@@ -174,6 +179,8 @@ ci_release
 
 Dependency Management
 ---------------------
+These flows help with deploying dependencies to a target org environment.
+
 beta_dependencies
 ^^^^^^^^^^^^^^^^^
 
@@ -499,6 +506,8 @@ regression_org
 
 Other
 -----
+This is a catch-all group for any flows without a designated "group" attribute in ``cumulusci.yml``.
+
 robot_docs
 ^^^^^^^^^^
 

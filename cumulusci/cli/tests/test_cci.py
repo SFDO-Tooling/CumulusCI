@@ -1997,7 +1997,7 @@ Environment Info: Rossian / x68_46
         doc_flow.assert_called()
         group_items.assert_called_once()
         safe_load.assert_called_once()
-        assert 10 == echo.call_count
+        assert 7 == echo.call_count
 
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})

@@ -272,9 +272,11 @@ Options\n------------------------------------------\n\n
             "test flow"
             "\n^^^^^^^^^\n"
             "\n**Description:** test description.\n"
+            "\n**Flow Steps**\n"
             "\n.. code-block:: console\n"
-            "\n\t1) (Task) Extract\n\n|"
+            "\n\t1) (Task) Extract"
         )
+
         assert expected_doc == flow_doc
 
     def test_document_flow__additional_info(self):
@@ -294,8 +296,9 @@ Options\n------------------------------------------\n\n
             "\n^^^^^^^^^\n"
             "\n**Description:** test description.\n"
             f"\n{other_info}"
+            "\n**Flow Steps**\n"
             "\n.. code-block:: console\n"
-            "\n\t1) (Task) Extract\n\n|"
+            "\n\t1) (Task) Extract"
         )
         assert expected_doc == flow_doc
 

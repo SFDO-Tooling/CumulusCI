@@ -6,6 +6,18 @@ groups:
         description: |
             The suite of continuous integration flows are intended to execute in the context of a CI system.
             They typically involve the creation of an org to have tests (Apex and Robot) run against it.
+    Dependency Management:
+        description: |
+            These flows help with deploying dependencies to a target org environment.
+    Deployment:
+        description: |
+            These flows help with deploying metadata to a target org environment.
+    Install / Uninstall:
+        description: |
+            These flows aid with installation and uninstallation of managed packaged into an org environment.
+    Other:
+        description: |
+            This is a catch-all group for any flows without a designated "group" attribute in ``cumulusci.yml``.
 flows:
     ci_beta:
         rst_text: |
@@ -25,5 +37,5 @@ flows:
             subheader
             ***********
 
-            Ugh. This subheader doesn't want to work :(
+            This subheader now works :)
     
