@@ -2004,8 +2004,6 @@ Environment Info: Rossian / x68_46
         actual_call_args = [call.args[0] for call in echo.call_args_list]
         assert len(expected_call_args) == len(actual_call_args)
         for i in range(len(expected_call_args)):
-            print(f">expected> {expected_call_args[i]}")
-            print(f">actual> {actual_call_args[i]}")
             assert expected_call_args[i] == actual_call_args[i]
 
     def test_flow_run(self):
