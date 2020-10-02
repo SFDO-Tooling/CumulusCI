@@ -14,7 +14,7 @@ Metadata ETL is a suite of tasks that support surgically altering existing metad
 Roles of Unpackaged Metadata
 ----------------------------
 
-``unpackaged/pre``: Preparing an org
+``unpackaged/pre``: Preparing an Org
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Some projects need to have unpackaged metadata deployed to finish the customization of an org, *before* the project's own code and metadata are deployed. For example, a product like the Nonprofit Success Pack may need to deploy unpackaged Record Types prior to installing its own packages or metadata. ``unpackaged/pre`` is the location designed for such metadata, which is stored in subdirectories such as ``unpackaged/pre/first``.
@@ -25,7 +25,7 @@ The task ``deploy_pre``, which is part of the ``dependencies`` flow, is responsi
 
 Metadata that's not intended to be delivered to all installations of the product should *not* be included in ``unpackaged/pre``.
 
-``unpackaged/post``: Configuration after package install
+``unpackaged/post``: Configuration After Package Install
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Projects often include metadata that is genuinely part of the application, but either cannot be delivered as part of a managed package or for operational reasons should not be. For example, a product that wishes to deliver ``TopicsForObjects`` metadata cannot do so as part of a managed package, because that type of metadata is not packageable.
@@ -36,7 +36,7 @@ The task ``deploy_post``, which is part of the ``config_dev``, ``config_qa``, an
 
 Metadata that's not intended to be delivered to all installations of the product should *not* be included in ``unpackaged/post``. It's critical for managed package projects that this metadata include namespace tokens (see :ref:`namespace-injection`).
 
-``unpackaged/config``: Tailoring orgs
+``unpackaged/config``: Tailoring Orgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Projects may come with more than one supported configuration in their CumulusCI automation. For example, projects may support distinct, tailored ``dev_org``, ``qa_org``, and ``install_prod`` flows, each of which performs different setup for their specific use case. Unpackaged metadata stored in ``unpackaged/config`` is a tool to support operational needs to tailor orgs to different configurations. 
@@ -91,7 +91,7 @@ Note that only the reference to the NPSP field ``Number_of_Household_Members__c`
 
 If this metadata were not tokenized, it would fail to deploy into an org containing NPSP as a beta or released managed package.
 
-  The resolution of component references in namespaced scratch orgs and in managed installations of the same metadaat are not identical. Metadata that is tokenized and can deploy cleanly in a namespaced scratch org may fail in a managed context.
+Note: the resolution of component references in namespaced scratch orgs and in managed installations of the same metadata are not identical. Metadata that is tokenized and can deploy cleanly in a namespaced scratch org may fail in a managed context.
 
 Capture Unpackaged Metadata
 ---------------------------
@@ -118,11 +118,11 @@ Projects that use unpackaged metadata extensively may define capture tasks to st
     retrieve_qa_config:
         description: Retrieves changes to QA configuration metadata
         class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
-        group: Salesforce Metadata
         options:
             path: unpackaged/config/qa
             namespace_tokenize: $project_config.project__package__namespace
 
+If you're not able to build your unpackaged metadata in a managed org, you can still capture it with ``retrieve_changes``, but it will be necessary to manually insert namespace tokens to allow that metadata to be deployed in a managed or namespaced context.
 
 Customize Config Flows
 ----------------------
@@ -134,7 +134,6 @@ Projects often customize new tasks that deploy ``unpackaged/config`` bundles, an
     deploy_qa_config:
         description: Deploys additional fields used for QA purposes only
         class_path: cumulusci.tasks.salesforce.Deploy
-        group: Salesforce Metadata
         options:
             path: unpackaged/config/qa
             namespace_inject: $project_config.project__package__namespace
