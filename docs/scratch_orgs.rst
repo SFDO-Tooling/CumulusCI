@@ -33,9 +33,9 @@ See Also
 Predefined Orgs
 ---------------
 
-CumulusCI comes with five org predefined org configurations. Every org's keychain starts with these configurations available and ready to be turned into a live scratch org. You can see the predefined org configurations in your project by running
+CumulusCI comes with five predefined org configurations. Every org's keychain starts with these configurations available and ready to be turned into a live scratch org. You can see the predefined org configurations in your project by running
 
-.. code-block: console
+.. code-block:: console
 
     $ cci org list
 
@@ -75,7 +75,7 @@ Each scratch org you create is counted against limits in your Dev Hub. Scratch o
 
 Scratch org limits are based on your Dev Hub's edition and your Salesforce contract. To review limits and consumption, run the command
 
-.. code-block: console
+.. code-block:: console
 
     $ sfdx force:limits:api:display -u <username>
 
@@ -160,7 +160,7 @@ An org configuration has a name, such as ``dev`` or ``qa``, and is defined by op
 
 Many projects that build managed packages offer a ``dev_namespaced`` org, a developer org that has a namespace. This org is defined like this in ``cumulusci.yml``:
 
-.. code-block: yaml
+.. code-block:: yaml
 
     orgs:
         scratch:
@@ -194,9 +194,8 @@ Use a Non-Default Dev Hub
 
 By default, CumulusCI will create scratch orgs using the Dev Hub org that is configured as the ``defaultdevhubusername`` in ``sfdx``. You can switch to a different Dev Hub org within a particular project by configuring the ``devhub`` service:
 
-.. code-block: console
+.. code-block:: console
 
     $ cci service connect devhub --project
     Username: [type the Dev Hub username here]
     devhub is now configured for this project.
-
