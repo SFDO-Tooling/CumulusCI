@@ -5,7 +5,6 @@ on:
     paths:
     - 'docs/**'
 
-
 jobs:
   lint:
     name: Build docs
@@ -33,4 +32,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: docs
-        path: docs/_build
+        path: docs/_build/html

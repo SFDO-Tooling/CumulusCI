@@ -24,4 +24,3 @@ Contents
    cookbook
    reference
    about
-
