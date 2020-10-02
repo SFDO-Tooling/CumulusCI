@@ -479,6 +479,18 @@ def create_task_options_doc(task_options):
     return doc
 
 
+def flow_ref_title_and_intro(intro_blurb):
+    return [
+        "Flow Reference",
+        "==========================================",
+        intro_blurb,
+        ".. contents::",
+        "   :depth: 2",
+        "   :local:",
+        "",
+    ]
+
+
 def document_flow(flow_name, description, flow_coordinator, additional_info=None):
     """Document (project specific) flow configurations in RST format"""
     doc = []

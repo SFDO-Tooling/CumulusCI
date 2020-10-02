@@ -46,7 +46,7 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task, document_flow
+from cumulusci.utils import doc_task, document_flow, flow_ref_title_and_intro
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.git import current_branch
@@ -1362,15 +1362,11 @@ def task_doc(runtime):
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
 @pass_runtime(require_project=False)
 def flow_doc(runtime):
-    # config_src = runtime.universal_config
-
     with open("docs/flows.yml", "r", encoding="utf-8") as f:
         flow_info = cci_safe_load(f)
 
-    click.echo("Flow Reference")
-    click.echo("==========================================")
-    click.echo(flow_info["intro_blurb"])
-    click.echo("")
+    for line in flow_ref_title_and_intro(flow_info["intro_blurb"]):
+        click.echo(line)
 
     flows = (
         runtime.project_config.list_flows()
