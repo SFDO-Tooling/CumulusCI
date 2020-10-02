@@ -9,7 +9,7 @@ The tools used to implement that support are *unpackaged metadata* and *Metadata
 
 Unpackaged metadata refers to metadata that is not delivered as part of a package, and can include both support metadata delivered to users as well as metadata that is used operationally in configuring orgs used by the product. 
 
-Metadata ETL is a suite of tasks that support surgically altering existing metadata in an org. Metadata ETL is a powerful technique for delivering changes to unpackaged configuration in an org without risking damage by overwriting existing customizations with stored metadata. Metadata ETL is particularly relevant for delivering applications to customers safely and is often a viable alternative to using unpackaged metadata. See :ref:`metadata-etl` for more information.
+Metadata ETL is a suite of tasks that support surgically altering existing metadata in an org. Metadata ETL is a powerful technique for delivering changes to unpackaged configuration in an org without risking damage by overwriting existing customizations with stored metadata. Metadata ETL is particularly relevant for delivering applications to customers safely and is often a superior alternative to unpackaged metadata. See :ref:`metadata-etl` for more information.
 
 Roles of Unpackaged Metadata
 ----------------------------
@@ -39,23 +39,10 @@ Metadata that's not intended to be delivered to all installations of the product
 ``unpackaged/config``: Tailoring orgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Projects may come with more than one supported configuration in their CumulusCI automation. For example, projects may support distinct, tailored ``dev_org``, ``qa_org``, and ``install_prod`` flows, each of which performs different setup for their specific use case. Unpackaged metadata stored in ``unpackaged/config`` is a tool to support operational needs to tailor orgs to different configurations. For example, a testing-oriented scratch org may wish to deploy a customized set of Page Layouts to help testers easily visualize data under test. Such page layouts could be stored in ``unpackaged/config/qa``.
+Projects may come with more than one supported configuration in their CumulusCI automation. For example, projects may support distinct, tailored ``dev_org``, ``qa_org``, and ``install_prod`` flows, each of which performs different setup for their specific use case. Unpackaged metadata stored in ``unpackaged/config`` is a tool to support operational needs to tailor orgs to different configurations. 
 
-Projects often customize new tasks that deploy ``unpackaged/config`` bundles. For example, projects that use ``unpackaged/config/qa`` often define a task ``deploy_qa_config`` like this one:
+For example, a testing-oriented scratch org may wish to deploy a customized set of Page Layouts to help testers easily visualize data under test. Such page layouts could be stored in ``unpackaged/config/qa``.
 
-.. code-block:: yaml
-
-    deploy_qa_config:
-        description: Deploys additional fields used for QA purposes only
-        class_path: cumulusci.tasks.salesforce.Deploy
-        group: Salesforce Metadata
-        options:
-            path: unpackaged/config/qa
-            namespace_inject: $project_config.project__package__namespace
-
-This task is then added to relevant flows, like ``config_qa``.
-
-For more details on customizing Flows and Tasks, see TODO: link to relevant section.
 
 Unpackaged Metadata Folder Structure
 ------------------------------------
@@ -102,12 +89,74 @@ Here's an example from the Nonprofit Success Pack. This metadata is stored in a 
 
 Note that only the reference to the NPSP field ``Number_of_Household_Members__c`` is tokenized. (This field is called ``npsp__Number_of_Household_Members__c`` when installed as part of the managed package). References to NPSP's own managed package dependency, ``npo02``, are not tokenized, because this metadata is always namespaced when installed.
 
+If this metadata were not tokenized, it would fail to deploy into an org containing NPSP as a beta or released managed package.
+
   The resolution of component references in namespaced scratch orgs and in managed installations of the same metadaat are not identical. Metadata that is tokenized and can deploy cleanly in a namespaced scratch org may fail in a managed context.
 
 Capture Unpackaged Metadata
 ---------------------------
 
+CumulusCI provides tasks to easily capture changes to unpackaged metadata, just as with packaged metadata. For an introduction, see TODO: link to the dev section.
+
+When working with unpackaged metadata, it's important to maintain awareness of some key considerations related to capturing metadata that is not part of the main application.
+
+* Take care to separate your development between the different bundles you wish to capture. For example, if you have changes to make in the application and also in unpackaged metadata, complete the application changes first, capture them, then make the unpackaged changes and capture them. If you conflate changes to components that live in separate elements of your project, it'll be more challenging to untangle them.
+* Whenever possible, build your unpackaged metadata in an org that contains a beta or released managed package. By doing so, you ensure that your metadata contains namespaces when extracted. CumulusCI makes it easy to replace namespaces with tokens when you retrieve metadata. It's much more difficult to manually tokenize metadata that's retrieved from an unmanaged org, without namespaces.
+
+After building changes to unpackaged metadata in a managed org, retrieve it using ``retrieve_changes``, with the additional ``namespace_tokenize`` option, and use the ``path`` option to direct the retrieved metadata to your desired unpackaged directory.
+
+For example, this command would capture metadata changes into the ``unpackaged/config/qa`` subdirectory, replacing references to the namespace ``npsp`` with the appropriate token:
+
+.. code-block:: console
+
+    $ cci task run retrieve_changes -o path unpackaged/config/qa -o namespace_tokenize npsp
+
+Projects that use unpackaged metadata extensively may define capture tasks to streamline this process, such as this one:
+
+.. code-block:: yaml
+
+    retrieve_qa_config:
+        description: Retrieves changes to QA configuration metadata
+        class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+        group: Salesforce Metadata
+        options:
+            path: unpackaged/config/qa
+            namespace_tokenize: $project_config.project__package__namespace
 
 
 Customize Config Flows
 ----------------------
+
+Projects often customize new tasks that deploy ``unpackaged/config`` bundles, and harness these tasks in flows. For example, projects that use ``unpackaged/config/qa`` often define a task ``deploy_qa_config`` like this one:
+
+.. code-block:: yaml
+
+    deploy_qa_config:
+        description: Deploys additional fields used for QA purposes only
+        class_path: cumulusci.tasks.salesforce.Deploy
+        group: Salesforce Metadata
+        options:
+            path: unpackaged/config/qa
+            namespace_inject: $project_config.project__package__namespace
+
+This task is then added to relevant flows, like ``config_qa``:
+
+.. code-block:: yaml
+
+    config_qa:
+        steps:
+            3:
+                task: deploy_qa_config
+
+When deployment tasks are used in managed or namespaced contexts, it's important to use the option ``unmanaged: False`` so that CumulusCI knows to inject the namespace appropriately:
+
+.. code-block:: yaml
+
+    config_regression:
+        steps:
+            3: 
+                task: deploy_qa_config
+                options:
+                    unmanaged: False
+
+For more details on customizing Flows and Tasks, see TODO: link to relevant section.
