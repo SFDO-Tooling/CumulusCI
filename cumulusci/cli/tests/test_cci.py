@@ -1961,6 +1961,9 @@ Environment Info: Rossian / x68_46
     def test_flow_doc__no_flows_rst_file(self, doc_flow, group_items):
         runtime = mock.Mock()
         runtime.universal_config.flows = {"test": {}}
+        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+        runtime.get_flow.return_value = FlowCoordinator(None, flow_config)
+
         group_items.return_value = {"Group One": [["test flow", "description"]]}
 
         run_click_command(cci.flow_doc, runtime=runtime)
@@ -1969,35 +1972,41 @@ Environment Info: Rossian / x68_46
 
     @mock.patch("cumulusci.cli.cci.click.echo")
     @mock.patch("cumulusci.cli.cci.cci_safe_load")
-    @mock.patch("cumulusci.cli.cci.group_items")
-    @mock.patch("cumulusci.cli.cci.document_flow")
-    def test_flow_doc__with_flows_rst_file(
-        self, doc_flow, group_items, safe_load, echo
-    ):
+    def test_flow_doc__with_flows_rst_file(self, safe_load, echo):
         runtime = mock.Mock()
-        runtime.universal_config.flows = {"test": {}}
+        runtime.project_config = None
+        runtime.universal_config.list_flows.return_value = [
+            {"name": "Flow1", "description": "Description of Flow1", "group": "Group1"}
+        ]
+        flow_config = FlowConfig({"description": "Description of Flow1", "steps": {}})
+        runtime.get_flow.return_value = FlowCoordinator(None, flow_config)
+
         safe_load.return_value = {
             "intro_blurb": "opening blurb for flow reference doc",
             "groups": {
-                "Group One": {"description": "This is a descripiton of group one."},
-                "Group Two": {"description": "This is a description of group two."},
+                "Group1": {"description": "This is a description of group1."},
             },
-            "flows": {"test flow1": {"rst_text": "Some ``extra`` **pizzaz**!"}},
-        }
-        group_items.return_value = {
-            "Group One": [
-                ["late", "This flow should be listed after early."],
-                ["early", "This flow should be listed before late."],
-            ]
+            "flows": {"Flow1": {"rst_text": "Some ``extra`` **pizzaz**!"}},
         }
 
         run_click_command(cci.flow_doc, runtime=runtime)
 
-        group_items.assert_called_once()
-        doc_flow.assert_called()
-        group_items.assert_called_once()
-        safe_load.assert_called_once()
-        assert 7 == echo.call_count
+        assert 1 == safe_load.call_count
+        assert 5 == echo.call_count
+
+        expected_call_args = [
+            "Flow Reference\n==========================================\n\nopening blurb for flow reference doc\n.. contents::\n    :depth: 2\n    :local:\n\n",
+            "Group1\n------",
+            "This is a description of group1.",
+            "Flow1\n^^^^^\n\n**Description:** Description of Flow1\n\nSome ``extra`` **pizzaz**!\n**Flow Steps**\n\n.. code-block:: console\n",
+            "",
+        ]
+        actual_call_args = [call.args[0] for call in echo.call_args_list]
+        assert len(expected_call_args) == len(actual_call_args)
+        for i in range(len(expected_call_args)):
+            print(f">expected> {expected_call_args[i]}")
+            print(f">actual> {actual_call_args[i]}")
+            assert expected_call_args[i] == actual_call_args[i]
 
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})

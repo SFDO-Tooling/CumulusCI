@@ -12,8 +12,10 @@ from unittest import mock
 import responses
 
 from cumulusci import utils
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import TaskConfig, FlowConfig
+from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
+from cumulusci.tests.util import create_project_config
 
 
 class FunTestTask(BaseTask):
@@ -262,11 +264,10 @@ Options\n------------------------------------------\n\n
         assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
 
     def test_document_flow(self):
-        flow_steps = ["1) (Task) Extract"]
-        flow_coordinator = mock.Mock(get_flow_steps=mock.Mock(return_value=flow_steps))
-        flow_doc = utils.document_flow(
-            "test flow", "test description.", flow_coordinator
-        )
+        project_config = create_project_config("TestOwner", "TestRepo")
+        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+        coordinator = FlowCoordinator(project_config, flow_config, name="test_flow")
+        flow_doc = utils.document_flow("test flow", "test description.", coordinator)
 
         expected_doc = (
             "test flow"
@@ -274,7 +275,6 @@ Options\n------------------------------------------\n\n
             "\n**Description:** test description.\n"
             "\n**Flow Steps**\n"
             "\n.. code-block:: console\n"
-            "\n\t1) (Task) Extract"
         )
 
         assert expected_doc == flow_doc
