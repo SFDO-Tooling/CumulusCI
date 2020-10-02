@@ -369,7 +369,7 @@ def zip_clean_metaxml(zip_src, logger=None):
     return zip_dest
 
 
-def document_task(task_name, task_config, project_config=None, org_config=None):
+def doc_task(task_name, task_config, project_config=None, org_config=None):
     """ Document a (project specific) task configuration in RST format. """
     from cumulusci.core.utils import import_global
 

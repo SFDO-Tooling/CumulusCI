@@ -17,7 +17,7 @@ from cumulusci.core.tasks import BaseTask
 
 
 class FunTestTask(BaseTask):
-    """For testing document_task"""
+    """For testing doc_task"""
 
     task_options = {
         "color": {"description": "What color"},
@@ -34,7 +34,7 @@ class FunTestTask(BaseTask):
 
 
 class FunTestTaskChild(FunTestTask):
-    """For testing document_task"""
+    """For testing doc_task"""
 
     task_options = {
         "flavor": {"description": "What flavor", "required": True},
@@ -189,8 +189,8 @@ class TestUtils:
         result = utils.remove_xml_element("tag", tree)
         assert result is tree
 
-    def test_document_task(self, task_config):
-        task_doc = utils.document_task("scoop_icecream", task_config)
+    def test_doc_task(self, task_config):
+        task_doc = utils.doc_task("scoop_icecream", task_config)
         assert (
             task_doc
             == """**scoop_icecream**
@@ -484,14 +484,14 @@ Options\n------------------------------------------\n\n
         zf = utils.zip_clean_metaxml(zf)
         assert b"<root>\xc3\xb1</root>" == zf.read("classes/test-meta.xml")
 
-    def test_document_task_not_inherited(self):
+    def test_doc_task_not_inherited(self):
         task_config = TaskConfig(
             {
                 "class_path": "cumulusci.tests.test_utils.FunTestTaskChild",
                 "options": {"color": "black"},
             }
         )
-        result = utils.document_task("command", task_config)
+        result = utils.doc_task("command", task_config)
 
         assert "extra docs" not in result
 

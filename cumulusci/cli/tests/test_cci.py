@@ -1794,7 +1794,7 @@ Environment Info: Rossian / x68_46
 
         json_.assert_called_with([task_dicts])
 
-    @mock.patch("cumulusci.cli.cci.document_task")
+    @mock.patch("cumulusci.cli.cci.doc_task")
     def test_task_doc(self, doc_task):
         runtime = mock.Mock()
         runtime.universal_config.tasks = {"test": {}}
@@ -1803,7 +1803,7 @@ Environment Info: Rossian / x68_46
         doc_task.assert_called()
 
     @mock.patch("cumulusci.cli.cci.rst2ansi")
-    @mock.patch("cumulusci.cli.cci.document_task")
+    @mock.patch("cumulusci.cli.cci.doc_task")
     def test_task_info(self, doc_task, rst2ansi):
         runtime = mock.Mock()
         runtime.project_config.tasks__test = {"options": {}}

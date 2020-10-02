@@ -46,7 +46,7 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import document_task, document_flow
+from cumulusci.utils import doc_task, document_flow
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.git import current_branch
@@ -1354,7 +1354,7 @@ def task_doc(runtime):
 
     for name, options in config_src.tasks.items():
         task_config = TaskConfig(options)
-        doc = document_task(name, task_config)
+        doc = doc_task(name, task_config)
         click.echo(doc)
         click.echo("")
 
@@ -1417,7 +1417,7 @@ def task_info(runtime, task_name):
         else runtime.universal_config.get_task(task_name)
     )
 
-    doc = document_task(task_name, task_config).encode()
+    doc = doc_task(task_name, task_config).encode()
     click.echo(rst2ansi(doc))
 
 
