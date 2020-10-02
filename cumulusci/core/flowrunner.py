@@ -297,7 +297,7 @@ class FlowCoordinator(object):
         return "\n".join(lines)
 
     def get_flow_steps(self, for_docs=False):
-        """Returns a string of flow steps (tasks and sub-flows) for the given flow.
+        """Returns a list of flow steps (tasks and sub-flows) for the given flow.
         For docs, indicates whether or not we want to use the string for use in a code-block
         of an rst file. If True, will omit output of source information."""
         lines = []
