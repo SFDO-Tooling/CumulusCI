@@ -489,10 +489,11 @@ def document_flow(flow_name, description, flow_coordinator, additional_info=None
     if additional_info:
         doc.append(additional_info)
 
+    doc.append("**Flow Steps**\n")
     doc.append(".. code-block:: console\n")
     flow_step_lines = flow_coordinator.get_flow_steps(for_docs=True)
     # extra indent beneath code-block and finish with pipe for extra space afterwards
-    flow_step_lines = [f"\t{line}" for line in flow_step_lines] + ["\n|"]
+    flow_step_lines = [f"\t{line}" for line in flow_step_lines]
     # fix when clauses
     lines = []
     for line in flow_step_lines:
