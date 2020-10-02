@@ -1961,7 +1961,7 @@ Environment Info: Rossian / x68_46
     def test_flow_doc__no_flows_rst_file(self, doc_flow, group_items):
         runtime = mock.Mock()
         runtime.universal_config.flows = {"test": {}}
-        group_items.return_value = {"Group One": ["test flow", "description"]}
+        group_items.return_value = {"Group One": [["test flow", "description"]]}
 
         run_click_command(cci.flow_doc, runtime=runtime)
         group_items.assert_called_once()
@@ -1978,13 +1978,16 @@ Environment Info: Rossian / x68_46
         runtime.universal_config.flows = {"test": {}}
         safe_load.return_value = {
             "intro_blurb": "opening blurb for flow reference doc",
-            "groups": {"Group One": {"description": "This is a descripiton"}},
+            "groups": {
+                "Group One": {"description": "This is a descripiton of group one."},
+                "Group Two": {"description": "This is a description of group two."},
+            },
             "flows": {"test flow1": {"rst_text": "Some ``extra`` **pizzaz**!"}},
         }
         group_items.return_value = {
             "Group One": [
-                ["test flow1", "This is a description."],
-                ["test flow2", "This is another description."],
+                ["late", "This flow should be listed after early."],
+                ["early", "This flow should be listed before late."],
             ]
         }
 

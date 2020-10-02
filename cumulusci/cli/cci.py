@@ -1378,18 +1378,15 @@ def flow_doc(runtime):
         else runtime.universal_config.list_flows()
     )
     flows_by_group = group_items(flows)
+    flow_groups = sorted(flows_by_group.keys())
 
-    current_group = ""
-    for group, flows in flows_by_group.items():
-        if group != current_group:
-            current_group = group
-            click.echo(f"{group}\n{'-' * len(group)}")
-            if group in flow_info["groups"]:
-                click.echo(flow_info["groups"][group]["description"])
+    for group in flow_groups:
+        click.echo(f"{group}\n{'-' * len(group)}")
+        if group in flow_info["groups"]:
+            click.echo(flow_info["groups"][group]["description"])
 
-        for flow in flows:
-            flow_name = flow[0]
-            flow_description = flow[1]
+        for flow in sorted(flows_by_group[group]):
+            flow_name, flow_description = flow
             try:
                 flow_coordinator = runtime.get_flow(flow_name)
             except FlowNotFoundError as e:
