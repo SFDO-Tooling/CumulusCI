@@ -269,6 +269,10 @@ class OrgConfig(BaseConfig):
             for package in response["records"]:
                 sp = package["SubscriberPackage"]
                 spv = package["SubscriberPackageVersion"]
+                if spv is None:
+                    # This _shouldn't_ happen, but it is possible in customer orgs.
+                    continue
+
                 version = f"{spv['MajorVersion']}.{spv['MinorVersion']}"
                 if spv["PatchVersion"]:
                     version += f".{spv['PatchVersion']}"
