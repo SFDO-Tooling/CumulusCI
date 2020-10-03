@@ -112,9 +112,9 @@ Once you know the specific task or flow you want to run, you can execute it with
     $ cci flow run flow_name --org org_name [Options]
 
 Where ``task_name`` and ``flow_name`` are the actual name of the task or flow that you would like to run, and ``org_name`` is the name of the org that you want to run the task or flow against. 
-(You can see a list of orgs available to you by runnin ``cci org list``).
+(You can see a list of orgs available to you by running ``cci org list``).
 Tasks usually require additional options to be passed when using the ``cci task run`` command.
-See the next section for how to view task specific option information. 
+See the next section for how to view task-specific option information. 
 
 
 
