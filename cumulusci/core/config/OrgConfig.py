@@ -116,12 +116,9 @@ class OrgConfig(BaseConfig):
         else:
             return self.instance_url.split(".")[0] + ".lightning.force.com"
 
-    # to simplify mocking for tests
-    _Salesforce = Salesforce
-
     @property
     def salesforce_client(self):
-        return self._Salesforce(
+        return Salesforce(
             instance=self.instance_url.replace("https://", ""),
             session_id=self.access_token,
             version=self.latest_api_version,
