@@ -180,7 +180,7 @@ API names. (The base class will generate a corresponding ``package.xml``). Subcl
 also implement ``_transform()``, as with ``BaseMetadataETLTask``.
 
 ``UpdateFirstAttributeTextTask`` is a base class and generic concrete task that makes it easy to
-perform a specific, common transformation: setting the value of a the first instance of a specific 
+perform a specific, common transformation: setting the value of the first instance of a specific 
 top-level tag in a given metadata entity. Subclasses (or tasks defined in ``cumulusci.yml``)
 must define the ``entity``, targeted ``attribute``, and desired ``value`` to set. Example:
 
