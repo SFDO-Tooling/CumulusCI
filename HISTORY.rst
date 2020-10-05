@@ -2,6 +2,14 @@
 History
 =======
 
+3.20.1 (2020-10-05)
+-------------------
+
+Issues closed:
+
+- Fixed a bug introduced in CumulusCI 3.20.0 in which the ``upload_beta`` and ``upload_production`` tasks could hit a connection error if uploading the package took over 10 minutes.
+- We corrected edge cases in how we processed Boolean options for the ``custom_settings_wait``, ``exec_anon``, and ``uninstall_post`` tasks. (Thanks to @davidjray)
+
 3.20.0 (2020-09-30)
 -------------------
 Critical Changes:
