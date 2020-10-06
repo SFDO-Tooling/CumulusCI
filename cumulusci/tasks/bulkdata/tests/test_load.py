@@ -1951,14 +1951,15 @@ class TestLoadData(unittest.TestCase):
 
             self.assertEqual(expected, actual, f"columns: {columns}")
 
-    def test_filter_out_person_account_records(self):
+    @mock.patch("cumulusci.tasks.bulkdata.load.func.lower")
+    def test_filter_out_person_account_records(self, lower):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
         )
         model = mock.Mock()
         model.__table__ = mock.Mock()
         IsPersonAccount_column = mock.MagicMock()
-        IsPersonAccount_column.__eq__ = mock.Mock()
+        lower.return_value.__eq__ = mock.Mock()
         columns = {
             "sf_id": mock.Mock(),
             "name": mock.Mock(),
@@ -1974,9 +1975,9 @@ class TestLoadData(unittest.TestCase):
 
         self.assertEqual(expected, actual)
 
-        IsPersonAccount_column.__eq__.assert_called_once_with("false")
+        lower.return_value.__eq__.assert_called_once_with("false")
 
-        query.filter.assert_called_once_with(IsPersonAccount_column.__eq__.return_value)
+        query.filter.assert_called_once_with(lower.return_value.__eq__.return_value)
 
     def test_generate_contact_id_map_for_person_accounts(self):
         mapping_file = "mapping-oid.yml"
