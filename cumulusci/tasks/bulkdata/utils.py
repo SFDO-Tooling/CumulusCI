@@ -6,8 +6,9 @@ import typing
 from contextlib import contextmanager
 from pathlib import Path
 
-from sqlalchemy import Column, MetaData, Table, Unicode
+from sqlalchemy import Column, MetaData, Table, Unicode, Integer
 from sqlalchemy.orm import mapper, Session
+from sqlalchemy.inspection import inspect
 from simple_salesforce import Salesforce
 
 from cumulusci.core.exceptions import BulkDataException
@@ -95,6 +96,113 @@ class SqlAlchemyMixin:
             return nullcontext(enter_result=database_url)
         else:
             return self._temp_database_url()
+
+    def _id_generator_for_object(self, sobject: str):
+        if sobject not in self._id_generators:
+
+            def _generate_ids():
+                counter = 0
+                while True:
+                    yield f"{sobject}-{counter}"
+                    counter += 1
+
+            self._id_generators[sobject] = _generate_ids()
+
+        return self._id_generators[sobject]
+
+    def _update_column(
+        self, *, source_model, target_model, key_field, join_field, target_field
+    ):
+        key_attr = getattr(source_model, key_field)
+        join_attr = getattr(target_model, join_field)
+        target_attr = getattr(target_model, target_field)
+
+        id_column = inspect(source_model).primary_key[0].name
+
+        try:
+            self.session.query(source_model).filter(
+                key_attr.isnot(None), key_attr == join_attr
+            ).update({key_attr: target_attr}, synchronize_session=False)
+        except NotImplementedError:
+            # Some databases, such as SQLite, don't support multitable update
+            # TODO: review memory consumption of this routine.
+            mappings = []
+            for row, lookup_id in self.session.query(source_model, target_attr).join(
+                target_model, key_attr == join_attr
+            ):
+                mappings.append(
+                    {id_column: getattr(row, id_column), key_field: lookup_id}
+                )
+            self.session.bulk_update_mappings(source_model, mappings)
+
+    def _update_sf_id_column(self, model, key_field):
+        self._update_column(
+            source_model=model,
+            target_model=self.models[self.ID_TABLE_NAME],
+            key_field=key_field,
+            join_field="sf_id",
+            target_field="id",
+        )
+
+    def _is_autopk_database(self):
+        # If the type of the Id column on a mapping is INTEGER,
+        # this is an autopk database.
+
+        mapping = self.mapping.values[0]
+        id_field = mapping.fields["Id"]
+        return isinstance(getattr(self.models[mapping.table], id_field).type, Integer)
+
+    def _convert_autopk_database(self):
+        column = Column("_cci_new_pk", Unicode(255))
+        column_name = column.compile(dialect=self.engine.dialect)
+        column_type = column.type.compile(self.engine.dialect)
+
+        for step in self.mapping:
+            # Add a new column to the table to hold the new Ids.
+            self.engine.execute(
+                f"ALTER TABLE {step.table} ADD COLUMN {column_name} {column_type}"
+            )
+            # TODO: Populate the new PKs.
+            gen = self._id_generator_for_object(step.sf_object)
+            model = self.models[step.sf_object]
+            id_column = getattr(model, step.fields["Id"])
+            for rows in self.session.query(id_column).yield_per(1000):
+                updates = []
+                for row in rows:
+                    updates.append(
+                        {
+                            id_column: getattr(row, id_column),
+                            key_field: lookup_id,
+                        }  # FIXME: how to reflect to the model?
+                    )
+                self.session.bulk_update_mappings(model, updates)
+
+        # Iterate again to find and rewrite lookups.
+        # We're going to join from each step's table to the lookup target table, then rewrite the reference
+        # on the step's table to the newPK.
+        for step in self.mapping:
+            for lookup in step.lookups:
+                self._update_column(
+                    source_model=self.models[step.table],
+                    target_model=self.models[lookup.table],
+                    key_field=lookup.key_field,
+                    join_field=lookup.join_field,  # FIXME: is this right? no, we rarely populate that field.
+                    target_field="_cci_new_pk",
+                )
+
+        # Iterate one more time to drop the old autoPK columns.
+        for step in self.mapping:
+            autopk_column = step.fields["Id"]
+
+            self.engine.execute(f"ALTER TABLE {step.table} DROP COLUMN {autopk_column}")
+            self.engine.execute(
+                f"ALTER TABLE {step.table} RENAME COLUMN {column_name} TO {autopk_column}"
+            )
+            self.engine.execute(
+                f"ALTER TABLE {step.table} ADD PRIMARY KEY {autopk_column}"
+            )
+
+        # What if we just copied data to a tempfile db instead of altering the existing DB?
 
 
 def create_table(mapping, metadata):

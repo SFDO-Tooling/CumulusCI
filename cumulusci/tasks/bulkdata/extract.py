@@ -3,7 +3,6 @@ from contextlib import contextmanager
 
 from sqlalchemy import create_engine, Column, MetaData, Table, Unicode
 from sqlalchemy.orm import create_session, mapper
-from sqlalchemy.inspection import inspect
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
@@ -257,19 +256,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Drop Salesforce Id table
         self.metadata.tables[self.ID_TABLE_NAME].drop()
 
-    def _id_generator_for_object(self, sobject: str):
-        if sobject not in self._id_generators:
-
-            def _generate_ids():
-                counter = 0
-                while True:
-                    yield f"{sobject}-{counter}"
-                    counter += 1
-
-            self._id_generators[sobject] = _generate_ids()
-
-        return self._id_generators[sobject]
-
     def _get_mapping_for_table(self, table):
         """Return the first mapping for a table name """
         for mapping in self.mapping.values():
@@ -286,28 +272,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._update_sf_id_column(model, key_field)
 
         self.session.commit()
-
-    def _update_sf_id_column(self, model, key_field):
-        lookup_model = self.models[self.ID_TABLE_NAME]
-        key_attr = getattr(model, key_field)
-
-        id_column = inspect(model).primary_key[0].name
-
-        try:
-            self.session.query(model).filter(
-                key_attr.isnot(None), key_attr == lookup_model.sf_id
-            ).update({key_attr: lookup_model.id}, synchronize_session=False)
-        except NotImplementedError:
-            # Some databases, such as SQLite, don't support multitable update
-            # TODO: review memory consumption of this routine.
-            mappings = []
-            for row, lookup_id in self.session.query(model, lookup_model.id).join(
-                lookup_model, key_attr == lookup_model.sf_id
-            ):
-                mappings.append(
-                    {id_column: getattr(row, id_column), key_field: lookup_id}
-                )
-            self.session.bulk_update_mappings(model, mappings)
 
     def _create_tables(self):
         """Create a table for each mapping step."""
