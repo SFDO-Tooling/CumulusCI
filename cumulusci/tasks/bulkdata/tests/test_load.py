@@ -1,5 +1,5 @@
-from collections import OrderedDict
-from datetime import datetime
+from datetime import date, timedelta
+import io
 import os
 import json
 import shutil
@@ -7,6 +7,7 @@ import random
 import string
 import unittest
 from unittest import mock
+import tempfile
 
 import responses
 from sqlalchemy import Column, Table, Unicode
@@ -18,59 +19,29 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationJobResult,
     DataOperationType,
     DataOperationStatus,
-    BaseDmlOperation,
+    DataApi,
 )
-from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
+from cumulusci.tasks.bulkdata.tests.utils import (
+    _make_task,
+    FakeBulkAPI,
+    FakeBulkAPIDmlOperation,
+)
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
+from cumulusci.tests.util import (
+    assert_max_memory_usage,
+    mock_describe_calls,
+)
 
-
-class MockBulkApiDmlOperation(BaseDmlOperation):
-    def __init__(
-        self, *, context, sobject=None, operation=None, api_options=None, fields=None
-    ):
-        super().__init__(
-            sobject=sobject,
-            operation=operation,
-            api_options=api_options,
-            context=context,
-            fields=fields,
-        )
-        self._results = []
-        self.records = []
-
-    def start(self):
-        self.job_id = "JOB"
-
-    def end(self):
-        records_processed = len(self.results)
-        self.job_result = DataOperationJobResult(
-            DataOperationStatus.SUCCESS, [], records_processed, 0
-        )
-
-    def load_records(self, records):
-        self.records.extend(records)
-
-    def get_results(self):
-        return iter(self.results)
-
-    @property
-    def results(self):
-        return self._results
-
-    @results.setter
-    def results(self, results):
-        self._results = results
-        self.end()
+from cumulusci.utils.backports.py36 import nullcontext
 
 
 class TestLoadData(unittest.TestCase):
     mapping_file = "mapping_v1.yml"
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
-    def test_run(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test_run(self, dml_mock):
         responses.add(
             method="GET",
             url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
@@ -99,14 +70,14 @@ class TestLoadData(unittest.TestCase):
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
 
-            step = MockBulkApiDmlOperation(
+            step = FakeBulkAPIDmlOperation(
                 sobject="Contact",
                 operation=DataOperationType.INSERT,
                 api_options={},
                 context=task,
                 fields=[],
             )
-            step_mock.return_value = step
+            dml_mock.return_value = step
 
             step.results = [
                 DataOperationResult("001000000000000", True, None),
@@ -142,7 +113,7 @@ class TestLoadData(unittest.TestCase):
                 }
             },
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task.mapping = {}
         task.mapping["Insert Households"] = MappingStep(sf_object="one", fields={})
@@ -161,7 +132,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
         task.mapping = {}
@@ -187,7 +158,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
         task.mapping = {}
@@ -210,8 +181,8 @@ class TestLoadData(unittest.TestCase):
             task()
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
-    def test_run__sql(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test_run__sql(self, dml_mock):
         responses.add(
             method="GET",
             url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
@@ -228,14 +199,14 @@ class TestLoadData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
             context=task,
             fields=[],
         )
-        step_mock.return_value = step
+        dml_mock.return_value = step
         step.results = [
             DataOperationResult("001000000000000", True, None),
             DataOperationResult("003000000000000", True, None),
@@ -249,11 +220,6 @@ class TestLoadData(unittest.TestCase):
             ["Test☃", "User", "test@example.com", "001000000000000"],
             ["Error", "User", "error@example.com", "001000000000000"],
         ]
-
-        hh_ids = task.session.query(
-            *task.metadata.tables["households_sf_ids"].columns
-        ).one()
-        assert hh_ids == ("1", "001000000000000")
 
     def test_init_options__missing_input(self):
         with self.assertRaises(TaskOptionsError):
@@ -361,13 +327,14 @@ class TestLoadData(unittest.TestCase):
             table="contacts", name="Primary_Contact__c"
         )
         self.assertEqual(
-            {
-                "sf_object": "Account",
-                "action": "update",
-                "table": "accounts",
-                "lookups": lookups,
-                "fields": {},
-            },
+            MappingStep(
+                sf_object="Account",
+                api=DataApi.BULK,
+                action=DataOperationType.UPDATE,
+                table="accounts",
+                lookups=lookups,
+                fields={},
+            ),
             task.after_steps["Insert Contacts"][
                 "Update Account Dependencies After Insert Contacts"
             ],
@@ -376,13 +343,14 @@ class TestLoadData(unittest.TestCase):
         lookups["Id"] = MappingLookup(name="Id", table="contacts", key_field="sf_id")
         lookups["ReportsToId"] = MappingLookup(table="contacts", name="ReportsToId")
         self.assertEqual(
-            {
-                "sf_object": "Contact",
-                "action": "update",
-                "table": "contacts",
-                "fields": {},
-                "lookups": lookups,
-            },
+            MappingStep(
+                sf_object="Contact",
+                api=DataApi.BULK,
+                action=DataOperationType.UPDATE,
+                table="contacts",
+                fields={},
+                lookups=lookups,
+            ),
             task.after_steps["Insert Contacts"][
                 "Update Contact Dependencies After Insert Contacts"
             ],
@@ -395,13 +363,14 @@ class TestLoadData(unittest.TestCase):
         lookups["Id"] = MappingLookup(name="Id", table="accounts", key_field="sf_id")
         lookups["ParentId"] = MappingLookup(table="accounts", name="ParentId")
         self.assertEqual(
-            {
-                "sf_object": "Account",
-                "action": "update",
-                "table": "accounts",
-                "fields": {},
-                "lookups": lookups,
-            },
+            MappingStep(
+                sf_object="Account",
+                api=DataApi.BULK,
+                action=DataOperationType.UPDATE,
+                table="accounts",
+                fields={},
+                lookups=lookups,
+            ),
             task.after_steps["Insert Accounts"][
                 "Update Account Dependencies After Insert Accounts"
             ],
@@ -413,15 +382,19 @@ class TestLoadData(unittest.TestCase):
         )
         task.sf = mock.Mock()
 
-        mapping = {
-            "sf_object": "Account",
-            "action": "update",
-            "fields": {},
-            "lookups": {
-                "Id": {"table": "accounts", "key_field": "account_id"},
-                "ParentId": {"table": "accounts"},
-            },
-        }
+        mapping = MappingStep(
+            **{
+                "sf_object": "Account",
+                "action": "update",
+                "fields": {},
+                "lookups": {
+                    "Id": MappingLookup(
+                        **{"table": "accounts", "key_field": "account_id"}
+                    ),
+                    "ParentId": MappingLookup(**{"table": "accounts"}),
+                },
+            }
+        )
 
         task._query_db = mock.Mock()
         task._query_db.return_value.yield_per = mock.Mock(
@@ -433,60 +406,46 @@ class TestLoadData(unittest.TestCase):
             ]
         )
 
-        local_ids = []
-        records = list(task._stream_queried_data(mapping, local_ids))
-        self.assertEqual(
-            [["001000000005", "001000000007"], ["001000000006", "001000000008"]],
-            records,
-        )
+        with tempfile.TemporaryFile("w+t") as local_ids:
+            records = list(
+                task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
+            )
+            self.assertEqual(
+                [["001000000005", "001000000007"], ["001000000006", "001000000008"]],
+                records,
+            )
 
-    def test_get_columns(self):
+    @responses.activate
+    def test_stream_queried_data__adjusts_relative_dates(self):
+        mock_describe_calls()
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
         )
+        task.sf = mock.Mock()
 
-        fields = {}
-        fields["Id"] = "sf_id"
-        fields["Name"] = "Name"
-
-        self.assertEqual(
-            ["Name", "Industry", "RecordTypeId"],
-            task._get_columns(
-                {
-                    "sf_object": "Account",
-                    "action": "insert",
-                    "fields": fields,
-                    "static": {"Industry": "Technology"},
-                    "record_type": "Organization",
-                }
-            ),
-        )
-        self.assertEqual(
-            ["Id", "Name", "Industry", "RecordTypeId"],
-            task._get_columns(
-                {
-                    "sf_object": "Account",
-                    "action": "update",
-                    "fields": fields,
-                    "static": {"Industry": "Technology"},
-                    "record_type": "Organization",
-                }
-            ),
+        mapping = MappingStep(
+            sf_object="Contact",
+            action="insert",
+            fields=["Birthdate"],
+            anchor_date="2020-07-01",
         )
 
-        fields["RecordTypeId"] = "recordtypeid"
-        fields["AccountSite"] = "accountsite"
+        task._query_db = mock.Mock()
+        task._query_db.return_value.yield_per = mock.Mock(
+            return_value=[
+                # Local Id, Loaded Id, EmailBouncedDate
+                ["001000000001", "2020-07-10"],
+                ["001000000003", None],
+            ]
+        )
 
+        local_ids = io.StringIO()
+        records = list(
+            task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
+        )
         self.assertEqual(
-            ["Id", "Name", "AccountSite", "Industry", "RecordTypeId"],
-            task._get_columns(
-                {
-                    "sf_object": "Account",
-                    "action": "update",
-                    "fields": fields,
-                    "static": {"Industry": "Technology"},
-                }
-            ),
+            [[(date.today() + timedelta(days=9)).isoformat()], [None]],
+            records,
         )
 
     def test_get_statics(self):
@@ -499,13 +458,12 @@ class TestLoadData(unittest.TestCase):
         self.assertEqual(
             ["Technology", "012000000000000"],
             task._get_statics(
-                {
-                    "sf_object": "Account",
-                    "action": "insert",
-                    "fields": {"Id": "sf_id", "Name": "Name"},
-                    "static": {"Industry": "Technology"},
-                    "record_type": "Organization",
-                }
+                MappingStep(
+                    sf_object="Account",
+                    fields={"Id": "sf_id", "Name": "Name"},
+                    static={"Industry": "Technology"},
+                    record_type="Organization",
+                )
             ),
         )
 
@@ -517,13 +475,13 @@ class TestLoadData(unittest.TestCase):
         task.sf.query.return_value = {"records": []}
         with self.assertRaises(BulkDataException) as e:
             task._get_statics(
-                {
-                    "sf_object": "Account",
-                    "action": "insert",
-                    "fields": {"Id": "sf_id", "Name": "Name"},
-                    "static": {"Industry": "Technology"},
-                    "record_type": "Organization",
-                }
+                MappingStep(
+                    sf_object="Account",
+                    action="insert",
+                    fields={"Id": "sf_id", "Name": "Name"},
+                    static={"Industry": "Technology"},
+                    record_type="Organization",
+                )
             ),
         assert "RecordType" in str(e.exception)
 
@@ -543,18 +501,17 @@ class TestLoadData(unittest.TestCase):
         columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Account",
-            "table": "accounts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Account",
+            table="accounts",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
                     table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -593,18 +550,17 @@ class TestLoadData(unittest.TestCase):
         }
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Account",
-            "table": "accounts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Account",
+            table="accounts",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
                     table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -641,18 +597,17 @@ class TestLoadData(unittest.TestCase):
         }
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Account",
-            "table": "accounts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Account",
+            table="accounts",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
                     table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -675,7 +630,10 @@ class TestLoadData(unittest.TestCase):
         model = mock.Mock()
         task.models = {"contacts": model}
         task.metadata = mock.Mock()
-        task.metadata.tables = {"contacts_sf_ids": mock.Mock()}
+        task.metadata.tables = {
+            "contacts_sf_ids": mock.Mock(),
+            "accounts_sf_ids": mock.Mock(),
+        }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
         task._filter_out_person_account_records = mock.Mock()
@@ -695,18 +653,17 @@ class TestLoadData(unittest.TestCase):
         }
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Contact",
-            "table": "contacts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Contact",
+            table="contacts",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
-                    table="contacts", key_field="parent_id", name="ParentId"
+                    table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -731,7 +688,10 @@ class TestLoadData(unittest.TestCase):
         model = mock.Mock()
         task.models = {"contacts": model}
         task.metadata = mock.Mock()
-        task.metadata.tables = {"contacts_sf_ids": mock.Mock()}
+        task.metadata.tables = {
+            "contacts_sf_ids": mock.Mock(),
+            "accounts_sf_ids": mock.Mock(),
+        }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=False)
         task._filter_out_person_account_records = mock.Mock()
@@ -751,18 +711,17 @@ class TestLoadData(unittest.TestCase):
         }
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Contact",
-            "table": "contacts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Contact",
+            table="contacts",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
-                    table="contacts", key_field="parent_id", name="ParentId"
+                    table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -787,7 +746,10 @@ class TestLoadData(unittest.TestCase):
         model = mock.Mock()
         task.models = {"requests": model}
         task.metadata = mock.Mock()
-        task.metadata.tables = {"requests_sf_ids": mock.Mock()}
+        task.metadata.tables = {
+            "requests_sf_ids": mock.Mock(),
+            "accounts_sf_ids": mock.Mock(),
+        }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
         task._filter_out_person_account_records = mock.Mock()
@@ -803,18 +765,17 @@ class TestLoadData(unittest.TestCase):
         columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
         model.__table__.columns = columns
 
-        mapping = {
-            "sf_object": "Request__c",
-            "table": "requests",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {"Id": "sf_id", "Name": "name"},
-            "lookups": {
+        mapping = MappingStep(
+            sf_object="Request__c",
+            table="requests",
+            action=DataOperationType.UPDATE,
+            fields={"Id": "sf_id", "Name": "name"},
+            lookups={
                 "ParentId": MappingLookup(
-                    table="requests", key_field="parent_id", name="ParentId"
+                    table="accounts", key_field="parent_id", name="ParentId"
                 )
             },
-        }
+        )
 
         task._query_db(mapping)
 
@@ -831,27 +792,22 @@ class TestLoadData(unittest.TestCase):
         # Validate person contact records were not filtered out
         task._filter_out_person_account_records.assert_not_called()
 
-    def test_convert(self):
-        task = _make_task(
-            LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
-        )
-        self.assertIsInstance(task._convert(datetime.now()), str)
-
     def test_initialize_id_table__already_exists(self):
         task = _make_task(
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
         task.mapping = {}
-        task._init_db()
-        id_table = Table(
-            "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
-        )
-        id_table.create()
-        task._initialize_id_table({"table": "test"}, True)
-        new_id_table = task.metadata.tables["test_sf_ids"]
-        self.assertFalse(new_id_table is id_table)
+        with task._init_db():
+            id_table = Table(
+                "test_sf_ids",
+                task.metadata,
+                Column("id", Unicode(255), primary_key=True),
+            )
+            id_table.create()
+            task._initialize_id_table({"table": "test"}, True)
+            new_id_table = task.metadata.tables["test_sf_ids"]
+            self.assertFalse(new_id_table is id_table)
 
     def test_initialize_id_table__already_exists_and_should_not_reset_table(self):
         task = _make_task(
@@ -859,29 +815,31 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
         task.mapping = {}
-        task._init_db()
-        id_table = Table(
-            "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
-        )
-        id_table.create()
-        table_name = task._initialize_id_table({"table": "test"}, False)
-        assert table_name == "test_sf_ids"
-        new_id_table = task.metadata.tables["test_sf_ids"]
-        assert new_id_table is id_table
+        with task._init_db():
+            id_table = Table(
+                "test_sf_ids",
+                task.metadata,
+                Column("id", Unicode(255), primary_key=True),
+            )
+            id_table.create()
+            table_name = task._initialize_id_table({"table": "test"}, False)
+            assert table_name == "test_sf_ids"
+            new_id_table = task.metadata.tables["test_sf_ids"]
+            assert new_id_table is id_table
 
     def test_run_task__exception_failure(self):
         task = _make_task(
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._execute_step = mock.Mock(
             return_value=DataOperationJobResult(
                 DataOperationStatus.JOB_FAILURE, [], 0, 0
             )
         )
-        task.mapping = {"Test": {"test": "test"}}
+        task.mapping = {"Test": MappingStep(sf_object="Account")}
 
         with self.assertRaises(BulkDataException):
             task()
@@ -900,7 +858,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -909,7 +867,7 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {"sf_object": "Account", "table": "Account", "action": "insert"}
+        mapping = MappingStep(sf_object="Account")
         task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
@@ -938,7 +896,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1", "2", "3", "4"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -956,7 +914,7 @@ class TestLoadData(unittest.TestCase):
             DataOperationResult("001111111111114", False, None),
         ]
 
-        mapping = {"sf_object": "Account", "table": "Account", "action": "insert"}
+        mapping = MappingStep(sf_object="Account", table="Account")
         task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
@@ -979,7 +937,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -988,7 +946,7 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {"table": "Account", "action": "update"}
+        mapping = MappingStep(sf_object="Account", action=DataOperationType.UPDATE)
         task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_not_called()
@@ -1010,7 +968,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.UPDATE,
             api_options={},
@@ -1020,7 +978,7 @@ class TestLoadData(unittest.TestCase):
         step.results = [DataOperationResult(None, False, "message")]
         step.end()
 
-        mapping = {"table": "Account", "action": "update"}
+        mapping = MappingStep(sf_object="Account", action=DataOperationType.UPDATE)
 
         with self.assertRaises(BulkDataException) as ex:
             task._process_job_results(mapping, step, local_ids)
@@ -1041,7 +999,7 @@ class TestLoadData(unittest.TestCase):
         """
 
         # ❌ mapping's action is "insert"
-        action = "update"
+        action = DataOperationType.UPDATE
 
         # ✅ mapping's sf_object is Contact
         sf_object = "Contact"
@@ -1069,7 +1027,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1078,14 +1036,14 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {
-            "sf_object": sf_object,
-            "table": "Account",
-            "action": action,
-            "lookups": {},
-        }
+        mapping = MappingStep(
+            sf_object=sf_object,
+            table="Account",
+            action=action,
+            lookups={},
+        )
         if account_id_lookup:
-            mapping["lookups"]["AccountId"] = account_id_lookup
+            mapping.lookups["AccountId"] = account_id_lookup
         task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
@@ -1103,7 +1061,7 @@ class TestLoadData(unittest.TestCase):
         """
 
         # ✅ mapping's action is "insert"
-        action = "insert"
+        action = DataOperationType.INSERT
 
         # ❌ mapping's sf_object is Contact
         sf_object = "Opportunity"
@@ -1131,7 +1089,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1140,14 +1098,14 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {
-            "sf_object": sf_object,
-            "table": "Account",
-            "action": action,
-            "lookups": {},
-        }
+        mapping = MappingStep(
+            sf_object=sf_object,
+            table="Account",
+            action=action,
+            lookups={},
+        )
         if account_id_lookup:
-            mapping["lookups"]["AccountId"] = account_id_lookup
+            mapping.lookups["AccountId"] = account_id_lookup
         task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
@@ -1165,7 +1123,7 @@ class TestLoadData(unittest.TestCase):
         """
 
         # ✅ mapping's action is "insert"
-        action = "insert"
+        action = DataOperationType.INSERT
 
         # ✅ mapping's sf_object is Contact
         sf_object = "Contact"
@@ -1193,7 +1151,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1202,14 +1160,14 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {
-            "sf_object": sf_object,
-            "table": "Account",
-            "action": action,
-            "lookups": {},
-        }
+        mapping = MappingStep(
+            sf_object=sf_object,
+            table="Account",
+            action=action,
+            lookups={},
+        )
         if account_id_lookup:
-            mapping["lookups"]["AccountId"] = account_id_lookup
+            mapping.lookups["AccountId"] = account_id_lookup
         task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
@@ -1227,7 +1185,7 @@ class TestLoadData(unittest.TestCase):
         """
 
         # ✅ mapping's action is "insert"
-        action = "insert"
+        action = DataOperationType.INSERT
 
         # ✅ mapping's sf_object is Contact
         sf_object = "Contact"
@@ -1255,7 +1213,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1264,14 +1222,14 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {
-            "sf_object": sf_object,
-            "table": "Account",
-            "action": action,
-            "lookups": {},
-        }
+        mapping = MappingStep(
+            sf_object=sf_object,
+            table="Account",
+            action=action,
+            lookups={},
+        )
         if account_id_lookup:
-            mapping["lookups"]["AccountId"] = account_id_lookup
+            mapping.lookups["AccountId"] = account_id_lookup
         task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
@@ -1287,7 +1245,7 @@ class TestLoadData(unittest.TestCase):
         """
 
         # ✅ mapping's action is "insert"
-        action = "insert"
+        action = DataOperationType.INSERT
 
         # ✅ mapping's sf_object is Contact
         sf_object = "Contact"
@@ -1296,7 +1254,7 @@ class TestLoadData(unittest.TestCase):
         can_load_person_accounts = True
 
         # ✅ an account_id_lookup is found in the mapping
-        account_id_lookup = mock.Mock()
+        account_id_lookup = MappingLookup(table="accounts")
 
         task = _make_task(
             LoadData,
@@ -1315,7 +1273,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1324,17 +1282,17 @@ class TestLoadData(unittest.TestCase):
         )
         step.results = [DataOperationResult("001111111111111", True, None)]
 
-        mapping = {
-            "sf_object": sf_object,
-            "table": "Account",
-            "action": action,
-            "lookups": {"AccountId": account_id_lookup},
-        }
+        mapping = MappingStep(
+            sf_object=sf_object,
+            table="Account",
+            action=action,
+            lookups={"AccountId": account_id_lookup},
+        )
 
         task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
-            mapping, account_id_lookup, task.session.connection.return_value
+            mapping, mapping.lookups["AccountId"], task.session.connection.return_value
         )
 
         task._sql_bulk_insert_from_records.assert_called_with(
@@ -1438,8 +1396,8 @@ class TestLoadData(unittest.TestCase):
             ("001000000000011", "001000000000002"),
         ]
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
-    def test_execute_step__record_type_mapping(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test_execute_step__record_type_mapping(self, dml_mock):
         task = _make_task(
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
@@ -1448,6 +1406,7 @@ class TestLoadData(unittest.TestCase):
         task.session = mock.Mock()
         task._load_record_types = mock.Mock()
         task._process_job_results = mock.Mock()
+        task._query_db = mock.Mock()
 
         task._execute_step(
             MappingStep(
@@ -1492,12 +1451,10 @@ class TestLoadData(unittest.TestCase):
         columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
         model.__table__.columns = columns
 
-        mapping = OrderedDict(
+        mapping = MappingStep(
             sf_object="Account",
             table="accounts",
-            action="insert",
-            oid_as_pk=True,
-            fields=OrderedDict(Id="sf_id", Name="name", RecordTypeId="RecordTypeId"),
+            fields={"Id": "sf_id", "Name": "name", "RecordTypeId": "RecordTypeId"},
         )
 
         task._query_db(mapping)
@@ -1540,11 +1497,11 @@ class TestLoadData(unittest.TestCase):
 
         task._init_mapping()
         task.mapping["Insert Households"]["fields"]["RecordTypeId"] = "RecordTypeId"
-        task._init_db()
-        task._create_record_type_table.assert_called_once_with(
-            "Account_rt_target_mapping"
-        )
-        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists.assert_called_once_with()
+        with task._init_db():
+            task._create_record_type_table.assert_called_once_with(
+                "Account_rt_target_mapping"
+            )
+            task._validate_org_has_person_accounts_enabled_if_person_account_data_exists.assert_called_once_with()
 
     def test_load_record_types(self):
         task = _make_task(
@@ -1563,8 +1520,8 @@ class TestLoadData(unittest.TestCase):
         )
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.load.BulkApiDmlOperation")
-    def test_run__autopk(self, step_mock):
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test_run__autopk(self, dml_mock):
         responses.add(
             method="GET",
             url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
@@ -1591,14 +1548,14 @@ class TestLoadData(unittest.TestCase):
             )
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
-            step = MockBulkApiDmlOperation(
+            step = FakeBulkAPIDmlOperation(
                 sobject="Contact",
                 operation=DataOperationType.INSERT,
                 api_options={},
                 context=task,
                 fields=[],
             )
-            step_mock.return_value = step
+            dml_mock.return_value = step
 
             step.results = [
                 DataOperationResult("001000000000000", True, None),
@@ -1717,7 +1674,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping = MappingStep(sf_object="Account", table="account")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1763,7 +1720,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ A Contact object is mapped
-        mapping = {"table": "contact", "sf_object": "Contact"}
+        mapping = MappingStep(sf_object="Contact", table="contact")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1809,7 +1766,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping = MappingStep(table="account", sf_object="Account")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1854,7 +1811,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping = MappingStep(sf_object="Account", table="account")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1900,7 +1857,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ✅ An Account object is mapped
-        mapping = {"table": "account", "sf_object": "Account"}
+        mapping = MappingStep(sf_object="Account", table="account")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1945,7 +1902,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         # ❌ An Account object is mapped
-        mapping = {"table": "custom_object", "sf_object": "CustomObject__c"}
+        mapping = MappingStep(sf_object="CustomObject__c", table="custom_object")
         model = mock.Mock()
         model.__table__ = mock.Mock()
 
@@ -1977,7 +1934,7 @@ class TestLoadData(unittest.TestCase):
             ({"IsPersonAccount": None}, False),
             ({"IsPersonAccount": "Not None"}, True),
         ]:
-            mapping = {"table": "table"}
+            mapping = MappingStep(sf_object="Account")
 
             model = mock.Mock()
             model.__table__ = mock.Mock()
@@ -1988,7 +1945,7 @@ class TestLoadData(unittest.TestCase):
                 {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
             )
             task.models = {}
-            task.models[mapping["table"]] = model
+            task.models[mapping.table] = model
 
             actual = task._db_has_person_accounts_column(mapping)
 
@@ -2072,7 +2029,7 @@ class TestLoadData(unittest.TestCase):
         account_id_lookup = MappingLookup(
             table="accounts", key_field="account_id", name="AccountId"
         )
-        account_id_lookup["aliased_table"] = account_sf_ids_table
+        account_id_lookup.aliased_table = account_sf_ids_table
 
         # Calculated values
         contact_id_column = getattr(
@@ -2084,18 +2041,17 @@ class TestLoadData(unittest.TestCase):
         account_sf_ids_table = account_id_lookup["aliased_table"]
         account_sf_id_column = account_sf_ids_table.columns["sf_id"]
 
-        contact_mapping = {
-            "sf_object": "Contact",
-            "table": "contacts",
-            "action": "update",
-            "oid_as_pk": True,
-            "fields": {
+        contact_mapping = MappingStep(
+            sf_object="Contact",
+            table="contacts",
+            action=DataOperationType.UPDATE,
+            fields={
                 "Id": "sf_id",
                 "LastName": "LastName",
                 "IsPersonAccount": "IsPersonAccount",
             },
-            "lookups": {"AccountId": account_id_lookup},
-        }
+            lookups={"AccountId": account_id_lookup},
+        )
 
         conn = mock.Mock()
         conn.execution_options.return_value = conn
@@ -2204,9 +2160,7 @@ class TestLoadData(unittest.TestCase):
         task.session.query.assert_called_once_with(
             contact_id_column, account_sf_id_column
         )
-        task.session.query.filter.assert_called_once_with(
-            contact_model.__table__.columns["IsPersonAccount"] == "true"
-        )
+        task.session.query.filter.assert_called_once()
         task.session.query.outerjoin.assert_called_once_with(
             account_sf_ids_table,
             account_sf_ids_table.columns["id"] == account_id_column,
@@ -2219,3 +2173,90 @@ class TestLoadData(unittest.TestCase):
 
         query_result.fetchmany.assert_has_calls(query_result.fetchmany.expected_calls)
         task.sf.query_all.assert_has_calls(task.sf.query_all.expected_calls)
+
+    @responses.activate
+    def test_load_memory_usage(self):
+        responses.add(
+            method="GET",
+            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            body=json.dumps({"records": [{"Id": "1"}]}),
+            status=200,
+        )
+
+        base_path = os.path.dirname(__file__)
+        sql_path = os.path.join(base_path, "testdata.sql")
+        mapping_path = os.path.join(base_path, self.mapping_file)
+
+        with temporary_dir() as d:
+            tmp_sql_path = os.path.join(d, "testdata.sql")
+            shutil.copyfile(sql_path, tmp_sql_path)
+
+            class NetworklessLoadData(LoadData):
+                def _query_db(self, mapping):
+                    if mapping.sf_object == "Account":
+                        return FakeQueryResult(
+                            ((f"{i}",) for i in range(0, numrecords)), numrecords
+                        )
+                    elif mapping.sf_object == "Contact":
+                        return FakeQueryResult(
+                            (
+                                (f"{i}", "Test☃", "User", "test@example.com", 0)
+                                for i in range(0, numrecords)
+                            ),
+                            numrecords,
+                        )
+
+                def _init_task(self):
+                    super()._init_task()
+                    task.bulk = FakeBulkAPI()
+
+            task = _make_task(
+                NetworklessLoadData,
+                {"options": {"sql_path": tmp_sql_path, "mapping": mapping_path}},
+            )
+
+            numrecords = 5000
+
+            class FakeQueryResult:
+                def __init__(self, results, numrecords=None):
+                    self.results = results
+                    if numrecords is None:
+                        numrecords = len(self.results)
+                    self.numrecords = numrecords
+
+                def yield_per(self, number):
+                    return self.results
+
+                def count(self):
+                    return self.numrecords
+
+            mock_describe_calls()
+
+            def get_results(self):
+                return (
+                    DataOperationResult(i, True, None) for i in range(0, numrecords)
+                )
+
+            def _job_state_from_batches(self, job_id):
+                return DataOperationJobResult(
+                    DataOperationStatus.SUCCESS,
+                    [],
+                    numrecords,
+                    0,
+                )
+
+            MEGABYTE = 2 ** 20
+
+            # FIXME: more anlysis about the number below
+            with mock.patch(
+                "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
+                _job_state_from_batches,
+            ), mock.patch(
+                "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation.get_results",
+                get_results,
+            ), assert_max_memory_usage(
+                15 * MEGABYTE
+            ):
+                task()
+            task.session.close()
+            task.engine.dispose()

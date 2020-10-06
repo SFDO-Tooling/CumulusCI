@@ -2,6 +2,9 @@ import io
 import os
 from http.client import HTTPMessage
 from unittest import mock
+import pytest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from pytest import fixture
 from cumulusci.core.github import get_github_api
@@ -75,3 +78,20 @@ vcr_config = fixture(vcr_config, scope="module")
 vcr = fixture(salesforce_vcr, scope="module")
 
 create_task_fixture = fixture(create_task_fixture, scope="function")
+
+
+# TODO: This should also chdir to a temp directory which
+#       can represent the repo-root, but that will require
+#       test case changes.
+@pytest.fixture(autouse=True, scope="session")
+def patch_home_and_env(request):
+    "Patch the default home directory and $HOME environment for all tests at once."
+    with TemporaryDirectory(prefix="fake_home_") as home, mock.patch(
+        "pathlib.Path.home", lambda: Path(home)
+    ), mock.patch.dict(
+        os.environ,
+        {"HOME": home, "USERPROFILE": home, "CUMULUSCI_KEY": "0123456789ABCDEF"},
+    ):
+        Path(home, ".cumulusci").mkdir()
+        Path(home, ".cumulusci/cumulusci.yml").touch()
+        yield

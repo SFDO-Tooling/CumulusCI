@@ -1,6 +1,7 @@
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api.package_install import install_package_version
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.tasks.salesforce import Deploy
 
@@ -78,10 +79,20 @@ class InstallPackageVersion(Deploy):
         return self.api_class(self, package_zip(), purge_on_delete=False)
 
     def _run_task(self):
-        self.logger.info(
-            f"Installing {self.options['name']} release: {self.options['version']}"
-        )
-        self._retry()
+        version = self.options["version"]
+        self.logger.info(f"Installing {self.options['name']} {version}")
+        if isinstance(version, str) and version.startswith("04t"):
+            install_options = {**self.options, "version_id": version}
+            retry_options = {
+                "retries": self.options["retries"],
+                "retry_interval": self.options["retry_interval"],
+                "retry_interval_add": self.options["retry_interval_add"],
+            }
+            install_package_version(
+                self.project_config, self.org_config, install_options, retry_options
+            )
+        else:
+            self._retry()
         self.org_config.reset_installed_packages()
 
     def _try(self):

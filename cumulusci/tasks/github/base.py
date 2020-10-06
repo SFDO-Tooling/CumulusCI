@@ -4,6 +4,7 @@ from cumulusci.core.tasks import BaseTask
 
 class BaseGithubTask(BaseTask):
     def _init_task(self):
+        super()._init_task()
         self.github_config = self.project_config.keychain.get_service("github")
         self.github = get_github_api_for_repo(
             self.project_config.keychain,
