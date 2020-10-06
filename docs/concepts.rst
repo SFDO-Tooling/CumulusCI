@@ -91,9 +91,7 @@ Orgs and services are external, authenticated resources that each project uses. 
 Orgs
 ^^^^
 
-Each project has its own set of orgs, including active scratch orgs, persistent orgs like a production or packaging org, and predefined scratch org configurations. CumulusCI securely stores org authentication information in its keychain, making it easy to access connected orgs at any time. The ``cci org list`` command shows all of the orgs connected to a project.
-
-In most situations, orgs are connected only to a single project. However, CumulusCI also offers a global keychain, making it possible to share persistent orgs across multiple projects.
+Each project has its own set of orgs, including active scratch orgs, persistent orgs like a production or packaging org, and predefined scratch org configurations. CumulusCI securely stores org authentication information in its keychain, making it easy to access connected orgs at any time. The ``cci org list`` command shows all of the orgs connected to a project. Orgs can also be `shared across multiple projects <TODO: link to persistent orgs section>`_.
 
 Configuring orgs in CumulusCI is powerful, but comes with some complexity. To review all of the details, read the sections TODO: link "Scratch org environments" and TODO: link persistent org section.
 
