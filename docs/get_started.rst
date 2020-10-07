@@ -15,11 +15,11 @@ Install CumulusCI
 
 On macOS 
 ^^^^^^^^
-`Homebrew <https://brew.sh/>`_ is a prerequisite for installing CumulusCI on macOS.
+Ensure you have `Homebrew <https://brew.sh/>`_ installed as it is a prerequisite for installing CumulusCI on macOS.
 
 
-Install via ``pipx`` (recommended)
-*************************************
+Install via ``pipx`` 
+******************************
 Follow `installation instructions for pipx <https://pipxproject.github.io/pipx/installation/>`_.
 Once ``pipx`` is installed, we can install CumulusCI::
 
