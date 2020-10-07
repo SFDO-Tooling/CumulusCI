@@ -53,11 +53,12 @@ On Windows
 
 Install Python 3
 ********************
-1. Go to the `Python downloads page <https://www.python.org/downloads/windows/>`_.
-2. Download the latest Python 3 release. Most users should select the "Download Windows x86-64 executable installer" link for the most recent stable release, but it may depend on your particular computer setup.
-3. Use the installation wizard to install.
+#. Go to the `Python downloads page <https://www.python.org/downloads/windows/>`_.
+#. Download the latest Python 3 release. Most users should select the "Download Windows x86-64 executable installer" link for the most recent stable release, but it may depend on your particular computer setup.
+#. Use the installation wizard to install:
+
    * Check the "Add Python <version> to PATH" checkbox
-   * Click the "Install Now"
+   * Click "Install Now"
 
 .. image:: images/windows_python.png
 
