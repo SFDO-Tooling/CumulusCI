@@ -77,7 +77,7 @@ If you already have your terminal open, close it and reopen it. Enter the follow
 
 To permanently modify the default environment variables, follow these steps. Note that to change System variables, you need non-restricted access to your machine (i.e. Administrator rights).
 
-1. Click Start and search for â€˜edit environment variablesâ€™ or open System properties,
+1. Click Start and search for "edit environment variables" or open System properties,
    Advanced system settings.
 2. Click the Environment Variables button.
 3. To change System variables, you need non-restricted access to your machine
