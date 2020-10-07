@@ -348,11 +348,7 @@ We recommend a retrieve of MetaData via the MetaData API (via ``sfdx``), followe
     * If your project is for a managed package, ensure that the package namespace matches the namespace you entered when running ``cci project init``.
 #. Run the `retrieve command <https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_mdapi.htm#cli_reference_retrieve>`_ to extract your package metadata::
 
-    $ sfdx force:mdapi:retrieve -p package_name -r /path/to/project/ 
-
-#. Navigate to your project's root directory (i.e. where the ``src/`` folder lives), and you can now convert your metadata to source (``sfdx``) format with ``cci``::
-
-    $ cci task run dx_convert_to
+    $ sfdx force:source:retrieve -n package_name /path/to/project/ 
 
 That's it! You now have all of the metadata you care about in a single git repository configured for use with CumulusCI.
 At this point you may want to `add your repo to github`_, or perhaps begin `configuring CumulusCI` <#TODO doc ref>.
