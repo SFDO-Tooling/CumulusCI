@@ -546,7 +546,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         )
 
     def _filter_out_person_account_records(self, query, model):
-        return query.filter(model.__table__.columns.get("IsPersonAccount") == "false")
+        return query.filter(
+            func.lower(model.__table__.columns.get("IsPersonAccount")) == "false"
+        )
 
     def _generate_contact_id_map_for_person_accounts(
         self, contact_mapping, account_id_lookup, conn
