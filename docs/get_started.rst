@@ -235,32 +235,56 @@ We now need to initialize our project as a CumulusCI project.
 Project Initialization
 ^^^^^^^^^^^^^^^^^^^^^^
 Use the `cci project init` command from within a git repository to generate the initial version of a project's ``cumulusci.yml`` file.
+CumulusCI will prompt you questions about your project, and create a customized ``cumulusci.yml`` file.
 
-.. code-block:: console
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|                              Prompt                              |                                                                                                                                             What's it for?                                                                                                                                            |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Project Info                                                     | The name is usually the same as your repository name.                                                                                                                                                                                                                                                 |
+|                                                                  | NOTE: Do *not* use spaces in the project name                                                                                                                                                                                                                                                         |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Package Name                                                     | CumulusCI uses an unmanaged package as a container for your project's metadata.                                                                                                                                                                                                                       |
+|                                                                  | Enter the name of the package you want to use.                                                                                                                                                                                                                                                        |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Is this a managed package project?                               |                                                                                                                                                                                                                                                                                                       |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Salesforce API Version                                           | Which Salesforce API version does your project use? Defaults to the latest.                                                                                                                                                                                                                           |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Which [source format] do you want to use?                        | Metadata API format is the "older" format and stores data under the `src/` directory.                                                                                                                                                                                                                 |
+|                                                                  | DX source format (aka "SFDX Format") stores data under the `force-app/` directory.                                                                                                                                                                                                                    |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Are you extending another CumulusCI project such as NPSP or EDA? | CumulusCI makes it easy to build extensions of other projects configured for CumulusCI like Salesforce.org's NPSP and EDA.  If you are building an extension of another project using CumulusCI and have access to its Github repository, use this section to configure this project as an extension. |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Default Branch                                                   | In GitHub, what is your projects master/main brach? Defaults the branch that is currently checked out in your local repository.                                                                                                                                                                       |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Feature Branch Prefix                                            | In GitHub, do you use a branch prefix you use for feature branches? Defaults to 'feature/'.                                                                                                                                                                                                           |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Beta Tag Prefix                                                  | In GitHub, do you use a tag prefix you use for beta releases? Defaults to 'beta/'.                                                                                                                                                                                                                    |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Release Tag Prefix                                               | In GitHub, is there tag prefix that you use for releases? Defaults to 'release/'.                                                                                                                                                                                                                     |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Test Name Match                                                  | The CumulusCI Apex test runner uses a soql ``WHERE`` clause to select which tests to run.  Enter the SOQL pattern to use to match test class names.                                                                                                                                                   |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Do you want to check Apex code coverage when tests are run?      | If yes, checks Apex code coverage when tests are run.                                                                                                                                                                                                                                                 |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Minimum code coverage percentage                                 | Sets the minimum allowed code coverage percentage for your project.                                                                                                                                                                                                                                   |
++------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-    $ cci project init
-    Name: MyRepoName
-    Package name: My Repo Name
-    Package namespace: mynamespace
-    Package api version [38.0]:
-    Git prefix feature [feature/]:
-    Git default branch [main]:
-    Git prefix beta [beta/]:
-    Git prefix release [release/]:
-    Test namematch [%_TEST%]:
-    Your project is now initialized for use with CumulusCI
-    You can use the project edit command to edit the project's config file
+You can verify project initialization was successful by verifying that ``cumulusci.yml`` exists and has contents.
 
 .. code-block:: console
 
     $ cat cumulusci.yml
     project:
-        name: MyRepoName
+        name: SampleProjectName 
         package:
-            name: My Repo Name
-            namespace: mynamespace
+            name: SamplePackageName
+            namespace: sampleNamespace
+        .
+        .
+        .
 
-The newly created `cumulusci.yml` file is the configuration file for your project specific tasks, flows, and CumulusCI customizations.
+The newly created `cumulusci.yml` file is how you configure your project specific tasks, flows, and CumulusCI customizations.
 For more information regarding configuraiton, checkout our `project configuration <#TODO internal ref here>`_ section of the docs.
 You can add and commit it to your git repository:
 
