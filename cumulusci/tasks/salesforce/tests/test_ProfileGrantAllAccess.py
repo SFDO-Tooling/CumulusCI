@@ -108,6 +108,20 @@ PACKAGE_XML_BEFORE = """<Package xmlns="http://soap.sforce.com/2006/04/metadata"
     <version>39.0</version>
 </Package>"""
 
+PACKAGE_XML_BEFORE__PROFILES = """<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>*</members>
+        <members>Account</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <name>Profile</name>
+        <members>Admin</members>
+        <members>Test</members>
+    </types>
+    <version>39.0</version>
+</Package>"""
+
 ADMIN_PROFILE_BEFORE__MULTI_OBJECT_RT = b"""<?xml version='1.0' encoding='utf-8'?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <recordTypeVisibilities>
@@ -299,6 +313,46 @@ def test_expand_profile_members():
     }
 
 
+def test_expand_profile_members__no_api_names():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {
+            "namespace_inject": "ns",
+            "managed": True,
+        },
+    )
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+
+    task._expand_profile_members(package_xml)
+
+    types = package_xml.find("types", name="Profile")
+    assert {elem.text for elem in types.findall("members")} == {"Admin"}
+
+
+def test_expand_profile_members__existing_entries():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {
+            "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
+            "namespace_inject": "ns",
+            "managed": True,
+        },
+    )
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE__PROFILES)
+
+    task._expand_profile_members(package_xml)
+
+    types = package_xml.find("types", name="Profile")
+
+    assert {elem.text for elem in types.findall("members")} == {
+        "Admin",
+        "Test",
+        "ns__Continuous Integration",
+    }
+
+    assert task.api_names == {"Admin", "ns__Continuous Integration", "Test"}
+
+
 def test_expand_profile_members__namespaced_org():
     task = create_task(
         ProfileGrantAllAccess,
@@ -392,7 +446,7 @@ def test_init_options__api_names():
     assert task.api_names == {"Admin"}
 
     task = create_task(ProfileGrantAllAccess, {"package_xml": "lib/admin_profile.xml"})
-    assert task.api_names == {"*"}
+    assert task.api_names == set()
 
 
 def test_init_options__include_packaged_objects():
@@ -440,7 +494,6 @@ def test_generate_package_xml__retrieve():
         task._expand_profile_members = mock.Mock()
         task._expand_package_xml = mock.Mock()
         task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_profile_members.assert_not_called()
         task._expand_package_xml.assert_not_called()
 
         task = create_task(
@@ -451,7 +504,6 @@ def test_generate_package_xml__retrieve():
         task._expand_profile_members = mock.Mock()
         task._expand_package_xml = mock.Mock()
         task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_profile_members.assert_not_called()
         task._expand_package_xml.assert_called_once()
 
         task = create_task(ProfileGrantAllAccess, {"include_packaged_objects": True})
@@ -459,7 +511,6 @@ def test_generate_package_xml__retrieve():
         task._expand_profile_members = mock.Mock()
         task._expand_package_xml = mock.Mock()
         task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_profile_members.assert_called_once()
         task._expand_package_xml.assert_called_once()
 
         task = create_task(ProfileGrantAllAccess, {"include_packaged_objects": False})
@@ -467,13 +518,4 @@ def test_generate_package_xml__retrieve():
         task._expand_profile_members = mock.Mock()
         task._expand_package_xml = mock.Mock()
         task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_profile_members.assert_called_once()
         task._expand_package_xml.assert_not_called()
-
-
-def test_init_options_raises_combined_options():
-    with pytest.raises(TaskOptionsError):
-        create_task(
-            ProfileGrantAllAccess,
-            {"package_xml": "admin_profile.xml", "profile_name": "test"},
-        )
