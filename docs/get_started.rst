@@ -344,7 +344,7 @@ Metadata Capture
 The following assumes that your project currently lives in a persistent org, such as a Developer Edition org or a sandbox.
 We recommend a retrieve of MetaData via the MetaData API (via ``sfdx``), followed by converting the source format from "metadata" to "``sfdx``".
 
-#. `Create a package <https://help.salesforce.com/articleView?id=creating_packages.htm&language=en_us&r=https:%2F%2Fwww.google.com%2F&type=5>`_ in the target org.
+#. If the metadata you want to retrieve is not already in a package, `create one <https://help.salesforce.com/articleView?id=creating_packages.htm>`_.
     * Ensure that the package namespace matches the namespace you entered when running ``cci project init``.
 #. Run the `retrieve command <https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_mdapi.htm#cli_reference_retrieve>`_ to extract your package metadata::
 
