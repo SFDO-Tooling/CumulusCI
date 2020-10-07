@@ -1,10 +1,16 @@
 Get Started
 ===========
 
+.. contents:: 
+    :depth: 2
+    :local:
 
 
 Install CumulusCI
 -----------------
+
+.. note:: These installation instructions assume some familiarity with entering commands into a terminal.
+    If that's completely new to you, we recommend starting with the `CumulusCI setup module <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup>`_ module on Trailhead to walk you through step by step.
 
 
 On macOS / Linux
