@@ -75,26 +75,15 @@ If you already have your terminal open, close it and reopen it. Enter the follow
 
 .. image:: images/pipx.png
 
-To permanently modify the default environment variables, follow these steps. Note that to change System variables, you need non-restricted access to your machine (i.e. Administrator rights).
+Next we want to modify the default PATH environment variable to include pipx::
 
-1. Click Start and search for "edit environment variables" or open System properties,
-   Advanced system settings.
-2. Click the Environment Variables button.
-3. To change System variables, you need non-restricted access to your machine
-   (i.e. Administrator rights). Add the following paths to your PATH environment variable:
-
-   a. ``%USERPROFILE%\AppData\Roaming\Python\Python37\Scripts``
-   b. ``%USERPROFILE%\.local\bin``
-
-.. image:: images/env-var.png
+    $ python -m pipx ensurepath 
 
 Open a new command prompt and verify that pipx is available::
 
     $ pipx --version
 
-You should see a version number after entering in this command, such as: ``0.12.3.1``.
-If you get an error instead, such as ``'pipx' is not recognized as an internal or external command,
-operable program or batch file.``, please check that your environment variables have been updated.
+You should see a version number after entering in this command, such as: ``0.15.5.1``.
 
 You can now install CumulusCI with::
 
