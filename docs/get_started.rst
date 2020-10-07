@@ -13,19 +13,16 @@ Install CumulusCI
     If that's completely new to you, we recommend starting with the `CumulusCI setup module <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup>`_ module on Trailhead to walk you through step by step.
 
 
-On macOS / Linux
-^^^^^^^^^^^^^^^^
-`Homebrew <https://brew.sh/>`_ is a prerequisite for installing CumulusCI on macOS and Linux.
-
+On macOS 
+^^^^^^^^
+`Homebrew <https://brew.sh/>`_ is a prerequisite for installing CumulusCI on macOS.
 
 
 Install via ``pipx`` (recommended)
 *************************************
-The following will install ``pipx``, ensure that pipx is in your ``PATH`` environment variable, and then install CumulusCI:
-.. code-block:: console
+Follow `installation instructions for pipx <https://pipxproject.github.io/pipx/installation/>`_.
+Once ``pipx`` is installed, we can install CumulusCI::
 
-    $ brew install pipx
-    $ pipx ensurepath
     $ pipx install cumulusci
 
 Once finished you can `verify your installation`_.
@@ -46,6 +43,22 @@ With Homebrew installed, you can install CumulusCI with:
 
 These commands can take several minutes to complete.
 Once finished, you can `verify your installation`_.
+
+
+
+On Linux
+^^^^^^^^
+
+
+
+Install via ``pipx``
+**************************
+Follow `installation instructions for pipx <https://pipxproject.github.io/pipx/installation/>`_.
+Once ``pipx`` is installed, we can install CumulusCI::
+
+    $ pipx install cumulusci
+
+Once finished you can `verify your installation`_.
 
 
 
