@@ -29,23 +29,6 @@ Once finished you can `verify your installation`_.
 
 
 
-Install via Homebrew
-***********************
-You can also install CumulusCI using `Homebrew <https://brew.sh/>`_.
-Our team is aware of issues with Homebrew installations that can cause problems with the system keychain in some situations.
-This is why we recommend installing via ``pipx`` if it is an available option.
-
-With Homebrew installed, you can install CumulusCI with:
-
-.. code-block:: console
-
-    $ brew tap SFDO-Tooling/homebrew-sfdo && brew install cumulusci
-
-These commands can take several minutes to complete.
-Once finished, you can `verify your installation`_.
-
-
-
 On Linux
 ^^^^^^^^
 
