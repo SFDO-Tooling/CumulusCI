@@ -137,7 +137,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
 
     def _generate_package_xml(self, operation):
         if operation is MetadataOperation.RETRIEVE:
-            with open(self.package_xml_path, "r") as f:
+            with open(self.package_xml_path, "r", encoding="utf-8") as f:
                 package_xml_content = f.read()
 
             package_xml_content = package_xml_content.format(**self.namespace_prefixes)
@@ -164,9 +164,9 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
     def _expand_profile_members(self, package_xml):
         profile_names = package_xml.find("types", name="Profile")
         if not profile_names:
-            raise CumulusCIException(
-                "The package.xml does not contain a Profiles member."
-            )
+            profile_names = package_xml.append("types")
+            profile_names.append("name", "Profile")
+
         listed_api_names = {p.text for p in profile_names.findall("members")}
 
         for profile in self.api_names:

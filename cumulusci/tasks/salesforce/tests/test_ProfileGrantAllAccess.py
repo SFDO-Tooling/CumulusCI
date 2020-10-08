@@ -122,6 +122,15 @@ PACKAGE_XML_BEFORE__PROFILES = """<Package xmlns="http://soap.sforce.com/2006/04
     <version>39.0</version>
 </Package>"""
 
+PACKAGE_XML_BEFORE__NO_PROFILES = """<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>*</members>
+        <members>Account</members>
+        <name>CustomObject</name>
+    </types>
+    <version>39.0</version>
+</Package>"""
+
 ADMIN_PROFILE_BEFORE__MULTI_OBJECT_RT = b"""<?xml version='1.0' encoding='utf-8'?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <recordTypeVisibilities>
@@ -353,6 +362,29 @@ def test_expand_profile_members__existing_entries():
     assert task.api_names == {"Admin", "ns__Continuous Integration", "Test"}
 
 
+def test_expand_profile_members__no_profile_section():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {
+            "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
+            "namespace_inject": "ns",
+            "managed": True,
+        },
+    )
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE__NO_PROFILES)
+
+    task._expand_profile_members(package_xml)
+
+    types = package_xml.find("types", name="Profile")
+
+    assert {elem.text for elem in types.findall("members")} == {
+        "Admin",
+        "ns__Continuous Integration",
+    }
+
+    assert task.api_names == {"Admin", "ns__Continuous Integration"}
+
+
 def test_expand_profile_members__namespaced_org():
     task = create_task(
         ProfileGrantAllAccess,
@@ -371,25 +403,6 @@ def test_expand_profile_members__namespaced_org():
         "Admin",
         "Continuous Integration",
     }
-
-
-def test_expand_profile_members__broken_package():
-    task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
-    task.tooling = mock.Mock()
-    task.tooling.query.return_value = {
-        "totalSize": 2,
-        "records": [
-            {"DeveloperName": "Test", "NamespacePrefix": "ns"},
-            {"DeveloperName": "Foo_Bar", "NamespacePrefix": "fb"},
-        ],
-    }
-
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
-    types = package_xml.find("types", name="Profile")
-    types.find("name").text = "NotProfile"
-
-    with pytest.raises(CumulusCIException):
-        task._expand_profile_members(package_xml)
 
 
 def test_init_options__general():
