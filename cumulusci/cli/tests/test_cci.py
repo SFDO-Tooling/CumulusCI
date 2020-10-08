@@ -1974,12 +1974,32 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.cci_safe_load")
     def test_flow_doc__with_flows_rst_file(self, safe_load, echo):
         runtime = mock.Mock()
-        runtime.project_config = None
-        runtime.universal_config.list_flows.return_value = [
-            {"name": "Flow1", "description": "Description of Flow1", "group": "Group1"}
+
+        # runtime.universal_config.list_flows.return_value = [
+        # {"name": "Flow1", "description": "Description of Flow1", "group": "Group1"}
+        # ]
+
+        runtime.project_config.list_flows.return_value = [
+            {
+                "name": "some_task",
+                "description": "This is the description of the task.",
+                "group": "Group1",
+            },
+            {
+                "name": "some_flow",
+                "description": "This is the description of the flow.",
+                "group": "Group2",
+            },
         ]
-        flow_config = FlowConfig({"description": "Description of Flow1", "steps": {}})
-        runtime.get_flow.return_value = FlowCoordinator(None, flow_config)
+        # flow_config = FlowConfig({"description": "Description of Flow1", "steps": {}})
+
+        flow_config = FlowConfig(
+            {"steps": {1: {"task": "some_task"}, 2: {"flow": "some_flow"}}}
+        )
+
+        runtime.get_flow.return_value = FlowCoordinator(
+            runtime.project_config, flow_config
+        )
 
         safe_load.return_value = {
             "intro_blurb": "opening blurb for flow reference doc",
