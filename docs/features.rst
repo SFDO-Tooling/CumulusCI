@@ -62,9 +62,9 @@ Thus far we've talked about orgs being confined to an individual project's keych
 
 .. code-block:: console
 
-    $ cci org connect <org_name> --global
+    $ cci org connect <org_name> --global-org
 
-With the ``--global`` flag, the org is created in CumulusCI's global keychain and thus available to all projects under the same org_name.
+With the ``--global-org`` flag, the org is created in CumulusCI's global keychain and thus available to all projects under the same org_name.
 
 Individual projects can also override the global org by defining a project org with the same org_name.
 
