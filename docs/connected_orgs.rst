@@ -10,9 +10,8 @@ You can choose whether to create the Connected App from the command line or via 
 
 
 
-Create via Command Line
-*****************************
-CumulusCI includes a task to easily deploy the Salesforce Connected App to any org in your ``sfdx`` keychain.
+ce has a default Connected App that CumulusCI can deploy to any org in your ``sfdx`` keychain.
+CumulusCI includes a task to easily deploy the default Salesforce Connected App to any org in your ``sfdx`` keychain.
 By default, this will deploy to the org configured as the ``defaultdevhubusername``::
 
     $ cci task run connected_app
@@ -80,4 +79,6 @@ You can use ``cci org browser`` to ensure that CumulusCI is able to login to the
     $ cci org browser <org_name>
 
 
+Using a Custom Connected App
+----------------------------
 
