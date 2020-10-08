@@ -4,36 +4,30 @@ In order to connect persistent orgs such as a Developer Edition, Enterprise Edit
 
 
 
-Create a Connected App
------------------------
-You can choose whether to create the Connected App from the command line or via the Salesforce Setup menu.
-
-
-
-ce has a default Connected App that CumulusCI can deploy to any org in your ``sfdx`` keychain.
-CumulusCI includes a task to easily deploy the default Salesforce Connected App to any org in your ``sfdx`` keychain.
-By default, this will deploy to the org configured as the ``defaultdevhubusername``::
+CumulusCI's Connected App
+-------------------------
+CumulusCI already has a connected app that you can deploy to any org in your ``sfdx`` keychain.
+By default, this this deploy to the org configured as the ``defaultdevhubusername``::
+Use the following to deploy the CumulusCI's connected app to an org::
 
     $ cci task run connected_app
 
-This command will also configure CumulusCI's ``connected_app`` service in the keychain for you.
-If you want to see hte information for the connected app, you can view it with::
+This command also takes care to setup CumulusCI's ``connected_app`` service in the keychain for you.
+If you want to see the information for the connected app, you can view it with::
 
     $ cci service info connected_app
 
 
 
-Create via Salesforce Setup
-******************************
 
-The ``connect`` Command
------------------------
-To connect to a persistent org use the following::
+The ``org connect`` Command
+---------------------------
+To connect to a persistent org use::
 
     $ cci org connect <org_name>
 
 This will automatically open a browser window pointed to a Salesforce login page.
-The provided ``<org_name>`` will be the name that CumulusCI associates with your connected org.
+The provided ``<org_name>`` will be the name that CumulusCI associates with org you log into.
 
 
 
@@ -55,11 +49,10 @@ For sandboxes, pass the ``--sandbox`` flag along with the org name::
 
 Global Orgs
 *******************
-Under some circumstances you may want a persistent org to be available across all CumulusCI projects on your computer.
 By default, ``cci org connect`` stores the OAuth credentials for connected orgs in a *project specific* keychain.
 This means that an org connected while working in Project A's directory, will not be available while working in Project B's directory.
 
-You can connect and org and make it available to all CumulusCI projects on your computer with::
+You can connect an org and make it available to *all* CumulusCI projects on your computer with::
 
     $ cci org connect <org_name> --global-org
 
@@ -67,7 +60,7 @@ You can connect and org and make it available to all CumulusCI projects on your 
 
 Verifying Connections
 ---------------------
-You can use the ``cci org list`` command and look for your org under the "Connected Org" section.
+You can use ``cci org list`` to look for your org listed under the "Connected Org" table.
 
 The following shows a single persistent org connected to CumulusCI with the name "devhub".
 
@@ -81,4 +74,4 @@ You can use ``cci org browser`` to ensure that CumulusCI is able to login to the
 
 Using a Custom Connected App
 ----------------------------
-
+Under special circumstances you may want to use your own connected app instead of the one provided by CumulusCI.
