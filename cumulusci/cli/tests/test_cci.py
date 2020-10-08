@@ -37,6 +37,7 @@ from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.cli import cci
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.utils import temporary_dir
+from cumulusci.tests.util import create_project_config
 
 
 def run_click_command(cmd, *args, **kw):
@@ -1973,12 +1974,13 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.click.echo")
     @mock.patch("cumulusci.cli.cci.cci_safe_load")
     def test_flow_doc__with_flows_rst_file(self, safe_load, echo):
-        runtime = mock.Mock()
 
         # runtime.universal_config.list_flows.return_value = [
         # {"name": "Flow1", "description": "Description of Flow1", "group": "Group1"}
         # ]
 
+        runtime = mock.Mock()
+        project_config = create_project_config()
         runtime.project_config.list_flows.return_value = [
             {
                 "name": "some_task",
@@ -1997,9 +1999,7 @@ Environment Info: Rossian / x68_46
             {"steps": {1: {"task": "some_task"}, 2: {"flow": "some_flow"}}}
         )
 
-        runtime.get_flow.return_value = FlowCoordinator(
-            runtime.project_config, flow_config
-        )
+        runtime.get_flow.return_value = FlowCoordinator(project_config, flow_config)
 
         safe_load.return_value = {
             "intro_blurb": "opening blurb for flow reference doc",
