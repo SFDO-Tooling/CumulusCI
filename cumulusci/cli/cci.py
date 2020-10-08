@@ -884,7 +884,9 @@ def org_browser(runtime, org_name):
     help="If set, sets the connected org as the new default org",
 )
 @click.option(
-    "--global-org", help="Set True if org should be used by any project", is_flag=True
+    "--global-org",
+    help="If set, the connected org is available to all CumulusCI projects.",
+    is_flag=True,
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
