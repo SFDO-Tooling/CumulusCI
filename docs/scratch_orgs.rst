@@ -1,9 +1,13 @@
 Manage Scratch Orgs
 ===================
 
-*Scratch orgs* are ephemeral Salesforce orgs. Scratch orgs are created empty, unlike sandboxes, and configured by deploying metadata into them. Scratch orgs facilitate repeatable, fully source-driven development processes on the Salesforce platform, and help ameliorate many of the challenges inherent in working with *persistent orgs* like sandboxes and Developer Edition orgs. Scratch orgs are intended to be created and destroyed often; they cannot have a lifespan greater than 30 days.
+Scratch orgs are temporary Salesforce orgs which can be quickly set up "from scratch" and which last for a limited time (no more than 30 days). We strongly encourage using scratch orgs for development and testing, instead of sandboxes or Developer Edition orgs, because:
 
-The CumulusCI Suite offers tools for working with all types of Salesforce orgs, but provides the most value when working with scratch orgs. We strongly encourage building processes around scratch orgs for development, feature and integration testing, demos, and other workflows. CumulusCI automation helps realize the promise of scratch orgs as low cost, repeatable, source-driven environments for every phase of the product lifecycle.
+* Scratch orgs provide a repeatable starting point without challenge of managing persistent orgs' state over time.
+* Scratch orgs are scalable and ensure individual, customized environments are available to everyone in the development lifecycle.
+* Scratch orgs facilitate a fully source-driven development process built around best practices.
+
+The CumulusCI Suite offers tools for working with all types of Salesforce orgs, but provides the most value when working with scratch orgs. CumulusCI automation helps realize the promise of scratch orgs as low cost, repeatable, source-driven environments for every phase of the product lifecycle.
 
 Throughout this section, we'll focus on managing scratch orgs in a CumulusCI project. To learn about managing persistent orgs, such as sandboxes, production orgs, and packaging orgs, read TODO: reference "Connecting persistent orgs".
 
