@@ -20,7 +20,12 @@ Ensure you have `Homebrew <https://brew.sh/>`_ installed as it is a prerequisite
 
 Install via ``pipx`` 
 ******************************
-Follow `installation instructions for pipx <https://pipxproject.github.io/pipx/installation/>`_.
+First install ``pipx`` with the following two commands::
+
+    $ brew install pipx
+    $ pipx ensurepath
+
+
 Once ``pipx`` is installed, we can install CumulusCI::
 
     $ pipx install cumulusci
@@ -98,7 +103,7 @@ Verify Your Installation
 
 In a new terminal window can verify that CumulusCI is installed correctly by running ``cci version``:
 
-.. code:: console
+.. code-block:: console
 
     $ cci version
     CumulusCI version: 3.19.0 (/path/to/bin/cci)
