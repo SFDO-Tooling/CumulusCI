@@ -36,7 +36,7 @@ On Linux
 
 Install via ``pipx``
 **************************
-We recommend installing CumulusCI using ``pipx``, which will make sure that CumulusCI and its dependencies are installed into their own Python environment that is separate from other Pytho software on your computer.
+We recommend installing CumulusCI using ``pipx``, which will make sure that CumulusCI and its dependencies are installed into their own Python environment that is separate from other Python software on your computer.
 Installation instruction for ``pipx`` can be found `here <https://pipxproject.github.io/pipx/installation/>`_.
 Once ``pipx`` is installed, we can install CumulusCI::
 
