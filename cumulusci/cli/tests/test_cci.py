@@ -37,7 +37,6 @@ from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.cli import cci
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.utils import temporary_dir
-from cumulusci.tests.util import create_project_config
 
 
 def run_click_command(cmd, *args, **kw):
@@ -1974,32 +1973,18 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.click.echo")
     @mock.patch("cumulusci.cli.cci.cci_safe_load")
     def test_flow_doc__with_flows_rst_file(self, safe_load, echo):
-
-        # runtime.universal_config.list_flows.return_value = [
-        # {"name": "Flow1", "description": "Description of Flow1", "group": "Group1"}
-        # ]
-
-        runtime = mock.Mock()
-        project_config = create_project_config()
-        runtime.project_config.list_flows.return_value = [
-            {
-                "name": "some_task",
-                "description": "This is the description of the task.",
-                "group": "Group1",
+        runtime = CliRuntime(
+            config={
+                "flows": {
+                    "Flow1": {
+                        "steps": {},
+                        "description": "Description of Flow1",
+                        "group": "Group1",
+                    }
+                }
             },
-            {
-                "name": "some_flow",
-                "description": "This is the description of the flow.",
-                "group": "Group2",
-            },
-        ]
-        # flow_config = FlowConfig({"description": "Description of Flow1", "steps": {}})
-
-        flow_config = FlowConfig(
-            {"steps": {1: {"task": "some_task"}, 2: {"flow": "some_flow"}}}
+            load_keychain=False,
         )
-
-        runtime.get_flow.return_value = FlowCoordinator(project_config, flow_config)
 
         safe_load.return_value = {
             "intro_blurb": "opening blurb for flow reference doc",
@@ -2012,7 +1997,6 @@ Environment Info: Rossian / x68_46
         run_click_command(cci.flow_doc, runtime=runtime)
 
         assert 1 == safe_load.call_count
-        assert 5 == echo.call_count
 
         expected_call_args = [
             "Flow Reference\n==========================================\n\nopening blurb for flow reference doc\n.. contents::\n    :depth: 2\n    :local:\n\n",
@@ -2021,10 +2005,8 @@ Environment Info: Rossian / x68_46
             "Flow1\n^^^^^\n\n**Description:** Description of Flow1\n\nSome ``extra`` **pizzaz**!\n**Flow Steps**\n\n.. code-block:: console\n",
             "",
         ]
-        actual_call_args = [call.args[0] for call in echo.call_args_list]
-        assert len(expected_call_args) == len(actual_call_args)
-        for i in range(len(expected_call_args)):
-            assert expected_call_args[i] == actual_call_args[i]
+        expected_call_args = [mock.call(s) for s in expected_call_args]
+        assert echo.call_args_list == expected_call_args
 
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})
@@ -2079,9 +2061,7 @@ Environment Info: Rossian / x68_46
             )
         assert "-o" in str(e.value)
 
-    def test_flow_run_delete_non_scratch(
-        self,
-    ):
+    def test_flow_run_delete_non_scratch(self):
         org_config = mock.Mock(scratch=False)
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)
