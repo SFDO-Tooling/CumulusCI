@@ -278,7 +278,7 @@ You can verify project initialization was successful by verifying that ``cumulus
         .
         .
 
-The newly created `cumulusci.yml` file is how you configure your project specific tasks, flows, and CumulusCI customizations.
+The newly created `cumulusci.yml` file is how you configure your project-specific tasks, flows, and CumulusCI customizations.
 For more information regarding configuraiton, checkout our `project configuration <#TODO internal ref here>`_ section of the docs.
 You can add and commit it to your git repository:
 
