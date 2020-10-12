@@ -123,7 +123,7 @@ class TestRobot(unittest.TestCase):
         task()
         mock_subprocess_run.assert_not_called()
         mock_robot_run.assert_called_once_with(
-            "tests", listener=[], outputdir=".", variable=["org:test"], pythonpath=[]
+            "tests", listener=[], outputdir=".", pythonpath=[], variable=["org:test"]
         )
 
     def test_default_listeners(self):
