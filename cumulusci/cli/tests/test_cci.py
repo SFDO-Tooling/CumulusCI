@@ -715,6 +715,15 @@ Environment Info: Rossian / x68_46
 
         self.assertEqual("test:", "".join(out))
 
+    @mock.patch("cumulusci.cli.cci.doc_task")
+    def test_project_doc(self, doc_task):
+        runtime = mock.Mock()
+        runtime.universal_config.tasks = {"test": {}}
+        runtime.project_config.config = {"tasks": {"option": {"a": "b"}}}
+        runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
+        run_click_command(cci.project_doc, runtime=runtime)
+        doc_task.assert_called()
+
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_service_list(self, cli_tbl):
         runtime = mock.Mock()
