@@ -20,6 +20,7 @@ Ensure you have `Homebrew <https://brew.sh/>`_ installed as it is a prerequisite
 
 Install via ``pipx`` 
 ******************************
+We recommend installing CumulusCI using ``pipx``, which will make sure that CumulusCI and its dependencies are installed into their own Python environment that is separate from other Python software on your computer.
 First install ``pipx`` with the following two commands::
 
     $ brew install pipx
@@ -71,7 +72,7 @@ Install Python 3
 
 Install via ``pipx``
 ***********************
-
+We recommend installing CumulusCI using ``pipx``, which will make sure that CumulusCI and its dependencies are installed into their own Python environment that is separate from other Python software on your computer.
 Open your preferred terminal application
 (e.g. `CMD.exe <https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/cmd>`_ on Windows).
 If you already have your terminal open, close it and reopen it. Enter the following command::
