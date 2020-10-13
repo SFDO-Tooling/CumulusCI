@@ -108,8 +108,8 @@ Once you know the specific task or flow you want to run, you can execute it with
 
 .. code-block:: console
 
-    $ cci task run task_name --org org_name [Options]
-    $ cci flow run flow_name --org org_name [Options]
+    $ cci task run task_name --org org_name [options]
+    $ cci flow run flow_name --org org_name 
 
 Where ``task_name`` and ``flow_name`` are the actual name of the task or flow that you would like to run, and ``org_name`` is the name of the org that you want to run the task or flow against. 
 (You can see a list of orgs available to you by running ``cci org list``).
@@ -240,7 +240,7 @@ Log Files
 CumulusCI creates a log file every time a cci command run. There are six rotating log files (``cci.log, cci.log1...5``) with ``cci.log`` being the most recent. Log files are stored under ``~/.cumulusci/logs``. By default, log files capture the the following:
     * The last command that was entered by the user
     * All output from the command (including debug information)
-    * If an error is present, the corresponding stacktrace is included.
+    * If a Python-level exception occurs, the corresponding stacktrace is included.
 
 If you want debug information regarding the ``requests`` module to be captured in a log file you must explicitly run the command with the ``--debug`` option.
 
