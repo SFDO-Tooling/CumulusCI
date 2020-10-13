@@ -1,8 +1,6 @@
 import http.client
 from unittest import mock
 import unittest
-import datetime
-
 import responses
 
 from cumulusci.tasks.release_notes.exceptions import GithubIssuesError
@@ -567,72 +565,6 @@ class TestInstallLinkParser:
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
         assert parser.render() == ""
-
-    def test_package_release_info_no_version_id(self):
-        generator = mock.Mock(link_pr=True, version_id=None, release_info=True)
-        parser = InstallLinkParser(generator, "Title")
-        parser.parse("abc")
-        assert "# Title" in parser.render()
-        assert "# Installation Info" in parser.render()
-        assert "## Push Schedule" in parser.render()
-        assert f"Sandbox orgs: {generator.sandbox_date}" in parser.render()
-        assert f"Production orgs: {generator.production_date}" in parser.render()
-        assert "## Installation URL" not in parser.render()
-
-    def test_package_release_info_with_version_id(self):
-        generator = mock.Mock(link_pr=True, version_id="04t0000asdf", release_info=True)
-        parser = InstallLinkParser(generator, "Title")
-        parser.parse("abc")
-        assert "# Title" in parser.render()
-        assert "# Installation Info" in parser.render()
-        assert "## Push Schedule" in parser.render()
-        assert f"Sandbox orgs: {generator.sandbox_date}" in parser.render()
-        assert f"Production orgs: {generator.production_date}" in parser.render()
-        assert "## Installation URL" in parser.render()
-        assert (
-            f"https://login.salesforce.com/packaging/installPackage.apexp?p0={generator.version_id}"
-            in parser.render()
-        )
-
-    def test_package_release_info_with_version_id_dates(self):
-        generator = mock.Mock(
-            link_pr=True,
-            version_id="04t0000asdf",
-            release_info=True,
-            sandbox_date="2020-10-10",
-            production_date="2020-10-10",
-        )
-        parser = InstallLinkParser(generator, "Title")
-        parser.parse("abc")
-        assert "# Title" in parser.render()
-        assert "# Installation Info" in parser.render()
-        assert "## Push Schedule" in parser.render()
-        assert f"Sandbox orgs: {generator.sandbox_date}" in parser.render()
-        assert f"Production orgs: {generator.production_date}" in parser.render()
-        assert "## Installation URL" in parser.render()
-        assert (
-            f"https://login.salesforce.com/packaging/installPackage.apexp?p0={generator.version_id}"
-            in parser.render()
-        )
-
-    def test_package_trial_info(self):
-        generator = mock.Mock(
-            link_pr=True, version_id="04t0000asdf", release_info=False, trial_info=True
-        )
-        parser = InstallLinkParser(generator, "Title")
-        parser.parse("abc")
-        assert "# Title" in parser.render()
-        assert "## Trialforce Template ID" in parser.render()
-        assert "`TBD`" in parser.render()
-        assert "# Installation Info" not in parser.render()
-        assert "## Push Schedule" not in parser.render()
-        assert (
-            f"Sandbox orgs: {datetime.date.today().isoformat()}" not in parser.render()
-        )
-        assert (
-            f"Production orgs: {(datetime.date.today() + datetime.timedelta(days=6)).isoformat()}"
-            not in parser.render()
-        )
 
     def test_package_version(self):
         generator = mock.Mock(link_pr=True)
