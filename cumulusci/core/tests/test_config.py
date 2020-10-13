@@ -1151,7 +1151,6 @@ class TestOrgConfig(unittest.TestCase):
     @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
     def test_refresh_oauth_token(self, SalesforceOAuth2):
         config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
-        config._client = mock.Mock()
         config._load_userinfo = mock.Mock()
         config._load_orginfo = mock.Mock()
         keychain = mock.Mock()
@@ -1162,7 +1161,6 @@ class TestOrgConfig(unittest.TestCase):
         config.refresh_oauth_token(keychain)
 
         oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
-        assert config._client is None
 
     def test_refresh_oauth_token_no_connected_app(self):
         config = OrgConfig({}, "test")
@@ -1425,13 +1423,20 @@ class TestOrgConfig(unittest.TestCase):
                     "IsBeta": True,
                 },
             },
+            {
+                "SubscriberPackage": {
+                    "Id": "03350000000DEz4AAG",
+                    "NamespacePrefix": "blah",
+                },
+                "SubscriberPackageVersion": None,  # This shouldn't happen but has in real orgs.
+            },
         ],
     }
 
-    def test_installed_packages(self):
+    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    def test_installed_packages(self, sf):
         config = OrgConfig({}, "test")
-        config._client = mock.Mock()
-        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+        sf.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
 
         expected = {
             "GW_Volunteers": [
@@ -1461,7 +1466,7 @@ class TestOrgConfig(unittest.TestCase):
         # get it twice so we can make sure it is cached
         assert config.installed_packages == expected
         assert config.installed_packages == expected
-        config._client.restful.assert_called_once_with(
+        sf.restful.assert_called_once_with(
             "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
             "SubscriberPackageVersion.Id, SubscriberPackageVersion.MajorVersion, "
             "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
@@ -1469,15 +1474,15 @@ class TestOrgConfig(unittest.TestCase):
             "FROM InstalledSubscriberPackage"
         )
 
-        config._client.restful.reset_mock()
+        sf.restful.reset_mock()
         config.reset_installed_packages()
         assert config.installed_packages == expected
-        config._client.restful.assert_called_once()
+        sf.restful.assert_called_once()
 
-    def test_has_minimum_package_version(self):
+    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    def test_has_minimum_package_version(self, sf):
         config = OrgConfig({}, "test")
-        config._client = mock.Mock()
-        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+        sf.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
 
         assert config.has_minimum_package_version("TESTY", "1.9")
         assert config.has_minimum_package_version("TESTY", "1.10b5")

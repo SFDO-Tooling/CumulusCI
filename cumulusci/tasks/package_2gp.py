@@ -1,3 +1,4 @@
+from cumulusci.core.config.SfdxOrgConfig import SfdxOrgConfig
 from typing import Optional
 import base64
 import enum
@@ -9,15 +10,15 @@ import zipfile
 from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
-from cumulusci.core.exceptions import DependencyLookupError
-from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import DependencyLookupError, ServiceNotConfigured
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
+from cumulusci.core.sfdx import get_default_devhub_username
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils import download_extract_github
 
@@ -70,9 +71,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "description": "The part of the version number to increment. "
             "Options are major, minor, patch.  Defaults to minor"
         },
-        "dependency_org": {
-            "description": "The org name of the org to use for project dependencies lookup. If not provided, a scratch org will be created with the org name 2gp_dependencies."
-        },
         "skip_validation": {
             "description": "If true, skip validation of the package version. Default: false. "
             "Skipping validation creates packages more quickly, but they cannot be promoted for release."
@@ -106,6 +104,25 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.options["force_upload"] = process_bool_arg(
             self.options.get("force_upload", False)
         )
+
+    def _init_task(self):
+        self.devhub_config = self._init_devhub()
+        self.tooling = get_simple_salesforce_connection(
+            self.project_config,
+            self.devhub_config,
+            api_version=self.api_version,
+            base_url="tooling",
+        )
+
+    def _init_devhub(self):
+        # Determine the devhub username for this project
+        try:
+            devhub_service = self.project_config.keychain.get_service("devhub")
+        except ServiceNotConfigured:
+            devhub_username = get_default_devhub_username()
+        else:
+            devhub_username = devhub_service.username
+        return SfdxOrgConfig({"username": devhub_username}, "devhub")
 
     def _run_task(self):
         """Creates a new 2GP package version.
@@ -274,32 +291,27 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             }
 
             # Add org shape
-            try:
-                dev_org_config = self.project_config.keychain.get_org("dev")
-            except OrgNotFound:
-                pass
-            else:
-                with open(dev_org_config.config_file, "r") as f:
-                    scratch_org_def = json.load(f)
-                for key in (
-                    "country",
-                    "edition",
-                    "language",
-                    "features",
-                    "snapshot",
-                ):
-                    if key in scratch_org_def:
-                        package_descriptor[key] = scratch_org_def[key]
+            with open(self.org_config.config_file, "r") as f:
+                scratch_org_def = json.load(f)
+            for key in (
+                "country",
+                "edition",
+                "language",
+                "features",
+                "snapshot",
+            ):
+                if key in scratch_org_def:
+                    package_descriptor[key] = scratch_org_def[key]
 
-                # Add settings
-                if "settings" in scratch_org_def:
-                    with build_settings_package(
-                        scratch_org_def["settings"], self.api_version
-                    ) as path:
-                        settings_zip_builder = MetadataPackageZipBuilder(path=path)
-                        version_info.writestr(
-                            "settings.zip", settings_zip_builder.as_bytes()
-                        )
+            # Add settings
+            if "settings" in scratch_org_def:
+                with build_settings_package(
+                    scratch_org_def["settings"], self.api_version
+                ) as path:
+                    settings_zip_builder = MetadataPackageZipBuilder(path=path)
+                    version_info.writestr(
+                        "settings.zip", settings_zip_builder.as_bytes()
+                    )
 
             # Add the dependencies for the package
             is_dependency = package_config is not self.package_config
@@ -393,8 +405,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         # we need to convert those to 04t package version ids,
         # for which we need an org with the packages installed.
         if self._has_1gp_namespace_dependency(dependencies):
-            org = self._get_dependency_org()
-            dependencies = org.resolve_04t_dependencies(dependencies)
+            dependencies = self.org_config.resolve_04t_dependencies(dependencies)
 
         # Convert dependencies to correct format for Package2VersionCreateRequest
         dependencies = self._convert_project_dependencies(dependencies)
@@ -413,48 +424,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 if self._has_1gp_namespace_dependency(dependency["dependencies"]):
                     return True
         return False
-
-    def _get_dependency_org(self):
-        """Get a scratch org that we can use to look up subscriber package version ids.
-
-        If the `dependency_org` option is specified, use it.
-        Otherwise create a new org named `2gp_dependencies` and run the `dependencies` flow.
-        """
-        org_name = self.options.get("dependency_org")
-        if org_name:
-            org = self.project_config.keychain.get_org(org_name)
-        else:
-            org_name = "2gp_dependencies"
-            if org_name not in self.project_config.keychain.orgs:
-                self.project_config.keychain.create_scratch_org(
-                    "2gp_dependencies", "dev"
-                )
-
-            org = self.project_config.keychain.get_org("2gp_dependencies")
-            if org.created and org.expired:
-                self.logger.info(
-                    "Recreating expired scratch org named 2gp_dependencies to resolve dependency package version ids"
-                )
-                org.create_org()
-                self.project_config.keychain.set_org(org)
-            elif org.created:
-                self.logger.info(
-                    "Using existing scratch org named 2gp_dependencies to resolve dependency package version ids"
-                )
-            else:
-                self.logger.info(
-                    "Creating a new scratch org with the name 2gp_dependencies to resolve dependency package version ids"
-                )
-
-            self.logger.info(
-                "Running the dependencies flow against the 2gp_dependencies scratch org"
-            )
-            coordinator = FlowCoordinator(
-                self.project_config, self.project_config.get_flow("dependencies")
-            )
-            coordinator.run(org)
-
-        return org
 
     def _convert_project_dependencies(self, dependencies):
         """Convert dependencies into the format expected by Package2VersionCreateRequest.

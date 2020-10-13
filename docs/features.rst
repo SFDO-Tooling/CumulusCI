@@ -62,9 +62,9 @@ Thus far we've talked about orgs being confined to an individual project's keych
 
 .. code-block:: console
 
-    $ cci org connect <org_name> --global
+    $ cci org connect <org_name> --global-org
 
-With the ``--global`` flag, the org is created in CumulusCI's global keychain and thus available to all projects under the same org_name.
+With the ``--global-org`` flag, the org is created in CumulusCI's global keychain and thus available to all projects under the same org_name.
 
 Individual projects can also override the global org by defining a project org with the same org_name.
 
@@ -813,13 +813,13 @@ In order to create unlocked package versions, you need to have a few things set 
 Create a Package Version
 ------------------------
 
-To create a new unlocked package version, run the ``create_package_version`` task against the Dev Hub org:
+To create a new unlocked package version, run the ``create_package_version`` task against a scratch org:
 
 .. code-block:: console
 
-    $ cci task run create_package_version --org devhub -o package_type Unlocked
+    $ cci task run create_package_version --org dev -o package_type Unlocked
 
-This task will look for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of ``cumulusci.yml``). If a matching package doesn't exist yet, it will be created.
+This task will look in your default Dev Hub org (as configured in sfdx) for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of ``cumulusci.yml``). If a matching package doesn't exist yet, it will be created.
 
 The task then submits a request to create the package version, and once completed (which can take some time), the task will output some information including the SubscriberPackageVersion Id, which can be used to install the package in another org.
 
@@ -830,7 +830,7 @@ Handling Dependencies
 
 If your project has dependencies configured in the ``project`` section of ``cumulusci.yml``, CumulusCI will try to convert them into a Subscriber Package Version Id (``04t`` key prefix), which is the format required for dependencies in the API for creating a package version.
 
-For dependencies that are specified as a managed package namespace and version, or dependencies specified as a GitHub repository with releases that can be resolved to a namespace and version, CumulusCI needs an org with the dependencies installed in order to do this conversion. By default, it will create a new scratch org named ``2gp_dependencies`` and run the ``dependencies`` flow in order to get an org where these ids can be looked up. If you want to use an existing scratch org rather than creating a new one, set the ``dependency_org`` option for the ``create_package_version`` task.
+For dependencies that are specified as a managed package namespace and version, or dependencies specified as a GitHub repository with releases that can be resolved to a namespace and version, CumulusCI needs a scratch org with the dependencies installed in order to do this conversion. This is the purpose of the scratch org passed to the ``create_package_version`` task (``dev`` in the example above). You must make sure the dependencies are installed in this org before running the ``create_package_version`` task. The scratch org definition file from this scratch org will also be used to specify the correct org shape when building the new package version.
 
 For dependencies that are an unpackaged bundle of metadata, CumulusCI will create an additional unlocked package to contain them.
 

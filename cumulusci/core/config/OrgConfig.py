@@ -38,7 +38,6 @@ class OrgConfig(BaseConfig):
 
         self.name = name
         self._community_info_cache = {}
-        self._client = None
         self._latest_api_version = None
         self._installed_packages = None
         self._is_person_accounts_enabled = None
@@ -55,9 +54,6 @@ class OrgConfig(BaseConfig):
 
         Also refreshes user and org info that is cached in the org config.
         """
-        # invalidate memoized simple-salesforce client with old token
-        self._client = None
-
         if not SKIP_REFRESH:
             SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
@@ -122,14 +118,11 @@ class OrgConfig(BaseConfig):
 
     @property
     def salesforce_client(self):
-        if not self._client:
-            self._client = Salesforce(
-                instance=self.instance_url.replace("https://", ""),
-                session_id=self.access_token,
-                version=self.latest_api_version,
-            )
-
-        return self._client
+        return Salesforce(
+            instance=self.instance_url.replace("https://", ""),
+            session_id=self.access_token,
+            version=self.latest_api_version,
+        )
 
     @property
     def latest_api_version(self):
@@ -269,6 +262,10 @@ class OrgConfig(BaseConfig):
             for package in response["records"]:
                 sp = package["SubscriberPackage"]
                 spv = package["SubscriberPackageVersion"]
+                if spv is None:
+                    # This _shouldn't_ happen, but it is possible in customer orgs.
+                    continue
+
                 version = f"{spv['MajorVersion']}.{spv['MinorVersion']}"
                 if spv["PatchVersion"]:
                     version += f".{spv['PatchVersion']}"

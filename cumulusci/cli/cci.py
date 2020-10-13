@@ -910,7 +910,9 @@ def org_browser(runtime, org_name):
     help="If set, sets the connected org as the new default org",
 )
 @click.option(
-    "--global-org", help="Set True if org should be used by any project", is_flag=True
+    "--global-org",
+    help="If set, the connected org is available to all CumulusCI projects.",
+    is_flag=True,
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
@@ -980,14 +982,14 @@ def org_import(runtime, username_or_alias, org_name):
     )
     scratch_org_config.config["created"] = True
 
-    info = scratch_org_config.scratch_info
+    info = scratch_org_config.sfdx_info
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 
     scratch_org_config.save()
     click.echo(
         "Imported scratch org: {org_id}, username: {username}".format(
-            **scratch_org_config.scratch_info
+            **scratch_org_config.sfdx_info
         )
     )
 
