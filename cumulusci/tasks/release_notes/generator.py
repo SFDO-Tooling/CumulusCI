@@ -292,7 +292,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         # add empty PR section
         if self.include_empty_pull_requests:
             new_body.extend(render_empty_pr_section(self.empty_change_notes))
-        content = "\r\n".join(new_body)
+        content = u"\r\n".join(new_body)
         return content
 
     def get_repo(self):
