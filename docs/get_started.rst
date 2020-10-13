@@ -1,7 +1,7 @@
 Get Started
 ===========
 
-.. contents:: 
+.. contents::
     :depth: 2
     :local:
 
@@ -13,12 +13,12 @@ Install CumulusCI
     If that's completely new to you, we recommend starting with the `CumulusCI setup module <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup>`_ module on Trailhead to walk you through step by step.
 
 
-On macOS 
+On macOS
 ^^^^^^^^
 Ensure you have `Homebrew <https://brew.sh/>`_ installed as it is a prerequisite for installing CumulusCI on macOS.
 
 
-Install via ``pipx`` 
+Install via ``pipx``
 ******************************
 We recommend installing CumulusCI using ``pipx``, which will make sure that CumulusCI and its dependencies are installed into their own Python environment that is separate from other Python software on your computer.
 First install ``pipx`` with the following two commands::
@@ -59,7 +59,7 @@ On Windows
 
 Install Python 3
 ********************
-#. Go to the `Python downloads page <https://www.python.org/downloads/release/python-383/>`_. 
+#. Go to the `Python downloads page <https://www.python.org/downloads/release/python-383/>`_.
 #. Download the latest Python 3 release. Most users should select the "Download Windows x86-64 executable installer" link for the most recent stable release, but it may depend on your particular computer setup.
 #. Use the installation wizard to install:
 
@@ -83,7 +83,7 @@ If you already have your terminal open, close it and reopen it. Enter the follow
 
 Next we want to modify the default PATH environment variable to include pipx::
 
-    $ python -m pipx ensurepath 
+    $ python -m pipx ensurepath
 
 Open a new command prompt and verify that pipx is available::
 
@@ -115,6 +115,23 @@ In a new terminal window, you can verify that CumulusCI is installed correctly b
 You can also use this command in the future to check whether your CumulusCI installation is up to date.
 
 Still need help? Feel free to ask a question on our `Trailblazer community group <https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU>`_.
+
+
+
+Setup SFDX 
+----------
+While it is possible to use ``cci org connect <org_name>`` to connect to a persistent org, the real fun is using CumulusCI along with scratch orgs created using Salesforce DX.
+
+If you haven't already set up Salesforce DX, you need to take care of a few steps:
+
+1. `Install the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm>`_
+2. `Enable Dev Hub in Your Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_enable_devhub.htm>`_
+3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_ (be sure to use the ``--setdefaultdevhubusername`` option).
+
+If you already have the ``sfdx`` command installed, have connected to your devhub, and have set the ``defaultdevhubusername`` config setting (use ``sfdx force:config:list`` to verify), you're ready to start using ``cci`` with ``sfdx``.
+SFDX supports multiple DevHubs, so CumulusCI will use the one set as defaultdevhubusername when creating scratch orgs.
+
+You can learn more about Salesforce DX at https://developer.salesforce.com/platform/dx.
 
 
 
@@ -191,7 +208,7 @@ For example, ``cci project info`` can be run to display information about the pr
     test:
         name_match: %_TEST%
 
-Next Section: `The CumulusCI CLI`_ 
+Next Section: `The CumulusCI CLI`_
 
 
 Starting a New CumulusCI Project
@@ -207,7 +224,7 @@ You first need to make a directory with your project's name, navigate into the d
 
 .. code-block:: console
 
-    $ mkdir cci_project 
+    $ mkdir cci_project
     $ cd cci_project
     $ git init
 
@@ -259,7 +276,7 @@ You can verify project initialization was successful by verifying that ``cumulus
 
     $ cat cumulusci.yml
     project:
-        name: SampleProjectName 
+        name: SampleProjectName
         package:
             name: SamplePackageName
             namespace: sampleNamespace
@@ -315,7 +332,7 @@ We recommend a retrieve of MetaData via the MetaData API (via ``sfdx``), followe
     * If your project is for a managed package, ensure that the package namespace matches the namespace you entered when running ``cci project init``.
 #. Run the `retrieve command <https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_mdapi.htm#cli_reference_retrieve>`_ to extract your package metadata::
 
-    $ sfdx force:source:retrieve -n package_name /path/to/project/ 
+    $ sfdx force:source:retrieve -n package_name /path/to/project/
 
 That's it! You now have all of the metadata you care about in a single Git repository configured for use with CumulusCI.
 At this point you may want to `add your repo to github`_, or perhaps begin `configuring CumulusCI` <#TODO doc ref>.
