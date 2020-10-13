@@ -719,7 +719,10 @@ Environment Info: Rossian / x68_46
     def test_project_doc(self, doc_task):
         runtime = mock.Mock()
         runtime.universal_config.tasks = {"test": {}}
-        runtime.project_config.config = {"tasks": {"option": {"a": "b"}}}
+        runtime.project_config.config = {
+            "project": {"name": "Test"},
+            "tasks": {"option": {"a": "b"}},
+        }
         runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
         run_click_command(cci.project_doc, runtime=runtime)
         doc_task.assert_called()
