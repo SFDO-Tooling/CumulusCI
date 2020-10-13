@@ -311,6 +311,7 @@ class MergeBranch(BaseGithubTask):
             ):
                 release_branches.append(branch)
                 continue
+
             if branch.name == self.options["source_branch"]:
                 self.logger.debug(f"Skipping branch {branch.name}: is source branch")
                 continue
@@ -319,7 +320,12 @@ class MergeBranch(BaseGithubTask):
                     f"Skipping branch {branch.name}: does not match prefix '{self.options['branch_prefix']}'"
                 )
                 continue
-            elif self.source_branch_is_default and "__" not in branch.name:
+            elif (
+                not self.options["source_branch"].startswith(
+                    self.options["branch_prefix"]
+                )
+                and "__" not in branch.name
+            ):
                 main_descendents.append(branch)
             elif self._is_source_branch_direct_descendent(branch):
                 child_branches.append(branch)
@@ -334,7 +340,7 @@ class MergeBranch(BaseGithubTask):
                 f"Found child branches to update: {[branch.name for branch in child_branches]}"
             )
             to_merge = child_branches
-        elif not self.source_branch_is_default:
+        elif self.options["source_branch"].startswith(self.options["branch_prefix"]):
             self.logger.debug(
                 f"No children found for branch {self.options['source_branch']}"
             )
@@ -347,7 +353,7 @@ class MergeBranch(BaseGithubTask):
 
         if main_descendents:
             self.logger.debug(
-                f"Found descendents of main to update: {[branch.name for branch in main_descendents]}"
+                f"Found descendents of {self.options['source_branch']} to update: {[branch.name for branch in main_descendents]}"
             )
             to_merge = to_merge + main_descendents
 
