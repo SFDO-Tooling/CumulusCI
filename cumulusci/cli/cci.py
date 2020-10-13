@@ -726,19 +726,26 @@ def project_dependencies(runtime):
 )
 @pass_runtime(require_project=False)
 def project_doc(runtime):
-    project_config = runtime.project_config.config
 
-    click.echo("==========================================")
-    click.echo("Project Tasks Reference")
-    click.echo("==========================================")
-    click.echo("")
+    try:
+        os.mkdir("./docs")
+    except Exception:
+        pass  # skipping as not to freak end user out since directory exists.
+    finally:
+        project_config = runtime.project_config.config
+        project_name = project_config["project"]["name"].capitalize()
 
-    for name, options in project_config["tasks"].items():
-        task_config = TaskConfig(options)
-        doc = doc_task(name, task_config)
-        if name in runtime.project_config.config_project["tasks"]:
-            click.echo(doc)
-            click.echo("")
+        with open("./docs/project_tasks.rst", "w") as f:
+            f.write("==========================================\n")
+            f.write(f"{project_name} Tasks Reference\n")
+            f.write("==========================================\n")
+            f.write("\n")
+            for name, options in project_config["tasks"].items():
+                task_config = TaskConfig(options)
+                doc = doc_task(name, task_config)
+                if name in runtime.project_config.config_project["tasks"]:
+                    f.write(f"{doc}")
+                    f.write("\n\n")
 
 
 # Commands for group: service
