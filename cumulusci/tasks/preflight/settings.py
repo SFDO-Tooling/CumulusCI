@@ -15,16 +15,33 @@ class CheckSettingsValue(BaseSalesforceApiTask):
             "required": True,
         },
         "value": {"description": "The value to check for", "required": True},
+        "treat_missing_as_failure": {
+            "description": "If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.",
+            "required": False,
+        },
     }
 
     def _run_task(self):
         try:
-            results = self.tooling.query(
-                f"SELECT {self.options['settings_field']} FROM {self.options['settings_type']}"
-            )["records"]
-        except SalesforceMalformedRequest:
+            field = self.options["settings_field"]
+            entity = self.options["settings_type"]
+            results = self.tooling.query(f"SELECT {field} FROM {entity}")["records"]
+        except SalesforceMalformedRequest as e:
             self.logger.error(
-                "The specified settings entity or field could not be queried."
+                f"The settings value {entity}.{field} could not be queried: {e}"
+            )
+            self.return_values = False
+
+            if not process_bool_arg(
+                self.options.get("treat_missing_as_failure", False)
+            ):
+                raise e
+
+            return
+
+        if not results:
+            self.logger.info(
+                "Located no Settings records. Returning negative preflight result."
             )
             self.return_values = False
             return
