@@ -697,9 +697,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
                 ),
             ]
             actual_log = self._get_log_lines(log)
-            # assert expected_log == actual_log
-            for i in range(len(actual_log)):
-                assert expected_log[i] == actual_log[i]
+            assert expected_log == actual_log
         assert 6 == len(responses.calls)
 
     @responses.activate
