@@ -1780,6 +1780,13 @@ Options
 
 **Class:** cumulusci.tasks.github.MergeBranch
 
+Merges the most recent commit on the current branch into other branches depending on the value of source_branch.
+
+If source_branch is a branch that does not start with the specified branch_prefix, then the commit will be
+merged to all branches that begin with branch_prefix and are not themselves child branches (i.e. branches don't contain '__' in their name).
+
+If source_branch begins with branch_prefix, then the commit is merged to all child branches of source_branch.
+
 Command Syntax
 ------------------------------------------
 
@@ -1816,6 +1823,13 @@ Options
 **Description:** Merges the latest commit on a source branch to all child branches.
 
 **Class:** cumulusci.tasks.github.MergeBranch
+
+Merges the most recent commit on the current branch into other branches depending on the value of source_branch.
+
+If source_branch is a branch that does not start with the specified branch_prefix, then the commit will be
+merged to all branches that begin with branch_prefix and are not themselves child branches (i.e. branches don't contain '__' in their name).
+
+If source_branch begins with branch_prefix, then the commit is merged to all child branches of source_branch.
 
 Command Syntax
 ------------------------------------------
