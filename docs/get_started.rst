@@ -298,16 +298,11 @@ You're welcome to discuss project conversion in the `CumulusCI Trailblazer group
 
 Project Setup
 ^^^^^^^^^^^^^
-#. Create a directory for your project to live in, and navigate to it::
+Prior to capturing your projects Metadata you need to setup the projects root directory.
+These steps include:
 
-    $ mkdir mySalesforceProject; cd mySalesforceProject
-
-#. Initialize the directory as a Git repository::
-
-    $ git init
-    Initialized empty Git repository in /Users/MrCCI/repos/mySalesforceProject/.git/
-
-#. Initialize the repository as a CumulusCI project. See `project initialization`_.
+* Creating a project directory and initializing it as a Git repository as outlined in `starting a new CumulusCI project`_
+* Initializing the directory as a CumulusCI project as outlined in `project initialization`_.
 
 
 
