@@ -910,7 +910,6 @@ class TestMappingParser:
             data_operation=DataOperationType.QUERY,
             inject_namespaces=False,
             drop_missing=True,
-            org_has_person_accounts_enabled=True,
         )
 
         assert "Insert Accounts" in mapping

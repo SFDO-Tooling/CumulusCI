@@ -196,6 +196,7 @@ class MappingStep(CCIDictModel):
         logger.warning(
             "The lookups: key is deprecated. We recommend moving all lookups into fields: and recapturing data sets."
         )
+
         return v
 
     @root_validator
@@ -347,7 +348,16 @@ class MappingStep(CCIDictModel):
 
         return True
 
-    # TODO: postprocess fields into lookups
+    def _move_lookups_from_fields(self, describe: CaseInsensitiveDict):
+        new_lookups = []
+        for f, detail in self.fields.items():
+            field_desc = describe[f]
+            if field_desc["type"] == "reference":
+                new_lookups.add(f)
+
+        for f in new_lookups:
+            self.lookups[f] = MappingLookup(name=f)
+            del self.fields[f]
 
     def validate_and_inject_namespace(
         self,
@@ -400,6 +410,11 @@ class MappingStep(CCIDictModel):
         ):
             return False
 
+        # At this point we've canonicalized the entries in `fields`
+        # Move any entries from `fields` that are lookup fields into
+        # `lookups`, and synthesize MappingLookups for them.
+        self._move_lookups_from_fields(describe)
+
         if not self._validate_field_dict(
             describe, self.lookups, inject, drop_missing, operation
         ):
@@ -421,6 +436,105 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
     return MappingSteps.parse_from_yaml(source)
 
 
+def _drop_schema(mapping: Dict, org_config: OrgConfig, should_continue: List[bool]):
+    # Drop any steps with sObjects that are not present.
+    for (include, step_name) in zip(should_continue, list(mapping.keys())):
+        if not include:
+            del mapping[step_name]
+
+    # Remove any remaining lookups to dropped objects.
+    for m in mapping.values():
+        describe = getattr(org_config.salesforce_client, m.sf_object).describe()
+        describe = {entry["name"]: entry for entry in describe["fields"]}
+
+        tables = [step.table for step in mapping.values() if step.table]
+
+        for field in list(m.lookups.keys()):
+            lookup = m.lookups[field]
+            if lookup.table not in tables:
+                del m.lookups[field]
+
+                # Make sure this didn't cause the operation to be invalid
+                # by dropping a required field.
+                if not describe[field]["nillable"]:
+                    raise BulkDataException(
+                        f"{m.sf_object}.{field} is a required field, but the target object "
+                        f"{describe[field]['referenceTo']} was removed from the operation "
+                        "due to missing permissions."
+                    )
+
+
+def _validate_table_references(
+    mapping: Dict,
+):
+    tables = [step.table for step in mapping.values() if step.table]
+    fail = False
+    for m in mapping.values():
+        for lookup in m.lookups.values():
+            if lookup.table not in tables:
+                fail = True
+                logger.error(
+                    f"The table {lookup.table}, specified for lookup {m.sf_object}.{lookup.name}, is not present in the mapping."
+                )
+                continue
+
+    if fail:
+        raise BulkDataException("Bad table references blocked the operation")
+
+
+def _infer_and_validate_lookups(mapping: Dict, org_config: OrgConfig):
+    sf_objects = [m.sf_object for m in mapping.values()]
+
+    fail = False
+
+    for idx, m in enumerate(mapping.values()):
+        describe = {
+            f["name"]: f
+            for f in getattr(org_config.salesforce_client, m.sf_object).describe()[
+                "fields"
+            ]
+        }
+
+        for lookup in m.lookups:
+            if lookup.after:
+                # If configured by the user, skip.
+                # TODO: do we need more validation here?
+                continue
+
+            field_describe = describe[lookup.name]
+            target_objects = field_describe["relationshipTo"]
+            if len(target_objects) == 1:
+                # This is a non-polymorphic lookup.
+                try:
+                    target_index = sf_objects.index(target_objects[0])
+                except ValueError:
+                    fail = True
+                    logger.error(
+                        f"The field {m.sf_object}.{lookup.name} looks up to {target_objects[0]}, which is not included in the operation"
+                    )
+                    continue
+
+                if target_index > idx or target_index == idx:
+                    # This is a non-polymorphic after step.
+                    lookup.after = mapping.keys()[idx]
+            else:
+                # This is a polymorphic lookup.
+                # Make sure that any lookup targets present in the operation precede this step.
+                target_indices = [sf_objects.index(t) for t in target_objects]
+                if not all([target_index < idx for target_index in target_indices]):
+                    logger.error(
+                        f"All included target objects ({','.join(target_objects)}) for the field {m.sf_object}.{lookup.name} "
+                        f"must precede {m.sf_object} in the mapping."
+                    )
+                    fail = True
+                    continue
+
+    if fail:
+        raise BulkDataException(
+            "One or more relationship errors blocked the operation."
+        )
+
+
 def validate_and_inject_mapping(
     *,
     mapping: Dict,
@@ -429,8 +543,8 @@ def validate_and_inject_mapping(
     data_operation: DataOperationType,
     inject_namespaces: bool,
     drop_missing: bool,
-    org_has_person_accounts_enabled: bool = False,
 ):
+    # Validation and namespace injection
     should_continue = [
         m.validate_and_inject_namespace(
             org_config, namespace, data_operation, inject_namespaces, drop_missing
@@ -441,34 +555,22 @@ def validate_and_inject_mapping(
     if not drop_missing and not all(should_continue):
         raise BulkDataException("One or more permissions errors blocked the operation.")
 
+    # Schema dropping
     if drop_missing:
-        # Drop any steps with sObjects that are not present.
-        for (include, step_name) in zip(should_continue, list(mapping.keys())):
-            if not include:
-                del mapping[step_name]
+        _drop_schema(mapping, org_config, should_continue)
 
-        # Remove any remaining lookups to dropped objects.
-        for m in mapping.values():
-            describe = getattr(org_config.salesforce_client, m.sf_object).describe()
-            describe = {entry["name"]: entry for entry in describe["fields"]}
+    # Validate that `table` references, if present, are to included tables.
+    _validate_table_references(mapping)
 
-            for field in list(m.lookups.keys()):
-                lookup = m.lookups[field]
-                if lookup.table not in [step.table for step in mapping.values()]:
-                    del m.lookups[field]
+    # Synthesize `after` declarations and validate lookup references.
+    _infer_and_validate_lookups(mapping, org_config)
 
-                    # Make sure this didn't cause the operation to be invalid
-                    # by dropping a required field.
-                    if not describe[field]["nillable"]:
-                        raise BulkDataException(
-                            f"{m.sf_object}.{field} is a required field, but the target object "
-                            f"{describe[field]['referenceTo']} was removed from the operation "
-                            "due to missing permissions."
-                        )
-
-    # If the org has person accounts enable, add a field mapping to track "IsPersonAccount".
+    # If the org has person accounts enabled, add a field mapping to track "IsPersonAccount".
     # IsPersonAccount field values are used to properly load person account records.
-    if org_has_person_accounts_enabled and data_operation == DataOperationType.QUERY:
+    if (
+        org_config.is_person_accounts_enabled
+        and data_operation == DataOperationType.QUERY
+    ):
         for step in mapping.values():
-            if step["sf_object"] in ("Account", "Contact"):
-                step["fields"]["IsPersonAccount"] = "IsPersonAccount"
+            if step.sf_object in ("Account", "Contact"):
+                step.fields["IsPersonAccount"] = "IsPersonAccount"

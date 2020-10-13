@@ -123,7 +123,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             data_operation=DataOperationType.QUERY,
             inject_namespaces=self.options["inject_namespaces"],
             drop_missing=self.options["drop_missing_schema"],
-            org_has_person_accounts_enabled=self.org_config.is_person_accounts_enabled,
         )
 
     def _soql_for_mapping(self, mapping):

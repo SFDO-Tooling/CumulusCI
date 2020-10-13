@@ -779,7 +779,6 @@ class TestExtractData:
             data_operation=DataOperationType.QUERY,
             inject_namespaces=True,
             drop_missing=True,
-            org_has_person_accounts_enabled=t.org_config._is_person_accounts_enabled,
         )
 
     def test_soql_for_mapping(self):
