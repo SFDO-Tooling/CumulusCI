@@ -26,7 +26,7 @@ First install ``pipx`` with the following two commands::
     $ pipx ensurepath
 
 
-Once ``pipx`` is installed, we can install CumulusCI::
+Once ``pipx`` is installed, you can install CumulusCI::
 
     $ pipx install cumulusci
 
@@ -58,7 +58,7 @@ On Windows
 
 Install Python 3
 ********************
-#. Go to the `Python downloads page <https://www.python.org/downloads/windows/>`_.
+#. Go to the `Python downloads page <https://www.python.org/downloads/release/python-383/>`_. 
 #. Download the latest Python 3 release. Most users should select the "Download Windows x86-64 executable installer" link for the most recent stable release, but it may depend on your particular computer setup.
 #. Use the installation wizard to install:
 
@@ -73,7 +73,7 @@ Install via ``pipx``
 ***********************
 
 Open your preferred terminal application
-(e.g. `CMD.exe <https://www.bleepingcomputer.com/tutorials/windows-command-prompt-introduction/>`_ on Windows).
+(e.g. `CMD.exe <https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/cmd>`_ on Windows).
 If you already have your terminal open, close it and reopen it. Enter the following command::
 
     $ python -m pip install --user pipx
@@ -101,19 +101,19 @@ Now `verify your installation`_.
 Verify Your Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-In a new terminal window can verify that CumulusCI is installed correctly by running ``cci version``:
+In a new terminal window, you can verify that CumulusCI is installed correctly by running ``cci version``:
 
 .. code-block:: console
 
     $ cci version
-    CumulusCI version: 3.19.0 (/path/to/bin/cci)
+    CumulusCI version: 3.20.0 (/path/to/bin/cci)
     Python version: 3.8.5 (/path/to/bin/python)
 
     You have the latest version of CumulusCI.
 
 You can also use this command in the future to check whether your CumulusCI installation is up to date.
 
-Still need help? `CumulusCI's issues on GitHub <https://github.com/SFDO-Tooling/CumulusCI/issues>`_ may have something useful.
+Still need help? Feel free to ask a question on our `Trailblazer community group <https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU>`_.
 
 
 
@@ -140,34 +140,15 @@ Services are stored in the global CumulusCI keychain by default.
 
 Work on an Existing CumulusCI Project
 -------------------------------------
-Before working on an existing CumulusCI project you need to:
+Use this section if there is an existing CumulusCI project on GitHub that you'd like to work on.
+Note: CumulusCI does not support projects stored on other Git hosts such as BitBucket or GitLab at this time.
+There are three preliminary steps for working on an existing CumulusCI project you need to:
 
 * `Install CumulusCI`_
-* `Install git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
+* `Install Git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
+* `Clone the Project's GitHub Repository <https://docs.github.com/en/free-pro-team@latest/desktop/contributing-and-collaborating-using-github-desktop/adding-and-cloning-repositories>`_
 
-
-
-Cloning a GitHub Repository
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The first step in working on an existing project is cloning a projects repository.
-Cloning gives you a local working copy of the project on your computer.
-
-To clone a GitGub repository:
-
-#.  Navigate to the repository on GitHub
-#.  Click the green 'Code' button
-#.  Ensure 'HTTPS' is selected #TODO: cover ssh or gh cli?
-#.  Click the clipboard button to copy the https repository url to your clipboard.
-#.  In a new terminal window exectue the following command:
-
-.. code-block:: console
-
-    $ git clone <repository_url> <project_name>
-
-Replace ``<repository_url>`` with the url copied to your clipboard.
-Replace ``<project_name>`` with the name of the project.
-
-You can now change directories into the freshly cloned project and begin executing ``cci`` commands.
+You can now change directories into the project's root directory and begin executing ``cci`` commands.
 For example, ``cci project info`` can be run to display information about the project:
 
 .. code-block:: console
@@ -209,26 +190,33 @@ For example, ``cci project info`` can be run to display information about the pr
     test:
         name_match: %_TEST%
 
+TODO link to next section
 
 
 Starting a New CumulusCI Project
 --------------------------------
-This section assumes that you have CumulusCI and ``git`` installed on your host.
-We first need to make a directory with our project's name, navigate into the directory, and initialize it as a git repository.
+Follow this section if you want to start a brand new CumulusCI project.
+There are a few preliminary items:
+
+#. `Install CumulusCI`_
+#. `Install Git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
+#. `Intsall the Salesforce CLI <https://developer.salesforce.com/tools/sfdxcli>`_
+
+You first need to make a directory with your project's name, navigate into the directory, and then initialize it as a Git repository.
 
 .. code-block:: console
 
-    $ mkdir cci_project; cd cci_project
-
+    $ mkdir cci_project 
+    $ cd cci_project
     $ git init
 
-We now need to initialize our project as a CumulusCI project.
+You now need to initialize our project as a CumulusCI project.
 
 
 
 Project Initialization
 ^^^^^^^^^^^^^^^^^^^^^^
-Use the `cci project init` command from within a git repository to generate the initial version of a project's ``cumulusci.yml`` file.
+Use the `cci project init` command from within a Git repository to generate the initial version of a project's ``cumulusci.yml`` file.
 CumulusCI will prompt you questions about your project, and create a customized ``cumulusci.yml`` file.
 
 +------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -278,9 +266,9 @@ You can verify project initialization was successful by verifying that ``cumulus
         .
         .
 
-The newly created `cumulusci.yml` file is how you configure your project-specific tasks, flows, and CumulusCI customizations.
-For more information regarding configuraiton, checkout our `project configuration <#TODO internal ref here>`_ section of the docs.
-You can add and commit it to your git repository:
+The newly created ``cumulusci.yml`` file is how you configure your project-specific tasks, flows, and CumulusCI customizations.
+For more information regarding configuraiton, check out our `project configuration <#TODO internal ref here>`_ section of the docs.
+You can add and commit it to your Git repository:
 
 .. code-block:: console
 
@@ -291,7 +279,7 @@ You can add and commit it to your git repository:
 
 Add Your Repo to GitHub
 ^^^^^^^^^^^^^^^^^^^^^^^
-With your ``cumulusci.yml`` file committed, we now want to create a repository on GitHub for our new project and push our changes there.
+With your ``cumulusci.yml`` file committed, you can now create a repository on GitHub for your new project and push our changes there.
 
 #. `Create a new repository <https://docs.github.com/en/free-pro-team@latest/articles/creating-a-new-repository>`_ on GitHub.
 #. At the top of your GitHub Repository's Quick Setup page, click the clipboard button to copy the remote repository URL.
@@ -324,7 +312,7 @@ Project Setup
 
     $ mkdir mySalesforceProject; cd mySalesforceProject
 
-#. Initialize the directory as a git repository::
+#. Initialize the directory as a Git repository::
 
     $ git init
     Initialized empty Git repository in /Users/MrCCI/repos/mySalesforceProject/.git/
@@ -344,7 +332,7 @@ We recommend a retrieve of MetaData via the MetaData API (via ``sfdx``), followe
 
     $ sfdx force:source:retrieve -n package_name /path/to/project/ 
 
-That's it! You now have all of the metadata you care about in a single git repository configured for use with CumulusCI.
+That's it! You now have all of the metadata you care about in a single Git repository configured for use with CumulusCI.
 At this point you may want to `add your repo to github`_, or perhaps begin `configuring CumulusCI` <#TODO doc ref>.
 
 Org Shape Setup
