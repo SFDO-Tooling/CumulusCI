@@ -339,7 +339,7 @@ At this point you may want to `add your repo to github`_, or perhaps begin `conf
 
 Org Shape Setup
 ^^^^^^^^^^^^^^^
-
+TODO: link to org section
 
 Other Conversion Considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
