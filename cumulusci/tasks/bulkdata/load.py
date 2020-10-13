@@ -107,9 +107,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         self._init_mapping()
         with self._init_db():
-            if self._is_autopk_database():
-                self._convert_autopk_database()
-
             self._expand_mapping()
 
             self._initialize_id_table(self.reset_oids)
