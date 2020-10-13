@@ -191,7 +191,7 @@ For example, ``cci project info`` can be run to display information about the pr
     test:
         name_match: %_TEST%
 
-TODO link to next section
+Next Section: `The CumulusCI CLI`_ 
 
 
 Starting a New CumulusCI Project
@@ -281,21 +281,10 @@ You can add and commit it to your Git repository:
 Add Your Repo to GitHub
 ^^^^^^^^^^^^^^^^^^^^^^^
 With your ``cumulusci.yml`` file committed, you can now create a repository on GitHub for your new project and push our changes there.
+There are multiple ways to do this:
 
-#. `Create a new repository <https://docs.github.com/en/free-pro-team@latest/articles/creating-a-new-repository>`_ on GitHub.
-#. At the top of your GitHub Repository's Quick Setup page, click the clipboard button to copy the remote repository URL.
-#. In your terminal, `add the URL for the remote repository <https://docs.github.com/en/free-pro-team@latest/articles/adding-a-remote>`_ to where your local repository will be pushed::
-
-    $ git remote add origin <remote_repository_url>
-
-#. Verify the remote was added successfullly with::
-
-    $ git remote -v
-
-#. `Push the changes <https://docs.github.com/en/free-pro-team@latest/github/using-git/pushing-commits-to-a-remote-repository>`_ in your local repository to GitHub::
-
-    $ git push -u origin master
-
+* Our `Community Project Development with CumulusCI <https://trailhead.salesforce.com/content/learn/modules/community-project-development-with-cumulusci?trail_id=build-applications-with-cumulusci>`_ module covers this with GitHub desktop in the "Set Up the Project" section.
+* If you prefer the command line, GitHub has good guides on both `git remote <https://github.com/git-guides/git-remote>`_ and `git push <https://github.com/git-guides/git-push>`_ for accomplishing this.
 
 
 Convert an Existing Salesforce Project
