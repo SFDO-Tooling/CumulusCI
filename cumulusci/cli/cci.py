@@ -721,6 +721,26 @@ def project_dependencies(runtime):
         click.echo(line)
 
 
+@project.command(
+    name="doc", help="Exports RST format documentation for all project tasks"
+)
+@pass_runtime(require_project=False)
+def project_doc(runtime):
+    project_config = runtime.project_config.config
+
+    click.echo("==========================================")
+    click.echo("Project Tasks Reference")
+    click.echo("==========================================")
+    click.echo("")
+
+    for name, options in project_config["tasks"].items():
+        task_config = TaskConfig(options)
+        doc = doc_task(name, task_config)
+        if name in runtime.project_config.config_project["tasks"]:
+            click.echo(doc)
+            click.echo("")
+
+
 # Commands for group: service
 
 
@@ -1344,14 +1364,14 @@ def task_list(runtime, plain, print_json):
 @task.command(name="doc", help="Exports RST format documentation for all tasks")
 @pass_runtime(require_project=False)
 def task_doc(runtime):
-    config_src = runtime.universal_config
+    universal_config = runtime.universal_config
 
     click.echo("==========================================")
     click.echo("Tasks Reference")
     click.echo("==========================================")
     click.echo("")
 
-    for name, options in config_src.tasks.items():
+    for name, options in universal_config.tasks.items():
         task_config = TaskConfig(options)
         doc = doc_task(name, task_config)
         click.echo(doc)
