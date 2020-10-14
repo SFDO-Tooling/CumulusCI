@@ -295,7 +295,6 @@ class InstallLinkParser(ChangeNotesLinesParser):
 
     def render(self, existing_content=""):
         version_id = self.release_notes_generator.version_id
-
         if version_id:
             version_id = urllib.parse.quote_plus(version_id)
             return "\r\n".join(

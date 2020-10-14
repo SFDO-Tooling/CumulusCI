@@ -1,4 +1,5 @@
 import github3.exceptions
+
 from cumulusci.core.utils import import_global
 from cumulusci.core.github import (
     markdown_link_to_pr,
