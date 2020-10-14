@@ -21,6 +21,7 @@ class BaseReleaseNotesGenerator(object):
         self.empty_change_notes = []
         self.init_parsers()
         self.init_change_notes()
+        self.version_id = None
 
     def __call__(self):
         self._parse_change_notes()
@@ -30,8 +31,8 @@ class BaseReleaseNotesGenerator(object):
         self.change_notes = self._init_change_notes()
 
     def _init_change_notes(self):
-        """ Subclasses should override this method to return an initialized
-        subclass of BaseChangeNotesProvider """
+        """Subclasses should override this method to return an initialized
+        subclass of BaseChangeNotesProvider"""
         return []
 
     def init_parsers(self):
@@ -40,18 +41,18 @@ class BaseReleaseNotesGenerator(object):
         self._init_parsers()
 
     def _init_parsers(self):
-        """ Subclasses should override this method to initialize their
-        parsers """
+        """Subclasses should override this method to initialize their
+        parsers"""
         pass
 
     def _parse_change_notes(self):
-        """ Parses all change_notes in self.change_notes() through all parsers
-        in self.parsers """
+        """Parses all change_notes in self.change_notes() through all parsers
+        in self.parsers"""
         for change_note in self.change_notes():
             self._parse_change_note(change_note)
 
     def _parse_change_note(self, change_note):
-        """ Parses an individual change note through all parsers in
+        """Parses an individual change note through all parsers in
         self.parsers. If no lines were added then appends the change
         note to the list of empty PRs"""
         line_added_by_parsers = False
@@ -68,7 +69,7 @@ class BaseReleaseNotesGenerator(object):
         release_notes = []
         for parser in self.parsers:
             parser_content = parser.render()
-            if parser_content is not None:
+            if parser_content:
                 release_notes.append(parser_content)
         return u"\r\n\r\n".join(release_notes)
 
@@ -128,8 +129,9 @@ class ParentPullRequestNotesGenerator(BaseReleaseNotesGenerator):
     def _init_parsers(self):
         """Invoked from Super Class"""
         for cfg in self.parser_config:
-            parser_class = import_global(cfg["class_path"])
-            self.parsers.append(parser_class(self, cfg["title"]))
+            if cfg["class_path"] is not None:
+                parser_class = import_global(cfg["class_path"])
+                self.parsers.append(parser_class(self, cfg["title"]))
 
         # Additional parser to collect developer notes above tracked headers
         self.parsers.append(GithubLinesParser(self, title=None))
@@ -184,6 +186,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         publish=False,
         has_issues=True,
         include_empty=False,
+        version_id=None,
     ):
         self.github = github
         self.github_info = github_info
@@ -197,6 +200,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.lines_parser_class = None
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
+        self.version_id = version_id
 
     def __call__(self):
         release = self._get_release()
@@ -208,6 +212,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
     def _init_parsers(self):
         for cfg in self.parser_config:
+            if cfg["class_path"] is None:
+                continue
             parser_class = import_global(cfg["class_path"])
             self.parsers.append(parser_class(self, cfg["title"]))
 
@@ -228,6 +234,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         new_body = []
         if release.body:
             current_parser = None
+            current_lines = []
             is_start_line = False
             for parser in self.parsers:
                 parser.replaced = False
@@ -237,11 +244,14 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
                 if current_parser:
                     if current_parser._is_end_line(current_parser._process_line(line)):
-                        parser_content = current_parser.render()
+                        parser_content = current_parser.render(
+                            "\r\n".join(current_lines)
+                        )
                         if parser_content:
                             # replace existing section with new content
                             new_body.append(parser_content + "\r\n")
                         current_parser = None
+                        current_lines = []
 
                 for parser in self.parsers:
                     if (
@@ -250,11 +260,13 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
                     ):
                         parser.replaced = True
                         current_parser = parser
+                        current_lines = []
                         is_start_line = True
                         break
                     else:
                         is_start_line = False
 
+                current_lines.append(line)
                 if is_start_line:
                     continue
                 if current_parser:
@@ -265,13 +277,15 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
 
             # catch section without end line
             if current_parser:
-                new_body.append(current_parser.render())
+                parser_content = current_parser.render("\r\n".join(current_lines))
+                new_body.append(parser_content)
 
             # add new sections at bottom
             for parser in self.parsers:
-                parser_content = parser.render()
-                if parser_content and not parser.replaced:
-                    new_body.append(parser_content + "\r\n")
+                if not parser.replaced:
+                    parser_content = parser.render("")
+                    if parser_content:
+                        new_body.append(parser_content + "\r\n")
 
         else:  # no release.body
             new_body.append(content)

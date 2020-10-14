@@ -133,3 +133,128 @@ class CliTable:
         # If a string has been wrapped, wrap each line to avoid dimming table borders
         dimmed_strs = [click.style(line, dim=True) for line in val.split("\n")]
         return "\n".join(dimmed_strs)
+
+
+def _soql_table(results, truncated):
+    if results:
+        if truncated:
+            assert results[-1] == truncated
+            first_row = results[0]
+            fake_row = {k: "" for k, v in first_row.items()}
+            first_column = list(first_row)[0]
+            fake_row[first_column] = truncated
+
+            results[-1] = fake_row
+
+        headings = list(results[0].keys())
+        return str(
+            CliTable(
+                [headings] + [list(map(str, r.values())) for r in results],
+                wrap_cols=headings,
+            )
+        )
+    else:
+        return str(CliTable([["No results"]]))
+
+
+def _summarize(field):
+    if field["referenceTo"]:
+        allowed = field["referenceTo"]
+    elif field["picklistValues"]:
+        allowed = [value["value"] for value in field["picklistValues"]]
+    else:
+        allowed = field["type"]
+    return (field["name"], allowed)
+
+
+class SimpleSalesforceUIHelpers:
+    def __init__(self, sf):
+        self._sf = sf
+
+    def query(self, query, format="table", include_deleted=False, max_rows=100):
+        """Return the result of a Salesforce SOQL query.
+
+        Arguments:
+
+            * query -- the SOQL query to send to Salesforce, e.g.
+                    SELECT Id FROM Lead WHERE Email = "waldo@somewhere.com"
+            * include_deleted -- True if deleted records should be included
+            * format -- one of these values:
+                - "table" -- printable ASCII table (the default)
+                - "obj" -- ordinary Python objects
+                - "pprint" -- string in easily readable Python dict shape
+                - "json" -- JSON
+            * max_rows -- maximum rows to output, defaults to 100
+
+        For example:
+            query("select Name, Id from Account", format="pprint")
+            contact_ids = query("select count(Id) from Contact", format="obj")
+        """
+        results = self._sf.query_all(query, include_deleted=include_deleted)["records"]
+
+        if len(results) > max_rows:
+            truncated = f"... truncated {len(results) - max_rows} rows"
+            results = results[0:max_rows]
+        else:
+            truncated = False
+
+        for result in results:
+            if result.get("attributes"):
+                del result["attributes"]
+
+        if truncated:
+            results.append(truncated)
+
+        if format == "table":
+            help_message = "Type help(query) to learn about other return formats or assigning the result."
+            print(_soql_table(results, truncated))
+            print()
+            print(help_message)
+            rc = None
+        elif format == "obj":
+            rc = results
+        elif format == "pprint":
+            from pprint import pprint
+
+            pprint(results)
+            rc = None
+        elif format == "json":
+            from json import dumps
+
+            rc = dumps(results, indent=2)
+        else:
+            raise TypeError(f"Unknown format `{format}`")
+
+        return rc
+
+    def describe(self, sobj_name, detailed=False, format="pprint"):
+        """Describe an sobject.
+
+        Arguments:
+
+            sobj_name - sobject name to describe. e.g. "Account", "Contact"
+            detailed - set to `True` to get detailed information about object
+            format -- one of these values:
+            - "pprint" -- string in easily readable Python dict shape (default)
+            - "obj" -- ordinary Python objects
+
+        For example:
+
+            >>> describe("Account")
+            >>> data = describe("Account", detailed=True, format=obj)
+        """
+        from pprint import pprint
+
+        data = getattr(self._sf, sobj_name).describe()
+
+        if detailed:
+            rc = data
+        else:
+            rc = dict(_summarize(field) for field in data["fields"])
+
+        if format == "pprint":
+            pprint(rc)
+        elif format == "obj":
+            return rc
+        else:
+            raise TypeError(f"Unknown format {format}")

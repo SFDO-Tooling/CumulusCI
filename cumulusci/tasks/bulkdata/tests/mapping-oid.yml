@@ -1,0 +1,87 @@
+Insert Accounts:
+  api: bulk
+  sf_object: Account
+  table: accounts
+  fields:
+    Id: sf_id
+    Name: Name
+    Description: Description
+    BillingStreet: Street
+    BillingCity: City
+    BillingState: State
+    BillingPostalCode: PostalCode
+    BillingCountry: Country
+    Phone: Phone
+    Fax: Fax
+    Website: Website
+    NumberOfEmployees: NumberOfEmployees
+    AccountNumber: AccountNumber
+    Site: Site
+    Type: Type
+    RecordTypeId: RecordTypeId
+  lookups:
+    ParentId:
+      table: accounts
+      after: Insert Accounts
+Insert Contacts:
+  api: bulk
+  sf_object: Contact
+  table: contacts
+  fields:
+    Id: sf_id
+    Salutation: salutation
+    FirstName: firstname
+    LastName: lastname
+    Email: email
+    Phone: phone
+    MobilePhone: mobile
+    OtherPhone: OtherPhone
+    HomePhone: HomePhone
+    Title: title
+    Birthdate: birthdate
+    MailingStreet: mailingstreet
+    MailingCity: mailingcity
+    MailingState: mailingstate
+    MailingPostalCode: mailingpostalcode
+    MailingCountry: mailingcountry
+  lookups:
+    AccountId:
+      table: accounts
+Insert Opportunities:
+  api: bulk
+  sf_object: Opportunity
+  table: opportunities
+  filters:
+    - StageName != 'New'
+  fields:
+    Id: sf_id
+    Name: Name
+    StageName: StageName
+    CloseDate: CloseDate
+    Amount: Amount
+  static:
+    Description: Test
+  record_type: Sales_Opportunity
+  lookups:
+    AccountId:
+      table: accounts
+Insert OpportunityContactRoles:
+  api: bulk
+  sf_object: OpportunityContactRole
+  table: opportunitycontactroles
+  fields:
+    Id: sf_id
+    IsPrimary: IsPrimary
+    Role: Role
+  lookups:
+    ContactId: 
+      table: contacts
+    OpportunityId:
+      table: opportunities
+Insert Cases:
+  api: bulk
+  sf_object: Case
+  table: cases
+  fields:
+    Id: sf_id
+    Subject: Subject

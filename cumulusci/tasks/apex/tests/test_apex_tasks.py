@@ -1,3 +1,4 @@
+from distutils.version import StrictVersion
 import http.client
 import os
 import shutil
@@ -6,11 +7,12 @@ import unittest
 
 import responses
 from copy import deepcopy
-from unittest.mock import MagicMock, patch
+from unittest.mock import Mock, MagicMock, patch
 from simple_salesforce import SalesforceGeneralError
 
+
 from cumulusci.core.config import (
-    BaseGlobalConfig,
+    UniversalConfig,
     BaseProjectConfig,
     OrgConfig,
     TaskConfig,
@@ -36,8 +38,10 @@ from cumulusci.core.tests.utils import MockLoggerMixin
 )
 class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
+        self._task_log_handler.reset()
+        self.task_log = self._task_log_handler.messages
         self.api_version = 38.0
-        self.global_config = BaseGlobalConfig(
+        self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
         self.task_config = TaskConfig()
@@ -47,7 +51,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             "test_name_match": "%_TEST",
         }
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
@@ -66,16 +70,17 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             self.org_config.instance_url, self.api_version
         )
 
-    def _mock_apex_class_query(self):
+    def _mock_apex_class_query(self, name="TestClass_TEST", namespace=None):
+        namespace_param = "null" if namespace is None else f"%27{namespace}%27"
         url = (
             self.base_tooling_url
             + "query/?q=SELECT+Id%2C+Name+"
-            + "FROM+ApexClass+WHERE+NamespacePrefix+%3D+null"
+            + f"FROM+ApexClass+WHERE+NamespacePrefix+%3D+{namespace_param}"
             + "+AND+%28Name+LIKE+%27%25_TEST%27%29"
         )
         expected_response = {
             "done": True,
-            "records": [{"Id": 1, "Name": "TestClass_TEST"}],
+            "records": [{"Id": 1, "Name": name}],
             "totalSize": 1,
         }
         responses.add(
@@ -348,6 +353,30 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             task()
 
     @responses.activate
+    def test_run_task__failed_class_level_no_symboltable__spring20_managed(self):
+        self._mock_apex_class_query(name="ns__Test_TEST", namespace="ns")
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes_failure()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        self._mock_get_symboltable_failure()
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "managed": True,
+            "namespace": "ns",
+        }
+
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        task._get_test_methods_for_class = Mock()
+
+        task()
+
+        task._get_test_methods_for_class.assert_not_called()
+
+    @responses.activate
     def test_run_task__retry_tests(self):
         self._mock_apex_class_query()
         self._mock_run_tests()
@@ -440,6 +469,197 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         task()
         log = self._task_log_handler.messages
         assert "Completed: 0  Processing: 1 (TestClass_TEST)  Queued: 0" in log["info"]
+
+    @responses.activate
+    def test_run_task__not_verbose(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_tests_processing()
+        self._mock_get_failed_test_classes()  # this returns all passes
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task()
+        log = self._task_log_handler.messages
+        assert "Class: TestClass_TEST" not in log["info"]
+
+    @responses.activate
+    def test_run_task__verbose(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes_failure()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        self._mock_get_symboltable()
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "verbose": True,
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        with self.assertRaises(CumulusCIException):
+            task()
+        log = self._task_log_handler.messages
+        assert "Class: TestClass_TEST" in log["info"]
+
+    @responses.activate
+    def test_run_task__no_code_coverage(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+        }
+        task = RunApexTests(self.project_config, task_config, self.org_config)
+        task._check_code_coverage = Mock()
+        task()
+        task._check_code_coverage.assert_not_called()
+
+    @responses.activate
+    def test_run_task__checks_code_coverage(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": "90",
+        }
+
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
+            "test",
+        )
+        org_config._installed_packages = {"TEST": StrictVersion("1.2.3")}
+        task = RunApexTests(self.project_config, task_config, org_config)
+        task._check_code_coverage = Mock()
+        task()
+        task._check_code_coverage.assert_called_once()
+
+    def test_code_coverage_integer(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": 90,
+        }
+
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
+            "test",
+        )
+        task = RunApexTests(self.project_config, task_config, org_config)
+
+        assert task.code_coverage_level == 90
+
+    def test_code_coverage_percentage(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": "90%",
+        }
+
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
+            "test",
+        )
+        task = RunApexTests(self.project_config, task_config, org_config)
+
+        assert task.code_coverage_level == 90
+
+    def test_exception_bad_code_coverage(self):
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "required_org_code_coverage_percent": "foo",
+        }
+
+        with self.assertRaises(TaskOptionsError):
+            RunApexTests(self.project_config, task_config, self.org_config)
+
+    @responses.activate
+    def test_run_task__code_coverage_managed(self):
+        self._mock_apex_class_query()
+        self._mock_run_tests()
+        self._mock_get_failed_test_classes()
+        self._mock_tests_complete()
+        self._mock_get_test_results()
+        task_config = TaskConfig()
+        task_config.config["options"] = {
+            "junit_output": "results_junit.xml",
+            "poll_interval": 1,
+            "test_name_match": "%_TEST",
+            "namespace": "TEST",
+            "required_org_code_coverage_percent": "90",
+        }
+        org_config = OrgConfig(
+            {
+                "id": "foo/1",
+                "instance_url": "https://example.com",
+                "access_token": "abc123",
+            },
+            "test",
+        )
+        org_config._installed_packages = {"TEST": StrictVersion("1.2.3")}
+
+        task = RunApexTests(self.project_config, task_config, org_config)
+        task._check_code_coverage = Mock()
+        task()
+        task._check_code_coverage.assert_not_called()
+
+    def test_check_code_coverage(self):
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task.code_coverage_level = 90
+        task.tooling = Mock()
+        task.tooling.query.return_value = {
+            "records": [{"PercentCovered": 90}],
+            "totalSize": 1,
+        }
+
+        task._check_code_coverage()
+        task.tooling.query.assert_called_once_with(
+            "SELECT PercentCovered FROM ApexOrgWideCoverage"
+        )
+
+    def test_check_code_coverage__fail(self):
+        task = RunApexTests(self.project_config, self.task_config, self.org_config)
+        task.code_coverage_level = 90
+        task.tooling = Mock()
+        task.tooling.query.return_value = {
+            "records": [{"PercentCovered": 89}],
+            "totalSize": 1,
+        }
+
+        with self.assertRaises(ApexTestException):
+            task._check_code_coverage()
 
     def test_is_retriable_failure(self):
         task_config = TaskConfig()
@@ -548,7 +768,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
 class TestAnonymousApexTask(unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
-        self.global_config = BaseGlobalConfig(
+        self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
         self.tmpdir = tempfile.mkdtemp(dir=".")
@@ -563,7 +783,7 @@ class TestAnonymousApexTask(unittest.TestCase):
             "param1": "StringValue",
         }
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config = {
             "project": {
@@ -716,7 +936,7 @@ class TestAnonymousApexTask(unittest.TestCase):
 class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
-        self.global_config = BaseGlobalConfig(
+        self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
         self.task_config = TaskConfig()
@@ -725,7 +945,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
             "poll_interval": 1,
         }
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["project"] = {
             "package": {"api_version": self.api_version}
@@ -777,11 +997,24 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
             ],
         }
 
+    def _update_job_result(self, response: dict, result_dict: dict):
+        "Extend the result from _get_query_resp with additional batch records"
+        template_result = response["records"][-1]  # use the last result as a template
+        assert isinstance(template_result, dict)
+        new_result = {**template_result, **result_dict}  # copy with variations
+        old_subjob_results = [  # set completed for all old subjob results
+            {**record, "Status": "Completed"} for record in response["records"]
+        ]
+        result_list = [
+            new_result
+        ] + old_subjob_results  # prepend new result because SOQL is order by DESC
+        return {**response, "records": result_list}
+
     def _get_url_and_task(self):
         task = BatchApexWait(self.project_config, self.task_config, self.org_config)
         url = (
             self.base_tooling_url
-            + "query/?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27+ORDER+BY+CreatedDate+DESC+LIMIT+1"
+            + "query/?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++++ORDER+BY+CreatedDate+DESC++LIMIT+1+"
         )
         return task, url
 
@@ -816,9 +1049,212 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         task()
 
     @responses.activate
-    def test_run_batch_apex_calc_delta(self):
+    def test_run_batch_apex_calc_elapsed_time(self):
         task, url = self._get_url_and_task()
         response = self._get_query_resp()
         responses.add(responses.GET, url, json=response)
         task()
-        self.assertEqual(task.delta, 61)
+        self.assertEqual(task.elapsed_time(task.subjobs), 61)
+
+    @responses.activate
+    def test_run_batch_apex_status_aborted(self):
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"][0]["Status"] = "Aborted"
+        response["records"][0]["JobItemsProcessed"] = 1
+        response["records"][0]["TotalJobItems"] = 3
+        responses.add(responses.GET, url, json=response)
+        with self.assertRaises(SalesforceException) as e:
+            task()
+        assert "aborted" in str(e.exception)
+
+    @responses.activate
+    def test_run_batch_apex_status_failed(self):
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"][0]["Status"] = "Failed"
+        response["records"][0]["JobItemsProcessed"] = 1
+        response["records"][0]["TotalJobItems"] = 3
+        responses.add(responses.GET, url, json=response)
+        self.task_log["info"] = []
+        with self.assertRaises(SalesforceException) as e:
+            task()
+        assert "failure" in str(e.exception)
+
+    @responses.activate
+    def test_chained_subjobs(self):
+        "Test subjobs that kick off a successor before they complete"
+        task, url = self._get_url_and_task()
+        url2 = (
+            url.split("?")[0]
+            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
+        )
+
+        # batch 1
+        response = self._get_query_resp()
+        batch_record = response["records"][0]
+        batch_record.update(
+            {
+                "JobItemsProcessed": 1,
+                "TotalJobItems": 3,
+                "NumberOfErrors": 0,
+                "Status": "Processing",
+                "CreatedDate": "2018-08-07T16:00:00.000+0000",
+            }
+        )
+
+        responses.add(responses.GET, url, json=response)
+
+        # batch 2: 1 error
+        response = self._update_job_result(
+            response, {"Id": "Id2", "NumberOfErrors": 1, "Status": "Processing"}
+        )
+        responses.add(responses.GET, url2, json=response)
+
+        # batch 3: found another error
+        response = self._update_job_result(
+            response, {"Id": "Id2", "NumberOfErrors": 2, "Status": "Processing"}
+        )
+        responses.add(responses.GET, url2, json=response)
+
+        # batch 4: Complete, no errors in this sub-batch
+        response = self._update_job_result(
+            response,
+            {
+                "NumberOfErrors": 0,
+                "Id": "Id4",
+                "Status": "Completed",
+                "CompletedDate": "2018-08-07T16:10:00.000+0000",  # 10 minutes passed
+            },
+        )
+        responses.add(responses.GET, url2, json=response.copy())
+
+        with self.assertRaises(SalesforceException) as e:
+            task()
+
+        assert len(task.subjobs) == 4
+        summary = task.summarize_subjobs(task.subjobs)
+        assert not summary["Success"]
+        assert not summary["CountsAddUp"]
+        assert summary["ElapsedTime"] == 10 * 60
+        assert summary["JobItemsProcessed"] == 4
+        assert summary["TotalJobItems"] == 12
+        assert summary["NumberOfErrors"] == 3
+        assert "batch errors" in str(e.exception)
+
+    @responses.activate
+    def test_chained_subjobs_beginning(self):
+        "Test the first subjob that kicks off a successor before they complete"
+        task, url = self._get_url_and_task()
+        url2 = (
+            url.split("?")[0]
+            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
+        )
+
+        # batch 1
+        response = self._get_query_resp()
+        responses.add(responses.GET, url2, json=response)
+
+        batch_record = response["records"][0]
+        batch_record.update(
+            {
+                "JobItemsProcessed": 1,
+                "TotalJobItems": 3,
+                "NumberOfErrors": 0,
+                "Status": "Preparing",
+                "CreatedDate": "2018-08-07T16:00:00.000+0000",
+                "CompletedDate": None,
+            }
+        )
+
+        real_poll_action = task._poll_action
+        counter = 0
+
+        def mock_poll_action():
+            nonlocal counter
+            counter += 1
+            if counter == 1:
+                task.poll_complete = False
+                return real_poll_action()
+            else:
+                rc = real_poll_action()
+                task.poll_complete = True
+                return rc
+
+        task._poll_action = mock_poll_action
+
+        responses.add(responses.GET, url, json=response)
+
+        task()
+        assert counter == 2
+        assert task.poll_complete
+        summary = task.summarize_subjobs(task.subjobs)
+        assert not summary["NumberOfErrors"]
+
+    @responses.activate
+    def test_chained_subjobs_halfway(self):
+        "Test part-way through a series of subjobs that kick off a successor before they complete"
+        task, url = self._get_url_and_task()
+        url2 = (
+            url.split("?")[0]
+            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
+        )
+
+        # batch 1
+        response = self._get_query_resp()
+        responses.add(responses.GET, url2, json=response)
+
+        batch_record = response["records"][0]
+        batch_record.update(
+            {
+                "JobItemsProcessed": 1,
+                "TotalJobItems": 3,
+                "NumberOfErrors": 0,
+                "Status": "Preparing",
+                "CreatedDate": "2018-08-07T16:00:00.000+0000",
+                "CompletedDate": "2018-08-07T16:05:00.000+0000",
+            }
+        )
+
+        # batch 2: 1 error
+        response = self._update_job_result(
+            response, {"Id": "Id2", "NumberOfErrors": 1, "CompletedDate": None}
+        )
+        responses.add(responses.GET, url2, json=response)
+
+        real_poll_action = task._poll_action
+        counter = 0
+
+        def mock_poll_action():
+            nonlocal counter
+            counter += 1
+            if counter == 1:
+                task.poll_complete = False
+                return real_poll_action()
+            else:
+                rc = real_poll_action()
+                task.poll_complete = True
+                return rc
+
+        task._poll_action = mock_poll_action
+
+        responses.add(responses.GET, url, json=response)
+
+        task()
+        assert counter == 2
+        assert task.poll_complete
+        summary = task.summarize_subjobs(task.subjobs)
+        assert not summary["NumberOfErrors"]
+
+    @responses.activate
+    def test_job_not_found(self):
+
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"] = []
+        responses.add(responses.GET, url, json=response)
+
+        with self.assertRaises(SalesforceException) as e:
+            task()
+
+        assert "found" in str(e.exception)

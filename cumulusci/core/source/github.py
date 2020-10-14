@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.github import get_github_api_for_repo
@@ -93,13 +94,25 @@ class GitHubSource:
         """Fetch the archive of the specified commit and construct its project config."""
         # To do: copy this from a shared cache
         if path is None:
-            path = os.path.join(".cci", "projects", self.repo_name, self.commit)
-        if not os.path.exists(path):
-            os.makedirs(path)
+            path = (
+                self.project_config.cache_dir
+                / "projects"
+                / self.repo_name
+                / self.commit
+            )
+        if not path.exists():
+            path.mkdir(parents=True)
             zf = download_extract_github(
                 self.gh, self.repo_owner, self.repo_name, ref=self.commit
             )
-            zf.extractall(path)
+            try:
+                zf.extractall(path)
+            except Exception:
+                # make sure we don't leave an incomplete cache
+                shutil.rmtree(path)
+                raise
+
+        assert path.is_dir()
 
         project_config = self.project_config.construct_subproject_config(
             repo_info={

@@ -1,11 +1,16 @@
 import functools
 import time
+import re
+from pathlib import Path
+
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import NoSuchWindowException
 from selenium.webdriver.remote.command import Command
 from SeleniumLibrary.errors import ElementNotFound
 from robot.libraries.BuiltIn import BuiltIn
+import robot.api as robot_api
 
 
 def set_pdb_trace(pm=False):
@@ -60,6 +65,7 @@ ALWAYS_RETRY_EXCEPTIONS = (
     ElementNotFound,
     ElementNotInteractableException,
     StaleElementReferenceException,
+    NoSuchWindowException,
 )
 
 
@@ -190,7 +196,6 @@ def selenium_retry(target=None, retry=True):
                 # Restore the previous value
                 self.retry_selenium = old_retry
 
-        set_pdb_trace()
         run_with_retry.is_selenium_retry_decorator = True
         return run_with_retry
 
@@ -228,3 +233,34 @@ def capture_screenshot_on_error(func):
             raise
 
     return wrapper
+
+
+def get_locator_module_name(version):
+    """Return module name of locator file for the specified version
+
+    If a file for the specified version can't be found, the locator
+    file with the highest number will be returned. Passing in None
+    effectively means "give me the latest version".
+    """
+
+    here = Path(__file__).parent
+    if Path(here, f"locators_{version}.py").exists():
+        # our work here is done.
+        locator_name = f"locators_{version}"
+    else:
+
+        def by_num(filename):
+            """Pull out the number from a filename, or return zero"""
+            nums = re.findall(r"_(\d+)", str(filename))
+            if nums:
+                return int(nums[-1])
+            return 0
+
+        files = sorted(here.glob("locators_*.py"), key=by_num)
+        locator_name = files[-1].stem
+        robot_api.logger.warn(
+            f"Locators for api {version} not found. Falling back to {locator_name} for salesforce locators"
+        )
+
+    locator_module_name = f"cumulusci.robotframework.{locator_name}"
+    return locator_module_name

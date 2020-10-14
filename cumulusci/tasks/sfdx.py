@@ -30,17 +30,12 @@ class SFDXBaseTask(Command):
         "extra": {"description": "Append additional options to the command"},
     }
 
-    def _init_options(self, kwargs):
-        super(SFDXBaseTask, self)._init_options(kwargs)
-        self.options["command"] = self._get_command()
-        # Add extra command args from
-        if self.options.get("extra"):
-            self.options["command"] += " {}".format(self.options["extra"])
-
     def _get_command(self):
         command = "{SFDX_CLI} {command}".format(
             command=self.options["command"], SFDX_CLI=SFDX_CLI
         )
+        if self.options.get("extra"):
+            command += " {}".format(self.options["extra"])
         return command
 
 
@@ -49,15 +44,8 @@ class SFDXOrgTask(SFDXBaseTask):
 
     salesforce_task = True
 
-    def _init_options(self, kwargs):
-        super(SFDXOrgTask, self)._init_options(kwargs)
-
-        # Add username to command if needed
-        self.options["command"] = self._add_username(self.options["command"])
-
-        self.logger.info("Running command:  {}".format(self.options["command"]))
-
-    def _add_username(self, command):
+    def _get_command(self):
+        command = super()._get_command()
         # For scratch orgs, just pass the username in the command line
         if isinstance(self.org_config, ScratchOrgConfig):
             command += " -u {username}".format(username=self.org_config.username)
@@ -68,12 +56,20 @@ class SFDXOrgTask(SFDXBaseTask):
         if not isinstance(self.org_config, ScratchOrgConfig):
             # For non-scratch keychain orgs, pass the access token via env var
             env["SFDX_INSTANCE_URL"] = self.org_config.instance_url
-            env["SFDX_USERNAME"] = self.org_config.access_token
+            env["SFDX_DEFAULTUSERNAME"] = self.org_config.access_token
         return env
 
 
 class SFDXJsonTask(SFDXOrgTask):
     command = "force:mdapi:deploy --json"
+
+    task_options = {
+        "extra": {"description": "Append additional options to the command"}
+    }
+
+    def _get_command(self):
+        self.options["command"] = self.command
+        return super()._get_command()
 
     def _process_output(self, line):
         try:
@@ -83,15 +79,6 @@ class SFDXJsonTask(SFDXOrgTask):
             return
 
         self._process_data(data)
-
-    def _init_options(self, kwargs):
-        kwargs["command"] = self._get_command()
-        super(SFDXJsonTask, self)._init_options(kwargs)
-
-    def _get_command(self):
-        command = "{SFDX_CLI} {command}".format(command=self.command, SFDX_CLI=SFDX_CLI)
-        command = self._add_username(command)
-        return command
 
     def _process_data(self, data):
         self.logger.info("JSON = {}".format(data))

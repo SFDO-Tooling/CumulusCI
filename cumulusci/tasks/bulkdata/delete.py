@@ -1,15 +1,19 @@
-import requests
-import time
-import unicodecsv
-import xml.etree.ElementTree as ET
-
 from cumulusci.core.utils import process_bool_arg, process_list_arg
-from cumulusci.tasks.bulkdata.utils import BulkJobTaskMixin
+from cumulusci.tasks.bulkdata.step import (
+    DataOperationType,
+    DataOperationStatus,
+    DataApi,
+    get_query_operation,
+    get_dml_operation,
+)
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
+from cumulusci.tasks.bulkdata.utils import RowErrorChecker
 
 
-class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
+class DeleteData(BaseSalesforceApiTask):
+    """Query existing data for a specific sObject and perform a Bulk API delete of all matching records."""
+
     task_options = {
         "objects": {
             "description": "A list of objects to delete records from in order of deletion.  If passed via command line, use a comma separated string",
@@ -20,9 +24,21 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
             "required": False,
         },
         "hardDelete": {
-            "description": "If True, perform a hard delete, bypassing the recycle bin. Default: False"
+            "description": "If True, perform a hard delete, bypassing the Recycle Bin. Note that this requires the Bulk API Hard Delete permission. Default: False"
+        },
+        "ignore_row_errors": {
+            "description": "If True, allow the operation to continue even if individual rows fail to delete."
+        },
+        "inject_namespaces": {
+            "description": "If True, the package namespace prefix will be automatically added to objects "
+            "and fields for which it is present in the org. Defaults to True."
+        },
+        "api": {
+            "description": "The desired Salesforce API to use, which may be 'rest', 'bulk', or "
+            "'smart' to auto-select based on record volume. The default is 'smart'."
         },
     }
+    row_warning_limit = 10
 
     def _init_options(self, kwargs):
         super(DeleteData, self)._init_options(kwargs)
@@ -38,77 +54,140 @@ class DeleteData(BaseSalesforceApiTask, BulkJobTaskMixin):
                 "Criteria cannot be specified if more than one object is specified."
             )
         self.options["hardDelete"] = process_bool_arg(self.options.get("hardDelete"))
+        self.options["ignore_row_errors"] = process_bool_arg(
+            self.options.get("ignore_row_errors")
+        )
+        self.options["inject_namespaces"] = process_bool_arg(
+            self.options.get("inject_namespaces", True)
+        )
+        try:
+            self.options["api"] = {
+                "bulk": DataApi.BULK,
+                "rest": DataApi.REST,
+                "smart": DataApi.SMART,
+            }[self.options.get("api", "smart").lower()]
+        except KeyError:
+            raise TaskOptionsError(
+                f"{self.options['api']} is not a valid value for API (valid: bulk, rest, smart)"
+            )
+
+        if self.options["hardDelete"] and self.options["api"] is DataApi.REST:
+            raise TaskOptionsError("The hardDelete option requires Bulk API.")
+
+    @staticmethod
+    def _is_injectable(element: str) -> bool:
+        return element.count("__") == 1
+
+    def _validate_and_inject_namespace(self):
+        """Perform namespace injection and ensure that we can successfully delete all of the selected objects."""
+
+        global_describe = {
+            entry["name"]: entry
+            for entry in self.org_config.salesforce_client.describe()["sobjects"]
+        }
+
+        # Namespace injection
+        if (
+            self.options["inject_namespaces"]
+            and self.project_config.project__package__namespace
+        ):
+
+            def inject(element: str):
+                return f"{self.project_config.project__package__namespace}__{element}"
+
+            self.sobjects = []
+            for sobject in self.options["objects"]:
+                if self._is_injectable(sobject):
+                    injected = inject(sobject)
+                    if sobject in global_describe and injected in global_describe:
+                        self.logger.warning(
+                            f"Both {sobject} and {injected} are present in the target org. Using {sobject}."
+                        )
+
+                    if sobject not in global_describe and injected in global_describe:
+                        self.sobjects.append(injected)
+                    else:
+                        self.sobjects.append(sobject)
+                else:
+                    self.sobjects.append(sobject)
+        else:
+            self.sobjects = self.options["objects"]
+
+        # Validate CRUD
+        non_deletable_objects = [
+            s
+            for s in self.sobjects
+            if not (s in global_describe and global_describe[s]["deletable"])
+        ]
+        if non_deletable_objects:
+            raise BulkDataException(
+                f"The objects {', '.join(non_deletable_objects)} are not present or cannot be deleted."
+            )
 
     def _run_task(self):
-        for obj in self.options["objects"]:
+        self._validate_and_inject_namespace()
+
+        for obj in self.sobjects:
+            query = f"SELECT Id FROM {obj}"
+            if self.options["where"]:
+                query += f" WHERE {self.options['where']}"
+
+            qs = get_query_operation(
+                sobject=obj,
+                fields=["Id"],
+                api_options={},
+                context=self,
+                query=query,
+                api=self.options["api"],
+            )
+
+            self.logger.info(f"Querying for {obj} objects")
+            qs.query()
+            if qs.job_result.status is not DataOperationStatus.SUCCESS:
+                raise BulkDataException(
+                    f"Unable to query records for {obj}: {','.join(qs.job_result.job_errors)}"
+                )
+            if not qs.job_result.records_processed:
+                self.logger.info(
+                    f"No records found, skipping delete operation for {obj}"
+                )
+                continue
+
             self.logger.info(f"Deleting {self._object_description(obj)} ")
-            delete_job = self._create_job(obj, self.options["where"])
-            if delete_job is not None:
-                self._wait_for_job(delete_job, error_behaviour="raise")
+            ds = get_dml_operation(
+                sobject=obj,
+                operation=(
+                    DataOperationType.HARD_DELETE
+                    if self.options["hardDelete"]
+                    else DataOperationType.DELETE
+                ),
+                fields=["Id"],
+                api_options={},
+                context=self,
+                api=self.options["api"],
+                volume=qs.job_result.records_processed,
+            )
+            ds.start()
+            ds.load_records(qs.get_results())
+            ds.end()
 
-    def _create_job(self, obj, where=None):
-        # Query for rows to delete
-        delete_rows = self._query_salesforce_for_records_to_delete(obj, where)
-        if not delete_rows:
-            self.logger.info(f"  No {obj} objects found, skipping delete")
-            return
+            if ds.job_result.status not in [
+                DataOperationStatus.SUCCESS,
+                DataOperationStatus.ROW_FAILURE,
+            ]:
+                raise BulkDataException(
+                    f"Unable to delete records for {obj}: {','.join(qs.job_result.job_errors)}"
+                )
 
-        # Upload all the batches
-        operation = "hardDelete" if self.options["hardDelete"] else "delete"
-        delete_job = self.bulk.create_job(obj, operation)
-        self.logger.info(f"  Deleting {len(delete_rows)} {obj} records")
-        batch_num = 1
-        for batch in self._upload_batches(delete_job, delete_rows):
-            self.logger.info(f"    Uploaded batch {batch}")
-            batch_num += 1
-        self.bulk.close_job(delete_job)
-        return delete_job
-
-    def compose_query(self, obj, where):
-        query = f"SELECT Id FROM {obj}"
-        if where:
-            query += f" WHERE {where}"
-
-        return query
+            error_checker = RowErrorChecker(
+                self.logger, self.options["ignore_row_errors"], self.row_warning_limit
+            )
+            for result in ds.get_results():
+                error_checker.check_for_row_error(result, result.id)
 
     def _object_description(self, obj):
+        """Return a readable description of the object set to delete."""
         if self.options["where"]:
             return f'{obj} objects matching "{self.options["where"]}"'
         else:
             return f"all {obj} objects"
-
-    def _query_salesforce_for_records_to_delete(self, obj, where):
-        # Query for all record ids
-        self.logger.info(f"  Querying for {self._object_description(obj)}")
-        query_job = self.bulk.create_query_job(obj, contentType="CSV")
-        batch = self.bulk.query(query_job, self.compose_query(obj, where))
-        while not self.bulk.is_batch_done(batch, query_job):
-            time.sleep(10)
-        self.bulk.close_job(query_job)
-        delete_rows = []
-        for result in self.bulk.get_all_results_for_query_batch(batch, query_job):
-            reader = unicodecsv.DictReader(result, encoding="utf-8")
-            for row in reader:
-                delete_rows.append(row)
-        return delete_rows
-
-    def _split_batches(self, data, batch_size):
-        """Yield successive n-sized chunks from l."""
-        for i in range(0, len(data), batch_size):
-            yield data[i : i + batch_size]
-
-    def _upload_batches(self, job, data):
-        uri = f"{self.bulk.endpoint}/job/{job}/batch"
-        headers = self.bulk.headers({"Content-Type": "text/csv"})
-        for batch in self._split_batches(data, 10000):
-            rows = ['"Id"']
-            rows += [f'"{record["Id"]}"' for record in batch]
-            resp = requests.post(uri, data="\n".join(rows), headers=headers)
-            content = resp.content
-            if resp.status_code >= 400:
-                self.bulk.raise_error(content, resp.status_code)
-
-            tree = ET.fromstring(content)
-            batch_id = tree.findtext("{%s}id" % self.bulk.jobNS)
-
-            yield batch_id

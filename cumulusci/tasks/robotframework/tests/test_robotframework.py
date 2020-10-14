@@ -5,6 +5,7 @@ import tempfile
 import pytest
 import os.path
 import re
+import sys
 from xml.etree import ElementTree as ET
 
 from cumulusci.core.config import TaskConfig
@@ -23,11 +24,30 @@ from cumulusci.tasks.robotframework.libdoc import KeywordFile
 
 class TestRobot(unittest.TestCase):
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
-    def test_run_task(self, robot_run):
+    def test_run_task_with_failure(self, robot_run):
         robot_run.return_value = 1
         task = create_task(Robot, {"suites": "tests", "pdb": True})
         with self.assertRaises(RobotTestFailure):
             task()
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    def test_run_task_error_message(self, robot_run):
+        expected = {
+            1: "1 test failed.",  # singular; pet peeve of my to see "1 tests"
+            2: "2 tests failed.",  # plural
+            249: "249 tests failed.",
+            250: "250 or more tests failed.",
+            251: "Help or version information printed.",
+            252: "Invalid test data or command line options.",
+            253: "Test execution stopped by user.",
+            255: "Unexpected internal error",
+        }
+        for error_code in expected.keys():
+            robot_run.return_value = error_code
+            task = create_task(Robot, {"suites": "tests", "pdb": True})
+            with self.assertRaises(RobotTestFailure) as error:
+                task()
+            self.assertEqual(str(error.exception), expected[error_code])
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.patch_statusreporter")
     def test_pdb_arg(self, patch_statusreporter):
@@ -63,6 +83,48 @@ class TestRobot(unittest.TestCase):
         )
         for option in ("test", "include", "exclude", "vars"):
             assert isinstance(task.options[option], list)
+
+    def test_process_arg_requires_int(self):
+        """Verify we throw a useful error for non-int "processes" option"""
+
+        expected = "Please specify an integer for the `processes` option."
+        with pytest.raises(TaskOptionsError, match=expected):
+            create_task(Robot, {"suites": "tests", "processes": "bogus"})
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.subprocess.run")
+    def test_process_arg_gt_zero(self, mock_subprocess_run, mock_robot_run):
+        """Verify that setting the process option to a number > 1 runs pabot"""
+        mock_subprocess_run.return_value = mock.Mock(returncode=0)
+        task = create_task(Robot, {"suites": "tests", "processes": "2"})
+        task()
+        expected_cmd = [
+            sys.executable,
+            "-m",
+            "pabot.pabot",
+            "--pabotlib",
+            "--processes",
+            "2",
+            "--variable",
+            "org:test",
+            "--outputdir",
+            ".",
+            "tests",
+        ]
+        mock_robot_run.assert_not_called()
+        mock_subprocess_run.assert_called_once_with(expected_cmd)
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.subprocess.run")
+    def test_process_arg_eq_zero(self, mock_subprocess_run, mock_robot_run):
+        """Verify that setting the process option to 1 runs robot rather than pabot"""
+        mock_robot_run.return_value = 0
+        task = create_task(Robot, {"suites": "tests", "process": 0})
+        task()
+        mock_subprocess_run.assert_not_called()
+        mock_robot_run.assert_called_once_with(
+            "tests", listener=[], outputdir=".", variable=["org:test"]
+        )
 
     def test_default_listeners(self):
         # first, verify that not specifying any listener options

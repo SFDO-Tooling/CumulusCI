@@ -21,11 +21,11 @@ tags
 .cache/
 .coverage
 .python-version
-selenium-screenshot-*
+*selenium-screenshot-*
 log.html
 report.html
 output.xml
-geckodriver.log
+geckodriver*.log
 **/.sfdx
 htmlcov/
 .pytest_cache/
@@ -36,3 +36,6 @@ pip-wheel-metadata
 .cci
 results_junit.xml
 test_results.json
+pabot_results/
+.pabotsuitenames
+large_cassettes/

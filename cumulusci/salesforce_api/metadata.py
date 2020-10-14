@@ -28,9 +28,14 @@ from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
 from cumulusci.salesforce_api.exceptions import MetadataParseError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 
-from urllib3.contrib import pyopenssl
-
-pyopenssl.extract_from_urllib3()
+# If pyOpenSSL is installed, make sure it's not used for requests
+# (it's not needed in the verisons of Python we support)
+try:
+    from urllib3.contrib import pyopenssl
+except ImportError:
+    pass
+else:
+    pyopenssl.extract_from_urllib3()
 
 retry_policy = Retry(backoff_factor=0.3)
 
@@ -65,6 +70,8 @@ class BaseMetadataApiCall(object):
                 raise MetadataParseError(
                     f"Could not process MDAPI response: {str(e)}", response=response
                 )
+        else:
+            raise MetadataApiError(response.text, response)
 
     def _build_endpoint_url(self):
         # Parse org id from id which ends in /ORGID/USERID
@@ -91,8 +98,8 @@ class BaseMetadataApiCall(object):
             return self.soap_envelope_result.format(process_id=self.process_id)
 
     def _build_envelope_start(self):
-        if self.soap_envelope_start:
-            return self.soap_envelope_start.format(api_version=self.api_version)
+        assert self.soap_envelope_start, "soap_envelope_start should be supplied"
+        return self.soap_envelope_start.format(api_version=self.api_version)
 
     def _build_envelope_status(self):
         if self.soap_envelope_status:
@@ -218,7 +225,15 @@ class BaseMetadataApiCall(object):
         done = resp_xml.getElementsByTagName("done")
         if done:
             if done[0].firstChild.nodeValue == "true":
-                self._set_status("Done")
+                errorMessage = resp_xml.getElementsByTagName("errorMessage")
+                if errorMessage:
+                    self._set_status(
+                        "Failed",
+                        errorMessage[0].firstChild.nodeValue,
+                        response=response,
+                    )
+                else:
+                    self._set_status("Done")
             else:
                 state_detail = resp_xml.getElementsByTagName("stateDetail")
                 if state_detail:
@@ -373,6 +388,7 @@ class ApiDeploy(BaseMetadataApiCall):
         run_tests=None,
     ):
         super(ApiDeploy, self).__init__(task, api_version)
+        assert package_zip, "Package zip should not be None"
         if purge_on_delete is None:
             purge_on_delete = True
         self._set_purge_on_delete(purge_on_delete)
@@ -394,23 +410,22 @@ class ApiDeploy(BaseMetadataApiCall):
             self.purge_on_delete = "false"
 
     def _build_envelope_start(self):
-        if self.package_zip:
-            test_level = (
-                f"<testLevel>{self.test_level}</testLevel>" if self.test_level else ""
-            )
-            run_tests = (
-                "\n".join(f"<runTests>{x}</runTests>" for x in self.run_tests)
-                if self.test_level == "RunSpecifiedTests"
-                else ""
-            )
-            return self.soap_envelope_start.format(
-                package_zip=self.package_zip,
-                check_only=self.check_only,
-                purge_on_delete=self.purge_on_delete,
-                test_level=test_level,
-                run_tests=run_tests,
-                api_version=self.api_version,
-            )
+        test_level = (
+            f"<testLevel>{self.test_level}</testLevel>" if self.test_level else ""
+        )
+        run_tests = (
+            "\n".join(f"<runTests>{x}</runTests>" for x in self.run_tests)
+            if self.test_level == "RunSpecifiedTests"
+            else ""
+        )
+        return self.soap_envelope_start.format(
+            package_zip=self.package_zip,
+            check_only=self.check_only,
+            purge_on_delete=self.purge_on_delete,
+            test_level=test_level,
+            run_tests=run_tests,
+            api_version=self.api_version,
+        )
 
     def _process_response(self, response):
         resp_xml = parseString(response.content)

@@ -1,15 +1,19 @@
+import json
 import os
 import unittest
+from unittest import mock
 
-from sqlalchemy import create_engine
-from sqlalchemy import MetaData
-from sqlalchemy import Integer
-from sqlalchemy import Unicode
-import yaml
+import responses
+from sqlalchemy import create_engine, MetaData, Integer, Unicode, Column, Table
+from sqlalchemy.orm import create_session, mapper
 
+from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
-
-from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.tasks.bulkdata.utils import (
+    create_table,
+    generate_batches,
+)
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
 def create_db_file(filename):
@@ -21,12 +25,122 @@ def create_db_file(filename):
     return engine, metadata
 
 
+def create_db_memory():
+    """Create a SQLite database in memory"""
+    db_url = "sqlite:///"
+    engine = create_engine(db_url)
+    metadata = MetaData()
+    metadata.bind = engine
+    return engine, metadata
+
+
+def mock_describe_calls():
+    def read_mock(name: str):
+        base_path = os.path.dirname(__file__)
+
+        with open(os.path.join(base_path, f"{name}.json"), "r") as f:
+            return f.read()
+
+    def mock_sobject_describe(name: str):
+        responses.add(
+            method="GET",
+            url=f"https://example.com/services/data/v48.0/sobjects/{name}/describe",
+            body=read_mock(name),
+            status=200,
+        )
+
+    responses.add(
+        method="GET",
+        url="https://example.com/services/data",
+        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        status=200,
+    )
+    responses.add(
+        method="GET",
+        url="https://example.com/services/data/v48.0/sobjects",
+        body=read_mock("global_describe"),
+        status=200,
+    )
+
+    for sobject in [
+        "Account",
+        "Contact",
+        "Opportunity",
+        "OpportunityContactRole",
+        "Case",
+    ]:
+        mock_sobject_describe(sobject)
+
+
+class TestSqlAlchemyMixin(unittest.TestCase):
+    @mock.patch("cumulusci.tasks.bulkdata.utils.Table")
+    @mock.patch("cumulusci.tasks.bulkdata.utils.mapper")
+    def test_create_record_type_table(self, mapper, table):
+        util = bulkdata.utils.SqlAlchemyMixin()
+        util.models = {}
+        util.metadata = mock.Mock()
+
+        util._create_record_type_table("Account_rt_mapping")
+
+        self.assertIn("Account_rt_mapping", util.models)
+
+    @responses.activate
+    def test_extract_record_types(self):
+        util = bulkdata.utils.SqlAlchemyMixin()
+        util._sql_bulk_insert_from_records = mock.Mock()
+        util.sf = mock.Mock()
+        util.sf.query.return_value = {
+            "totalSize": 1,
+            "records": [{"Id": "012000000000000", "DeveloperName": "Organization"}],
+        }
+        util.logger = mock.Mock()
+
+        conn = mock.Mock()
+        util._extract_record_types("Account", "test_table", conn)
+
+        util.sf.query.assert_called_once_with(
+            "SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='Account'"
+        )
+        util._sql_bulk_insert_from_records.assert_called_once()
+        call = util._sql_bulk_insert_from_records.call_args_list[0][1]
+        assert call["connection"] == conn
+        assert call["table"] == "test_table"
+        assert call["columns"] == ["record_type_id", "developer_name"]
+        assert list(call["record_iterable"]) == [["012000000000000", "Organization"]]
+
+    def test_sql_bulk_insert_from_records__sqlite(self):
+        engine, metadata = create_db_memory()
+        fields = [
+            Column("id", Integer(), primary_key=True, autoincrement=True),
+            Column("sf_id", Unicode(24)),
+        ]
+        id_t = Table("TestTable", metadata, *fields)
+        id_t.create()
+        model = type("TestModel", (object,), {})
+        mapper(model, id_t)
+
+        util = bulkdata.utils.SqlAlchemyMixin()
+        util.metadata = metadata
+        session = create_session(bind=engine, autocommit=False)
+        util.session = session
+        connection = session.connection()
+
+        util._sql_bulk_insert_from_records(
+            connection=connection,
+            table="TestTable",
+            columns=("id", "sf_id"),
+            record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
+        )
+
+        assert session.query(model).count() == 10
+
+
 class TestCreateTable(unittest.TestCase):
     def test_create_table_legacy_oid_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v1.yml")
-        with open(mapping_file, "r") as fh:
-            content = yaml.safe_load(fh)
-            account_mapping = content["Insert Contacts"]
+
+        content = parse_from_yaml(mapping_file)
+        account_mapping = content["Insert Contacts"]
 
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "temp.db")
@@ -41,9 +155,8 @@ class TestCreateTable(unittest.TestCase):
 
     def test_create_table_modern_id_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v2.yml")
-        with open(mapping_file, "r") as fh:
-            content = yaml.safe_load(fh)
-            account_mapping = content["Insert Contacts"]
+        content = parse_from_yaml(mapping_file)
+        account_mapping = content["Insert Contacts"]
 
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "temp.db")

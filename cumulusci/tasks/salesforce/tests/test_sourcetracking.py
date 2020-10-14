@@ -1,22 +1,22 @@
 from unittest import mock
 import json
 import os
-import unittest
+import pathlib
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.salesforce.sourcetracking import ListChanges
 from cumulusci.tasks.salesforce.sourcetracking import RetrieveChanges
 from cumulusci.tasks.salesforce.sourcetracking import SnapshotChanges
-from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tasks.salesforce.sourcetracking import _write_manifest
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 
 
-class TestListChanges(unittest.TestCase):
+class TestListChanges:
     """List the changes from a scratch org"""
 
-    def test_run_task(self):
-        task = create_task(ListChanges, {"exclude": "Ignore"})
+    def test_run_task(self, create_task_fixture):
+        task = create_task_fixture(ListChanges, {"exclude": "Ignore"})
         task._init_task()
         task.tooling = mock.Mock()
         task.logger = mock.Mock()
@@ -26,30 +26,30 @@ class TestListChanges(unittest.TestCase):
                 {
                     "MemberType": "CustomObject",
                     "MemberName": "Test__c",
-                    "RevisionNum": 1,
+                    "RevisionCounter": 1,
                 },
                 {
                     "MemberType": "CustomObject",
                     "MemberName": "Ignored__c",
-                    "RevisionNum": 2,
+                    "RevisionCounter": 2,
                 },
             ],
         }
         task._run_task()
-        self.assertIn("CustomObject: Test__c", task.logger.info.call_args[0][0])
+        assert "CustomObject: Test__c" in task.logger.info.call_args[0][0]
 
-    def test_run_task__no_changes(self):
-        task = create_task(ListChanges)
+    def test_run_task__no_changes(self, create_task_fixture):
+        task = create_task_fixture(ListChanges)
         task._init_task()
         task.tooling = mock.Mock()
         task.logger = mock.Mock()
         task.tooling.query_all.return_value = {"totalSize": 0, "records": []}
         task._run_task()
-        self.assertIn("Found no changes.", task.logger.info.call_args[0][0])
+        assert "Found no changes." in task.logger.info.call_args[0][0]
 
-    def test_run_task__snapshot(self):
+    def test_run_task__snapshot(self, create_task_fixture):
         with temporary_dir():
-            task = create_task(ListChanges, {"snapshot": True})
+            task = create_task_fixture(ListChanges, {"snapshot": True})
             task._init_task()
             task.tooling = mock.Mock()
             messages = []
@@ -61,17 +61,18 @@ class TestListChanges(unittest.TestCase):
                     {
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
-                        "RevisionNum": 1,
+                        "RevisionCounter": 1,
                     }
                 ],
             }
             task._run_task()
-            self.assertTrue(
-                os.path.exists(os.path.join(".cci", "snapshot", "test.json"))
+            assert os.path.exists(
+                os.path.join(task.project_config.cache_dir, "snapshot", "test.json")
             )
-            self.assertIn("CustomObject: Test__c", messages)
 
-            task = create_task(ListChanges)
+            assert "CustomObject: Test__c" in messages
+
+            task = create_task_fixture(ListChanges)
             task._init_task()
             task.tooling = mock.Mock()
             task.logger = mock.Mock()
@@ -82,48 +83,54 @@ class TestListChanges(unittest.TestCase):
                     {
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
-                        "RevisionNum": 1,
+                        "RevisionCounter": 1,
                     }
                 ],
             }
             task._run_task()
-            self.assertIn("Found no changes.", messages)
+            assert "Found no changes." in messages
 
-    def test_filter_changes__include(self):
-        foo = {"MemberType": "CustomObject", "MemberName": "foo__c", "RevisionNum": 1}
-        bar = {"MemberType": "CustomObject", "MemberName": "bar__c", "RevisionNum": 1}
-        foobar = {
-            "MemberType": "CustomObject",
-            "MemberName": "foobar__c",
-            "RevisionNum": 1,
-        }
-        task = create_task(ListChanges, {"include": "foo", "exclude": "bar"})
-        filtered, ignored = task._filter_changes([foo, bar, foobar])
-        self.assertEqual([foo], filtered)
-
-    def test_filter_changes__null_revnum(self):
+    def test_filter_changes__include(self, create_task_fixture):
         foo = {
             "MemberType": "CustomObject",
             "MemberName": "foo__c",
-            "RevisionNum": None,
+            "RevisionCounter": 1,
         }
-        bar = {"MemberType": "CustomObject", "MemberName": "bar__c", "RevisionNum": 1}
-        task = create_task(ListChanges, {})
-        filtered, ignored = task._filter_changes([foo, bar])
-        self.assertEqual([foo, bar], filtered)
+        bar = {
+            "MemberType": "CustomObject",
+            "MemberName": "bar__c",
+            "RevisionCounter": 1,
+        }
+        foobar = {
+            "MemberType": "CustomObject",
+            "MemberName": "foobar__c",
+            "RevisionCounter": 1,
+        }
+        task = create_task_fixture(ListChanges, {"include": "foo", "exclude": "bar"})
+        filtered, ignored = task._filter_changes([foo, bar, foobar])
+        assert filtered == [foo]
 
-    def test_load_maxrevision(self):
-        with temporary_dir():
-            task = create_task(ListChanges, {})
-            task._store_maxrevision(1)
-            assert task._load_maxrevision() == 1
+    def test_filter_changes__null_revnum(self, create_task_fixture):
+        foo = {
+            "MemberType": "CustomObject",
+            "MemberName": "foo__c",
+            "RevisionCounter": None,
+        }
+        bar = {
+            "MemberType": "CustomObject",
+            "MemberName": "bar__c",
+            "RevisionCounter": 1,
+        }
+        task = create_task_fixture(ListChanges, {})
+        filtered, ignored = task._filter_changes([foo, bar])
+        assert filtered == [foo, bar]
 
 
 @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
-class TestRetrieveChanges(unittest.TestCase):
+class TestRetrieveChanges:
     """Retrieve changed components from a scratch org"""
 
-    def test_init_options__sfdx_format(self, sfdx):
+    def test_init_options__sfdx_format(self, sfdx, create_task_fixture):
         with temporary_dir():
             project_config = create_project_config()
             project_config.project__source_format = "sfdx"
@@ -131,16 +138,16 @@ class TestRetrieveChanges(unittest.TestCase):
                 json.dump(
                     {"packageDirectories": [{"path": "force-app", "default": True}]}, f
                 )
-            task = create_task(RetrieveChanges, {}, project_config)
+            task = create_task_fixture(RetrieveChanges, {}, project_config)
             assert not task.md_format
             assert task.options["path"] == "force-app"
 
-    def test_run_task(self, sfdx):
+    def test_run_task(self, sfdx, create_task_fixture):
         sfdx_calls = []
         sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
 
         with temporary_dir():
-            task = create_task(
+            task = create_task_fixture(
                 RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns"}
             )
             task._init_task()
@@ -151,7 +158,7 @@ class TestRetrieveChanges(unittest.TestCase):
                     {
                         "MemberType": "CustomObject",
                         "MemberName": "Test__c",
-                        "RevisionNum": 1,
+                        "RevisionCounter": 1,
                     }
                 ],
             }
@@ -165,9 +172,9 @@ class TestRetrieveChanges(unittest.TestCase):
             ]
             assert os.path.exists(os.path.join("src", "package.xml"))
 
-    def test_run_task__no_changes(self, sfdx):
+    def test_run_task__no_changes(self, sfdx, create_task_fixture):
         with temporary_dir() as path:
-            task = create_task(RetrieveChanges, {"path": path})
+            task = create_task_fixture(RetrieveChanges, {"path": path})
             task._init_task()
             messages = []
             task.tooling = mock.Mock()
@@ -175,11 +182,12 @@ class TestRetrieveChanges(unittest.TestCase):
             task.logger = mock.Mock()
             task.logger.info = messages.append
             task._run_task()
-            self.assertIn("No changes to retrieve", messages)
+            assert "No changes to retrieve" in messages
 
 
-class TestSnapshotChanges(unittest.TestCase):
-    def test_run_task(self):
+class TestSnapshotChanges:
+    @mock.patch("cumulusci.tasks.salesforce.sourcetracking.sfdx")
+    def test_run_task(self, sfdx, create_task_fixture):
         with temporary_dir():
             org_config = OrgConfig(
                 {
@@ -190,7 +198,7 @@ class TestSnapshotChanges(unittest.TestCase):
                 },
                 "test",
             )
-            task = create_task(SnapshotChanges, org_config=org_config)
+            task = create_task_fixture(SnapshotChanges, org_config=org_config)
             task._init_task()
             task.tooling.query = mock.Mock(
                 side_effect=[
@@ -202,58 +210,26 @@ class TestSnapshotChanges(unittest.TestCase):
                             {
                                 "MemberType": "CustomObject",
                                 "MemberName": "Object2",
-                                "RevisionNum": 1,
+                                "RevisionCounter": 1,
                             }
                         ],
                     },
                 ]
             )
+            task._reset_sfdx_snapshot = mock.Mock()
             task._run_task()
-            self.assertTrue(
-                os.path.exists(
-                    os.path.join(
-                        ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"
-                    )
-                )
-            )
+            task._reset_sfdx_snapshot.assert_called_once()
 
-    def test_run_task__null_revnum(self):
-        with temporary_dir():
-            org_config = OrgConfig(
-                {
-                    "username": "test-cci@example.com",
-                    "scratch": True,
-                    "instance_url": "https://test.salesforce.com",
-                    "access_token": "TOKEN",
-                },
-                "test",
-            )
-            task = create_task(SnapshotChanges, org_config=org_config)
-            task._init_task()
-            task.tooling.query = mock.Mock(
-                return_value={
-                    "totalSize": 1,
-                    "done": True,
-                    "records": [
-                        {
-                            "MemberType": "CustomObject",
-                            "MemberName": "Object2",
-                            "RevisionNum": None,
-                        }
-                    ],
-                }
-            )
-            task._run_task()
-            self.assertEqual(-1, task._snapshot["CustomObject"]["Object2"])
-            self.assertFalse(
-                os.path.exists(
-                    os.path.join(
-                        ".sfdx", "orgs", "test-cci@example.com", "maxrevision.json"
-                    )
-                )
-            )
-
-    def test_freeze(self):
-        task = create_task(SnapshotChanges)
+    def test_freeze(self, create_task_fixture):
+        task = create_task_fixture(SnapshotChanges)
         steps = task.freeze(None)
-        self.assertEqual([], steps)
+        assert steps == []
+
+
+def test_write_manifest__folder():
+    with temporary_dir() as path:
+        _write_manifest(
+            [{"MemberType": "ReportFolder", "MemberName": "TestFolder"}], path, "49.0"
+        )
+        package_xml = pathlib.Path(path, "package.xml").read_text()
+        assert "<name>Report</name>" in package_xml

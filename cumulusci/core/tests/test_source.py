@@ -1,15 +1,18 @@
+from unittest import mock
 import io
 import os
+import pathlib
 import unittest
 import yaml
 import zipfile
+from tempfile import TemporaryDirectory
 
 import pytest
 import responses
 
 from ..source import GitHubSource
 from ..source import LocalFolderSource
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import DependencyResolutionError
@@ -22,9 +25,11 @@ from cumulusci.utils import touch
 class TestGitHubSource(unittest.TestCase, MockUtil):
     def setUp(self):
         self.repo_api_url = "https://api.github.com/repos/TestOwner/TestRepo"
-        global_config = BaseGlobalConfig()
-        self.project_config = BaseProjectConfig(global_config)
+        universal_config = UniversalConfig()
+        self.project_config = BaseProjectConfig(universal_config)
         self.project_config.set_keychain(BaseProjectKeychain(self.project_config, None))
+        self.repo_root = TemporaryDirectory()
+        self.project_config.repo_info["root"] = pathlib.Path(self.repo_root.name)
         self.project_config.keychain.set_service(
             "github",
             ServiceConfig(
@@ -35,6 +40,9 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
                 }
             ),
         )
+
+    def tearDown(self):
+        self.repo_root.cleanup()
 
     @responses.activate
     def test_resolve__default(self):
@@ -50,7 +58,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
 
@@ -76,16 +84,15 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/master",
-            json=self._get_expected_ref("heads/master", "abcdef"),
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/main",
+            json=self._get_expected_ref("heads/main", "abcdef"),
         )
 
         source = GitHubSource(
             self.project_config, {"github": "https://github.com/TestOwner/TestRepo.git"}
         )
         assert (
-            repr(source)
-            == "<GitHubSource GitHub: TestOwner/TestRepo @ master (abcdef)>"
+            repr(source) == "<GitHubSource GitHub: TestOwner/TestRepo @ main (abcdef)>"
         )
 
     @responses.activate
@@ -111,17 +118,16 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/master",
-            json=self._get_expected_ref("master", "abcdef"),
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/main",
+            json=self._get_expected_ref("main", "abcdef"),
         )
 
         source = GitHubSource(
             self.project_config,
-            {"github": "https://github.com/TestOwner/TestRepo.git", "ref": "master"},
+            {"github": "https://github.com/TestOwner/TestRepo.git", "ref": "main"},
         )
         assert (
-            repr(source)
-            == "<GitHubSource GitHub: TestOwner/TestRepo @ master (abcdef)>"
+            repr(source) == "<GitHubSource GitHub: TestOwner/TestRepo @ main (abcdef)>"
         )
 
     @responses.activate
@@ -133,17 +139,16 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/master",
-            json=self._get_expected_ref("master", "abcdef"),
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/heads/main",
+            json=self._get_expected_ref("main", "abcdef"),
         )
 
         source = GitHubSource(
             self.project_config,
-            {"github": "https://github.com/TestOwner/TestRepo.git", "branch": "master"},
+            {"github": "https://github.com/TestOwner/TestRepo.git", "branch": "main"},
         )
         assert (
-            repr(source)
-            == "<GitHubSource GitHub: TestOwner/TestRepo @ master (abcdef)>"
+            repr(source) == "<GitHubSource GitHub: TestOwner/TestRepo @ main (abcdef)>"
         )
 
     @responses.activate
@@ -155,7 +160,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "abcdef"),
         )
 
@@ -185,7 +190,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
 
@@ -215,7 +220,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.0-Beta_1",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.0-Beta_1",
             json=self._get_expected_tag_ref("beta/1.0-Beta_1", "tag_sha"),
         )
 
@@ -249,7 +254,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
 
@@ -318,7 +323,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
         f = io.BytesIO()
@@ -346,12 +351,44 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         source = GitHubSource(
             self.project_config, {"github": "https://github.com/TestOwner/TestRepo.git"}
         )
-        with temporary_dir() as d:
-            project_config = source.fetch()
-            assert isinstance(project_config, BaseProjectConfig)
-            assert project_config.repo_root == os.path.join(
-                os.path.realpath(d), ".cci", "projects", "TestRepo", "tag_sha"
+        project_config = source.fetch()
+        assert isinstance(project_config, BaseProjectConfig)
+        assert pathlib.Path(project_config.repo_root).samefile(
+            os.path.join(
+                self.project_config.cache_dir, "projects", "TestRepo", "tag_sha"
             )
+        )
+
+    @responses.activate
+    @mock.patch("cumulusci.core.source.github.download_extract_github")
+    def test_fetch__cleans_up_after_failed_extract(self, download_extract_github):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases/latest",
+            json=self._get_expected_release("release/1.0"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
+        )
+        # Set up a fake IOError while extracting the zipball
+        download_extract_github.return_value = mock.Mock(
+            extractall=mock.Mock(side_effect=IOError)
+        )
+
+        source = GitHubSource(
+            self.project_config, {"github": "https://github.com/TestOwner/TestRepo.git"}
+        )
+        with temporary_dir():
+            with pytest.raises(IOError):
+                source.fetch()
+            assert not pathlib.Path(".cci", "projects", "TestRepo", "tag_sha").exists()
 
     @responses.activate
     def test_hash(self):
@@ -367,7 +404,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
 
@@ -392,7 +429,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         )
         responses.add(
             "GET",
-            f"https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
 
@@ -408,7 +445,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
 
 class TestLocalFolderSource:
     def test_fetch(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             touch("cumulusci.yml")
             source = LocalFolderSource(project_config, {"path": d})
@@ -416,19 +453,19 @@ class TestLocalFolderSource:
             assert project_config.repo_root == os.path.realpath(d)
 
     def test_hash(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             source = LocalFolderSource(project_config, {"path": d})
             assert hash(source) == hash((source.path,))
 
     def test_repr(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             source = LocalFolderSource(project_config, {"path": d})
             assert repr(source) == f"<LocalFolderSource Local folder: {d}>"
 
     def test_frozenspec(self):
-        project_config = BaseProjectConfig(BaseGlobalConfig())
+        project_config = BaseProjectConfig(UniversalConfig())
         with temporary_dir() as d:
             source = LocalFolderSource(project_config, {"path": d})
             with pytest.raises(NotImplementedError):

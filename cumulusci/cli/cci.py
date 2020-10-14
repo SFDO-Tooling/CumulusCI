@@ -12,16 +12,17 @@ import shutil
 import sys
 import time
 import traceback
-from datetime import datetime
+import runpy
 import webbrowser
 import contextlib
 from pathlib import Path
-import runpy
+from datetime import datetime
 
 import click
 import github3
 import pkg_resources
 import requests
+from requests import exceptions
 from rst2ansi import rst2ansi
 from jinja2 import Environment
 from jinja2 import PackageLoader
@@ -31,10 +32,11 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.github import create_gist, get_github_api
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
@@ -42,26 +44,25 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import import_global
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
-from cumulusci.cli.ui import CliTable, CROSSMARK
+from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task, tee_stdout_stderr
+from cumulusci.utils import doc_task
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
+from cumulusci.utils.git import current_branch
+from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+from cumulusci.core.utils import cleanup_org_cache_dirs
 
-from .logger import init_logger, get_gist_logger
+
+from .logger import init_logger, get_tempfile_logger
 
 
 @contextlib.contextmanager
 def timestamp_file():
     """Opens a file for tracking the time of the last version check"""
-    config_dir = os.path.join(
-        os.path.expanduser("~"), BaseGlobalConfig.config_local_dir
-    )
 
-    if not os.path.exists(config_dir):
-        os.mkdir(config_dir)
-
+    config_dir = UniversalConfig.default_cumulusci_dir()
     timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
 
     try:
@@ -173,8 +174,10 @@ def pass_runtime(func=None, require_project=True, require_keychain=False):
 
 
 SUGGEST_ERROR_COMMAND = (
-    """Type `cci error --help` for more information about debugging errors."""
+    """Run this command for more information about debugging errors: cci error --help"""
 )
+
+USAGE_ERRORS = (CumulusCIUsageError, click.UsageError)
 
 
 #
@@ -204,37 +207,69 @@ def main(args=None):
         debug = "--debug" in args
         if debug:
             args.remove("--debug")
+        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
 
         # Only create logfiles for commands
-        # that are not `cci gist`
-        is_gist_command = len(args) > 2 and args[2] == "gist"
-        if not is_gist_command:
-            logger = get_gist_logger()
-            stack.enter_context(tee_stdout_stderr(args, logger))
+        # that are not `cci error`
+        is_error_command = len(args) > 2 and args[1] == "error"
+        tempfile_path = None
+        if not is_error_command:
+            logger, tempfile_path = get_tempfile_logger()
+            stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
 
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
         try:
             cli(standalone_mode=False)
         except click.Abort:  # Keyboard interrupt
-            click.echo("\nAborted!")
+            show_debug_info() if debug else click.echo("\nAborted!")
             sys.exit(1)
         except Exception as e:
-            # Display the error
             if debug:
-                traceback.print_exc()
-                pdb.post_mortem()
+                show_debug_info()
             else:
-                click.echo(click.style(f"Error: {e}", fg="red"))
-                # Only suggest gist command if it wasn't run
-                if not is_gist_command:
-                    click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
-
-                with open(CCI_LOGFILE_PATH, "a") as log_file:
-                    traceback.print_exc(file=log_file)  # log stacktrace silently
-            # TODO: errorsdb
-            # Return a non-zero exit code to indicate a problem
+                handle_exception(
+                    e, is_error_command, tempfile_path, should_show_stacktraces
+                )
             sys.exit(1)
+
+
+def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=False):
+    """Displays error of appropriate message back to user, prompts user to investigate further
+    with `cci error` commands, and writes the traceback to the latest logfile.
+    """
+    if isinstance(error, exceptions.ConnectionError):
+        connection_error_message()
+    elif isinstance(error, click.ClickException):
+        click.echo(click.style(f"Error: {error.format_message()}", fg="red"))
+    else:
+        click.echo(click.style(f"Error: {error}", fg="red"))
+    # Only suggest gist command if it wasn't run
+    if not is_error_cmd:
+        click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
+
+    # This is None if we're handling an exception for a
+    # `cci error` command.
+    if logfile_path:
+        with open(logfile_path, "a") as log_file:
+            traceback.print_exc(file=log_file)  # log stacktrace silently
+
+    if should_show_stacktraces and not isinstance(error, USAGE_ERRORS):
+        raise error
+
+
+def connection_error_message():
+    message = (
+        "We encountered an error with your internet connection. "
+        "Please check your connection and try the last cci command again."
+    )
+    click.echo(click.style(message, fg="red"))
+
+
+def show_debug_info():
+    """Displays the traceback and opens pdb"""
+    traceback.print_exc()
+    pdb.post_mortem()
 
 
 @click.group("main", help="")
@@ -273,19 +308,22 @@ def version():
 @pass_runtime(require_project=False, require_keychain=True)
 def shell(runtime, script=None, python=None):
     # alias for backwards-compatibility
-    config = runtime  # noQA
+    variables = {
+        "config": runtime,
+        "runtime": runtime,
+        "project_config": runtime.project_config,
+    }
 
     if script:
         if python:
             raise click.UsageError("Cannot specify both --script and --python")
-        runpy.run_path(script, init_globals={**globals(), **locals()})
+        runpy.run_path(script, init_globals=variables)
     elif python:
-        exec(python)
+        exec(python, variables)
     else:
-        code.interact(local={**globals(), **locals()})
+        code.interact(local=variables)
 
 
-CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
 GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
 Please ensure that your GitHub personal access token has the 'Create gists' scope."""
 
@@ -330,9 +368,11 @@ def service():
     pass
 
 
-@cli.group("error")
+@cli.group("error", short_help="Get or share information about an error")
 def error():
     """
+    Get or share information about an error
+
     If you'd like to dig into an error more yourself,
     you can get the last few lines of context about it
     from `cci error info`.
@@ -340,6 +380,11 @@ def error():
     If you'd like to submit it to a developer for conversation,
     you can use the `cci error gist` command. Just make sure
     that your GitHub access token has the 'create gist' scope.
+
+    If you'd like to regularly see stack traces, set the `show_stacktraces`
+    option to `True` in the "cli" section of `~/.cumulusci/cumulusci.yml`, or to
+    see a stack-trace (and other debugging information) just once, use the `--debug`
+    command line option.
 
     For more information on working with errors in CumulusCI visit:
     https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors
@@ -421,7 +466,7 @@ def project_init(runtime):
     click.echo()
     context["api_version"] = click.prompt(
         click.style("Salesforce API Version", bold=True),
-        default=runtime.global_config.project__package__api_version,
+        default=runtime.universal_config.project__package__api_version,
     )
 
     click.echo()
@@ -472,15 +517,16 @@ def project_init(runtime):
     click.echo()
     click.echo(click.style("# Git Configuration", bold=True, fg="blue"))
     click.echo(
-        "CumulusCI assumes your default branch is master, your feature branches are named feature/*, your beta release tags are named beta/*, and your release tags are release/*.  If you want to use a different branch/tag naming scheme, you can configure the overrides here.  Otherwise, just accept the defaults."
+        "CumulusCI assumes the current git branch is your default branch, your feature branches are named feature/*, your beta release tags are named beta/*, and your release tags are release/*.  If you want to use a different branch/tag naming scheme, you can configure the overrides here.  Otherwise, just accept the defaults."
     )
 
+    default_main_branch = current_branch(os.getcwd()) or "main"
     git_default_branch = click.prompt(
-        click.style("Default Branch", bold=True), default="master"
+        click.style("Default Branch", bold=True), default=default_main_branch
     )
     if (
         git_default_branch
-        and git_default_branch != runtime.global_config.project__git__default_branch
+        and git_default_branch != runtime.universal_config.project__git__default_branch
     ):
         git_config["default_branch"] = git_default_branch
 
@@ -489,7 +535,7 @@ def project_init(runtime):
     )
     if (
         git_prefix_feature
-        and git_prefix_feature != runtime.global_config.project__git__prefix_feature
+        and git_prefix_feature != runtime.universal_config.project__git__prefix_feature
     ):
         git_config["prefix_feature"] = git_prefix_feature
 
@@ -498,7 +544,7 @@ def project_init(runtime):
     )
     if (
         git_prefix_beta
-        and git_prefix_beta != runtime.global_config.project__git__prefix_beta
+        and git_prefix_beta != runtime.universal_config.project__git__prefix_beta
     ):
         git_config["prefix_beta"] = git_prefix_beta
 
@@ -507,7 +553,7 @@ def project_init(runtime):
     )
     if (
         git_prefix_release
-        and git_prefix_release != runtime.global_config.project__git__prefix_release
+        and git_prefix_release != runtime.universal_config.project__git__prefix_release
     ):
         git_config["prefix_release"] = git_prefix_release
 
@@ -522,14 +568,25 @@ def project_init(runtime):
 
     test_name_match = click.prompt(
         click.style("Test Name Match", bold=True),
-        default=runtime.global_config.project__test__name_match,
+        default=runtime.universal_config.project__test__name_match,
     )
     if (
         test_name_match
-        and test_name_match == runtime.global_config.project__test__name_match
+        and test_name_match == runtime.universal_config.project__test__name_match
     ):
         test_name_match = None
     context["test_name_match"] = test_name_match
+
+    context["code_coverage"] = None
+    if click.confirm(
+        click.style(
+            "Do you want to check Apex code coverage when tests are run?", bold=True
+        ),
+        default=True,
+    ):
+        context["code_coverage"] = click.prompt(
+            click.style("Minimum code coverage percentage", bold=True), default=75
+        )
 
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
@@ -675,10 +732,10 @@ def service_list(runtime, plain, print_json):
     services = (
         runtime.project_config.services
         if runtime.project_config is not None
-        else runtime.global_config.services
+        else runtime.universal_config.services
     )
     configured_services = runtime.keychain.list_services()
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
 
     data = [["Name", "Description", "Configured"]]
     for serv, schema in services.items():
@@ -705,7 +762,7 @@ class ConnectServiceCommand(click.MultiCommand):
         return (
             runtime.project_config.services
             if runtime.project_config
-            else runtime.global_config.services
+            else runtime.universal_config.services
         )
 
     def list_commands(self, ctx):
@@ -769,7 +826,7 @@ def service_connect():
 @pass_runtime(require_project=False, require_keychain=True)
 def service_info(runtime, service_name, plain):
     try:
-        plain = plain or runtime.global_config.cli__plain_output
+        plain = plain or runtime.universal_config.cli__plain_output
         service_config = runtime.keychain.get_service(service_name)
         service_data = [["Key", "Value"]]
         service_data.extend(
@@ -805,7 +862,7 @@ def org_browser(runtime, org_name):
 
     webbrowser.open(org_config.start_url)
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 @org.command(
@@ -826,11 +883,19 @@ def org_browser(runtime, org_name):
     help="If set, sets the connected org as the new default org",
 )
 @click.option(
-    "--global-org", help="Set True if org should be used by any project", is_flag=True
+    "--global-org",
+    help="If set, the connected org is available to all CumulusCI projects.",
+    is_flag=True,
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     runtime.check_org_overwrite(org_name)
+
+    if "lightning.force.com" in login_url:
+        raise click.UsageError(
+            "Connecting an org with a lightning.force.com URL does not work. "
+            "Use the my.salesforce.com version instead"
+        )
 
     connected_app = runtime.keychain.get_service("connected_app")
     if sandbox:
@@ -844,7 +909,8 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
         scope="web full refresh_token",
     )
     oauth_dict = oauth_capture()
-    org_config = OrgConfig(oauth_dict, org_name)
+    global_org = global_org or runtime.project_config is None
+    org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
     org_config.load_userinfo()
     org_config._load_orginfo()
     if org_config.organization_sobject["TrialExpirationDate"] is None:
@@ -854,10 +920,9 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
             org_config.organization_sobject["TrialExpirationDate"]
         ).date()
 
-    global_org = global_org or runtime.project_config is None
-    runtime.keychain.set_org(org_config, global_org)
+    org_config.save()
 
-    if default:
+    if default and runtime.project_config is not None:
         runtime.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
 
@@ -885,17 +950,19 @@ def org_default(runtime, org_name, unset):
 @pass_runtime(require_keychain=True)
 def org_import(runtime, username_or_alias, org_name):
     org_config = {"username": username_or_alias}
-    scratch_org_config = ScratchOrgConfig(org_config, org_name)
+    scratch_org_config = ScratchOrgConfig(
+        org_config, org_name, runtime.keychain, global_org=False
+    )
     scratch_org_config.config["created"] = True
 
-    info = scratch_org_config.scratch_info
+    info = scratch_org_config.sfdx_info
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 
-    runtime.keychain.set_org(scratch_org_config)
+    scratch_org_config.save()
     click.echo(
         "Imported scratch org: {org_id}, username: {username}".format(
-            **scratch_org_config.scratch_info
+            **scratch_org_config.sfdx_info
         )
     )
 
@@ -912,7 +979,9 @@ def calculate_org_days(info):
 
 @org.command(name="info", help="Display information for a connected org")
 @click.argument("org_name", required=False)
-@click.option("print_json", "--json", is_flag=True, help="Print as JSON")
+@click.option(
+    "print_json", "--json", is_flag=True, help="Print as JSON.  Includes access token"
+)
 @pass_runtime(require_project=False, require_keychain=True)
 def org_info(runtime, org_name, print_json):
     org_name, org_config = runtime.get_org(org_name)
@@ -938,6 +1007,7 @@ def org_info(runtime, org_name, print_json):
             "default",
             "email_address",
             "instance_url",
+            "instance_name",
             "is_sandbox",
             "namespaced",
             "org_id",
@@ -964,14 +1034,14 @@ def org_info(runtime, org_name, print_json):
             click.echo("Org expires on {:%c}".format(org_config.expires))
 
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 @org.command(name="list", help="Lists the connected orgs for the current project")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_runtime(require_project=False, require_keychain=True)
 def org_list(runtime, plain):
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
     header = ["Name", "Default", "Username", "Expires"]
     persistent_data = [header]
     scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
@@ -979,8 +1049,9 @@ def org_list(runtime, plain):
         org: runtime.keychain.get_org(org) for org in runtime.keychain.list_orgs()
     }
     rows_to_dim = []
+    default_org_name, _ = runtime.keychain.get_default_org()
     for org, org_config in org_configs.items():
-        row = [org, org_config.default]
+        row = [org, org == default_org_name]
         if isinstance(org_config, ScratchOrgConfig):
             org_days = org_config.format_org_days()
             if org_config.expired:
@@ -1017,6 +1088,67 @@ def org_list(runtime, plain):
         bool_cols=["Default"],
     )
     persistent_table.echo(plain)
+    cleanup_org_cache_dirs(runtime.keychain, runtime.project_config)
+
+
+@org.command(
+    name="prune", help="Removes all expired scratch orgs from the current project"
+)
+@click.option(
+    "--include-active",
+    is_flag=True,
+    help="Remove all scratch orgs, regardless of expiry.",
+)
+@pass_runtime(require_project=True, require_keychain=True)
+def org_prune(runtime, include_active=False):
+
+    predefined_scratch_configs = getattr(runtime.project_config, "orgs__scratch", {})
+
+    expired_orgs_removed = []
+    active_orgs_removed = []
+    org_shapes_skipped = []
+    active_orgs_skipped = []
+    for org_name in runtime.keychain.list_orgs():
+
+        org_config = runtime.keychain.get_org(org_name)
+
+        if org_name in predefined_scratch_configs:
+            if org_config.active and include_active:
+                runtime.keychain.remove_org(org_name)
+                active_orgs_removed.append(org_name)
+            else:
+                org_shapes_skipped.append(org_name)
+
+        elif org_config.active:
+            if include_active:
+                runtime.keychain.remove_org(org_name)
+                active_orgs_removed.append(org_name)
+            else:
+                active_orgs_skipped.append(org_name)
+
+        elif isinstance(org_config, ScratchOrgConfig):
+            runtime.keychain.remove_org(org_name)
+            expired_orgs_removed.append(org_name)
+
+    if expired_orgs_removed:
+        click.echo(
+            f"Successfully removed {len(expired_orgs_removed)} expired scratch orgs: {', '.join(expired_orgs_removed)}"
+        )
+    else:
+        click.echo("No expired scratch orgs to delete. ✨")
+
+    if active_orgs_removed:
+        click.echo(
+            f"Successfully removed {len(active_orgs_removed)} active scratch orgs: {', '.join(active_orgs_removed)}"
+        )
+    elif include_active:
+        click.echo("No active scratch orgs to delete. ✨")
+
+    if org_shapes_skipped:
+        click.echo(f"Skipped org shapes: {', '.join(org_shapes_skipped)}")
+
+    if active_orgs_skipped:
+        click.echo(f"Skipped active orgs: {', '.join(active_orgs_skipped)}")
 
 
 @org.command(name="remove", help="Removes an org from the keychain")
@@ -1105,7 +1237,30 @@ def org_scratch_delete(runtime, org_name):
 
     org_config.delete_org()
 
-    runtime.keychain.set_org(org_config)
+    org_config.save()
+
+
+org_shell_cci_help_message = """
+The cumulusci shell gives you access to the following objects and functions:
+
+* sf - simple_salesforce connected to your org. [1]
+* org_config - local information about your org. [2]
+* project_config - information about your project. [3]
+* tooling - simple_salesforce connected to the tooling API on your org.
+* query() - SOQL query. `help(query)` for more information
+* describe() - Inspect object fields. `help(describe)` for more information
+* help() - for interactive help on Python
+* help(obj) - for help on any specific Python object or module
+
+[1] https://github.com/simple-salesforce/simple-salesforce
+[2] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.OrgConfig
+[3] https://cumulusci.readthedocs.io/en/latest/api/cumulusci.core.config.html#module-cumulusci.core.config.project_config
+"""
+
+
+class CCIHelp(type(help)):
+    def __repr__(self):
+        return org_shell_cci_help_message
 
 
 @org.command(
@@ -1122,10 +1277,20 @@ def org_shell(runtime, org_name, script=None, python=None):
     org_config.refresh_oauth_token(runtime.keychain)
 
     sf = get_simple_salesforce_connection(runtime.project_config, org_config)
+    tooling = get_simple_salesforce_connection(
+        runtime.project_config, org_config, base_url="tooling"
+    )
+
+    sf_helpers = SimpleSalesforceUIHelpers(sf)
+
     globals = {
         "sf": sf,
+        "tooling": tooling,
         "org_config": org_config,
         "project_config": runtime.project_config,
+        "help": CCIHelp(),
+        "query": sf_helpers.query,
+        "describe": sf_helpers.describe,
     }
 
     if script:
@@ -1133,15 +1298,16 @@ def org_shell(runtime, org_name, script=None, python=None):
             raise click.UsageError("Cannot specify both --script and --python")
         runpy.run_path(script, init_globals=globals)
     elif python:
-        exec(python)
+        exec(python, globals)
     else:
         code.interact(
-            banner=f"Use `sf` to access org `{org_name}` via simple_salesforce",
+            banner=f"Use `sf` to access org `{org_name}` via simple_salesforce\n"
+            + "Type `help` for more information about the cci shell.",
             local=globals,
         )
 
     # Save the org config in case it was modified
-    runtime.keychain.set_org(org_config)
+    org_config.save()
 
 
 # Commands for group: task
@@ -1152,24 +1318,18 @@ def org_shell(runtime, org_name, script=None, python=None):
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False)
 def task_list(runtime, plain, print_json):
-    task_groups = {}
     tasks = (
         runtime.project_config.list_tasks()
         if runtime.project_config is not None
-        else runtime.global_config.list_tasks()
+        else runtime.universal_config.list_tasks()
     )
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
 
     if print_json:
         click.echo(json.dumps(tasks))
         return None
 
-    for task in tasks:
-        group = task["group"] or "Other"
-        if group not in task_groups:
-            task_groups[group] = []
-        task_groups[group].append([task["name"], task["description"]])
-
+    task_groups = group_items(tasks)
     for group, tasks in task_groups.items():
         data = [["Task", "Description"]]
         data.extend(sorted(tasks))
@@ -1186,7 +1346,7 @@ def task_list(runtime, plain, print_json):
 @task.command(name="doc", help="Exports RST format documentation for all tasks")
 @pass_runtime(require_project=False)
 def task_doc(runtime):
-    config_src = runtime.global_config
+    config_src = runtime.universal_config
 
     click.echo("==========================================")
     click.echo("Tasks Reference")
@@ -1202,12 +1362,12 @@ def task_doc(runtime):
 
 @task.command(name="info", help="Displays information for a task")
 @click.argument("task_name")
-@pass_runtime(require_project=False)
+@pass_runtime(require_project=False, require_keychain=True)
 def task_info(runtime, task_name):
     task_config = (
         runtime.project_config.get_task(task_name)
         if runtime.project_config is not None
-        else runtime.global_config.get_task(task_name)
+        else runtime.universal_config.get_task(task_name)
     )
 
     doc = doc_task(task_name, task_config).encode()
@@ -1298,22 +1458,23 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False)
 def flow_list(runtime, plain, print_json):
-    plain = plain or runtime.global_config.cli__plain_output
+    plain = plain or runtime.universal_config.cli__plain_output
     flows = (
         runtime.project_config.list_flows()
         if runtime.project_config is not None
-        else runtime.global_config.list_flows()
+        else runtime.universal_config.list_flows()
     )
 
     if print_json:
         click.echo(json.dumps(flows))
         return None
 
-    data = [["Name", "Description"]]
-    data.extend([flow["name"], flow["description"]] for flow in flows)
-
-    table = CliTable(data, title="Flows", wrap_cols=["Description"])
-    table.echo(plain=plain)
+    flow_groups = group_items(flows)
+    for group, flows in flow_groups.items():
+        data = [["Flow", "Description"]]
+        data.extend(sorted(flows))
+        table = CliTable(data, group, wrap_cols=["Description"])
+        table.echo(plain)
 
     click.echo(
         "Use "
@@ -1324,7 +1485,7 @@ def flow_list(runtime, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
-@pass_runtime
+@pass_runtime(require_keychain=True)
 def flow_info(runtime, flow_name):
     try:
         coordinator = runtime.get_flow(flow_name)
@@ -1376,8 +1537,13 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
     options = defaultdict(dict)
     if o:
         for key, value in o:
-            task_name, option_name = key.split("__")
-            options[task_name][option_name] = value
+            if "__" in key:
+                task_name, option_name = key.split("__")
+                options[task_name][option_name] = value
+            else:
+                raise click.UsageError(
+                    "-o option for flows should contain __ to split task name from option name."
+                )
 
     # Create the flow and handle initialization exceptions
     try:
@@ -1397,20 +1563,25 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
             click.echo(str(e))
 
 
+CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
+
+
 @error.command(
     name="info",
-    help="Outputs the last part of the most recent traceback (if one exists in the most recent log)",
+    help="Outputs the most recent traceback (if one exists in the most recent log)",
 )
-@click.option("--max-lines", "-m", default=30, show_default=True, type=int)
-def error_info(max_lines):
+@click.option("--max-lines", "-m", type=int)
+def error_info(max_lines: int = 0):
     if not CCI_LOGFILE_PATH.is_file():
         click.echo(f"No logfile found at: {CCI_LOGFILE_PATH}")
     else:
-        output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), max_lines)
+        output = lines_from_traceback(
+            CCI_LOGFILE_PATH.read_text(encoding="utf-8"), max_lines
+        )
         click.echo(output)
 
 
-def lines_from_traceback(log_content, num_lines):
+def lines_from_traceback(log_content: str, max_lines: int = 0) -> str:
     """Returns the the last max_lines of the logfile,
     or the whole traceback, whichever is shorter. If
     no stacktrace is found in the logfile, the user is
@@ -1421,12 +1592,11 @@ def lines_from_traceback(log_content, num_lines):
         return f"\nNo stacktrace found in: {CCI_LOGFILE_PATH}\n"
 
     stacktrace = ""
-    for line in reversed(log_content.split("\n")):
+    for i, line in enumerate(reversed(log_content.split("\n")), 1):
         stacktrace = "\n" + line + stacktrace
         if stacktrace_start in line:
             break
-        num_lines -= 1
-        if num_lines == -1:
+        if i == max_lines:
             break
 
     return stacktrace
@@ -1436,7 +1606,7 @@ def lines_from_traceback(log_content, num_lines):
 @pass_runtime(require_project=False, require_keychain=True)
 def gist(runtime):
     if CCI_LOGFILE_PATH.is_file():
-        log_content = CCI_LOGFILE_PATH.read_text()
+        log_content = CCI_LOGFILE_PATH.read_text(encoding="utf-8")
     else:
         log_not_found_msg = """No logfile to open at path: {}
         Please ensure you're running this command from the same directory you were experiencing an issue."""
@@ -1466,3 +1636,12 @@ def gist(runtime):
     else:
         click.echo(f"Gist created: {gist.html_url}")
         webbrowser.open(gist.html_url)
+
+
+def group_items(items):
+    groups = defaultdict(list)
+    for item in items:
+        group_name = item["group"] or "Other"
+        groups[group_name].append([item["name"], item["description"]])
+
+    return groups

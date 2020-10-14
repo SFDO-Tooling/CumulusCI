@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os.path
 from setuptools import setup
 from pkgutil import walk_packages
 
@@ -12,6 +13,9 @@ def find_packages(path=["."], prefix=""):
         if ispkg:
             yield name
 
+
+with open(os.path.join("cumulusci", "version.txt"), "r") as version_file:
+    version = version_file.read().strip()
 
 with open("README.rst", "rb") as readme_file:
     readme = readme_file.read().decode("utf-8")
@@ -34,7 +38,7 @@ with open("requirements_dev.txt") as dev_requirements_file:
 
 setup(
     name="cumulusci",
-    version="3.5.4",
+    version=version,
     description="Build and release tools for Salesforce developers",
     long_description=readme + u"\n\n" + history,
     long_description_content_type="text/x-rst",

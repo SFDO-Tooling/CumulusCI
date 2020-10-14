@@ -20,6 +20,17 @@ The ability to create rich, single file integration tests that interact with Cum
 
 The integration with Robot Framework adds a new dimension to CumulusCI.  Before, automating the recreation of a test environment for an edge case bug reported in a custom org would have required creating new tasks in cumulusci.yml which pollute the project's task list used by everyone on the project for an obscure scenario needed only for regression testing.  Now, you can create the test scenario in a .robot test file and run it through the standard **robot** task in CumulusCI.  Adding a new test scenario just adds a new file in the repository rather than a new task in CumulusCI.
 
+Included Libraries
+==================
+
+CumulusCI comes bundled with the following additional third-party keyword libraries in addition to the libraries that come with robot framework itself:
+
+* `SeleniumLibrary <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html>`_ for browser testing
+* `RequestsLibrary <https://marketsquare.github.io/robotframework-requests/doc/RequestsLibrary.html>`_  for testing REST APIs
+
+SeleniumLibrary is automatically imported when you import Salesforce.robot. To use RequestsLibrary you need to explicitly import it in the settings section of your robot test.
+
+
 Example Robot Test
 ==================
 
@@ -39,8 +50,8 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
    *** Test Cases ***
 
    Via API
-       ${first_name} =       Generate Random String
-       ${last_name} =        Generate Random String
+       ${first_name} =       Get fake data  first_name
+       ${last_name} =        Get fake data  last_name
        ${contact_id} =       Salesforce Insert  Contact
        ...                     FirstName=${first_name}
        ...                     LastName=${last_name}
@@ -49,8 +60,8 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
        Validate Contact      ${contact_id}  ${first_name}  ${last_name}
 
    Via UI
-       ${first_name} =       Generate Random String
-       ${last_name} =        Generate Random String
+       ${first_name} =       Get fake data  first_name
+       ${last_name} =        Get fake data  last_name
 
        Go to page            Home  Contact
        Click Object Button   New
@@ -83,8 +94,8 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
 
        # Validate via API
        &{contact} =     Salesforce Get  Contact  ${contact_id}
-       Should Be Equal  ${first_name}  &{contact}[FirstName]
-       Should Be Equal  ${last_name}  &{contact}[LastName]
+       Should Be Equal  ${first_name}  ${contact}[FirstName]
+       Should Be Equal  ${last_name}   ${contact}[LastName]
 
 
 Settings
@@ -102,14 +113,14 @@ The two test cases test the same operation done through two different paths: the
 Via API
 ^^^^^^^
 
-This test case uses the **Generate Random String** keyword to create random strings for the contact's first and last name.  It then uses the **Salesforce Insert** keyword from the Salesforce Library (included via Salesforce.robot) to insert a Contact using the random first and last names.  Next, it uses **Salesforce Get** to retrieve the Contact's information as a dictionary.
+This test case uses the **Get fake data** keyword to generate a first and last name.  It then uses the **Salesforce Insert** keyword from the Salesforce Library (included via Salesforce.robot) to insert a Contact using the same technique for generating test data. Next, it uses **Salesforce Get** to retrieve the Contact's information as a dictionary.
 
 Finally, the test calls the **Validate Contact** keyword explained in the Keywords section below.
 
 Via UI
 ^^^^^^
 
-This test case also uses **Generate Random String** for the first and last name, but instead uses the test browser to create a Contact via the Salesforce UI.  Using keywords from the Salesforce Library, it navigates to the Contact home page and clicks the **New** button to open a modal form.  It then uses **Populate Form** to fill in the First Name and Last Name fields (selected by field label) and uses **Click Modal Button** to click the **Save** button and **Wait Until Modal Is Closed** to wait for the modal to close.
+This test case also uses **Get fake data** for the first and last name, but instead uses the test browser to create a Contact via the Salesforce UI.  Using keywords from the Salesforce Library, it navigates to the Contact home page and clicks the **New** button to open a modal form.  It then uses **Populate Form** to fill in the First Name and Last Name fields (selected by field label) and uses **Click Modal Button** to click the **Save** button and **Wait Until Modal Is Closed** to wait for the modal to close.
 
 At this point, we should be on the record view for the new Contact.  We use the **Get Current Record Id** keyword to parse the Contact's ID from the url in the browser and the **Store Session Record** keyword to register the Contact in the session records list.  The session records list stores the type and id of all records created in the session which is used by the **Delete Records and Close Browser** keyword on Suite Teardown to delete all the records created during the test.  In the **Via API** test, we didn't have to register the record since the **Salesforce Insert** keyword does that for us automatically.  In the **Via UI** test, we created the Contact in the browser and thus need to store its ID manually for it to be deleted.
 
@@ -160,6 +171,76 @@ This simple test file can then be run via the **robot** task in CumulusCI:
 If you put all of your tests inside that **robot/<project name>/tests** folder you don't have to use the **suite** option. By default the robot task will run all tests in the folder and all subfolders. For example, to run all tests and use the default browser you just have to issue the command `cci task run robot`.
 
 
+Salesforce.robot
+================
+
+Keywords can be defined in a test suite file, but they can also be defined in libraries and resource files. Libraries are written in python, and resource files are written in the robot syntax. Resource files are almost identical to a test file, except that they have no tests and can be imported into other test files. In addition to containing keywords, resource files can also define variables and they can import other libraries.
+
+The file **cumulusci/robotframework/Salesforce.robot** was designed to be the way to import all of the keywords and variables provided by CumulusCI. It should be the first item imported in a test file. It will import the :ref:`salesforce-library-overview` and :ref:`cumulusci-library-overview`, as well as the most commonly used robot libraries
+(`Collections <http://robotframework.org/robotframework/latest/libraries/Collections.html>`_,
+`OperatingSystem <http://robotframework.org/robotframework/latest/libraries/OperatingSystem.html>`_,
+`String <http://robotframework.org/robotframework/latest/libraries/String.html>`_, and
+`XML <http://robotframework.org/robotframework/latest/libraries/XML.html>`_)
+
+Variables defined in resource files are accessible to all tests in a suite which imports the resource file. They can be set in your cumulusci.yml file, or specified with the `vars` option to the robot task. When doing so, the variables need to be referenced without the dollar sign and curly braces. Variable names are case-insensitive.
+
+For example, here is how to set the browser to firefox and the default timeout to 20 seconds in a cumulusci.yml file:
+
+.. code-block:: yaml
+
+  tasks:
+    robot:
+      options:
+        vars:
+          - BROWSER:firefox
+          - TIMEOUT:20 seconds
+
+The same variables can be set from the command line to override the config file for a single test run. This example shows that you can use the lowercase name for convenience:
+
+.. code-block:: console
+
+    $ cci task run robot -o vars browser:firefox,timeout:20
+
+
+Supported Variables
+-------------------
+
+The following variables defined in **Salesforce.robot** are all used by the ``Open Test Browser`` keyword:
+
+.. list-table::
+   :widths:  1 3
+
+   * - ``${BROWSER}``
+     - Defines the browser to be used for testing. Supported values are
+       ``chrome``, ``firefox``,`` headlesschrome``, and ``headlessfirefox``.
+       Default: ``chrome``
+
+   * - ``${DEFAULT_BROWSER_SIZE}``
+     - This sets the preferred size of the browser. It is specified in the form of widthxheight, and
+       the values are passed to the `Set window size
+       <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Window%20Size>`_ keyword.
+       Default: ``1280x1024``
+
+   * - ``${IMPLICIT_WAIT}``
+     - This is automatically passed to the `Set Selenium Implicit Wait
+       <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Implicit%20Wait>`_ keyword.
+       Default: ``7 seconds``
+
+   * - ``${SELENIUM_SPEED}``
+     - This defines a delay added after every selenium command. It is
+       automatically passed to the `Set Selenium Speed
+       <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Speed>`_ keyword.
+       Default: ``0 seconds``
+
+   * - ``${TIMEOUT}``
+     - This sets the default amount of time selenium commands will wait before timing out. It is
+       automatically passed to the `Set Selenium Timeout
+       <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Timeout>`_ keyword.
+       Default: ``30 seconds``
+
+
+.. _cumulusci-library-overview:
+
 CumulusCI Library
 =================
 
@@ -187,10 +268,12 @@ The **Run Task Class** keyword is for use cases where you want to use one of Cum
 Full Documentation
 ------------------
 
-Use the following links to download generated documentation for the CumulusCI Library and Resource file:
+Use the following links to download generated documentation for both
+the CumulusCI and Salesforce keywords
 
-* :download:`CumulusCI Robot Library <../docs/robot/CumulusCI_Library.html>`
-* :download:`CumulusCI Robot Resource <../docs/robot/CumulusCI_Resource.html>`
+* :download:`CumulusCI Keyword Documentation <../docs/robot/Keywords.html>`
+
+.. _salesforce-library-overview:
 
 Salesforce Library
 ==================
@@ -214,6 +297,10 @@ API Keywords
 
 In addition to browser interactions, the Salesforce Library also provides the following keywords for interacting with the Salesforce REST API:
 
+* **Salesforce Collection Insert**: used for bulk creation of objects
+  based on a template
+* **Salesforce Collection Update**: used for the bulk updating of
+  objects
 * **Salesforce Delete**: Deletes a record using its type and ID
 * **Salesforce Get**: Gets a dictionary of a record from its ID
 * **Salesforce Insert**: Inserts a record using its type and field values.  Returns the ID.
@@ -294,6 +381,8 @@ which should be used for all classes that use the ``pageobject`` decorator:
   page object which represents a listing page
 - ``cumulusci.robotframework.pageobject.NewModal`` - a class for a
   page object which represents the "new object" modal
+- ``cumulusci.robotframework.pageobject.ObjectManagerPage`` - a class
+  for interacting with the object manager.
 
 The ``BasePage`` class adds the following keyword to every page object:
 

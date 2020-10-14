@@ -8,6 +8,7 @@ import github3
 from github3 import GitHub
 from github3 import login
 from github3.pulls import ShortPullRequest
+from github3.session import GitHubSession
 
 from cumulusci.core.exceptions import GithubException
 
@@ -33,12 +34,16 @@ def get_github_api(username=None, password=None):
 INSTALLATIONS = {}
 
 
-def get_github_api_for_repo(keychain, owner, repo):
-    gh = GitHub()
+def get_github_api_for_repo(keychain, owner, repo, session=None):
+    gh = GitHub(
+        session=session
+        or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
+    )
     # Apply retry policy
     gh.session.mount("http://", adapter)
     gh.session.mount("https://", adapter)
 
+    GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
     APP_KEY = os.environ.get("GITHUB_APP_KEY", "").encode("utf-8")
     APP_ID = os.environ.get("GITHUB_APP_ID")
     if APP_ID and APP_KEY:
@@ -54,6 +59,8 @@ def get_github_api_for_repo(keychain, owner, repo):
                 )
             INSTALLATIONS[(owner, repo)] = installation
         gh.login_as_app_installation(APP_KEY, APP_ID, installation.id)
+    elif GITHUB_TOKEN:
+        gh.login(token=GITHUB_TOKEN)
     else:
         github_config = keychain.get_service("github")
         gh.login(github_config.username, github_config.password)
@@ -87,7 +94,7 @@ def get_pull_requests_by_head(repo, branch_name):
 
 def create_pull_request(repo, branch_name, base=None, title=None):
     """Creates a pull request for the given branch"""
-    base = base or "master"
+    base = base or repo.default_branch
     title = title or "Auto-Generated Pull Request"
     pull_request = repo.create_pull(title, base, branch_name)
     return pull_request

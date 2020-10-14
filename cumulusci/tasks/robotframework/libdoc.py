@@ -11,7 +11,7 @@ from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_glob_list_arg
 from cumulusci.robotframework import PageObjects
 
-from robot.libdocpkg import DocumentationBuilder
+from robot.libdocpkg.builder import DocumentationBuilder
 from robot.libraries.BuiltIn import RobotNotRunningError
 from robot.libdocpkg.robotbuilder import LibraryDocBuilder
 from robot.utils import Importer
@@ -25,7 +25,7 @@ class RobotLibDoc(BaseTask):
                 "The path can be single a python file, a .robot file, a python "
                 "module (eg: cumulusci.robotframework.Salesforce) or a comma "
                 "separated list of any of those. Glob patterns are supported "
-                "for filenames (eg: robot/SAL/doc/*PageObject.py). The order "
+                "for filenames (eg: ``robot/SAL/doc/*PageObject.py``). The order "
                 "of the files will be preserved in the generated documentation. "
                 "The result of pattern expansion will be sorted"
             ),

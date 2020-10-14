@@ -12,7 +12,7 @@ class ActivateFlow(BaseSalesforceApiTask):
         "developer_names": {
             "description": "List of DeveloperNames to query in SOQL",
             "required": True,
-        },
+        }
     }
 
     def _init_options(self, kwargs):

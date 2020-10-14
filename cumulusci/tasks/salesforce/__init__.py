@@ -1,95 +1,78 @@
-# ORDER MATTERS!
+"""Salesforce tasks
 
-# inherit from BaseTask
-from cumulusci.tasks.salesforce.BaseSalesforceTask import BaseSalesforceTask
+This package uses a lazy import system inspired by werkzeug
+(for startup speed and to avoid problems with import cycles).
+We should be able to replace LazyModule with a module-level __getattr__
+one we drop support for Python 3.6.
+"""
 
-# inherit from BaseSalesforceTask
-from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
-from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
-    BaseSalesforceMetadataApiTask,
-)
+from types import ModuleType
+import sys
 
-# inherit from BaseSalesforceApiTask
-from cumulusci.tasks.salesforce.package_upload import PackageUpload
-from cumulusci.tasks.salesforce.SOQLQuery import SOQLQuery
-from cumulusci.tasks.salesforce.CreateCommunity import CreateCommunity
-from cumulusci.tasks.salesforce.ListCommunities import ListCommunities
-from cumulusci.tasks.salesforce.ListCommunityTemplates import ListCommunityTemplates
-from cumulusci.tasks.salesforce.PublishCommunity import PublishCommunity
-from cumulusci.tasks.salesforce.custom_settings import LoadCustomSettings
-from cumulusci.tasks.salesforce.trigger_handlers import SetTDTMHandlerStatus
+ORIGINS = {
+    "BaseRetrieveMetadata": "cumulusci.tasks.salesforce.BaseRetrieveMetadata",
+    "BaseSalesforceTask": "cumulusci.tasks.salesforce.BaseSalesforceTask",
+    "BaseSalesforceApiTask": "cumulusci.tasks.salesforce.BaseSalesforceApiTask",
+    "BaseSalesforceMetadataApiTask": "cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask",
+    "BaseUninstallMetadata": "cumulusci.tasks.salesforce.BaseUninstallMetadata",
+    "CreateCommunity": "cumulusci.tasks.salesforce.CreateCommunity",
+    "CreatePackage": "cumulusci.tasks.salesforce.CreatePackage",
+    "Deploy": "cumulusci.tasks.salesforce.Deploy",
+    "DeployBundles": "cumulusci.tasks.salesforce.DeployBundles",
+    "EnsureRecordTypes": "cumulusci.tasks.salesforce.EnsureRecordTypes",
+    "GetInstalledPackages": "cumulusci.tasks.preflight.packages",
+    "InstallPackageVersion": "cumulusci.tasks.salesforce.install_package_version",
+    "ListCommunities": "cumulusci.tasks.salesforce.ListCommunities",
+    "ListCommunityTemplates": "cumulusci.tasks.salesforce.ListCommunityTemplates",
+    "LoadCustomSettings": "cumulusci.tasks.salesforce.custom_settings",
+    "PackageUpload": "cumulusci.tasks.salesforce.package_upload",
+    "ProfileGrantAllAccess": "cumulusci.tasks.salesforce.update_profile",
+    "PublishCommunity": "cumulusci.tasks.salesforce.PublishCommunity",
+    "RetrievePackaged": "cumulusci.tasks.salesforce.RetrievePackaged",
+    "RetrieveReportsAndDashboards": "cumulusci.tasks.salesforce.RetrieveReportsAndDashboards",
+    "RetrieveUnpackaged": "cumulusci.tasks.salesforce.RetrieveUnpackaged",
+    "SOQLQuery": "cumulusci.tasks.salesforce.SOQLQuery",
+    "SetTDTMHandlerStatus": "cumulusci.tasks.salesforce.trigger_handlers",
+    "UninstallLocal": "cumulusci.tasks.salesforce.UninstallLocal",
+    "UninstallLocalBundles": "cumulusci.tasks.salesforce.UninstallLocalBundles",
+    "UninstallLocalNamespacedBundles": "cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles",
+    "UninstallPackage": "cumulusci.tasks.salesforce.UninstallPackage",
+    "UninstallPackaged": "cumulusci.tasks.salesforce.UninstallPackaged",
+    "UninstallPackagedIncremental": "cumulusci.tasks.salesforce.UninstallPackagedIncremental",
+    "UpdateDependencies": "cumulusci.tasks.salesforce.update_dependencies",
+    "UpdateProfile": "cumulusci.tasks.salesforce.update_profile",
+    "UpdateAdminProfile": "cumulusci.tasks.salesforce.update_profile",
+}
 
-# inherit from BaseSalesforceMetadataApiTask
-from cumulusci.tasks.salesforce.BaseRetrieveMetadata import BaseRetrieveMetadata
-from cumulusci.tasks.salesforce.Deploy import Deploy
-from cumulusci.tasks.salesforce.GetInstalledPackages import GetInstalledPackages
-from cumulusci.tasks.salesforce.UpdateDependencies import UpdateDependencies
 
-# inherit from BaseSalesforceApiTask and use Deploy
-from cumulusci.tasks.salesforce.EnsureRecordTypes import EnsureRecordTypes
+class LazyModule(ModuleType):
+    def __getattr__(self, name):
+        # Import and set attribute on demand
+        # (__getattr__ is only called if it hasn't been set already)
+        if name in ORIGINS:
+            origin = ORIGINS[name]
+            module = __import__(origin, None, None, [name])
+            setattr(self, name, getattr(module, name))
+        return ModuleType.__getattribute__(self, name)
 
-# inherit from BaseRetrieveMetadata
-from cumulusci.tasks.salesforce.RetrievePackaged import RetrievePackaged
-from cumulusci.tasks.salesforce.RetrieveReportsAndDashboards import (
-    RetrieveReportsAndDashboards,
-)
-from cumulusci.tasks.salesforce.RetrieveUnpackaged import RetrieveUnpackaged
+    def __setattr__(self, name, value):
+        # Avoid shadowing our intended classes with submodules of the same name
+        # when they are imported.
+        if name in ORIGINS and isinstance(value, ModuleType):
+            return
+        ModuleType.__setattr__(self, name, value)
 
-# inherit from Deploy
-from cumulusci.tasks.salesforce.BaseUninstallMetadata import BaseUninstallMetadata
-from cumulusci.tasks.salesforce.CreatePackage import CreatePackage
-from cumulusci.tasks.salesforce.DeployBundles import DeployBundles
-from cumulusci.tasks.salesforce.InstallPackageVersion import InstallPackageVersion
-from cumulusci.tasks.salesforce.UninstallPackage import UninstallPackage
-from cumulusci.tasks.salesforce.UpdateAdminProfile import UpdateAdminProfile
 
-# inherit from BaseUninstallMetadata
-from cumulusci.tasks.salesforce.UninstallLocal import UninstallLocal
+# create LazyModule and replace the reference to ourself in sys.modules
+new_module = sys.modules[__name__] = LazyModule(__name__)
 
-# inherit from UninstallLocal
-from cumulusci.tasks.salesforce.UninstallLocalBundles import UninstallLocalBundles
-from cumulusci.tasks.salesforce.UninstallPackaged import UninstallPackaged
-
-# inherit from UninstallLocalBundles
-from cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles import (
-    UninstallLocalNamespacedBundles,
-)
-
-# inherit from UninstallPackaged
-from cumulusci.tasks.salesforce.UninstallPackagedIncremental import (
-    UninstallPackagedIncremental,
-)
-
-# flake 8 hacks to prevent pre commit rejection
-flake8Hack = (
-    BaseSalesforceTask,
-    BaseSalesforceApiTask,
-    BaseSalesforceMetadataApiTask,
-    PackageUpload,
-    SOQLQuery,
-    CreateCommunity,
-    ListCommunities,
-    ListCommunityTemplates,
-    PublishCommunity,
-    BaseRetrieveMetadata,
-    Deploy,
-    GetInstalledPackages,
-    UpdateDependencies,
-    EnsureRecordTypes,
-    RetrievePackaged,
-    RetrieveReportsAndDashboards,
-    RetrieveUnpackaged,
-    BaseUninstallMetadata,
-    CreatePackage,
-    DeployBundles,
-    InstallPackageVersion,
-    UninstallPackage,
-    UpdateAdminProfile,
-    UninstallLocal,
-    UninstallLocalBundles,
-    UninstallPackaged,
-    UninstallLocalNamespacedBundles,
-    UninstallPackagedIncremental,
-    LoadCustomSettings,
-    SetTDTMHandlerStatus,
+# copy over some special attributes
+new_module.__dict__.update(
+    {
+        "__doc__": __doc__,
+        "__file__": __file__,
+        "__path__": __path__,
+        "__spec__": __spec__,
+        "__all__": tuple(ORIGINS),
+    }
 )

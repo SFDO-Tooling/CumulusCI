@@ -1,15 +1,22 @@
-import glob
 import importlib
 import logging
-import os.path
 import re
 import time
 
 from pprint import pformat
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from robot.utils import timestr_to_secs
+from cumulusci.robotframework.utils import get_locator_module_name
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import (
+    StaleElementReferenceException,
+    NoSuchElementException,
+    JavascriptException,
+    WebDriverException,
+)
+
+import faker
 
 from simple_salesforce import SalesforceResourceNotFound
 from cumulusci.robotframework.utils import selenium_retry, capture_screenshot_on_error
@@ -51,6 +58,13 @@ class Salesforce(object):
         else:
             self._init_locators()
 
+        self._faker = faker.Faker("en_US")
+        try:
+            self.builtin.set_global_variable("${faker}", self._faker)
+        except RobotNotRunningError:
+            # this only happens during unit tests, and we don't care.
+            pass
+
     def _init_locators(self):
         """Load the appropriate locator file for the current version
 
@@ -59,19 +73,16 @@ class Salesforce(object):
         """
         try:
             version = int(float(self.get_latest_api_version()))
-            locator_module_name = "locators_{}".format(version)
-
+            self.builtin.set_suite_metadata("Salesforce API Version", version)
         except RobotNotRunningError:
-            # We aren't part of a running test, likely because we are
-            # generating keyword documentation. If that's the case we'll
-            # use the latest supported version
-            here = os.path.dirname(__file__)
-            files = sorted(glob.glob(os.path.join(here, "locators_*.py")))
-            locator_module_name = os.path.basename(files[-1])[:-3]
+            # Likely this means we are running in the context of
+            # documentation generation. Setting the version to
+            # None will result in using the latest version of
+            # locators.
+            version = None
 
-        self.locators_module = importlib.import_module(
-            "cumulusci.robotframework." + locator_module_name
-        )
+        locator_module_name = get_locator_module_name(version)
+        self.locators_module = importlib.import_module(locator_module_name)
         lex_locators.update(self.locators_module.lex_locators)
 
     @property
@@ -86,7 +97,7 @@ class Salesforce(object):
         """Initialize the Salesforce location strategies 'text' and 'title'
         plus any strategies registered by other keyword libraries
 
-        Note: This keyword is called automatically from Open Test Browser
+        Note: This keyword is called automatically from *Open Test Browser*
         """
         locator_manager.register_locators("sf", lex_locators)
         locator_manager.register_locators("text", "Salesforce.Locate Element by Text")
@@ -97,6 +108,7 @@ class Salesforce(object):
         # libraries.
         locator_manager.add_location_strategies()
 
+    @selenium_retry(False)
     def _jsclick(self, locator):
         """Use javascript to click an element on the page
 
@@ -104,14 +116,97 @@ class Salesforce(object):
         """
 
         self.selenium.wait_until_page_contains_element(locator)
-        element = self.selenium.get_webelement(locator)
-        # Setting the focus first seems to be required as of Spring'20
-        # (read: without it, tests started failing in that release). I
-        # suspect it's because there is a focusOut handler on form
-        # fields which need to be triggered for data to be accepted.
-        self.selenium.driver.execute_script(
-            "arguments[0].focus(); arguments[0].click()", element
-        )
+        self.selenium.wait_until_element_is_enabled(locator)
+        for should_retry in (True, False):
+            try:
+                # Setting the focus first seems to be required as of Spring'20
+                # (read: without it, tests started failing in that release). I
+                # suspect it's because there is a focusOut handler on form
+                # fields which need to be triggered for data to be accepted.
+                element = self.selenium.get_webelement(locator)
+                self.selenium.driver.execute_script(
+                    "arguments[0].focus(); arguments[0].click()", element
+                )
+                return
+            except StaleElementReferenceException:
+                if should_retry:
+                    time.sleep(1)
+                else:
+                    raise
+
+    def set_faker_locale(self, locale):
+        """Set the locale for fake data
+
+        This sets the locale for all calls to the ``Faker`` keyword
+        and ``${faker}`` variable. The default is en_US
+
+        For a list of supported locales see
+        [https://faker.readthedocs.io/en/master/locales.html|Localized Providers]
+        in the Faker documentation.
+
+        Example
+
+        | Set Faker Locale    fr_FR
+        | ${french_address}=  Faker  address
+
+        """
+        try:
+            self._faker = faker.Faker(locale)
+        except AttributeError:
+            raise Exception(f"Unknown locale for fake data: '{locale}'")
+
+    def get_fake_data(self, fake, *args, **kwargs):
+        """Return fake data
+
+        This uses the [https://faker.readthedocs.io/en/master/|Faker]
+        library to provide fake data in a variety of formats (names,
+        addresses, credit card numbers, dates, phone numbers, etc) and
+        locales (en_US, fr_FR, etc).
+
+        The _fake_ argument is the name of a faker property such as
+        ``first_name``, ``address``, ``lorem``, etc. Additional
+        arguments depend on type of data requested. For a
+        comprehensive list of the types of fake data that can be
+        generated see
+        [https://faker.readthedocs.io/en/master/providers.html|Faker
+        providers] in the Faker documentation.
+
+        The return value is typically a string, though in some cases
+        some other type of object will be returned. For example, the
+        ``date_between`` fake returns a
+        [https://docs.python.org/3/library/datetime.html#date-objects|datetime.date
+        object]. Each time a piece of fake data is requested it will
+        be regenerated, so that multiple calls will usually return
+        different data.
+
+        This keyword can also be called using robot's extended variable
+        syntax using the variable ``${faker}``. In such a case, the
+        data being asked for is a method call and arguments must be
+        enclosed in parentheses and be quoted. Arguments should not be
+        quoted when using the keyword.
+
+        To generate fake data for a locale other than en_US, use
+        the keyword ``Set Faker Locale`` prior to calling this keyword.
+
+        Examples
+
+        | # Generate a fake first name
+        | ${first_name}=  Get fake data  first_name
+
+        | # Generate a fake date in the default format
+        | ${date}=  Get fake data  date
+
+        | # Generate a fake date with an explicit format
+        | ${date}=  Get fake data  date  pattern=%Y-%m-%d
+
+        | # Generate a fake date using extended variable syntax
+        | Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
+
+        """
+        try:
+            return self._faker.format(fake, *args, **kwargs)
+        except AttributeError:
+            raise Exception(f"Unknown fake data request: '{fake}'")
 
     def get_latest_api_version(self):
         return self.cumulusci.org.latest_api_version
@@ -131,6 +226,7 @@ class Salesforce(object):
                 time.sleep(5)
         raise Exception("Could not connect to remote webdriver after 1 minute")
 
+    @capture_screenshot_on_error
     def click_modal_button(self, title):
         """Clicks a button in a Lightning modal."""
         locator = lex_locators["modal"]["button"].format(title)
@@ -138,32 +234,36 @@ class Salesforce(object):
         self.selenium.wait_until_element_is_enabled(locator)
         self._jsclick(locator)
 
+    @capture_screenshot_on_error
     def click_object_button(self, title):
         """Clicks a button in an object's actions."""
-        locator = lex_locators["object"]["button"].format(title)
+        locator = lex_locators["object"]["button"].format(title=title)
         self._jsclick(locator)
         self.wait_until_modal_is_open()
 
-    def load_related_list(self, heading):
+    @capture_screenshot_on_error
+    def load_related_list(self, heading, tries=10):
         """Scrolls down until the specified related list loads.
+
+        If the related list isn't found, the keyword will scroll down
+        in 100 pixel increments to trigger lightning into loading the
+        list. This process of scrolling will be repeated until the
+        related list has been loaded or we've tried several times
+        (the default is 10 tries)
+
         """
         locator = lex_locators["record"]["related"]["card"].format(heading)
-        el = None
-        i = 0
-        while el is None:
-            i += 1
-            if i > 50:
-                raise AssertionError(
-                    "Timed out waiting for {} related list to load.".format(heading)
+        for i in range(tries):
+            try:
+                self.selenium.scroll_element_into_view(locator)
+                return
+            except (ElementNotFound, JavascriptException, WebDriverException):
+                self.builtin.log(
+                    f"related list '{heading}' not found; scrolling...", "DEBUG"
                 )
             self.selenium.execute_javascript("window.scrollBy(0, 100)")
             self.wait_for_aura()
-            try:
-                self.selenium.get_webelement(locator)
-                break
-            except ElementNotFound:
-                time.sleep(0.2)
-                continue
+        raise AssertionError(f"Timed out waiting for related list '{heading}' to load.")
 
     def click_related_list_button(self, heading, button_title):
         """Clicks a button in the heading of a related list.
@@ -181,7 +281,7 @@ class Salesforce(object):
     def click_related_item_link(self, heading, title):
         """Clicks a link in the related list with the specified heading.
 
-         This keyword will automatically call `Wait until loading is complete`
+        This keyword will automatically call *Wait until loading is complete*.
         """
         self.load_related_list(heading)
         locator = lex_locators["record"]["related"]["link"].format(heading, title)
@@ -267,8 +367,8 @@ class Salesforce(object):
         return driver_ids
 
     def get_current_record_id(self):
-        """ Parses the current url to get the object id of the current record.
-            Expects url format like: [a-zA-Z0-9]{15,18}
+        """Parses the current url to get the object id of the current record.
+        Expects url format like: [a-zA-Z0-9]{15,18}
         """
         url = self.selenium.get_location()
         for part in url.split("/"):
@@ -286,9 +386,9 @@ class Salesforce(object):
         return value
 
     def get_locator(self, path, *args, **kwargs):
-        """ Returns a rendered locator string from the Salesforce lex_locators
-            dictionary.  This can be useful if you want to use an element in
-            a different way than the built in keywords allow.
+        """Returns a rendered locator string from the Salesforce lex_locators
+        dictionary.  This can be useful if you want to use an element in
+        a different way than the built in keywords allow.
         """
         locator = lex_locators
         for key in path.split("."):
@@ -346,15 +446,15 @@ class Salesforce(object):
         self.wait_until_loading_is_complete()
 
     def header_field_should_have_value(self, label):
-        """ Validates that a field in the record header has a text value.
-            NOTE: Use other keywords for non-string value types
+        """Validates that a field in the record header has a text value.
+        NOTE: Use other keywords for non-string value types
         """
         locator = lex_locators["record"]["header"]["field_value"].format(label)
         self.selenium.page_should_contain_element(locator)
 
     def header_field_should_not_have_value(self, label):
-        """ Validates that a field in the record header does not have a value.
-            NOTE: Use other keywords for non-string value types
+        """Validates that a field in the record header does not have a value.
+        NOTE: Use other keywords for non-string value types
         """
         locator = lex_locators["record"]["header"]["field_value"].format(label)
         self.selenium.page_should_not_contain_element(locator)
@@ -392,7 +492,8 @@ class Salesforce(object):
         output += pformat(self.selenium.driver.capabilities, indent=4)
         self.builtin.log(output, level=loglevel)
 
-    def open_app_launcher(self):
+    @capture_screenshot_on_error
+    def open_app_launcher(self, retry=True):
         """Opens the Saleforce App Launcher Modal
 
         Note: starting with Spring '20 the app launcher button opens a
@@ -400,24 +501,39 @@ class Salesforce(object):
         this keyword will continue to open the modal rather than the
         menu. If you need to interact with the app launcher menu, you
         will need to create a custom keyword.
-        """
-        locator = lex_locators["app_launcher"]["button"]
-        self.builtin.log("Clicking App Launcher button")
-        self._jsclick(locator)
 
-        api_version = int(float(self.get_latest_api_version()))
-        if api_version >= 48:
-            self.selenium.wait_until_element_is_visible(
-                lex_locators["app_launcher"]["menu"],
-                error="Expected to see the app launcher menu, but didn't",
-            )
-            element = self.selenium.get_webelement(
-                lex_locators["app_launcher"]["view_all"]
-            )
-            self.builtin.log("clicking 'view all' button")
-            self.selenium.capture_page_screenshot()
-            self._jsclick(element)
+        If the retry parameter is true, the keyword will
+        close and then re-open the app launcher if it times out
+        while waiting for the dialog to open.
+        """
+
+        self._jsclick("sf:app_launcher.button")
+        self._jsclick("sf:app_launcher.view_all")
         self.wait_until_modal_is_open()
+        try:
+            # the modal may be open, but not yet fully rendered
+            # wait until at least one link appears. We've seen that sometimes
+            # the dialog hangs prior to any links showing up
+            self.selenium.wait_until_element_is_visible(
+                "xpath://ul[contains(@class, 'al-modal-list')]//li"
+            )
+
+        except Exception as e:
+            # This should never happen, yet it does. Experience has
+            # shown that sometimes (at least in spring '20) the modal
+            # never renders. Refreshing the modal seems to fix it.
+            if retry:
+                self.builtin.log(
+                    f"caught exception {e} waiting for app launcher; retrying", "DEBUG"
+                )
+                self.selenium.press_keys("sf:modal.is_open", "ESCAPE")
+                self.wait_until_modal_is_closed()
+                self.open_app_launcher(retry=False)
+            else:
+                self.builtin.log(
+                    "caught exception waiting for app launcher; not retrying", "DEBUG"
+                )
+                raise
 
     def populate_field(self, name, value):
         """Enters a value into an input or textarea field.
@@ -431,8 +547,7 @@ class Salesforce(object):
         self._populate_field(locator, value)
 
     def populate_lookup_field(self, name, value):
-        """Enters a value into a lookup field.
-        """
+        """Enters a value into a lookup field."""
         input_locator = self._get_input_field_locator(name)
         menu_locator = lex_locators["object"]["field_lookup_link"].format(value)
 
@@ -451,6 +566,7 @@ class Salesforce(object):
                 break
         self.selenium.set_focus_to_element(menu_locator)
         self._jsclick(menu_locator)
+        self.wait_for_aura()
 
     def _get_input_field_locator(self, name):
         """Given an input field label, return a locator for the related input field
@@ -488,8 +604,7 @@ class Salesforce(object):
         self._focus(field)
         if field.get_attribute("value"):
             self._clear(field)
-        actions = ActionChains(self.selenium.driver)
-        actions.send_keys_to_element(field, value).perform()
+        field.send_keys(value)
 
     def _focus(self, element):
         """Set focus to an element
@@ -569,46 +684,81 @@ class Salesforce(object):
     def select_app_launcher_app(self, app_name):
         """Navigates to a Salesforce App via the App Launcher """
         locator = lex_locators["app_launcher"]["app_link"].format(app_name)
-        self.builtin.log("Opening the App Launcher")
         self.open_app_launcher()
-        self.builtin.log("Getting the web element for the app")
+        self.selenium.wait_until_page_contains_element(locator, timeout=30)
         self.selenium.set_focus_to_element(locator)
         elem = self.selenium.get_webelement(locator)
-        self.builtin.log("Getting the parent link from the web element")
         link = elem.find_element_by_xpath("../../..")
         self.selenium.set_focus_to_element(link)
-        self.builtin.log("Clicking the link")
         link.click()
-        self.builtin.log("Waiting for modal to close")
         self.wait_until_modal_is_closed()
 
     @capture_screenshot_on_error
     def select_app_launcher_tab(self, tab_name):
         """Navigates to a tab via the App Launcher"""
         locator = lex_locators["app_launcher"]["tab_link"].format(tab_name)
-        self.builtin.log("Opening the App Launcher")
         self.open_app_launcher()
-        self.builtin.log("Clicking App Tab")
-        element = self.selenium.get_webelement(locator)
-        self._jsclick(element)
-        self.builtin.log("Waiting for modal to close")
+        self.selenium.wait_until_page_contains_element(locator)
+        self.selenium.set_focus_to_element(locator)
+        self._jsclick(locator)
         self.wait_until_modal_is_closed()
 
     def salesforce_delete(self, obj_name, obj_id):
-        """ Deletes a Saleforce object by id and returns the dict result """
+        """Deletes a Salesforce object by object name and Id.
+
+        Example:
+
+        The following example assumes that ``${contact id}`` has been
+        previously set. The example deletes the Contact with that Id.
+
+        | Salesforce Delete  Contact  ${contact id}
+        """
         self.builtin.log("Deleting {} with Id {}".format(obj_name, obj_id))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         obj_class.delete(obj_id)
         self.remove_session_record(obj_name, obj_id)
 
     def salesforce_get(self, obj_name, obj_id):
-        """ Gets a Salesforce object by id and returns the dict result """
-        self.builtin.log("Getting {} with Id {}".format(obj_name, obj_id))
+        """Gets a Salesforce object by Id and returns the result as a dict.
+
+        Example:
+
+        The following example assumes that ``${contact id}`` has been
+        previously set. The example retrieves the Contact object with
+        that Id and then logs the Name field.
+
+        | &{contact}=  Salesforce Get  Contact  ${contact id}
+        | log  Contact name:  ${contact['Name']}
+
+        """
+        self.builtin.log(f"Getting {obj_name} with Id {obj_id}")
         obj_class = getattr(self.cumulusci.sf, obj_name)
         return obj_class.get(obj_id)
 
     def salesforce_insert(self, obj_name, **kwargs):
-        """ Inserts a Salesforce object setting fields using kwargs and returns the id """
+        """Creates a new Salesforce object and returns the Id.
+
+        The fields of the object may be defined with keyword arguments
+        where the keyword name is the same as the field name.
+
+        The object name and Id is passed to the *Store Session
+        Record* keyword, and will be deleted when the keyword
+        *Delete Session Records* is called.
+
+        As a best practice, either *Delete Session Records* or
+        *Delete Records and Close Browser* from Salesforce.robot
+        should be called as a suite teardown.
+
+        Example:
+
+        The following example creates a new Contact with the
+        first name of "Eleanor" and the last name of "Rigby".
+
+        | ${contact id}=  Salesforce Insert  Contact
+        | ...  FirstName=Eleanor
+        | ...  LastName=Rigby
+
+        """
         self.builtin.log("Inserting {} with values {}".format(obj_name, kwargs))
         obj_class = getattr(self.cumulusci.sf, obj_name)
         res = obj_class.create(kwargs)
@@ -621,19 +771,25 @@ class Salesforce(object):
         return obj
 
     def generate_test_data(self, obj_name, number_to_create, **fields):
-        """Generate test data dictionaries. Usually used for later insertion into SF.
+        """Generate bulk test data
 
-        Returns an array of dictionaries with template-formatted arguments appropriate for a Collection Insert.
-        Use ``{{number}}`` to represent the unique index of the row in the list of rows.
-        IF the entire string consists of a number, Salesforce API will treat the value as a number.
+        This returns an array of dictionaries with template-formatted
+        arguments which can be passed to the *Salesforce Collection Insert*
+        keyword.
 
-        For example:
+        You can use ``{{number}}`` to represent the unique index of
+        the row in the list of rows.  If the entire string consists of
+        a number, Salesforce API will treat the value as a number.
+
+        Example:
+
+        The following example creates three new Contacts:
 
             | @{objects} =  Generate Test Data  Contact  3
             | ...  Name=User {{number}}
             | ...  Age={{number}}
 
-        Which would generate Contact objects with these fields:
+        The example code will generate Contact objects with these fields:
 
             | [{'Name': 'User 0', 'Age': '0'},
             |  {'Name': 'User 1', 'Age': '1'},
@@ -662,6 +818,7 @@ class Salesforce(object):
             | ...  MailingState=NY
             | ...  MailingPostalCode=12345
             | ...  Email={{fake.email(domain="salesforce.com")}}
+
         """
         objs = []
 
@@ -675,8 +832,29 @@ class Salesforce(object):
         return objs
 
     def salesforce_collection_insert(self, objects):
-        """Inserts up to 200 records that were created with Generate Test Data.
-           The 200 record limit is enforced by the Salesforce APIs"""
+        """Inserts records that were created with *Generate Test Data*.
+
+        _objects_ is a list of data, typically generated by the
+        *Generate Test Data* keyword.
+
+        A 200 record limit is enforced by the Salesforce APIs.
+
+        The object name and Id is passed to the *Store Session
+        Record* keyword, and will be deleted when the keyword *Delete
+        Session Records* is called.
+
+        As a best practice, either *Delete Session Records* or
+        **Delete Records and Close Browser* from Salesforce.robot
+        should be called as a suite teardown.
+
+        Example:
+
+        | @{objects}=  Generate Test Data  Contact  200
+        | ...  FirstName=User {{number}}
+        | ...  LastName={{fake.last_name}}
+        | Salesforce Collection Insert  ${objects}
+
+        """
         assert (
             not obj.get("id", None) for obj in objects
         ), "Insertable objects should not have IDs"
@@ -703,7 +881,29 @@ class Salesforce(object):
         return objects
 
     def salesforce_collection_update(self, objects):
-        """Updates up to 200 records described as Robot/Python dictionaries"""
+        """Updates records described as Robot/Python dictionaries.
+
+        _objects_ is a dictionary of data in the format returned
+        by the *Salesforce Collection Insert* keyword.
+
+        A 200 record limit is enforced by the Salesforce APIs.
+
+        Example:
+
+        The following example creates ten accounts and then updates
+        the Rating from "Cold" to "Hot"
+
+        | ${data}=  Generate Test Data  Account  10
+        | ...  Name=Account #{{number}}
+        | ...  Rating=Cold
+        | ${accounts}=  Salesforce Collection Insert  ${data}
+        |
+        | FOR  ${account}  IN  @{accounts}
+        |     Set to dictionary  ${account}  Rating  Hot
+        | END
+        | Salesforce Collection Update  ${accounts}
+
+        """
         for obj in objects:
             assert obj[
                 "id"
@@ -725,8 +925,32 @@ class Salesforce(object):
         for record, obj in zip(records, objects):
             obj[STATUS_KEY] = record
 
+        for idx, (record, obj) in enumerate(zip(records, objects)):
+            if record["errors"]:
+                raise AssertionError(
+                    "Error on Object {idx}: {record} : {obj}".format(**vars())
+                )
+
     def salesforce_query(self, obj_name, **kwargs):
-        """ Constructs and runs a simple SOQL query and returns the dict results """
+        """Constructs and runs a simple SOQL query and returns a list of dictionaries.
+
+        By default the results will only contain object Ids. You can
+        specify a SOQL SELECT clase via keyword arguments by passing
+        a comma-separated list of fields with the ``select`` keyword
+        argument.
+
+        Example:
+
+        The following example searches for all Contacts where the
+        first name is "Eleanor". It returns the "Name" and "Id"
+        fields and logs them to the robot report:
+
+        | @{records}=  Salesforce Query  Contact  select=Id,Name
+        | FOR  ${record}  IN  @{records}
+        |     log  Name: ${record['Name']} Id: ${record['Id']}
+        | END
+
+        """
         query = "SELECT "
         if "select" in kwargs:
             query += kwargs["select"]
@@ -744,7 +968,22 @@ class Salesforce(object):
         return self.cumulusci.sf.query_all(query).get("records", [])
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
-        """ Updates a Salesforce object by id and returns the dict results """
+        """Updates a Salesforce object by Id.
+
+        The keyword returns the result from the underlying
+        simple_salesforce ``insert`` method, which is an HTTP
+        status code. As with `Salesforce Insert`, field values
+        are specified as keyword arguments.
+
+        The following example assumes that ${contact id} has been
+        previously set, and adds a Description to the given
+        contact.
+
+        | &{contact}=  Salesforce Update  Contact  ${contact id}
+        | ...  Description=This Contact created during a test
+        | Should be equal as numbers ${result}  204
+
+        """
         self.builtin.log(
             "Updating {} {} with values {}".format(obj_name, obj_id, kwargs)
         )
@@ -752,12 +991,35 @@ class Salesforce(object):
         return obj_class.update(obj_id, kwargs)
 
     def soql_query(self, query):
-        """ Runs a simple SOQL query and returns the dict results """
+        """Runs a simple SOQL query and returns the dict results
+
+        The _query_ parameter must be a properly quoted SOQL query statement. The
+        return value is a dictionary. The dictionary contains the keys
+        as documented for the raw API call. The most useful key is ``records``,
+        which contains a list of records which were matched by the query.
+
+        Example
+
+        The following example searches for all Contacts with a first
+        name of "Eleanor" and a last name of "Rigby", and then prints
+        the name of the first record found.
+
+        | ${result}=  SOQL Query
+        | ...  SELECT Name, Id FROM Contact WHERE FirstName='Eleanor' AND LastName='Rigby'
+        | Run keyword if  len($result['records']) == 0  Fail  No records found
+        |
+        | ${contact}=  Get from list  ${result['records']}  0
+        | Should be equal  ${contact['Name']}  Eleanor Rigby
+
+        """
         self.builtin.log("Running SOQL Query: {}".format(query))
         return self.cumulusci.sf.query_all(query)
 
     def store_session_record(self, obj_type, obj_id):
-        """ Stores a Salesforce record's id for use in the Delete Session Records keyword """
+        """Stores a Salesforce record's Id for use in the *Delete Session Records* keyword.
+
+        This keyword is automatically called by *Salesforce Insert*.
+        """
         self.builtin.log("Storing {} {} to session records".format(obj_type, obj_id))
         self._session_records.append({"type": obj_type, "id": obj_id})
 
@@ -798,6 +1060,7 @@ class Salesforce(object):
                 self.builtin.warn("unable to capture screenshot: {}".format(str(e)))
             raise
 
+    @capture_screenshot_on_error
     def wait_until_salesforce_is_ready(self, locator=None, timeout=None, interval=5):
         """Waits until we are able to render the initial salesforce landing page
 
@@ -837,6 +1100,7 @@ class Salesforce(object):
                     "return (document.readyState == 'complete')"
                 )
                 self.wait_for_aura()
+
                 # If the following doesn't throw an error, we're good to go.
                 self.selenium.get_webelement(locator)
                 break
@@ -847,30 +1111,17 @@ class Salesforce(object):
                 )
                 if time.time() - start_time > timeout_seconds:
                     self.selenium.log_location()
-                    self.selenium.capture_page_screenshot()
                     raise Exception("Timed out waiting for a lightning page")
 
-            self.builtin.log("waiting for a refresh...", "DEBUG")
-            self.selenium.capture_page_screenshot()
+            # known edge cases that can be worked around
+            if self._check_for_login_failure():
+                continue
+            elif self._check_for_classic():
+                continue
+
+            # not a known edge case; take a deep breath and
+            # try again.
             time.sleep(interval)
-            location = self.selenium.get_location()
-            if (
-                "//test.salesforce.com" in location
-                or "//login.salesforce.com" in location
-            ):
-                # Sometimes we get redirected to a login URL rather
-                # than being logged in, and we've yet to figure out
-                # precisely why that happens. Experimentation shows
-                # that authentication has already happened, so in
-                # this case we'll try going back to the instance url
-                # rather than the front door servlet.
-                #
-                # Admittedly, this is a bit of a hack, but it's better
-                # than never getting past this redirect.
-                login_url = self.cumulusci.org.config["instance_url"]
-                self.builtin.log(
-                    f"setting login_url temporarily to {login_url}", "DEBUG"
-                )
             self.selenium.go_to(login_url)
 
     def breakpoint(self):
@@ -881,3 +1132,58 @@ class Salesforce(object):
         set, this keyword will have no effect on a running test.
         """
         return None
+
+    def _check_for_classic(self):
+        """Switch to lightning if we land on a classic page
+
+        This seems to happen randomly, causing tests to fail
+        catastrophically. The idea is to detect such a case and
+        auto-click the "switch to lightning" link
+
+        """
+        try:
+            # we don't actually want to wait here, but if we don't
+            # explicitly wait, we'll implicitly wait longer than
+            # necessary.  This needs to be a quick-ish check.
+            self.selenium.wait_until_element_is_visible(
+                "class:switch-to-lightning", timeout=2
+            )
+            self.builtin.log(
+                "It appears we are on a classic page; attempting to switch to lightning",
+                "WARN",
+            )
+            # this screenshot should be removed at some point,
+            # but for now I want to make sure we see what the
+            # page looks like if we get here.
+            self.selenium.capture_page_screenshot()
+
+            # just in case there's a modal present we'll try simulating
+            # the escape key. Then, click on the switch-to-lightning link
+            self.selenium.press_keys(None, "ESC")
+            self.builtin.sleep("1 second")
+            self.selenium.click_link("class:switch-to-lightning")
+            return True
+
+        except (NoSuchElementException, AssertionError):
+            return False
+
+    def _check_for_login_failure(self):
+        """Handle the case where we land on a login screen
+
+        Sometimes we get redirected to a login URL rather than
+        being logged in, and we've yet to figure out precisely why
+        that happens. Experimentation shows that authentication has
+        already happened, so in this case we'll try going back to
+        the instance url rather than the front door servlet.
+
+        Admittedly, this is a bit of a hack, but it's better than
+        never getting past this redirect.
+        """
+
+        location = self.selenium.get_location()
+        if "//test.salesforce.com" in location or "//login.salesforce.com" in location:
+            login_url = self.cumulusci.org.config["instance_url"]
+            self.builtin.log(f"setting login_url temporarily to {login_url}", "DEBUG")
+            self.selenium.go_to(login_url)
+            return True
+        return False

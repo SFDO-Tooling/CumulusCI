@@ -17,18 +17,19 @@ from cumulusci.core.exceptions import OrgNotFound
 class TestCliRuntime(unittest.TestCase):
     key = "1234567890abcdef"
 
-    @classmethod
-    def setUpClass(cls):
-        os.chdir(os.path.dirname(cumulusci.__file__))
-
     def setUp(self):
-        os.environ["CUMULUSCI_KEY"] = self.key
+        os.chdir(os.path.dirname(cumulusci.__file__))
+        self.environ_mock = mock.patch.dict(os.environ, {"CUMULUSCI_KEY": self.key})
+        self.environ_mock.start()
+
+    def tearDown(self):
+        self.environ_mock.stop()
 
     def test_init(self):
         config = CliRuntime()
 
         for key in {"cumulusci", "tasks", "flows", "services", "orgs", "project"}:
-            self.assertIn(key, config.global_config.config)
+            self.assertIn(key, config.universal_config.config)
         self.assertEqual("CumulusCI", config.project_config.project__name)
         for key in {"services", "orgs", "app"}:
             self.assertIn(key, config.keychain.config)
@@ -53,6 +54,8 @@ class TestCliRuntime(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__env_takes_precedence(self, keyring):
+        if os.environ.get("CUMULUSCI_KEYCHAIN_CLASS"):
+            del os.environ["CUMULUSCI_KEYCHAIN_CLASS"]
         keyring.get_password.return_value = "overridden"
 
         config = CliRuntime()
@@ -60,20 +63,24 @@ class TestCliRuntime(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__generates_key(self, keyring):
-        del os.environ["CUMULUSCI_KEY"]
-        keyring.get_password.return_value = None
+        with mock.patch.dict(os.environ):
+            del os.environ["CUMULUSCI_KEY"]
+            if os.environ.get("CUMULUSCI_KEYCHAIN_CLASS"):
+                del os.environ["CUMULUSCI_KEYCHAIN_CLASS"]
+            keyring.get_password.return_value = None
 
-        config = CliRuntime()
+            config = CliRuntime()
         self.assertNotEqual(self.key, config.keychain.key)
         self.assertEqual(16, len(config.keychain.key))
 
     @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__warns_if_generated_key_cannot_be_stored(self, keyring):
-        del os.environ["CUMULUSCI_KEY"]
-        keyring.get_password.side_effect = Exception
+        with mock.patch.dict(os.environ):
+            del os.environ["CUMULUSCI_KEY"]
+            keyring.get_password.side_effect = Exception
 
-        with self.assertRaises(click.UsageError):
-            CliRuntime()
+            with self.assertRaises(click.UsageError):
+                CliRuntime()
 
     def test_get_org(self):
         config = CliRuntime()
@@ -102,8 +109,7 @@ class TestCliRuntime(unittest.TestCase):
         with self.assertRaises(click.UsageError):
             org_name, org_config_result = config.get_org("test", fail_if_missing=True)
 
-    @mock.patch("click.confirm")
-    def test_check_org_expired(self, confirm):
+    def test_check_org_expired(self):
         config = CliRuntime()
         config.keychain = mock.Mock()
         org_config = OrgConfig(
@@ -114,27 +120,9 @@ class TestCliRuntime(unittest.TestCase):
             },
             "test",
         )
-        confirm.return_value = True
 
         config.check_org_expired("test", org_config)
         config.keychain.create_scratch_org.assert_called_once()
-
-    @mock.patch("click.confirm")
-    def test_check_org_expired_decline(self, confirm):
-        config = CliRuntime()
-        config.keychain = mock.Mock()
-        org_config = OrgConfig(
-            {
-                "scratch": True,
-                "date_created": date.today() - timedelta(days=2),
-                "expired": True,
-            },
-            "test",
-        )
-        confirm.return_value = False
-
-        with self.assertRaises(click.ClickException):
-            config.check_org_expired("test", org_config)
 
     def test_check_org_overwrite_not_found(self):
         config = CliRuntime()

@@ -115,6 +115,13 @@ class TestGithub(GithubApiTestMixin):
                 get_github_api_for_repo(None, "TestOwner", "TestRepo")
 
     @responses.activate
+    @mock.patch("cumulusci.core.github.GitHub")
+    def test_get_github_api_for_repo__token(self, GitHub):
+        with mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token"}):
+            gh = get_github_api_for_repo(None, "TestOwner", "TestRepo")
+        gh.login.assert_called_once_with(token="token")
+
+    @responses.activate
     def test_validate_service(self):
         responses.add("GET", "https://api.github.com/rate_limit", status=401)
         with pytest.raises(GithubException):
@@ -142,7 +149,7 @@ class TestGithub(GithubApiTestMixin):
         pull_requests = get_pull_requests_by_head(repo, "test_branch")
         assert pull_requests == []
 
-        pull_requests = get_pull_requests_by_head(repo, "master")
+        pull_requests = get_pull_requests_by_head(repo, "main")
         assert pull_requests is None
 
     @responses.activate
@@ -155,15 +162,15 @@ class TestGithub(GithubApiTestMixin):
     @responses.activate
     def test_get_pull_requests_with_base_branch(self, mock_util, repo):
         self.init_github()
-        mock_util.mock_pulls(base="master", head="TestOwner:some-branch")
+        mock_util.mock_pulls(base="main", head="TestOwner:some-branch")
         pull_requests = get_pull_requests_with_base_branch(
-            repo, "master", head="some-branch"
+            repo, "main", head="some-branch"
         )
         assert 0 == len(pull_requests)
 
         responses.reset()
-        mock_util.mock_pulls(pulls=self._get_expected_pull_requests(3), base="master")
-        pull_requests = get_pull_requests_with_base_branch(repo, "master")
+        mock_util.mock_pulls(pulls=self._get_expected_pull_requests(3), base="main")
+        pull_requests = get_pull_requests_with_base_branch(repo, "main")
         assert 3 == len(pull_requests)
 
     @responses.activate
@@ -255,7 +262,7 @@ class TestGithub(GithubApiTestMixin):
     def mock_gist(self, description, files):
         responses.add(
             method=responses.POST,
-            url=f"https://api.github.com/gists",
+            url="https://api.github.com/gists",
             json=self._get_expected_gist(description, files),
             status=201,
         )

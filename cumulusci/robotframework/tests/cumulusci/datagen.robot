@@ -3,19 +3,19 @@
 Resource       cumulusci/robotframework/Salesforce.robot
 Resource  cumulusci/robotframework/CumulusCI.robot
 
-Force Tags    bulkdata
+Force Tags    bulkdata  no-browser
 
 *** Keywords ***
 Assert Row Count
     [Arguments]     ${count}        ${object_name}      &{kwargs}
 
     ${status}     ${result} =   Run Keyword And Ignore Error
-    ...           Salesforce Query  ${object_name}  
+    ...           Salesforce Query  ${object_name}
     ...           select=COUNT(Id)
     ...           &{kwargs}
 
     Run Keyword If      '${status}' != 'PASS'
-    ...           Log    
+    ...           Log
     ...           Salesforce query failed: probably timeout. ${object_name} ${result}
     ...           console=True
 
@@ -76,11 +76,9 @@ Test Snowfakery
 
     Run Keyword Unless	    $status == 'PASS'       Log     Snowfakery is not available
 
-    Run Keyword If	    $status == 'PASS'       Run Task Class          
+    Run Keyword If	    $status == 'PASS'       Run Task Class
     ...     cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml
     ...     num_records=20
     ...     num_records_tablename=Account
     ...     batch_size=5
     ...     generator_yaml=cumulusci/tasks/bulkdata/tests/simple_snowfakery.yml
-
-

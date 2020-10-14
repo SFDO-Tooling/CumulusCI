@@ -1,6 +1,6 @@
-========================
-Robot Framework Debugger
-========================
+==============
+Robot Debugger
+==============
 
 CumulusCI includes a rudimentary debugger which can be enabled by
 setting the ``debug`` option of the **robot** task to ``True``. When
@@ -12,7 +12,7 @@ prompt from which you can interactively issue commands.
 
 For the following examples we'll be using this simple test:
 
-.. code-block:: console
+.. code-block:: robotframework
 
     *** Settings ***
     Resource  cumulusci/robotframework/Salesforce.robot
@@ -235,7 +235,7 @@ get a full stack you can issue the command **where**
     2:     -> BuiltIn.Log
 
 Continuing or Quitting the test
--------------------
+-------------------------------
 
 To let the test continue to the end, or to the next ``Breakpoint``
 keyword, issue the command **continue**. To stop execution gracefully

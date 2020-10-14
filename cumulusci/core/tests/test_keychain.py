@@ -2,13 +2,13 @@ import json
 import os
 import tempfile
 import unittest
-
 from unittest import mock
+from pathlib import Path
 
-from cumulusci.core.tests.utils import EnvironmentVarGuard
+import pytest
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
@@ -18,11 +18,13 @@ from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain import EnvironmentProjectKeychain
+from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.tests.utils import EnvironmentVarGuard
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -32,9 +34,9 @@ class ProjectKeychainTestMixin(unittest.TestCase):
     keychain_class = BaseProjectKeychain
 
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"no_yaml": True}
+            self.universal_config, config={"no_yaml": True}
         )
         self.project_config.config["services"] = {
             "connected_app": {"attributes": {"test": {"required": True}}},
@@ -98,6 +100,7 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
     def test_set_and_get_org(self, global_org=False):
         keychain = self.keychain_class(self.project_config, self.key)
+        self.org_config.global_org = global_org
         keychain.set_org(self.org_config, global_org)
         self.assertEqual(list(keychain.orgs.keys()), ["test"])
         self.assertEqual(keychain.get_org("test").config, self.org_config.config)
@@ -139,9 +142,10 @@ class ProjectKeychainTestMixin(unittest.TestCase):
     def test_get_default_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
         org_config = self.org_config.config.copy()
-        org_config = OrgConfig(org_config, "test")
+        org_config = OrgConfig(org_config, "test", keychain=keychain)
+        org_config.save()
+        keychain.set_default_org("test")
         org_config.config["default"] = True
-        keychain.set_org(org_config)
         self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
 
     def test_get_default_org_no_default(self):
@@ -183,7 +187,7 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 class TestBaseProjectKeychain(ProjectKeychainTestMixin):
     def test_convert_connected_app(self):
         project_config = BaseProjectConfig(
-            self.global_config,
+            self.universal_config,
             {
                 "services": {
                     "connected_app": {
@@ -208,7 +212,7 @@ class TestBaseProjectKeychain(ProjectKeychainTestMixin):
 
     def test_create_scratch_org(self):
         project_config = BaseProjectConfig(
-            self.global_config, {"orgs": {"scratch": {"dev": {}}}}
+            self.universal_config, {"orgs": {"scratch": {"dev": {}}}}
         )
         keychain = self.keychain_class(project_config, self.key)
         keychain.set_org = mock.Mock()
@@ -216,11 +220,13 @@ class TestBaseProjectKeychain(ProjectKeychainTestMixin):
         org_config = keychain.set_org.call_args[0][0]
         self.assertEqual(3, org_config.days)
 
-    def test_remove_org(self):
+    @mock.patch("cumulusci.core.keychain.base_project_keychain.cleanup_org_cache_dirs")
+    def test_remove_org(self, cleanup_org_cache_dirs):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)
         keychain.remove_org("test")
         self.assertNotIn("test", keychain.orgs)
+        assert cleanup_org_cache_dirs.called_once_with(keychain, self.project_config)
 
 
 class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
@@ -335,15 +341,24 @@ class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
 
     def test_decrypt_config__no_config(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        config = keychain._decrypt_config(OrgConfig, None, extra=["test"])
+        config = keychain._decrypt_config(OrgConfig, None, extra=["test", keychain])
         self.assertEqual(config.__class__, OrgConfig)
         self.assertEqual(config.config, {})
+        self.assertEqual(config.keychain, keychain)
 
     def test_decrypt_config__no_config_2(self):
         keychain = self.keychain_class(self.project_config, self.key)
         config = keychain._decrypt_config(BaseConfig, None)
         self.assertEqual(config.__class__, BaseConfig)
         self.assertEqual(config.config, {})
+
+    def test_decrypt_config__wrong_key(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.set_org(self.org_config, False)
+
+        keychain.key = "x" * 16
+        with pytest.raises(KeychainKeyNotFound):
+            keychain.get_org("test")
 
     # def test_decrypt_config__py2_bytes(self):
     #     keychain = self.keychain_class(self.project_config, self.key)
@@ -364,9 +379,9 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     keychain_class = EncryptedFileProjectKeychain
 
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.project_config.config["services"] = {
             "connected_app": {"attributes": {"test": {"required": True}}},
@@ -386,20 +401,20 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         self.key = "0123456789123456"
 
         self._mk_temp_home()
-        self._expanduser_patch = mock.patch(
-            "os.path.expanduser", return_value=self.tempdir_home
+        self._home_patch = mock.patch(
+            "pathlib.Path.home", return_value=Path(self.tempdir_home)
         )
-        self._expanduser_patch.__enter__()
+        self._home_patch.__enter__()
         self._mk_temp_project()
         os.chdir(self.tempdir_project)
 
     def tearDown(self):
-        self._expanduser_patch.__exit__(None, None, None)
+        self._home_patch.__exit__(None, None, None)
 
     def _mk_temp_home(self):
         self.tempdir_home = tempfile.mkdtemp()
-        global_local_dir = os.path.join(self.tempdir_home, ".cumulusci")
-        os.makedirs(global_local_dir)
+        global_config_dir = os.path.join(self.tempdir_home, ".cumulusci")
+        os.makedirs(global_config_dir)
 
     def _mk_temp_project(self):
         self.tempdir_project = tempfile.mkdtemp()
@@ -410,7 +425,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     def _create_git_config(self):
         filename = os.path.join(self.tempdir_project, ".git", "config")
         content = (
-            f'[remote "origin"]\n'
+            '[remote "origin"]\n'
             + f"  url = git@github.com:TestOwner/{self.project_name}"
         )
         self._write_file(filename, content)
@@ -425,8 +440,8 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     def test_set_and_get_org_global(self):
         self.test_set_and_get_org(True)
 
-    def test_set_and_get_org__global_config(self):
-        keychain = self.keychain_class(self.global_config, self.key)
+    def test_set_and_get_org__universal_config(self):
+        keychain = self.keychain_class(self.universal_config, self.key)
         keychain.set_org(self.org_config, False)
         self.assertEqual(list(keychain.orgs.keys()), [])
 
@@ -439,8 +454,12 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         )
         keychain = self.keychain_class(self.project_config, self.key)
         del keychain.config["orgs"]
-        keychain._load_files(self.tempdir_home, ".org", "orgs")
+        with mock.patch.object(
+            self.keychain_class, "global_config_dir", Path(self.tempdir_home)
+        ):
+            keychain._load_orgs()
         self.assertIn("foo", keychain.get_org("test").config)
+        self.assertEqual(keychain.get_org("test").keychain, keychain)
 
     def test_load_file(self):
         self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
@@ -448,17 +467,19 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain._load_file(self.tempdir_home, "config", "from_file")
         self.assertEqual("foo", keychain.config["from_file"])
 
-    def test_load_file__global_config(self):
+    def test_load_file__universal_config(self):
         self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
         keychain = self.keychain_class(self.project_config, self.key)
         keychain._load_file(self.tempdir_home, "config", "from_file")
         self.assertEqual("foo", keychain.config["from_file"])
 
-    def test_remove_org(self):
+    @mock.patch("cumulusci.core.utils.cleanup_org_cache_dirs")
+    def test_remove_org(self, cleanup_org_cache_dirs):
         keychain = self.keychain_class(self.project_config, self.key)
         keychain.set_org(self.org_config)
         keychain.remove_org("test")
         self.assertNotIn("test", keychain.orgs)
+        assert cleanup_org_cache_dirs.called_once_with(keychain, self.project_config)
 
     def test_remove_org__not_found(self):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -471,3 +492,87 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain.orgs["test"] = mock.Mock()
         with self.assertRaises(OrgNotFound):
             keychain.remove_org("test", global_org=True)
+
+    def test_set_and_get_org_local_should_not_shadow_global(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        self.org_config.global_org = True
+        keychain.set_org(self.org_config, global_org=True)
+        assert ["test"] == list(keychain.orgs.keys())
+        assert isinstance(keychain.orgs["test"], GlobalOrg), keychain.orgs["test"]
+        assert self.org_config.config == keychain.get_org("test").config
+        assert Path(self.tempdir_home, ".cumulusci", "test.org").exists()
+
+        # check that it saves to the right place
+        with mock.patch(
+            "cumulusci.core.keychain.encrypted_file_project_keychain.open"
+        ) as o:
+            self.org_config.save()
+            opened_filename = o.mock_calls[0][1][0]
+            assert ".cumulusci/test.org" in opened_filename.replace(
+                os.sep, "/"
+            ), opened_filename
+
+        # check that it can be loaded in a fresh keychain
+        new_keychain = self.keychain_class(self.project_config, self.key)
+        org_config = new_keychain.get_org("test")
+        assert org_config.global_org
+
+    def test_cache_dir(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        assert keychain.cache_dir.name == ".cci"
+
+    def test_get_default_org__with_files(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = OrgConfig(self.org_config.config.copy(), "test", keychain=keychain)
+        org_config.save()
+        with open(self._default_org_path(), "w") as f:
+            f.write("test")
+        try:
+            self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
+        finally:
+            self._default_org_path().unlink()
+
+    def test_get_default_org__with_files__missing_org(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        with open(self._default_org_path(), "w") as f:
+            f.write("should_not_exist")
+        assert self._default_org_path().exists()
+        assert keychain.get_default_org() == (None, None)
+        assert not self._default_org_path().exists()
+
+    @mock.patch("sarge.Command")
+    def test_set_default_org__with_files(self, Command):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = OrgConfig(self.org_config.config.copy(), "test")
+        keychain.set_org(org_config)
+        keychain.set_default_org("test")
+        with open(self._default_org_path()) as f:
+            assert f.read() == "test"
+        self._default_org_path().unlink()
+
+    @mock.patch("sarge.Command")
+    def test_unset_default_org__with_files(self, Command):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = self.org_config.config.copy()
+        org_config = OrgConfig(org_config, "test")
+        keychain.set_org(org_config)
+        keychain.set_default_org("test")
+        keychain.unset_default_org()
+        self.assertEqual(keychain.get_default_org()[1], None)
+        assert not self._default_org_path().exists()
+
+    def _default_org_path(self):
+        return Path(self.tempdir_home) / ".cumulusci/TestProject/DEFAULT_ORG.txt"
+
+    # old way of finding defaults used contents of the files themselves
+    # we should preserve backwards compatibiliity for a few months
+    def test_get_default_org__file_missing_fallback(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = OrgConfig(self.org_config.config.copy(), "test", keychain=keychain)
+        org_config.config["default"] = True
+        org_config.save()
+        self.assertEqual(keychain.get_default_org()[1].config, org_config.config)
+
+    def test_get_default_org__outside_project(self):
+        keychain = self.keychain_class(self.universal_config, self.key)
+        assert keychain.get_default_org() == (None, None)

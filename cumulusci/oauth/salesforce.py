@@ -4,6 +4,7 @@ from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 import http.client
 import jwt
+import os
 import re
 import requests
 from urllib.parse import quote
@@ -18,9 +19,13 @@ HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
 SANDBOX_DOMAIN_RE = re.compile(
     r"^https://([\w\d-]+\.)?(test|cs\d+)(\.my)?\.salesforce\.com/?$"
 )
+SANDBOX_LOGIN_URL = (
+    os.environ.get("SF_SANDBOX_LOGIN_URL") or "https://test.salesforce.com"
+)
+PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
 
 
-def jwt_session(client_id, private_key, username, url=None):
+def jwt_session(client_id, private_key, username, url=None, auth_url=None):
     """Complete the JWT Token Oauth flow to obtain an access token for an org.
 
     :param client_id: Client Id for the connected app
@@ -28,24 +33,31 @@ def jwt_session(client_id, private_key, username, url=None):
     :param username: Username to authenticate as
     :param url: Org's instance_url
     """
-    aud = "https://login.salesforce.com"
-    if url is None:
-        url = "https://login.salesforce.com"
+    if auth_url:
+        aud = (
+            SANDBOX_LOGIN_URL
+            if auth_url.startswith(SANDBOX_LOGIN_URL)
+            else PROD_LOGIN_URL
+        )
     else:
-        m = SANDBOX_DOMAIN_RE.match(url)
-        if m is not None:
-            # sandbox
-            aud = "https://test.salesforce.com"
-            # There can be a delay in syncing scratch org credentials
-            # between instances, so let's use the specific one for this org.
-            instance = m.group(2)
-            url = f"https://{instance}.salesforce.com"
+        aud = PROD_LOGIN_URL
+        if url is None:
+            url = PROD_LOGIN_URL
+        else:
+            m = SANDBOX_DOMAIN_RE.match(url)
+            if m is not None:
+                # sandbox
+                aud = SANDBOX_LOGIN_URL
+                # There can be a delay in syncing scratch org credentials
+                # between instances, so let's use the specific one for this org.
+                instance = m.group(2)
+                url = f"https://{instance}.salesforce.com"
 
     payload = {
         "alg": "RS256",
         "iss": client_id,
         "sub": username,
-        "aud": aud,  # jwt aud is NOT mydomain
+        "aud": aud,
         "exp": timegm(datetime.utcnow().utctimetuple()),
     }
     encoded_jwt = jwt.encode(payload, private_key, algorithm="RS256")
@@ -54,8 +66,8 @@ def jwt_session(client_id, private_key, username, url=None):
         "assertion": encoded_jwt,
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    auth_url = urljoin(url, "services/oauth2/token")
-    response = requests.post(url=auth_url, data=data, headers=headers)
+    token_url = urljoin(url, "services/oauth2/token")
+    response = requests.post(url=token_url, data=data, headers=headers)
     response.raise_for_status()
     return response.json()
 

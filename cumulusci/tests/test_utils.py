@@ -2,7 +2,6 @@
 
 import io
 import os
-import sys
 import sarge
 import pytest
 import zipfile
@@ -21,8 +20,15 @@ class FunTestTask(BaseTask):
     """For testing doc_task"""
 
     task_options = {
-        "flavor": {"description": "What flavor", "required": True},
         "color": {"description": "What color"},
+        "size": {"description": "How big"},
+        "flavor": {
+            "description": "What flavor",
+            "required": True,
+            "usage": "-o flavor VANILLA",
+            "type": "string",
+            "default": "chocolate",
+        },
     }
     task_docs = "extra docs"
 
@@ -34,6 +40,35 @@ class FunTestTaskChild(FunTestTask):
         "flavor": {"description": "What flavor", "required": True},
         "color": {"description": "What color"},
     }
+
+
+@pytest.fixture
+def task_config():
+    return TaskConfig(
+        {
+            "class_path": "cumulusci.tests.test_utils.FunTestTask",
+            "description": "Scoops icecream",
+            "options": {"color": "black"},
+        }
+    )
+
+
+@pytest.fixture
+def option_info():
+    return [
+        {
+            "name": "option_one",
+            "required": True,
+            "default": "default",
+            "description": "description",
+            "option_type": "option_type",
+        },
+        {
+            "name": "option_two",
+            "required": False,
+            "description": "Brief description here.",
+        },
+    ]
 
 
 class TestUtils:
@@ -154,6 +189,78 @@ class TestUtils:
         result = utils.remove_xml_element("tag", tree)
         assert result is tree
 
+    def test_doc_task(self, task_config):
+        task_doc = utils.doc_task("scoop_icecream", task_config)
+        assert (
+            task_doc
+            == """**scoop_icecream**
+==========================================\n
+**Description:** Scoops icecream\n
+**Class:** cumulusci.tests.test_utils.FunTestTask\n
+extra docs
+Command Syntax\n------------------------------------------\n
+``$ cci task run scoop_icecream``\n\n
+Options\n------------------------------------------\n\n
+``-o flavor VANILLA``
+\t *Required*\n
+\t What flavor\n
+\t Type: string\n
+``-o color COLOR``
+\t *Optional*\n
+\t What color\n
+\t Default: black\n
+``-o size SIZE``
+\t *Optional*\n
+\t How big"""
+        )
+
+    def test_get_command_syntax(self, task_config):
+        task_name = "scoop_icecream"
+        cmd_syntax = utils.get_command_syntax(task_name)
+
+        assert cmd_syntax == "``$ cci task run scoop_icecream``\n\n"
+
+    def test_get_task_options_info(self, task_config):
+        option_info = utils.get_task_option_info(task_config, FunTestTask)
+
+        # Required options should be at the front of the list
+        assert option_info[0]["required"]
+        assert option_info[0]["description"] == "What flavor"
+        assert option_info[0]["usage"] == "-o flavor VANILLA"
+        assert option_info[0]["name"] == "flavor"
+        assert option_info[0]["option_type"] == "string"
+        assert option_info[0]["default"] is None
+
+        assert not option_info[1]["required"]
+        assert option_info[1]["default"] == "black"
+        assert option_info[1]["usage"] == "-o color COLOR"
+
+        assert not option_info[2]["required"]
+        assert option_info[2]["default"] is None
+        assert option_info[2]["usage"] == "-o size SIZE"
+
+    def test_get_option_usage_string(self, option_info):
+        name = option_info[0]["name"]
+        usage_str1 = utils.get_option_usage_string(name, option_info[0])
+        assert usage_str1 == "-o option_one OPTIONONE"
+
+        name = option_info[1]["name"]
+        usage_str2 = utils.get_option_usage_string(name, option_info[1])
+        assert usage_str2 == "-o option_two OPTIONTWO"
+
+    def test_create_task_options_doc(self, option_info):
+        option_one_doc = utils.create_task_options_doc(option_info[:1])
+        option_two_doc = utils.create_task_options_doc(option_info[1:])
+
+        assert option_one_doc == [
+            "\t *Required*",
+            "\n\t description",
+            "\n\t Default: default",
+            "\n\t Type: option_type",
+        ]
+
+        assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
+
     @responses.activate
     def test_download_extract_zip(self):
         f = io.BytesIO()
@@ -199,7 +306,7 @@ class TestUtils:
             zf.writestr("top/src/test", "test")
         f.seek(0)
         zipbytes = f.read()
-        mock_repo = mock.Mock(default_branch="master")
+        mock_repo = mock.Mock(default_branch="main")
         mock_github = mock.Mock()
         mock_github.repository.return_value = mock_repo
 
@@ -210,7 +317,7 @@ class TestUtils:
         mock_repo.archive = mock_archive
         zf = utils.download_extract_github(mock_github, "TestOwner", "TestRepo", "src")
         result = zf.read("test")
-        assert b"test" == result
+        assert b"test" in result
 
     def test_process_text_in_directory__renamed_file(self):
         with utils.temporary_dir():
@@ -258,31 +365,31 @@ class TestUtils:
     def test_inject_namespace__managed(self):
         logger = mock.Mock()
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(
             name, content, namespace="ns", managed=True, logger=logger
         )
         assert name == "ns__test"
-        assert content == "ns__||ns|c"
+        assert content == "ns__|ns.||ns|c"
 
     def test_inject_namespace__unmanaged(self):
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(name, content, namespace="ns")
         assert name == "test"
-        assert content == "||c|c"
+        assert content == "|||c|c"
 
     def test_inject_namespace__namespaced_org(self):
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(
             name, content, namespace="ns", managed=True, namespaced_org=True
         )
         assert name == "ns__test"
-        assert content == "ns__|ns__|ns|ns"
+        assert content == "ns__|ns.|ns__|ns|ns"
 
     def test_strip_namespace(self):
         logger = mock.Mock()
@@ -338,32 +445,6 @@ class TestUtils:
 
         zf = utils.zip_clean_metaxml(zf)
         assert b"<root>\xc3\xb1</root>" == zf.read("classes/test-meta.xml")
-
-    def test_doc_task(self):
-        task_config = TaskConfig(
-            {
-                "class_path": "cumulusci.tests.test_utils.FunTestTask",
-                "options": {"color": "black"},
-            }
-        )
-        result = utils.doc_task("command", task_config)
-        assert (
-            """command
-==========================================
-
-**Description:** None
-
-**Class::** cumulusci.tests.test_utils.FunTestTask
-
-extra docs
-
-Options:
-------------------------------------------
-
-* **flavor** *(required)*: What flavor
-* **color**: What color **Default: black**"""
-            == result
-        )
 
     def test_doc_task_not_inherited(self):
         task_config = TaskConfig(
@@ -481,27 +562,3 @@ Options:
 
         assert utils.get_git_config("user.email") is None
         p.run.assert_called_once()
-
-    def test_strip_ansi_sequences(self):
-        ansi_str = "\033[31mGoodbye ANSI color sequences!\033[0m"
-        plain_str = "This is [just a plain old string with some] [symbols]"
-
-        ansi_string_result = utils.strip_ansi_sequences(ansi_str)
-        plain_string_result = utils.strip_ansi_sequences(plain_str)
-
-        assert ansi_string_result == "Goodbye ANSI color sequences!"
-        assert plain_string_result == plain_str
-
-    def test_tee_stdout_stderr(self):
-        args = ["cci", "test"]
-        logger = mock.Mock()
-        expected_stdout_text = "This is expected stdout.\n"
-        expected_stderr_text = "This is expected stderr.\n"
-        with utils.tee_stdout_stderr(args, logger):
-            sys.stdout.write(expected_stdout_text)
-            sys.stderr.write(expected_stderr_text)
-
-        assert logger.debug.call_count == 3
-        assert logger.debug.call_args_list[0][0][0] == "cci test\n"
-        assert logger.debug.call_args_list[1][0][0] == expected_stdout_text
-        assert logger.debug.call_args_list[2][0][0] == expected_stderr_text
