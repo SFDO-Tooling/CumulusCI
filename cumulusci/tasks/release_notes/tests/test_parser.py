@@ -1,6 +1,7 @@
 import http.client
 from unittest import mock
 import unittest
+
 import responses
 
 from cumulusci.tasks.release_notes.exceptions import GithubIssuesError
