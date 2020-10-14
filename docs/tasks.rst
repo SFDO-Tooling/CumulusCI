@@ -431,6 +431,11 @@ Options
 
 	 The value to check for
 
+``-o treat_missing_as_failure TREATMISSINGASFAILURE``
+	 *Optional*
+
+	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
+
 **check_chatter_enabled**
 ==========================================
 
@@ -468,6 +473,11 @@ Options
 	 The value to check for
 
 	 Default: True
+
+``-o treat_missing_as_failure TREATMISSINGASFAILURE``
+	 *Optional*
+
+	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
 
 **custom_settings_value_wait**
 ==========================================

@@ -1369,13 +1369,20 @@ def flow_doc(runtime):
 
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
 
+    flow_info_groups = list(flow_info["groups"].keys())
+
     flows = (
         runtime.project_config.list_flows()
         if runtime.project_config is not None
         else runtime.universal_config.list_flows()
     )
     flows_by_group = group_items(flows)
-    flow_groups = sorted(flows_by_group.keys())
+    flow_groups = sorted(
+        flows_by_group.keys(),
+        key=lambda group: flow_info_groups.index(group)
+        if group in flow_info_groups
+        else 100,
+    )
 
     for group in flow_groups:
         click.echo(f"{group}\n{'-' * len(group)}")
@@ -1390,7 +1397,7 @@ def flow_doc(runtime):
                 raise click.UsageError(str(e))
 
             additional_info = None
-            if flow_name in flow_info["flows"]:
+            if flow_name in flow_info.get("flows", {}):
                 additional_info = flow_info["flows"][flow_name]["rst_text"]
 
             click.echo(
