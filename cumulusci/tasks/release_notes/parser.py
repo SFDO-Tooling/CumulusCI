@@ -298,7 +298,7 @@ class InstallLinkParser(ChangeNotesLinesParser):
 
         if version_id:
             version_id = urllib.parse.quote_plus(version_id)
-            existing_content += "\r\n".join(
+            return "\r\n".join(
                 [
                     self._render_header(),
                     "Production & Developer Edition Orgs:",
