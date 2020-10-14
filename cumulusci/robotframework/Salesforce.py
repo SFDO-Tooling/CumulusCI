@@ -871,14 +871,25 @@ class Salesforce(object):
 
         for idx, (record, obj) in enumerate(zip(records, objects)):
             if record["errors"]:
-                raise AssertionError(
-                    "Error on Object {idx}: {record} : {obj}".format(**vars())
-                )
+                message = self._show_error(records, objects)
+                raise AssertionError(message)
             self.store_session_record(obj["attributes"]["type"], record["id"])
             obj["id"] = record["id"]
             obj[STATUS_KEY] = record
 
         return objects
+
+    def _show_error(self, results, objects):
+        real_errors = []
+        for idx, (result, obj) in enumerate(zip(results, objects)):
+            errors = result.get("errors")
+            if errors:
+                for e in errors:
+                    if e["statusCode"] != "ALL_OR_NONE_OPERATION_ROLLED_BACK":
+                        real_errors.append(
+                            f"Error on Object {idx}: {e['message']} : {obj}"
+                        )
+        return "\n".join(real_errors)
 
     def salesforce_collection_update(self, objects):
         """Updates records described as Robot/Python dictionaries.
