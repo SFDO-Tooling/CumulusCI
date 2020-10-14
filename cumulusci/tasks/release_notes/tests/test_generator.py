@@ -62,8 +62,8 @@ class TestBaseReleaseNotesGenerator(unittest.TestCase):
         release_notes.parsers.append(DummyParser("Dummy 1"))
         release_notes.parsers.append(DummyParser("Dummy 2"))
         expected = (
-            u"# Dummy 1\r\n\r\ndummy parser output\r\n\r\n"
-            + u"# Dummy 2\r\n\r\ndummy parser output"
+            "# Dummy 1\r\n\r\ndummy parser output\r\n\r\n"
+            + "# Dummy 2\r\n\r\ndummy parser output"
         )
         self.assertEqual(release_notes.render(), expected)
 
