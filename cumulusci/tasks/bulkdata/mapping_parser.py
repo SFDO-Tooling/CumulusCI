@@ -90,27 +90,6 @@ class MappingStep(CCIDictModel):
         """Returns the name of the record type table for the source org."""
         return f"{self.sf_object}_rt_mapping"
 
-    def get_complete_field_map(self, include_id=False):
-        """Return a field map that includes both `fields` and `lookups`.
-        If include_id is True, add the Id field if not already present."""
-        fields = {}
-
-        if include_id and "Id" not in self.fields:
-            fields["Id"] = "Id"
-        # For efficiency's sake, ensure that Id comes first.
-        if "Id" in self.fields:
-            fields["Id"] = self.fields["Id"]
-
-        fields.update(self.fields)
-        fields.update(
-            {
-                lookup: self.lookups[lookup].get_lookup_key_field()
-                for lookup in self.lookups
-            }
-        )
-
-        return fields
-
     def get_fields_by_type(self, field_type: str, org_config: OrgConfig):
         describe = getattr(org_config.salesforce_client, self.sf_object).describe()
         describe = CaseInsensitiveDict(
@@ -119,17 +98,15 @@ class MappingStep(CCIDictModel):
 
         return [f for f in describe if describe[f]["type"] == field_type]
 
-    def get_field_list(self):
+    def get_load_field_list(self):
         """Build a flat list of columns for the given mapping,
         including fields, lookups, and statics."""
-        lookups = self.lookups
-
         # Build the list of fields to import
         columns = []
         columns.extend(self.fields.keys())
 
         # Don't include lookups with an `after:` spec (dependent lookups)
-        columns.extend([f for f in lookups if not lookups[f].after])
+        columns.extend([f for f in self.lookups if not self.lookups[f].after])
         columns.extend(self.static.keys())
 
         # If we're using Record Type mapping, `RecordTypeId` goes at the end.
@@ -143,8 +120,43 @@ class MappingStep(CCIDictModel):
 
         return columns
 
+    def get_extract_field_list(self):
+        """Build a flat list of Salesforce fields for the given mapping, including fields, lookups, and record types,
+        for an extraction operation.
+        The Id field is guaranteed to come first in the list."""
+
+        # Build the list of fields to import
+        fields = ["Id"]
+        fields.extend([f for f in self.fields.keys() if f != "Id"])
+        fields.extend(self.lookups.keys())
+
+        # If we're using Record Type mapping, `RecordTypeId` goes at the end.
+        # This makes it easier to manage the relationship with database columns.
+        if "RecordTypeId" in fields:
+            fields.remove("RecordTypeId")
+
+        if "RecordTypeId" in self.fields:
+            fields.append("RecordTypeId")
+
+        return fields
+
+    def get_database_column_list(self):
+        columns = [
+            self.fields.get(f) or self.lookups.get(f).get_lookup_key_field()
+            for f in self.get_extract_field_list()
+        ]
+        # The fixed Record Type is added statically during extract.
+        if self.record_type:
+            columns.append("record_type")
+
+        return columns
+
     def get_relative_date_context(self, org_config: OrgConfig):
-        fields = self.get_field_list()
+        """Return a tuple of (list of date field indices,
+        list of datetime field indices, current date)."""
+        # Note: because of how we order fields (regular fields come first),
+        # it's irrelevant whether we use `extract` or `load` field list.
+        fields = self.get_extract_field_list()
 
         date_fields = [
             fields.index(f)
@@ -215,6 +227,17 @@ class MappingStep(CCIDictModel):
         for name, lookup in v["lookups"].items():
             lookup.name = name
         return v
+
+    def get_soql(self):
+        """Return a SOQL query suitable for extracting data for this mapping."""
+        soql = (
+            f"SELECT {', '.join(self.get_extract_field_list())} FROM {self.sf_object}"
+        )
+
+        if self.record_type:
+            soql += f" WHERE RecordType.DeveloperName = '{self.record_type}'"
+
+        return soql
 
     @staticmethod
     def _is_injectable(element: str) -> bool:
@@ -353,7 +376,7 @@ class MappingStep(CCIDictModel):
         for f, detail in self.fields.items():
             field_desc = describe[f]
             if field_desc["type"] == "reference":
-                new_lookups.add(f)
+                new_lookups.append(f)
 
         for f in new_lookups:
             self.lookups[f] = MappingLookup(name=f)
@@ -471,7 +494,7 @@ def _validate_table_references(
     fail = False
     for m in mapping.values():
         for lookup in m.lookups.values():
-            if lookup.table not in tables:
+            if lookup.table and lookup.table not in tables:
                 fail = True
                 logger.error(
                     f"The table {lookup.table}, specified for lookup {m.sf_object}.{lookup.name}, is not present in the mapping."
@@ -488,21 +511,23 @@ def _infer_and_validate_lookups(mapping: Dict, org_config: OrgConfig):
     fail = False
 
     for idx, m in enumerate(mapping.values()):
-        describe = {
-            f["name"]: f
-            for f in getattr(org_config.salesforce_client, m.sf_object).describe()[
-                "fields"
-            ]
-        }
+        describe = CaseInsensitiveDict(
+            {
+                f["name"]: f
+                for f in getattr(org_config.salesforce_client, m.sf_object).describe()[
+                    "fields"
+                ]
+            }
+        )
 
-        for lookup in m.lookups:
+        for lookup in m.lookups.values():
             if lookup.after:
                 # If configured by the user, skip.
                 # TODO: do we need more validation here?
                 continue
 
             field_describe = describe[lookup.name]
-            target_objects = field_describe["relationshipTo"]
+            target_objects = field_describe["referenceTo"]
             if len(target_objects) == 1:
                 # This is a non-polymorphic lookup.
                 try:

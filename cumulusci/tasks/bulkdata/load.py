@@ -101,10 +101,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.options["drop_missing_schema"] = process_bool_arg(
             self.options.get("drop_missing_schema", False)
         )
-
-    def _run_task(self):
         self._id_generators = {}
 
+    def _run_task(self):
         self._init_mapping()
         with self._init_db():
             self._expand_mapping()
@@ -122,30 +121,38 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 started = True
 
                 self.logger.info(f"Running step: {name}")
-                result = self._execute_step(mapping)
-                if result.status is DataOperationStatus.JOB_FAILURE:
-                    raise BulkDataException(
-                        f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
-                    )
+                self._execute_step_or_raise(name, mapping)
+                self._execute_after_steps(name)
 
-                if name in self.after_steps:
-                    for after_name, after_step in self.after_steps[name].items():
-                        self.logger.info(f"Running post-load step: {after_name}")
-                        result = self._execute_step(after_step)
-                        if result.status is DataOperationStatus.JOB_FAILURE:
-                            raise BulkDataException(
-                                f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
-                            )
+    def _execute_step_or_raise(self, name: str, mapping: MappingStep):
+        result = self._execute_step(mapping)
+        if result.status is DataOperationStatus.JOB_FAILURE:
+            raise BulkDataException(
+                f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
+            )
+
+    def _execute_after_steps(self, name: str):
+        # Run any after steps for this step.
+        if name in self.after_steps:
+            for after_name, after_step in self.after_steps[name].items():
+                self.logger.info(f"Running post-load step: {after_name}")
+                self._run_step(after_name, after_step)
+
+    def _retrieve_record_types(self, mapping: MappingStep):
+        """Retrieve Record Types from the target org into the database, if necessary"""
+        if "RecordTypeId" in mapping.fields:
+            conn = self.session.connection()
+            self._extract_record_types(
+                mapping.sf_object, mapping.get_destination_record_type_table(), conn
+            )
+            self.session.commit()
 
     def _execute_step(
         self, mapping: MappingStep
     ) -> Union[DataOperationJobResult, MagicMock]:
         """Load data for a single step."""
 
-        if "RecordTypeId" in mapping.fields:
-            conn = self.session.connection()
-            self._load_record_types([mapping.sf_object], conn)
-            self.session.commit()
+        self._retrieve_record_types(mapping)
 
         query = self._query_db(mapping)
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
@@ -154,7 +161,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             operation=mapping.action,
             api_options={"batch_size": mapping.batch_size, "bulk_mode": bulk_mode},
             context=self,
-            fields=mapping.get_field_list(),
+            fields=mapping.get_load_field_list(),
             api=mapping.api,
             volume=query.count(),
         )
@@ -170,10 +177,32 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             return step.job_result
 
+    # TODO: this method separates ordering semantics outside of mapping_parser.py
+    # Consider placing there.
+    def _add_statics_to_row(self, mapping):
+        statics = list(mapping.static.values())
+
+        if mapping.record_type:
+            query = (
+                f"SELECT Id FROM RecordType WHERE SObjectType='{mapping.sf_object}'"
+                f"AND DeveloperName = '{mapping.record_type}' LIMIT 1"
+            )
+            records = self.sf.query(query)["records"]
+            if records:
+                record_type_id = records[0]["Id"]
+            else:
+                raise BulkDataException(f"Cannot find RecordType with query `{query}`")
+            statics.append(record_type_id)
+
+        def add_statics(row):
+            return row + statics
+
+        return add_statics
+
     def _stream_queried_data(self, mapping, local_ids, query):
         """Get data from the local db"""
 
-        statics = self._get_statics(mapping)
+        staticizer = self._add_statics_to_row(mapping)
         total_rows = 0
 
         if mapping.anchor_date:
@@ -181,13 +210,17 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         for row in query.yield_per(10000):
             total_rows += 1
-            # Add static values to row
-            pkey = row[0]
-            row = list(row[1:]) + statics
+
+            # Manage relative dates
+            # FIXME: this is dependent on the presence of Id to get indexes right.
             if mapping.anchor_date and (date_context[0] or date_context[1]):
                 row = adjust_relative_dates(
                     mapping, date_context, row, DataOperationType.INSERT
                 )
+
+            # Add static values to row
+            pkey = row[0]  # FIXME: This is a local-DB ordering assumption.
+            row = staticizer(list(row[1:]))
             if mapping.action is DataOperationType.UPDATE:
                 if len(row) > 1 and all([f is None for f in row[1:]]):
                     # Skip update rows that contain no values
@@ -201,41 +234,23 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             f"Prepared {total_rows} rows for {mapping.action.value} to {mapping.sf_object}."
         )
 
-    def _load_record_types(self, sobjects, conn):
-        """Persist record types for the given sObjects into the database."""
-        for sobject in sobjects:
-            table_name = sobject + "_rt_target_mapping"
-            self._extract_record_types(sobject, table_name, conn)
-
-    def _get_statics(self, mapping):
-        """Return the static values (not column names) to be appended to
-        records for this mapping."""
-        statics = list(mapping.static.values())
-        if mapping.record_type:
-            query = (
-                f"SELECT Id FROM RecordType WHERE SObjectType='{mapping.sf_object}'"
-                f"AND DeveloperName = '{mapping.record_type}' LIMIT 1"
-            )
-            records = self.sf.query(query)["records"]
-            if records:
-                record_type_id = records[0]["Id"]
-            else:
-                raise BulkDataException(f"Cannot find RecordType with query `{query}`")
-            statics.append(record_type_id)
-
-        return statics
-
     def _query_db(self, mapping):
         """Build a query to retrieve data from the local db.
 
-        Includes columns from the mapping
-        as well as joining to the id tables to get real SF ids
-        for lookups.
+        Includes columns from the mapping as well as joining to the id tables
+        to get real SF ids for lookups.
+
+        The structure and ordering of the query result is as follows:
+
+        Id field
+        Mapped fields other than Id, RecordTypeId, and RecordType (FIXME: is that last one valid?)
+        Joined lookup fields that are not `after` steps
+        Joined Record Type destination Id
         """
         model = self.models[mapping.table]
 
         id_column = model.__table__.primary_key.columns.keys()[0]
-        columns = [getattr(model, id_column)]
+        columns = [getattr(model, id_column)]  # FIXME: ordering assumption
 
         for name, f in mapping.fields.items():
             if name not in ("Id", "RecordTypeId", "RecordType"):
@@ -258,14 +273,19 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             columns.append(rt_dest_table.columns.record_type_id)
 
         query = self.session.query(*columns)
+
+        # Record Type filtering.
         if mapping.record_type and hasattr(model, "record_type"):
             query = query.filter(model.record_type == mapping.record_type)
+
+        # Filter clauses
         if mapping.filters:
             filter_args = []
             for f in mapping.filters:
                 filter_args.append(text(f))
             query = query.filter(*filter_args)
 
+        # Joins for Record Type mapping.
         if "RecordTypeId" in mapping.fields:
             rt_source_table = self.metadata.tables[
                 mapping.get_source_record_type_table()
@@ -284,6 +304,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 == rt_source_table.columns.developer_name,
             )
 
+        # Joins to populate lookups
         for sf_field, lookup in lookups.items():
             # Outer join with lookup ids table:
             # returns main obj even if lookup is null
@@ -438,16 +459,14 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _init_mapping(self):
         """Load a YAML mapping file."""
         mapping_file_path = self.options["mapping"]
-        if not mapping_file_path:
-            raise TaskOptionsError("Mapping file path required")
-
+        self.logger.info(f"Mapping file: {mapping_file_path}")
         self.mapping = parse_from_yaml(mapping_file_path)
 
         validate_and_inject_mapping(
             mapping=self.mapping,
             org_config=self.org_config,
             namespace=self.project_config.project__package__namespace,
-            data_operation=DataOperationType.INSERT,
+            data_operation=DataOperationType.QUERY,
             inject_namespaces=self.options["inject_namespaces"],
             drop_missing=self.options["drop_missing_schema"],
         )

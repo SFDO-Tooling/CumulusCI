@@ -54,6 +54,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super(ExtractData, self)._init_options(kwargs)
+
         if self.options.get("database_url"):
             # prefer database_url if it's set
             self.options["sql_path"] = None
@@ -70,14 +71,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.options["drop_missing_schema"] = process_bool_arg(
             self.options.get("drop_missing_schema", False)
         )
+        self._id_generators = {}
 
     def _run_task(self):
-        self._id_generators = {}
         self._init_mapping()
         with self._init_db():
             for mapping in self.mapping.values():
-                soql = self._soql_for_mapping(mapping)
-                self._run_query(soql, mapping)
+                self._run_query(mapping)
 
             self._map_autopks()
 
@@ -110,10 +110,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _init_mapping(self):
         """Load a YAML mapping file."""
         mapping_file_path = self.options["mapping"]
-        if not mapping_file_path:
-            raise TaskOptionsError("Mapping file path required")
-        self.logger.info(f"Mapping file: {self.options['mapping']}")
-
+        self.logger.info(f"Mapping file: {mapping_file_path}")
         self.mapping = parse_from_yaml(mapping_file_path)
 
         validate_and_inject_mapping(
@@ -125,26 +122,15 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             drop_missing=self.options["drop_missing_schema"],
         )
 
-    def _soql_for_mapping(self, mapping):
-        """Return a SOQL query suitable for extracting data for this mapping."""
-        sf_object = mapping.sf_object
-        fields = mapping.get_complete_field_map(include_id=True).keys()
-        soql = f"SELECT {', '.join(fields)} FROM {sf_object}"
-
-        if mapping.record_type:
-            soql += f" WHERE RecordType.DeveloperName = '{mapping.record_type}'"
-
-        return soql
-
-    def _run_query(self, soql, mapping):
+    def _run_query(self, mapping):
         """Execute a Bulk or REST API query job and store the results."""
         step = get_query_operation(
             sobject=mapping.sf_object,
             api=mapping.api,
-            fields=list(mapping.get_complete_field_map(include_id=True).keys()),
+            fields=mapping.get_extract_field_list(),
             api_options={},
             context=self,
-            query=soql,
+            query=mapping.get_soql(),
         )
 
         self.logger.info(f"Extracting data for sObject {mapping.sf_object}")
@@ -161,42 +147,45 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 f"Unable to execute query: {','.join(step.job_result.job_errors)}"
             )
 
-    def _import_results(self, mapping, step):
-        """Ingest results from the Bulk API query."""
-        conn = self.session.connection()
-
-        # Map SF field names to local db column names
-        field_map = mapping.get_complete_field_map(include_id=True)
-        columns = [field_map[f] for f in field_map]  # Get values in insertion order.
-
-        record_type = mapping.record_type
-        if record_type:
-            columns.append("record_type")
-
+    def _log_progress_stream(self, mapping, generator):
+        """Log progress, but without mutating records"""
         # TODO: log_progress needs to know our batch size, when made configurable.
-        record_iterator = log_progress(step.get_results(), self.logger)
-        if record_type:
-            record_iterator = (record + [record_type] for record in record_iterator)
+        return log_progress(generator, self.logger)
 
-        # Convert relative dates to stable dates.
+    def _record_type_stream(self, mapping, record_iterator):
+        """Add a static Record Type to each record"""
+        if mapping.record_type:
+            return (record + [mapping.record_type] for record in record_iterator)
+
+        return record_iterator
+
+    def _relative_dates_stream(self, mapping, record_iterator):
+        """Convert relative dates to stable dates."""
         if mapping.anchor_date:
             date_context = mapping.get_relative_date_context(self.org_config)
             if date_context[0] or date_context[1]:
-                record_iterator = (
+                return (
                     adjust_relative_dates(
                         mapping, date_context, record, DataOperationType.QUERY
                     )
                     for record in record_iterator
                 )
 
-        # Set Name field as blank for Person Account "Account" records.
+        return record_iterator
+
+    def _person_accounts_stream(self, mapping, record_iterator):
+        """Set Name field as blank for Person Account "Account" records."""
         if (
             mapping.sf_object == "Account"
-            and "Name" in field_map
+            and "Name" in mapping.fields
             and self.org_config.is_person_accounts_enabled
         ):
-            Name_index = columns.index(mapping.fields["Name"])
-            IsPersonAccount_index = columns.index(mapping.fields["IsPersonAccount"])
+            Name_index = mapping.get_database_columns().index(
+                mapping.get_extract_field_list().index("Name")
+            )
+            IsPersonAccount_index = mapping.get_database_columns().index(
+                mapping.get_extract_field_list().index("IsPersonAccount")
+            )
 
             def strip_name_field(record):
                 nonlocal Name_index, IsPersonAccount_index
@@ -205,6 +194,16 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 return record
 
             record_iterator = (strip_name_field(record) for record in record_iterator)
+
+    def _import_results(self, mapping, step):
+        """Ingest results from the Bulk API query."""
+        conn = self.session.connection()
+
+        # Build our generator chain.
+        record_iterator = step.get_results()
+        record_iterator = self._log_progress_stream(mapping, record_iterator)
+        record_iterator = self._record_type_stream(mapping, record_iterator)
+        record_iterator = self._relative_dates_stream(mapping, record_iterator)
 
         # Split out the returned records into two separate streams and
         # load into the main table and the Id mapping table
@@ -218,13 +217,15 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # Compose these generators into streams that can be directly
         # inserted into our database
+        # Note: this relies on the invariant that the Id is extracted first,
+        # which is enforced by the implementation of get_extract_field_list()
         f_ids = ((row[0], next(id_source_global)) for row in ids)
         f_values = ([next(id_source_sobj)] + row[1:] for row in values)
 
         values_chunks = self._sql_bulk_insert_from_records_incremental(
             connection=conn,
             table=mapping.table,
-            columns=columns,
+            columns=mapping.get_database_columns(),
             record_iterable=f_values,
         )
         ids_chunks = self._sql_bulk_insert_from_records_incremental(
@@ -246,7 +247,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.session.commit()
 
     def _map_autopks(self):
-        # Convert Salesforce Ids to autopks
+        """Convert Salesforce Ids to autopks"""
         for m in self.mapping.values():
             lookup_keys = list(m.lookups.keys())
             if lookup_keys:
@@ -254,12 +255,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # Drop Salesforce Id table
         self.metadata.tables[self.ID_TABLE_NAME].drop()
-
-    def _get_mapping_for_table(self, table):
-        """Return the first mapping for a table name """
-        for mapping in self.mapping.values():
-            if mapping["table"] == table:
-                return mapping
 
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""

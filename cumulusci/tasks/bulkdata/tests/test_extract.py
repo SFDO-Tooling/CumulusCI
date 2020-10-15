@@ -26,6 +26,16 @@ from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 
 import responses
 
+# Testing Schema
+# All tests that touch the API should use a comprehensive mock (a FakeSF)
+# that has been updated to use __getattr__.
+
+# We should focus on unit tests where possible.
+
+# We should do integration tests with only one mapping file and only one database file.
+# Only the mapping_parser tests should test on old mapping files.
+# Unit tests may construct mapping files that use older features.
+
 
 @contextmanager
 def mock_extract_jobs(task, extracted_records):
@@ -81,6 +91,7 @@ class TestExtractData:
     mapping_file_v2 = "mapping_v2.yml"
     mapping_file_vanilla = "mapping_vanilla_sf.yml"
 
+    # INTEGRATION
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
     def test_run__person_accounts_disabled(self, query_op_mock):
@@ -130,6 +141,7 @@ class TestExtractData:
         assert not hasattr(contact, "IsPersonAccount")
         assert "1" == contact.household_id
 
+    # INTEGRATION
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
     def test_run__person_accounts_enabled(self, query_op_mock):
@@ -229,106 +241,7 @@ class TestExtractData:
                 "sqlite:///"
             ), ce_mock.mock_calls[0][1][0]
 
-    @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
-    def test_run__v2__person_accounts_disabled(self, query_op_mock):
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, self.mapping_file_v2)
-        mock_describe_calls()
-
-        task = _make_task(
-            ExtractData,
-            {
-                "options": {
-                    "database_url": "sqlite://",  # in memory
-                    "mapping": mapping_path,
-                }
-            },
-        )
-        task.bulk = mock.Mock()
-        task.sf = mock.Mock()
-        task.org_config._is_person_accounts_enabled = False
-
-        mock_query_households = MockBulkQueryOperation(
-            sobject="Account",
-            api_options={},
-            context=task,
-            query="SELECT Id, Name FROM Account",
-        )
-        mock_query_contacts = MockBulkQueryOperation(
-            sobject="Contact",
-            api_options={},
-            context=task,
-            query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
-        )
-        mock_query_households.results = [["1", "TestHousehold"]]
-        mock_query_contacts.results = [["2", "First", "Last", "test@example.com", "1"]]
-
-        query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
-
-        task()
-        session = create_session(bind=task.engine, autocommit=False)
-
-        household = session.query(task.models["households"]).one()
-        assert household.name == "TestHousehold"
-        assert not hasattr(household, "IsPersonAccount")
-        assert household.record_type == "HH_Account"
-
-        contact = session.query(task.models["contacts"]).one()
-        assert contact.household_id == "1"
-        assert not hasattr(contact, "IsPersonAccount")
-
-    @responses.activate
-    @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
-    def test_run__v2__person_accounts_enabled(self, query_op_mock):
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, self.mapping_file_v2)
-        mock_describe_calls()
-
-        task = _make_task(
-            ExtractData,
-            {
-                "options": {
-                    "database_url": "sqlite://",  # in memory
-                    "mapping": mapping_path,
-                }
-            },
-        )
-        task.bulk = mock.Mock()
-        task.sf = mock.Mock()
-        task.org_config._is_person_accounts_enabled = True
-
-        mock_query_households = MockBulkQueryOperation(
-            sobject="Account",
-            api_options={},
-            context=task,
-            query="SELECT Id, Name, IsPersonAccount FROM Account",
-        )
-        mock_query_contacts = MockBulkQueryOperation(
-            sobject="Contact",
-            api_options={},
-            context=task,
-            query="SELECT Id, FirstName, LastName, Email, IsPersonAccount, AccountId FROM Contact",
-        )
-        mock_query_households.results = [["1", "TestHousehold", "false"]]
-        mock_query_contacts.results = [
-            ["2", "First", "Last", "test@example.com", "true", "1"]
-        ]
-
-        query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
-
-        task()
-        session = create_session(bind=task.engine, autocommit=False)
-
-        household = session.query(task.models["households"]).one()
-        assert household.name == "TestHousehold"
-        assert household.IsPersonAccount == "false"
-        assert household.record_type == "HH_Account"
-
-        contact = session.query(task.models["contacts"]).one()
-        assert contact.household_id == "1"
-        assert contact.IsPersonAccount == "true"
-
+    # FIXME: rewrite or discard
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
     def test_import_results__oid_as_pk(self, log_mock):
         task = _make_task(
@@ -356,6 +269,7 @@ class TestExtractData:
             record_iterable=log_mock.return_value,
         )
 
+    # UNIT
     @responses.activate
     def test_import_results__no_columns(self):  # , query_op_mock):
         base_path = os.path.dirname(__file__)
@@ -527,6 +441,7 @@ class TestExtractData:
             any_order=True,
         )
 
+    # FIXME: Move most of this testing into a test for SqlAlchemyMixin
     def test_convert_lookups_to_id(self):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
@@ -558,6 +473,7 @@ class TestExtractData:
         )
         task.session.commit.assert_called_once_with()
 
+    # FIXME: Move most of this testing into a test for SqlAlchemyMixin
     def test_convert_lookups_to_id__sqlite(self):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
@@ -595,6 +511,7 @@ class TestExtractData:
         )
         task.session.commit.assert_called_once_with()
 
+    # UNIT
     @mock.patch("cumulusci.tasks.bulkdata.extract.create_table")
     @mock.patch("cumulusci.tasks.bulkdata.extract.mapper")
     def test_create_table(self, mapper_mock, create_mock):
@@ -614,6 +531,7 @@ class TestExtractData:
 
         assert "accounts" in task.models
 
+    # UNIT
     @responses.activate
     def test_create_table__already_exists(self):
         base_path = os.path.dirname(__file__)
@@ -634,6 +552,7 @@ class TestExtractData:
         with pytest.raises(BulkDataException):
             task()
 
+    # UNIT
     def test_create_table__record_type_mapping(self):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
@@ -661,30 +580,7 @@ class TestExtractData:
         with task._init_db():
             task._create_record_type_table.assert_called_once_with("Account_rt_mapping")
 
-    @mock.patch("cumulusci.tasks.bulkdata.extract.create_table")
-    @mock.patch("cumulusci.tasks.bulkdata.extract.Table")
-    @mock.patch("cumulusci.tasks.bulkdata.extract.mapper")
-    def test_create_table__autopk(self, mapper_mock, table_mock, create_mock):
-        task = _make_task(
-            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
-        )
-        mapping = MappingStep(
-            sf_object="Account",
-            fields={"Name": "Name"},
-            table="accounts",
-        )
-        task.models = {}
-        task.metadata = mock.Mock()
-        task.org_config._is_person_accounts_enabled = False
-
-        task._create_table(mapping)
-
-        create_mock.assert_called_once_with(mapping, task.metadata)
-        assert len(table_mock.mock_calls) == 1
-
-        assert "accounts" in task.models
-        assert mapping.get_sf_id_table() in task.models
-
+    # UNIT
     def test_create_tables(self):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
@@ -700,6 +596,7 @@ class TestExtractData:
         )
         task.metadata.create_all.assert_called_once_with()
 
+    # UNIT
     def test_init_db(self):
         task = _make_task(
             ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
@@ -719,6 +616,7 @@ class TestExtractData:
                     "IsPersonAccount" in step["fields"]
                 )
 
+    # UNIT
     @responses.activate
     def test_init_mapping(self):
         base_path = os.path.dirname(__file__)
@@ -736,6 +634,7 @@ class TestExtractData:
         # Person Accounts should not be added to mapping
         self.assert_person_accounts_in_mapping(task.mapping, False)
 
+    # UNIT
     @responses.activate
     def test_init_mapping_org_has_person_accounts_enabled(self):
         base_path = os.path.dirname(__file__)
@@ -750,9 +649,10 @@ class TestExtractData:
         task._init_mapping()
         assert "Insert Households" in task.mapping
 
-        # Person Accounts should not be added to mapping
+        # Person Accounts should be added to mapping
         self.assert_person_accounts_in_mapping(task.mapping, True)
 
+    # UNIT
     @mock.patch("cumulusci.tasks.bulkdata.extract.validate_and_inject_mapping")
     def test_init_mapping_passes_options_to_validate(self, validate_and_inject_mapping):
         base_path = os.path.dirname(__file__)
@@ -781,26 +681,7 @@ class TestExtractData:
             drop_missing=True,
         )
 
-    def test_soql_for_mapping(self):
-        task = _make_task(
-            ExtractData, {"options": {"database_url": "sqlite:///", "mapping": ""}}
-        )
-        mapping = MappingStep(
-            sf_object="Contact",
-            fields={"Id": "sf_id", "Test__c": "Test"},
-        )
-        assert task._soql_for_mapping(mapping) == "SELECT Id, Test__c FROM Contact"
-
-        mapping = MappingStep(
-            sf_object="Contact",
-            record_type="Devel",
-            fields={"Id": "sf_id", "Test__c": "Test"},
-        )
-        assert (
-            task._soql_for_mapping(mapping)
-            == "SELECT Id, Test__c FROM Contact WHERE RecordType.DeveloperName = 'Devel'"
-        )
-
+    # UNIT
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
     def test_run_query(self, query_op_mock):
         task = _make_task(
@@ -826,6 +707,7 @@ class TestExtractData:
             MappingStep(sf_object="Contact"), query_op_mock.return_value
         )
 
+    # UNIT
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
     def test_run_query__no_results(self, query_op_mock):
         task = _make_task(
@@ -849,6 +731,7 @@ class TestExtractData:
         query_op_mock.return_value.query.assert_called_once_with()
         task._import_results.assert_not_called()
 
+    # UNIT
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
     def test_run_query__failure(self, query_op_mock):
         task = _make_task(
@@ -861,10 +744,29 @@ class TestExtractData:
         with pytest.raises(BulkDataException):
             task._run_query("SELECT Id FROM Contact", MappingStep(sf_object="Contact"))
 
+    # UNIT
+    def test_init_options(self):
+        t = _make_task(
+            ExtractData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "sql_path": "test",
+                    "inject_namespaces": False,
+                    "drop_missing_schema": True,
+                }
+            },
+        )
+
+        assert not t.options["inject_namespaces"]
+        assert t.options["drop_missing_schema"]
+        assert t.options["sql_path"] is None
+
     def test_init_options__missing_output(self):
         with pytest.raises(TaskOptionsError):
             _make_task(ExtractData, {"options": {}})
 
+    # INTEGRATION
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
     def test_extract_respects_key_field(self, log_mock):
         task = _make_task(
@@ -897,6 +799,7 @@ class TestExtractData:
             record_iterable=log_mock.return_value,
         )
 
+    # INTEGRATION
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
     def test_extract_memory_usage(self, step_mock):
@@ -942,6 +845,7 @@ class TestExtractData:
             with assert_max_memory_usage(15 * 10 ** 6):
                 task()
 
+    # INTEGRATION
     @responses.activate
     def test_import_results__autopk(self, create_task_fixture):
         mock_describe_calls()
@@ -975,6 +879,8 @@ class TestExtractData:
                 ]
             ],
         }
+        # FIXME: mock_salesforce_client mocks out the sf so that REST Calls to get
+        # describe data aren't implemented.
         with mock_extract_jobs(task, extracted_records), mock_salesforce_client(task):
             task()
             session = create_session(bind=task.engine, autocommit=False)

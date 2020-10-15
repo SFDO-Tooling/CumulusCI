@@ -164,7 +164,9 @@ def create_table(mapping, metadata):
     fields.append(Column(id_column, Unicode(255), primary_key=True))
 
     # make a field list to create
-    for field, db in mapping.get_complete_field_map().items():
+    for field, db in zip(
+        mapping.get_extract_field_list(), mapping.get_database_column_list()
+    ).items():
         if field == "Id":
             continue
 
@@ -175,6 +177,7 @@ def create_table(mapping, metadata):
     t = Table(mapping.table, metadata, *fields)
     if t.exists():
         raise BulkDataException(f"Table already exists: {mapping.table}")
+
     return t
 
 
