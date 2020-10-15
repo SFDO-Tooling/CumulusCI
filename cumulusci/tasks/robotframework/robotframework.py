@@ -6,7 +6,11 @@ from robot import run as robot_run
 from robot import pythonpathsetter
 from robot.testdoc import testdoc
 
-from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
+from cumulusci.core.exceptions import (
+    RobotTestFailure,
+    TaskOptionsError,
+    NamespaceNotFoundError,
+)
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
@@ -105,13 +109,15 @@ class Robot(BaseSalesforceTask):
 
         # get_namespace will potentially download sources that have
         # yet to be downloaded.  We'll then add them to PYTHONPATH
-        # before running. I can't just add it to sys.path because pabot
-        # processes won't see it.
-        options["pythonpath"] = []
+        # before running, though we have to do it one way for pabot
+        # and another for robot.
         source_paths = {}
         for source in self.options["sources"]:
-            source_config = self.project_config.get_namespace(source)
-            source_paths[source] = source_config.repo_root
+            try:
+                source_config = self.project_config.get_namespace(source)
+                source_paths[source] = source_config.repo_root
+            except NamespaceNotFoundError:
+                raise TaskOptionsError(f"robot source '{source}' could not be found")
 
         if self.options["processes"] > 1:
             cmd = [
