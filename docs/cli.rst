@@ -124,7 +124,7 @@ For additional information on tasks use::
 
     $ cci task info <task_name>
 
-Where ``<task_name>`` is the name of a specific task.
+where ``<task_name>`` is the name of a specific task.
 Information about specific tasks includes:
 
 * A description of what the task does
