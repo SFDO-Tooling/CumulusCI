@@ -112,7 +112,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "alabaster"
+html_theme = "furo"
 
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
@@ -158,15 +158,17 @@ html_static_path = []
 
 # Custom sidebar templates, maps document names to template names.
 # html_sidebars = {}
-html_sidebars = {
-    "**": [
-        "about.html",
-        "navigation.html",
-        "relations.html",
-        "searchbox.html",
-        "donate.html",
-    ]
-}
+
+# This doesn't play well with 'furo' theme
+# html_sidebars = {
+# "**": [
+# "about.html",
+# "navigation.html",
+# "relations.html",
+# "searchbox.html",
+# "donate.html",
+# ]
+# }
 
 # Additional templates that should be rendered to pages, maps page names
 # to template names.
