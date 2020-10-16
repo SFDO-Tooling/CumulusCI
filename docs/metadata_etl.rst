@@ -60,7 +60,9 @@ Standard Metadata ETL Tasks
 CumulusCI includes several out-of-the-box Metadata ETL tasks. For information about all of the available tasks, see TODO: link Metadata Transformations task group.
 
 Most Metadata ETL tasks accept the option ``api_names``, which specifies the developer names of the specific metadata components which should be included in the operation.
-In most cases, more than one entity may be transformed in a single operation. Each task performs a single Metadata API retrieve and a single atomic deployment. Consult the Task Reference or use the ``cci task info`` command for more information on the usage of each task.
+In most cases, more than one entity may be transformed in a single operation. Each task performs a single Metadata API retrieve and a single atomic deployment. Please note, however, that the extract-transform-load operation as a whole is *not* atomic; it is not safe to run Metadata ETL tasks in parallel or to mutate metadata by other means during the run of a Metadata ETL task.
+
+Consult the Task Reference or use the ``cci task info`` command for more information on the usage of each task.
 
 The Metadata ETL framework makes it easy to add more tasks. For information about implementing Metadata ETL tasks, see TODO: link to section in Python customization.
 
