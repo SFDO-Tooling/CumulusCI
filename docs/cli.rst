@@ -136,7 +136,7 @@ Information on specific options includes:
 
 * The syntax for the option (``-o option_name value``).
 * If the options is required or optional.
-* A description of each option.
+* A description of what the option does.
 
 Example output looks like this:
 
