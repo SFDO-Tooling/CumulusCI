@@ -4,7 +4,6 @@ black==19.10b0
 coverage[toml]==5.2.1
 coveralls==2.1.1
 flake8==3.8.3
-furo==2020.10.15b13
 pre-commit==2.6.0
 pytest==6.0.1
 pytest-vcr==1.0.2
