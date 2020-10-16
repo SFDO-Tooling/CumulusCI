@@ -24,8 +24,8 @@ become out-of-sync or entail more destructive deployment operations.
 A primary example use case for Metadata ETL is deployment of Standard Value Sets.
 Standard Value Sets, which define the picklist values available on standard fields
 like ``Opportunity.StageName``, are not packageable, and as such must be part of an
-application's unpackaged metadata. They're critical to many applications: Business
-Processes, for example, will fail to deploy if the requisite values are not available.
+application's unpackaged metadata. They're critical to many applications: A Business
+Process, for example, will fail to deploy if the Stage values it includes are not available.
 And lastly, they come with a serious danger for deployment into subscriber orgs:
 deploying Standard Value Sets is an overwrite operation, so all existing values in the
 target org that aren't part of the deployment are deactivated. This means that it's
@@ -33,7 +33,7 @@ neither safe nor maintainable to store static Standard Value Set metadata in a p
 and deploy it.
 
 These three facets - non-packageability, application requirements, and deployment safety -
-all militate for a Metadata ETL approach. Rather than attempting to deploy static metadata
+all support a Metadata ETL approach. Rather than attempting to deploy static metadata
 stored in the repository, the product's automation should *extract* the Standard Value Set 
 metadata from the org, *transform* it to include the desired values (as well as all existing
 customization), and *load* the transformed metadata back into the org. CumulusCI now ships
@@ -70,7 +70,7 @@ CumulusCI includes several out-of-the-box Metadata ETL tasks:
  - ``set_organization_wide_defaults`` sets the Org-Wide Defaults for one or more sObjects,
    and waits until sharing recalculation completes before proceeding.
 
-Most Metadata ETL tasks accept the option ``api_names``, which specifies the scope of the operation.
+Most Metadata ETL tasks accept the option ``api_names``, which specifies the developer names of the specific metadata components which should be included in the operation.
 In most cases, more than one entity may be transformed in a single operation. Each task is a single
 atomic Metadata API deployment operation. Consult the Task Reference or use the ``cci task info``
 command for more information on the usage of each task.

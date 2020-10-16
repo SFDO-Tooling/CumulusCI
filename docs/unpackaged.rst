@@ -3,7 +3,7 @@ Manage Unpackaged Configuration
 
 Not everything that's part of an application can be part of a package.
 
-CumulusCI implements the Product Delivery Model by offering support for complex applications - applications that may include multiple managed packages, as well as unpackaged metadata, and setup automation that configures org settings or makes surgical changes to existing configuration.
+CumulusCI implements the Product Delivery Model by offering support for complex applications - applications that may include multiple managed packages, as well as unpackaged metadata, and setup automation that configures org settings or makes precise changes to existing configuration.
 
 The tools used to implement that support are *unpackaged metadata* and *Metadata ETL*. 
 
@@ -17,13 +17,13 @@ Roles of Unpackaged Metadata
 ``unpackaged/pre``: Preparing an Org
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some projects need to have unpackaged metadata deployed to finish the customization of an org, *before* the project's own code and metadata are deployed. For example, a product like the Nonprofit Success Pack may need to deploy unpackaged Record Types prior to installing its own packages or metadata. ``unpackaged/pre`` is the location designed for such metadata, which is stored in subdirectories such as ``unpackaged/pre/first``.
+Some projects need to have unpackaged metadata deployed to finish the customization of an org, *before* the project's own code and metadata are deployed. For example, the Nonprofit Success Pack needs to deploy unpackaged Record Types prior to installing its own packages. ``unpackaged/pre`` is the location designed for such metadata, which is stored in subdirectories such as ``unpackaged/pre/first``.
 
 CumulusCI's out-of-the-box flows that build an org, such as ``dev_org`` and ``install_prod``, always deploy metadata bundles found in ``unpackaged/pre`` before proceeding to the deployment of the application. Further, it's easy to include ``unpackaged/pre`` metadata in customer-facing installers run via MetaDeploy.
 
 The task ``deploy_pre``, which is part of the ``dependencies`` flow, is responsible for deploying these bundles.
 
-Metadata that's not intended to be delivered to all installations of the product should *not* be included in ``unpackaged/pre``.
+Metadata should not be included in ``unpackaged/pre`` unless it is intended to be delivered to all installations of the product.
 
 ``unpackaged/post``: Configuration After Package Install
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -34,7 +34,7 @@ Projects often include metadata that is genuinely part of the application, but e
 
 The task ``deploy_post``, which is part of the ``config_dev``, ``config_qa``, and ``config_managed`` flows, is responsible for deploying these bundles.
 
-Metadata that's not intended to be delivered to all installations of the product should *not* be included in ``unpackaged/post``. It's critical for managed package projects that this metadata include namespace tokens (see :ref:`namespace-injection`).
+Metadata should *not* be included in ``unpackaged/post`` unless it is intended to be delivered to all environments (both managed installations and unmanaged deployments). It's critical for managed package projects that this metadata include namespace tokens (see :ref:`namespace-injection`).
 
 ``unpackaged/config``: Tailoring Orgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
