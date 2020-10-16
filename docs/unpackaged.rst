@@ -28,7 +28,7 @@ Metadata should not be included in ``unpackaged/pre`` unless it is intended to b
 ``unpackaged/post``: Configuration After Package Install
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Projects often include metadata that is genuinely part of the application, but either cannot be delivered as part of a managed package or for operational reasons should not be. For example, a product that wishes to deliver ``TopicsForObjects`` metadata cannot do so as part of a managed package, because that type of metadata is not packageable.
+Projects often include metadata that is genuinely part of the application, but either cannot be delivered as part of a managed package or for operational reasons should not be. For example, a product that wishes to deliver ``TopicsForObjects`` metadata cannot do so as part of a managed package, because that type of metadata is not packageable. (See the `Metadata Coverage Report <https://mdcoverage.secure.force.com/docs/metadata-coverage>`_ for more about which components are packageable).
 
 ``unpackaged/post`` is the home for metadata of this kind, which is stored in subdirectories such as ``unpackaged/post/first``. CumulusCI's out-of-the-box flows that build an org, such as ``dev_org`` and ``install_prod``, always deploy metadata bundles found in ``unpackaged/post``, making it a full-fledged part of the application. Further, it's easy to include ``unpackaged/post`` metadata in customer-facing installers run via MetaDeploy.
 
@@ -58,7 +58,7 @@ Namespace Injection
 
 Projects that build managed packages often must construct their unpackaged metadata to be deployable in multiple contexts: unmanaged deployments, such as developer orgs, unmanaged namespaced scratch orgs, and also managed contexts, such as a beta test org or a demo org created with ``install_prod``.
 
-  Projects that are building an org implementation (not a package with a namespace) do not need to use namespace injection.
+  Projects that are building an org implementation or a non-namespaced package do not have a namespace or a distinction between managed and unmanaged contexts. This section is relevant to projects that build namespaced packages.
 
 Metadata located in ``unpackaged/post``, for example, is deployed after the application code in both unmanaged and managed contexts. If that metadata contains references to the application components, it must be deployable when that metadata both is (in a managed context or namespaced scratch org) and is not (in an unmanaged context) namespaced.
 
