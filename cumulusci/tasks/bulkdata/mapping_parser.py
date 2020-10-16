@@ -99,26 +99,26 @@ class MappingStep(CCIDictModel):
         return [f for f in describe if describe[f]["type"] == field_type]
 
     def get_load_field_list(self):
-        """Build a flat list of columns for the given mapping,
+        """Build a flat list of fields for the given mapping,
         including fields, lookups, and statics."""
         # Build the list of fields to import
-        columns = []
-        columns.extend(self.fields.keys())
+        fields = ["Id"]
+        fields.extend([f for f in self.fields.keys() if f != "Id"])
 
         # Don't include lookups with an `after:` spec (dependent lookups)
-        columns.extend([f for f in self.lookups if not self.lookups[f].after])
-        columns.extend(self.static.keys())
+        fields.extend([f for f in self.lookups if not self.lookups[f].after])
+        fields.extend(self.static.keys())
 
         # If we're using Record Type mapping, `RecordTypeId` goes at the end.
-        if "RecordTypeId" in columns:
-            columns.remove("RecordTypeId")
+        if "RecordTypeId" in fields:
+            fields.remove("RecordTypeId")
 
-        if self.action is DataOperationType.INSERT and "Id" in columns:
-            columns.remove("Id")
+        if self.action is DataOperationType.INSERT and "Id" in fields:
+            fields.remove("Id")
         if self.record_type or "RecordTypeId" in self.fields:
-            columns.append("RecordTypeId")
+            fields.append("RecordTypeId")
 
-        return columns
+        return fields
 
     def get_extract_field_list(self):
         """Build a flat list of Salesforce fields for the given mapping, including fields, lookups, and record types,

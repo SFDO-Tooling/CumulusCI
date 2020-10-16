@@ -16,6 +16,9 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     validate_and_inject_mapping,
     ValidationError,
     CaseInsensitiveDict,
+    _drop_schema,
+    _validate_table_references,
+    _infer_and_validate_lookups,
 )
 from cumulusci.tasks.bulkdata.step import DataOperationType
 from cumulusci.tests.util import DummyOrgConfig, mock_describe_calls
@@ -131,6 +134,88 @@ class TestMappingParser:
 
         assert mapping.get_relative_date_context(org_config) == ([1], [2], date.today())
 
+    def test_get_load_field_list(self):
+        mapping = MappingStep(
+            sf_object="Account",
+            action=DataOperationType.INSERT,
+            fields=["Id", "Test__c", "Foo__c", "RecordTypeId"],
+            lookups={
+                "Parent__c": MappingLookup(),
+                "Top__c": MappingLookup(after="Top"),
+            },
+            static={"Description": "blah"},
+        )
+
+        assert mapping.get_load_field_list() == [
+            "Test__c",
+            "Foo__c",
+            "Parent__c",
+            "Description",
+            "RecordTypeId",
+        ]
+
+    def test_get_load_field_list__update(self):
+        mapping = MappingStep(
+            sf_object="Account",
+            action=DataOperationType.UPDATE,
+            fields=["Id", "Test__c", "Foo__c", "RecordTypeId"],
+            lookups={
+                "Parent__c": MappingLookup(),
+                "Top__c": MappingLookup(after="Top"),
+            },
+            static={"Description": "blah"},
+        )
+
+        assert mapping.get_load_field_list() == [
+            "Id",
+            "Test__c",
+            "Foo__c",
+            "Parent__c",
+            "Description",
+            "RecordTypeId",
+        ]
+
+    def test_get_extract_field_list(self):
+        mapping = MappingStep(
+            sf_object="Account",
+            fields=["Test__c", "Id", "Foo__c", "RecordTypeId"],
+            lookups={
+                "Parent__c": MappingLookup(),
+                "Top__c": MappingLookup(after="Top"),
+            },
+            static={"Description": "blah"},
+        )
+
+        assert mapping.get_extract_field_list() == [
+            "Id",
+            "Test__c",
+            "Foo__c",
+            "Parent__c",
+            "Top__c",
+            "RecordTypeId",
+        ]
+
+    def test_get_database_column_list(self):
+        mapping = MappingStep(
+            sf_object="Account",
+            action=DataOperationType.INSERT,
+            fields={"Test__c": "test", "Id": "sf_id"},
+            record_type="Household",
+            lookups={
+                "Parent__c": MappingLookup(key_field="foo"),
+            },
+            static={"Description": "blah"},
+        )
+
+        assert mapping.get_database_column_list() == [
+            "sf_id",
+            "test",
+            "foo",
+            "record_type",
+        ]
+
+
+class TestFLSNamespaceInjection:
     # Start of FLS/Namespace Injection Unit Tests
 
     def test_is_injectable(self):
@@ -738,7 +823,45 @@ class TestMappingParser:
             ]
         )
 
-    # Start of FLS/Namespace Injection Integration Tests
+
+class TestValidateAndInject:
+    def test_validate_table_references(self):
+        ms = parse_from_yaml(
+            StringIO(
+                """Insert Accounts:
+                  sf_object: Account
+                  fields:
+                    - Name
+                  lookups:
+                    Lookup__c:
+                        table: Account
+                        after: Insert Stuff"""
+            )
+        )
+
+        _validate_table_references(ms)
+
+    def test_validate_table_references__exception(self):
+        ms = parse_from_yaml(
+            StringIO(
+                """Insert Accounts:
+                  sf_object: Account
+                  fields:
+                    - Name
+                  lookups:
+                    Lookup__c:
+                        table: Stuff
+                        after: Insert Stuff"""
+            )
+        )
+
+        with pytest.raises(BulkDataException):
+            _validate_table_references(ms)
+
+    def test_infer_and_validate_lookups(self):
+        pass  # FIXME: implement multiple tests
+
+    # FIXME: factor out tests for _drop_schema
 
     @responses.activate
     def test_validate_and_inject_mapping_enforces_fls(self):
