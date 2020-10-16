@@ -135,7 +135,7 @@ Information about specific tasks includes:
 Information on specific options includes:
 
 * The syntax for the option (``-o option_name value``).
-* If the options is required or optional.
+* If the option is required or optional.
 * A description of what the option does.
 
 Example output looks like this:
