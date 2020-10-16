@@ -81,13 +81,10 @@ This assumes that robot tests for your project live under the ``robotframework/t
 Add a Custom Task
 ********************************
 Say that you want to take the above example and create a custom task named ``robot_run_all`` to make it more apparent what this task is doing.
-You can do this with the following steps:
 
-* Lookup the Python class that is associated with the standard task.
+Lookup the Python class that is associated with the standard task. You can do this by going to the `internal CumulusCI file <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ and looking for the corresponding tasks `class value <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L400>`_.
 
-    * You can do this by going to the `internal CumulusCI file <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ and looking for the corresponding tasks `class value <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L398>`_.
-
-Now you can add the following under the ``tasks:`` section of your ``cumulusci.yml`` file.
+Now you can add the following under the ``tasks:`` section of your ``cumulusci.yml`` file, include the value we retrieved for ``class_path``.
 
 .. code-block:: yaml
 
@@ -115,6 +112,19 @@ If we have some reports that live under ``unpackaged/config/reports`` and our pr
             path: unpackaged/config/reports
             namespace_inject: $project_config.project__package__namespacej
 
+Similarly, we can create a custom task to run a specific Apex method via execut anonymous via the Tooling API like so:
+
+.. code-block:: yaml
+
+    project_default_settings:
+        description: Configure the default project settings
+        class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+        group: projectName
+        options:
+            path: scripts/configure_project_settings.cls
+            apex: initializeProjectSettings();
+
+The above assumed that the Apex file ``scripts/configure_project_settings.cls`` exists, and has a public static method named ``initializeProjectSettings``. 
 
 If you want to `write a custom task in python <TODO>`_ and make it available to other users in the project you would need to update your ``cumulusci.yml`` file's ``task`` section with the following:
 
@@ -133,22 +143,89 @@ The above assumes that your task's class is name ``MyTaskClass`` and exists in t
 
 Add a Flow Step
 ********************************
+If you want to add a step to a flow, you first need to know what the existing steps are. The easiest way to see this is with ``cci flow info <flow_name>``.
+Take the ``dev_org`` flow as an example:
+
+.. code-block:: console
+
+    $ cci flow info dev_org
+    Description: Set up an org as a development environment for unmanaged metadata
+    1) flow: dependencies [from current folder]
+        1) task: update_dependencies
+        2) task: deploy_pre
+    2) flow: deploy_unmanaged
+        0) task: dx_convert_from
+        when: project_config.project__source_format == "sfdx" and not org_config.scratch
+        1) task: unschedule_apex
+        2) task: update_package_xml
+        when: project_config.project__source_format != "sfdx" or not org_config.scratch
+        3) task: deploy
+        when: project_config.project__source_format != "sfdx" or not org_config.scratch
+        3.1) task: dx_push
+            when: project_config.project__source_format == "sfdx" and org_config.scratch
+        4) task: uninstall_packaged_incremental
+        when: project_config.project__source_format != "sfdx" or not org_config.scratch
+    3) flow: config_dev
+        1) task: deploy_post
+        2) task: update_admin_profile
+    4) task: snapshot_changes
+
+There are four steps to this flow. The first three steps are themselves flows, and the last step is a task.
+
+Decimal and negative numbers are valid steps. This makes it easy to add steps before, in-between, or after existing flow steps.
+If we wanted to add a step at the beginning of the dev org flow, valid step numbers would include any number less than 1. Example values would include : 0, 0.3, and -1.
+All of these would cause the step to execute before the first step in the ``dev_org`` flow.
+
+If you wanted to add a step between steps 2 and three, then a step number of 2.5 could be utilized.
+
+If you wanted to add a step number that runs after all steps in the flow, then the step number should be greater than 4.
 
 
 
 Remove a Flow Step
 ********************************
+To remove a flow step you can set the desired step number to a task with a value of ``None``.
+The following would omit the 4th step from the ``dev_org`` flow.
+
+.. code-block:: yaml
+    
+    dev_org:
+        steps:
+            4:
+                task: None
 
 
 
 Replace a Flow Step
 ********************************
+To replace a flow step, simply name the task or flow you wish to run in place of the current step.
+The following would replace the fourth step of the ``dev_org`` flow with a custom task that loads data into a dev environment.
+
+.. code-block:: yaml
+
+    dev_org:
+        steps:
+            4:
+                task: load_data_dev 
 
 
 
 Add a Custom Flow
 ********************************
+To define a new flow, simply add the name of the new flow under the ``flows`` section of your ``cumulusci.yml`` file.
+Here is an example custom flow 
 
+.. code-block::
+    my_project_flow:
+        group: projectName
+        description:
+        steps:
+            1:
+                flow:
+            2:
+                task:
+
+You can reference how we defined the flows for the standard library `here <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L565>`_.
 
 
 Override Scopes 
