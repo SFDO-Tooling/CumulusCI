@@ -59,9 +59,9 @@ Most users never need to work with Connected Apps because CumulusCI's out-of-the
 If you need to control the Connected App that CumulusCI uses to authenticate for your specific security of compliance requirements, you can create your own Connected App and configure CumulusCI to use it when connecting to orgs.
 
 To create a custom Connected App, use the ``connected_app`` task to create the Connected App and then manually edit its configuration to suit your requirements. Make sure to create the Connected App in a persistent org other than a sandbox.
-You can create a Connected App with the label 'cumulusci' and automatically set it as the ``connected_app`` service in CumulusCI with::
+You can create a Connected App in the devhub org connected to ``SFDX`` with the label 'cumulusci' and automatically set it as the ``connected_app`` service in CumulusCI with::
 
-    $ cci task run connected_app --org <org_name> -o label cumulusci -o connect true
+    $ cci task run connected_app -o label cumulusci -o connect true
 
 For a full list of options see the `connected_app <TODO>`_ task reference documentation.
 
