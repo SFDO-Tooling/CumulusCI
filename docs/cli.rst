@@ -164,7 +164,7 @@ For additional information on flows use::
 
     $ cci flow info <flow_name>
 
-Where ``<flow_name>`` is the actual name of the flow.
+where ``<flow_name>`` is the actual name of the flow.
 Information on specific flows includes:
 
 * A description of the flow.
