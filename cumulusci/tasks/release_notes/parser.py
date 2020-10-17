@@ -298,21 +298,25 @@ class InstallLinkParser(ChangeNotesLinesParser):
         trial_info = self.release_notes_generator.trial_info
 
         if version_id:
+            result = []
             version_id = urllib.parse.quote_plus(version_id)
-            result = [self._render_header()]
+            result.append(self._render_header())
+
             if (
                 self.release_notes_generator.sandbox_date
                 or self.release_notes_generator.production_date
             ):
-                result.append("## Push Schedule")  # "\r\n# Installation Info",
+                result += ["## Push Schedule"]  # "\r\n# Installation Info",
                 if self.release_notes_generator.sandbox_date:
                     result.append(
-                        f"\r\nSandbox orgs: {self.release_notes_generator.sandbox_date}"
+                        f"Sandbox orgs: {self.release_notes_generator.sandbox_date}"
                     )
+
                 if self.release_notes_generator.production_date:
                     result.append(
                         f"Production orgs: {self.release_notes_generator.production_date}",
                     )
+                result.append("")
             result += [
                 "Production & Developer Edition Orgs:",
                 f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
@@ -321,7 +325,7 @@ class InstallLinkParser(ChangeNotesLinesParser):
                 f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
             ]
             if trial_info is True:
-                result += ["## Trialforce Template ID", "`TBD`"]
+                result += ["", "## Trialforce Template ID", "`TBD`"]
             return "\r\n".join(result)
 
         return existing_content

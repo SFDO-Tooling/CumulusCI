@@ -1,8 +1,7 @@
 import http.client
 from unittest import mock
 import unittest
-import datetime
-
+import urllib.parse
 import responses
 
 from cumulusci.tasks.release_notes.exceptions import GithubIssuesError
@@ -568,68 +567,130 @@ class TestInstallLinkParser:
         parser.parse("abc")
         assert parser.render() == ""
 
-    def test_package_release_info_no_version_id(self):
-        generator = mock.Mock(link_pr=True, version_id=None)
+    def test_package_with_version_id_no_dates_no_trial(self):
+        generator = mock.Mock(
+            link_pr=True,
+            version_id="04t0000asdf",
+            sandbox_date=None,  # need to set explicitly due to mock, will default to None when using CLI
+            production_date=None,  # need to set explicitly due to mock, will default to None when using CLI
+            trial_info=False,  # need to set explicitly due to mock, will default to False when using CLI
+        )
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
-        print(parser.render())
-        assert "# Installation Links" in parser.render()
-        assert "## Push Schedule" in parser.render()
-        assert f"Sandbox orgs: {generator.sandbox_date}" in parser.render()
-        assert f"Production orgs: {generator.production_date}" in parser.render()
-        assert "## Installation URL" not in parser.render()
-
-    def test_package_release_info_with_version_id(self):
-        generator = mock.Mock(link_pr=True, version_id="04t0000asdf")
-        parser = InstallLinkParser(generator, "Title")
-        parser.parse("abc")
-        assert "# Title" in parser.render()
-        assert "# Installation Info" in parser.render()
-        assert "## Push Schedule" in parser.render()
-        assert f"Sandbox orgs: {generator.sandbox_date}" in parser.render()
-        assert f"Production orgs: {generator.production_date}" in parser.render()
-        assert "## Installation URL" in parser.render()
+        version_id = urllib.parse.quote_plus(generator.version_id)
         assert (
-            f"https://login.salesforce.com/packaging/installPackage.apexp?p0={generator.version_id}"
-            in parser.render()
+            f"""# Title\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}"""
+            == parser.render()
         )
 
-    def test_package_release_info_with_version_id_dates(self):
+    def test_package_version_id_both_dates_no_trial(self):
         generator = mock.Mock(
             link_pr=True,
             version_id="04t0000asdf",
             sandbox_date="2020-10-10",
-            production_date="2020-10-10",
+            production_date="2020-10-11",
+            trial_info=False,  # need to set explicitly due to mock, will default to False when using CLI
         )
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
-        assert "# Title" in parser.render()
-        assert "# Installation Info" in parser.render()
-        assert "## Push Schedule" in parser.render()
-        assert f"Sandbox orgs: {generator.sandbox_date}" in parser.render()
-        assert f"Production orgs: {generator.production_date}" in parser.render()
-        assert "## Installation URL" in parser.render()
+        version_id = urllib.parse.quote_plus(generator.version_id)
         assert (
-            f"https://login.salesforce.com/packaging/installPackage.apexp?p0={generator.version_id}"
-            in parser.render()
+            f"""# Title\r\n\r\n## Push Schedule\r\nSandbox orgs: {generator.sandbox_date}\r\nProduction orgs: {generator.production_date}\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}"""
+            == parser.render()
         )
 
-    def test_package_trial_info(self):
-        generator = mock.Mock(link_pr=True, version_id="04t0000asdf", trial_info=True)
+    def test_package_version_id_sandbox_date_no_trial(self):
+        generator = mock.Mock(
+            link_pr=True,
+            version_id="04t0000asdf",
+            sandbox_date="2020-10-10",
+            production_date=None,  # need to set explicitly due to mock, will default to False when using CLI
+            trial_info=False,  # need to set explicitly due to mock, will default to False when using CLI
+        )
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
-        assert "# Title" in parser.render()
-        assert "## Trialforce Template ID" in parser.render()
-        assert "`TBD`" in parser.render()
-        assert "# Installation Info" not in parser.render()
-        assert "## Push Schedule" not in parser.render()
+        version_id = urllib.parse.quote_plus(generator.version_id)
         assert (
-            f"Sandbox orgs: {datetime.date.today().isoformat()}" not in parser.render()
+            f"""# Title\r\n\r\n## Push Schedule\r\nSandbox orgs: {generator.sandbox_date}\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}"""
+            == parser.render()
         )
+
+    def test_package_version_id_production_date_no_trial(self):
+        generator = mock.Mock(
+            link_pr=True,
+            version_id="04t0000asdf",
+            sandbox_date=None,  # need to set explicitly due to mock, will default to None when using CLI
+            production_date="2020-10-10",
+            trial_info=False,  # need to set explicitly due to mock, will default to False when using CLI
+        )
+        parser = InstallLinkParser(generator, "Title")
+        parser.parse("abc")
+        version_id = urllib.parse.quote_plus(generator.version_id)
         assert (
-            f"Production orgs: {(datetime.date.today() + datetime.timedelta(days=6)).isoformat()}"
-            not in parser.render()
+            f"""# Title\r\n\r\n## Push Schedule\r\nProduction orgs: {generator.production_date}\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}"""
+            == parser.render()
         )
+
+    def test_package_with_version_id_no_dates_trial(self):
+        generator = mock.Mock(
+            link_pr=True,
+            version_id="04t0000asdf",
+            sandbox_date=None,  # need to set explicitly due to mock, will default to None when using CLI
+            production_date=None,  # need to set explicitly due to mock, will default to None when using CLI
+            trial_info=True,
+        )
+        parser = InstallLinkParser(generator, "Title")
+        parser.parse("abc")
+        version_id = urllib.parse.quote_plus(generator.version_id)
+        assert (
+            f"""# Title\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\n## Trialforce Template ID\r\n`TBD`"""
+            == parser.render()
+        )
+
+    def test_package_version_id_both_dates_with_trial(self):
+        generator = mock.Mock(
+            link_pr=True,
+            version_id="04t0000asdf",
+            sandbox_date="2020-10-10",
+            production_date="2020-10-11",
+            trial_info=True,
+        )
+        parser = InstallLinkParser(generator, "Title")
+        parser.parse("abc")
+        version_id = urllib.parse.quote_plus(generator.version_id)
+        assert (
+            f"""# Title\r\n\r\n## Push Schedule\r\nSandbox orgs: {generator.sandbox_date}\r\nProduction orgs: {generator.production_date}\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\n## Trialforce Template ID\r\n`TBD`"""
+            == parser.render()
+        )
+
+    def test_package_version_id_sandbox_date_with_trial(self):
+        generator = mock.Mock(
+            link_pr=True,
+            version_id="04t0000asdf",
+            sandbox_date="2020-10-10",
+            production_date=None,  # need to set explicitly due to mock, will default to None when using CLI
+            trial_info=True,
+        )
+        parser = InstallLinkParser(generator, "Title")
+        parser.parse("abc")
+        version_id = urllib.parse.quote_plus(generator.version_id)
+        assert (
+            f"""# Title\r\n\r\n## Push Schedule\r\nSandbox orgs: {generator.sandbox_date}\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\n## Trialforce Template ID\r\n`TBD`"""
+            == parser.render()
+        )
+
+    def test_package_version_id_production_date_with_trial(self):
+        generator = mock.Mock(
+            link_pr=True,
+            version_id="04t0000asdf",
+            sandbox_date=None,  # need to set explicitly due to mock, will default to None when using CLI
+            production_date="2020-10-10",
+            trial_info=None,  # need to set explicitly due to mock, will default to False when using CLI
+        )
+        parser = InstallLinkParser(generator, "Title")
+        parser.parse("abc")
+        version_id = urllib.parse.quote_plus(generator.version_id)
+        assert f"""# Title\r\n\r\n## Push Schedule\r\nProduction orgs: {generator.production_date}\r\n\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\n## Trialforce Template ID\r\n`TBD`"""
 
     def test_package_version(self):
         generator = mock.Mock(link_pr=True)

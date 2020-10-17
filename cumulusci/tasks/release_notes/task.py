@@ -45,10 +45,10 @@ class GithubReleaseNotes(BaseGithubTask):
             "description": "If True, Includes trialforce template text for this product."
         },
         "sandbox_date": {
-            "description": "The date of the sandbox release in ISO format (Will default to today)"
+            "description": "The date of the sandbox release in ISO format (Will default to None)"
         },
         "production_date": {
-            "description": "The date of the production release in ISO format (Will default to 6 days from now)"
+            "description": "The date of the production release in ISO format (Will default to None)"
         },
     }
 
@@ -75,8 +75,8 @@ class GithubReleaseNotes(BaseGithubTask):
             process_bool_arg(self.options.get("include_empty", False)),
             version_id=self.options.get("version_id"),
             trial_info=self.options.get("trial_info", False),
-            sandbox_date=self.options.get("sandbox_date"),
-            production_date=self.options.get("production_date"),
+            sandbox_date=self.options.get("sandbox_date", None),
+            production_date=self.options.get("production_date", None),
         )
 
         release_notes = generator()
