@@ -4,6 +4,10 @@ project:
         name: CumulusCI
 
 tasks:
+    util_sleep:
+        options:
+            seconds: 30
+        
     robot:
         options:
             suites: cumulusci/robotframework/tests
