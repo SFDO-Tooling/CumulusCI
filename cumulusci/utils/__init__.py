@@ -479,6 +479,43 @@ def create_task_options_doc(task_options):
     return doc
 
 
+def flow_ref_title_and_intro(intro_blurb):
+    return f"""Flow Reference
+==========================================
+\n{intro_blurb}
+.. contents::
+    :depth: 2
+    :local:
+
+"""
+
+
+def document_flow(flow_name, description, flow_coordinator, additional_info=None):
+    """Document (project specific) flow configurations in RST format"""
+    doc = []
+
+    doc.append(f"{flow_name}\n{'^' * len(flow_name)}\n")
+    doc.append(f"**Description:** {description}\n")
+
+    if additional_info:
+        doc.append(additional_info)
+
+    doc.append("**Flow Steps**\n")
+    doc.append(".. code-block:: console\n")
+    flow_step_lines = flow_coordinator.get_flow_steps(for_docs=True)
+    # extra indent beneath code-block and finish with pipe for extra space afterwards
+    flow_step_lines = [f"\t{line}" for line in flow_step_lines]
+    # fix when clauses
+    lines = []
+    for line in flow_step_lines:
+        if line.startswith("when"):
+            line = f"\t\t{line}"
+        lines.append(line)
+    doc.extend(lines)
+
+    return "\n".join(doc)
+
+
 def package_xml_from_dict(items, api_version, package_name=None):
     lines = []
 

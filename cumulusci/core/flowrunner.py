@@ -283,12 +283,24 @@ class FlowCoordinator(object):
             self.logger.info("")
 
     def get_summary(self):
-        """Returns an output string that contains the description of the flow,
-        the sequence of tasks and subflows, and any "when" conditions associated
-        with tasks."""
+        """Returns an output string that contains the description of the flow
+        and its steps."""
         lines = []
         if "description" in self.flow_config.config:
             lines.append(f"Description: {self.flow_config.config['description']}")
+
+        step_lines = self.get_flow_steps()
+        if step_lines:
+            lines.append("\nFlow Steps")
+        lines.extend(step_lines)
+
+        return "\n".join(lines)
+
+    def get_flow_steps(self, for_docs=False):
+        """Returns a list of flow steps (tasks and sub-flows) for the given flow.
+        For docs, indicates whether or not we want to use the string for use in a code-block
+        of an rst file. If True, will omit output of source information."""
+        lines = []
         previous_parts = []
         previous_source = None
         for step in self.steps:
@@ -311,18 +323,29 @@ class FlowCoordinator(object):
                 else:
                     source = ""
                 if len(previous_parts) < i + 1 or previous_parts[i] != flow_name:
+                    if for_docs:
+                        source = ""
+
                     lines.append(f"{'    ' * i}{steps[i]}) flow: {flow_name}{source}")
                     if source:
                         new_source = ""
 
             padding = "    " * (i + 1) + " " * len(str(steps[i + 1]))
-            when = f"\n{padding}  when: {step.when}" if step.when is not None else ""
+            when = f"{padding}  when: {step.when}" if step.when is not None else ""
+
+            if for_docs:
+                new_source = ""
+
             lines.append(
-                f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}{when}"
+                f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}"
             )
+            if when:
+                lines.append(when)
+
             previous_parts = parts
             previous_source = step.project_config.source
-        return "\n".join(lines)
+
+        return lines
 
     def run(self, org_config):
         self.org_config = org_config

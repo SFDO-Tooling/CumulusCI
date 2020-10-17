@@ -24,6 +24,7 @@ Contents:
    :maxdepth: 1
 
    tasks
+   flows
    history
    authors
    contributing

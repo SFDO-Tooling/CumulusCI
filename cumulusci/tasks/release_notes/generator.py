@@ -1,4 +1,3 @@
-import datetime
 import github3.exceptions
 from cumulusci.core.utils import import_global
 from cumulusci.core.github import (
@@ -22,12 +21,9 @@ class BaseReleaseNotesGenerator(object):
         self.init_parsers()
         self.init_change_notes()
         self.version_id = None
-        self.release_info = False
         self.trial_info = False
-        self.sandbox_date = datetime.date.today().isoformat()
-        self.production_date = (
-            datetime.date.today() + datetime.timedelta(days=6)
-        ).isoformat()
+        self.sandbox_date = None
+        self.production_date = None
 
     def __call__(self):
         self._parse_change_notes()
@@ -193,7 +189,6 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         has_issues=True,
         include_empty=False,
         version_id=None,
-        release_info=False,
         trial_info=False,
         sandbox_date=None,
         production_date=None,

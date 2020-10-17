@@ -569,19 +569,18 @@ class TestInstallLinkParser:
         assert parser.render() == ""
 
     def test_package_release_info_no_version_id(self):
-        generator = mock.Mock(link_pr=True, version_id=None, release_info=True)
+        generator = mock.Mock(link_pr=True, version_id=None)
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
         print(parser.render())
-        assert "# Title" in parser.render()
-        assert "# Installation Info" in parser.render()
+        assert "# Installation Links" in parser.render()
         assert "## Push Schedule" in parser.render()
         assert f"Sandbox orgs: {generator.sandbox_date}" in parser.render()
         assert f"Production orgs: {generator.production_date}" in parser.render()
         assert "## Installation URL" not in parser.render()
 
     def test_package_release_info_with_version_id(self):
-        generator = mock.Mock(link_pr=True, version_id="04t0000asdf", release_info=True)
+        generator = mock.Mock(link_pr=True, version_id="04t0000asdf")
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
         assert "# Title" in parser.render()
@@ -599,7 +598,6 @@ class TestInstallLinkParser:
         generator = mock.Mock(
             link_pr=True,
             version_id="04t0000asdf",
-            release_info=True,
             sandbox_date="2020-10-10",
             production_date="2020-10-10",
         )
@@ -617,9 +615,7 @@ class TestInstallLinkParser:
         )
 
     def test_package_trial_info(self):
-        generator = mock.Mock(
-            link_pr=True, version_id="04t0000asdf", release_info=False, trial_info=True
-        )
+        generator = mock.Mock(link_pr=True, version_id="04t0000asdf", trial_info=True)
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
         assert "# Title" in parser.render()
