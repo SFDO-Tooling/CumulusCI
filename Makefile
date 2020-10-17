@@ -68,6 +68,7 @@ coverage: ## check code coverage quickly with the default Python
 docs: ## generate Sphinx HTML documentation
 	$(MAKE) -C docs clean
 	cci task doc > docs/tasks.rst
+	cci flow doc > docs/flows.rst
 	$(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html
 

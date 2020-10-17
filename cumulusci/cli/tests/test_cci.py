@@ -1956,6 +1956,58 @@ Environment Info: Rossian / x68_46
         with self.assertRaises(click.UsageError):
             run_click_command(cci.flow_info, runtime=runtime, flow_name="test")
 
+    @mock.patch("cumulusci.cli.cci.group_items")
+    @mock.patch("cumulusci.cli.cci.document_flow")
+    def test_flow_doc__no_flows_rst_file(self, doc_flow, group_items):
+        runtime = mock.Mock()
+        runtime.universal_config.flows = {"test": {}}
+        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+        runtime.get_flow.return_value = FlowCoordinator(None, flow_config)
+
+        group_items.return_value = {"Group One": [["test flow", "description"]]}
+
+        run_click_command(cci.flow_doc, runtime=runtime)
+        group_items.assert_called_once()
+        doc_flow.assert_called()
+
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.cci_safe_load")
+    def test_flow_doc__with_flows_rst_file(self, safe_load, echo):
+        runtime = CliRuntime(
+            config={
+                "flows": {
+                    "Flow1": {
+                        "steps": {},
+                        "description": "Description of Flow1",
+                        "group": "Group1",
+                    }
+                }
+            },
+            load_keychain=False,
+        )
+
+        safe_load.return_value = {
+            "intro_blurb": "opening blurb for flow reference doc",
+            "groups": {
+                "Group1": {"description": "This is a description of group1."},
+            },
+            "flows": {"Flow1": {"rst_text": "Some ``extra`` **pizzaz**!"}},
+        }
+
+        run_click_command(cci.flow_doc, runtime=runtime)
+
+        assert 1 == safe_load.call_count
+
+        expected_call_args = [
+            "Flow Reference\n==========================================\n\nopening blurb for flow reference doc\n.. contents::\n    :depth: 2\n    :local:\n\n",
+            "Group1\n------",
+            "This is a description of group1.",
+            "Flow1\n^^^^^\n\n**Description:** Description of Flow1\n\nSome ``extra`` **pizzaz**!\n**Flow Steps**\n\n.. code-block:: console\n",
+            "",
+        ]
+        expected_call_args = [mock.call(s) for s in expected_call_args]
+        assert echo.call_args_list == expected_call_args
+
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})
         runtime = CliRuntime(
@@ -2009,9 +2061,7 @@ Environment Info: Rossian / x68_46
             )
         assert "-o" in str(e.value)
 
-    def test_flow_run_delete_non_scratch(
-        self,
-    ):
+    def test_flow_run_delete_non_scratch(self):
         org_config = mock.Mock(scratch=False)
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)
