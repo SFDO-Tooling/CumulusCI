@@ -49,24 +49,23 @@ The following is a an example where the default days for the ``dev`` org has bee
             config_file: orgs/multicurrency.json
             days: 7
 
-Plans   
+Plans
 *****************
 This section contains any custom plans you have defined for how to install your project into a customer org.
 See more about plans on Metadeploy `here<TODO>`_
 
 
 
-Overrides
----------
-Overrides are the most common form of configuration that can be done in the ``cumumulusci.yml`` file.
-The following examples demonstrate various ways in which you can utilize overrides.
+Common Configurations
+---------------------
+The following examples demonstrate the most common ways in which the ``cumulusci.yml`` file can be configured.
 
 
 
 Setting Task Options
 ********************************
-If there is a specific task that you run, and you have an option value that remains static, you can instruct CumulusCI to always use that value when running the task.
-If you want everyone in your project who runs the ``robot`` task, to execute the full suite of robot tests for your project, and always use the same output directory for results you can use:
+If there is a specific task that you run with static option values, you can instruct CumulusCI to always use specific value when running the task.
+For example, if you want everyone in your project who runs the ``robot`` task, to execute the full suite of robot tests for your project, and always use the same output directory for results you could use:
 
 .. code-block:: yaml
 
@@ -77,12 +76,13 @@ If you want everyone in your project who runs the ``robot`` task, to execute the
                 outputdir: robot/projectName/results
 
 This assumes that robot tests for your project live under the ``robotframework/tests`` directory.
+Now all users who work in this repository can run ``cci task run robot --org <org_name>`` and not have know anything about the options for the task!
 
 Add a Custom Task
 ********************************
 Say that you want to take the above example and create a custom task named ``robot_run_all`` to make it more apparent what this task is doing.
 
-Lookup the Python class that is associated with the standard task. You can do this by going to the `internal CumulusCI file <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ and looking for the corresponding tasks `class value <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L400>`_.
+First, lookup the Python class associated with the standard task ``robot``. You can do this by going to the `internal CumulusCI file <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ and looking for the corresponding tasks `class value <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L400>`_.
 
 Now you can add the following under the ``tasks:`` section of your ``cumulusci.yml`` file, include the value we retrieved for ``class_path``.
 
@@ -99,8 +99,9 @@ Now you can add the following under the ``tasks:`` section of your ``cumulusci.y
 Congratulations! You have created a new custom task in CumulusCI!
 Adding a common ``group`` attribute to your custom tasks makes it easy to see the tasks that are specific to your project with ``cci task list``.
 
-This technique is also commonly applied when deploying different portions of `unpackaged metadata <TODO>`_.
-If we have some reports that live under ``unpackaged/config/reports`` and our project's source code  is in `Metadata format <>`_  we could include the following in the ``tasks`` seciton of our project's ``cumulusci.yml`` file.
+This technique of renaming an existing standard task and providing it with a set of default option values is quite useful, and can be applied to many things.
+
+If you have Salesforce reports that are part of your packages unpackaged Metadata that live under ``unpackaged/config/reports`` and our project's source code  is in `Metadata format <>`_  we could include the following in the ``tasks`` seciton of our project's ``cumulusci.yml`` file.
 
 .. code-block::
 
@@ -110,9 +111,10 @@ If we have some reports that live under ``unpackaged/config/reports`` and our pr
         group: projectName
         options:
             path: unpackaged/config/reports
-            namespace_inject: $project_config.project__package__namespacej
+            namespace_inject: $project_config.project__package__namespace
 
-Similarly, we can create a custom task to run a specific Apex method via execut anonymous via the Tooling API like so:
+
+Similarly, we can create a custom task that references the same that the `execute_anon task <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L194>`_ uses to run a specific Apex method in your project's repository.
 
 .. code-block:: yaml
 
@@ -124,7 +126,7 @@ Similarly, we can create a custom task to run a specific Apex method via execut 
             path: scripts/configure_project_settings.cls
             apex: initializeProjectSettings();
 
-The above assumed that the Apex file ``scripts/configure_project_settings.cls`` exists, and has a public static method named ``initializeProjectSettings``. 
+The above assumes that the Apex file ``scripts/configure_project_settings.cls`` exists, and has a public static method named ``initializeProjectSettings``.
 
 If you want to `write a custom task in python <TODO>`_ and make it available to other users in the project you would need to update your ``cumulusci.yml`` file's ``task`` section with the following:
 
@@ -143,7 +145,8 @@ The above assumes that your task's class is name ``MyTaskClass`` and exists in t
 
 Add a Flow Step
 ********************************
-If you want to add a step to a flow, you first need to know what the existing steps are. The easiest way to see this is with ``cci flow info <flow_name>``.
+If you want to add a step to a flow, you first need to know what the existing steps are.
+The easiest way to see this is with ``cci flow info <flow_name>``.
 Take the ``dev_org`` flow as an example:
 
 .. code-block:: console
@@ -172,27 +175,33 @@ Take the ``dev_org`` flow as an example:
 
 There are four steps to this flow. The first three steps are themselves flows, and the last step is a task.
 
-Decimal and negative numbers are valid steps. This makes it easy to add steps before, in-between, or after existing flow steps.
-If we wanted to add a step at the beginning of the dev org flow, valid step numbers would include any number less than 1. Example values would include : 0, 0.3, and -1.
-All of these would cause the step to execute before the first step in the ``dev_org`` flow.
+All *non-negative numbers and decimals* are valid as step numbers in a flow.
+This makes it easy to add steps before, in-between, or after existing flow steps.
+If we wanted to add a step at the beginning of the dev org flow, valid step numbers would include any number greater than or equal to zero and less than 1.
+Example values would include: 0, 0.3, and 0.89334.
+All of these would cause the step to execute before step 1 in the ``dev_org`` flow.
 
-If you wanted to add a step between steps 2 and three, then a step number of 2.5 could be utilized.
+If you wanted to add a step between steps 2 and 3, then a step number of 2.5 could be utilized.
 
-If you wanted to add a step number that runs after all steps in the flow, then the step number should be greater than 4.
+If you wanted to add a step number that runs after all steps in the flow, then any step number greater than 4 could be utilized.
 
 
 
-Remove a Flow Step
+Skip a Flow Step
 ********************************
-To remove a flow step you can set the desired step number to a task with a value of ``None``.
-The following would omit the 4th step from the ``dev_org`` flow.
+To skip a flow step, set the desired step number to a task with the value of ``None``.
+The following would skip the 4th step from the ``dev_org`` flow.
 
 .. code-block:: yaml
-    
+
     dev_org:
         steps:
             4:
                 task: None
+
+When CumulusCI detects a task with this value, it is skipped:
+
+.. image:: images/skipping_task.png
 
 
 
@@ -206,14 +215,14 @@ The following would replace the fourth step of the ``dev_org`` flow with a custo
     dev_org:
         steps:
             4:
-                task: load_data_dev 
+                task: load_data_dev
 
 
 
 Add a Custom Flow
 ********************************
 To define a new flow, simply add the name of the new flow under the ``flows`` section of your ``cumulusci.yml`` file.
-Here is an example custom flow 
+Here is an example custom flow
 
 .. code-block::
     my_project_flow:
@@ -228,40 +237,60 @@ Here is an example custom flow
 You can reference how we defined the flows for the standard library `here <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L565>`_.
 
 
-Configuration Scopes 
+
+Configuration Scopes
 --------------------
 When we reference ``cumulusci.yml`` in our documentation, we are referring to the ``cumulusci.yml`` file located in your project's root directory.
-In actuality, CumulusCI merges multiple `YAML <https://yaml.org/>`_ files that allow for configuration to occur at several distinct scopes. 
+In actuality, CumulusCI merges multiple `YAML <https://yaml.org/>`_ files that allow for configuration to occur at several distinct scopes.
 All of these files are have the same name- ``cumulusci.yml`` -but live in different locations on the file system.
 
-You can configure files at three scope levels: Global, Project, Local Project. 
+You can configure files at three scope levels: Project, Local Project, Global.
+Configurations have the following order of precedence (from highest to lowest):
+
+* Local Project
+* Project
+* Global
+
+Overrides by precendence only happen when two configurations are attempting to set a value for the same element.
+For example, say there exists a task T that takes two options o1 and o2.
+You can specify a default value for o1 in your project's ``cumulusci.yml`` file and a default for o2 in your global ``cumulusci.yml`` file and everything will work as exepected.
+If you then change your project's ``cumulusci.yml`` file to also specify a default value for o2, this will take precedence over the default value specified in your global ``cumulusci.yml`` file.
+
 The following diagram illustrates these three files along with their corresponding scopes in green.
 Changes made to configuration files on top will override any changes in files below them (if they are present).
 
 .. image:: images/cci-yml-chart.png
 
 
-Global Overrides
-*******************
-**File Path:** ``~/.cumulusci/cumulusci.yml``
 
-Configuration of this file will override behavior across *all* CumulusCI projects on your machine. 
-Configurations in this file have the lowest precedence, and are overwritten by *all other* scopes.
-
-Project Overrides
-*******************
-**File Path:** ``/path/to/project/cumulusci.yml``
-
-This ``cumulusci.yml`` file lives in the root directory of your project (typically a github repository too).
-Configuration made here applies specifically to this project.
-It is useful to modify this file as the changes can be commited back to a remote repository so other team members can benefit from the customizations.
-
-Local Project Overrides 
-***************************
+Local Project Configurations
+******************************
 **File Path:** ``/path/to/project/cumulusci.yml``
 
 Configurations made to this ``cumulusci.yml`` file apply to only the project with the given <project_name>.
 If you want to make customizations to a project, but don't need them to be available to other team members, you would make those customizations here.
+These configurations take precedence over **all other** configuration scopes.
+
+
+
+Project Configurations
+*************************
+**File Path:** ``/path/to/project/cumulusci.yml``
+
+This ``cumulusci.yml`` file lives in the root directory of your project and is typically included in source tracking.
+It is useful to modify this file as the changes can be commited back to a remote repository so other team members can benefit from the customizations.
+Configurations made to this file apply to this project, and take precedence over any configurations specified in the `global configurations`_ file, but are overwritten by configurations in the `local project`_ file.
+
+
+
+Global Configurations
+***********************
+**File Path:** ``~/.cumulusci/cumulusci.yml``
+
+Configuration of this file will override behavior across **all** CumulusCI projects on your machine.
+Configurations in this file have the lowest precedence, and are overwritten by **all other** configuration scopes.
+
+
 
 One Last ``cumulusci.yml``
 *****************************
@@ -270,16 +299,15 @@ This file, contains all of the standard tasks, flows, and default configurations
 You aren't able to modify it, but knowing about it serves two purposes:
 
 * It is a fun bit of trivia to know that this file exists!
-* It is often useful to reference when working on configuring custom tasks or flows of your own.
+* It is useful to reference when working on configuring custom tasks or flows of your own.
+
 
 
 Using Tasks and Flows From a Different Project
 ----------------------------------------------
-The dependency handling discussed above is used in a very specific context,
-to install dependency packages or metadata bundles in the ``dependencies`` flow
-which is a component of some other flows. It's also possible to use
-arbitrary tasks and flows from another project. To do this, the other project
-must be named in the ``sources`` section of cumulusci.yml:
+The dependency handling discussed above is used in a very specific context, to install dependency packages or metadata bundles in the ``dependencies`` flow which is a component of some other flows.
+It's also possible to use arbitrary tasks and flows from another project.
+To do this, the other project must be named in the ``sources`` section of cumulusci.yml:
 
 .. code-block:: yaml
 
@@ -287,9 +315,8 @@ must be named in the ``sources`` section of cumulusci.yml:
       npsp:
         github: https://github.com/SalesforceFoundation/NPSP
 
-This says that when tasks or flows are referenced using the `npsp` namespace,
-CumulusCI should fetch the source from this GitHub repository. By default,
-it will fetch the most recent release, or the default branch if there are no releases.
+This says that when tasks or flows are referenced using the `npsp` namespace, CumulusCI should fetch the source from this GitHub repository.
+By default, it will fetch the most recent release, or the default branch if there are no releases.
 It's also possible to fetch a specific ``tag``:
 
 .. code-block:: yaml
@@ -325,5 +352,4 @@ Or even to create a new flow which uses a flow from NPSP:
           2:
             flow: dev_org
 
-This flow will use NPSP's ``install_prod`` flow to install NPSP as a managed package,
-and then run this project's own ``dev_org`` flow.
+This flow will use NPSP's ``install_prod`` flow to install NPSP as a managed package, and then run this project's own ``dev_org`` flow.
