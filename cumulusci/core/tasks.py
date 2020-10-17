@@ -94,7 +94,9 @@ class BaseTask(object):
         for option, value in self.options.items():
             if isinstance(value, str):
                 value = PROJECT_CONFIG_RE.sub(
-                    lambda match: getattr(self.project_config, match.group(1), None),
+                    lambda match: str(
+                        getattr(self.project_config, match.group(1), None)
+                    ),
                     value,
                 )
                 self.options[option] = value
