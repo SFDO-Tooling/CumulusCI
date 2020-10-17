@@ -295,16 +295,60 @@ Configurations in this file have the lowest precedence, and are overwritten by *
 One Last ``cumulusci.yml``
 *****************************
 There is one more configuration file that exists; the `internal cumulusci.yml <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ file that ships with CumulusCI itself.
-This file, contains all of the standard tasks, flows, and default configurations that come out of the box with CumulusCI.
-You aren't able to modify it, but knowing about it serves two purposes:
+This file actually holds the lowest precedence of all, as all other scopes override what is contained in this file.
+This file contains all of the definitions for the standard tasks, flows, as well as, the default configurations that come out of the box with CumulusCI.
+As a CumulusCI user you aren't able to modify it, but knowing about it serves two purposes:
 
 * It is a fun bit of trivia to know that this file exists!
 * It is useful to reference when working on configuring custom tasks or flows of your own.
 
 
+Advanced Configuration
+----------------------
+
+Using Variables for Task Options
+***********************************
+Sometimes you may want to reference a specific value within the ``cumulusci.yml`` file.
+To do this we can utilize the ``$project_config`` variable.
+You can use a double underscore (``__``) to access the different levels of the ``cumulusci.yml`` file.
+
+For example, NPSP utilizes a variable to the project's namespace by setting a value of ``$project_config.project__package__namespace``.
+Here is an example task that does just this to provide a value for the ``namespace_inject`` option in a custom deploy task:
+
+.. code-block:: yaml
+
+    deploy_qa_config:
+            description: Deploys additional fields used for QA purposes only
+            class_path: cumulusci.tasks.salesforce.Deploy
+            group: Salesforce Metadata
+            options:
+                path: unpackaged/config/qa
+                namespace_inject: $project_config.project__package__namespace
+
+CumulusCI will replace the variable with the value currently located under project -> package -> namespace in the ``cumulusci.yml`` file.
+Here is the ``project`` section of NPSP's ``cumulusci.yml`` file:
+
+.. code-block:: yaml
+
+    project:
+        name: Cumulus
+        package:
+            name: Cumulus
+            name_managed: Nonprofit Success Pack
+            namespace: npsp
+            api_version: 48.0
+            install_class: STG_InstallScript
+            uninstall_class: STG_UninstallScript
+
+Currently under ``$project_config.project__package__namespace`` is the value: ``npsp``.
+
+Piping Tasks
+*******************
+It is possible for tasks to set specific return values
+
 
 Using Tasks and Flows From a Different Project
-----------------------------------------------
+*************************************************
 The dependency handling discussed above is used in a very specific context, to install dependency packages or metadata bundles in the ``dependencies`` flow which is a component of some other flows.
 It's also possible to use arbitrary tasks and flows from another project.
 To do this, the other project must be named in the ``sources`` section of cumulusci.yml:
