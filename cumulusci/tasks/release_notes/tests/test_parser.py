@@ -572,6 +572,7 @@ class TestInstallLinkParser:
         generator = mock.Mock(link_pr=True, version_id=None, release_info=True)
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
+        print(parser.render())
         assert "# Title" in parser.render()
         assert "# Installation Info" in parser.render()
         assert "## Push Schedule" in parser.render()

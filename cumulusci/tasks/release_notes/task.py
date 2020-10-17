@@ -11,7 +11,6 @@ from cumulusci.core.github import (
     get_pull_requests_by_commit,
     get_pull_requests_with_base_branch,
 )
-import datetime
 
 
 class GithubReleaseNotes(BaseGithubTask):
@@ -80,13 +79,8 @@ class GithubReleaseNotes(BaseGithubTask):
             version_id=self.options.get("version_id"),
             release_info=self.options.get("release_info", False),
             trial_info=self.options.get("trial_info", False),
-            sandbox_date=self.options.get(
-                "sandbox_date", datetime.date.today().isoformat()
-            ),
-            production_date=self.options.get(
-                "production_date",
-                (datetime.date.today() + datetime.timedelta(days=6)).isoformat(),
-            ),
+            sandbox_date=self.options.get("sandbox_date"),
+            production_date=self.options.get("production_date"),
         )
 
         release_notes = generator()

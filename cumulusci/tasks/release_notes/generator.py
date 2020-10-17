@@ -195,10 +195,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         version_id=None,
         release_info=False,
         trial_info=False,
-        sandbox_date=datetime.date.today().isoformat(),
-        production_date=(
-            datetime.date.today() + datetime.timedelta(days=6)
-        ).isoformat(),
+        sandbox_date=None,
+        production_date=None,
     ):
         self.github = github
         self.github_info = github_info
@@ -213,7 +211,6 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
         self.version_id = version_id
-        self.release_info = release_info
         self.trial_info = trial_info
         self.sandbox_date = sandbox_date
         self.production_date = production_date
@@ -309,12 +306,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         # add empty PR section
         if self.include_empty_pull_requests:
             new_body.extend(render_empty_pr_section(self.empty_change_notes))
-        # # add release installation information section
-        # if self.release_info:
-        #     new_body.extend(render_release_installation_section(self))
-        # # add trial template information section
-        # if self.trial_info:
-        #     new_body.extend(render_release_installation_template())
+
         content = "\r\n".join(new_body)
         return content
 

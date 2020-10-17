@@ -295,39 +295,33 @@ class InstallLinkParser(ChangeNotesLinesParser):
 
     def render(self, existing_content=""):
         version_id = self.release_notes_generator.version_id
-        release_info = self.release_notes_generator.release_info
         trial_info = self.release_notes_generator.trial_info
 
         if version_id:
             version_id = urllib.parse.quote_plus(version_id)
-            existing_content += "\r\n".join(
-                [
-                    self._render_header(),
-                    "Production & Developer Edition Orgs:",
-                    f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
-                    "",
-                    "Sandbox & Scratch Orgs:",
-                    f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
-                ]
-            )
-        if release_info is True:
-            existing_content += "\r\n".join(
-                [
-                    self._render_header(),
-                    "\r\n# Installation Info",
-                    "## Push Schedule",
-                    f"\r\nSandbox orgs: {self.release_notes_generator.sandbox_date}",
-                    f"Production orgs: {self.release_notes_generator.production_date}",
-                ]
-            )
-            if version_id:
-                existing_content += "\r\n".join(
-                    [
-                        "\r\nUse the Installation URL below to install this release before the scheduled push dates.",
-                        "\r\n## Installation URL",
-                        f"\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}",
-                    ]
-                )
-        if trial_info is True:
-            existing_content += "\r\n".join(["## Trialforce Template ID", "`TBD`"])
+            result = [self._render_header()]
+            if (
+                self.release_notes_generator.sandbox_date
+                or self.release_notes_generator.production_date
+            ):
+                result.append("## Push Schedule")  # "\r\n# Installation Info",
+                if self.release_notes_generator.sandbox_date:
+                    result.append(
+                        f"\r\nSandbox orgs: {self.release_notes_generator.sandbox_date}"
+                    )
+                if self.release_notes_generator.production_date:
+                    result.append(
+                        f"Production orgs: {self.release_notes_generator.production_date}",
+                    )
+            result += [
+                "Production & Developer Edition Orgs:",
+                f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+                "",
+                "Sandbox & Scratch Orgs:",
+                f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+            ]
+            if trial_info is True:
+                result += ["## Trialforce Template ID", "`TBD`"]
+            return "\r\n".join(result)
+
         return existing_content
