@@ -1376,67 +1376,94 @@ class TestOrgConfig(unittest.TestCase):
         with self.assertRaisesRegex(Exception, expected_exception):
             config.get_community_info("bogus")
 
-    MOCK_TOOLING_PACKAGE_RESULTS = {
-        "size": 2,
-        "totalSize": 2,
-        "done": True,
-        "records": [
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz4AAG",
-                    "NamespacePrefix": "GW_Volunteers",
+    MOCK_TOOLING_PACKAGE_RESULTS = [
+        {
+            "size": 2,
+            "totalSize": 2,
+            "done": True,
+            "records": [
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz4AAG",
+                        "NamespacePrefix": "GW_Volunteers",
+                    },
+                    "SubscriberPackageVersionId": "04t1T00000070yqQAA",
                 },
-                "SubscriberPackageVersion": {
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz5AAG",
+                        "NamespacePrefix": "GW_Volunteers",
+                    },
+                    "SubscriberPackageVersionId": "04t000000000001AAA",
+                },
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz7AAG",
+                        "NamespacePrefix": "TESTY",
+                    },
+                    "SubscriberPackageVersionId": "04t000000000002AAA",
+                },
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz4AAG",
+                        "NamespacePrefix": "blah",
+                    },
+                    "SubscriberPackageVersionId": "04t0000000BOGUSAAA",
+                },
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
                     "Id": "04t1T00000070yqQAA",
                     "MajorVersion": 3,
                     "MinorVersion": 119,
                     "PatchVersion": 0,
                     "BuildNumber": 5,
                     "IsBeta": False,
-                },
-            },
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz5AAG",
-                    "NamespacePrefix": "GW_Volunteers",
-                },
-                "SubscriberPackageVersion": {
+                }
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
                     "Id": "04t000000000001AAA",
                     "MajorVersion": 12,
                     "MinorVersion": 0,
                     "PatchVersion": 1,
                     "BuildNumber": 1,
                     "IsBeta": False,
-                },
-            },
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz7AAG",
-                    "NamespacePrefix": "TESTY",
-                },
-                "SubscriberPackageVersion": {
+                }
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
                     "Id": "04t000000000002AAA",
                     "MajorVersion": 1,
                     "MinorVersion": 10,
                     "PatchVersion": 0,
                     "BuildNumber": 5,
                     "IsBeta": True,
-                },
-            },
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz4AAG",
-                    "NamespacePrefix": "blah",
-                },
-                "SubscriberPackageVersion": None,  # This shouldn't happen but has in real orgs.
-            },
-        ],
-    }
+                }
+            ],
+        },
+        {"size": 0, "totalSize": 0, "done": True, "records": []},
+    ]
 
     @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
     def test_installed_packages(self, sf):
         config = OrgConfig({}, "test")
-        sf.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
 
         expected = {
             "GW_Volunteers": [
@@ -1466,23 +1493,18 @@ class TestOrgConfig(unittest.TestCase):
         # get it twice so we can make sure it is cached
         assert config.installed_packages == expected
         assert config.installed_packages == expected
-        sf.restful.assert_called_once_with(
-            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
-            "SubscriberPackageVersion.Id, SubscriberPackageVersion.MajorVersion, "
-            "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
-            "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
-            "FROM InstalledSubscriberPackage"
-        )
+        sf.restful.assert_called()
 
         sf.restful.reset_mock()
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
         config.reset_installed_packages()
         assert config.installed_packages == expected
-        sf.restful.assert_called_once()
+        sf.restful.assert_called()
 
     @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
     def test_has_minimum_package_version(self, sf):
         config = OrgConfig({}, "test")
-        sf.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
 
         assert config.has_minimum_package_version("TESTY", "1.9")
         assert config.has_minimum_package_version("TESTY", "1.10b5")
