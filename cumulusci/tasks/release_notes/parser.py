@@ -296,22 +296,19 @@ class InstallLinkParser(ChangeNotesLinesParser):
     def render(self, existing_content=""):
         version_id = self.release_notes_generator.version_id
         trial_info = self.release_notes_generator.trial_info
+        result = [self._render_header()]
 
         if version_id:
-            result = []
             version_id = urllib.parse.quote_plus(version_id)
-            result.append(self._render_header())
-
             if (
                 self.release_notes_generator.sandbox_date
                 or self.release_notes_generator.production_date
             ):
-                result += ["## Push Schedule"]  # "\r\n# Installation Info",
+                result.append("## Push Schedule")
                 if self.release_notes_generator.sandbox_date:
                     result.append(
                         f"Sandbox orgs: {self.release_notes_generator.sandbox_date}"
                     )
-
                 if self.release_notes_generator.production_date:
                     result.append(
                         f"Production orgs: {self.release_notes_generator.production_date}",
@@ -327,5 +324,24 @@ class InstallLinkParser(ChangeNotesLinesParser):
             if trial_info is True:
                 result += ["", "## Trialforce Template ID", "`TBD`"]
             return "\r\n".join(result)
-
-        return existing_content
+        elif (
+            self.release_notes_generator.sandbox_date
+            or self.release_notes_generator.production_date
+        ):
+            result.append("## Push Schedule")
+            if self.release_notes_generator.sandbox_date:
+                result.append(
+                    f"Sandbox orgs: {self.release_notes_generator.sandbox_date}"
+                )
+            if self.release_notes_generator.production_date:
+                result.append(
+                    f"Production orgs: {self.release_notes_generator.production_date}",
+                )
+            if trial_info is True:
+                result += ["", "## Trialforce Template ID", "`TBD`"]
+            return "\r\n".join(result)
+        elif trial_info is True:
+            result += ["## Trialforce Template ID", "`TBD`"]
+            return "\r\n".join(result)
+        else:
+            return existing_content
