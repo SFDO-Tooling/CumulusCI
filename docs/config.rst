@@ -201,7 +201,8 @@ Add a Custom Flow
 To define a new flow, simply add the name of the new flow under the ``flows`` section of your ``cumulusci.yml`` file.
 Here is an example custom flow
 
-.. code-block::
+.. code-block:: yaml
+
     my_project_flow:
         group: projectName
         description:
