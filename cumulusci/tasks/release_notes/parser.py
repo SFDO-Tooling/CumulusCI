@@ -304,23 +304,27 @@ class InstallLinkParser(ChangeNotesLinesParser):
                 self.release_notes_generator.sandbox_date
                 or self.release_notes_generator.production_date
             ):
-                result.append("## Push Schedule")
+                result += ["## Push Schedule", ""]
                 if self.release_notes_generator.sandbox_date:
-                    result.append(
-                        f"Sandbox orgs: {self.release_notes_generator.sandbox_date}"
-                    )
+                    result += [
+                        f"Sandbox & Scratch Orgs: {self.release_notes_generator.sandbox_date}",
+                        f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+                    ]
+                    if self.release_notes_generator.production_date:
+                        result.append("")  # For formatting purposes
                 if self.release_notes_generator.production_date:
-                    result.append(
-                        f"Production orgs: {self.release_notes_generator.production_date}",
-                    )
-                result.append("")
-            result += [
-                "Production & Developer Edition Orgs:",
-                f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
-                "",
-                "Sandbox & Scratch Orgs:",
-                f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
-            ]
+                    result += [
+                        f"Production & Developer Edition Orgs: {self.release_notes_generator.production_date}",
+                        f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+                    ]
+            else:
+                result += [
+                    "Sandbox & Scratch Orgs:",
+                    f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+                    "",
+                    "Production & Developer Edition Orgs:",
+                    f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+                ]
             if trial_info is True:
                 result += ["", "## Trialforce Template ID", "`TBD`"]
             return "\r\n".join(result)
@@ -328,7 +332,7 @@ class InstallLinkParser(ChangeNotesLinesParser):
             self.release_notes_generator.sandbox_date
             or self.release_notes_generator.production_date
         ):
-            result.append("## Push Schedule")
+            result += ["## Push Schedule"]
             if self.release_notes_generator.sandbox_date:
                 result.append(
                     f"Sandbox orgs: {self.release_notes_generator.sandbox_date}"
