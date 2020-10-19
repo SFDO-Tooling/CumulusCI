@@ -56,77 +56,52 @@ See more about plans on Metadeploy `here<TODO>`_
 
 
 
-Common Configurations
----------------------
-The following examples demonstrate the most common ways in which the ``cumulusci.yml`` file can be configured.
+Task Configurations
+-------------------
+With some simple changes in the ``cumulusci.yml`` file, you can override a lot of build functionality without ever touching any Python code.
 
 
 
-Setting Task Options
+Overriding a Task Option
 ********************************
-If there is a specific task that you run with static option values, you can instruct CumulusCI to always use specific value when running the task.
-For example, if you want everyone in your project who runs the ``robot`` task, to execute the full suite of robot tests for your project, and always use the same output directory for results you could use:
+The `internal cumulusci.yml file <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ that ships with CumulusCI defines the `deploy task <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L129>`_ with the following YAML::
 
-.. code-block:: yaml
-
-    robot:
-        options:
-            suites: robot/tests
+    tasks:
+        deploy:
+            description: Deploys the src directory of the repository to the org
+            class_path: cumulusci.tasks.salesforce.Deploy
             options:
-                outputdir: robot/projectName/results
+                path: src
 
-This assumes that robot tests for your project live under the ``robotframework/tests`` directory.
-Now all users who work in this repository can run ``cci task run robot --org <org_name>`` and not have know anything about the options for the task!
+You can **override** the ``path`` option by adding the following to your project's ``cumulusci.yml`` file::
+
+    tasks:
+        deploy:
+            options:
+                path: some_other_dir
+
 
 Add a Custom Task
 ********************************
-Say that you want to take the above example and create a custom task named ``robot_run_all`` to make it more apparent what this task is doing.
-
-First, lookup the Python class associated with the standard task ``robot``. You can do this by going to the `internal CumulusCI file <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ and looking for the corresponding tasks `class value <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L400>`_.
+Say that you want to take the above example and create a custom task named ``deploy_reports`` to make it more apparent what this task is doing.
+First, lookup the Python class associated with the standard task ``deploy``. We can see above that the ``deploy`` task has a ``class_path`` value of ``cumulusci.tasks.salesforce.Deploy``.
+Let's assume there are reports that are a part of your package's unpackaged Metadata that live at ``unpackaged/config/reports``.
 
 Now you can add the following under the ``tasks:`` section of your ``cumulusci.yml`` file, include the value we retrieved for ``class_path``.
 
 .. code-block:: yaml
 
-    robot_run_all:
-        description: Runs all robot suites for the project
-        class_path: cumulusci.tasks.robotframework.Robot
-        group: projectName
-        suites: robot/tests
-        options:
-            outputdir: robot/projectName/results
-
-Congratulations! You have created a new custom task in CumulusCI!
-Adding a common ``group`` attribute to your custom tasks makes it easy to see the tasks that are specific to your project with ``cci task list``.
-
-This technique of renaming an existing standard task and providing it with a set of default option values is quite useful, and can be applied to many things.
-
-If you have Salesforce reports that are part of your packages unpackaged Metadata that live under ``unpackaged/config/reports`` and our project's source code  is in `Metadata format <>`_  we could include the following in the ``tasks`` seciton of our project's ``cumulusci.yml`` file.
-
-.. code-block::
-
     deploy_reports:
-        description: Deploy reports
+        description: Deploy Reports 
         class_path: cumulusci.tasks.salesforce.Deploy
         group: projectName
         options:
             path: unpackaged/config/reports
-            namespace_inject: $project_config.project__package__namespace
 
+Congratulations! You have created a new custom task in CumulusCI!
+Adding a common ``group`` attribute to your custom tasks makes it easy to see the tasks that are specific to your project with ``cci task list``.
 
-Similarly, we can create a custom task that references the same that the `execute_anon task <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L194>`_ uses to run a specific Apex method in your project's repository.
-
-.. code-block:: yaml
-
-    project_default_settings:
-        description: Configure the default project settings
-        class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
-        group: projectName
-        options:
-            path: scripts/configure_project_settings.cls
-            apex: initializeProjectSettings();
-
-The above assumes that the Apex file ``scripts/configure_project_settings.cls`` exists, and has a public static method named ``initializeProjectSettings``.
+For additional examples of custom tasks see our `task recipes`_ section in the cookbook.
 
 If you want to `write a custom task in python <TODO>`_ and make it available to other users in the project you would need to update your ``cumulusci.yml`` file's ``task`` section with the following:
 
@@ -142,6 +117,8 @@ The above assumes that your task's class is name ``MyTaskClass`` and exists in t
 
 
 
+Flow Configurations
+-------------------
 
 Add a Flow Step
 ********************************
@@ -175,7 +152,7 @@ Take the ``dev_org`` flow as an example:
 
 There are four steps to this flow. The first three steps are themselves flows, and the last step is a task.
 
-All *non-negative numbers and decimals* are valid as step numbers in a flow.
+All **non-negative numbers and decimals** are valid as step numbers in a flow.
 This makes it easy to add steps before, in-between, or after existing flow steps.
 If we wanted to add a step at the beginning of the dev org flow, valid step numbers would include any number greater than or equal to zero and less than 1.
 Example values would include: 0, 0.3, and 0.89334.
@@ -303,8 +280,8 @@ As a CumulusCI user you aren't able to modify it, but knowing about it serves tw
 * It is useful to reference when working on configuring custom tasks or flows of your own.
 
 
-Advanced Configuration
-----------------------
+Advanced Configurations
+-----------------------
 
 Using Variables for Task Options
 ***********************************
@@ -397,3 +374,56 @@ Or even to create a new flow which uses a flow from NPSP:
             flow: dev_org
 
 This flow will use NPSP's ``install_prod`` flow to install NPSP as a managed package, and then run this project's own ``dev_org`` flow.
+
+
+
+Troubleshooting Configurations
+------------------------------
+You can always use ``cci task info <task_name>`` and ``cci flow info <flow_name>`` to see how a given task or flow will behave with the current state of configuration.
+For example, the ``util_sleep`` task has a default value of 5 for the ``seconds`` option::
+
+    $ cci task info util_sleep
+    util_sleep
+
+    Description: Sleeps for N seconds
+
+    Class: cumulusci.tasks.util.Sleep
+
+    Command Syntax
+
+        $ cci task run util_sleep
+
+    Options
+
+        -o seconds SECONDS
+        Required
+        The number of seconds to sleep
+        Default: 5
+
+If you want instead, the default value to be 30 seconds for all projects you could add the following in your global ``cumulusci.yml`` file locaated at ``~/.cumulusci/cumulusci.yml``::
+
+    tasks:
+        util_sleep:
+            options:
+                seconds: 30
+
+And now ``cci task info util_sleep`` shows a default of 30 seconds::
+
+    $ cci task info util_sleep
+    util_sleep
+
+    Description: Sleeps for N seconds
+
+    Class: cumulusci.tasks.util.Sleep
+
+    Command Syntax
+
+        $ cci task run util_sleep
+
+    Options
+
+        -o seconds SECONDS
+        Required
+        The number of seconds to sleep
+        Default: 30
+
