@@ -138,8 +138,8 @@ def mock_download_extract_github():
 
 
 class TestCreatePackageVersion:
-    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v49.0"
-    scratch_base_url = "https://scratch.my.salesforce.com/services/data/v49.0"
+    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v50.0"
+    scratch_base_url = "https://scratch.my.salesforce.com/services/data/v50.0"
 
     @responses.activate
     def test_run_task(self, task, mock_download_extract_github):
@@ -168,7 +168,7 @@ class TestCreatePackageVersion:
         responses.add(  # get dependency org API version
             "GET",
             "https://scratch.my.salesforce.com/services/data",
-            json=[{"version": "49.0"}],
+            json=[{"version": "50.0"}],
         )
         responses.add(  # query for dependency org installed packages
             "GET",
