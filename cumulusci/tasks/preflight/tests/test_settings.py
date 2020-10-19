@@ -28,7 +28,7 @@ JSON_RESPONSE = {
 def test_check_settings(settings_field, value, outcome):
     responses.add(
         "GET",
-        f"https://test.salesforce.com/services/data/v49.0/tooling/query/?q=SELECT+{settings_field}+FROM+ChatterSettings",
+        f"https://test.salesforce.com/services/data/v50.0/tooling/query/?q=SELECT+{settings_field}+FROM+ChatterSettings",
         json=JSON_RESPONSE,
     )
     task = create_task(
@@ -49,7 +49,7 @@ def test_check_settings(settings_field, value, outcome):
 def test_check_settings__no_settings():
     responses.add(
         "GET",
-        "https://test.salesforce.com/services/data/v49.0/tooling/query/?q=SELECT+Foo+FROM+ChatterSettings",
+        "https://test.salesforce.com/services/data/v50.0/tooling/query/?q=SELECT+Foo+FROM+ChatterSettings",
         json={"records": []},
     )
     task = create_task(
@@ -71,7 +71,7 @@ def test_check_settings__failure():
     responses.add(
         "GET",
         status=400,
-        url="https://test.salesforce.com/services/data/v49.0/tooling/query/?q=SELECT+Test+FROM+NoSettings",
+        url="https://test.salesforce.com/services/data/v50.0/tooling/query/?q=SELECT+Test+FROM+NoSettings",
         json={},
     )
     task = create_task(
@@ -94,7 +94,7 @@ def test_check_settings__exception():
     responses.add(
         "GET",
         status=400,
-        url="https://test.salesforce.com/services/data/v49.0/tooling/query/?q=SELECT+Test+FROM+NoSettings",
+        url="https://test.salesforce.com/services/data/v50.0/tooling/query/?q=SELECT+Test+FROM+NoSettings",
         json={},
     )
     task = create_task(
