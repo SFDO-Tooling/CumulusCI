@@ -250,21 +250,21 @@ class OrgConfig(BaseConfig):
 
         Beta version of a package are represented as "1.2.3b5", where 5 is the build number."""
         if self._installed_packages is None:
-            response = self.salesforce_client.restful(
+            isp_result = self.salesforce_client.restful(
                 "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
-                "SubscriberPackageVersion.Id, SubscriberPackageVersion.MajorVersion, "
-                "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
-                "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
-                "FROM InstalledSubscriberPackage"
+                "SubscriberPackageVersionId FROM InstalledSubscriberPackage"
             )
-
-            self._installed_packages = defaultdict(list)
-            for package in response["records"]:
-                sp = package["SubscriberPackage"]
-                spv = package["SubscriberPackageVersion"]
-                if spv is None:
+            _installed_packages = defaultdict(list)
+            for isp in isp_result["records"]:
+                sp = isp["SubscriberPackage"]
+                spv_result = self.salesforce_client.restful(
+                    "tooling/query/?q=SELECT Id, MajorVersion, MinorVersion, PatchVersion, BuildNumber, "
+                    f"IsBeta FROM SubscriberPackageVersion WHERE Id='{isp['SubscriberPackageVersionId']}'"
+                )
+                if not spv_result["records"]:
                     # This _shouldn't_ happen, but it is possible in customer orgs.
                     continue
+                spv = spv_result["records"][0]
 
                 version = f"{spv['MajorVersion']}.{spv['MinorVersion']}"
                 if spv["PatchVersion"]:
@@ -273,11 +273,12 @@ class OrgConfig(BaseConfig):
                     version += f"b{spv['BuildNumber']}"
                 version_info = VersionInfo(spv["Id"], StrictVersion(version))
                 namespace = sp["NamespacePrefix"]
-                self._installed_packages[namespace].append(version_info)
+                _installed_packages[namespace].append(version_info)
                 namespace_version = f"{namespace}@{version}"
-                self._installed_packages[namespace_version].append(version_info)
-                self._installed_packages[sp["Id"]].append(version_info)
+                _installed_packages[namespace_version].append(version_info)
+                _installed_packages[sp["Id"]].append(version_info)
 
+            self._installed_packages = _installed_packages
         return self._installed_packages
 
     def reset_installed_packages(self):

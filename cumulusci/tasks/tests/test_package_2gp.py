@@ -181,29 +181,49 @@ class TestCreatePackageVersion:
                             "Id": "033000000000002AAA",
                             "NamespacePrefix": "pub",
                         },
-                        "SubscriberPackageVersion": {
-                            "Id": "04t000000000002AAA",
-                            "MajorVersion": 1,
-                            "MinorVersion": 5,
-                            "PatchVersion": 0,
-                            "BuildNumber": 1,
-                            "IsBeta": False,
-                        },
+                        "SubscriberPackageVersionId": "04t000000000002AAA",
                     },
                     {
                         "SubscriberPackage": {
                             "Id": "033000000000003AAA",
                             "NamespacePrefix": "hed",
                         },
-                        "SubscriberPackageVersion": {
-                            "Id": "04t000000000003AAA",
-                            "MajorVersion": 1,
-                            "MinorVersion": 99,
-                            "PatchVersion": 0,
-                            "BuildNumber": 1,
-                            "IsBeta": False,
-                        },
+                        "SubscriberPackageVersionId": "04t000000000003AAA",
                     },
+                ],
+            },
+        )
+        responses.add(  # query dependency org for installed package 1)
+            "GET",
+            f"{self.scratch_base_url}/tooling/query/",
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "Id": "04t000000000002AAA",
+                        "MajorVersion": 1,
+                        "MinorVersion": 5,
+                        "PatchVersion": 0,
+                        "BuildNumber": 1,
+                        "IsBeta": False,
+                    }
+                ],
+            },
+        ),
+        responses.add(  # query dependency org for installed package 2)
+            "GET",
+            f"{self.scratch_base_url}/tooling/query/",
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "Id": "04t000000000003AAA",
+                        "MajorVersion": 1,
+                        "MinorVersion": 99,
+                        "PatchVersion": 0,
+                        "BuildNumber": 1,
+                        "IsBeta": False,
+                    }
                 ],
             },
         )

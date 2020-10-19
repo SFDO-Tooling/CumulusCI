@@ -2,6 +2,12 @@
 History
 =======
 
+3.21.1 (2020-10-19)
+-------------------
+
+Issues closed:
+- Added a workaround for a slow query error while looking up installed packages in Winter '21 orgs.
+
 3.21.0 (2020-10-15)
 -------------------
 
