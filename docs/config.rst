@@ -242,7 +242,7 @@ Changes made to configuration files on top will override any changes in files be
 
 Local Project Configurations
 ******************************
-**File Path:** ``/path/to/project/cumulusci.yml``
+**File Path:** ``~/.cumulusci/project_name/cumulusci.yml``
 
 Configurations made to this ``cumulusci.yml`` file apply to only the project with the given <project_name>.
 If you want to make customizations to a project, but don't need them to be available to other team members, you would make those customizations here.
@@ -319,9 +319,61 @@ Here is the ``project`` section of NPSP's ``cumulusci.yml`` file:
 
 Currently under ``$project_config.project__package__namespace`` is the value: ``npsp``.
 
-Piping Tasks
-*******************
-It is possible for tasks to set specific return values
+
+
+Referencing Task Return Values
+**********************************
+Tasks can set an internal `return_value` on themselves while executing.
+This allows one task in a flow to reference the `return_value` set on another task that executed prior to it.
+
+To reference a return value on a previous task use the following::
+
+    ^^prior_task.return_value
+
+
+In order to know what is available for ``<return_value>`` we need to find the source code for an individual task.
+Let's examing the definition for the ``upload_beta`` task. The internal ``cumulusci.yml`` file defines it as follows:
+
+.. code-block:: yaml
+
+    upload_beta:
+            description: Uploads a beta release of the metadata currently in the packaging org
+            class_path: cumulusci.tasks.salesforce.PackageUpload
+            group: Release Operations
+
+This informs us that we need to find where the class ``cumulusci.tasks.salesforce.PackageUpload`` is defined to see if anything is being set on ``self.return_values``.
+Some digging yields that this class is defined in the file `package_upload.py <>`_ and has a method called ``_set_return_values()``.
+`This method <https://github.com/SFDO-Tooling/CumulusCI/blob/3cad07ac1cecf438aaf087cdeff7b781a1fc74a1/cumulusci/tasks/salesforce/package_upload.py#L165>`_ sets ``self.return_values`` to a dictionary with the following keys: ``verison_number``, ``version_id``, and ``package_id``.
+
+Let's now look at the the ``release_beta`` flow as its defined in the internal cumulusci.yml file:
+
+.. code-block:: yaml
+
+   release_beta:
+        description: Upload and release a beta version of the metadata currently in packaging
+        steps:
+            1:
+                task: upload_beta
+                options:
+                    name: Automated beta release
+            2:
+                task: github_release
+                options:
+                    version: ^^upload_beta.version_number
+            3:
+                task: github_release_notes
+                ignore_failure: True  # Attempt to generate release notes but don't fail build
+                options:
+                    link_pr: True
+                    publish: True
+                    tag: ^^github_release.tag_name
+                    include_empty: True
+                    version_id: ^^upload_beta.version_id
+            4:
+                task: github_master_to_feature
+
+This flow references both ``version_id`` and ``version_number`` return values set on the ``upload_beta`` task.
+
 
 
 Using Tasks and Flows From a Different Project
