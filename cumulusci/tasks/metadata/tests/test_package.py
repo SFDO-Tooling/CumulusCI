@@ -161,6 +161,10 @@ class TestMetadataFolderParser(unittest.TestCase):
         with temporary_dir() as path:
             item_path = os.path.join(path, "Test")
             os.mkdir(item_path)
+            other_path = os.path.join(path, "FolderWithoutMetaXml")
+            os.mkdir(other_path)
+            with open(os.path.join(path, "Test-meta.xml"), "w"):
+                pass
             with open(os.path.join(item_path, ".hidden"), "w"):
                 pass
             with open(os.path.join(item_path, "Test.object"), "w"):
