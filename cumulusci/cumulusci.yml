@@ -50,6 +50,18 @@ tasks:
         description: Runs as a preflight check to validate Organization-Wide Defaults.
         class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
         group: Salesforce Preflight Checks
+    check_org_settings_value:
+        description: Runs as a preflight check to validate organization settings.
+        class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
+        group: Salesforce Preflight Checks
+    check_chatter_enabled:
+        description: Runs as a preflight check to validate Chatter is enabled.
+        class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
+        group: Salesforce Preflight Checks
+        options:
+            settings_type: ChatterSettings
+            settings_field: IsChatterEnabled
+            value: True
     custom_settings_value_wait:
         description: Waits for a specific field value on the specified custom settings object and field
         class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
@@ -211,15 +223,14 @@ tasks:
         description: Clones a github tag under a new name.
         class_path: cumulusci.tasks.github.CloneTag
         group: GitHub
-    github_master_to_feature:
+    github_automerge_main:
         description: Merges the latest commit on the main branch into all open feature branches
         class_path: cumulusci.tasks.github.MergeBranch
         group: GitHub
-    github_parent_to_children:
-        description: Merges the latest commit on a parent feature branch into all child feature branches
+    github_automerge_feature:
+        description: Merges the latest commit on a source branch to all child branches.
         class_path: cumulusci.tasks.github.MergeBranch
         options:
-            children_only: True
             source_branch: $project_config.repo_branch
         group: GitHub
     github_copy_subtree:
@@ -581,7 +592,7 @@ flows:
             4:
                 task: run_tests
             5:
-                task: github_parent_to_children
+                task: github_automerge_feature
 
     ci_feature_beta_deps:
         group: Continuous Integration
@@ -601,7 +612,7 @@ flows:
             4:
                 task: run_tests
             5:
-                task: github_parent_to_children
+                task: github_automerge_feature
 
     ci_feature_2gp:
         group: Continuous Integration
@@ -612,7 +623,7 @@ flows:
                 options:
                     context: "Build Feature Test Package"
             2:
-                flow: dependencies
+                flow: beta_dependencies
                 options:
                     update_dependencies:
                         dependencies: ^^github_package_data.dependencies
@@ -626,8 +637,6 @@ flows:
                 task: run_tests
                 options:
                     managed: True
-            6:
-                task: github_parent_to_children
 
 
     ci_master:
@@ -950,7 +959,7 @@ flows:
                     include_empty: True
                     version_id: ^^upload_beta.version_id
             4:
-                task: github_master_to_feature
+                task: github_automerge_main
 
     release_production:
         group: Release Operations
@@ -977,9 +986,11 @@ flows:
         description: Create a 2gp managed package version
         steps:
             1:
+                flow: dependencies
+            2:
                 task: update_package_xml
                 when: project_config.project__source_format != "sfdx"
-            2:
+            3:
                 task: create_package_version
                 options:
                     package_type: Managed

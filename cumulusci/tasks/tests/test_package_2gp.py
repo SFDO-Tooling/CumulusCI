@@ -13,6 +13,8 @@ import yaml
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config import SfdxOrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.exceptions import DependencyLookupError
@@ -77,16 +79,6 @@ def project_config(repo_root):
             }
         )
     )
-    dev_org_config = OrgConfig({"config_file": "orgs/scratch_def.json"}, "dev")
-    dependency_org_config = OrgConfig(
-        {"instance_url": "https://test.salesforce.com", "access_token": "token"},
-        "2gp_dependencies",
-    )
-    dependency_org_config._latest_api_version = "49.0"
-    project_config.keychain.orgs = {
-        "dev": dev_org_config,
-        "2gp_dependencies": dependency_org_config,
-    }
 
     project_config.get_github_api = mock.Mock()
 
@@ -94,16 +86,31 @@ def project_config(repo_root):
 
 
 @pytest.fixture
-def org_config():
+def devhub_config():
     org_config = OrgConfig(
-        {"instance_url": "https://test.salesforce.com", "access_token": "token"}, "test"
+        {"instance_url": "https://devhub.my.salesforce.com", "access_token": "token"},
+        "devhub",
     )
     org_config.refresh_oauth_token = mock.Mock()
     return org_config
 
 
 @pytest.fixture
-def task(project_config, org_config):
+def org_config():
+    org_config = OrgConfig(
+        {
+            "instance_url": "https://scratch.my.salesforce.com",
+            "access_token": "token",
+            "config_file": "orgs/scratch_def.json",
+        },
+        "dev",
+    )
+    org_config.refresh_oauth_token = mock.Mock()
+    return org_config
+
+
+@pytest.fixture
+def task(project_config, devhub_config, org_config):
     task = CreatePackageVersion(
         project_config,
         TaskConfig(
@@ -117,6 +124,7 @@ def task(project_config, org_config):
         ),
         org_config,
     )
+    task._init_devhub = mock.Mock(return_value=devhub_config)
     task._init_task()
     return task
 
@@ -130,29 +138,41 @@ def mock_download_extract_github():
 
 
 class TestCreatePackageVersion:
-    base_url = "https://test.salesforce.com/services/data/v49.0"
+    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v49.0"
+    scratch_base_url = "https://scratch.my.salesforce.com/services/data/v49.0"
 
     @responses.activate
     def test_run_task(self, task, mock_download_extract_github):
         mock_download_extract_github.return_value = zipfile.ZipFile(io.BytesIO(), "w")
 
         responses.add(  # query to find existing package
-            "GET", f"{self.base_url}/tooling/query/", json={"size": 0, "records": []}
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 0, "records": []},
         )
         responses.add(  # create Package2
             "POST",
-            f"{self.base_url}/tooling/sobjects/Package2/",
+            f"{self.devhub_base_url}/tooling/sobjects/Package2/",
             json={"id": "0Ho6g000000fy4ZCAQ"},
         )
         responses.add(  # query to find existing package version
-            "GET", f"{self.base_url}/tooling/query/", json={"size": 0, "records": []}
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 0, "records": []},
         )
         responses.add(  # query to find highest existing version
-            "GET", f"{self.base_url}/tooling/query/", json={"size": 0, "records": []}
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 0, "records": []},
+        )
+        responses.add(  # get dependency org API version
+            "GET",
+            "https://scratch.my.salesforce.com/services/data",
+            json=[{"version": "49.0"}],
         )
         responses.add(  # query for dependency org installed packages
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.scratch_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -161,35 +181,55 @@ class TestCreatePackageVersion:
                             "Id": "033000000000002AAA",
                             "NamespacePrefix": "pub",
                         },
-                        "SubscriberPackageVersion": {
-                            "Id": "04t000000000002AAA",
-                            "MajorVersion": 1,
-                            "MinorVersion": 5,
-                            "PatchVersion": 0,
-                            "BuildNumber": 1,
-                            "IsBeta": False,
-                        },
+                        "SubscriberPackageVersionId": "04t000000000002AAA",
                     },
                     {
                         "SubscriberPackage": {
                             "Id": "033000000000003AAA",
                             "NamespacePrefix": "hed",
                         },
-                        "SubscriberPackageVersion": {
-                            "Id": "04t000000000003AAA",
-                            "MajorVersion": 1,
-                            "MinorVersion": 99,
-                            "PatchVersion": 0,
-                            "BuildNumber": 1,
-                            "IsBeta": False,
-                        },
+                        "SubscriberPackageVersionId": "04t000000000003AAA",
                     },
+                ],
+            },
+        )
+        responses.add(  # query dependency org for installed package 1)
+            "GET",
+            f"{self.scratch_base_url}/tooling/query/",
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "Id": "04t000000000002AAA",
+                        "MajorVersion": 1,
+                        "MinorVersion": 5,
+                        "PatchVersion": 0,
+                        "BuildNumber": 1,
+                        "IsBeta": False,
+                    }
+                ],
+            },
+        ),
+        responses.add(  # query dependency org for installed package 2)
+            "GET",
+            f"{self.scratch_base_url}/tooling/query/",
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "Id": "04t000000000003AAA",
+                        "MajorVersion": 1,
+                        "MinorVersion": 99,
+                        "PatchVersion": 0,
+                        "BuildNumber": 1,
+                        "IsBeta": False,
+                    }
                 ],
             },
         )
         responses.add(  # query for existing package (dependency from github)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -199,12 +239,12 @@ class TestCreatePackageVersion:
         )
         responses.add(  # query for existing package version (dependency from github)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={"size": 1, "records": [{"Id": "08c000000000001AAA"}]},
         )
         responses.add(  # check status of Package2VersionCreateRequest (dependency from github)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -218,7 +258,7 @@ class TestCreatePackageVersion:
         )
         responses.add(  # get info from Package2Version (dependency from github)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -234,7 +274,7 @@ class TestCreatePackageVersion:
         )
         responses.add(  # query for existing package (unpackaged/pre)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -244,12 +284,12 @@ class TestCreatePackageVersion:
         )
         responses.add(  # query for existing package version (unpackaged/pre)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={"size": 1, "records": [{"Id": "08c000000000004AAA"}]},
         )
         responses.add(  # check status of Package2VersionCreateRequest (unpackaged/pre)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -263,7 +303,7 @@ class TestCreatePackageVersion:
         )
         responses.add(  # get info from Package2Version (unpackaged/pre)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -279,12 +319,12 @@ class TestCreatePackageVersion:
         )
         responses.add(  # create Package2VersionCreateRequest (main package)
             "POST",
-            f"{self.base_url}/tooling/sobjects/Package2VersionCreateRequest/",
+            f"{self.devhub_base_url}/tooling/sobjects/Package2VersionCreateRequest/",
             json={"id": "08c000000000002AAA"},
         )
         responses.add(  # check status of Package2VersionCreateRequest (main package)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -298,7 +338,7 @@ class TestCreatePackageVersion:
         )
         responses.add(  # get info from Package2Version (main package)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -314,20 +354,19 @@ class TestCreatePackageVersion:
         )
         responses.add(  # get dependencies from SubscriberPackageVersion (main package)
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={"size": 1, "records": [{"Dependencies": ""}]},
         )
 
-        task.options["dependency_org"] = "2gp_dependencies"
         task()
 
     @responses.activate
     def test_get_or_create_package__namespaced_existing(
-        self, project_config, org_config
+        self, project_config, devhub_config, org_config
     ):
         responses.add(  # query to find existing package
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -349,17 +388,18 @@ class TestCreatePackageVersion:
             ),
             org_config,
         )
+        task._init_devhub = mock.Mock(return_value=devhub_config)
         task._init_task()
         result = task._get_or_create_package(task.package_config)
         assert result == "0Ho6g000000fy4ZCAQ"
 
     @responses.activate
     def test_get_or_create_package__exists_but_wrong_type(
-        self, project_config, org_config
+        self, project_config, devhub_config, org_config
     ):
         responses.add(  # query to find existing package
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [
@@ -381,6 +421,7 @@ class TestCreatePackageVersion:
             ),
             org_config,
         )
+        task._init_devhub = mock.Mock(return_value=devhub_config)
         task._init_task()
         with pytest.raises(PackageUploadFailure):
             task._get_or_create_package(task.package_config)
@@ -389,7 +430,7 @@ class TestCreatePackageVersion:
     def test_get_or_create_package__devhub_disabled(self, task):
         responses.add(
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json=[{"message": "Object type 'Package2' is not supported"}],
             status=400,
         )
@@ -400,7 +441,9 @@ class TestCreatePackageVersion:
     @responses.activate
     def test_get_or_create_package__multiple_existing(self, task):
         responses.add(
-            "GET", f"{self.base_url}/tooling/query/", json={"size": 2, "records": []}
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 2, "records": []},
         )
 
         with pytest.raises(TaskOptionsError):
@@ -410,7 +453,7 @@ class TestCreatePackageVersion:
     def test_create_version_request__existing_package_version(self, task):
         responses.add(
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={"size": 1, "records": [{"Id": "08c000000000001AAA"}]},
         )
 
@@ -424,7 +467,7 @@ class TestCreatePackageVersion:
     def test_get_highest_version_parts(self, task):
         responses.add(
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={"size": 1, "records": [{"MajorVersion": 1}]},
         )
 
@@ -481,44 +524,6 @@ class TestCreatePackageVersion:
             [{"dependencies": [{"namespace": "foo", "version": "1.0"}]}]
         )
 
-    @responses.activate
-    def test_get_dependency_org__new_org(self, task):
-        task.project_config.keychain.orgs = {}
-
-        with mock.patch("cumulusci.core.flowrunner.FlowCoordinator.run") as flow_run:
-            org = task._get_dependency_org()
-
-        assert org.name == "2gp_dependencies"
-        flow_run.assert_called_once()
-
-    @responses.activate
-    def test_get_dependency_org__expired(self, task):
-        task.project_config.keychain.orgs[
-            "2gp_dependencies"
-        ].create_org = create_org = mock.Mock()
-        task.project_config.keychain.orgs["2gp_dependencies"].config.update(
-            {"created": True, "expired": True}
-        )
-
-        with mock.patch("cumulusci.core.flowrunner.FlowCoordinator.run") as flow_run:
-            org = task._get_dependency_org()
-
-        assert org.name == "2gp_dependencies"
-        create_org.assert_called_once()
-        flow_run.assert_called_once()
-
-    @responses.activate
-    def test_get_dependency_org__use_existing(self, task):
-        task.project_config.keychain.orgs["2gp_dependencies"].config.update(
-            {"created": True}
-        )
-
-        with mock.patch("cumulusci.core.flowrunner.FlowCoordinator.run") as flow_run:
-            org = task._get_dependency_org()
-
-        assert org.name == "2gp_dependencies"
-        flow_run.assert_called_once()
-
     def test_convert_project_dependencies__unrecognized_format(self, task):
         with pytest.raises(DependencyLookupError):
             task._convert_project_dependencies([{"foo": "bar"}])
@@ -532,7 +537,7 @@ class TestCreatePackageVersion:
     def test_poll_action__error(self, task):
         responses.add(
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [{"Id": "08c000000000002AAA", "Status": "Error"}],
@@ -540,7 +545,7 @@ class TestCreatePackageVersion:
         )
         responses.add(
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={"size": 1, "records": [{"Message": "message"}]},
         )
 
@@ -553,7 +558,7 @@ class TestCreatePackageVersion:
     def test_poll_action__other(self, task):
         responses.add(
             "GET",
-            f"{self.base_url}/tooling/query/",
+            f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
                 "records": [{"Id": "08c000000000002AAA", "Status": "InProgress"}],
@@ -562,3 +567,43 @@ class TestCreatePackageVersion:
 
         task.request_id = "08c000000000002AAA"
         task._poll_action()
+
+    def test_init_devhub__from_sfdx(self, project_config, org_config):
+        task = CreatePackageVersion(
+            project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "package_type": "Unlocked",
+                        "package_name": "Test Package",
+                    }
+                }
+            ),
+            org_config,
+        )
+        with mock.patch(
+            "cumulusci.tasks.package_2gp.get_default_devhub_username",
+            return_value="devhub@example.com",
+        ):
+            result = task._init_devhub()
+        assert isinstance(result, SfdxOrgConfig)
+        assert result.username == "devhub@example.com"
+
+    def test_init_devhub__from_service(self, project_config, org_config):
+        project_config.keychain.services["devhub"] = ServiceConfig(
+            {"username": "devhub@example.com"}
+        )
+        task = CreatePackageVersion(
+            project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "package_type": "Unlocked",
+                        "package_name": "Test Package",
+                    }
+                }
+            ),
+            org_config,
+        )
+        devhub_config = task._init_devhub()
+        assert devhub_config.username == "devhub@example.com"

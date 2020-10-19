@@ -2,6 +2,71 @@
 History
 =======
 
+3.21.1 (2020-10-19)
+-------------------
+
+Issues closed:
+- Added a workaround for a slow query error while looking up installed packages in Winter '21 orgs.
+
+3.21.0 (2020-10-15)
+-------------------
+
+Changes:
+
+- The ``update_admin_profile`` task now accepts the ``api_names`` option to target extra Profiles, even when using a custom ``package.xml``.
+- The ``github_automerge_main`` task can now be used on source branches other than the default branch to merge them into branches starting with the ``branch_prefix`` option, as long as the source branch does not also start with ``branch_prefix``.
+- Added preflight check tasks to validate org settings (``check_org_settings_value``) and to check that Chatter is enabled (``check_chatter_enabled``). These are intended for use with MetaDeploy install plans.
+- Updated to `Snowfakery 1.2 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.2>`_.
+
+Issues closed:
+
+- Fixed an issue in the ``load_dataset`` task which left out non-Person-Account Contacts if the dataset was extracted using the REST API.
+
+
+3.20.1 (2020-10-05)
+-------------------
+
+Issues closed:
+
+- Fixed a bug introduced in CumulusCI 3.20.0 in which the ``upload_beta`` and ``upload_production`` tasks could hit a connection error if uploading the package took over 10 minutes.
+- We corrected edge cases in how we processed Boolean options for the ``custom_settings_wait``, ``exec_anon``, and ``uninstall_post`` tasks. (Thanks to @davidjray)
+
+3.20.0 (2020-09-30)
+-------------------
+Critical Changes:
+
+- We've removed the standard flow: ``retrieve_scratch``. The recommended way for retrieving source-tracked changes is to use the ``retrieve_changes`` task.
+- Changes to automatic merging:
+
+  - The ``github_master_to_feature`` task has been renamed to ``github_automerge_main``. It still merges changes from the default branch to feature branches. In the case of an orphaned feature branch (a branch with a name like ``feature/parent__child`` where ``feature/parent`` does not exist as its own branch), the ``github_automerge_main`` branch will no longer merge to the orphaned branch.
+  - The ``github_parent_to_children`` task has been renamed to ``github_automerge_feature``. It still merges changes from feature branches to their children (e.g. ``feature/parent`` would be merged to ``feature/parent__child``). It is now possible to use multiple double-underscores to create more deeply nested children, and the task will only merge to the next level (e.g. ``feature/parent`` would merge to ``feature/parent__child`` which would merge to ``feature/parent__child__grandchild``).
+  - The ``children_only`` option for these tasks has been removed. The strategy for picking which branches to target for merging is now determined by the ``source_branch``.
+
+Tasks, Flows, and Automation:
+
+- ``cci flow list`` now displays flows in different groups that are organized by functional area. (This is similar to how ``cci task list`` currently works).
+- The ``insert_record`` task can now be used against the Tooling API. We clarified that this task can accept a dict of values if configured in ``cumulusci.yml``.
+- Added support for newer metadata types to the ``update_package_xml`` task.
+- Previously, large data loads and extracts would use enormous amounts of memory. Now they should use roughly constant amounts of memory.
+- Adjusted tasks: ``install_managed`` and ``update_dependencies`` can now install packages from just a version id (04t).
+- Added support for creating 2GP packages (experimental)
+
+  - New task: ``github_package_data`` gets a package version id from a GitHub commit status. It is intended primarily for use as part of the ``ci_feature_2gp`` flow. Implementation details can be found in the `features <https://cumulusci.readthedocs.io/en/latest/features.html>`_ section of the documentation.
+  - New task: ``create_package_version`` - Builds a 2gp package (managed or unlocked) via a Dev Hub org. Includes some automated handling of dependencies:
+  - New Flow: ``build_feature_test_package`` - Runs the ``create_package_version task``, and in the context of MetaCI it will set a commit status with the package version id.
+  - New Flow: ``ci_feature_2gp`` - Retrieves the package version from the commit status set by ``build_feature_test_package``, installs dependencies and the package itself in a scratch org, and runs Apex tests. (There is another new task, ``github_package_data``, which is used by this flow.)
+
+User Experience:
+
+- Improved error messaging when encountering errors during bulk data mapping validation.
+
+Issues Closed:
+
+- Fixed a very rare bug that caused CumulusCI to fail to retrieve installed packages from an org when running package-related tasks or evaluating ``when`` conditional expressions.
+- Fixed ``UnicodeDecodeError`` while opening config files on Windows.
+- Fixed a bug in ``cumulusci.core.sfdx.sfdx`` when capture_output is False
+
+
 3.19.1 (2020-09-18)
 -------------------
 

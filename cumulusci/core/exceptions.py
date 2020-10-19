@@ -156,7 +156,11 @@ class FlowNotReadyError(CumulusCIException):
     pass
 
 
-class ScratchOrgException(CumulusCIException):
+class SfdxOrgException(CumulusCIException):
+    """Raise for errors related to fetching orgs from the sfdx keychain"""
+
+
+class ScratchOrgException(SfdxOrgException):
     """ Raise for errors related to scratch orgs """
 
     pass
