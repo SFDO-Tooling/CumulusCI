@@ -14,17 +14,17 @@ def test_install_package_version(caplog):
     caplog.set_level(logging.INFO)
     responses.add(
         "POST",
-        "https://salesforce/services/data/v49.0/tooling/sobjects/PackageInstallRequest/",
+        "https://salesforce/services/data/v50.0/tooling/sobjects/PackageInstallRequest/",
         json={"id": "0Hf"},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v49.0/tooling/query/",
+        "https://salesforce/services/data/v50.0/tooling/query/",
         json={"records": [{"Status": "IN_PROGRESS"}]},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v49.0/tooling/query/",
+        "https://salesforce/services/data/v50.0/tooling/query/",
         json={"records": [{"Status": "SUCCESS"}]},
     )
 
@@ -40,12 +40,12 @@ def test_install_package_version(caplog):
 def test_install_package_version__error():
     responses.add(
         "POST",
-        "https://salesforce/services/data/v49.0/tooling/sobjects/PackageInstallRequest/",
+        "https://salesforce/services/data/v50.0/tooling/sobjects/PackageInstallRequest/",
         json={"id": "0Hf"},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v49.0/tooling/query/",
+        "https://salesforce/services/data/v50.0/tooling/query/",
         json={
             "records": [
                 {
@@ -69,18 +69,18 @@ def test_install_package_version__not_propagated(caplog):
     caplog.set_level(logging.INFO)
     responses.add(
         "POST",
-        "https://salesforce/services/data/v49.0/tooling/sobjects/PackageInstallRequest/",
+        "https://salesforce/services/data/v50.0/tooling/sobjects/PackageInstallRequest/",
         json={"id": "0Hf"},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v49.0/tooling/query/",
+        "https://salesforce/services/data/v50.0/tooling/query/",
         status=400,
         body="invalid cross reference id",
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v49.0/tooling/query/",
+        "https://salesforce/services/data/v50.0/tooling/query/",
         json={"records": [{"Status": "SUCCESS"}]},
     )
 
