@@ -34,13 +34,7 @@ class TestGithubReleaseNotes:
     ):
         generator = mock.Mock(return_value="notes")
         GithubReleaseNotesGenerator.return_value = generator
-        task_config = TaskConfig(
-            {
-                "options": {
-                    "tag": "release/1.0",
-                }
-            }
-        )
+        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = GithubReleaseNotes(project_config, task_config)
         task.github = mock.Mock()
         task.get_repo = mock.Mock()
