@@ -733,8 +733,7 @@ def project_doc(runtime):
     except Exception:
         pass  # skipping as not to freak end user out since directory exists.
     finally:
-        project_config = runtime.project_config.config
-        project_name = project_config["project"]["name"].capitalize()
+        project_name = runtime.project_config.project__name.capitalize()
 
         with open("./docs/project_tasks.rst", "w") as f:
             f.write("==========================================\n")
