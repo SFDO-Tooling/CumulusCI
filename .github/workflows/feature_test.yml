@@ -56,10 +56,6 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    - name: Pre-release build dependencies
-      if: ${{ matrix.python-version }} == '3.9'
-      run: |
-        sudo apt-get install libxml2-dev libxslt-dev
     - name: Install
       run: |
         python -m pip install -U pip
