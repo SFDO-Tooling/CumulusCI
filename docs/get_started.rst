@@ -73,27 +73,35 @@ Install Python 3
 Install via ``pipx``
 ***********************
 We recommend installing CumulusCI using ``pipx``, which will make sure that CumulusCI and its dependencies are installed into their own Python environment that is separate from other Python software on your computer.
-Open your preferred terminal application
-(e.g. `CMD.exe <https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/cmd>`_ on Windows).
+Open your preferred terminal application (e.g. `CMD.exe <https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/cmd>`_ on Windows).
 If you already have your terminal open, close it and reopen it. Enter the following command::
 
     $ python -m pip install --user pipx
 
 .. image:: images/pipx.png
 
-Next we want to modify the default PATH environment variable to include pipx::
+To permanently modify the default environment variables:
 
-    $ python -m pipx ensurepath
+1. Click Start and search for "edit environment variables" or open System properties, Advanced system settings.
+2. Click the Environment Variables button.
+3. To change System variables, you need non-restricted access to your machine (i.e. Administrator rights). Add the following paths to your PATH environment variable:
+
+   * ``%USERPROFILE%\.local\bin``
+   * ``%USERPROFILE%\AppData\Roaming\Python\Python38\Scripts``
+
+.. image:: images/env-var2.png
 
 Open a new command prompt and verify that pipx is available::
 
-    $ pipx --version
+    pipx --version
 
-You should see a version number after entering in this command, such as: ``0.15.5.1``.
+You should see a version number after entering in this command, such as: ``0.12.3.1``.
+If you get an error instead, such as ``'pipx' is not recognized as an internal or external command,
+operable program or batch file.``, please check that your environment variables have been updated.
 
-You can now install CumulusCI with::
+Finally, install CumulusCI: Still in your terminal application, enter the following command::
 
-    $ pipx install cumulusci
+    pipx install cumulusci
 
 Now `verify your installation`_.
 
