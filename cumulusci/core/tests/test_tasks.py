@@ -99,6 +99,12 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
         task = BaseTask(self.project_config, self.task_config, self.org_config)
         self.assertEqual("baz", task.options["test_option"])
 
+    def test_init_options__project_config_integer(self):
+        self.project_config.config["foo"] = {"bar": 32}
+        self.task_config.config["options"] = {"test_option": "$project_config.foo__bar"}
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        self.assertEqual("32", task.options["test_option"])
+
     def test_init_options__project_config_substitution__substring(self):
         self.project_config.config["foo"] = {"bar": "baz"}
         self.task_config.config["options"] = {

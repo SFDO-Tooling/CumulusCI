@@ -57,7 +57,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     If a package named ``package_name`` does not yet exist in the Dev Hub, it will be created.
     """
 
-    api_version = "49.0"
+    api_version = "50.0"
 
     task_options = {
         "package_name": {"description": "Name of package"},

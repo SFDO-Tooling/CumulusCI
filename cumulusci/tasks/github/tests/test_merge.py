@@ -448,6 +448,36 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         self.assertEqual(10, len(responses.calls))
 
     @responses.activate
+    def test_no_prefix_merge_to_feature(self):
+        """Tests that when source_branch is a branch other than main
+        and doesn't start with 'feature/', that it is merged
+        to all non-child feature/ branches"""
+
+        source_branch = "some-branch"
+        expected_branches_to_merge = ["feature/work-a", "feature/work-b"]
+        other_branches = [
+            "feature/work-a__child",
+            "some-branch__child",
+            "main",
+        ]
+        self._setup_mocks([source_branch] + expected_branches_to_merge + other_branches)
+
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": source_branch,
+                }
+            }
+        )
+        task._init_task()
+        task.repo = task.get_repo()
+        task.source_branch_is_default = False
+
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+        assert expected_branches_to_merge == actual_branches
+        assert 2 == len(responses.calls)
+
+    @responses.activate
     def test_merge_feature_to_children(self):
         """Tests that only direct descendents of a branch
         with the given branch_prefix receive merges."""
@@ -613,7 +643,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         assert 2 == len(responses.calls)
 
     @responses.activate
-    def test_merge_to_children_not_future_releases(self):
+    def test_merge_to_children_not_future_releases_output(self):
         """Tests that commits to the main branch are merged to child feature branches
         and not to future prerelease branches."""
 
@@ -651,7 +681,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
                 ),
                 (
                     "DEBUG",
-                    "Skipping branch prefix-mistmatch/230__child2: does not match prefix 'jupiter/'",
+                    "Skipping branch prefix-mismatch/230__child2: does not match prefix 'jupiter/'",
                 ),
                 (
                     "DEBUG",

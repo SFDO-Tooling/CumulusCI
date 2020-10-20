@@ -271,7 +271,7 @@ Full Documentation
 Use the following links to download generated documentation for both
 the CumulusCI and Salesforce keywords
 
-* :download:`CumulusCI Keyword Documentation <../docs/robot/Keywords.html>`
+* :download:`CumulusCI and Salesforce Keyword Documentation <../docs/robot/Keywords.html>`
 
 .. _salesforce-library-overview:
 

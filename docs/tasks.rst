@@ -399,6 +399,86 @@ Options
 
 	 The Organization-Wide Defaults to check, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature. Checking External Sharing Model when it is turned off will fail the preflight.
 
+**check_org_settings_value**
+==========================================
+
+**Description:** Runs as a preflight check to validate organization settings.
+
+**Class:** cumulusci.tasks.preflight.settings.CheckSettingsValue
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_org_settings_value``
+
+
+Options
+------------------------------------------
+
+
+``-o settings_type SETTINGSTYPE``
+	 *Required*
+
+	 The API name of the Settings entity to be checked, such as ChatterSettings.
+
+``-o settings_field SETTINGSFIELD``
+	 *Required*
+
+	 The API name of the field on the Settings entity to check.
+
+``-o value VALUE``
+	 *Required*
+
+	 The value to check for
+
+``-o treat_missing_as_failure TREATMISSINGASFAILURE``
+	 *Optional*
+
+	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
+
+**check_chatter_enabled**
+==========================================
+
+**Description:** Runs as a preflight check to validate Chatter is enabled.
+
+**Class:** cumulusci.tasks.preflight.settings.CheckSettingsValue
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_chatter_enabled``
+
+
+Options
+------------------------------------------
+
+
+``-o settings_type SETTINGSTYPE``
+	 *Required*
+
+	 The API name of the Settings entity to be checked, such as ChatterSettings.
+
+	 Default: ChatterSettings
+
+``-o settings_field SETTINGSFIELD``
+	 *Required*
+
+	 The API name of the field on the Settings entity to check.
+
+	 Default: IsChatterEnabled
+
+``-o value VALUE``
+	 *Required*
+
+	 The value to check for
+
+	 Default: True
+
+``-o treat_missing_as_failure TREATMISSINGASFAILURE``
+	 *Optional*
+
+	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
+
 **custom_settings_value_wait**
 ==========================================
 
@@ -633,7 +713,12 @@ Options
 ``-o values VALUES``
 	 *Required*
 
-	 Field names and values in the format 'aa:bb,cc:dd'
+	 Field names and values in the format 'aa:bb,cc:dd', or a YAML dict in cumulusci.yml.
+
+``-o tooling TOOLING``
+	 *Optional*
+
+	 If True, use the Tooling API instead of REST API.
 
 **create_package**
 ==========================================
@@ -703,11 +788,6 @@ Options
 	 *Optional*
 
 	 The part of the version number to increment. Options are major, minor, patch.  Defaults to minor
-
-``-o dependency_org DEPENDENCYORG``
-	 *Optional*
-
-	 The org name of the org to use for project dependencies lookup. If not provided, a scratch org will be created with the org name 2gp_dependencies.
 
 ``-o skip_validation SKIPVALIDATION``
 	 *Optional*
@@ -1710,6 +1790,13 @@ Options
 
 **Class:** cumulusci.tasks.github.MergeBranch
 
+Merges the most recent commit on the current branch into other branches depending on the value of source_branch.
+
+If source_branch is a branch that does not start with the specified branch_prefix, then the commit will be
+merged to all branches that begin with branch_prefix and are not themselves child branches (i.e. branches don't contain '__' in their name).
+
+If source_branch begins with branch_prefix, then the commit is merged to all child branches of source_branch.
+
 Command Syntax
 ------------------------------------------
 
@@ -1746,6 +1833,13 @@ Options
 **Description:** Merges the latest commit on a source branch to all child branches.
 
 **Class:** cumulusci.tasks.github.MergeBranch
+
+Merges the most recent commit on the current branch into other branches depending on the value of source_branch.
+
+If source_branch is a branch that does not start with the specified branch_prefix, then the commit will be
+merged to all branches that begin with branch_prefix and are not themselves child branches (i.e. branches don't contain '__' in their name).
+
+If source_branch begins with branch_prefix, then the commit is merged to all child branches of source_branch.
 
 Command Syntax
 ------------------------------------------

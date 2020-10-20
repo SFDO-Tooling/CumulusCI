@@ -46,13 +46,14 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task
+from cumulusci.utils import doc_task, document_flow, flow_ref_title_and_intro
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.git import current_branch
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from cumulusci.core.utils import cleanup_org_cache_dirs
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
 from .logger import init_logger, get_tempfile_logger
@@ -883,7 +884,9 @@ def org_browser(runtime, org_name):
     help="If set, sets the connected org as the new default org",
 )
 @click.option(
-    "--global-org", help="Set True if org should be used by any project", is_flag=True
+    "--global-org",
+    help="If set, the connected org is available to all CumulusCI projects.",
+    is_flag=True,
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
@@ -1356,6 +1359,56 @@ def task_doc(runtime):
         doc = doc_task(name, task_config)
         click.echo(doc)
         click.echo("")
+
+
+@flow.command(name="doc", help="Exports RST format documentation for all flows")
+@pass_runtime(require_project=False)
+def flow_doc(runtime):
+    with open("docs/flows.yml", "r", encoding="utf-8") as f:
+        flow_info = cci_safe_load(f)
+
+    click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
+
+    flow_info_groups = list(flow_info["groups"].keys())
+
+    flows = (
+        runtime.project_config.list_flows()
+        if runtime.project_config is not None
+        else runtime.universal_config.list_flows()
+    )
+    flows_by_group = group_items(flows)
+    flow_groups = sorted(
+        flows_by_group.keys(),
+        key=lambda group: flow_info_groups.index(group)
+        if group in flow_info_groups
+        else 100,
+    )
+
+    for group in flow_groups:
+        click.echo(f"{group}\n{'-' * len(group)}")
+        if group in flow_info["groups"]:
+            click.echo(flow_info["groups"][group]["description"])
+
+        for flow in sorted(flows_by_group[group]):
+            flow_name, flow_description = flow
+            try:
+                flow_coordinator = runtime.get_flow(flow_name)
+            except FlowNotFoundError as e:
+                raise click.UsageError(str(e))
+
+            additional_info = None
+            if flow_name in flow_info.get("flows", {}):
+                additional_info = flow_info["flows"][flow_name]["rst_text"]
+
+            click.echo(
+                document_flow(
+                    flow_name,
+                    flow_description,
+                    flow_coordinator,
+                    additional_info=additional_info,
+                )
+            )
+            click.echo("")
 
 
 @task.command(name="info", help="Displays information for a task")
