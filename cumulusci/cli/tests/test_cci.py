@@ -67,7 +67,6 @@ class TestCCI(unittest.TestCase):
         cls.environ_mock = mock.patch.dict(
             os.environ, {"HOME": tempfile.mkdtemp(), "CUMULUSCI_KEY": ""}
         )
-        assert cls.global_tempdir not in os.environ.get("HOME", "")
         cls.environ_mock.start()
         assert cls.global_tempdir in os.environ["HOME"]
 
@@ -76,7 +75,6 @@ class TestCCI(unittest.TestCase):
         assert cls.global_tempdir in os.environ["HOME"]
         cls.environ_mock.stop()
         shutil.rmtree(cls.tempdir)
-        assert cls.global_tempdir not in os.environ.get("HOME", "")
 
     def setUp(self):
         self.cleanup_org_cache_dirs = mock.Mock(name="cleanup_org_cache_dirs")
@@ -1920,14 +1918,14 @@ Environment Info: Rossian / x68_46
     def test_flow_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.project_config.list_flows.return_value = [
-            {"name": "test_flow", "description": "Test Flow"}
+            {"name": "test_flow", "description": "Test Flow", "group": "Testing"}
         ]
         runtime.universal_config.cli__plain_output = None
         run_click_command(cci.flow_list, runtime=runtime, plain=False, print_json=False)
 
         cli_tbl.assert_called_with(
-            [["Name", "Description"], ["test_flow", "Test Flow"]],
-            title="Flows",
+            [["Flow", "Description"], ["test_flow", "Test Flow"]],
+            "Testing",
             wrap_cols=["Description"],
         )
 
@@ -1957,6 +1955,58 @@ Environment Info: Rossian / x68_46
         runtime.get_flow.side_effect = FlowNotFoundError
         with self.assertRaises(click.UsageError):
             run_click_command(cci.flow_info, runtime=runtime, flow_name="test")
+
+    @mock.patch("cumulusci.cli.cci.group_items")
+    @mock.patch("cumulusci.cli.cci.document_flow")
+    def test_flow_doc__no_flows_rst_file(self, doc_flow, group_items):
+        runtime = mock.Mock()
+        runtime.universal_config.flows = {"test": {}}
+        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+        runtime.get_flow.return_value = FlowCoordinator(None, flow_config)
+
+        group_items.return_value = {"Group One": [["test flow", "description"]]}
+
+        run_click_command(cci.flow_doc, runtime=runtime)
+        group_items.assert_called_once()
+        doc_flow.assert_called()
+
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.cci_safe_load")
+    def test_flow_doc__with_flows_rst_file(self, safe_load, echo):
+        runtime = CliRuntime(
+            config={
+                "flows": {
+                    "Flow1": {
+                        "steps": {},
+                        "description": "Description of Flow1",
+                        "group": "Group1",
+                    }
+                }
+            },
+            load_keychain=False,
+        )
+
+        safe_load.return_value = {
+            "intro_blurb": "opening blurb for flow reference doc",
+            "groups": {
+                "Group1": {"description": "This is a description of group1."},
+            },
+            "flows": {"Flow1": {"rst_text": "Some ``extra`` **pizzaz**!"}},
+        }
+
+        run_click_command(cci.flow_doc, runtime=runtime)
+
+        assert 1 == safe_load.call_count
+
+        expected_call_args = [
+            "Flow Reference\n==========================================\n\nopening blurb for flow reference doc\n.. contents::\n    :depth: 2\n    :local:\n\n",
+            "Group1\n------",
+            "This is a description of group1.",
+            "Flow1\n^^^^^\n\n**Description:** Description of Flow1\n\nSome ``extra`` **pizzaz**!\n**Flow Steps**\n\n.. code-block:: console\n",
+            "",
+        ]
+        expected_call_args = [mock.call(s) for s in expected_call_args]
+        assert echo.call_args_list == expected_call_args
 
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})
@@ -2011,9 +2061,7 @@ Environment Info: Rossian / x68_46
             )
         assert "-o" in str(e.value)
 
-    def test_flow_run_delete_non_scratch(
-        self,
-    ):
+    def test_flow_run_delete_non_scratch(self):
         org_config = mock.Mock(scratch=False)
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)

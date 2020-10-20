@@ -399,6 +399,86 @@ Options
 
 	 The Organization-Wide Defaults to check, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature. Checking External Sharing Model when it is turned off will fail the preflight.
 
+**check_org_settings_value**
+==========================================
+
+**Description:** Runs as a preflight check to validate organization settings.
+
+**Class:** cumulusci.tasks.preflight.settings.CheckSettingsValue
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_org_settings_value``
+
+
+Options
+------------------------------------------
+
+
+``-o settings_type SETTINGSTYPE``
+	 *Required*
+
+	 The API name of the Settings entity to be checked, such as ChatterSettings.
+
+``-o settings_field SETTINGSFIELD``
+	 *Required*
+
+	 The API name of the field on the Settings entity to check.
+
+``-o value VALUE``
+	 *Required*
+
+	 The value to check for
+
+``-o treat_missing_as_failure TREATMISSINGASFAILURE``
+	 *Optional*
+
+	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
+
+**check_chatter_enabled**
+==========================================
+
+**Description:** Runs as a preflight check to validate Chatter is enabled.
+
+**Class:** cumulusci.tasks.preflight.settings.CheckSettingsValue
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_chatter_enabled``
+
+
+Options
+------------------------------------------
+
+
+``-o settings_type SETTINGSTYPE``
+	 *Required*
+
+	 The API name of the Settings entity to be checked, such as ChatterSettings.
+
+	 Default: ChatterSettings
+
+``-o settings_field SETTINGSFIELD``
+	 *Required*
+
+	 The API name of the field on the Settings entity to check.
+
+	 Default: IsChatterEnabled
+
+``-o value VALUE``
+	 *Required*
+
+	 The value to check for
+
+	 Default: True
+
+``-o treat_missing_as_failure TREATMISSINGASFAILURE``
+	 *Optional*
+
+	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
+
 **custom_settings_value_wait**
 ==========================================
 
@@ -633,7 +713,12 @@ Options
 ``-o values VALUES``
 	 *Required*
 
-	 Field names and values in the format 'aa:bb,cc:dd'
+	 Field names and values in the format 'aa:bb,cc:dd', or a YAML dict in cumulusci.yml.
+
+``-o tooling TOOLING``
+	 *Optional*
+
+	 If True, use the Tooling API instead of REST API.
 
 **create_package**
 ==========================================
@@ -704,15 +789,20 @@ Options
 
 	 The part of the version number to increment. Options are major, minor, patch.  Defaults to minor
 
-``-o dependency_org DEPENDENCYORG``
-	 *Optional*
-
-	 The org name of the org to use for project dependencies lookup. If not provided, a scratch org will be created with the org name 2gp_dependencies.
-
 ``-o skip_validation SKIPVALIDATION``
 	 *Optional*
 
 	 If true, skip validation of the package version. Default: false. Skipping validation creates packages more quickly, but they cannot be promoted for release.
+
+``-o org_dependent ORGDEPENDENT``
+	 *Optional*
+
+	 If true, create an org-dependent unlocked package. Default: false.
+
+``-o force_upload FORCEUPLOAD``
+	 *Optional*
+
+	 If true, force creating a new package version even if one with the same contents already exists
 
 **create_managed_src**
 ==========================================
@@ -744,6 +834,76 @@ Options
 	 The path to copy the original metadata to for the revert call
 
 	 Default: src.orig
+
+**create_permission_set**
+==========================================
+
+**Description:** Creates a Permission Set with specified User Permissions and assigns it to the running user.
+
+**Class:** cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run create_permission_set``
+
+
+Options
+------------------------------------------
+
+
+``-o api_name APINAME``
+	 *Required*
+
+	 API name of generated Permission Set
+
+``-o user_permissions USERPERMISSIONS``
+	 *Required*
+
+	 List of User Permissions to include in the Permission Set.
+
+``-o label LABEL``
+	 *Optional*
+
+	 Label of generated Permission Set
+
+**create_bulk_data_permission_set**
+==========================================
+
+**Description:** Creates a Permission Set with the Hard Delete and Set Audit Fields user permissions. NOTE: the org setting to allow Set Audit Fields must be turned on.
+
+**Class:** cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run create_bulk_data_permission_set``
+
+
+Options
+------------------------------------------
+
+
+``-o api_name APINAME``
+	 *Required*
+
+	 API name of generated Permission Set
+
+	 Default: CumulusCI_Bulk_Data
+
+``-o user_permissions USERPERMISSIONS``
+	 *Required*
+
+	 List of User Permissions to include in the Permission Set.
+
+	 Default: ['PermissionsBulkApiHardDelete', 'PermissionsCreateAuditFields']
+
+``-o label LABEL``
+	 *Optional*
+
+	 Label of generated Permission Set
+
+	 Default: CumulusCI Bulk Data
 
 **create_unmanaged_ee_src**
 ==========================================
@@ -1623,17 +1783,24 @@ Options
 
 	 The new tag to create by cloning the src tag.  Ex: release/1.0
 
-**github_master_to_feature**
+**github_automerge_main**
 ==========================================
 
 **Description:** Merges the latest commit on the main branch into all open feature branches
 
 **Class:** cumulusci.tasks.github.MergeBranch
 
+Merges the most recent commit on the current branch into other branches depending on the value of source_branch.
+
+If source_branch is a branch that does not start with the specified branch_prefix, then the commit will be
+merged to all branches that begin with branch_prefix and are not themselves child branches (i.e. branches don't contain '__' in their name).
+
+If source_branch begins with branch_prefix, then the commit is merged to all child branches of source_branch.
+
 Command Syntax
 ------------------------------------------
 
-``$ cci task run github_master_to_feature``
+``$ cci task run github_automerge_main``
 
 
 Options
@@ -1653,24 +1820,31 @@ Options
 ``-o branch_prefix BRANCHPREFIX``
 	 *Optional*
 
-	 The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature
+	 A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature
 
-``-o children_only CHILDRENONLY``
+``-o update_future_releases UPDATEFUTURERELEASES``
 	 *Optional*
 
-	 If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
+	 If source_branch is a release branch, then merge all future release branches that exist. Defaults to False.
 
-**github_parent_to_children**
+**github_automerge_feature**
 ==========================================
 
-**Description:** Merges the latest commit on a parent feature branch into all child feature branches
+**Description:** Merges the latest commit on a source branch to all child branches.
 
 **Class:** cumulusci.tasks.github.MergeBranch
+
+Merges the most recent commit on the current branch into other branches depending on the value of source_branch.
+
+If source_branch is a branch that does not start with the specified branch_prefix, then the commit will be
+merged to all branches that begin with branch_prefix and are not themselves child branches (i.e. branches don't contain '__' in their name).
+
+If source_branch begins with branch_prefix, then the commit is merged to all child branches of source_branch.
 
 Command Syntax
 ------------------------------------------
 
-``$ cci task run github_parent_to_children``
+``$ cci task run github_automerge_feature``
 
 
 Options
@@ -1692,14 +1866,12 @@ Options
 ``-o branch_prefix BRANCHPREFIX``
 	 *Optional*
 
-	 The prefix of branches that should receive the merge.  Defaults to project__git__prefix_feature
+	 A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature
 
-``-o children_only CHILDRENONLY``
+``-o update_future_releases UPDATEFUTURERELEASES``
 	 *Optional*
 
-	 If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
-
-	 Default: True
+	 If source_branch is a release branch, then merge all future release branches that exist. Defaults to False.
 
 **github_copy_subtree**
 ==========================================
@@ -1757,6 +1929,33 @@ Options
 	 *Optional*
 
 	 If True, skip creating Github data.  Defaults to False
+
+**github_package_data**
+==========================================
+
+**Description:** Look up 2gp package dependencies for a version id recorded in a commit status.
+
+**Class:** cumulusci.tasks.github.commit_status.GetPackageDataFromCommitStatus
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run github_package_data``
+
+
+Options
+------------------------------------------
+
+
+``-o context CONTEXT``
+	 *Required*
+
+	 Name of the commit status context
+
+``-o version_id VERSIONID``
+	 *Optional*
+
+	 Package version id
 
 **github_pull_requests**
 ==========================================

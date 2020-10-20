@@ -1151,7 +1151,6 @@ class TestOrgConfig(unittest.TestCase):
     @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
     def test_refresh_oauth_token(self, SalesforceOAuth2):
         config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
-        config._client = mock.Mock()
         config._load_userinfo = mock.Mock()
         config._load_orginfo = mock.Mock()
         keychain = mock.Mock()
@@ -1162,7 +1161,6 @@ class TestOrgConfig(unittest.TestCase):
         config.refresh_oauth_token(keychain)
 
         oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
-        assert config._client is None
 
     def test_refresh_oauth_token_no_connected_app(self):
         config = OrgConfig({}, "test")
@@ -1181,7 +1179,7 @@ class TestOrgConfig(unittest.TestCase):
 
     @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
     @responses.activate
-    def test_refresh_oauth_token_jwt(self):
+    def test_refresh_oauth_token__jwt(self):
         responses.add(
             "POST",
             "https://login.salesforce.com/services/oauth2/token",
@@ -1202,7 +1200,7 @@ class TestOrgConfig(unittest.TestCase):
 
     @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
     @responses.activate
-    def test_refresh_oauth_token_jwt_sandbox(self):
+    def test_refresh_oauth_token__jwt_sandbox(self):
         responses.add(
             "POST",
             "https://cs00.salesforce.com/services/oauth2/token",
@@ -1215,7 +1213,39 @@ class TestOrgConfig(unittest.TestCase):
             os.environ,
             {"SFDX_CLIENT_ID": "some client id", "SFDX_HUB_KEY": "some private key"},
         ):
-            config = OrgConfig({"instance_url": "https://cs00.salesforce.com"}, "test")
+            config = OrgConfig(
+                {
+                    "instance_url": "https://cs00.salesforce.com",
+                },
+                "test",
+            )
+            config._load_userinfo = mock.Mock()
+            config._load_orginfo = mock.Mock()
+            config.refresh_oauth_token(None)
+            assert config.access_token == "TOKEN"
+
+    @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
+    @responses.activate
+    def test_refresh_oauth_token__jwt_sandbox_instanceless_url(self):
+        responses.add(
+            "POST",
+            "https://nonobvious--sandbox.my.salesforce.com/services/oauth2/token",
+            json={
+                "access_token": "TOKEN",
+                "instance_url": "https://nonobvious--sandbox.my.salesforce.com",
+            },
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"SFDX_CLIENT_ID": "some client id", "SFDX_HUB_KEY": "some private key"},
+        ):
+            config = OrgConfig(
+                {
+                    "instance_url": "https://nonobvious--sandbox.my.salesforce.com",
+                    "id": "https://test.salesforce.com/asdf",
+                },
+                "test",
+            )
             config._load_userinfo = mock.Mock()
             config._load_orginfo = mock.Mock()
             config.refresh_oauth_token(None)
@@ -1346,60 +1376,94 @@ class TestOrgConfig(unittest.TestCase):
         with self.assertRaisesRegex(Exception, expected_exception):
             config.get_community_info("bogus")
 
-    MOCK_TOOLING_PACKAGE_RESULTS = {
-        "size": 2,
-        "totalSize": 2,
-        "done": True,
-        "records": [
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz4AAG",
-                    "NamespacePrefix": "GW_Volunteers",
+    MOCK_TOOLING_PACKAGE_RESULTS = [
+        {
+            "size": 2,
+            "totalSize": 2,
+            "done": True,
+            "records": [
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz4AAG",
+                        "NamespacePrefix": "GW_Volunteers",
+                    },
+                    "SubscriberPackageVersionId": "04t1T00000070yqQAA",
                 },
-                "SubscriberPackageVersion": {
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz5AAG",
+                        "NamespacePrefix": "GW_Volunteers",
+                    },
+                    "SubscriberPackageVersionId": "04t000000000001AAA",
+                },
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz7AAG",
+                        "NamespacePrefix": "TESTY",
+                    },
+                    "SubscriberPackageVersionId": "04t000000000002AAA",
+                },
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz4AAG",
+                        "NamespacePrefix": "blah",
+                    },
+                    "SubscriberPackageVersionId": "04t0000000BOGUSAAA",
+                },
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
                     "Id": "04t1T00000070yqQAA",
                     "MajorVersion": 3,
                     "MinorVersion": 119,
                     "PatchVersion": 0,
                     "BuildNumber": 5,
                     "IsBeta": False,
-                },
-            },
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz5AAG",
-                    "NamespacePrefix": "GW_Volunteers",
-                },
-                "SubscriberPackageVersion": {
+                }
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
                     "Id": "04t000000000001AAA",
                     "MajorVersion": 12,
                     "MinorVersion": 0,
                     "PatchVersion": 1,
                     "BuildNumber": 1,
                     "IsBeta": False,
-                },
-            },
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz7AAG",
-                    "NamespacePrefix": "TESTY",
-                },
-                "SubscriberPackageVersion": {
+                }
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
                     "Id": "04t000000000002AAA",
                     "MajorVersion": 1,
                     "MinorVersion": 10,
                     "PatchVersion": 0,
                     "BuildNumber": 5,
                     "IsBeta": True,
-                },
-            },
-        ],
-    }
+                }
+            ],
+        },
+        {"size": 0, "totalSize": 0, "done": True, "records": []},
+    ]
 
-    def test_installed_packages(self):
+    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    def test_installed_packages(self, sf):
         config = OrgConfig({}, "test")
-        config._client = mock.Mock()
-        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
 
         expected = {
             "GW_Volunteers": [
@@ -1429,23 +1493,18 @@ class TestOrgConfig(unittest.TestCase):
         # get it twice so we can make sure it is cached
         assert config.installed_packages == expected
         assert config.installed_packages == expected
-        config._client.restful.assert_called_once_with(
-            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
-            "SubscriberPackageVersion.Id, SubscriberPackageVersion.MajorVersion, "
-            "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
-            "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
-            "FROM InstalledSubscriberPackage"
-        )
+        sf.restful.assert_called()
 
-        config._client.restful.reset_mock()
+        sf.restful.reset_mock()
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
         config.reset_installed_packages()
         assert config.installed_packages == expected
-        config._client.restful.assert_called_once()
+        sf.restful.assert_called()
 
-    def test_has_minimum_package_version(self):
+    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    def test_has_minimum_package_version(self, sf):
         config = OrgConfig({}, "test")
-        config._client = mock.Mock()
-        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
 
         assert config.has_minimum_package_version("TESTY", "1.9")
         assert config.has_minimum_package_version("TESTY", "1.10b5")

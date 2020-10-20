@@ -44,6 +44,27 @@ class TestInstallPackageVersion(unittest.TestCase):
         self.assertIn(b"<password>astro</password>", package_xml)
         self.assertIn(b"<securityType>NONE</securityType>", package_xml)
 
+    def test_run_task__options_2(self):
+        project_config = create_project_config()
+        project_config.get_previous_version = mock.Mock(return_value="1.0 (Beta 1)")
+        project_config.config["project"]["package"]["namespace"] = "ns"
+        task = create_task(
+            InstallPackageVersion,
+            {
+                "version": "previous",
+                "activateRSS": True,
+                "password": "astro",
+                "security_type": "NONE",
+            },
+            project_config,
+        )
+        api = task._get_api()
+        zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(api.package_zip)), "r")
+        package_xml = zf.read("installedPackages/ns.installedPackage")
+        self.assertIn(b"<activateRSS>true</activateRSS", package_xml)
+        self.assertIn(b"<password>astro</password>", package_xml)
+        self.assertIn(b"<securityType>NONE</securityType>", package_xml)
+
     def test_run_task__bad_security_type(self):
         project_config = create_project_config()
         project_config.get_latest_version = mock.Mock(return_value="1.0")

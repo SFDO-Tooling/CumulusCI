@@ -1,8 +1,8 @@
 from salesforce_bulk import SalesforceBulk
 
-from cumulusci.tasks.salesforce import BaseSalesforceTask
-from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.tasks import BaseSalesforceTask
+from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
