@@ -4,8 +4,43 @@ Cookbook
 Task Recipes
 ------------
 
-Task for Customized Deploy
-*****************************
+Run a Shell Command
+******************************
+
+.. code-block:: yaml
+
+    run_custom_command:
+        description: Greets the user
+        class_path: cumulusci.cli
+        options: 
+            command: "echo 'Hello there!"
+
+        
+
+Run a ``sfdx`` Command
+****************************
+The ``dx`` task lets you run an arbitrary ``sfdx`` command.
+You can perform this with ``cci`` on a terminal::
+
+    $ cci task run dx -o command 'force:api:limits:display'
+
+Or you can utilize the same ``class_path`` as the ``dx`` task and make a custom task that can be executed by itself or as a step in a flow.
+
+.. code-block:: yaml
+
+    dx_limits:
+        description: Display
+        class_path: cumulusci.tasks.sfdx.SFDXBaseTask
+        group: dx 
+        options: 
+            command: sfdx force:limits:api:display
+
+In this case, we actually utilize ``SFDXBaseTask``, if you would like to run a ``sfdx`` command that references an org, utilize ``SFDXOrgTask`` instead.
+
+
+
+Custom Deploy
+************************
 It is often useful to be able to define multiple custom deploy tasks to be able to easily identify which task deploys a specific subsection of Metadata.
 For example,  here is a custom task that is defined to only deploy reports::
 

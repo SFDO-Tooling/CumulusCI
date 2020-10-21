@@ -216,6 +216,13 @@ You can reference how we defined the flows for the standard library `here <https
 
 
 
+Plan Configuration
+------------------
+
+TODO: need to fill out this section
+
+
+
 Configuration Scopes
 --------------------
 When we reference ``cumulusci.yml`` in our documentation, we are referring to the ``cumulusci.yml`` file located in your project's root directory.
