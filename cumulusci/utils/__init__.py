@@ -11,6 +11,8 @@ import tempfile
 import textwrap
 import zipfile
 from datetime import datetime
+from .ziputils import zip_subfolder
+from .ziputils import process_text_in_zipfile  # noqa
 
 import requests
 import sarge
@@ -31,7 +33,7 @@ PIPX_UPDATE_CMD = "pipx upgrade cumulusci"
 
 
 def parse_api_datetime(value):
-    """ parse a datetime returned from the salesforce API.
+    """parse a datetime returned from the salesforce API.
 
     in python 3 we should just use a strptime %z, but until then we're just going
     to assert that its a fixed offset of +0000 since thats the observed behavior. getting
@@ -192,24 +194,6 @@ def download_extract_github_from_repo(github_repo, subfolder=None, ref=None):
     return zip_file
 
 
-def zip_subfolder(zip_src, path):
-    if not path.endswith("/"):
-        path = path + "/"
-
-    zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-    for name in zip_src.namelist():
-        if not name.startswith(path):
-            continue
-
-        content = zip_src.read(name)
-        rel_name = name.replace(path, "", 1)
-
-        if rel_name:
-            zip_dest.writestr(rel_name, content)
-
-    return zip_dest
-
-
 def process_text_in_directory(path, process_file):
     """Process each file in a directory using the `process_file` function.
 
@@ -237,33 +221,6 @@ def process_text_in_directory(path, process_file):
                 f.write(new_content)
 
 
-def process_text_in_zipfile(zf, process_file):
-    """Process each file in a zip file using the `process_file` function.
-
-    Returns a new zip file.
-
-    `process_file` should be a function which accepts a filename and content as text
-    and returns a (possibly modified) filename and content.  The file will be
-    replaced with the new content, and renamed if necessary.
-
-    Files with content that cannot be decoded as UTF-8 will be skipped.
-    """
-
-    new_zf = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-    for name in zf.namelist():
-        content = zf.read(name)
-        try:
-            content = content.decode("utf-8")
-        except UnicodeDecodeError:
-            # Probably a binary file; don't change it
-            pass
-        else:
-            name, content = process_file(name, content)
-        # writestr handles either bytes or text, and will implicitly encode text as utf-8
-        new_zf.writestr(name, content)
-    return new_zf
-
-
 def inject_namespace(
     name,
     content,
@@ -274,8 +231,8 @@ def inject_namespace(
     namespaced_org=None,
     logger=None,
 ):
-    """ Replaces %%%NAMESPACE%%% in file content and ___NAMESPACE___ in file name
-        with either '' if no namespace is provided or 'namespace__' if provided.
+    """Replaces %%%NAMESPACE%%% in file content and ___NAMESPACE___ in file name
+    with either '' if no namespace is provided or 'namespace__' if provided.
     """
 
     # Handle namespace and filename tokens
@@ -285,8 +242,12 @@ def inject_namespace(
         namespace_token = "%%%NAMESPACE%%%"
     if managed is True and namespace:
         namespace_prefix = namespace + "__"
+        namespace_dot_prefix = namespace + "."
     else:
         namespace_prefix = ""
+        namespace_dot_prefix = ""
+
+    namespace_dot_token = "%%%NAMESPACE_DOT%%%"
 
     # Handle tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___
     namespaced_org_token = "%%%NAMESPACED_ORG%%%"
@@ -306,6 +267,13 @@ def inject_namespace(
     content = content.replace(namespace_token, namespace_prefix)
     if logger and content != prev_content:
         logger.info(f'  {name}: Replaced {namespace_token} with "{namespace_prefix}"')
+
+    prev_content = content
+    content = content.replace(namespace_dot_token, namespace_dot_prefix)
+    if logger and content != prev_content:
+        logger.info(
+            f'  {name}: Replaced {namespace_dot_token} with "{namespace_dot_prefix}"'
+        )
 
     prev_content = content
     content = content.replace(namespace_or_c_token, namespace_or_c)
@@ -338,8 +306,7 @@ def inject_namespace(
 
 
 def strip_namespace(name, content, namespace, logger=None):
-    """ Given a namespace, strips 'namespace__' from file name and content
-    """
+    """Given a namespace, strips 'namespace__' from file name and content"""
     namespace_prefix = "{}__".format(namespace)
     lightning_namespace = "{}:".format(namespace)
 
@@ -357,7 +324,7 @@ def strip_namespace(name, content, namespace, logger=None):
 
 
 def tokenize_namespace(name, content, namespace, logger=None):
-    """ Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%%
+    """Given a namespace, replaces 'namespace__' with %%%NAMESPACE%%%
     in file content and ___NAMESPACE___ in file name
     """
     if not namespace:
@@ -374,7 +341,7 @@ def tokenize_namespace(name, content, namespace, logger=None):
 
 
 def zip_clean_metaxml(zip_src, logger=None):
-    """ Given a zipfile, cleans all ``*-meta.xml`` files in the zip for
+    """Given a zipfile, cleans all ``*-meta.xml`` files in the zip for
     deployment by stripping all ``<packageVersions/>`` elements
     """
     zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
@@ -398,6 +365,7 @@ def zip_clean_metaxml(zip_src, logger=None):
         logger.info(
             "Cleaned package versions from {} meta.xml files".format(len(changed))
         )
+    zip_src.close()
     return zip_dest
 
 
@@ -492,9 +460,9 @@ def create_task_options_doc(task_options):
             doc.append(f"\n``{usage_str}``")
 
         if option.get("required"):
-            doc.append(f"\t *Required*")
+            doc.append("\t *Required*")
         else:
-            doc.append(f"\t *Optional*")
+            doc.append("\t *Optional*")
 
         description = option.get("description")
         if description:
@@ -509,6 +477,43 @@ def create_task_options_doc(task_options):
             doc.append(f"\n\t Type: {option_type}")
 
     return doc
+
+
+def flow_ref_title_and_intro(intro_blurb):
+    return f"""Flow Reference
+==========================================
+\n{intro_blurb}
+.. contents::
+    :depth: 2
+    :local:
+
+"""
+
+
+def document_flow(flow_name, description, flow_coordinator, additional_info=None):
+    """Document (project specific) flow configurations in RST format"""
+    doc = []
+
+    doc.append(f"{flow_name}\n{'^' * len(flow_name)}\n")
+    doc.append(f"**Description:** {description}\n")
+
+    if additional_info:
+        doc.append(additional_info)
+
+    doc.append("**Flow Steps**\n")
+    doc.append(".. code-block:: console\n")
+    flow_step_lines = flow_coordinator.get_flow_steps(for_docs=True)
+    # extra indent beneath code-block and finish with pipe for extra space afterwards
+    flow_step_lines = [f"\t{line}" for line in flow_step_lines]
+    # fix when clauses
+    lines = []
+    for line in flow_step_lines:
+        if line.startswith("when"):
+            line = f"\t\t{line}"
+        lines.append(line)
+    doc.extend(lines)
+
+    return "\n".join(doc)
 
 
 def package_xml_from_dict(items, api_version, package_name=None):
@@ -540,8 +545,7 @@ def package_xml_from_dict(items, api_version, package_name=None):
 
 @contextlib.contextmanager
 def cd(path):
-    """Context manager that changes to another directory
-    """
+    """Context manager that changes to another directory"""
     if not path:
         yield
         return
@@ -596,8 +600,7 @@ def log_progress(
     progress_message="Processing... ({})",
     done_message="Done! (Total: {})",
 ):
-    """Log progress while iterating.
-    """
+    """Log progress while iterating."""
     i = 0
     for x in iterable:
         yield x

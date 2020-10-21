@@ -1,14 +1,18 @@
 import io
 from unittest import mock
-import unittest
 import zipfile
+
+
+import responses
+import pytest
 
 from cumulusci.tasks.salesforce import UninstallPackaged
 from cumulusci.tests.util import create_project_config
 from .util import create_task
+from cumulusci.salesforce_api.exceptions import MetadataApiError
 
 
-class TestUninstallPackaged(unittest.TestCase):
+class TestUninstallPackaged:
     @mock.patch("cumulusci.salesforce_api.metadata.ApiRetrievePackaged.__call__")
     def test_get_destructive_changes(self, ApiRetrievePackaged):
         project_config = create_project_config()
@@ -22,7 +26,7 @@ class TestUninstallPackaged(unittest.TestCase):
         )
         ApiRetrievePackaged.return_value = zf
         result = task._get_destructive_changes()
-        self.assertEqual(
+        assert (
             """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
@@ -30,6 +34,32 @@ class TestUninstallPackaged(unittest.TestCase):
         <name>CustomObject</name>
     </types>
     <version>43.0</version>
-</Package>""",
-            result,
+</Package>"""
+            == result
         )
+
+    @responses.activate
+    def test_error_handling(self):
+        project_config = create_project_config()
+        project_config.config["project"]["package"]["name"] = "TestPackage"
+        project_config.config["project"]["package"]["api_version"] = "43.0"
+        task = create_task(UninstallPackaged, {}, project_config)
+
+        responses.add(
+            method=responses.POST,
+            url="https://test.salesforce.com/services/Soap/m/43.0/ORG_ID",
+            body="""<?xml version="1.0" encoding="UTF-8"?>
+        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+        xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <soapenv:Body><checkRetrieveStatusResponse><result><done>true</done>
+        <errorMessage>INVALID_CROSS_REFERENCE_KEY: No package named &apos;Abacus&apos; found</errorMessage>
+        <errorStatusCode>UNKNOWN_EXCEPTION</errorStatusCode><id>09S6g000007KGwVEAW</id><status>Failed</status>
+        <success>false</success><zipFile xsi:nil="true"/></result>
+        </checkRetrieveStatusResponse></soapenv:Body></soapenv:Envelope>""",
+            status=200,
+            content_type="text/xml; charset=utf-8",
+        )
+
+        with pytest.raises(MetadataApiError) as e:
+            task()
+        assert "No package" in str(e.value)

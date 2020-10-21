@@ -5,7 +5,7 @@ import collections
 from unittest import mock
 
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.config import BaseGlobalConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import OrgConfig
@@ -30,19 +30,17 @@ class _SfdcTask(BaseTask):
 
 
 class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
-    """ Tests for the BaseTask callable interface.
+    """Tests for the BaseTask callable interface.
 
     BaseTask is a callable interface
     BaseTask has return_values and results
     BaseTask has basic logging
     """
 
-    task_class = BaseTask
-
     def setUp(self):
-        self.global_config = BaseGlobalConfig()
+        self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
-            self.global_config, config={"noyaml": True}
+            self.universal_config, config={"noyaml": True}
         )
         self.org_config = OrgConfig({"username": USERNAME, "org_id": ORG_ID}, "test")
         self.task_config = TaskConfig()
@@ -85,26 +83,35 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
 
     def test_task_is_callable(self):
         """ BaseTask is Callable """
-        task = self.__class__.task_class(
-            self.project_config, self.task_config, self.org_config
-        )
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
 
         self.assertIsInstance(task, collections.abc.Callable)
 
     def test_option_overrides(self):
-        task = self.__class__.task_class(
+        task = BaseTask(
             self.project_config, self.task_config, self.org_config, foo="bar"
         )
         self.assertEqual("bar", task.options["foo"])
 
-    def test_dynamic_options(self):
-        """ Option values can lookup values from project_config """
+    def test_init_options__project_config_substitution(self):
         self.project_config.config["foo"] = {"bar": "baz"}
         self.task_config.config["options"] = {"test_option": "$project_config.foo__bar"}
-        task = self.__class__.task_class(
-            self.project_config, self.task_config, self.org_config
-        )
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
         self.assertEqual("baz", task.options["test_option"])
+
+    def test_init_options__project_config_integer(self):
+        self.project_config.config["foo"] = {"bar": 32}
+        self.task_config.config["options"] = {"test_option": "$project_config.foo__bar"}
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        self.assertEqual("32", task.options["test_option"])
+
+    def test_init_options__project_config_substitution__substring(self):
+        self.project_config.config["foo"] = {"bar": "baz"}
+        self.task_config.config["options"] = {
+            "test_option": "before $project_config.foo__bar after"
+        }
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        self.assertEqual("before baz after", task.options["test_option"])
 
     def test_validates_missing_options(self):
         class Task(BaseTask):

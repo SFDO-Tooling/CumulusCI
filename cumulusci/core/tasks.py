@@ -5,6 +5,7 @@ Subclass BaseTask or a descendant to define custom task logic
 import contextlib
 import logging
 import os
+import re
 import time
 import threading
 
@@ -17,6 +18,8 @@ from cumulusci.core.exceptions import TaskOptionsError
 CURRENT_TASK = threading.local()
 CURRENT_TASK.stack = []
 
+PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
+
 
 @contextlib.contextmanager
 def stacked_task(task):
@@ -28,7 +31,7 @@ def stacked_task(task):
 
 
 class BaseTask(object):
-    """ BaseTask provides the core execution logic for a Task
+    """BaseTask provides the core execution logic for a Task
 
     Subclass BaseTask and provide a `_run_task()` method with your
     code.
@@ -51,10 +54,7 @@ class BaseTask(object):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
-        self.poll_count = 0
-        self.poll_interval_level = 0
-        self.poll_interval_s = 1
-        self.poll_complete = False
+        self._reset_poll()
 
         # dict of return_values that can be used by task callers
         self.return_values = {}
@@ -91,13 +91,15 @@ class BaseTask(object):
             self.options.update(kwargs)
 
         # Handle dynamic lookup of project_config values via $project_config.attr
-        for option, value in list(self.options.items()):
-            try:
-                if value.startswith("$project_config."):
-                    attr = value.replace("$project_config.", "", 1)
-                    self.options[option] = getattr(self.project_config, attr, None)
-            except AttributeError:
-                pass
+        for option, value in self.options.items():
+            if isinstance(value, str):
+                value = PROJECT_CONFIG_RE.sub(
+                    lambda match: str(
+                        getattr(self.project_config, match.group(1), None)
+                    ),
+                    value,
+                )
+                self.options[option] = value
 
     def _validate_options(self):
         missing_required = []
@@ -106,15 +108,13 @@ class BaseTask(object):
                 missing_required.append(name)
 
         if missing_required:
+            required_opts = ",".join(missing_required)
             raise TaskOptionsError(
-                "{} requires the options ({}) "
-                "and no values were provided".format(
-                    self.__class__.__name__, ", ".join(missing_required)
-                )
+                f"{self.__class__.__name__} requires the options ({required_opts}) and no values were provided"
             )
 
     def _update_credentials(self):
-        """ Override to do any logic  to refresh credentials """
+        """ Override to do any logic to refresh credentials """
         pass
 
     def _init_task(self):
@@ -178,6 +178,12 @@ class BaseTask(object):
     def _is_retry_valid(self, e):
         return True
 
+    def _reset_poll(self):
+        self.poll_complete = False
+        self.poll_count = 0
+        self.poll_interval_level = 0
+        self.poll_interval_s = 1
+
     def _poll(self):
         """ poll for a result in a loop """
         while True:
@@ -236,14 +242,11 @@ class BaseSalesforceTask(BaseTask):
             app = self.project_config.keychain.get_service("connectedapp")
             return app.client_id
         except (ServiceNotValid, ServiceNotConfigured):
-            return "CumulusCI/{}".format(__version__)
+            return f"CumulusCI/{__version__}"
 
     def _run_task(self):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     def _update_credentials(self):
-        orig_config = self.org_config.config.copy()
-        self.org_config.refresh_oauth_token(self.project_config.keychain)
-        if self.org_config.config != orig_config:
-            self.logger.info("Org info updated, writing to keychain")
-            self.project_config.keychain.set_org(self.org_config)
+        with self.org_config.save_if_changed():
+            self.org_config.refresh_oauth_token(self.project_config.keychain)

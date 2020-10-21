@@ -2,6 +2,7 @@ from cumulusci.core.exceptions import ApexCompilationException
 from cumulusci.core.exceptions import ApexException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import in_directory
 
@@ -95,8 +96,8 @@ class AnonymousApexTask(BaseSalesforceApiTask):
 
     def _prepare_apex(self, apex):
         # Process namespace tokens
-        managed = self.options.get("managed") or False
-        namespaced = self.options.get("namespaced") or False
+        managed = process_bool_arg(self.options.get("managed", False))
+        namespaced = process_bool_arg(self.options.get("namespaced", False))
         namespace = self.project_config.project__package__namespace
         namespace_prefix = ""
         record_type_prefix = ""

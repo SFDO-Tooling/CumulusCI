@@ -1,12 +1,13 @@
 import http.client
 import io
 import unittest
-
 from collections import defaultdict
-from requests import Response
 from xml.dom.minidom import parseString
-import responses
 import datetime
+
+from requests import Response
+import responses
+import pytest
 
 from cumulusci.tests.util import create_project_config
 from cumulusci.tests.util import DummyOrgConfig
@@ -65,7 +66,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         self.repo_api_url = "https://api.github.com/repos/{}/{}".format(
             self.repo_owner, self.repo_name
         )
-        self.branch = "master"
+        self.branch = "main"
 
         # Create the project config
         self.project_config = create_project_config(self.repo_name, self.repo_owner)
@@ -537,7 +538,8 @@ class TestBaseMetadataApiCall(BaseTestMetadataApi):
     def test_build_envelope_start_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual(api._build_envelope_start(), None)
+        with pytest.raises(AssertionError):
+            api._build_envelope_start()
 
     def test_build_envelope_status_no_envelope(self):
         task = self._create_task()
@@ -577,7 +579,7 @@ class TestApiDeploy(BaseTestMetadataApi):
 
     def setUp(self):
         super(TestApiDeploy, self).setUp()
-        self.package_zip = DummyPackageZipBuilder()()
+        self.package_zip = DummyPackageZipBuilder().as_base64()
 
     def _expected_envelope_start(self):
         return self.envelope_start.format(
@@ -865,10 +867,12 @@ class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
         self.result_zip = DummyPackageZipBuilder()
 
     def _response_call_success_result(self, response_result):
-        return retrieve_result.format(zip=self.result_zip(), extra="").encode()
+        return retrieve_result.format(
+            zip=self.result_zip.as_base64(), extra=""
+        ).encode()
 
     def _expected_call_success_result(self, response_result):
-        return self.result_zip.zip
+        return self.result_zip.zf
 
     def _create_instance(self, task, api_version=None):
         return self.api_class(task, self.package_xml, api_version=api_version)
@@ -933,7 +937,8 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         response.status_code = 200
         response.raw = io.BytesIO(
             retrieve_result.format(
-                zip=CreatePackageZipBuilder("testing", api.api_version)(), extra=""
+                zip=CreatePackageZipBuilder("testing", api.api_version).as_base64(),
+                extra="",
             ).encode()
         )
         resp = api._process_response(response)
@@ -946,7 +951,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
         response.status_code = 200
         response.raw = io.BytesIO(
             retrieve_result.format(
-                zip=InstallPackageZipBuilder("foo", "1.1")(), extra=""
+                zip=InstallPackageZipBuilder("foo", "1.1").as_base64(), extra=""
             ).encode()
         )
         resp = api._process_response(response)

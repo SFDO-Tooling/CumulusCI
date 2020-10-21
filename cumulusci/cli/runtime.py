@@ -29,7 +29,7 @@ class CliRuntime(BaseCumulusCI):
         default_keychain_class = (
             self.project_config.cumulusci__keychain
             if self.project_config is not None
-            else self.global_config.cumulusci__keychain
+            else self.universal_config.cumulusci__keychain
         )
         keychain_class = os.environ.get(
             "CUMULUSCI_KEYCHAIN_CLASS", default_keychain_class
@@ -121,7 +121,7 @@ class CliRuntime(BaseCumulusCI):
             if org.scratch:
                 if org.created:
                     raise click.ClickException(
-                        f"Scratch org has already been created. Use `cci org scratch_delete {org_name}"
+                        f"Scratch org has already been created. Use `cci org scratch_delete {org_name}`"
                     )
             else:
                 raise click.ClickException(

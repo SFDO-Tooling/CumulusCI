@@ -2,7 +2,7 @@ minimum_cumulusci_version: '{{ cci_version }}'
 project:
     name: {{ project_name }}
     package:
-        name:  {{ package_name }}
+        name: {{ package_name }}
         {% if package_namespace %}
         namespace: {{ package_namespace }}
         {% endif %}
@@ -23,24 +23,26 @@ project:
       {% endif %}
     {% endfor %}
     {% endif %}
-    {% if git %}
-    git:{% endif %}
-      {% if git.default_branch %} 
-        default_branch: '{{ git.default_branch }}'{% endif %}
-      {% if git.prefix_feature %} 
-        prefix_feature: '{{ git.prefix_feature }}'{% endif %}
-      {% if git.prefix_beta %} 
-        prefix_beta: '{{ git.prefix_beta }}'{% endif %}
-      {% if git.prefix_release %} 
+    git:
+{% if git.default_branch %}
+        default_branch: '{{ git.default_branch }}'
+{% endif %}
+{% if git.prefix_feature %}
+        prefix_feature: '{{ git.prefix_feature }}'
+{% endif %}
+{% if git.prefix_beta %}
+        prefix_beta: '{{ git.prefix_beta }}'
+{% endif %}
+{% if git.prefix_release %}
         prefix_release: '{{ git.prefix_release }}'
-      {% endif %}
-    {% if test_name_match %}
+{% endif %}
+{% if test_name_match %}
     test:
         name_match: '{{ test_name_match }}'
-    {% endif %}
-    {% if source_format != 'mdapi' %}
+{% endif %}
+{% if source_format != 'mdapi' %}
     source_format: {{ source_format }}
-    {% endif %}
+{% endif %}
 
 tasks:
     robot:
@@ -53,3 +55,9 @@ tasks:
         options:
             path: robot/{{project_name}}/tests
             output: robot/{{project_name}}/doc/{{project_name}}_tests.html
+
+    {% if code_coverage %}
+    run_tests:
+        options:
+            required_org_code_coverage_percent: {{code_coverage}}
+    {% endif %}

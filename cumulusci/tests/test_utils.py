@@ -12,8 +12,10 @@ from unittest import mock
 import responses
 
 from cumulusci import utils
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import TaskConfig, FlowConfig
+from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
+from cumulusci.tests.util import create_project_config
 
 
 class FunTestTask(BaseTask):
@@ -261,6 +263,45 @@ Options\n------------------------------------------\n\n
 
         assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
 
+    def test_document_flow(self):
+        project_config = create_project_config("TestOwner", "TestRepo")
+        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+        coordinator = FlowCoordinator(project_config, flow_config, name="test_flow")
+        flow_doc = utils.document_flow("test flow", "test description.", coordinator)
+
+        expected_doc = (
+            "test flow"
+            "\n^^^^^^^^^\n"
+            "\n**Description:** test description.\n"
+            "\n**Flow Steps**\n"
+            "\n.. code-block:: console\n"
+        )
+
+        assert expected_doc == flow_doc
+
+    def test_document_flow__additional_info(self):
+        flow_steps = ["1) (Task) Extract"]
+        flow_coordinator = mock.Mock(get_flow_steps=mock.Mock(return_value=flow_steps))
+        other_info = "**this is** just some rst ``formatted`` text."
+
+        flow_doc = utils.document_flow(
+            "test flow",
+            "test description.",
+            flow_coordinator,
+            additional_info=other_info,
+        )
+
+        expected_doc = (
+            "test flow"
+            "\n^^^^^^^^^\n"
+            "\n**Description:** test description.\n"
+            f"\n{other_info}"
+            "\n**Flow Steps**\n"
+            "\n.. code-block:: console\n"
+            "\n\t1) (Task) Extract"
+        )
+        assert expected_doc == flow_doc
+
     @responses.activate
     def test_download_extract_zip(self):
         f = io.BytesIO()
@@ -306,7 +347,7 @@ Options\n------------------------------------------\n\n
             zf.writestr("top/src/test", "test")
         f.seek(0)
         zipbytes = f.read()
-        mock_repo = mock.Mock(default_branch="master")
+        mock_repo = mock.Mock(default_branch="main")
         mock_github = mock.Mock()
         mock_github.repository.return_value = mock_repo
 
@@ -365,31 +406,31 @@ Options\n------------------------------------------\n\n
     def test_inject_namespace__managed(self):
         logger = mock.Mock()
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(
             name, content, namespace="ns", managed=True, logger=logger
         )
         assert name == "ns__test"
-        assert content == "ns__||ns|c"
+        assert content == "ns__|ns.||ns|c"
 
     def test_inject_namespace__unmanaged(self):
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(name, content, namespace="ns")
         assert name == "test"
-        assert content == "||c|c"
+        assert content == "|||c|c"
 
     def test_inject_namespace__namespaced_org(self):
         name = "___NAMESPACE___test"
-        content = "%%%NAMESPACE%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
+        content = "%%%NAMESPACE%%%|%%%NAMESPACE_DOT%%%|%%%NAMESPACED_ORG%%%|%%%NAMESPACE_OR_C%%%|%%%NAMESPACED_ORG_OR_C%%%"
 
         name, content = utils.inject_namespace(
             name, content, namespace="ns", managed=True, namespaced_org=True
         )
         assert name == "ns__test"
-        assert content == "ns__|ns__|ns|ns"
+        assert content == "ns__|ns.|ns__|ns|ns"
 
     def test_strip_namespace(self):
         logger = mock.Mock()

@@ -1,16 +1,19 @@
-from datetime import datetime
+import json
 import os
 import unittest
 from unittest import mock
-import yaml
 
 import responses
-from sqlalchemy import create_engine, MetaData, Integer, types, Unicode, Column, Table
+from sqlalchemy import create_engine, MetaData, Integer, Unicode, Column, Table
 from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.tasks.bulkdata.utils import (
+    create_table,
+    generate_batches,
+)
+from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
 def create_db_file(filename):
@@ -31,28 +34,42 @@ def create_db_memory():
     return engine, metadata
 
 
-class TestEpochType(unittest.TestCase):
-    def test_process_bind_param(self):
-        obj = bulkdata.utils.EpochType()
-        dt = datetime(1970, 1, 1, 0, 0, 1)
-        result = obj.process_bind_param(dt, None)
-        self.assertEqual(1000, result)
+def mock_describe_calls():
+    def read_mock(name: str):
+        base_path = os.path.dirname(__file__)
 
-    def test_process_result_value(self):
-        obj = bulkdata.utils.EpochType()
+        with open(os.path.join(base_path, f"{name}.json"), "r") as f:
+            return f.read()
 
-        # Non-None value
-        result = obj.process_result_value(1000, None)
-        self.assertEqual(datetime(1970, 1, 1, 0, 0, 1), result)
+    def mock_sobject_describe(name: str):
+        responses.add(
+            method="GET",
+            url=f"https://example.com/services/data/v48.0/sobjects/{name}/describe",
+            body=read_mock(name),
+            status=200,
+        )
 
-        # None value
-        result = obj.process_result_value(None, None)
-        self.assertEqual(None, result)
+    responses.add(
+        method="GET",
+        url="https://example.com/services/data",
+        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        status=200,
+    )
+    responses.add(
+        method="GET",
+        url="https://example.com/services/data/v48.0/sobjects",
+        body=read_mock("global_describe"),
+        status=200,
+    )
 
-    def test_setup_epoch(self):
-        column_info = {"type": types.DateTime()}
-        bulkdata.utils.setup_epoch(mock.Mock(), mock.Mock(), column_info)
-        self.assertIsInstance(column_info["type"], bulkdata.utils.EpochType)
+    for sobject in [
+        "Account",
+        "Contact",
+        "Opportunity",
+        "OpportunityContactRole",
+        "Case",
+    ]:
+        mock_sobject_describe(sobject)
 
 
 class TestSqlAlchemyMixin(unittest.TestCase):
@@ -121,9 +138,9 @@ class TestSqlAlchemyMixin(unittest.TestCase):
 class TestCreateTable(unittest.TestCase):
     def test_create_table_legacy_oid_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v1.yml")
-        with open(mapping_file, "r") as fh:
-            content = yaml.safe_load(fh)
-            account_mapping = content["Insert Contacts"]
+
+        content = parse_from_yaml(mapping_file)
+        account_mapping = content["Insert Contacts"]
 
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "temp.db")
@@ -138,9 +155,8 @@ class TestCreateTable(unittest.TestCase):
 
     def test_create_table_modern_id_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v2.yml")
-        with open(mapping_file, "r") as fh:
-            content = yaml.safe_load(fh)
-            account_mapping = content["Insert Contacts"]
+        content = parse_from_yaml(mapping_file)
+        account_mapping = content["Insert Contacts"]
 
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "temp.db")
