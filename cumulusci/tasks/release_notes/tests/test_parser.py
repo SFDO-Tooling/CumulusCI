@@ -602,7 +602,7 @@ class TestInstallLinkParser:
         parser.parse("abc")
         version_id = urllib.parse.quote_plus(generator.version_id)
         assert (
-            f"""# Title\r\n\r\n## Push Schedule\r\n\r\nSandbox & Scratch Orgs: {generator.sandbox_date}\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nProduction & Developer Edition Orgs: {generator.production_date}\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}"""
+            f"""# Title\r\n\r\n## Push Schedule\r\nSandbox orgs: {generator.sandbox_date}\r\nProduction orgs: {generator.production_date}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}"""
             == parser.render()
         )
 
@@ -618,7 +618,7 @@ class TestInstallLinkParser:
         parser.parse("abc")
         version_id = urllib.parse.quote_plus(generator.version_id)
         assert (
-            f"""# Title\r\n\r\n## Push Schedule\r\n\r\nSandbox & Scratch Orgs: {generator.sandbox_date}\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}"""
+            f"""# Title\r\n\r\n## Push Schedule\r\nSandbox orgs: {generator.sandbox_date}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}"""
             == parser.render()
         )
 
@@ -634,7 +634,7 @@ class TestInstallLinkParser:
         parser.parse("abc")
         version_id = urllib.parse.quote_plus(generator.version_id)
         assert (
-            f"""# Title\r\n\r\n## Push Schedule\r\n\r\nProduction & Developer Edition Orgs: {generator.production_date}\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}"""
+            f"""# Title\r\n\r\n## Push Schedule\r\nProduction orgs: {generator.production_date}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}"""
             == parser.render()
         )
 
@@ -666,7 +666,7 @@ class TestInstallLinkParser:
         parser.parse("abc")
         version_id = urllib.parse.quote_plus(generator.version_id)
         assert (
-            f"""# Title\r\n\r\n## Push Schedule\r\n\r\nSandbox & Scratch Orgs: {generator.sandbox_date}\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nProduction & Developer Edition Orgs: {generator.production_date}\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\n## Trialforce Template ID\r\n`TBD`"""
+            f"""# Title\r\n\r\n## Push Schedule\r\nSandbox orgs: {generator.sandbox_date}\r\nProduction orgs: {generator.production_date}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\n## Trialforce Template ID\r\n`TBD`"""
             == parser.render()
         )
 
@@ -682,7 +682,7 @@ class TestInstallLinkParser:
         parser.parse("abc")
         version_id = urllib.parse.quote_plus(generator.version_id)
         assert (
-            f"""# Title\r\n\r\n## Push Schedule\r\n\r\nSandbox & Scratch Orgs: {generator.sandbox_date}\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\n## Trialforce Template ID\r\n`TBD`"""
+            f"""# Title\r\n\r\n## Push Schedule\r\nSandbox orgs: {generator.sandbox_date}\r\n\r\nSandbox & Scratch Orgs:\r\nhttps://test.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\nProduction & Developer Edition Orgs:\r\nhttps://login.salesforce.com/packaging/installPackage.apexp?p0={version_id}\r\n\r\n## Trialforce Template ID\r\n`TBD`"""
             == parser.render()
         )
 

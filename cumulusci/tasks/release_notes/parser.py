@@ -296,43 +296,20 @@ class InstallLinkParser(ChangeNotesLinesParser):
     def render(self, existing_content=""):
         version_id = self.release_notes_generator.version_id
         trial_info = self.release_notes_generator.trial_info
-        result = [self._render_header()]
 
-        if version_id:
-            version_id = urllib.parse.quote_plus(version_id)
-            if (
-                self.release_notes_generator.sandbox_date
-                or self.release_notes_generator.production_date
-            ):
-                result += ["## Push Schedule", ""]
-                if self.release_notes_generator.sandbox_date:
-                    result += [
-                        f"Sandbox & Scratch Orgs: {self.release_notes_generator.sandbox_date}",
-                        f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
-                    ]
-                    if self.release_notes_generator.production_date:
-                        result.append("")  # For formatting purposes
-                if self.release_notes_generator.production_date:
-                    result += [
-                        f"Production & Developer Edition Orgs: {self.release_notes_generator.production_date}",
-                        f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
-                    ]
-            else:
-                result += [
-                    "Sandbox & Scratch Orgs:",
-                    f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
-                    "",
-                    "Production & Developer Edition Orgs:",
-                    f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
-                ]
-            if trial_info is True:
-                result += ["", "## Trialforce Template ID", "`TBD`"]
-            return "\r\n".join(result)
-        elif (
+        if (
+            not version_id
+            and not self.release_notes_generator.sandbox_date
+            and not self.release_notes_generator.production_date
+            and not trial_info
+        ):
+            return existing_content
+        result = [self._render_header()]
+        if (
             self.release_notes_generator.sandbox_date
             or self.release_notes_generator.production_date
         ):
-            result += ["## Push Schedule"]
+            result.append("## Push Schedule")
             if self.release_notes_generator.sandbox_date:
                 result.append(
                     f"Sandbox orgs: {self.release_notes_generator.sandbox_date}"
@@ -341,11 +318,27 @@ class InstallLinkParser(ChangeNotesLinesParser):
                 result.append(
                     f"Production orgs: {self.release_notes_generator.production_date}",
                 )
-            if trial_info is True:
-                result += ["", "## Trialforce Template ID", "`TBD`"]
-            return "\r\n".join(result)
-        elif trial_info is True:
+        if version_id:
+            version_id = urllib.parse.quote_plus(version_id)
+            if (
+                self.release_notes_generator.sandbox_date
+                or self.release_notes_generator.production_date
+            ):
+                result.append("")
+            result += [
+                "Sandbox & Scratch Orgs:",
+                f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+                "",
+                "Production & Developer Edition Orgs:",
+                f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+            ]
+
+        if trial_info is True:
+            if (
+                version_id
+                or self.release_notes_generator.sandbox_date
+                or self.release_notes_generator.production_date
+            ):
+                result.append("")
             result += ["## Trialforce Template ID", "`TBD`"]
-            return "\r\n".join(result)
-        else:
-            return existing_content
+        return "\r\n".join(result)
