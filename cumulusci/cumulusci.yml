@@ -38,6 +38,10 @@ tasks:
             namespace_inject: $project_config.project__package__namespace
             metadata_type: CustomObject
             tag: compactLayoutAssignment
+    assign_permission_sets:
+        group: Salesforce Users
+        description: "Assigns specified Permission Sets to the current user, if not already assigned."
+        class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait

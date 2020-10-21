@@ -336,6 +336,28 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+**assign_permission_sets**
+==========================================
+
+**Description:** Assigns specified Permission Sets to the current user, if not already assigned.
+
+**Class:** cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run assign_permission_sets``
+
+
+Options
+------------------------------------------
+
+
+``-o api_names APINAMES``
+	 *Required*
+
+	 API names of desired Permission Sets, separated by commas.
+
 **batch_apex_wait**
 ==========================================
 
