@@ -1448,14 +1448,21 @@ class RunTaskCommand(click.MultiCommand):
         params.extend(self._get_click_options_for_task(task_options))
 
         def run_task(*args, **kwargs):
-            """Callback function to execute when the command fires."""
+            """Callback function that executes when the command fires."""
             org, org_config = RUNTIME.get_org(
                 kwargs.pop("org", None), fail_if_missing=False
             )
 
-            # overwrite any existing configured options with those being passed in
+            # Overwrite any existing configured options with those
+            # being passed in as long as their value != None.
+            # Values come in as None when they are specified via a cumulusci.yml file
             for name, value in kwargs.items():
-                if name in task_options.keys():
+                if value and name in task_options.keys():
+
+                    # Add options if they aren't present on this task
+                    # they are defined on the parent class
+                    if "options" not in task_config.config:
+                        task_config.config["options"] = {}
                     task_config.config["options"][name] = value
 
             try:
@@ -1479,7 +1486,7 @@ class RunTaskCommand(click.MultiCommand):
     def resolve_command(self, ctx, args):
         """We override this method to allow us access to the actual
         command line args being passed in. This allows us to convert
-        the old option syntax to the new option syntax"""
+        the old option syntax to the new option syntax."""
 
         # TODO: What's a good way to account for scenarios where
         # the user forgets option name/value. Example would be:
@@ -1499,7 +1506,28 @@ class RunTaskCommand(click.MultiCommand):
         """Returns True if opt_name is the name of an
         option in the given task, else False"""
         task = RUNTIME.project_config.get_task(task_name)
-        return opt_name in task.config["options"].keys()
+
+        if "options" not in task.config:
+            task_option_names = self._get_task_options_in_hierarchy(task)
+        else:
+            task_option_names = task.config["options"].keys()
+
+        return opt_name in task_option_names
+
+    def _get_task_options_in_hierarchy(self, task_config):
+        """Given a task config object, recursively search parent tasks classes
+        for the first one who defines options.
+
+        Return a list of the the option names
+        TODO: Does order of search matter when multiple inheritence present?
+        """
+        task_class = import_global(task_config.class_path)
+        for base in task_class.__bases__:
+            if hasattr(base, "task_options"):
+                return [name for name in base.task_options.keys()]
+            else:
+                self._get_task_options_in_hierarchy(base)
+        return task_class
 
     def _get_click_options_for_task(self, task_options):
         """Given a dict of options in a task, constructs and returns the
@@ -1507,10 +1535,14 @@ class RunTaskCommand(click.MultiCommand):
         click_options = []
         if task_options:
             for name, properties in task_options.items():
+                # NOTE: When task options aren't explicitly given via the command line
+                # click complains that there are no values for options. We set required=False
+                # to mitigate this error. Task option validation should be performed at the
+                # task level via task._validate_options() or Pydantic models.
                 click_options.append(
                     click.Option(
                         param_decls=(f"--{name}",),
-                        required=properties.pop("required", False),
+                        required=False,  # don't enforce option values in Click
                         help=properties.pop("description", ""),
                     )
                 )
