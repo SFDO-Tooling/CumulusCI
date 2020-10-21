@@ -243,15 +243,6 @@ class MergeBranch(BaseGithubTask):
         },
     }
 
-    def __init__(self, *args, **kwargs):
-        self._repo = None
-        self._next_release = None
-        self._repo_branches = None
-        self._update_future_releases = False
-        self._existing_prs = None
-
-        super().__init__(*args, **kwargs)
-
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
@@ -269,15 +260,12 @@ class MergeBranch(BaseGithubTask):
             self.options.get("update_future_releases", False)
         )
 
-    @property
-    def repo(self):
-        if not self._repo:
-            self._repo = self.get_repo()
-
-        return self._repo
+    def _init_task(self):
+        super()._init_task()
+        self.repo = self.get_repo()
 
     def _run_task(self):
-        self._validate_source_branch()
+        self._validate_source_branch(self.options["source_branch"])
         branches_to_merge = self._get_branches_to_merge()
 
         for branch in branches_to_merge:
@@ -287,35 +275,22 @@ class MergeBranch(BaseGithubTask):
                 self.options["commit"],
             )
 
-    def _validate_source_branch(self):
+    def _validate_source_branch(self, source_branch):
         """Validates that the source branch exists in the repository"""
         try:
-            self.repo.branch(self.options["source_branch"])
+            self.repo.branch(source_branch)
         except github3.exceptions.NotFoundError:
-            message = f"Branch {self.options['source_branch']} not found"
+            message = f"Branch {source_branch} not found"
             raise GithubApiNotFoundError(message)
 
-    @property
-    def existing_prs(self):
+    def _get_existing_prs(self, source_branch, branch_prefix):
         """Returns the existing pull requests from the source branch
         to other branches that are candidates for merging."""
-        if not self._existing_prs:
-            self._existing_prs = []
-            for pr in self.repo.pull_requests(state="open"):
-                if (
-                    pr.base.ref.startswith(self.options["branch_prefix"])
-                    and pr.head.ref == self.options["source_branch"]
-                ):
-                    self._existing_prs.append(pr.base.ref)
-
-        return self._existing_prs
-
-    @property
-    def repo_branches(self):
-        """Returns all branches from the repository"""
-        if not self._repo_branches:
-            self._repo_branches = list(self.repo.branches())
-        return self._repo_branches
+        existing_prs = []
+        for pr in self.repo.pull_requests(state="open"):
+            if pr.base.ref.startswith(branch_prefix) and pr.head.ref == source_branch:
+                existing_prs.append(pr.base.ref)
+        return existing_prs
 
     def _get_branches_to_merge(self):
         """
@@ -332,14 +307,18 @@ class MergeBranch(BaseGithubTask):
         If update_future_releases is True, and source_branch is a release branch
         then we also collect all future release branches.
         """
+        repo_branches = list(self.repo.branches())
+        next_release = self._get_next_release(repo_branches)
+        update_future_releases = self._update_future_releases(next_release)
+
         child_branches = []
         main_descendents = []
         release_branches = []
-        for branch in self.repo_branches:
+        for branch in repo_branches:
 
             # check for adding future release branches
-            if self.update_future_releases and self._is_future_release_branch(
-                branch.name
+            if update_future_releases and self._is_future_release_branch(
+                branch.name, next_release
             ):
                 release_branches.append(branch)
                 continue
@@ -365,7 +344,7 @@ class MergeBranch(BaseGithubTask):
             ):
                 # only merge to the lowest numbered release branch
                 # when merging from a branch without a prefix (e.g. main)
-                if self._is_future_release_branch(branch.name):
+                if self._is_future_release_branch(branch.name, next_release):
                     continue
                 main_descendents.append(branch)
 
@@ -405,23 +384,19 @@ class MergeBranch(BaseGithubTask):
 
         return to_merge
 
-    @property
-    def next_release(self):
+    def _get_next_release(self, repo_branches):
         """Returns the integer that corresponds to the lowest release number found on all release branches.
         NOTE: We assume that once a release branch is merged that it will be deleted.
         """
-        if not self._next_release:
-            release_nums = [
-                int(branch.name.split("/")[1])
-                for branch in self.repo_branches
-                if self._is_release_branch(branch.name)
-            ]
-            self._next_release = sorted(release_nums)[0] if release_nums else None
+        release_nums = [
+            int(branch.name.split("/")[1])
+            for branch in repo_branches
+            if self._is_release_branch(branch.name)
+        ]
+        next_release = sorted(release_nums)[0] if release_nums else None
+        return next_release
 
-        return self._next_release
-
-    @property
-    def update_future_releases(self):
+    def _update_future_releases(self, next_release):
         """Determines whether or not to update future releases.
         Returns True if all of the below checks are True. False otherwise.
 
@@ -433,18 +408,14 @@ class MergeBranch(BaseGithubTask):
         NOTE: This functionality assumes that the lowest numbered release branch in the repo is
         the next closest release. Put another way, once a release branch is merged we assume that it is immediately deleted.
         """
-        if not self._update_future_releases:
-            if (
-                self.options["update_future_releases"]
-                and self._is_release_branch(self.options["source_branch"])
-                and self.next_release
-                == int(self.options["source_branch"].split("/")[1])
-            ):
-                self._update_future_releases = True
-            else:
-                self._update_future_releases = False
-
-        return self._update_future_releases
+        update_future_releases = False
+        if (
+            self.options["update_future_releases"]
+            and self._is_release_branch(self.options["source_branch"])
+            and next_release == int(self.options["source_branch"].split("/")[1])
+        ):
+            update_future_releases = True
+        return update_future_releases
 
     def _is_release_branch(self, branch_name):
         """A release branch begins with the given prefix"""
@@ -471,7 +442,9 @@ class MergeBranch(BaseGithubTask):
             if e.code != http.client.CONFLICT:
                 raise
 
-            if branch_name in self.existing_prs:
+            if branch_name in self._get_existing_prs(
+                self.options["source_branch"], self.options["branch_prefix"]
+            ):
                 self.logger.info(
                     f"Merge conflict on branch {branch_name}: merge PR already exists"
                 )
@@ -497,11 +470,11 @@ class MergeBranch(BaseGithubTask):
             and branch_name.count("__") == source_dunder_count + 1
         )
 
-    def _is_future_release_branch(self, branch_name):
+    def _is_future_release_branch(self, branch_name, next_release):
         return (
             self._is_release_branch(branch_name)
             and branch_name != self.options["source_branch"]
-            and self._get_release_num(branch_name) > self.next_release
+            and self._get_release_num(branch_name) > next_release
         )
 
     def _get_release_num(self, release_branch_name):

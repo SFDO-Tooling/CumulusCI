@@ -807,7 +807,8 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         )
         task._init_task()
 
-        assert task.next_release == 88
+        repo_branches = list(task.repo.branches())
+        assert task._get_next_release(repo_branches) == 88
 
     @responses.activate
     def test_is_future_release_branch(self):
@@ -827,23 +828,24 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         )
         task._init_task()
 
-        assert task.next_release == 8
+        repo_branches = list(task.repo.branches())
+        assert task._get_next_release(repo_branches) == 8
 
-        assert not task._is_future_release_branch("f")
-        assert not task._is_future_release_branch("feature")
-        assert not task._is_future_release_branch("feature/")
-        assert not task._is_future_release_branch("feature/_")
-        assert not task._is_future_release_branch("feature/0")
-        assert not task._is_future_release_branch("feature/O")
-        assert not task._is_future_release_branch("feature/7")
-        assert not task._is_future_release_branch("feature/8")
-        assert not task._is_future_release_branch("feature/9_")
+        assert not task._is_future_release_branch("f", 8)
+        assert not task._is_future_release_branch("feature", 8)
+        assert not task._is_future_release_branch("feature/", 8)
+        assert not task._is_future_release_branch("feature/_", 8)
+        assert not task._is_future_release_branch("feature/0", 8)
+        assert not task._is_future_release_branch("feature/O", 8)
+        assert not task._is_future_release_branch("feature/7", 8)
+        assert not task._is_future_release_branch("feature/8", 8)
+        assert not task._is_future_release_branch("feature/9_", 8)
 
-        assert task._is_future_release_branch("feature/9")
-        assert task._is_future_release_branch("feature/75")
-        assert task._is_future_release_branch("feature/123")
-        assert task._is_future_release_branch("feature/4567")
-        assert task._is_future_release_branch("feature/10000")
+        assert task._is_future_release_branch("feature/9", 8)
+        assert task._is_future_release_branch("feature/75", 8)
+        assert task._is_future_release_branch("feature/123", 8)
+        assert task._is_future_release_branch("feature/4567", 8)
+        assert task._is_future_release_branch("feature/10000", 8)
 
 
 def log_header():
