@@ -737,7 +737,9 @@ flows:
                 task: deploy
                 when: project_config.project__source_format != "sfdx" or not org_config.scratch
             3.1:
-                task: dx_push
+                task: deploy
+                options:
+                    path: force-app
                 when: project_config.project__source_format == "sfdx" and org_config.scratch
             4:
                 task: uninstall_packaged_incremental
