@@ -440,7 +440,7 @@ This flow will use NPSP's ``install_prod`` flow to install NPSP as a managed pac
 Troubleshooting Configurations
 ------------------------------
 You can always use ``cci task info <task_name>`` and ``cci flow info <flow_name>`` to see how a given task or flow will behave with the current state of configuration.
-For example, the ``util_sleep`` task has a default value of 5 for the ``seconds`` option::
+For example, the ``util_sleep`` tasks' ``seconds`` option defaults to a value of 5 out-of-the-box::
 
     $ cci task info util_sleep
     util_sleep
@@ -486,4 +486,6 @@ And now ``cci task info util_sleep`` shows a default of 30 seconds::
         Required
         The number of seconds to sleep
         Default: 30
+
+Being able to display the active configuration for a given task or flow can help with cross-correlating which configuration scope is affecting a specific scenario.
 
