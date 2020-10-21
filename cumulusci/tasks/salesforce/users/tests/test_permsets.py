@@ -18,7 +18,7 @@ class TestCreatePermissionSet:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A+++++++++++++++++++++++++++%28SELECT+PermissionSetId%0A++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++FROM+User%0A++++++++++++++++++++WHERE+Id+%3D+%27None%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A+++++++++++++++++++++++++++%28SELECT+PermissionSetId%0A++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++FROM+User%0A++++++++++++++++++++WHERE+Username+%3D+%27test-cci%40example.com%27",
             status=200,
             json={
                 "done": True,
@@ -77,7 +77,7 @@ class TestCreatePermissionSet:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A+++++++++++++++++++++++++++%28SELECT+PermissionSetId%0A++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++FROM+User%0A++++++++++++++++++++WHERE+Id+%3D+%27None%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A+++++++++++++++++++++++++++%28SELECT+PermissionSetId%0A++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++FROM+User%0A++++++++++++++++++++WHERE+Username+%3D+%27test-cci%40example.com%27",
             status=200,
             json={
                 "done": True,

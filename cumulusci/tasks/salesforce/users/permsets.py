@@ -22,7 +22,7 @@ class AssignPermissionSets(BaseSalesforceApiTask):
                            (SELECT PermissionSetId
                             FROM PermissionSetAssignments)
                     FROM User
-                    WHERE Id = '{self.org_config.user_id}'"""
+                    WHERE Username = '{self.org_config.username}'"""
 
         user = self.sf.query(query)["records"][0]
 
@@ -45,9 +45,13 @@ class AssignPermissionSets(BaseSalesforceApiTask):
         # Assign all not already assigned
         for api_name in self.options["api_names"]:
             if permsets[api_name] not in assigned_permsets:
+                self.logger.info(f"Assigning permission set {api_name}.")
                 self.sf.PermissionSetAssignment.create(
                     {
                         "AssigneeId": self.org_config.user_id,
                         "PermissionSetId": permsets[api_name],
                     }
                 )
+            else:
+                self.logger.info(f"Permission set {api_name} is already assigned.")
+
