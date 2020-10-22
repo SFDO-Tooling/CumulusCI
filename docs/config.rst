@@ -15,7 +15,7 @@ There are six top level sections of the ``cumulusci.yml`` file: Project, Tasks, 
 
 * **Sources** - This section lists any GitHub repositories who's custom tasks and flows you would like to make available to CumulusCI. See the `using tasks and flows from a different project`_ section for more info.
 
-* **Orgs** - This section lists any customizations you've made to orgs that are available to CumulusCI.new org used for testing multicurrency.
+* **Orgs** - This section lists any customizations you've made to orgs that are available to CumulusCI. See `org configurations`_ for more info on the types of configurations that can be made in this section.
 
 * **Plans** - This section contains any custom plans you have defined for how to install your project into a customer org. See more about plans on Metadeploy `here<TODO>`_
 
@@ -188,6 +188,8 @@ You can reference how we defined the flows for the standard library `here <https
 
 Org Configuratiions
 -------------------
+This section shows you the values that are overridable in an org configuration via the `cumulusci.yml` file.
+If you're looking for more information using scratch orgs with CumulusCI see `Scratch Org Environments`_. 
 
 Override a Default Values
 ^^^^^^^^^^^^^^^^^^^^^^^^^
