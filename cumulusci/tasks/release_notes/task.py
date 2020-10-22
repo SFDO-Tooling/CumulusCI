@@ -41,6 +41,15 @@ class GithubReleaseNotes(BaseGithubTask):
         "version_id": {
             "description": "The package version id used by the InstallLinksParser to add install urls"
         },
+        "trial_info": {
+            "description": "If True, Includes trialforce template text for this product."
+        },
+        "sandbox_date": {
+            "description": "The date of the sandbox release in ISO format (Will default to None)"
+        },
+        "production_date": {
+            "description": "The date of the production release in ISO format (Will default to None)"
+        },
     }
 
     def _run_task(self):
@@ -65,6 +74,9 @@ class GithubReleaseNotes(BaseGithubTask):
             self.get_repo().has_issues,
             process_bool_arg(self.options.get("include_empty", False)),
             version_id=self.options.get("version_id"),
+            trial_info=self.options.get("trial_info", False),
+            sandbox_date=self.options.get("sandbox_date", None),
+            production_date=self.options.get("production_date", None),
         )
 
         release_notes = generator()

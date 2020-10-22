@@ -1118,7 +1118,7 @@ project:
                     title: Deleted Metadata
                 6:
                     class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
-                    title: Installation Links
+                    title: Installation Info
     test:
         name_match: '%_TEST%'
     dependencies:
