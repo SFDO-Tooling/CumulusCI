@@ -1504,13 +1504,14 @@ class RunTaskCommand(click.MultiCommand):
 
     def _option_in_task(self, opt_name, task_name):
         """Returns True if opt_name is the name of an
-        option in the given task, else False"""
+        option defined in the given task, else False"""
         task = RUNTIME.project_config.get_task(task_name)
+        task_class = import_global(task.config["class_path"])
 
-        if "options" not in task.config:
+        if "task_options" not in task_class.__dict__.keys():
             task_option_names = self._get_task_options_in_hierarchy(task)
         else:
-            task_option_names = task.config["options"].keys()
+            task_option_names = task_class.__dict__["task_options"].keys()
 
         return opt_name in task_option_names
 
