@@ -4,6 +4,7 @@ import unittest
 from unittest import mock
 
 import responses
+import pytest
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.step import (
@@ -787,6 +788,12 @@ class TestRestApiDmlOperation:
             ["De Vries", "False"],
             ["Aito", "false"],
             ["Boone", None],
+            ["June", False],
+            ["Zoom", True],
+            ["Jewel", 0],
+            ["Zule", 1],
+            ["Jane", "0"],
+            ["Zane", "1"],
         ]
 
         dml_op = RestApiDmlOperation(
@@ -829,8 +836,86 @@ class TestRestApiDmlOperation:
                     "IsEmailBounced": False,
                     "attributes": {"type": "Contact"},
                 },
+                {
+                    "LastName": "June",
+                    "IsEmailBounced": False,
+                    "attributes": {"type": "Contact"},
+                },
+                {
+                    "LastName": "Zoom",
+                    "IsEmailBounced": True,
+                    "attributes": {"type": "Contact"},
+                },
+                {
+                    "LastName": "Jewel",
+                    "IsEmailBounced": False,
+                    "attributes": {"type": "Contact"},
+                },
+                {
+                    "LastName": "Zule",
+                    "IsEmailBounced": True,
+                    "attributes": {"type": "Contact"},
+                },
+                {
+                    "LastName": "Jane",
+                    "IsEmailBounced": False,
+                    "attributes": {"type": "Contact"},
+                },
+                {
+                    "LastName": "Zane",
+                    "IsEmailBounced": True,
+                    "attributes": {"type": "Contact"},
+                },
             ],
         }
+
+    @responses.activate
+    def test_insert_dml_operation__boolean_conversion__fails(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite:///test.db",
+                    "mapping": "mapping.yml",
+                }
+            },
+        )
+        task.project_config.project__package__api_version = "48.0"
+        task._init_task()
+
+        responses.add(
+            responses.POST,
+            url="https://example.com/services/data/v48.0/composite/sobjects",
+            json=[
+                {"id": "003000000000001", "success": True},
+                {"id": "003000000000002", "success": True},
+            ],
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            url="https://example.com/services/data/v48.0/composite/sobjects",
+            json=[{"id": "003000000000003", "success": True}],
+            status=200,
+        )
+
+        recs = [
+            ["Narvaez", "xyzzy"],
+        ]
+
+        dml_op = RestApiDmlOperation(
+            sobject="Contact",
+            operation=DataOperationType.INSERT,
+            context=task,
+            api_options={},
+            fields=["LastName", "IsEmailBounced"],
+        )
+
+        dml_op.start()
+        with pytest.raises(BulkDataException) as e:
+            dml_op.load_records(iter(recs))
+        assert "xyzzy" in str(e.value)
 
     @responses.activate
     def test_insert_dml_operation__row_failure(self):
