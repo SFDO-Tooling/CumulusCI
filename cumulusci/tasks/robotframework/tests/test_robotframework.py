@@ -105,6 +105,8 @@ class TestRobot(unittest.TestCase):
             "--pabotlib",
             "--processes",
             "2",
+            "--pythonpath",
+            task.project_config.repo_root,
             "--variable",
             "org:test",
             "--outputdir",

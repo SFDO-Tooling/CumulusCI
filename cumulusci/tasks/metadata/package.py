@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import re
 import urllib.parse
@@ -226,8 +227,9 @@ class MetadataFolderParser(BaseMetadataParser):
         if not os.path.isdir(path):
             return members
 
-        # Add the member if it is not namespaced
-        if "__" not in item:
+        # Only add the folder itself if its -meta.xml is present
+        # (If there's no -meta.xml, this package is adding items to an existing folder.)
+        if Path(path + "-meta.xml").exists():
             members.append(item)
 
         for subitem in sorted(os.listdir(path)):

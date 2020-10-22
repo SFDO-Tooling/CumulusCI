@@ -1091,7 +1091,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: '49.0'
+        api_version: '50.0'
     git:
         default_branch: master
         prefix_feature: feature/
@@ -1118,7 +1118,7 @@ project:
                     title: Deleted Metadata
                 6:
                     class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
-                    title: Installation Links
+                    title: Installation Info
     test:
         name_match: '%_TEST%'
     dependencies:
