@@ -9,6 +9,9 @@ class AssignPermissionSets(BaseSalesforceApiTask):
             "description": "API names of desired Permission Sets, separated by commas.",
             "required": True,
         },
+        "user_alias": {
+            "description": "Alias of target user (if not the current running user, the default)."
+        }
     }
 
     def _init_options(self, kwargs):
@@ -18,13 +21,23 @@ class AssignPermissionSets(BaseSalesforceApiTask):
 
     def _run_task(self):
         # Determine existing assignments
-        query = f"""SELECT Id,
-                           (SELECT PermissionSetId
-                            FROM PermissionSetAssignments)
-                    FROM User
-                    WHERE Username = '{self.org_config.username}'"""
+        if "user_alias" not in self.options:
+            query = f"""SELECT Id,
+                            (SELECT PermissionSetId
+                             FROM PermissionSetAssignments)
+                        FROM User
+                        WHERE Username = '{self.org_config.username}'"""
+        else:
+            query = f"""SELECT Id,
+                            (SELECT PermissionSetId
+                             FROM PermissionSetAssignments)
+                        FROM User
+                        WHERE Alias = '{self.options["user_alias"]}'"""
 
-        user = self.sf.query(query)["records"][0]
+        result = self.sf.query(query)
+        if result["totalSize"] != 1:
+            raise CumulusCIException("A single User was not found matching the specified alias.")
+        user = result["records"][0]
 
         assigned_permsets = {
             r["PermissionSetId"] for r in user["PermissionSetAssignments"]["records"]
@@ -48,7 +61,7 @@ class AssignPermissionSets(BaseSalesforceApiTask):
                 self.logger.info(f"Assigning permission set {api_name}.")
                 self.sf.PermissionSetAssignment.create(
                     {
-                        "AssigneeId": self.org_config.user_id,
+                        "AssigneeId": user["Id"],
                         "PermissionSetId": permsets[api_name],
                     }
                 )

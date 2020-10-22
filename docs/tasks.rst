@@ -358,6 +358,11 @@ Options
 
 	 API names of desired Permission Sets, separated by commas.
 
+``-o user_alias USERALIAS``
+	 *Optional*
+
+	 Alias of target user (if not the current running user, the default).
+
 **batch_apex_wait**
 ==========================================
 
