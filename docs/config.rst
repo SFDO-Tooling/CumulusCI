@@ -17,7 +17,6 @@ There are six top level sections of the ``cumulusci.yml`` file: Project, Tasks, 
 
 * **Orgs** - This section lists any customizations you've made to orgs that are available to CumulusCI.new org used for testing multicurrency.
 
-
 * **Plans** - This section contains any custom plans you have defined for how to install your project into a customer org. See more about plans on Metadeploy `here<TODO>`_
 
 
