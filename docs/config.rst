@@ -460,7 +460,7 @@ For example, the ``util_sleep`` task has a ``seconds`` option that defaults to 5
         The number of seconds to sleep
         Default: 5
 
-If you want instead, the default value to be 30 seconds for all projects you could add the following in your global ``cumulusci.yml`` file locaated at ``~/.cumulusci/cumulusci.yml``:
+If you instead want the default value to be 30 seconds for all projects you could add the following in your global ``cumulusci.yml`` file locaated at ``~/.cumulusci/cumulusci.yml``:
 
 .. code-block:: yaml
 
