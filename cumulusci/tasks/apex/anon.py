@@ -71,7 +71,7 @@ class AnonymousApexTask(BaseSalesforceApiTask):
                 )
             self.logger.info("Executing anonymous Apex from {}".format(apex_path))
             try:
-                with open(apex_path, "r") as f:
+                with open(apex_path, "r", encoding="utf-8") as f:
                     apex = f.read()
             except IOError:
                 raise TaskOptionsError(
@@ -96,9 +96,16 @@ class AnonymousApexTask(BaseSalesforceApiTask):
 
     def _prepare_apex(self, apex):
         # Process namespace tokens
-        managed = process_bool_arg(self.options.get("managed", False))
-        namespaced = process_bool_arg(self.options.get("namespaced", False))
         namespace = self.project_config.project__package__namespace
+        if "managed" in self.options:
+            managed = process_bool_arg(self.options["managed"])
+        else:
+            managed = namespace in self.org_config.installed_packages
+        if "namespaced" in self.options:
+            namespaced = process_bool_arg(self.options["namespaced"])
+        else:
+            namespaced = namespace == self.org_config.namespace
+
         namespace_prefix = ""
         record_type_prefix = ""
         if managed or namespaced:
