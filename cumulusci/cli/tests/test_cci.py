@@ -1807,21 +1807,21 @@ Environment Info: Rossian / x68_46
             },
         )
 
-        # These are normally gathered from sys.argv in main()
-        kwargs = {
-            "debug": False,
-            "debug_after": False,
-            "debug_before": True,
-            "no_prompt": False,
-            "color": "blue",
-        }
-
         ctx = mock.Mock()
         set_trace.side_effect = SetTrace
         with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
             with self.assertRaises(SetTrace):
                 cmd = multi_cmd.get_command(ctx, "test")
-                run_click_command(cmd, project=True, runtime=runtime, **kwargs)
+                run_click_command(
+                    cmd,
+                    project=True,
+                    runtime=runtime,
+                    debug=False,
+                    debug_after=False,
+                    debug_before=True,
+                    no_prompt=False,
+                    color="blue",
+                )
 
     @mock.patch("pdb.set_trace")
     def test_task_run_debug_after(self, set_trace):
@@ -1838,21 +1838,21 @@ Environment Info: Rossian / x68_46
             },
         )
 
-        # These are normally gathered from sys.argv in main()
-        kwargs = {
-            "debug": False,
-            "debug_after": True,
-            "debug_before": False,
-            "no_prompt": False,
-            "color": "blue",
-        }
-
         ctx = mock.Mock()
         set_trace.side_effect = SetTrace
         with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
             with self.assertRaises(SetTrace):
                 cmd = multi_cmd.get_command(ctx, "test")
-                run_click_command(cmd, project=True, runtime=runtime, **kwargs)
+                run_click_command(
+                    cmd,
+                    project=True,
+                    runtime=runtime,
+                    debug=False,
+                    debug_after=True,
+                    debug_before=False,
+                    no_prompt=False,
+                    color="blue",
+                )
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_flow_list(self, cli_tbl):

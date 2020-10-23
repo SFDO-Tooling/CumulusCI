@@ -27,7 +27,7 @@ class FunTestTask(BaseTask):
         "flavor": {
             "description": "What flavor",
             "required": True,
-            "usage": "-o flavor VANILLA",
+            "usage": "--flavor VANILLA",
             "type": "string",
             "default": "chocolate",
         },
@@ -203,15 +203,15 @@ extra docs
 Command Syntax\n------------------------------------------\n
 ``$ cci task run scoop_icecream``\n\n
 Options\n------------------------------------------\n\n
-``-o flavor VANILLA``
+``--flavor VANILLA``
 \t *Required*\n
 \t What flavor\n
 \t Type: string\n
-``-o color COLOR``
+``--color COLOR``
 \t *Optional*\n
 \t What color\n
 \t Default: black\n
-``-o size SIZE``
+``--size SIZE``
 \t *Optional*\n
 \t How big"""
         )
@@ -228,27 +228,27 @@ Options\n------------------------------------------\n\n
         # Required options should be at the front of the list
         assert option_info[0]["required"]
         assert option_info[0]["description"] == "What flavor"
-        assert option_info[0]["usage"] == "-o flavor VANILLA"
+        assert option_info[0]["usage"] == "--flavor VANILLA"
         assert option_info[0]["name"] == "flavor"
         assert option_info[0]["option_type"] == "string"
         assert option_info[0]["default"] is None
 
         assert not option_info[1]["required"]
         assert option_info[1]["default"] == "black"
-        assert option_info[1]["usage"] == "-o color COLOR"
+        assert option_info[1]["usage"] == "--color COLOR"
 
         assert not option_info[2]["required"]
         assert option_info[2]["default"] is None
-        assert option_info[2]["usage"] == "-o size SIZE"
+        assert option_info[2]["usage"] == "--size SIZE"
 
     def test_get_option_usage_string(self, option_info):
         name = option_info[0]["name"]
         usage_str1 = utils.get_option_usage_string(name, option_info[0])
-        assert usage_str1 == "-o option_one OPTIONONE"
+        assert usage_str1 == "--option-one OPTIONONE"
 
         name = option_info[1]["name"]
         usage_str2 = utils.get_option_usage_string(name, option_info[1])
-        assert usage_str2 == "-o option_two OPTIONTWO"
+        assert usage_str2 == "--option-two OPTIONTWO"
 
     def test_create_task_options_doc(self, option_info):
         option_one_doc = utils.create_task_options_doc(option_info[:1])
