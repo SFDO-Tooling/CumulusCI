@@ -1794,6 +1794,8 @@ Environment Info: Rossian / x68_46
 
     @mock.patch("pdb.set_trace")
     def test_task_run_debug_before(self, set_trace):
+        multi_cmd = cci.RunTaskCommand()
+
         runtime = mock.Mock()
         runtime.get_org.return_value = (None, None)
         runtime.project_config = BaseProjectConfig(
@@ -1804,23 +1806,27 @@ Environment Info: Rossian / x68_46
                 }
             },
         )
-        set_trace.side_effect = SetTrace
 
-        with self.assertRaises(SetTrace):
-            run_click_command(
-                cci.task_run,
-                runtime=runtime,
-                task_name="test",
-                org=None,
-                o=[("color", "blue")],
-                debug=False,
-                debug_before=True,
-                debug_after=False,
-                no_prompt=True,
-            )
+        # These are normally gathered from sys.argv in main()
+        kwargs = {
+            "debug": False,
+            "debug_after": False,
+            "debug_before": True,
+            "no_prompt": False,
+            "color": "blue",
+        }
+
+        ctx = mock.Mock()
+        set_trace.side_effect = SetTrace
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+            with self.assertRaises(SetTrace):
+                cmd = multi_cmd.get_command(ctx, "test")
+                run_click_command(cmd, project=True, runtime=runtime, **kwargs)
 
     @mock.patch("pdb.set_trace")
     def test_task_run_debug_after(self, set_trace):
+        multi_cmd = cci.RunTaskCommand()
+
         runtime = mock.Mock()
         runtime.get_org.return_value = (None, None)
         runtime.project_config = BaseProjectConfig(
@@ -1831,20 +1837,22 @@ Environment Info: Rossian / x68_46
                 }
             },
         )
-        set_trace.side_effect = SetTrace
 
-        with self.assertRaises(SetTrace):
-            run_click_command(
-                cci.task_run,
-                runtime=runtime,
-                task_name="test",
-                org=None,
-                o=[("color", "blue")],
-                debug=False,
-                debug_before=False,
-                debug_after=True,
-                no_prompt=True,
-            )
+        # These are normally gathered from sys.argv in main()
+        kwargs = {
+            "debug": False,
+            "debug_after": True,
+            "debug_before": False,
+            "no_prompt": False,
+            "color": "blue",
+        }
+
+        ctx = mock.Mock()
+        set_trace.side_effect = SetTrace
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+            with self.assertRaises(SetTrace):
+                cmd = multi_cmd.get_command(ctx, "test")
+                run_click_command(cmd, project=True, runtime=runtime, **kwargs)
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_flow_list(self, cli_tbl):
@@ -2032,17 +2040,18 @@ Environment Info: Rossian / x68_46
         runtime.get_org = mock.Mock(return_value=("test", org_config))
         DummyTask._run_task = mock.Mock()
 
-        run_click_command(
-            cci.flow_run,
-            runtime=runtime,
-            flow_name="test",
-            org="test",
-            delete_org=True,
-            debug=False,
-            o=None,
-            skip=(),
-            no_prompt=True,
-        )
+        kwargs = {
+            "runtime": runtime,
+            "flow_name": "test",
+            "org": "test",
+            "delete_org": True,
+            "debug": False,
+            "no_prompt": True,
+            "o": (("test_task__color", "blue"),),
+            "skip": (),
+        }
+
+        run_click_command(cci.flow_run, **kwargs)
 
         echo.assert_any_call(
             "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
