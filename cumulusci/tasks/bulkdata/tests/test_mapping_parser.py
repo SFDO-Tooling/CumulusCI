@@ -905,6 +905,29 @@ class TestMappingParser:
         assert list(ms.fields.keys()) == ["ns__Description__c"]
 
     @responses.activate
+    def test_validate_and_inject_mapping_removes_namespaces(self):
+        mock_describe_calls()
+        # Note: History__c is a mock field added to our stored, mock describes (in JSON)
+        ms = parse_from_yaml(
+            StringIO(
+                """Insert Accounts:
+                  sf_object: Account
+                  table: Account
+                  fields:
+                    - ns__History__c"""
+            )
+        )["Insert Accounts"]
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        assert ms.validate_and_inject_namespace(
+            org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
+        )
+
+        assert list(ms.fields.keys()) == ["History__c"]
+
+    @responses.activate
     def test_validate_and_inject_mapping_queries_is_person_account_field(self):
         mock_describe_calls()
         mapping = parse_from_yaml(

@@ -63,8 +63,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
         "inject_namespaces": {
-            "description": "If True, the package namespace prefix will be automatically added to objects "
-            "and fields for which it is present in the org. Defaults to True."
+            "description": "If True, the package namespace prefix will be "
+            "automatically added to (or removed from) objects "
+            "and fields based on the name used in the org. Defaults to True."
         },
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
