@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
 import os
+import re
 import requests
 
 from cumulusci.core.config import BaseProjectConfig
@@ -13,6 +14,8 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils import download_extract_github
 from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
+
+INSTALL_VERSION_RE = re.compile(r"^Install .*\d$")
 
 
 class BaseMetaDeployTask(BaseTask):
@@ -42,8 +45,7 @@ class BaseMetaDeployTask(BaseTask):
 
 
 class Publish(BaseMetaDeployTask):
-    """Publishes installation plans to MetaDeploy.
-    """
+    """Publishes installation plans to MetaDeploy."""
 
     task_options = {
         "tag": {"description": "Name of the git tag to publish"},
@@ -156,7 +158,7 @@ class Publish(BaseMetaDeployTask):
                 self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
                 for step in steps:
                     # avoid separate labels for installing each package
-                    if step["name"].startswith("Install "):
+                    if INSTALL_VERSION_RE.match(step["name"]):
                         self._add_label(
                             "steps",
                             "Install {product} {version}",
@@ -259,8 +261,7 @@ class Publish(BaseMetaDeployTask):
         return product
 
     def _find_or_create_version(self, product):
-        """Create a Version in MetaDeploy if it doesn't already exist
-        """
+        """Create a Version in MetaDeploy if it doesn't already exist"""
         if self.tag:
             label = self.project_config.get_version_for_tag(self.tag)
         else:
@@ -355,12 +356,15 @@ class Publish(BaseMetaDeployTask):
     def _publish_labels(self, slug):
         """Publish labels in all languages to MetaDeploy."""
         for path in Path(self.labels_path).glob("*.json"):
-            lang = path.stem[-2:]
-            if lang == "en":
+            lang = path.stem.split("_")[-1].lower()
+            if lang in ("en", "en-us"):
                 continue
             orig_labels = json.loads(path.read_text())
             prefixed_labels = {}
             for context, labels in orig_labels.items():
                 prefixed_labels[f"{slug}:{context}"] = labels
             self.logger.info(f"Updating {lang} translations")
-            self._call_api("PATCH", f"/translations/{lang}", json=prefixed_labels)
+            try:
+                self._call_api("PATCH", f"/translations/{lang}", json=prefixed_labels)
+            except requests.exceptions.HTTPError as err:
+                self.logger.warning(f"Could not update {lang} translation: {err}")

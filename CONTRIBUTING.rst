@@ -108,6 +108,9 @@ After a couple minutes, check for the new release's appearance at https://pypi.o
 
 Next, head to the tag that was autocreated in the GitHub repository and edit it. Populate the version number and paste in the changelog notes from ``HISTORY.rst``. Note that some formatting, such as reStructuredText links, need to be converted to Markdown. Publish the release.
 
+.. note::
+If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to Github Flavored Markdown.
+
 You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because PyPI is the source CumulusCI checks to see if a new version is available)::
 
     $ git checkout master
@@ -121,7 +124,10 @@ That will create a new pull request in the ``SFDO-Tooling/homebrew-sfdo`` reposi
 
 Finally, post the release notes to our usual channels:
 
-- CumulusCI Release Announcements group in the Power of Us Hub https://powerofus.force.com/s/group/0F91E000000DHjTSAW/cumulusci-release-announcements
+- CumulusCI Release Announcements group in the Power of Us Hub (add the "CumulusCI Release Announcements: https://powerofus.force.com/s/group/0F91E000000DHjTSAW/cumulusci-release-announcements
+
+    - After posting add topics: CCI Releases & CumulusCI
+    
 - CumulusCI group in the Trailblazer community https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU
 
 

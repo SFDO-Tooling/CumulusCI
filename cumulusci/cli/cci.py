@@ -12,11 +12,11 @@ import shutil
 import sys
 import time
 import traceback
-from datetime import datetime
+import runpy
 import webbrowser
 import contextlib
 from pathlib import Path
-import runpy
+from datetime import datetime
 
 import click
 import github3
@@ -46,12 +46,15 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.utils import doc_task
+from cumulusci.utils import doc_task, document_flow, flow_ref_title_and_intro
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.git import current_branch
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+from cumulusci.core.utils import cleanup_org_cache_dirs
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+
 
 from .logger import init_logger, get_tempfile_logger
 
@@ -881,7 +884,9 @@ def org_browser(runtime, org_name):
     help="If set, sets the connected org as the new default org",
 )
 @click.option(
-    "--global-org", help="Set True if org should be used by any project", is_flag=True
+    "--global-org",
+    help="If set, the connected org is available to all CumulusCI projects.",
+    is_flag=True,
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
@@ -951,14 +956,14 @@ def org_import(runtime, username_or_alias, org_name):
     )
     scratch_org_config.config["created"] = True
 
-    info = scratch_org_config.scratch_info
+    info = scratch_org_config.sfdx_info
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 
     scratch_org_config.save()
     click.echo(
         "Imported scratch org: {org_id}, username: {username}".format(
-            **scratch_org_config.scratch_info
+            **scratch_org_config.sfdx_info
         )
     )
 
@@ -1084,6 +1089,7 @@ def org_list(runtime, plain):
         bool_cols=["Default"],
     )
     persistent_table.echo(plain)
+    cleanup_org_cache_dirs(runtime.keychain, runtime.project_config)
 
 
 @org.command(
@@ -1313,7 +1319,6 @@ def org_shell(runtime, org_name, script=None, python=None):
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False)
 def task_list(runtime, plain, print_json):
-    task_groups = {}
     tasks = (
         runtime.project_config.list_tasks()
         if runtime.project_config is not None
@@ -1325,12 +1330,7 @@ def task_list(runtime, plain, print_json):
         click.echo(json.dumps(tasks))
         return None
 
-    for task in tasks:
-        group = task["group"] or "Other"
-        if group not in task_groups:
-            task_groups[group] = []
-        task_groups[group].append([task["name"], task["description"]])
-
+    task_groups = group_items(tasks)
     for group, tasks in task_groups.items():
         data = [["Task", "Description"]]
         data.extend(sorted(tasks))
@@ -1359,6 +1359,56 @@ def task_doc(runtime):
         doc = doc_task(name, task_config)
         click.echo(doc)
         click.echo("")
+
+
+@flow.command(name="doc", help="Exports RST format documentation for all flows")
+@pass_runtime(require_project=False)
+def flow_doc(runtime):
+    with open("docs/flows.yml", "r", encoding="utf-8") as f:
+        flow_info = cci_safe_load(f)
+
+    click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
+
+    flow_info_groups = list(flow_info["groups"].keys())
+
+    flows = (
+        runtime.project_config.list_flows()
+        if runtime.project_config is not None
+        else runtime.universal_config.list_flows()
+    )
+    flows_by_group = group_items(flows)
+    flow_groups = sorted(
+        flows_by_group.keys(),
+        key=lambda group: flow_info_groups.index(group)
+        if group in flow_info_groups
+        else 100,
+    )
+
+    for group in flow_groups:
+        click.echo(f"{group}\n{'-' * len(group)}")
+        if group in flow_info["groups"]:
+            click.echo(flow_info["groups"][group]["description"])
+
+        for flow in sorted(flows_by_group[group]):
+            flow_name, flow_description = flow
+            try:
+                flow_coordinator = runtime.get_flow(flow_name)
+            except FlowNotFoundError as e:
+                raise click.UsageError(str(e))
+
+            additional_info = None
+            if flow_name in flow_info.get("flows", {}):
+                additional_info = flow_info["flows"][flow_name]["rst_text"]
+
+            click.echo(
+                document_flow(
+                    flow_name,
+                    flow_description,
+                    flow_coordinator,
+                    additional_info=additional_info,
+                )
+            )
+            click.echo("")
 
 
 @task.command(name="info", help="Displays information for a task")
@@ -1470,11 +1520,12 @@ def flow_list(runtime, plain, print_json):
         click.echo(json.dumps(flows))
         return None
 
-    data = [["Name", "Description"]]
-    data.extend([flow["name"], flow["description"]] for flow in flows)
-
-    table = CliTable(data, title="Flows", wrap_cols=["Description"])
-    table.echo(plain=plain)
+    flow_groups = group_items(flows)
+    for group, flows in flow_groups.items():
+        data = [["Flow", "Description"]]
+        data.extend(sorted(flows))
+        table = CliTable(data, group, wrap_cols=["Description"])
+        table.echo(plain)
 
     click.echo(
         "Use "
@@ -1568,18 +1619,20 @@ CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
 
 @error.command(
     name="info",
-    help="Outputs the last part of the most recent traceback (if one exists in the most recent log)",
+    help="Outputs the most recent traceback (if one exists in the most recent log)",
 )
-@click.option("--max-lines", "-m", default=30, show_default=True, type=int)
-def error_info(max_lines):
+@click.option("--max-lines", "-m", type=int)
+def error_info(max_lines: int = 0):
     if not CCI_LOGFILE_PATH.is_file():
         click.echo(f"No logfile found at: {CCI_LOGFILE_PATH}")
     else:
-        output = lines_from_traceback(CCI_LOGFILE_PATH.read_text(), max_lines)
+        output = lines_from_traceback(
+            CCI_LOGFILE_PATH.read_text(encoding="utf-8"), max_lines
+        )
         click.echo(output)
 
 
-def lines_from_traceback(log_content, num_lines):
+def lines_from_traceback(log_content: str, max_lines: int = 0) -> str:
     """Returns the the last max_lines of the logfile,
     or the whole traceback, whichever is shorter. If
     no stacktrace is found in the logfile, the user is
@@ -1590,12 +1643,11 @@ def lines_from_traceback(log_content, num_lines):
         return f"\nNo stacktrace found in: {CCI_LOGFILE_PATH}\n"
 
     stacktrace = ""
-    for line in reversed(log_content.split("\n")):
+    for i, line in enumerate(reversed(log_content.split("\n")), 1):
         stacktrace = "\n" + line + stacktrace
         if stacktrace_start in line:
             break
-        num_lines -= 1
-        if num_lines == -1:
+        if i == max_lines:
             break
 
     return stacktrace
@@ -1605,7 +1657,7 @@ def lines_from_traceback(log_content, num_lines):
 @pass_runtime(require_project=False, require_keychain=True)
 def gist(runtime):
     if CCI_LOGFILE_PATH.is_file():
-        log_content = CCI_LOGFILE_PATH.read_text()
+        log_content = CCI_LOGFILE_PATH.read_text(encoding="utf-8")
     else:
         log_not_found_msg = """No logfile to open at path: {}
         Please ensure you're running this command from the same directory you were experiencing an issue."""
@@ -1635,3 +1687,12 @@ def gist(runtime):
     else:
         click.echo(f"Gist created: {gist.html_url}")
         webbrowser.open(gist.html_url)
+
+
+def group_items(items):
+    groups = defaultdict(list)
+    for item in items:
+        group_name = item["group"] or "Other"
+        groups[group_name].append([item["name"], item["description"]])
+
+    return groups

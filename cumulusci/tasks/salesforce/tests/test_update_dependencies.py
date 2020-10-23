@@ -47,6 +47,10 @@ INSTALLED_PACKAGES = {
 }
 
 
+def make_fake_zipfile(*args, **kw):
+    return zipfile.ZipFile(io.BytesIO(), "w")
+
+
 class TestUpdateDependencies(unittest.TestCase):
     @mock.patch(
         "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
@@ -59,9 +63,8 @@ class TestUpdateDependencies(unittest.TestCase):
         task = create_task(UpdateDependencies, project_config=project_config)
         ApiRetrieveInstalledPackages.return_value = INSTALLED_PACKAGES
         task.api_class = mock.Mock()
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        task._download_extract_github = mock.Mock(return_value=zf)
-        task._download_extract_zip = mock.Mock(return_value=zf)
+        task._download_extract_github = make_fake_zipfile
+        task._download_extract_zip = make_fake_zipfile
         # Beta needs to be uninstalled to upgrade, but uninstalls are not allowed
         with self.assertRaises(TaskOptionsError):
             task()
@@ -80,9 +83,8 @@ class TestUpdateDependencies(unittest.TestCase):
         )
         ApiRetrieveInstalledPackages.return_value = INSTALLED_PACKAGES
         task.api_class = mock.Mock()
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        task._download_extract_github = mock.Mock(return_value=zf)
-        task._download_extract_zip = mock.Mock(return_value=zf)
+        task._download_extract_github = make_fake_zipfile
+        task._download_extract_zip = make_fake_zipfile
         task()
         self.assertEqual(
             [
@@ -159,9 +161,8 @@ class TestUpdateDependencies(unittest.TestCase):
         ApiRetrieveInstalledPackages.return_value = {"package": "1.1"}
 
         task.api_class = mock.Mock()
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        task._download_extract_github = mock.Mock(return_value=zf)
-        task._download_extract_zip = mock.Mock(return_value=zf)
+        task._download_extract_github = make_fake_zipfile
+        task._download_extract_zip = make_fake_zipfile
         task()
         self.assertEqual([], task.install_queue)
         self.assertEqual([], task.uninstall_queue)
@@ -184,9 +185,8 @@ class TestUpdateDependencies(unittest.TestCase):
         ApiRetrieveInstalledPackages.return_value = {"package": "1.1"}
 
         task.api_class = mock.Mock()
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        task._download_extract_github = mock.Mock(return_value=zf)
-        task._download_extract_zip = mock.Mock(return_value=zf)
+        task._download_extract_github = make_fake_zipfile
+        task._download_extract_zip = make_fake_zipfile
         with self.assertRaises(TaskOptionsError):
             task()
 
@@ -196,6 +196,41 @@ class TestUpdateDependencies(unittest.TestCase):
         task.api_class = mock.Mock(return_value=api)
         task()
         api.assert_not_called()
+
+    @mock.patch(
+        "cumulusci.salesforce_api.metadata.ApiRetrieveInstalledPackages.__call__"
+    )
+    def test_run_task__duplicate_dependencies(self, ApiRetrieveInstalledPackages):
+        project_config = create_project_config()
+        project_config.config["project"]["dependencies"] = (
+            {"namespace": "package", "version": "1.0"},
+        )
+        project_config.get_github_api = mock.Mock()
+        project_config.get_static_dependencies = mock.Mock()
+        project_config.get_static_dependencies.return_value = [
+            {
+                "namespace": "dep1",
+                "version": "1.1",
+                "dependencies": [{"namespace": "dep2", "version": "1.1"}],
+            },
+            {"namespace": "dep2", "version": "1.1"},
+        ]
+        task = create_task(UpdateDependencies, project_config=project_config)
+        ApiRetrieveInstalledPackages.return_value = INSTALLED_PACKAGES
+        task.org_config.reset_installed_packages = mock.Mock()
+        task._uninstall_dependencies = mock.Mock()
+        task._install_dependencies = mock.Mock()
+
+        task()
+
+        assert task.install_queue == [
+            {"namespace": "dep2", "version": "1.1"},
+            {
+                "dependencies": [{"namespace": "dep2", "version": "1.1"}],
+                "namespace": "dep1",
+                "version": "1.1",
+            },
+        ]
 
     def test_update_dependency_latest_option_err(self):
         project_config = create_project_config()
@@ -261,8 +296,7 @@ class TestUpdateDependencies(unittest.TestCase):
             },
             project_config=project_config,
         )
-        zf = zipfile.ZipFile(io.BytesIO(), "w")
-        task._download_extract_github = mock.Mock(return_value=zf)
+        task._download_extract_github = make_fake_zipfile
         api = mock.Mock()
         task.api_class = mock.Mock(return_value=api)
         task()
@@ -278,6 +312,20 @@ class TestUpdateDependencies(unittest.TestCase):
             ],
             task.install_queue,
         )
+        api.assert_called_once()
+
+    def test_run_task__version_id(self):
+        project_config = create_project_config()
+        project_config.get_github_api = mock.Mock()
+        task = create_task(
+            UpdateDependencies,
+            {"dependencies": [{"version_id": "04t"}]},
+            project_config=project_config,
+        )
+        with mock.patch(
+            "cumulusci.tasks.salesforce.update_dependencies.install_package_version"
+        ) as api:
+            task()
         api.assert_called_once()
 
     def test_freeze(self):

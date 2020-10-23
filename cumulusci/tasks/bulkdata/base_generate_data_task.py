@@ -93,4 +93,4 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
     @abstractmethod
     def generate_data(self, session, engine, base, num_records, current_batch_num):
         """Abstract methods for base classes to really generate
-           the data into an open session."""
+        the data into an open session."""

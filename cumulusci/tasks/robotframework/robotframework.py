@@ -1,4 +1,5 @@
 import os
+import shlex
 import sys
 import subprocess
 
@@ -97,6 +98,12 @@ class Robot(BaseSalesforceTask):
         )
 
         if self.options["processes"] > 1:
+            # Since pabot runs multiple robot processes, and because
+            # those processes aren't cci tasks, we have to set up the
+            # environment to match what we do with a cci task. Specifically,
+            # we need to add the repo root to PYTHONPATH (via the --pythonpath
+            # option). Otherwise robot won't be able to find libraries and
+            # resource files referenced as relative to the repo root
             cmd = [
                 sys.executable,
                 "-m",
@@ -104,6 +111,8 @@ class Robot(BaseSalesforceTask):
                 "--pabotlib",
                 "--processes",
                 str(self.options["processes"]),
+                "--pythonpath",
+                str(self.project_config.repo_root),
             ]
             # We need to convert options to their commandline equivalent
             for option, value in options.items():
@@ -114,6 +123,9 @@ class Robot(BaseSalesforceTask):
                     cmd.extend([f"--{option}", str(value)])
 
             cmd.append(self.options["suites"])
+            self.logger.info(
+                f"pabot command: {' '.join([shlex.quote(x) for x in cmd])}"
+            )
             result = subprocess.run(cmd)
             num_failed = result.returncode
 
@@ -163,8 +175,7 @@ class KeywordLogger(object):
 
 
 def patch_statusreporter():
-    """Monkey patch robotframework to do postmortem debugging
-    """
+    """Monkey patch robotframework to do postmortem debugging"""
     from robot.running.statusreporter import StatusReporter
 
     orig_exit = StatusReporter.__exit__

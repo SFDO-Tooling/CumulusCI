@@ -150,11 +150,44 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         actual_output = flow.get_summary()
         expected_output = (
             "Description: test description"
+            + "\n\nFlow Steps"
             + "\n1) flow: nested_flow_2 [from current folder]"
             + "\n    1) task: pass_name"
             + "\n    2) flow: nested_flow"
             + "\n        1) task: pass_name"
         )
+        self.assertEqual(expected_output, actual_output)
+
+    def test_get_flow_steps(self):
+        self.project_config.config["flows"]["test"] = {
+            "description": "test description",
+            "steps": {"1": {"flow": "nested_flow_2"}},
+        }
+        flow_config = self.project_config.get_flow("test")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        actual_output = flow.get_flow_steps()
+        expected_output = [
+            "1) flow: nested_flow_2 [from current folder]",
+            "    1) task: pass_name",
+            "    2) flow: nested_flow",
+            "        1) task: pass_name",
+        ]
+        self.assertEqual(expected_output, actual_output)
+
+    def test_get_flow_steps__for_docs(self):
+        self.project_config.config["flows"]["test"] = {
+            "description": "test description",
+            "steps": {"1": {"flow": "nested_flow_2"}},
+        }
+        flow_config = self.project_config.get_flow("test")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        actual_output = flow.get_flow_steps(for_docs=True)
+        expected_output = [
+            "1) flow: nested_flow_2",
+            "    1) task: pass_name",
+            "    2) flow: nested_flow",
+            "        1) task: pass_name",
+        ]
         self.assertEqual(expected_output, actual_output)
 
     def test_get_summary__substeps(self):
@@ -183,11 +216,13 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 ),
             ],
         )
+        actual_output = flow.get_summary()
         assert (
-            "1) flow: test"
+            "\nFlow Steps"
+            + "\n1) flow: test"
             + "\n    1) task: other:test1 [from other source]"
             + "\n    2) task: test2 [from current folder]"
-        ) == flow.get_summary()
+        ) == actual_output
 
     def test_init__options(self):
         """ A flow can accept task options and pass them to the task. """
@@ -242,8 +277,8 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             FlowCoordinator(self.project_config, flow_config, name="test")
 
     def test_init__task_not_found(self):
-        """ A flow with reference to a task that doesn't exist in the
-        project will throw a TaskNotFoundError """
+        """A flow with reference to a task that doesn't exist in the
+        project will throw a TaskNotFoundError"""
 
         flow_config = FlowConfig(
             {

@@ -131,7 +131,7 @@ class PageObjects(object):
 
     def log_page_object_keywords(self):
         """Logs page objects and their keywords for all page objects
-           which have been imported into the current suite.
+        which have been imported into the current suite.
         """
         for key in sorted(self.registry.keys()):
             pobj = self.registry[key]

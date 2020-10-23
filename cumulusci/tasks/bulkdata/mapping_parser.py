@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Dict, List, Union, IO, Optional, Any, Callable, Mapping
 from logging import getLogger
 from pathlib import Path
@@ -7,7 +8,8 @@ from pydantic import Field, validator, root_validator, ValidationError
 
 from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.tasks.bulkdata.step import DataOperationType
+from cumulusci.tasks.bulkdata.step import DataOperationType, DataApi
+from cumulusci.tasks.bulkdata.dates import iso_to_date
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 from cumulusci.utils import convert_to_snake_case
 
@@ -36,7 +38,7 @@ class MappingLookup(CCIDictModel):
     value_field: Optional[str] = None
     join_field: Optional[str] = None
     after: Optional[str] = None
-    aliased_table: Optional[str] = None
+    aliased_table: Optional[Any] = None
     name: Optional[str] = None  # populated by parent
 
     def get_lookup_key_field(self, model=None):
@@ -71,14 +73,107 @@ class MappingStep(CCIDictModel):
     lookups: Dict[str, MappingLookup] = {}
     static: Dict[str, str] = {}
     filters: List[str] = []
-    action: str = "insert"
+    action: DataOperationType = DataOperationType.INSERT
+    api: DataApi = DataApi.SMART
+    batch_size: int = 200
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: Optional[str] = None  # should be discussed and probably deprecated
     bulk_mode: Optional[
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
-    sf_id_table: Optional[str] = None  # populated at runtime in extract.py
-    record_type_table: Optional[str] = None  # populated at runtime in extract.py
+    anchor_date: Optional[str] = None
+
+    def get_oid_as_pk(self):
+        """Returns True if using Salesforce Ids as primary keys."""
+        return "Id" in self.fields
+
+    def get_destination_record_type_table(self):
+        """Returns the name of the record type table for the target org."""
+        return f"{self.sf_object}_rt_target_mapping"
+
+    def get_source_record_type_table(self):
+        """Returns the name of the record type table for the source org."""
+        return f"{self.sf_object}_rt_mapping"
+
+    def get_sf_id_table(self):
+        """Returns the name of the table for storing Salesforce Ids."""
+        return f"{self.table}_sf_ids"
+
+    def get_complete_field_map(self, include_id=False):
+        """Return a field map that includes both `fields` and `lookups`.
+        If include_id is True, add the Id field if not already present."""
+        fields = {}
+
+        if include_id and "Id" not in self.fields:
+            fields["Id"] = "sf_id"
+
+        fields.update(self.fields)
+        fields.update(
+            {
+                lookup: self.lookups[lookup].get_lookup_key_field()
+                for lookup in self.lookups
+            }
+        )
+
+        return fields
+
+    def get_fields_by_type(self, field_type: str, org_config: OrgConfig):
+        describe = getattr(org_config.salesforce_client, self.sf_object).describe()
+        describe = CaseInsensitiveDict(
+            {entry["name"]: entry for entry in describe["fields"]}
+        )
+
+        return [f for f in describe if describe[f]["type"] == field_type]
+
+    def get_field_list(self):
+        """Build a flat list of columns for the given mapping,
+        including fields, lookups, and statics."""
+        lookups = self.lookups
+
+        # Build the list of fields to import
+        columns = []
+        columns.extend(self.fields.keys())
+
+        # Don't include lookups with an `after:` spec (dependent lookups)
+        columns.extend([f for f in lookups if not lookups[f].after])
+        columns.extend(self.static.keys())
+
+        # If we're using Record Type mapping, `RecordTypeId` goes at the end.
+        if "RecordTypeId" in columns:
+            columns.remove("RecordTypeId")
+
+        if self.action is DataOperationType.INSERT and "Id" in columns:
+            columns.remove("Id")
+        if self.record_type or "RecordTypeId" in self.fields:
+            columns.append("RecordTypeId")
+
+        return columns
+
+    def get_relative_date_context(self, org_config: OrgConfig):
+        fields = self.get_field_list()
+
+        date_fields = [
+            fields.index(f)
+            for f in self.get_fields_by_type("date", org_config)
+            if f in self.fields
+        ]
+        date_time_fields = [
+            fields.index(f)
+            for f in self.get_fields_by_type("datetime", org_config)
+            if f in self.fields
+        ]
+
+        return (date_fields, date_time_fields, date.today())
+
+    @validator("batch_size")
+    @classmethod
+    def validate_batch_size(cls, v):
+        assert v <= 200 and v > 0
+
+    @validator("anchor_date")
+    @classmethod
+    def validate_anchor_date(cls, v):
+        return iso_to_date(v)
 
     @validator("record_type")
     @classmethod
@@ -91,10 +186,9 @@ class MappingStep(CCIDictModel):
     @validator("oid_as_pk")
     @classmethod
     def oid_as_pk_is_deprecated(cls, v):
-        logger.warning(
-            "oid_as_pk is deprecated. Just supply an Id column declaration and it will be inferred."
+        raise ValueError(
+            "oid_as_pk is no longer supported. Include the Id field if desired."
         )
-        return v
 
     @validator("fields_", pre=True)
     @classmethod
@@ -130,7 +224,10 @@ class MappingStep(CCIDictModel):
     def _get_permission_type(self, operation: DataOperationType) -> str:
         if operation is DataOperationType.QUERY:
             return "queryable"
-        if operation is DataOperationType.INSERT and self.action == "update":
+        if (
+            operation is DataOperationType.INSERT
+            and self.action is DataOperationType.UPDATE
+        ):
             return "updateable"
 
         return "createable"
@@ -368,7 +465,11 @@ def validate_and_inject_mapping(
     ]
 
     if not drop_missing and not all(should_continue):
-        raise BulkDataException("One or more permissions errors blocked the operation.")
+        raise BulkDataException(
+            "One or more schema or permissions errors blocked the operation.\n"
+            "If you would like to attempt the load regardless, you can specify "
+            "'-o drop_missing_schema True' on the command."
+        )
 
     if drop_missing:
         # Drop any steps with sObjects that are not present.

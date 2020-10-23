@@ -5,7 +5,7 @@ Library         cumulusci.robotframework.PageObjects
 Suite Setup     Run keywords  Create test data  AND  Open Test Browser
 Suite Teardown  Delete Records and Close Browser
 Library         Dialogs
-
+Library         cumulusci/robotframework/tests/salesforce/TestListener.py
 
 *** Keywords ***
 
@@ -48,6 +48,25 @@ Create test data
     ...                 AccountId=${ACCOUNT ID}
     ...                 ContactId=${CONTACT ID}
     Set suite variable  ${OPPORTUNITY ID}
+
+    # add several more opportunities and cases
+    # this, so that related lists get pushed down
+    FOR  ${i}  IN RANGE  4
+        Salesforce Insert  Opportunity
+    ...    CloseDate=2020-01-27
+    ...    Name=Big Opportunity!
+    ...    StageName=Prospecting
+    ...    AccountId=${ACCOUNT ID}
+    ...    ContactId=${CONTACT ID}
+    END
+
+    FOR  ${i}  IN RANGE  4
+         Salesforce Insert  Case
+    ...    Subject=Something bad happened!
+    ...    Status=New
+    ...    Origin=Web
+    ...    ContactId=${CONTACT ID}
+    END
 
 Object field should be
     [Arguments]       ${obj name}  ${obj id}  ${field}  ${expected_value}
@@ -100,6 +119,7 @@ Click related item link
     ...  ParentId=${CONTACT ID}
 
     Go to page  Detail  Contact  ${CONTACT ID}
+    Load related list   Notes & Attachments
     Click related item link
     ...  Notes & Attachments
     ...  This is the title of the note
@@ -116,6 +136,25 @@ Click related item link exception
     Run keyword and expect error
     ...  Unable to find related link under heading 'Notes & Attachments' with the text 'Bogus'
     ...  Click related item link  Notes & Attachments  Bogus
+
+Load related list
+    [Setup]  run keywords
+    ...  Go to page  Detail  Contact  ${CONTACT ID}
+    ...  AND  set test variable  ${OLD LOG LEVEL}  ${LOG LEVEL}
+    [Teardown]  Set log level  ${OLD LOG LEVEL}
+
+    # These should all work
+    Load related list  Cases
+    Load related list  Opportunities
+    Load related list  Campaign History
+    Load related list  Notes & Attachments
+
+    # This one s hould fail.
+    # We'll use the robot log to make sure we attempted to scroll.
+    Set log level  DEBUG
+    Run keyword and expect error  Timed out waiting for related list 'Bogus' to load.
+    ...  Load related list  Bogus  tries=2
+    Assert robot log  related list 'Bogus' not found; scrolling...  DEBUG
 
 Click related item popup link
     [Setup]  Create test data

@@ -30,7 +30,7 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
         self.task_log = self._task_log_handler.messages
 
     def test_functional_run_ls(self):
-        """ Functional test that actually subprocesses and runs command.
+        """Functional test that actually subprocesses and runs command.
 
         Checks that command either ran successfully or failed as expected
         so that it can be run on any platform. Other tests will mock

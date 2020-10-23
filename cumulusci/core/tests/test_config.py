@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 from distutils.version import StrictVersion
+import json
 import os
+import pathlib
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pytest
 from unittest import mock
 import responses
+import yaml
 
 from github3.exceptions import NotFoundError
 from cumulusci.core.config import BaseConfig
@@ -13,6 +18,7 @@ from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config.OrgConfig import VersionInfo
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import DependencyResolutionError
@@ -25,6 +31,7 @@ from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
+from cumulusci.tests.util import DummyKeychain
 
 
 class TestBaseConfig(unittest.TestCase):
@@ -175,18 +182,6 @@ class DummyGithub(object):
             return self.repositories[name]
         except KeyError:
             raise AssertionError(f"Unexpected repository: {name}")
-
-
-class DummyService(object):
-    password = "password"
-
-    def __init__(self, name):
-        self.name = name
-
-
-class DummyKeychain(object):
-    def get_service(self, name):
-        return DummyService(name)
 
 
 class TestBaseProjectConfig(unittest.TestCase):
@@ -636,7 +631,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Install CumulusCI-Test-Dep 2.0",
@@ -652,7 +646,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -663,7 +656,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -699,7 +691,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -768,7 +759,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Install CumulusCI-Test-Dep 1.1 (Beta 1)",
@@ -784,7 +774,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -795,7 +784,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -827,7 +815,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Install CumulusCI-Test-Dep 2.0",
@@ -843,7 +830,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -854,7 +840,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -887,7 +872,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy CumulusCI-Test",
@@ -898,7 +882,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": None,
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
                 {
                     "name": "Deploy unpackaged/post/post",
@@ -909,7 +892,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "unmanaged": True,
                     "namespace_inject": "ccitest",
                     "namespace_strip": None,
-                    "namespace_tokenize": None,
                 },
             ],
         )
@@ -1092,6 +1074,25 @@ class TestBaseProjectConfig(unittest.TestCase):
         assert info["owner"] == owner
         assert info["url"] == ssh_url
 
+    def test_default_package_path(self):
+        config = BaseProjectConfig(UniversalConfig())
+        assert str(config.default_package_path.relative_to(config.repo_root)) == "src"
+
+    def test_default_package_path__sfdx(self):
+        with temporary_dir() as path:
+            pathlib.Path(path, ".git").mkdir()
+            with pathlib.Path(path, "cumulusci.yml").open("w") as f:
+                yaml.dump({"project": {"source_format": "sfdx"}}, f)
+            with pathlib.Path(path, "sfdx-project.json").open("w") as f:
+                json.dump(
+                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                )
+            config = BaseProjectConfig(UniversalConfig())
+            assert (
+                str(config.default_package_path.relative_to(config.repo_root))
+                == "force-app"
+            )
+
 
 class TestBaseTaskFlowConfig(unittest.TestCase):
     def setUp(self):
@@ -1150,7 +1151,6 @@ class TestOrgConfig(unittest.TestCase):
     @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
     def test_refresh_oauth_token(self, SalesforceOAuth2):
         config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
-        config._client = mock.Mock()
         config._load_userinfo = mock.Mock()
         config._load_orginfo = mock.Mock()
         keychain = mock.Mock()
@@ -1161,7 +1161,6 @@ class TestOrgConfig(unittest.TestCase):
         config.refresh_oauth_token(keychain)
 
         oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
-        assert config._client is None
 
     def test_refresh_oauth_token_no_connected_app(self):
         config = OrgConfig({}, "test")
@@ -1180,7 +1179,7 @@ class TestOrgConfig(unittest.TestCase):
 
     @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
     @responses.activate
-    def test_refresh_oauth_token_jwt(self):
+    def test_refresh_oauth_token__jwt(self):
         responses.add(
             "POST",
             "https://login.salesforce.com/services/oauth2/token",
@@ -1201,7 +1200,7 @@ class TestOrgConfig(unittest.TestCase):
 
     @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
     @responses.activate
-    def test_refresh_oauth_token_jwt_sandbox(self):
+    def test_refresh_oauth_token__jwt_sandbox(self):
         responses.add(
             "POST",
             "https://cs00.salesforce.com/services/oauth2/token",
@@ -1214,7 +1213,39 @@ class TestOrgConfig(unittest.TestCase):
             os.environ,
             {"SFDX_CLIENT_ID": "some client id", "SFDX_HUB_KEY": "some private key"},
         ):
-            config = OrgConfig({"instance_url": "https://cs00.salesforce.com"}, "test")
+            config = OrgConfig(
+                {
+                    "instance_url": "https://cs00.salesforce.com",
+                },
+                "test",
+            )
+            config._load_userinfo = mock.Mock()
+            config._load_orginfo = mock.Mock()
+            config.refresh_oauth_token(None)
+            assert config.access_token == "TOKEN"
+
+    @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
+    @responses.activate
+    def test_refresh_oauth_token__jwt_sandbox_instanceless_url(self):
+        responses.add(
+            "POST",
+            "https://nonobvious--sandbox.my.salesforce.com/services/oauth2/token",
+            json={
+                "access_token": "TOKEN",
+                "instance_url": "https://nonobvious--sandbox.my.salesforce.com",
+            },
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"SFDX_CLIENT_ID": "some client id", "SFDX_HUB_KEY": "some private key"},
+        ):
+            config = OrgConfig(
+                {
+                    "instance_url": "https://nonobvious--sandbox.my.salesforce.com",
+                    "id": "https://test.salesforce.com/asdf",
+                },
+                "test",
+            )
             config._load_userinfo = mock.Mock()
             config._load_orginfo = mock.Mock()
             config.refresh_oauth_token(None)
@@ -1345,94 +1376,135 @@ class TestOrgConfig(unittest.TestCase):
         with self.assertRaisesRegex(Exception, expected_exception):
             config.get_community_info("bogus")
 
-    MOCK_TOOLING_PACKAGE_RESULTS = {
-        "size": 2,
-        "totalSize": 2,
-        "done": True,
-        "records": [
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz4AAG",
-                    "NamespacePrefix": "GW_Volunteers",
+    MOCK_TOOLING_PACKAGE_RESULTS = [
+        {
+            "size": 2,
+            "totalSize": 2,
+            "done": True,
+            "records": [
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz4AAG",
+                        "NamespacePrefix": "GW_Volunteers",
+                    },
+                    "SubscriberPackageVersionId": "04t1T00000070yqQAA",
                 },
-                "SubscriberPackageVersion": {
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz5AAG",
+                        "NamespacePrefix": "GW_Volunteers",
+                    },
+                    "SubscriberPackageVersionId": "04t000000000001AAA",
+                },
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz7AAG",
+                        "NamespacePrefix": "TESTY",
+                    },
+                    "SubscriberPackageVersionId": "04t000000000002AAA",
+                },
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz4AAG",
+                        "NamespacePrefix": "blah",
+                    },
+                    "SubscriberPackageVersionId": "04t0000000BOGUSAAA",
+                },
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
+                    "Id": "04t1T00000070yqQAA",
                     "MajorVersion": 3,
                     "MinorVersion": 119,
                     "PatchVersion": 0,
                     "BuildNumber": 5,
                     "IsBeta": False,
-                },
-            },
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz5AAG",
-                    "NamespacePrefix": "GW_Volunteers",
-                },
-                "SubscriberPackageVersion": {
+                }
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
+                    "Id": "04t000000000001AAA",
                     "MajorVersion": 12,
                     "MinorVersion": 0,
-                    "PatchVersion": 0,
+                    "PatchVersion": 1,
                     "BuildNumber": 1,
                     "IsBeta": False,
-                },
-            },
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz7AAG",
-                    "NamespacePrefix": "TESTY",
-                },
-                "SubscriberPackageVersion": {
+                }
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
+                    "Id": "04t000000000002AAA",
                     "MajorVersion": 1,
                     "MinorVersion": 10,
                     "PatchVersion": 0,
                     "BuildNumber": 5,
                     "IsBeta": True,
-                },
-            },
-        ],
-    }
+                }
+            ],
+        },
+        {"size": 0, "totalSize": 0, "done": True, "records": []},
+    ]
 
-    def test_installed_packages(self):
+    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    def test_installed_packages(self, sf):
         config = OrgConfig({}, "test")
-        config._client = mock.Mock()
-        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
 
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        expected = {
+            "GW_Volunteers": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119")),
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1")),
+            ],
+            "GW_Volunteers@3.119": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
+            ],
+            "GW_Volunteers@12.0.1": [
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))
+            ],
+            "TESTY": [VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))],
+            "TESTY@1.10b5": [
+                VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
+            ],
+            "03350000000DEz4AAG": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
+            ],
+            "03350000000DEz5AAG": [
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))
+            ],
+            "03350000000DEz7AAG": [
+                VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
+            ],
         }
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
-        }
-        config._client.restful.assert_called_once_with(
-            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
-            "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
-            "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
-            "FROM InstalledSubscriberPackage"
-        )
+        # get it twice so we can make sure it is cached
+        assert config.installed_packages == expected
+        assert config.installed_packages == expected
+        sf.restful.assert_called()
 
-        config._client.restful.reset_mock()
+        sf.restful.reset_mock()
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
         config.reset_installed_packages()
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
-        }
-        config._client.restful.assert_called_once()
+        assert config.installed_packages == expected
+        sf.restful.assert_called()
 
-    def test_has_minimum_package_version(self):
+    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    def test_has_minimum_package_version(self, sf):
         config = OrgConfig({}, "test")
-        config._client = mock.Mock()
-        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
 
         assert config.has_minimum_package_version("TESTY", "1.9")
         assert config.has_minimum_package_version("TESTY", "1.10b5")
@@ -1444,6 +1516,61 @@ class TestOrgConfig(unittest.TestCase):
 
         with self.assertRaises(CumulusCIException):
             config.has_minimum_package_version("GW_Volunteers", "1.0")
+
+    def test_orginfo_cache_dir_global(self):
+        config = OrgConfig(
+            {
+                "instance_url": "http://zombo.com/welcome",
+                "username": "test-example@example.com",
+            },
+            "test",
+            keychain=DummyKeychain(),
+            global_org=True,
+        )
+        with TemporaryDirectory() as t:
+            with mock.patch(
+                "cumulusci.tests.util.DummyKeychain.global_config_dir", Path(t)
+            ):
+                with config.get_orginfo_cache_dir("foo") as directory:
+                    assert directory.exists()
+                    assert str(t) in directory, (t, directory)
+                    assert (
+                        str(directory)
+                        .replace("\\", "/")
+                        .endswith("orginfo/zombo.com__test-example__example.com/foo")
+                    ), str(directory).replace("\\", "/")
+                    foo = directory / "Foo.txt"
+                    with foo.open("w") as f:
+                        f.write("Bar")
+                    with foo.open("r") as f:
+                        assert f.read() == "Bar"
+
+    def test_orginfo_cache_dir_local(self):
+        config = OrgConfig(
+            {
+                "instance_url": "http://zombo.com/welcome",
+                "username": "test-example@example.com",
+            },
+            "test",
+            keychain=DummyKeychain(),
+            global_org=False,
+        )
+        with TemporaryDirectory() as t:
+            with mock.patch("cumulusci.tests.util.DummyKeychain.cache_dir", Path(t)):
+
+                with config.get_orginfo_cache_dir("bar") as directory:
+                    assert str(t) in directory, (t, directory)
+                    assert (
+                        str(directory)
+                        .replace("\\", "/")
+                        .endswith("orginfo/zombo.com__test-example__example.com/bar")
+                    )
+                    assert directory.exists()
+                    foo = directory / "Foo.txt"
+                    with foo.open("w") as f:
+                        f.write("Bar")
+                    with foo.open("r") as f:
+                        assert f.read() == "Bar"
 
     @responses.activate
     def test_is_person_accounts_enabled__not_enabled(self):
@@ -1520,3 +1647,26 @@ class TestOrgConfig(unittest.TestCase):
         self.assertEqual(
             config._is_person_accounts_enabled, config.is_person_accounts_enabled
         )
+
+    def test_resolve_04t_dependencies(self):
+        config = OrgConfig({}, "test")
+        config._installed_packages = {
+            "dep@1.0": [VersionInfo("04t000000000001AAA", "1.0")]
+        }
+        result = config.resolve_04t_dependencies(
+            [{"namespace": "dep", "version": "1.0", "dependencies": []}]
+        )
+        assert result == [
+            {
+                "namespace": "dep",
+                "version": "1.0",
+                "version_id": "04t000000000001AAA",
+                "dependencies": [],
+            }
+        ]
+
+    def test_resolve_04t_dependencies__not_installed(self):
+        config = OrgConfig({}, "test")
+        config._installed_packages = {}
+        with pytest.raises(DependencyResolutionError):
+            config.resolve_04t_dependencies([{"namespace": "dep", "version": "1.0"}])

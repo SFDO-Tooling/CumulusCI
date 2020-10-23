@@ -44,6 +44,27 @@ class TestInstallPackageVersion(unittest.TestCase):
         self.assertIn(b"<password>astro</password>", package_xml)
         self.assertIn(b"<securityType>NONE</securityType>", package_xml)
 
+    def test_run_task__options_2(self):
+        project_config = create_project_config()
+        project_config.get_previous_version = mock.Mock(return_value="1.0 (Beta 1)")
+        project_config.config["project"]["package"]["namespace"] = "ns"
+        task = create_task(
+            InstallPackageVersion,
+            {
+                "version": "previous",
+                "activateRSS": True,
+                "password": "astro",
+                "security_type": "NONE",
+            },
+            project_config,
+        )
+        api = task._get_api()
+        zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(api.package_zip)), "r")
+        package_xml = zf.read("installedPackages/ns.installedPackage")
+        self.assertIn(b"<activateRSS>true</activateRSS", package_xml)
+        self.assertIn(b"<password>astro</password>", package_xml)
+        self.assertIn(b"<securityType>NONE</securityType>", package_xml)
+
     def test_run_task__bad_security_type(self):
         project_config = create_project_config()
         project_config.get_latest_version = mock.Mock(return_value="1.0")
@@ -54,3 +75,15 @@ class TestInstallPackageVersion(unittest.TestCase):
                 {"version": "latest", "security_type": "BOGUS"},
                 project_config,
             )
+
+    def test_run_task__2gp(self):
+        # 2gp installation should delegate to cumulusci.salesforce_api.package_install
+        project_config = create_project_config()
+        project_config.get_latest_version = mock.Mock(return_value="1.0")
+        project_config.config["project"]["package"]["namespace"] = "ns"
+        task = create_task(InstallPackageVersion, {"version": "04t"}, project_config)
+        with mock.patch(
+            "cumulusci.tasks.salesforce.install_package_version.install_package_version"
+        ) as mocked:
+            task()
+        mocked.assert_called_once()
