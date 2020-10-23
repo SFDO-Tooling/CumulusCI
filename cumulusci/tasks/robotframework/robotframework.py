@@ -77,13 +77,13 @@ class Robot(BaseSalesforceTask):
                 )
 
         listeners = self.options["options"].setdefault("listener", [])
-        if process_bool_arg(self.options.get("verbose")):
+        if process_bool_arg(self.options.get("verbose", False)):
             listeners.append(KeywordLogger())
 
-        if process_bool_arg(self.options.get("debug")):
+        if process_bool_arg(self.options.get("debug", False)):
             listeners.append(DebugListener())
 
-        if process_bool_arg(self.options.get("pdb")):
+        if process_bool_arg(self.options.get("pdb", False)):
             patch_statusreporter()
 
     def _run_task(self):

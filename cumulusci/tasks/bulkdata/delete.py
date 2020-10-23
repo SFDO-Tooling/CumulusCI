@@ -53,9 +53,11 @@ class DeleteData(BaseSalesforceApiTask):
             raise TaskOptionsError(
                 "Criteria cannot be specified if more than one object is specified."
             )
-        self.options["hardDelete"] = process_bool_arg(self.options.get("hardDelete"))
+        self.options["hardDelete"] = process_bool_arg(
+            self.options.get("hardDelete", False)
+        )
         self.options["ignore_row_errors"] = process_bool_arg(
-            self.options.get("ignore_row_errors")
+            self.options.get("ignore_row_errors", False)
         )
         self.options["inject_namespaces"] = process_bool_arg(
             self.options.get("inject_namespaces", True)
