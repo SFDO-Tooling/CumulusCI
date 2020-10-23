@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 
 import pytz
+import pytest
 
 from .. import utils
 
@@ -27,8 +28,13 @@ class TestUtils(unittest.TestCase):
         for arg in (False, "False", "false", "0"):
             self.assertFalse(utils.process_bool_arg(arg))
 
-        for arg in (None, datetime.datetime.now()):
-            self.assertIsNone(utils.process_bool_arg(arg))
+        assert utils.process_bool_arg(None) is False
+
+        with pytest.raises(TypeError):
+            utils.process_bool_arg(datetime.datetime.now())
+
+        with pytest.raises(TypeError):
+            utils.process_bool_arg("xyzzy")
 
     def test_process_list_arg(self):
         self.assertEqual([1, 2], utils.process_list_arg([1, 2]))
