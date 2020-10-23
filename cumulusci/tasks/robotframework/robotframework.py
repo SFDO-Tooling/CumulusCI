@@ -57,7 +57,7 @@ class Robot(BaseSalesforceTask):
     def _init_options(self, kwargs):
         super(Robot, self)._init_options(kwargs)
 
-        for option in ("test", "include", "exclude", "vars", "sources"):
+        for option in ("test", "include", "exclude", "vars", "sources", "suites"):
             if option in self.options:
                 self.options[option] = process_list_arg(self.options[option])
         if "vars" not in self.options:
@@ -109,9 +109,8 @@ class Robot(BaseSalesforceTask):
         )
 
         # get_namespace will potentially download sources that have
-        # yet to be downloaded.  We'll then add them to PYTHONPATH
-        # before running, though we have to do it one way for pabot
-        # and another for robot.
+        # yet to be downloaded. For these downloaded sources we'll add
+        # the cached directories to PYTHONPATH before running.
         source_paths = {}
         for source in self.options["sources"]:
             try:
@@ -119,6 +118,12 @@ class Robot(BaseSalesforceTask):
                 source_paths[source] = source_config.repo_root
             except NamespaceNotFoundError:
                 raise TaskOptionsError(f"robot source '{source}' could not be found")
+
+        # replace namespace prefixes with path to cached folder
+        for i, path in enumerate(self.options["suites"]):
+            prefix, _, path = path.rpartition(":")
+            if prefix in source_paths:
+                self.options["suites"][i] = f"{source_paths[prefix]}/{path}"
 
         if self.options["processes"] > 1:
             # Since pabot runs multiple robot processes, and because
@@ -151,7 +156,7 @@ class Robot(BaseSalesforceTask):
             for path in source_paths.values():
                 cmd.append("--pythonpath", path)
 
-            cmd.append(self.options["suites"])
+            cmd.extend(self.options["suites"])
             self.logger.info(
                 f"pabot command: {' '.join([shlex.quote(x) for x in cmd])}"
             )
@@ -165,7 +170,7 @@ class Robot(BaseSalesforceTask):
             for path in source_paths.values():
                 pythonpathsetter.add_path(path, end=True)
 
-            num_failed = robot_run(self.options["suites"], **options)
+            num_failed = robot_run(*self.options["suites"], **options)
 
         # These numbers are from the robot framework user guide:
         # http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#return-codes

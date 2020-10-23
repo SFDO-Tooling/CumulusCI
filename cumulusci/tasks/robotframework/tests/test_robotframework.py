@@ -81,7 +81,7 @@ class TestRobot(unittest.TestCase):
                 "vars": "uno, dos, tres",
             },
         )
-        for option in ("test", "include", "exclude", "vars"):
+        for option in ("test", "include", "exclude", "vars", "suites"):
             assert isinstance(task.options[option], list)
 
     def test_process_arg_requires_int(self):
@@ -126,6 +126,16 @@ class TestRobot(unittest.TestCase):
         mock_subprocess_run.assert_not_called()
         mock_robot_run.assert_called_once_with(
             "tests", listener=[], outputdir=".", variable=["org:test"]
+        )
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    def test_suites(self, mock_robot_run):
+        """Verify that passing a list of suites is handled properly"""
+        mock_robot_run.return_value = 0
+        task = create_task(Robot, {"suites": "tests,more_tests", "process": 0})
+        task()
+        mock_robot_run.assert_called_once_with(
+            "tests", "more_tests", listener=[], outputdir=".", variable=["org:test"]
         )
 
     def test_default_listeners(self):
