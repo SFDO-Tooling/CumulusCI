@@ -935,21 +935,31 @@ class Salesforce(object):
         """Constructs and runs a simple SOQL query and returns a list of dictionaries.
 
         By default the results will only contain object Ids. You can
-        specify a SOQL SELECT clase via keyword arguments by passing
+        specify a SOQL SELECT clause via keyword arguments by passing
         a comma-separated list of fields with the ``select`` keyword
         argument.
 
-        Example:
+        You can supply keys and values to match against
+        in keyword arguments, or a full SQOL where-clause
+        in a keyword named ``where``.
+
+        Examples:
 
         The following example searches for all Contacts where the
         first name is "Eleanor". It returns the "Name" and "Id"
         fields and logs them to the robot report:
 
         | @{records}=  Salesforce Query  Contact  select=Id,Name
+        | ...          FirstName=Eleanor
         | FOR  ${record}  IN  @{records}
         |     log  Name: ${record['Name']} Id: ${record['Id']}
         | END
 
+        Or with a WHERE-clause, we can look for every contact where
+        the first name is NOT Eleanor.
+
+        | @{records}=  Salesforce Query  Contact  select=Id,Name
+        | ...          where=FirstName!='Eleanor'
         """
         query = "SELECT "
         if "select" in kwargs:
@@ -958,10 +968,13 @@ class Salesforce(object):
             query += "Id"
         query += " FROM {}".format(obj_name)
         where = []
-        for key, value in kwargs.items():
-            if key == "select":
-                continue
-            where.append("{} = '{}'".format(key, value))
+        if "where" in kwargs:
+            where = [kwargs["where"]]
+        else:
+            for key, value in kwargs.items():
+                if key == "select":
+                    continue
+                where.append("{} = '{}'".format(key, value))
         if where:
             query += " WHERE " + " AND ".join(where)
         self.builtin.log("Running SOQL Query: {}".format(query))

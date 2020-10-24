@@ -48,6 +48,16 @@ Salesforce Query
     Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
     Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
 
+Salesforce Query Where
+    &{new_contact} =  Create Contact
+    @{records} =  Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where=FirstName='${new_contact}[FirstName]' AND LastName='${new_contact}[LastName]'
+    &{contact} =  Get From List  ${records}  0
+    Should Be Equal  ${contact}[Id]  ${new_contact}[Id]
+    Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
+    Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
+
 SOQL Query
     &{new_contact} =  Create Contact
     &{result} =  Soql Query  Select Id, FirstName, LastName from Contact WHERE Id = '${new_contact}[Id]'
