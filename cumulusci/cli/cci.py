@@ -1427,7 +1427,6 @@ def task_info(runtime, task_name):
 
 class RunTaskCommand(click.MultiCommand):
     def list_commands(self, ctx):
-        """Lists the currently configured tasks"""
         tasks = self._get_configured_tasks(RUNTIME)
         return sorted(tasks)
 
@@ -1484,27 +1483,54 @@ class RunTaskCommand(click.MultiCommand):
         return click.Command(task_name, params=params, callback=run_task)
 
     def resolve_command(self, ctx, args):
-        """We override this method to allow us access to the actual
-        command line args being passed in. This allows us to convert
-        the old option syntax to the new option syntax."""
+        """
+        CumulusCI overrides this method from the MultiCommand
+        class to allow us access to the raw command line
+        args being passed in. This allows us to convert
+        the old option syntax to the new option syntax.
+        """
+        args = self._convert_old_option_syntax(args)
+        return click.MultiCommand.resolve_command(self, ctx, args)
 
-        # TODO: What's a good way to account for scenarios where
-        # the user forgets option name/value. Example would be:
-        # cci task run task_name -o name1 -o name2 value2
+    def _convert_old_option_syntax(self, args):
+        """
+        Given a list of args, convert any options specified
+        with the old format `-o name value` to the new format `--name value`.
+
+        Args:
+            param1: The list of arguments to convert
+
+        Returns:
+            The list of arguments
+
+        Raises:
+            CumulusCIUsageError: if there is an error in parsing the old option syntax,
+            or the option doesn't exist for the given task.
+        """
         task_name = args[0]
         while "-o" in args:
             idx = args.index("-o")
             opt_name = args[idx + 1]
+            opt_value = args[idx + 2]
+
+            if opt_name.startswith("-") or opt_value.startswith("-"):
+                raise CumulusCIUsageError(
+                    f"Names and values for options specified with `-o` cannot start with '-'.\nFound: -o {opt_name} {opt_value}"
+                )
+
             if not self._option_in_task(opt_name, task_name):
-                raise click.UsageError(f"Unrecognized option: {opt_name}")
+                raise CumulusCIUsageError(f"Unrecognized option: {opt_name}")
+
             args[idx + 1] = f"--{opt_name}"
             args.remove("-o")
 
-        return click.MultiCommand.resolve_command(self, ctx, args)
+        return args
 
     def _option_in_task(self, opt_name, task_name):
-        """Returns True if opt_name is the name of an
-        option defined in the given task, else False"""
+        """
+        Returns True if opt_name is the name of an
+        option defined in the given task, else False.
+        """
         task = RUNTIME.project_config.get_task(task_name)
         task_class = import_global(task.config["class_path"])
 
@@ -1520,7 +1546,6 @@ class RunTaskCommand(click.MultiCommand):
         for the first one who defines options.
 
         Return a list of the the option names
-        TODO: Does order of search matter when multiple inheritence present?
         """
         task_class = import_global(task_config.class_path)
         for base in task_class.__bases__:
@@ -1531,8 +1556,10 @@ class RunTaskCommand(click.MultiCommand):
         return task_class
 
     def _get_click_options_for_task(self, task_options):
-        """Given a dict of options in a task, constructs and returns the
-        corresponding list of click.Option instances"""
+        """
+        Given a dict of options in a task, constructs and returns the
+        corresponding list of click.Option instances
+        """
         click_options = []
         if task_options:
             for name, properties in task_options.items():
