@@ -69,7 +69,14 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _get_api(self, path=None):
         if not path:
-            path = self.task_config.options__path
+            path = self.options.get("path")
+
+            if not path:
+                # Hopefully this is never triggered and we can delete it.
+                self.logger.warn(
+                    "Getting self.task_config.options__path in _get_api is deprecated"
+                )
+                path = self.task_config.options__path
 
         package_zip = self._get_package_zip(path)
         self.logger.info("Payload size: {} bytes".format(len(package_zip)))
