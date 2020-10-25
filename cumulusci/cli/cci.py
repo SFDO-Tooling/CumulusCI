@@ -722,28 +722,6 @@ def project_dependencies(runtime):
         click.echo(line)
 
 
-@project.command(
-    name="doc", help="Exports RST format documentation for all project tasks"
-)
-@pass_runtime(require_project=False)
-def project_doc(runtime):
-    Path("docs").mkdir(exist_ok=True)
-    project_config = runtime.project_config.config
-    project_name = runtime.project_config.project__name.capitalize()
-
-    with open("./docs/project_tasks.rst", "w", encoding="utf-8") as f:
-        f.write("==========================================\n")
-        f.write(f"{project_name} Tasks Reference\n")
-        f.write("==========================================\n")
-        f.write("\n")
-        for name, options in project_config["tasks"].items():
-            if name in runtime.project_config.config_project["tasks"]:
-                task_config = TaskConfig(options)
-                doc = doc_task(name, task_config)
-                f.write(f"{doc}")
-                f.write("\n\n")
-
-
 # Commands for group: service
 @service.command(name="list", help="List services available for configuration and use")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
@@ -1365,20 +1343,51 @@ def task_list(runtime, plain, print_json):
 
 
 @task.command(name="doc", help="Exports RST format documentation for all tasks")
-@pass_runtime(require_project=False)
-def task_doc(runtime):
-    config_src = runtime.universal_config
-
-    click.echo("==========================================")
-    click.echo("Tasks Reference")
-    click.echo("==========================================")
-    click.echo("")
-
-    for name, options in config_src.tasks.items():
-        task_config = TaskConfig(options)
-        doc = doc_task(name, task_config)
-        click.echo(doc)
+@click.option("--project", "project", is_flag=True, help="Write project specific tasks")
+@click.option("--write", "write", is_flag=True, help="Print a json string")
+@pass_runtime(
+    require_project=False,
+)
+def task_doc(runtime, project=False, write=False):
+    if project:
+        project_config = runtime.project_config.config
+        project_name = runtime.project_config.project__name.capitalize()
+        if write:
+            Path("docs").mkdir(exist_ok=True)
+            with open("./docs/project_tasks.rst", "w", encoding="utf-8") as f:
+                f.write("==========================================\n")
+                f.write(f"{project_name} Tasks Reference\n")
+                f.write("==========================================\n")
+                f.write("\n")
+                for name, options in project_config["tasks"].items():
+                    if name in runtime.project_config.config_project["tasks"]:
+                        task_config = TaskConfig(options)
+                        doc = doc_task(name, task_config)
+                        f.write(f"{doc}")
+                        f.write("\n\n")
+        else:
+            click.echo("==========================================\n")
+            click.echo(f"{project_name} Tasks Reference\n")
+            click.echo("==========================================\n")
+            click.echo("\n")
+            for name, options in project_config["tasks"].items():
+                if name in runtime.project_config.config_project["tasks"]:
+                    task_config = TaskConfig(options)
+                    doc = doc_task(name, task_config)
+                    click.echo(f"{doc}")
+                    click.echo("\n\n")
+    else:
+        config_src = runtime.universal_config
+        click.echo("==========================================")
+        click.echo("Tasks Reference")
+        click.echo("==========================================")
         click.echo("")
+
+        for name, options in config_src.tasks.items():
+            task_config = TaskConfig(options)
+            doc = doc_task(name, task_config)
+            click.echo(doc)
+            click.echo("")
 
 
 @flow.command(name="doc", help="Exports RST format documentation for all flows")

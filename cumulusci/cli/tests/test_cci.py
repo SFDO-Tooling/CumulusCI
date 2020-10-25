@@ -715,18 +715,6 @@ Environment Info: Rossian / x68_46
 
         self.assertEqual("test:", "".join(out))
 
-    @mock.patch("cumulusci.cli.cci.doc_task")
-    def test_project_doc(self, doc_task):
-        runtime = mock.Mock()
-        runtime.universal_config.tasks = {"test": {}}
-        runtime.project_config.config = {
-            "project": {"name": "Test"},
-            "tasks": {"option": {"a": "b"}},
-        }
-        runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
-        run_click_command(cci.project_doc, runtime=runtime)
-        doc_task.assert_called()
-
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_service_list(self, cli_tbl):
         runtime = mock.Mock()
@@ -1810,9 +1798,36 @@ Environment Info: Rossian / x68_46
     def test_task_doc(self, doc_task):
         runtime = mock.Mock()
         runtime.universal_config.tasks = {"test": {}}
-
-        run_click_command(cci.task_doc, runtime=runtime)
+        run_click_command(cci.task_doc, runtime=runtime, project=False)
         doc_task.assert_called()
+
+    @mock.patch("click.echo")
+    @mock.patch("cumulusci.cli.cci.doc_task")
+    def test_task_doc_project(self, doc_task, echo):
+        runtime = mock.Mock()
+        runtime.universal_config.tasks = {"test": {}}
+        runtime.project_config.config = {
+            "project": {"name": "Test"},
+            "tasks": {"option": {"a": "b"}},
+        }
+        runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
+        run_click_command(cci.task_doc, runtime=runtime, project=True)
+        doc_task.assert_called()
+        echo.assert_called_()
+
+    @mock.patch("click.echo")
+    @mock.patch("cumulusci.cli.cci.doc_task")
+    def test_task_doc_project_write(self, doc_task, echo):
+        runtime = mock.Mock()
+        runtime.universal_config.tasks = {"test": {}}
+        runtime.project_config.config = {
+            "project": {"name": "Test"},
+            "tasks": {"option": {"a": "b"}},
+        }
+        runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
+        run_click_command(cci.task_doc, runtime=runtime, project=True, write=True)
+        doc_task.assert_called()
+        echo.assert_not_called()
 
     @mock.patch("cumulusci.cli.cci.rst2ansi")
     @mock.patch("cumulusci.cli.cci.doc_task")
