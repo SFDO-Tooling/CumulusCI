@@ -1,4 +1,4 @@
-"""Tests for the `cci task run` and RunTaskCommand"""
+"""Tests for the RunTaskCommand"""
 
 from cumulusci.cli.cci import RunTaskCommand
 import click
@@ -104,9 +104,8 @@ def test_task_run__resolve_command(runtime):
 
 
 def test_convert_old_option_syntax__nothing_to_convert():
-    task_run_cmd = RunTaskCommand()
     args = ["task", "run", "util_sleep", "--seconds", "3.88"]
-    converted = task_run_cmd._convert_old_option_syntax(args)
+    converted = RunTaskCommand()._convert_old_option_syntax(args)
     assert args == converted
 
 
