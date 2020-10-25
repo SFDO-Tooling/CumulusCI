@@ -1,3 +1,6 @@
+"""Tests for the `cci task run` and RunTaskCommand"""
+
+from cumulusci.cli.cci import RunTaskCommand
 import click
 import pytest
 from unittest.mock import Mock, patch
@@ -98,6 +101,13 @@ def test_task_run__resolve_command(runtime):
         "--color",
         "blue",
     ]
+
+
+def test_convert_old_option_syntax__nothing_to_convert():
+    task_run_cmd = RunTaskCommand()
+    args = ["task", "run", "util_sleep", "--seconds", "3.88"]
+    converted = task_run_cmd._convert_old_option_syntax(args)
+    assert args == converted
 
 
 class SetTrace(Exception):
