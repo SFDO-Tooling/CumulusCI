@@ -1395,9 +1395,7 @@ def task_doc(runtime, project=False, write=False):
 def flow_doc(runtime):
     with open("docs/flows.yml", "r", encoding="utf-8") as f:
         flow_info = cci_safe_load(f)
-
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
-
     flow_info_groups = list(flow_info["groups"].keys())
 
     flows = (

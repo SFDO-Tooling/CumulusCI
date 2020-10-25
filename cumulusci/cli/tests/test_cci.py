@@ -1813,7 +1813,7 @@ Environment Info: Rossian / x68_46
         runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
         run_click_command(cci.task_doc, runtime=runtime, project=True)
         doc_task.assert_called()
-        echo.assert_called_()
+        echo.assert_called()
 
     @mock.patch("click.echo")
     @mock.patch("cumulusci.cli.cci.doc_task")
