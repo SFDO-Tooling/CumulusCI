@@ -84,7 +84,7 @@ class BaseTask(object):
 
     def _init_options(self, kwargs):
         """ Initializes self.options """
-        self.options = self.task_config.options
+        self.options = self.task_config.options.copy()
         if self.options is None:
             self.options = {}
         if kwargs:
