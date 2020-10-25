@@ -727,30 +727,24 @@ def project_dependencies(runtime):
 )
 @pass_runtime(require_project=False)
 def project_doc(runtime):
+    Path("docs").mkdir(exist_ok=True)
+    project_config = runtime.project_config.config
+    project_name = runtime.project_config.project__name.capitalize()
 
-    try:
-        os.mkdir("./docs")
-    except Exception:
-        pass  # skipping as not to freak end user out since directory exists.
-    finally:
-        project_name = runtime.project_config.project__name.capitalize()
-
-        with open("./docs/project_tasks.rst", "w") as f:
-            f.write("==========================================\n")
-            f.write(f"{project_name} Tasks Reference\n")
-            f.write("==========================================\n")
-            f.write("\n")
-            for name, options in project_config["tasks"].items():
+    with open("./docs/project_tasks.rst", "w", encoding="utf-8") as f:
+        f.write("==========================================\n")
+        f.write(f"{project_name} Tasks Reference\n")
+        f.write("==========================================\n")
+        f.write("\n")
+        for name, options in project_config["tasks"].items():
+            if name in runtime.project_config.config_project["tasks"]:
                 task_config = TaskConfig(options)
                 doc = doc_task(name, task_config)
-                if name in runtime.project_config.config_project["tasks"]:
-                    f.write(f"{doc}")
-                    f.write("\n\n")
+                f.write(f"{doc}")
+                f.write("\n\n")
 
 
 # Commands for group: service
-
-
 @service.command(name="list", help="List services available for configuration and use")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
