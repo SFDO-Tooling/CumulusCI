@@ -1344,50 +1344,47 @@ def task_list(runtime, plain, print_json):
 
 @task.command(name="doc", help="Exports RST format documentation for all tasks")
 @click.option("--project", "project", is_flag=True, help="Write project specific tasks")
-@click.option("--write", "write", is_flag=True, help="Print a json string")
+@click.option(
+    "--write",
+    "write",
+    is_flag=True,
+    help="If project flag is toggled will write to ./docs/project_tasks.rst otherwise will write by default to ./docs/cumulusci_tasks.rst",
+)
 @pass_runtime(
     require_project=False,
 )
 def task_doc(runtime, project=False, write=False):
+    result = ["=========================================="]
+    config = runtime.universal_config
+    tasks = config.tasks.items()
+    file_name = "./docs/cumulusci_tasks.rst"
+    # setting to read for project specific configuration
     if project:
-        project_config = runtime.project_config.config
+        config = runtime.project_config.config
         project_name = runtime.project_config.project__name.capitalize()
-        if write:
-            Path("docs").mkdir(exist_ok=True)
-            with open("./docs/project_tasks.rst", "w", encoding="utf-8") as f:
-                f.write("==========================================\n")
-                f.write(f"{project_name} Tasks Reference\n")
-                f.write("==========================================\n")
-                f.write("\n")
-                for name, options in project_config["tasks"].items():
-                    if name in runtime.project_config.config_project["tasks"]:
-                        task_config = TaskConfig(options)
-                        doc = doc_task(name, task_config)
-                        f.write(f"{doc}")
-                        f.write("\n\n")
-        else:
-            click.echo("==========================================\n")
-            click.echo(f"{project_name} Tasks Reference\n")
-            click.echo("==========================================\n")
-            click.echo("\n")
-            for name, options in project_config["tasks"].items():
-                if name in runtime.project_config.config_project["tasks"]:
-                    task_config = TaskConfig(options)
-                    doc = doc_task(name, task_config)
-                    click.echo(f"{doc}")
-                    click.echo("\n\n")
-    else:
-        config_src = runtime.universal_config
-        click.echo("==========================================")
-        click.echo("Tasks Reference")
-        click.echo("==========================================")
-        click.echo("")
+        tasks = config["tasks"].items()
+        file_name = "./docs/project_tasks.rst"
+    # handling for general and project specific documentation
+    result.append(f"{project_name} Tasks Reference") if project else result.append(
+        "Tasks Reference"
+    )
+    result += [
+        "==========================================",
+        "",
+    ]  # extra space for formatting
+    for name, options in tasks:
+        task_config = TaskConfig(options)
+        doc = doc_task(name, task_config)
+        result += [doc, ""]
+    # result = f"{result}"
+    if write:
+        Path("docs").mkdir(exist_ok=True)
+        with open(file_name, "w", encoding="utf-8") as f:
 
-        for name, options in config_src.tasks.items():
-            task_config = TaskConfig(options)
-            doc = doc_task(name, task_config)
-            click.echo(doc)
-            click.echo("")
+            f.write("\r\n".join(result))
+        return  # return to not echo output
+
+    click.echo("\r\n".join(result))
 
 
 @flow.command(name="doc", help="Exports RST format documentation for all flows")

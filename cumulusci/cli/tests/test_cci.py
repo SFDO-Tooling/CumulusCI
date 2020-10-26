@@ -1834,9 +1834,7 @@ Environment Info: Rossian / x68_46
     def test_task_info(self, doc_task, rst2ansi):
         runtime = mock.Mock()
         runtime.project_config.tasks__test = {"options": {}}
-
         run_click_command(cci.task_info, runtime=runtime, task_name="test")
-
         doc_task.assert_called_once()
         rst2ansi.assert_called_once()
 
