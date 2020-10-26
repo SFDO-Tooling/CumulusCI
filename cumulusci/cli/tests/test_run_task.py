@@ -189,6 +189,45 @@ def test_convert_old_option_syntax__duplicate_option(runtime):
             RunTaskCommand()._convert_old_option_syntax(args)
 
 
+def test_convert_old_option_syntax__extra_dashes(runtime):
+    args = [
+        "lots-o-options-task",
+        "-o",
+        "foo",
+        "fooey",
+        "--bar",
+        "bary",
+        "-o",
+        "baz",
+        "-bazzy",
+    ]
+
+    # test option value fails
+    with patch("cumulusci.cli.cci.RUNTIME", runtime):
+        with pytest.raises(CumulusCIUsageError):
+            RunTaskCommand()._convert_old_option_syntax(args)
+
+    args[2] = "-foo"
+    # test option name fails
+    with patch("cumulusci.cli.cci.RUNTIME", runtime):
+        with pytest.raises(CumulusCIUsageError):
+            RunTaskCommand()._convert_old_option_syntax(args)
+
+
+def test_convert_old_option_syntax__option_not_found(runtime):
+    args = [
+        "lots-o-options-task",
+        "-o",
+        "pizza",
+        "olives",
+    ]
+
+    # test option value fails
+    with patch("cumulusci.cli.cci.RUNTIME", runtime):
+        with pytest.raises(CumulusCIUsageError):
+            RunTaskCommand()._convert_old_option_syntax(args)
+
+
 def test_option_in_task__true(runtime):
     with patch("cumulusci.cli.cci.RUNTIME", runtime):
         assert RunTaskCommand()._option_in_task("color", "dummy-task")
