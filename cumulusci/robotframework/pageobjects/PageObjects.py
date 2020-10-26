@@ -4,7 +4,6 @@ from cumulusci.robotframework.pageobjects.baseobjects import BasePage
 from cumulusci.robotframework.utils import capture_screenshot_on_error
 import inspect
 import robot.utils
-import os
 import sys
 from pathlib import Path
 
@@ -83,12 +82,15 @@ class PageObjects(object):
             path = self._find_file_in_pythonpath(file_path)
             if path:
                 try:
-                    importer.import_class_or_module_by_path(os.path.abspath(path))
-                    logger.debug(f"imported page object {path}")
+                    importer.import_class_or_module_by_path(str(path.resolve()))
+                    logger.debug(f"imported page object from {path}")
                 except Exception as e:
-                    logger.warn(str(e))
+                    raise ImportError(
+                        f"Unable to import page object '{file_path}': ({e})", path=path
+                    )
+
             else:
-                logger.warn(f"Unable to find page object file '{file_path}'")
+                raise ImportError(f"Unable to find page object file '{file_path}'")
 
         self.current_page_object = None
 
