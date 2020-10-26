@@ -1815,15 +1815,17 @@ Environment Info: Rossian / x68_46
         doc_task.assert_called()
         echo.assert_called()
 
+    @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("click.echo")
     @mock.patch("cumulusci.cli.cci.doc_task")
-    def test_task_doc_project_write(self, doc_task, echo):
+    def test_task_doc_project_write(self, doc_task, echo, open):
         runtime = mock.Mock()
         runtime.universal_config.tasks = {"test": {}}
         runtime.project_config.config = {
             "project": {"name": "Test"},
             "tasks": {"option": {"a": "b"}},
         }
+        open.__enter__ = mock.Mock()
         runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
         run_click_command(cci.task_doc, runtime=runtime, project=True, write=True)
         doc_task.assert_called()
