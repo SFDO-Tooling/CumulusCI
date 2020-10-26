@@ -6,7 +6,6 @@ import pytest
 from unittest.mock import Mock, patch
 
 from cumulusci.cli import cci
-from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import CumulusCIUsageError, CumulusCIException
 from cumulusci.cli.tests.utils import run_click_command, DummyTask
@@ -243,20 +242,88 @@ def test_option_in_task__option_in_base_class(runtime):
         assert RunTaskCommand()._option_in_task("color", "dummy-derived-task")
 
 
-def test_get_task_options_in_hierarchy__fail_to_import(runtime):
-    t_config = TaskConfig(
-        config={"class_path": "cumulusci.cli.tests.test_run_task.DoesNotExistTask"}
-    )
+def test_get_task_options_in_hierarchy__task_options_not_present_on_base(runtime):
+    task_class = Mock(__bases__=["one", "two"])
     with pytest.raises(CumulusCIException):
-        RunTaskCommand()._get_task_options_in_hierarchy(t_config)
+        RunTaskCommand()._get_task_options_in_hierarchy(task_class)
 
 
 def test_get_task_options_in_hierarchy__options_found(runtime):
-    t_config = TaskConfig(
-        config={"class_path": "cumulusci.cli.tests.test_run_task.DummyDerivedTask"}
-    )
-    options = RunTaskCommand()._get_task_options_in_hierarchy(t_config)
+    class_w_opts = Mock(task_options={"color": "blue"})
+    task_class = Mock(__bases__=["one", class_w_opts])
+
+    options = RunTaskCommand()._get_task_options_in_hierarchy(task_class)
     assert options == ["color"]
+
+
+def test_parse_option_names():
+    """Test that we can parse option names correctly"""
+    args = [
+        "-o",
+        "name1",
+        "value1",
+        "--name2",
+        "value2",
+        "--name3",
+        "value3",
+        "-o",
+        "name4",
+        "value4",
+    ]
+    opt_names = RunTaskCommand()._parse_option_names(args)
+    assert opt_names == ["name1", "name2", "name3", "name4"]
+
+
+def test_has_duplicate_options__duplicate_old_syntax():
+    args = [
+        "-o",
+        "dupe",
+        "dupe1",
+        "-o",
+        "name2",
+        "value2",
+        "--name3",
+        "value3",
+        "-o",
+        "dupe",
+        "dupe2",
+    ]
+    duplicate = RunTaskCommand()._has_duplicate_options(args)
+    assert duplicate == "dupe"
+
+
+def test_has_duplicate_options__duplicate_new_syntax():
+    args = [
+        "-o",
+        "pizza",
+        "olives",
+        "--dupe",
+        "value2",
+        "--dupe",
+        "value3",
+        "-o",
+        "salad",
+        "ceasar",
+    ]
+    duplicate = RunTaskCommand()._has_duplicate_options(args)
+    assert duplicate == "dupe"
+
+
+def test_has_duplicate_options__duplicate_mixed_syntax():
+    args = [
+        "-o",
+        "pizza",
+        "olives",
+        "--hotdog",
+        "Chicago",
+        "--drink",
+        "water",
+        "-o",
+        "hotdog",
+        "Cincinnati",
+    ]
+    duplicate = RunTaskCommand()._has_duplicate_options(args)
+    assert duplicate == "hotdog"
 
 
 class SetTrace(Exception):
@@ -266,3 +333,11 @@ class SetTrace(Exception):
 class DummyDerivedTask(DummyTask):
     def _run_task(self):
         click.echo(f"<{self.__class__}>\n\tcolor: {self.options['color']}")
+
+
+class DummyBaseNoOpts:
+    pass
+
+
+class DummyDerivedNoOpts(DummyBaseNoOpts):
+    pass
