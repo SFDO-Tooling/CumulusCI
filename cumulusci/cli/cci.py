@@ -1365,6 +1365,7 @@ def task_doc(runtime, project=False, write=False):
         tasks = config["tasks"].items()
         file_name = "./docs/project_tasks.rst"
     # handling for general and project specific documentation
+    result = ["=========================================="]
     result.append(f"{project_name} Tasks Reference") if project else result.append(
         "Tasks Reference"
     )
