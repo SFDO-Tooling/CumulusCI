@@ -1354,7 +1354,6 @@ def task_list(runtime, plain, print_json):
     require_project=False,
 )
 def task_doc(runtime, project=False, write=False):
-    result = ["=========================================="]
     config = runtime.universal_config
     tasks = config.tasks.items()
     file_name = "./docs/cumulusci_tasks.rst"
