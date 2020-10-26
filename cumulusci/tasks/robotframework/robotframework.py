@@ -95,7 +95,7 @@ class Robot(BaseSalesforceTask):
         if process_bool_arg(self.options.get("pdb")):
             patch_statusreporter()
 
-        self.options.setdefault("sources", {})
+        self.options.setdefault("sources", [])
 
     def _run_task(self):
         self.options["vars"].append("org:{}".format(self.org_config.name))
@@ -123,7 +123,7 @@ class Robot(BaseSalesforceTask):
         for i, path in enumerate(self.options["suites"]):
             prefix, _, path = path.rpartition(":")
             if prefix in source_paths:
-                self.options["suites"][i] = f"{source_paths[prefix]}/{path}"
+                self.options["suites"][i] = os.path.join(source_paths[prefix], path)
 
         if self.options["processes"] > 1:
             # Since pabot runs multiple robot processes, and because
@@ -154,7 +154,7 @@ class Robot(BaseSalesforceTask):
             # pybot will need to use that option for each process that
             # it spawns.
             for path in source_paths.values():
-                cmd.append("--pythonpath", path)
+                cmd.extend(["--pythonpath", path])
 
             cmd.extend(self.options["suites"])
             self.logger.info(
