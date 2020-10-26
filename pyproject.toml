@@ -10,4 +10,4 @@ exclude_lines = ["pragma: no cover", "@abstract", ]
 
 [tool.pytest.ini_options]
 testpaths = "cumulusci"
-addopts =  "--typeguard-packages=cumulusci -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
+addopts =  "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
