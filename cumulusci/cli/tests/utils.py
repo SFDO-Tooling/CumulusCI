@@ -30,3 +30,14 @@ class DummyTask(BaseTask):
 
     def _run_task(self):
         click.echo(f"<{self.__class__}>\n\tcolor: {self.options['color']}")
+
+
+class MultipleOptionsTask(BaseTask):
+    task_options = {
+        "foo": {"description": "A foo", "required": True},
+        "bar": {"description": "A bar"},
+        "baz": {"description": "A baz"},
+    }
+
+    def _run_task(self):
+        click.echo("Executing MultipleOptionsTask._run_task()")

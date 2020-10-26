@@ -1517,9 +1517,15 @@ class RunTaskCommand(click.MultiCommand):
                 raise CumulusCIUsageError(
                     f"Names and values for options specified with `-o` cannot start with '-'.\nFound: -o {opt_name} {opt_value}"
                 )
-
-            if not self._option_in_task(opt_name, task_name):
-                raise CumulusCIUsageError(f"Unrecognized option: {opt_name}")
+            # TODO: Do we have commands where duplicate arguments can be given?
+            elif args[1:].count(opt_name) > 1:
+                raise CumulusCIUsageError(
+                    f"Found duplicate option `{opt_name}` in given command:\n cci task run {' '.join(args)}"
+                )
+            elif not self._option_in_task(opt_name, task_name):
+                raise CumulusCIUsageError(
+                    f"Task <{task_name}> received unrecognized option: {opt_name}"
+                )
 
             args[idx + 1] = f"--{opt_name}"
             args.remove("-o")
@@ -1542,18 +1548,28 @@ class RunTaskCommand(click.MultiCommand):
         return opt_name in task_option_names
 
     def _get_task_options_in_hierarchy(self, task_config):
-        """Given a task config object, recursively search parent tasks classes
+        """
+        Given a task config object, recursively search parent tasks classes
         for the first one who defines options.
 
-        Return a list of the the option names
+        Returns:
+            A list of the the option names
+
+        Raises:
+            CumulusCIException if it is unable to import the next class
         """
-        task_class = import_global(task_config.class_path)
+        try:
+            task_class = import_global(task_config.class_path)
+        except Exception:
+            raise CumulusCIException(
+                f"Unable to import task_config.class_path <{task_config.class_path}> while searching for options."
+            )
+
         for base in task_class.__bases__:
             if hasattr(base, "task_options"):
                 return [name for name in base.task_options.keys()]
             else:
-                self._get_task_options_in_hierarchy(base)
-        return task_class
+                return self._get_task_options_in_hierarchy(base)
 
     def _get_click_options_for_task(self, task_options):
         """
