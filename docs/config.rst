@@ -204,8 +204,8 @@ Org Configurations
 This section shows you the values that are overridable in an org configuration via the `cumulusci.yml` file.
 If you're looking for more information using scratch orgs with CumulusCI, see `Scratch Org Environments`_. 
 
-Override a Default Values
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Override Default Values
+^^^^^^^^^^^^^^^^^^^^^^^
 These overrides pertain only to scratch orgs.
 You can override the following values for org:
 
@@ -234,18 +234,18 @@ Configuration Scopes
 --------------------
 When we reference ``cumulusci.yml`` in our documentation, we are referring to the ``cumulusci.yml`` file located in your project's root directory.
 In actuality, CumulusCI merges multiple `YAML <https://yaml.org/>`_ files that allow for configuration to occur at several distinct scopes.
-All of these files are have the same name- ``cumulusci.yml`` -but live in different locations on the file system.
+All of these files have the same name, ``cumulusci.yml``, but live in different locations on the file system.
 
 You can configure files at three scope levels: Project, Local Project, Global.
 Configurations have the following order of override precedence (from highest to lowest):
 
-* Local Project
 * Project
+* Local Project
 * Global
 
 One override will only cascade over another when two configurations are setting a value for the same element on a task or flow.
 For example, say there exists a task T that takes two options o1 and o2.
-You can specify a default value for o1 in your project's ``cumulusci.yml`` file and a default for o2 in your global ``cumulusci.yml`` file and everything will work as exepected.
+You can specify a default value for o1 in your project's ``cumulusci.yml`` file and a default for o2 in your global ``cumulusci.yml`` file and you'll see the expected result - both values are available in the project, but the default of o1 is not exposed to other projects.
 If you then change your project's ``cumulusci.yml`` file to also specify a default value for o2, this will take precedence over the default value specified in your global ``cumulusci.yml`` file.
 
 The following diagram illustrates these three files along with their corresponding scopes in green.
@@ -255,39 +255,42 @@ Changes made to configuration files on top will override any changes in files be
 
 
 
+Project Configurations
+^^^^^^^^^^^^^^^^^^^^^^
+**macOS/Linux:** ``.../path/to/project/cumulusci.yml``
+**Windows:** ``...\path\to\project\cumulusci.yml``
+
+This ``cumulusci.yml`` file lives in the root directory of your project, and apply to only this project.
+Changes here can be commited back to a remote repository so other team members can benefit from the customizations.
+Configurations in this file apply to this project, and take precedence over any configurations specified in the `global configurations`_ file, but are overridden by configurations in the `local project`_ file.
+
+
+
 Local Project Configurations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-**File Path:** ``~/.cumulusci/project_name/cumulusci.yml``
+**macOS/Linux:** ``~/.cumulusci/project_name/cumulusci.yml``
+**Windows:** ``%homepath%\.cumulusci\project_name\cumulusci.yml``
 
 Configurations made to this ``cumulusci.yml`` file apply to only the project with the given <project_name>, and take precedence over **all other** configuration scopes.
 If you want to make customizations to a project, but don't need them to be available to other team members, you would make those customizations here.
 
 
 
-Project Configurations
-^^^^^^^^^^^^^^^^^^^^^^
-**File Path:** ``/path/to/project/cumulusci.yml``
-
-This ``cumulusci.yml`` file lives in the root directory of your project, and apply to only this project.
-Changes here can be commited back to a remote repository so other team members can benefit from the customizations.
-Configurations in this file apply to this project, and take precedence over any configurations specified in the `global configurations`_ file, but are overwritten by configurations in the `local project`_ file.
-
-
-
 Global Configurations
 ^^^^^^^^^^^^^^^^^^^^^
-**File Path:** ``~/.cumulusci/cumulusci.yml``
+**macOS/Linux:** ``~/.cumulusci/cumulusci.yml``
+**Windows:** ``%homepath%\.cumulusci\cumulusci.yml``
 
 Configuration of this file will override behavior across **all** CumulusCI projects on your machine.
-Configurations in this file have the lowest precedence, and are overwritten by **all other** configuration scopes.
+Configurations in this file have the lowest precedence, and are overridden by **all other** configuration scopes.
 
 
 
 The Internal ``cumulusci.yml``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-There is one more configuration file that exists; the `internal cumulusci.yml <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ file that ships with CumulusCI itself.
+There is one more configuration file that exists: the `internal cumulusci.yml <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ file that ships with CumulusCI itself.
 This file actually holds the lowest precedence of all, as all other scopes override what is contained in this file.
-This file contains all of the definitions for the standard tasks, flows, as well as, the default configurations that come out of the box with CumulusCI.
+This file contains all of the definitions for the standard tasks, flows, and org configurations that come out of the box with CumulusCI.
 As a CumulusCI user you aren't able to modify it, but knowing about it serves two purposes:
 
 * It is a fun bit of trivia to know that this file exists!
@@ -346,7 +349,7 @@ To reference a return value on a previous task use the following::
 
 
 In order to know what is available for ``<return_value>`` we need to find the source code for an individual task.
-Let's examing the definition for the ``upload_beta`` task. The internal ``cumulusci.yml`` file defines it as follows:
+Let's examine the definition for the ``upload_beta`` task. The internal ``cumulusci.yml`` file defines it as follows:
 
 .. code-block:: yaml
 
