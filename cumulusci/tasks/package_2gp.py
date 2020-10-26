@@ -315,7 +315,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
             # Add the dependencies for the package
             is_dependency = package_config is not self.package_config
-            if not package_config.org_dependent and not is_dependency:
+            if (
+                not (package_config.org_dependent or skip_validation)
+                and not is_dependency
+            ):
                 self.logger.info("Determining dependencies for package")
                 dependencies = self._get_dependencies()
             if dependencies:
