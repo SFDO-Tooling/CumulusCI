@@ -17,7 +17,7 @@ There are six top level sections of the ``cumulusci.yml`` file: Project, Tasks, 
 
 * **Orgs** - This section lists any customizations you've made to orgs that are available to CumulusCI. See `org configurations`_ for more info on the types of configurations that can be made in this section.
 
-* **Plans** - This section contains any custom plans you have defined for how to install your project into a customer org. See more about plans on Metadeploy `here<TODO>`_
+* **Plans** - This section contains any custom plans you have defined for how to install your project into a customer org. For more information see `configuring plans in MetaDeploy<TODO>`_.
 
 
 
@@ -86,6 +86,25 @@ The above assumes that your task's class is name ``MyTaskClass`` and exists in t
 Flow Configurations
 -------------------
 
+Add a Custom Flow
+^^^^^^^^^^^^^^^^^
+To define a new flow for your porject, simply add the name of the new flow under the ``flows`` section of your ``cumulusci.yml`` file.
+
+.. code-block:: yaml
+
+    greet_and_sleep:
+        group: projectName
+        description: Greets the user and then sleeps for 5 seconds.
+        steps:
+            1:
+                task: command
+                options:
+                    command: echo 'Hello there!' 
+            2:
+                task: util_sleep
+
+This is a flow comprised of two tasks; ``command`` greets the user by echoing and string, and ``util_sleep`` then tells CumulusCI to sleep for five seconds.
+You can reference how we defined the flows for the standard library `here <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L565>`_.
 
 
 Add a Flow Step
@@ -166,23 +185,6 @@ You can swap two steps in a flow by replacing one with the other.
 
 
 
-Add a Custom Flow
-^^^^^^^^^^^^^^^^^
-To define a new flow, simply add the name of the new flow under the ``flows`` section of your ``cumulusci.yml`` file.
-Here is an example custom flow
-
-.. code-block:: yaml
-
-    my_project_flow:
-        group: projectName
-        description:
-        steps:
-            1:
-                flow:
-            2:
-                task:
-
-You can reference how we defined the flows for the standard library `here <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L565>`_.
 
 
 
@@ -197,10 +199,10 @@ Using ``when`` Clauses
 TODO
 
 
-Org Configuratiions
+Org Configurations
 -------------------
 This section shows you the values that are overridable in an org configuration via the `cumulusci.yml` file.
-If you're looking for more information using scratch orgs with CumulusCI see `Scratch Org Environments`_. 
+If you're looking for more information using scratch orgs with CumulusCI, see `Scratch Org Environments`_. 
 
 Override a Default Values
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -390,9 +392,8 @@ This flow references both ``version_id`` and ``version_number`` return values se
 
 Using Tasks and Flows From a Different Project
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The dependency handling discussed above is used in a very specific context, to install dependency packages or metadata bundles in the ``dependencies`` flow which is a component of some other flows.
-It's also possible to use arbitrary tasks and flows from another project.
-To do this, the other project must be named in the ``sources`` section of cumulusci.yml:
+With CumulusCI, it's also possible to use arbitrary tasks and flows from another project.
+To do this, the other project must be named in the ``sources`` section of the ``cumulusci.yml``:
 
 .. code-block:: yaml
 
@@ -439,12 +440,6 @@ Or even to create a new flow which uses a flow from NPSP:
 
 This flow will use NPSP's ``install_prod`` flow to install NPSP as a managed package, and then run this project's own ``dev_org`` flow.
 
-
-
-Plan Configurations
-^^^^^^^^^^^^^^^^^^^
-
-TODO: Content for configuring plans here
 
 
 Troubleshooting Configurations

@@ -41,7 +41,7 @@ In this case, we actually utilize ``SFDXBaseTask``, if you would like to run a `
 
 Custom Deploy
 ************************
-It is often useful to be able to define multiple custom deploy tasks to be able to easily identify which task deploys a specific subsection of Metadata.
+It is often useful to be able to define multiple custom deployment tasks, particularly when working with `unpackaged Metadata <TODO>`_.
 For example,  here is a custom task that is defined to only deploy reports::
 
     deploy_reports:

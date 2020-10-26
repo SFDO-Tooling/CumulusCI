@@ -13,7 +13,7 @@ The following is a reference list of available environment variables that can be
 
 ``CUMULUSCI_DISABLE_REFRESH``
 
-    If present, will instruct CumulusCI to not refresh oAuth tokens for orgs.
+    If present, will instruct CumulusCI to not refresh OAuth tokens for orgs.
 
 
 
