@@ -990,15 +990,14 @@ flows:
         description: Create a 2gp managed package version
         steps:
             1:
-                flow: dependencies
-            2:
                 task: update_package_xml
                 when: project_config.project__source_format != "sfdx"
-            3:
+            2:
                 task: create_package_version
                 options:
                     package_type: Managed
                     package_name: $project_config.project__package__name Managed Feature Test
+                    skip_validation: True
 
     unmanaged_ee:
         group: Deployment
