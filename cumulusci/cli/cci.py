@@ -1380,7 +1380,8 @@ def task_doc(runtime, project=False, write=False):
     result = "\r\n".join(result)
     if write:
         Path("docs").mkdir(exist_ok=True)
-        with open(file_name, "w", encoding="utf-8") as f:
+        file_name = "project_tasks" if project else "cumulusci_tasks"
+        with open(f"./docs/{file_name}.rst", "w", encoding="utf-8") as f:
             f.write(f"{result}")
         return  # return to not echo output
 
