@@ -70,7 +70,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
     def _get_api(self, path=None):
         if not path:
             path = self.options.get("path")
-            assert path, "Path should be specified for task org_settings"
+            assert path, f"Path should be specified for {self.__class__.name}"
 
         package_zip = self._get_package_zip(path)
         self.logger.info("Payload size: {} bytes".format(len(package_zip)))
