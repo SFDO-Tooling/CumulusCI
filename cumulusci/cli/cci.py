@@ -1375,16 +1375,15 @@ def task_doc(runtime, project=False, write=False):
     for name, options in tasks:
         task_config = TaskConfig(options)
         doc = doc_task(name, task_config)
-        result += [doc, ""]
-    # result = f"{result}"
+        result += [f"{doc}", ""]
+    result = "\r\n".join(result)
     if write:
         Path("docs").mkdir(exist_ok=True)
         with open(file_name, "w", encoding="utf-8") as f:
-
-            f.write("\r\n".join(result))
+            f.write(f"{result}")
         return  # return to not echo output
 
-    click.echo("\r\n".join(result))
+    click.echo(f"{result}")
 
 
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
