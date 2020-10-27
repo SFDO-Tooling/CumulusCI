@@ -52,7 +52,7 @@ We see that there are even more subcommands available under ``cci task``.
 Getting ``--help``
 ------------------
 If you want help running a task you can type ``cci task run --help``
-If you aren't sure what a specific command does, you can utilize the ``--help`` option to get more information. 
+If you aren't sure what a specific command does, you can use the ``--help`` option to get more information. 
 
 .. code-block:: console
 
