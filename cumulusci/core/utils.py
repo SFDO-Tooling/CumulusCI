@@ -11,6 +11,7 @@ import pytz
 import time
 from shutil import rmtree
 from typing import Union
+import warnings
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 
@@ -37,14 +38,24 @@ def parse_datetime(dt_str, format):
 def process_bool_arg(arg: Union[int, str, None]):
     """Determine True/False from argument.
 
-    None is considered false.
     Similar to parts of the Salesforce API, there are a few true-ish and false-ish strings,
-        but "True" and "False" are the canonical ones."""
+        but "True" and "False" are the canonical ones.
+
+    None is accepted as "False" for backwards compatiblity reasons, but this usage is deprecated.
+    """
     if isinstance(arg, (int, bool)):
         return bool(arg)
     elif arg is None:
         # backwards compatible behaviour that some tasks
         # rely upon.
+        import traceback
+
+        warnings.warn("".join(traceback.format_stack(limit=4)), DeprecationWarning)
+        warnings.warn(
+            "Future versions of CCI will not accept 'None' as an argument to process_bool_arg",
+            DeprecationWarning,
+        )
+
         return False
     elif isinstance(arg, str):
         # these are values that Salesforce's bulk loader accepts

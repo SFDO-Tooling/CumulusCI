@@ -1003,7 +1003,7 @@ Options
 ``-o inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
-	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
 ``-o api API``
 	 *Optional*
@@ -1670,7 +1670,7 @@ Options
 ``-o inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
-	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
 ``-o drop_missing_schema DROPMISSINGSCHEMA``
 	 *Optional*
@@ -2081,6 +2081,21 @@ Options
 	 *Optional*
 
 	 The package version id used by the InstallLinksParser to add install urls
+
+``-o trial_info TRIALINFO``
+	 *Optional*
+
+	 If True, Includes trialforce template text for this product.
+
+``-o sandbox_date SANDBOXDATE``
+	 *Optional*
+
+	 The date of the sandbox release in ISO format (Will default to None)
+
+``-o production_date PRODUCTIONDATE``
+	 *Optional*
+
+	 The date of the production release in ISO format (Will default to None)
 
 **github_release_report**
 ==========================================
@@ -3232,6 +3247,11 @@ Options
 	 *Optional*
 
 	 Set an XUnit format output file for test results
+
+``-o sources SOURCES``
+	 *Optional*
+
+	 List of sources defined in cumulusci.yml that are required by the robot task.
 
 ``-o options OPTIONS``
 	 *Optional*
@@ -4527,7 +4547,7 @@ Options
 ``-o inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
-	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
 ``-o drop_missing_schema DROPMISSINGSCHEMA``
 	 *Optional*
@@ -4593,7 +4613,7 @@ Options
 ``-o inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
-	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
 ``-o drop_missing_schema DROPMISSINGSCHEMA``
 	 *Optional*

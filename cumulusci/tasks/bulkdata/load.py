@@ -14,9 +14,7 @@ from cumulusci.tasks.bulkdata.utils import (
     SqlAlchemyMixin,
     RowErrorChecker,
 )
-from cumulusci.tasks.bulkdata.dates import (
-    adjust_relative_dates,
-)
+from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
 from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
@@ -63,8 +61,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
         "inject_namespaces": {
-            "description": "If True, the package namespace prefix will be automatically added to objects "
-            "and fields for which it is present in the org. Defaults to True."
+            "description": "If True, the package namespace prefix will be "
+            "automatically added to (or removed from) objects "
+            "and fields based on the name used in the org. Defaults to True."
         },
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
@@ -76,7 +75,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         super(LoadData, self)._init_options(kwargs)
 
         self.options["ignore_row_errors"] = process_bool_arg(
-            self.options.get("ignore_row_errors", False)
+            self.options.get("ignore_row_errors") or False
         )
         if self.options.get("database_url"):
             # prefer database_url if it's set
@@ -95,11 +94,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
+        inject_namespaces = self.options.get("inject_namespaces")
         self.options["inject_namespaces"] = process_bool_arg(
-            self.options.get("inject_namespaces", True)
+            True if inject_namespaces is None else inject_namespaces
         )
         self.options["drop_missing_schema"] = process_bool_arg(
-            self.options.get("drop_missing_schema", False)
+            self.options.get("drop_missing_schema") or False
         )
 
     def _run_task(self):
