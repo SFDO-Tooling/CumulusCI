@@ -77,8 +77,9 @@ class GenerateDataDictionary(BaseGithubTask):
                 "field_path"
             ] = f"{self.project_config.project__name} Fields.csv"
 
+        include_dependencies = self.options.get("include_dependencies")
         self.options["include_dependencies"] = process_bool_arg(
-            self.options.get("include_dependencies", True)
+            True if include_dependencies is None else include_dependencies
         )
 
         if "additional_dependencies" in self.options and not all(

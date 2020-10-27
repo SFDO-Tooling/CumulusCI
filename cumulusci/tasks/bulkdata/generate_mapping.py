@@ -70,8 +70,10 @@ class GenerateMapping(BaseSalesforceApiTask):
                 f"`break_cycles` should be `ask` or `auto`, not {break_cycles}"
             )
         self.options["include"] = process_list_arg(self.options.get("include", []))
+        strip_namespace = self.options.get("strip_namespace")
+
         self.options["strip_namespace"] = process_bool_arg(
-            self.options.get("strip_namespace", True)
+            True if strip_namespace is None else strip_namespace
         )
 
     def _run_task(self):

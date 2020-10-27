@@ -81,9 +81,9 @@ class CreateConnectedApp(SFDXBaseTask):
                 )
             self.options["email"] = github.email
 
-        self.options["connect"] = process_bool_arg(self.options.get("connect", False))
+        self.options["connect"] = process_bool_arg(self.options.get("connect") or False)
         self.options["overwrite"] = process_bool_arg(
-            self.options.get("overwrite", False)
+            self.options.get("overwrite") or False
         )
 
     def _set_default_username(self):
