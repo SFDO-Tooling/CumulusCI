@@ -38,7 +38,7 @@ class MergeBranchOld(BaseGithubTask):
                 "source_branch"
             ] = self.project_config.project__git__default_branch
         self.options["children_only"] = process_bool_arg(
-            self.options.get("children_only", False)
+            self.options.get("children_only") or False
         )
 
     def _run_task(self):
@@ -257,7 +257,7 @@ class MergeBranch(BaseGithubTask):
                 "source_branch"
             ] = self.project_config.project__git__default_branch
         self.options["update_future_releases"] = process_bool_arg(
-            self.options.get("update_future_releases", False)
+            self.options.get("update_future_releases") or False
         )
 
     def _run_task(self):

@@ -62,7 +62,7 @@ class InstallPackageVersion(Deploy):
         elif version == "previous":
             self.options["version"] = self.project_config.get_previous_version()
         self.options["activateRSS"] = process_bool_arg(
-            self.options.get("activateRSS", False)
+            self.options.get("activateRSS") or False
         )
         self.options["security_type"] = self.options.get("security_type", "FULL")
         if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
