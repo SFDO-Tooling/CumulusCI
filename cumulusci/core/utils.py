@@ -48,10 +48,14 @@ def process_bool_arg(arg: Union[int, str, None]):
     elif arg is None:
         # backwards compatible behaviour that some tasks
         # rely upon.
+        import traceback
+
+        warnings.warn("".join(traceback.format_stack(limit=4)), DeprecationWarning)
         warnings.warn(
             "Future versions of CCI will not accept 'None' as an argument to process_bool_arg",
             DeprecationWarning,
         )
+
         return False
     elif isinstance(arg, str):
         # these are values that Salesforce's bulk loader accepts
