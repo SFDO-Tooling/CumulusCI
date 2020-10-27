@@ -303,7 +303,7 @@ Handling Namespaces
 +++++++++++++++++++
 
 All CumulusCI bulk data tasks support automatic namespace injection or removal. In other words,
-the same mapping file will work for orgs namespaced and unnamespaced orgs, as well as orgs with
+the same mapping file will work for namespaced and unnamespaced orgs, as well as orgs with
 the package installed managed or unmanaged. If a mapping element has no namespace prefix and
 adding the project's namespace prefix is required to match a name in the org, CumulusCI will
 add one. Similarly, if removing a namespace is necessary, CumulusCI will do so.
