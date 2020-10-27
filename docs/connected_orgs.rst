@@ -21,7 +21,7 @@ The provided ``<org_name>`` will be the name that CumulusCI associates with org 
 .. note::
     Connecting an org via ``cci org connect`` does *not* expose that org to the Salesforce CLI.
 
-If your org has a custom domain, you can pass in the the `--login-url` option along with the orgs login url.
+If your org has a custom domain, you can use the `--login-url` option along with the org's login url.
 
 .. code-block:: console
 
