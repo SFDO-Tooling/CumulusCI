@@ -21,7 +21,13 @@ The provided ``<org_name>`` will be the name that CumulusCI associates with org 
 .. note::
     Connecting an org via ``cci org connect`` does *not* expose that org to the Salesforce CLI.
 
-If your org has a custom domain, you can pass in the 
+If your org has a custom domain, you can pass in the the `--login-url` option along with the orgs login url.
+
+.. code-block:: console
+
+    cci org connect <org_name> --login-url https://example.my.domain.salesforce.com
+
+
 
 Production and Developer Edition Orgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -37,14 +43,14 @@ For sandboxes, pass the ``--sandbox`` flag along with the org name::
 
     $ cci org connect <org_name> --sandbox
 
-
+.. note::
+    The ``--sandbox`` flag can also be used for connecting a scratch org created externally to CumulusCI.
 
 Verify Your Connected Orgs
 --------------------------
 You can use ``cci org list`` to look for your org listed under the "Connected Org" table.
 
 The following shows a single persistent org connected to CumulusCI with the name "devhub".
-(We are passing the ``--plain`` option for com
 
 .. code-block:: yaml
 
@@ -84,22 +90,6 @@ This means that an org connected while working in Project A's directory, will no
 You can connect an org and make it available to *all* CumulusCI projects on your computer by passing the ``--global-org`` flag::
 
     $ cci org connect <org_name> --global-org
-
-
-
-
-CumulusCI's Connected App
--------------------------
-CumulusCI comes with a Connected App that you can deploy to any org in your ``sfdx`` keychain.
-By default, this this deploy to the org configured as the ``defaultdevhubusername``::
-Use the following to deploy the CumulusCI's Connected App to an org::
-
-    $ cci task run connected_app
-
-This command also takes care to setup CumulusCI's ``connected_app`` service in the keychain for you.
-If you want to see the information for the Connected App, you can view it with::
-
-    $ cci service info connected_app
 
 
 
