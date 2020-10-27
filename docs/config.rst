@@ -109,15 +109,111 @@ The above assumes that your task's class is named ``MyTaskClass`` and exists in 
 
 
 
+Using Variables for Task Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sometimes you may want to reference a specific value within the ``cumulusci.yml`` file.
+To do this we can use the ``$project_config`` variable.
+You can use a double underscore ( ``__`` ) to access the different levels of the ``cumulusci.yml`` file.
+
+For example, NPSP uses a variable to the project's namespace by setting a value of ``$project_config.project__package__namespace``.
+Here is an example task that does just this to provide a value for the ``namespace_inject`` option in a custom deploy task:
+
+.. code-block:: yaml
+
+    deploy_qa_config:
+            description: Deploys additional fields used for QA purposes only
+            class_path: cumulusci.tasks.salesforce.Deploy
+            group: Salesforce Metadata
+            options:
+                path: unpackaged/config/qa
+                namespace_inject: $project_config.project__package__namespace
+
+CumulusCI will replace the variable with the value currently located under project -> package -> namespace in the ``cumulusci.yml`` file.
+Here is the ``project`` section of NPSP's ``cumulusci.yml`` file:
+
+.. code-block:: yaml
+
+    project:
+        name: Cumulus
+        package:
+            name: Cumulus
+            name_managed: Nonprofit Success Pack
+            namespace: npsp
+            api_version: 48.0
+            install_class: STG_InstallScript
+            uninstall_class: STG_UninstallScript
+
+Currently under ``$project_config.project__package__namespace`` is the value: ``npsp``.
+
+
+
+Referencing Task Return Values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Tasks can set an internal `return_value` on themselves while executing.
+This allows one task in a flow to reference the `return_value` set on another task that executed prior to it.
+
+To reference a return value on a previous task use the following:
+
+.. code-block:: yaml
+
+    ^^prior_task.return_value
+
+
+In order to know what is available for ``<return_value>`` we need to find the source code for an individual task.
+Let's examine the definition for the ``upload_beta`` task. The universal ``cumulusci.yml`` file defines it as follows:
+
+.. code-block:: yaml
+
+    upload_beta:
+            description: Uploads a beta release of the metadata currently in the packaging org
+            class_path: cumulusci.tasks.salesforce.PackageUpload
+            group: Release Operations
+
+This informs us that we need to find where the class ``cumulusci.tasks.salesforce.PackageUpload`` is defined to see if anything is being set on ``self.return_values``.
+Some digging yields that this class is defined in the file `package_upload.py <>`_ and has a method called ``_set_return_values()``.
+`This method <https://github.com/SFDO-Tooling/CumulusCI/blob/3cad07ac1cecf438aaf087cdeff7b781a1fc74a1/cumulusci/tasks/salesforce/package_upload.py#L165>`_ sets ``self.return_values`` to a dictionary with the following keys: ``verison_number``, ``version_id``, and ``package_id``.
+
+Let's now look at the the ``release_beta`` flow as its defined in the universal cumulusci.yml file:
+
+.. code-block:: yaml
+
+   release_beta:
+        description: Upload and release a beta version of the metadata currently in packaging
+        steps:
+            1:
+                task: upload_beta
+                options:
+                    name: Automated beta release
+            2:
+                task: github_release
+                options:
+                    version: ^^upload_beta.version_number
+            3:
+                task: github_release_notes
+                ignore_failure: True  # Attempt to generate release notes but don't fail build
+                options:
+                    link_pr: True
+                    publish: True
+                    tag: ^^github_release.tag_name
+                    include_empty: True
+                    version_id: ^^upload_beta.version_id
+            4:
+                task: github_master_to_feature
+
+This flow references both ``version_id`` and ``version_number`` return values set on the ``upload_beta`` task.
+
+
+
 Flow Configurations
 -------------------
 Flow configurations are made under the ``flows`` section of your project's ``cumulusci.yml`` file.
 Each flow configuration defines a flow which can be run using the ``cci flow run`` command, or included in a flow step.
 
 
+
 Add a Custom Flow
 ^^^^^^^^^^^^^^^^^
-To define a new flow for your porject, simply add the name of the new flow under the ``flows`` section of your ``cumulusci.yml`` file.
+To define a new flow for your project, simply add the name of the new flow under the ``flows`` section of your ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
@@ -356,7 +452,7 @@ Project Configurations
 **macOS/Linux:** ``.../path/to/project/cumulusci.yml``
 **Windows:** ``...\path\to\project\cumulusci.yml``
 
-This ``cumulusci.yml`` file lives in the root directory of your project, and apply to only this project.
+This ``cumulusci.yml`` file lives in the root directory of your project, and applies to only this project.
 Changes here can be commited back to a remote repository so other team members can benefit from the customizations.
 Configurations in this file apply to this project, and take precedence over any configurations specified in the `global configurations`_ file, but are overridden by configurations in the `local project`_ file.
 
@@ -367,7 +463,7 @@ Local Project Configurations
 **macOS/Linux:** ``~/.cumulusci/project_name/cumulusci.yml``
 **Windows:** ``%homepath%\.cumulusci\project_name\cumulusci.yml``
 
-Configurations made to this ``cumulusci.yml`` file apply to only the project with the given <project_name>, and take precedence over **all other** configuration scopes.
+Configurations made to this ``cumulusci.yml`` file apply to only the project with the given <project_name>, and take precedence over **all other** configuration scopes except the universal ``cumulusci.yml`` file.
 If you want to make customizations to a project, but don't need them to be available to other team members, you would make those customizations here.
 
 
@@ -378,7 +474,7 @@ Global Configurations
 **Windows:** ``%homepath%\.cumulusci\cumulusci.yml``
 
 Configuration of this file will override behavior across **all** CumulusCI projects on your machine.
-Configurations in this file have the lowest precedence, and are overridden by **all other** configuration scopes.
+Configurations in this file have a low precedence, and are overridden by **all other** configurations except for those that are in the universal ``cumulusci.yml`` file.
 
 
 
@@ -396,97 +492,6 @@ As a CumulusCI user you aren't able to modify it, but knowing about it serves tw
 Advanced Configurations
 -----------------------
 
-Using Variables for Task Options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Sometimes you may want to reference a specific value within the ``cumulusci.yml`` file.
-To do this we can use the ``$project_config`` variable.
-You can use a double underscore ( ``__`` ) to access the different levels of the ``cumulusci.yml`` file.
-
-For example, NPSP uses a variable to the project's namespace by setting a value of ``$project_config.project__package__namespace``.
-Here is an example task that does just this to provide a value for the ``namespace_inject`` option in a custom deploy task:
-
-.. code-block:: yaml
-
-    deploy_qa_config:
-            description: Deploys additional fields used for QA purposes only
-            class_path: cumulusci.tasks.salesforce.Deploy
-            group: Salesforce Metadata
-            options:
-                path: unpackaged/config/qa
-                namespace_inject: $project_config.project__package__namespace
-
-CumulusCI will replace the variable with the value currently located under project -> package -> namespace in the ``cumulusci.yml`` file.
-Here is the ``project`` section of NPSP's ``cumulusci.yml`` file:
-
-.. code-block:: yaml
-
-    project:
-        name: Cumulus
-        package:
-            name: Cumulus
-            name_managed: Nonprofit Success Pack
-            namespace: npsp
-            api_version: 48.0
-            install_class: STG_InstallScript
-            uninstall_class: STG_UninstallScript
-
-Currently under ``$project_config.project__package__namespace`` is the value: ``npsp``.
-
-
-
-Referencing Task Return Values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Tasks can set an internal `return_value` on themselves while executing.
-This allows one task in a flow to reference the `return_value` set on another task that executed prior to it.
-
-To reference a return value on a previous task use the following::
-
-    ^^prior_task.return_value
-
-
-In order to know what is available for ``<return_value>`` we need to find the source code for an individual task.
-Let's examine the definition for the ``upload_beta`` task. The universal ``cumulusci.yml`` file defines it as follows:
-
-.. code-block:: yaml
-
-    upload_beta:
-            description: Uploads a beta release of the metadata currently in the packaging org
-            class_path: cumulusci.tasks.salesforce.PackageUpload
-            group: Release Operations
-
-This informs us that we need to find where the class ``cumulusci.tasks.salesforce.PackageUpload`` is defined to see if anything is being set on ``self.return_values``.
-Some digging yields that this class is defined in the file `package_upload.py <>`_ and has a method called ``_set_return_values()``.
-`This method <https://github.com/SFDO-Tooling/CumulusCI/blob/3cad07ac1cecf438aaf087cdeff7b781a1fc74a1/cumulusci/tasks/salesforce/package_upload.py#L165>`_ sets ``self.return_values`` to a dictionary with the following keys: ``verison_number``, ``version_id``, and ``package_id``.
-
-Let's now look at the the ``release_beta`` flow as its defined in the universal cumulusci.yml file:
-
-.. code-block:: yaml
-
-   release_beta:
-        description: Upload and release a beta version of the metadata currently in packaging
-        steps:
-            1:
-                task: upload_beta
-                options:
-                    name: Automated beta release
-            2:
-                task: github_release
-                options:
-                    version: ^^upload_beta.version_number
-            3:
-                task: github_release_notes
-                ignore_failure: True  # Attempt to generate release notes but don't fail build
-                options:
-                    link_pr: True
-                    publish: True
-                    tag: ^^github_release.tag_name
-                    include_empty: True
-                    version_id: ^^upload_beta.version_id
-            4:
-                task: github_master_to_feature
-
-This flow references both ``version_id`` and ``version_number`` return values set on the ``upload_beta`` task.
-
 
 
 Using Tasks and Flows From a Different Project
@@ -502,6 +507,10 @@ To do this, the other project must be named in the ``sources`` section of the ``
 
 This says that when tasks or flows are referenced using the `npsp` namespace, CumulusCI should fetch the source from this GitHub repository.
 By default, it will fetch the most recent release, or the default branch if there are no releases.
+
+.. note::
+    In order for this feature to work, the referenced repository needs to be readable (i.e. either it's public, or CumulusCI's GitHub service is configured with the token of a user who has read access to it).
+
 It's also possible to fetch a specific ``tag``:
 
 .. code-block:: yaml
