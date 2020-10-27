@@ -450,6 +450,7 @@ Changes made to configuration files on top will override any changes in files be
 Project Configurations
 ^^^^^^^^^^^^^^^^^^^^^^
 **macOS/Linux:** ``.../path/to/project/cumulusci.yml``
+
 **Windows:** ``...\path\to\project\cumulusci.yml``
 
 This ``cumulusci.yml`` file lives in the root directory of your project, and applies to only this project.
@@ -461,6 +462,7 @@ Configurations in this file apply to this project, and take precedence over any 
 Local Project Configurations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 **macOS/Linux:** ``~/.cumulusci/project_name/cumulusci.yml``
+
 **Windows:** ``%homepath%\.cumulusci\project_name\cumulusci.yml``
 
 Configurations made to this ``cumulusci.yml`` file apply to only the project with the given <project_name>, and take precedence over **all other** configuration scopes except the universal ``cumulusci.yml`` file.
@@ -471,6 +473,7 @@ If you want to make customizations to a project, but don't need them to be avail
 Global Configurations
 ^^^^^^^^^^^^^^^^^^^^^
 **macOS/Linux:** ``~/.cumulusci/cumulusci.yml``
+
 **Windows:** ``%homepath%\.cumulusci\cumulusci.yml``
 
 Configuration of this file will override behavior across **all** CumulusCI projects on your machine.
