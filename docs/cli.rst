@@ -6,7 +6,7 @@ Basic Operation
 Once CumulusCI is installed, the primary way you will interact with it is using the ``cci`` command in your terminal or command prompt.
 On a macOS this would be Terminal.app, on a Windows machine this would be cmd.exe.
 
-If you are new to working with command line interfaces, CumulusCI has a `trailhead module <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ the covers installing and opening a terminal window in Visual Studio Code.
+If you are new to working with command line interfaces, CumulusCI has a `trailhead module <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ that covers installing and opening a terminal window in Visual Studio Code.
 
 To see the available commands, you can simply type ``cci``:
 
