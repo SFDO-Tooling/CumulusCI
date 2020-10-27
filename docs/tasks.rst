@@ -1003,7 +1003,7 @@ Options
 ``-o inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
-	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
 ``-o api API``
 	 *Optional*
@@ -1670,7 +1670,7 @@ Options
 ``-o inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
-	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
 ``-o drop_missing_schema DROPMISSINGSCHEMA``
 	 *Optional*
@@ -4547,7 +4547,7 @@ Options
 ``-o inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
-	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
 ``-o drop_missing_schema DROPMISSINGSCHEMA``
 	 *Optional*
@@ -4613,7 +4613,7 @@ Options
 ``-o inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
-	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
 ``-o drop_missing_schema DROPMISSINGSCHEMA``
 	 *Optional*
