@@ -29,7 +29,7 @@ To see the available commands, you can simply type ``cci``:
     version  Print the current version of CumulusCI
 
 To get information on a specific command listed above, you can type ``cci <command>``.
-For example, if you woule like more information on the ``task`` command just type ``cci task``:
+For example, if you would like more information on the ``task`` command, just type ``cci task``:
 
 .. code-block:: console
 
