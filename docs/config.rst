@@ -478,15 +478,15 @@ Configurations in this file have a low precedence, and are overridden by **all o
 
 
 
-The Universal ``cumulusci.yml``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Universal Configurations
+^^^^^^^^^^^^^^^^^^^^^^^^
 There is one more configuration file that exists: the `universal cumulusci.yml <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ file that ships with CumulusCI itself.
 This file actually holds the lowest precedence of all, as all other scopes override what is contained in this file.
 This file contains all of the definitions for the standard tasks, flows, and org configurations that come out of the box with CumulusCI.
-As a CumulusCI user you aren't able to modify it, but knowing about it serves two purposes:
 
-* It is a fun bit of trivia to know that this file exists!
-* It is useful to reference when working on configuring custom tasks or flows of your own.
+The commands ``cci task info`` and ``cci flow info`` display all of the infomation regarding how a particular task or flow is configured.
+They display both the information present in the standard library alongside any customizations that have been added.
+
 
 
 Advanced Configurations
