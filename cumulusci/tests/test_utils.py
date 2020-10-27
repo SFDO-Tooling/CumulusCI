@@ -12,8 +12,10 @@ from unittest import mock
 import responses
 
 from cumulusci import utils
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import TaskConfig, FlowConfig
+from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
+from cumulusci.tests.util import create_project_config
 
 
 class FunTestTask(BaseTask):
@@ -261,6 +263,45 @@ Options\n------------------------------------------\n\n
 
         assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
 
+    def test_document_flow(self):
+        project_config = create_project_config("TestOwner", "TestRepo")
+        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+        coordinator = FlowCoordinator(project_config, flow_config, name="test_flow")
+        flow_doc = utils.document_flow("test flow", "test description.", coordinator)
+
+        expected_doc = (
+            "test flow"
+            "\n^^^^^^^^^\n"
+            "\n**Description:** test description.\n"
+            "\n**Flow Steps**\n"
+            "\n.. code-block:: console\n"
+        )
+
+        assert expected_doc == flow_doc
+
+    def test_document_flow__additional_info(self):
+        flow_steps = ["1) (Task) Extract"]
+        flow_coordinator = mock.Mock(get_flow_steps=mock.Mock(return_value=flow_steps))
+        other_info = "**this is** just some rst ``formatted`` text."
+
+        flow_doc = utils.document_flow(
+            "test flow",
+            "test description.",
+            flow_coordinator,
+            additional_info=other_info,
+        )
+
+        expected_doc = (
+            "test flow"
+            "\n^^^^^^^^^\n"
+            "\n**Description:** test description.\n"
+            f"\n{other_info}"
+            "\n**Flow Steps**\n"
+            "\n.. code-block:: console\n"
+            "\n\t1) (Task) Extract"
+        )
+        assert expected_doc == flow_doc
+
     @responses.activate
     def test_download_extract_zip(self):
         f = io.BytesIO()
@@ -306,7 +347,7 @@ Options\n------------------------------------------\n\n
             zf.writestr("top/src/test", "test")
         f.seek(0)
         zipbytes = f.read()
-        mock_repo = mock.Mock(default_branch="master")
+        mock_repo = mock.Mock(default_branch="main")
         mock_github = mock.Mock()
         mock_github.repository.return_value = mock_repo
 

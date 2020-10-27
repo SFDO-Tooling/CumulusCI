@@ -9,6 +9,8 @@ import copy
 import glob
 import pytz
 import time
+from shutil import rmtree
+from typing import Union
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 
@@ -32,15 +34,27 @@ def parse_datetime(dt_str, format):
     return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
 
 
-def process_bool_arg(arg):
-    """ Determine True/False from argument """
-    if isinstance(arg, bool):
-        return arg
+def process_bool_arg(arg: Union[int, str, None]):
+    """Determine True/False from argument.
+
+    None is considered false.
+    Similar to parts of the Salesforce API, there are a few true-ish and false-ish strings,
+        but "True" and "False" are the canonical ones."""
+    if isinstance(arg, (int, bool)):
+        return bool(arg)
+    elif arg is None:
+        # backwards compatible behaviour that some tasks
+        # rely upon.
+        return False
     elif isinstance(arg, str):
-        if arg.lower() in ["true", "1"]:
+        # these are values that Salesforce's bulk loader accepts
+        # there doesn't seem to be any harm in acccepting the
+        # full list to be coordinated with a "Salesforce standard"
+        if arg.lower() in ["yes", "y", "true", "on", "1"]:
             return True
-        elif arg.lower() in ["false", "0"]:
+        elif arg.lower() in ["no", "n", "false", "off", "0"]:
             return False
+    raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 
 def process_glob_list_arg(arg):
@@ -127,11 +141,11 @@ def merge_config(configs):
 
 
 def dictmerge(a, b, name=None):
-    """ Deeply merge two ``dict``s that consist of lists, dicts, and scalars.
+    """Deeply merge two ``dict``s that consist of lists, dicts, and scalars.
     This function (recursively) merges ``b`` INTO ``a``, does not copy any values, and returns ``a``.
 
     based on https://stackoverflow.com/a/15836901/5042831
-    NOTE: tuples and arbitrary objects are NOT handled and will raise TypeError """
+    NOTE: tuples and arbitrary objects are NOT handled and will raise TypeError"""
 
     key = None
 
@@ -160,21 +174,38 @@ def dictmerge(a, b, name=None):
                         a[key] = copy.deepcopy(b[key])
             else:
                 raise TypeError(
-                    'Cannot merge non-dict of type "{}" into dict "{}"'.format(
-                        type(b), a
-                    )
+                    f'Cannot merge non-dict of type "{type(b)}" into dict "{a}"'
                 )
         else:
             raise TypeError(
-                'dictmerge does not supporting merging "{}" into "{}"'.format(
-                    type(b), type(a)
-                )
+                f'dictmerge does not supporting merging "{type(b)}" into "{type(a)}"'
             )
     except TypeError as e:
         raise ConfigMergeError(
-            'TypeError "{}" in key "{}" when merging "{}" into "{}"'.format(
-                e, key, type(b), type(a)
-            ),
+            f'TypeError "{e}" in key "{key}" when merging "{type(b)}" into "{type(a)}"',
             config_name=name,
         )
     return a
+
+
+def cleanup_org_cache_dirs(keychain, project_config):
+    """Cleanup directories that are not associated with a connected/live org."""
+
+    if not project_config or not project_config.cache_dir:
+        return
+    domains = set()
+    for org in keychain.list_orgs():
+        org_config = keychain.get_org(org)
+        domain = org_config.get_domain()
+        if domain:
+            domains.add(domain)
+
+    assert project_config.cache_dir
+    assert keychain.global_config_dir
+
+    project_org_directories = (project_config.cache_dir / "orginfo").glob("*")
+    global_org_directories = (keychain.global_config_dir / "orginfo").glob("*")
+
+    for directory in list(project_org_directories) + list(global_org_directories):
+        if directory.name not in domains:
+            rmtree(directory)

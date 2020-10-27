@@ -1,17 +1,29 @@
 from collections import defaultdict
+from collections import namedtuple
 from distutils.version import StrictVersion
 import os
+import re
+from contextlib import contextmanager
+from urllib.parse import urlparse
+from cumulusci.utils.fileutils import open_fs_resource
 
 import requests
 from simple_salesforce import Salesforce
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.exceptions import SalesforceCredentialsException, CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.oauth.salesforce import jwt_session
 
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
+SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
+MYDOMAIN_RE = re.compile(r"\.my\.(.*)salesforce\.com")
+
+
+VersionInfo = namedtuple("VersionInfo", ["id", "number"])
 
 
 class OrgConfig(BaseConfig):
@@ -20,12 +32,15 @@ class OrgConfig(BaseConfig):
     # make sure it can be mocked for tests
     SalesforceOAuth2 = SalesforceOAuth2
 
-    def __init__(self, config, name):
+    def __init__(self, config: dict, name: str, keychain=None, global_org=False):
+        self.keychain = keychain
+        self.global_org = global_org
+
         self.name = name
         self._community_info_cache = {}
-        self._client = None
         self._latest_api_version = None
         self._installed_packages = None
+        self._is_person_accounts_enabled = None
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -39,15 +54,16 @@ class OrgConfig(BaseConfig):
 
         Also refreshes user and org info that is cached in the org config.
         """
-        # invalidate memoized simple-salesforce client with old token
-        self._client = None
-
         if not SKIP_REFRESH:
             SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
             if SFDX_CLIENT_ID and SFDX_HUB_KEY:
                 info = jwt_session(
-                    SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, self.instance_url
+                    SFDX_CLIENT_ID,
+                    SFDX_HUB_KEY,
+                    self.username,
+                    self.instance_url,
+                    auth_url=self.id,
                 )
             else:
                 info = self._refresh_token(keychain, connected_app)
@@ -55,6 +71,14 @@ class OrgConfig(BaseConfig):
                 self.config.update(info)
         self._load_userinfo()
         self._load_orginfo()
+
+    @contextmanager
+    def save_if_changed(self):
+        orig_config = self.config.copy()
+        yield
+        if self.config != orig_config:
+            self.logger.info("Org info updated, writing to keychain")
+            self.save()
 
     def _refresh_token(self, keychain, connected_app):
         if keychain:  # it might be none'd and caller adds connected_app
@@ -84,18 +108,21 @@ class OrgConfig(BaseConfig):
 
     @property
     def lightning_base_url(self):
-        return self.instance_url.split(".")[0] + ".lightning.force.com"
+        instance_url = self.instance_url.rstrip("/")
+        if SANDBOX_MYDOMAIN_RE.search(instance_url):
+            return SANDBOX_MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
+        elif MYDOMAIN_RE.search(instance_url):
+            return MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
+        else:
+            return self.instance_url.split(".")[0] + ".lightning.force.com"
 
     @property
     def salesforce_client(self):
-        if not self._client:
-            self._client = Salesforce(
-                instance=self.instance_url.replace("https://", ""),
-                session_id=self.access_token,
-                version=self.latest_api_version,
-            )
-
-        return self._client
+        return Salesforce(
+            instance=self.instance_url.replace("https://", ""),
+            session_id=self.access_token,
+            version=self.latest_api_version,
+        )
 
     @property
     def latest_api_version(self):
@@ -152,6 +179,7 @@ class OrgConfig(BaseConfig):
         result = {
             "org_type": self._org_sobject["OrganizationType"],
             "is_sandbox": self._org_sobject["IsSandbox"],
+            "instance_name": self._org_sobject["InstanceName"],
         }
         self.config.update(result)
 
@@ -209,7 +237,7 @@ class OrgConfig(BaseConfig):
                 f"packages are installed that match this identifier."
             )
 
-        return installed_version[0] >= version_identifier
+        return installed_version[0].number >= version_identifier
 
     @property
     def installed_packages(self):
@@ -221,30 +249,119 @@ class OrgConfig(BaseConfig):
         namespace or 033 Id of the desired package and its version, in 1.2.3 format.
 
         Beta version of a package are represented as "1.2.3b5", where 5 is the build number."""
-        if not self._installed_packages:
-            response = self.salesforce_client.restful(
-                "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
-                "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
-                "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
-                "FROM InstalledSubscriberPackage"
+        if self._installed_packages is None:
+            isp_result = self.salesforce_client.restful(
+                "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
+                "SubscriberPackageVersionId FROM InstalledSubscriberPackage"
             )
-
-            self._installed_packages = defaultdict(list)
-            for package in response["records"]:
-                sp = package["SubscriberPackage"]
-                spv = package["SubscriberPackageVersion"]
-                # PatchVersion is a 0 on a non-patch version.
-                version = (
-                    f"{spv['MajorVersion']}.{spv['MinorVersion']}.{spv['PatchVersion']}"
+            _installed_packages = defaultdict(list)
+            for isp in isp_result["records"]:
+                sp = isp["SubscriberPackage"]
+                spv_result = self.salesforce_client.restful(
+                    "tooling/query/?q=SELECT Id, MajorVersion, MinorVersion, PatchVersion, BuildNumber, "
+                    f"IsBeta FROM SubscriberPackageVersion WHERE Id='{isp['SubscriberPackageVersionId']}'"
                 )
+                if not spv_result["records"]:
+                    # This _shouldn't_ happen, but it is possible in customer orgs.
+                    continue
+                spv = spv_result["records"][0]
+
+                version = f"{spv['MajorVersion']}.{spv['MinorVersion']}"
+                if spv["PatchVersion"]:
+                    version += f".{spv['PatchVersion']}"
                 if spv["IsBeta"]:
                     version += f"b{spv['BuildNumber']}"
-                self._installed_packages[sp["NamespacePrefix"]].append(
-                    StrictVersion(version)
-                )
-                self._installed_packages[sp["Id"]].append(StrictVersion(version))
+                version_info = VersionInfo(spv["Id"], StrictVersion(version))
+                namespace = sp["NamespacePrefix"]
+                _installed_packages[namespace].append(version_info)
+                namespace_version = f"{namespace}@{version}"
+                _installed_packages[namespace_version].append(version_info)
+                _installed_packages[sp["Id"]].append(version_info)
 
+            self._installed_packages = _installed_packages
         return self._installed_packages
 
     def reset_installed_packages(self):
         self._installed_packages = None
+
+    def save(self):
+        assert self.keychain, "Keychain was not set on OrgConfig"
+        self.keychain.set_org(self, self.global_org)
+
+    def get_domain(self):
+        instance_url = self.config.get("instance_url", "")
+        return urlparse(instance_url).hostname or ""
+
+    def get_orginfo_cache_dir(self, cachename):
+        "Returns a context managed FSResource object"
+        assert self.keychain, "Keychain should be set"
+        if self.global_org:
+            cache_dir = self.keychain.global_config_dir
+        else:
+            cache_dir = self.keychain.cache_dir
+        uniqifier = self.get_domain() + "__" + str(self.username).replace("@", "__")
+        cache_dir = cache_dir / "orginfo" / uniqifier / cachename
+
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return open_fs_resource(cache_dir)
+
+    @property
+    def is_person_accounts_enabled(self):
+        """
+        Returns if the org has person accounts enabled, i.e. if Account has an ``IsPersonAccount`` field.
+
+        **Example**
+
+        Selectively run a task in a flow only if Person Accounts is or is not enabled.
+
+        .. code-block:: yaml
+
+            flows:
+                load_storytelling_data:
+                    steps:
+                        1:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/with_person_accounts/mapping.yml
+                                sql_path: datasets/with_person_accounts/data.sql
+                            when: org_config.is_person_accounts_enabled
+                        2:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/without_person_accounts/mapping.yml
+                                sql_path: datasets/without_person_accounts/data.sql
+                            when: not org_config.is_person_accounts_enabled
+
+        """
+        if self._is_person_accounts_enabled is None:
+            self._is_person_accounts_enabled = any(
+                field["name"] == "IsPersonAccount"
+                for field in self.salesforce_client.Account.describe()["fields"]
+            )
+        return self._is_person_accounts_enabled
+
+    def resolve_04t_dependencies(self, dependencies):
+        """Look up 04t SubscriberPackageVersion ids for 1gp project dependencies"""
+        new_dependencies = []
+        for dependency in dependencies:
+            dependency = {**dependency}
+
+            if "namespace" in dependency:
+                # get the SubscriberPackageVersion id
+                key = f"{dependency['namespace']}@{dependency['version']}"
+                version_info = self.installed_packages.get(key)
+                if version_info:
+                    dependency["version_id"] = version_info[0].id
+                else:
+                    raise DependencyResolutionError(
+                        f"Could not find 04t id for package {key} in org {self.name}"
+                    )
+
+            # recurse
+            if "dependencies" in dependency:
+                dependency["dependencies"] = self.resolve_04t_dependencies(
+                    dependency["dependencies"]
+                )
+
+            new_dependencies.append(dependency)
+        return new_dependencies

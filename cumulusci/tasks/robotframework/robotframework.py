@@ -1,10 +1,12 @@
 import os
+import shlex
 import sys
+import subprocess
 
 from robot import run as robot_run
 from robot.testdoc import testdoc
 
-from cumulusci.core.exceptions import RobotTestFailure
+from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
@@ -37,6 +39,10 @@ class Robot(BaseSalesforceTask):
         "debug": {
             "description": "If true, enable the `breakpoint` keyword to enable the robot debugger"
         },
+        "processes": {
+            "description": "*experimental* Number of processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robotframework. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.",
+            "default": "1",
+        },
     }
 
     def _init_options(self, kwargs):
@@ -51,6 +57,14 @@ class Robot(BaseSalesforceTask):
         # Initialize options as a dict
         if "options" not in self.options:
             self.options["options"] = {}
+
+        # processes needs to be an integer.
+        try:
+            self.options["processes"] = int(self.options.get("processes", 1))
+        except (TypeError, ValueError):
+            raise TaskOptionsError(
+                "Please specify an integer for the `processes` option."
+            )
 
         # There are potentially many robot options that are or could
         # be lists, but the only one we currently care about is the
@@ -83,7 +97,40 @@ class Robot(BaseSalesforceTask):
             os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
         )
 
-        num_failed = robot_run(self.options["suites"], **options)
+        if self.options["processes"] > 1:
+            # Since pabot runs multiple robot processes, and because
+            # those processes aren't cci tasks, we have to set up the
+            # environment to match what we do with a cci task. Specifically,
+            # we need to add the repo root to PYTHONPATH (via the --pythonpath
+            # option). Otherwise robot won't be able to find libraries and
+            # resource files referenced as relative to the repo root
+            cmd = [
+                sys.executable,
+                "-m",
+                "pabot.pabot",
+                "--pabotlib",
+                "--processes",
+                str(self.options["processes"]),
+                "--pythonpath",
+                str(self.project_config.repo_root),
+            ]
+            # We need to convert options to their commandline equivalent
+            for option, value in options.items():
+                if isinstance(value, list):
+                    for item in value:
+                        cmd.extend([f"--{option}", str(item)])
+                else:
+                    cmd.extend([f"--{option}", str(value)])
+
+            cmd.append(self.options["suites"])
+            self.logger.info(
+                f"pabot command: {' '.join([shlex.quote(x) for x in cmd])}"
+            )
+            result = subprocess.run(cmd)
+            num_failed = result.returncode
+
+        else:
+            num_failed = robot_run(self.options["suites"], **options)
 
         # These numbers are from the robot framework user guide:
         # http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#return-codes
@@ -128,8 +175,7 @@ class KeywordLogger(object):
 
 
 def patch_statusreporter():
-    """Monkey patch robotframework to do postmortem debugging
-    """
+    """Monkey patch robotframework to do postmortem debugging"""
     from robot.running.statusreporter import StatusReporter
 
     orig_exit = StatusReporter.__exit__

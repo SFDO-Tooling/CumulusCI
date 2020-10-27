@@ -18,7 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache
@@ -28,22 +28,25 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    - name: Install black
+    - name: Install dependencies
       run: |
         python -m pip install -U pip
-        pip install $(grep black requirements_dev.txt | cut -d';' -f 1)
-    - run: black --check --diff .
+        pip install pre-commit
+    - name: Run pre-commit on changed files
+      run: |
+        git fetch --depth=1 origin master
+        pre-commit run --files $(git diff --diff-filter=d --name-only origin/master...HEAD)
 
   unit_tests:
     name: "Unit tests: Python ${{ matrix.python-version }}"
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8"]
+        python-version: ["3.6", "3.7", "3.8", "3.9"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: "${{ matrix.python-version }}"
     - name: pip cache
@@ -67,7 +70,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache
@@ -90,7 +93,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache
@@ -141,7 +144,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache
@@ -192,7 +195,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache
@@ -238,12 +241,12 @@ jobs:
         path: robot/CumulusCI/results
 
   robot_ui_prerelease:
-    name: "Robot: Summer '20"
+    name: "Robot: Winter '21"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache

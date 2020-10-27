@@ -1,8 +1,10 @@
 import re
+import urllib.parse
 
 import github3.exceptions
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
+from cumulusci.oauth.salesforce import PROD_LOGIN_URL, SANDBOX_LOGIN_URL
 from .exceptions import GithubIssuesError
 
 
@@ -14,7 +16,7 @@ class BaseChangeNotesParser(object):
     def parse(self):
         raise NotImplementedError()
 
-    def render(self):
+    def render(self, existing_content=""):
         return "# {}\r\n\r\n{}".format(self.title, self._render())
 
     def _render(self):
@@ -47,6 +49,7 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
             # Look for the starting line of the section
             if self._is_start_line(line):
                 self._in_section = True
+                self.h2_title = None
                 continue
 
             # Look for h2
@@ -110,29 +113,29 @@ class ChangeNotesLinesParser(BaseChangeNotesParser):
     def _add_link(self, line):
         return line
 
-    def render(self):
+    def render(self, existing_content=""):
         if not self.content and not self.h2:
-            return None
+            return ""
         content = []
         content.append(self._render_header())
         if self.content:
             content.append(self._render_content())
         if self.h2:
             content.append(self._render_h2())
-        return u"\r\n".join(content)
+        return "\r\n".join(content)
 
     def _render_header(self):
-        return u"# {}\r\n".format(self.title)
+        return "# {}\r\n".format(self.title)
 
     def _render_content(self):
-        return u"\r\n".join(self.content)
+        return "\r\n".join(self.content)
 
     def _render_h2(self):
         content = []
         for h2_title in self.h2.keys():
-            content.append(u"\r\n## {}\r\n".format(h2_title))
-            content.append(u"\r\n".join(self.h2[h2_title]))
-        return u"\r\n".join(content)
+            content.append("\r\n## {}\r\n".format(h2_title))
+            content.append("\r\n".join(self.h2[h2_title]))
+        return "\r\n".join(content)
 
 
 class GithubLinesParser(ChangeNotesLinesParser):
@@ -171,7 +174,7 @@ class IssuesParser(ChangeNotesLinesParser):
         issues = []
         for issue in sorted(self.content):
             issues.append("#{}".format(issue))
-        return u"\r\n".join(issues)
+        return "\r\n".join(issues)
 
 
 class GithubIssuesParser(IssuesParser):
@@ -231,7 +234,7 @@ class GithubIssuesParser(IssuesParser):
             content.append(txt)
             if self.publish:
                 self._add_issue_comment(issue)
-        return u"\r\n".join(content)
+        return "\r\n".join(content)
 
     def _get_issue(self, issue_number):
         try:
@@ -283,3 +286,59 @@ class GithubIssuesParser(IssuesParser):
                 break
         if not has_comment:
             issue.create_comment("{} {}".format(comment_prefix, version_str))
+
+
+class InstallLinkParser(ChangeNotesLinesParser):
+    def parse(self, change_note):
+        # There's no need to parse lines, this parser gets its values from task options
+        return False
+
+    def render(self, existing_content=""):
+        version_id = self.release_notes_generator.version_id
+        trial_info = self.release_notes_generator.trial_info
+
+        if (
+            not version_id
+            and not self.release_notes_generator.sandbox_date
+            and not self.release_notes_generator.production_date
+            and not trial_info
+        ):
+            return existing_content
+        result = [self._render_header()]
+        if (
+            self.release_notes_generator.sandbox_date
+            or self.release_notes_generator.production_date
+        ):
+            result.append("## Push Schedule")
+            if self.release_notes_generator.sandbox_date:
+                result.append(
+                    f"Sandbox orgs: {self.release_notes_generator.sandbox_date}"
+                )
+            if self.release_notes_generator.production_date:
+                result.append(
+                    f"Production orgs: {self.release_notes_generator.production_date}",
+                )
+        if version_id:
+            version_id = urllib.parse.quote_plus(version_id)
+            if (
+                self.release_notes_generator.sandbox_date
+                or self.release_notes_generator.production_date
+            ):
+                result.append("")
+            result += [
+                "Sandbox & Scratch Orgs:",
+                f"{SANDBOX_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+                "",
+                "Production & Developer Edition Orgs:",
+                f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
+            ]
+
+        if trial_info is True:
+            if (
+                version_id
+                or self.release_notes_generator.sandbox_date
+                or self.release_notes_generator.production_date
+            ):
+                result.append("")
+            result += ["## Trialforce Template ID", "`TBD`"]
+        return "\r\n".join(result)

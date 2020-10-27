@@ -1,9 +1,12 @@
 from distutils.version import LooseVersion
 import io
+import json
 import os
 import re
 from pathlib import Path
 from configparser import ConfigParser
+from itertools import chain
+from contextlib import contextmanager
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -27,7 +30,9 @@ from cumulusci.core.github import find_previous_release
 from cumulusci.core.source import GitHubSource
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
+from cumulusci.utils.git import current_branch, git_path
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from cumulusci.utils.fileutils import open_fs_resource
 
 from github3.exceptions import NotFoundError
 
@@ -37,8 +42,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     config_filename = "cumulusci.yml"
 
-    def __init__(self, global_config_obj, config=None, *args, **kwargs):
-        self.global_config_obj = global_config_obj
+    def __init__(self, universal_config_obj, config=None, *args, **kwargs):
+        self.universal_config_obj = universal_config_obj
         self.keychain = None
 
         # optionally pass in a repo_info dict
@@ -92,7 +97,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
         # Load the project's yaml config file
-        with open(self.config_project_path, "r") as f_config:
+        with open(self.config_project_path, "r", encoding="utf-8") as f_config:
             project_config = cci_safe_load(f_config)
 
         if project_config:
@@ -100,7 +105,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
-            with open(self.config_project_local_path, "r") as f_local_config:
+            with open(
+                self.config_project_local_path, "r", encoding="utf-8"
+            ) as f_local_config:
                 local_config = cci_safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
@@ -113,8 +120,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         self.config = merge_config(
             {
+                "universal_config": self.config_universal,
                 "global_config": self.config_global,
-                "global_local": self.config_global_local,
                 "project_config": self.config_project,
                 "project_local_config": self.config_project_local,
                 "additional_yaml": self.config_additional_yaml,
@@ -137,12 +144,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             raise ConfigError(message)
 
     @property
-    def config_global_local(self):
-        return self.global_config_obj.config_global_local
+    def config_global(self):
+        return self.universal_config_obj.config_global
 
     @property
-    def config_global(self):
-        return self.global_config_obj.config_global
+    def config_universal(self):
+        return self.universal_config_obj.config_universal
 
     @property
     def repo_info(self):
@@ -183,7 +190,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return self._repo_info
 
     def _apply_repo_env_var_overrides(self, info):
-        """ Apply CUMULUSCI_REPO_* environment variables last so they can
+        """Apply CUMULUSCI_REPO_* environment variables last so they can
         override and fill in missing values from the CI environment"""
         self._override_repo_env_var("CUMULUSCI_REPO_BRANCH", "branch", info)
         self._override_repo_env_var("CUMULUSCI_REPO_COMMIT", "commit", info)
@@ -246,25 +253,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return {"url": url, "owner": owner, "name": name}
 
-    def git_path(self, tail=None):
-        """Returns a Path to the .git directory in self.repo_root
-        with tail appended (if present) or None if self.repo_root
-        is not set."""
-        path = None
-        if self.repo_root:
-            path = Path(self.repo_root) / ".git"
-            if tail is not None:
-                path = path / str(tail)
-        return path
-
     def git_config_remote_origin_url(self):
         """Returns the url under the [remote origin]
         section of the .git/config file. Returns None
         if .git/config file not present or no matching
-        line is found. """
+        line is found."""
         config = ConfigParser(strict=False)
         try:
-            config.read(self.git_path("config"))
+            config.read(git_path(self.repo_root, "config"))
             url = config['remote "origin"']["url"]
         except (KeyError, TypeError):
             url = None
@@ -276,15 +272,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if path:
             return path
 
-        path = Path(os.path.splitdrive(Path.cwd())[1])
-        while True:
+        path = Path.cwd().resolve()
+        paths = chain((path,), path.parents)
+        for path in paths:
             if (path / ".git").is_dir():
                 return str(path)
-            head, tail = os.path.split(path)
-            if not tail:
-                # reached the root
-                break
-            path = Path(head)
 
     @property
     def repo_name(self):
@@ -331,10 +323,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        with open(self.git_path("HEAD"), "r") as f:
-            branch_ref = f.read().strip()
-        if branch_ref.startswith("ref: "):
-            return "/".join(branch_ref[5:].split("/")[2:])
+        return current_branch(self.repo_root)
 
     @property
     def repo_commit(self):
@@ -434,22 +423,39 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def project_local_dir(self):
-        """ location of the user local directory for the project
-        e.g., ~/.cumulusci/NPSP-Extension-Test/ """
+        """location of the user local directory for the project
+        e.g., ~/.cumulusci/NPSP-Extension-Test/"""
 
-        # depending on where we are in bootstrapping the BaseGlobalConfig
+        # depending on where we are in bootstrapping the UniversalConfig
         # the canonical projectname could be located in one of two places
         if self.project__name:
             name = self.project__name
         else:
             name = self.config_project.get("project", {}).get("name", "")
 
-        path = os.path.join(
-            os.path.expanduser("~"), self.global_config_obj.config_local_dir, name
-        )
+        path = str(self.universal_config_obj.cumulusci_config_dir / name)
         if not os.path.isdir(path):
             os.makedirs(path)
         return path
+
+    @property
+    def default_package_path(self):
+        if self.project__source_format == "sfdx":
+            relpath = "force-app"
+            for pkg in self.sfdx_project_config.get("packageDirectories", []):
+                if pkg.get("default"):
+                    relpath = pkg["path"]
+        else:
+            relpath = "src"
+        return Path(self.repo_root, relpath).resolve()
+
+    @property
+    def sfdx_project_config(self):
+        with open(
+            Path(self.repo_root) / "sfdx-project.json", "r", encoding="utf-8"
+        ) as f:
+            config = json.load(f)
+        return config
 
     def get_tag_for_version(self, version):
         if "(Beta" in version:
@@ -519,7 +525,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return (release, ref)
 
-    def get_static_dependencies(self, dependencies=None, include_beta=None):
+    def get_static_dependencies(
+        self, dependencies=None, include_beta=None, ignore_deps=None
+    ):
         """Resolves the project -> dependencies section of cumulusci.yml
         to convert dynamic github dependencies into static dependencies
         by inspecting the referenced repositories.
@@ -527,6 +535,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         Keyword arguments:
         :param dependencies: a list of dependencies to resolve
         :param include_beta: when true, return the latest github release, even if pre-release; else return the latest stable release
+        :param ignore_deps: if provided, ignore the specified dependencies wherever found.
         """
         if not dependencies:
             dependencies = self.project__dependencies
@@ -536,14 +545,30 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         static_dependencies = []
         for dependency in dependencies:
+            if self._should_ignore_dependency(dependency, ignore_deps):
+                continue
+
             if "github" not in dependency:
                 static_dependencies.append(dependency)
             else:
                 static = self.process_github_dependency(
-                    dependency, include_beta=include_beta
+                    dependency, include_beta=include_beta, ignore_deps=ignore_deps
                 )
                 static_dependencies.extend(static)
         return static_dependencies
+
+    def _should_ignore_dependency(self, dependency, ignore_deps):
+        if not ignore_deps:
+            return False
+
+        if "github" in dependency:
+            return dependency["github"] in [dep.get("github") for dep in ignore_deps]
+        elif "namespace" in dependency:
+            return dependency["namespace"] in [
+                dep.get("namespace") for dep in ignore_deps
+            ]
+
+        return False
 
     def pretty_dependencies(self, dependencies, indent=None):
         if not indent:
@@ -570,13 +595,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return pretty
 
     def process_github_dependency(  # noqa: C901
-        self, dependency, indent=None, include_beta=None
+        self, dependency, indent=None, include_beta=None, ignore_deps=None
     ):
         if not indent:
             indent = ""
 
         self.logger.info(
-            f"{indent}Processing dependencies from Github repo {dependency['github']}"
+            f"{indent}Collecting dependencies from Github repo {dependency['github']}"
         )
 
         skip = dependency.get("skip")
@@ -635,7 +660,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         "ref": ref,
                         "subfolder": subfolder,
                         "unmanaged": dependency.get("unmanaged"),
-                        "namespace_tokenize": dependency.get("namespace_tokenize"),
                         "namespace_inject": dependency.get("namespace_inject"),
                         "namespace_strip": dependency.get("namespace_strip"),
                     }
@@ -655,7 +679,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
-                    "namespace_tokenize": dependency.get("namespace_tokenize"),
                     "namespace_inject": dependency.get("namespace_inject"),
                     "namespace_strip": dependency.get("namespace_strip"),
                 }
@@ -682,7 +705,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
-                    "namespace_tokenize": dependency.get("namespace_tokenize"),
                     "namespace_inject": dependency.get("namespace_inject"),
                     "namespace_strip": dependency.get("namespace_strip"),
                 }
@@ -698,7 +720,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         dependencies = project.get("dependencies")
         if dependencies:
             dependencies = self.get_static_dependencies(
-                dependencies, include_beta=include_beta
+                dependencies, include_beta=include_beta, ignore_deps=ignore_deps
             )
 
         # Create the final ordered list of all parsed dependencies
@@ -812,9 +834,25 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def construct_subproject_config(self, **kwargs):
         """Construct another project config for an external source"""
         return self.__class__(
-            self.global_config_obj, included_sources=self.included_sources, **kwargs
+            self.universal_config_obj, included_sources=self.included_sources, **kwargs
         )
 
     def relpath(self, path):
         """Convert path to be relative to the project repo root."""
         return os.path.relpath(os.path.join(self.repo_root, path))
+
+    @property
+    def cache_dir(self):
+        "A project cache which is on the local filesystem. Prefer open_cache where possible."
+        assert self.repo_root
+        cache_dir = Path(self.repo_root, ".cci")
+        cache_dir.mkdir(exist_ok=True)
+        return cache_dir
+
+    @contextmanager
+    def open_cache(self, cache_name):
+        "A context managed PyFilesystem-based cache which could theoretically be on any filesystem."
+        with open_fs_resource(self.cache_dir) as cache_dir:
+            cache = cache_dir / cache_name
+            cache.mkdir(exist_ok=True)
+            yield cache

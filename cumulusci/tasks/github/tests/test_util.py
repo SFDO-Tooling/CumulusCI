@@ -1,9 +1,10 @@
 import hashlib
-from unittest import mock
 import unittest
+from unittest import mock
 
-from github3.repos import Repository
 from github3.git import Tree
+from github3.repos import Repository
+
 from cumulusci.core.exceptions import GithubException
 from cumulusci.tasks.github.util import CommitDir
 from cumulusci.utils import temporary_dir
@@ -36,6 +37,12 @@ class TestCommitDir(unittest.TestCase):
                         {
                             "type": "blob",
                             "mode": "100644",
+                            "path": "dir/deleteme",
+                            "sha": "deletedfilesha",
+                        },
+                        {
+                            "type": "blob",
+                            "mode": "100644",
                             "path": "dir/unchanged",
                             "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
                         },
@@ -59,7 +66,7 @@ class TestCommitDir(unittest.TestCase):
                 f.write("new")
             with open(".hidden", "w") as f:
                 pass
-            commit(d, "master", "dir", dry_run=True)
+            commit(d, "main", "dir", dry_run=True)
             assert commit.new_tree_list == [
                 {
                     "sha": "bogus2",
@@ -84,7 +91,7 @@ class TestCommitDir(unittest.TestCase):
                 },
                 {"path": "dir/new", "mode": "100644", "type": "blob", "sha": None},
             ]
-            commit(d, "master", "dir", commit_message="msg")
+            commit(d, "main", "dir", commit_message="msg")
         repo.create_commit.assert_called_once()
 
     def test_call__no_changes(self):
@@ -96,7 +103,7 @@ class TestCommitDir(unittest.TestCase):
                 )
             )
             commit = CommitDir(repo)
-            commit(d, "master", commit_message="msg")
+            commit(d, "main", commit_message="msg")
         repo.create_commit.assert_not_called()
 
     def test_validate_dirs(self):
@@ -122,7 +129,7 @@ class TestCommitDir(unittest.TestCase):
                 f.write("new")
             commit = CommitDir(repo)
             with self.assertRaises(GithubException):
-                commit(d, "master", commit_message="msg")
+                commit(d, "main", commit_message="msg")
 
     def test_call__error_creating_commit(self):
         with temporary_dir() as d:
@@ -137,7 +144,7 @@ class TestCommitDir(unittest.TestCase):
                 f.write("new")
             commit = CommitDir(repo)
             with self.assertRaises(GithubException):
-                commit(d, "master", commit_message="msg")
+                commit(d, "main", commit_message="msg")
 
     def test_call__error_updating_head(self):
         with temporary_dir() as d:
@@ -154,7 +161,7 @@ class TestCommitDir(unittest.TestCase):
                 f.write("new")
             commit = CommitDir(repo)
             with self.assertRaises(GithubException):
-                commit(d, "master", commit_message="msg")
+                commit(d, "main", commit_message="msg")
 
     def test_create_blob__handles_decode_error(self):
         repo = mock.Mock(spec=Repository)

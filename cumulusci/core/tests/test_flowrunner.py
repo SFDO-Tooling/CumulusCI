@@ -59,7 +59,7 @@ class AbstractFlowCoordinatorTest(object):
     def setUp(self):
         self.project_config = create_project_config("TestOwner", "TestRepo")
         self.org_config = OrgConfig(
-            {"username": "sample@example", "org_id": ORG_ID}, "test"
+            {"username": "sample@example", "org_id": ORG_ID}, "test", mock.Mock()
         )
         self.org_config.refresh_oauth_token = mock.Mock()
 
@@ -131,6 +131,15 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual(len(flow.steps), 1)
         self.assertEqual(hasattr(flow, "logger"), True)
 
+    def test_step_sorting(self):
+        self.project_config.config["flows"] = {
+            "test": {"steps": {"1": {"flow": "subflow"}, "1.1": {"task": "pass_name"}}},
+            "subflow": {"steps": {"1": {"task": "pass_name"}}},
+        }
+        flow_config = self.project_config.get_flow("test")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        assert [str(step.step_num) for step in flow.steps] == ["1/1", "1.1"]
+
     def test_get_summary(self):
         self.project_config.config["flows"]["test"] = {
             "description": "test description",
@@ -141,11 +150,44 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         actual_output = flow.get_summary()
         expected_output = (
             "Description: test description"
+            + "\n\nFlow Steps"
             + "\n1) flow: nested_flow_2 [from current folder]"
             + "\n    1) task: pass_name"
             + "\n    2) flow: nested_flow"
             + "\n        1) task: pass_name"
         )
+        self.assertEqual(expected_output, actual_output)
+
+    def test_get_flow_steps(self):
+        self.project_config.config["flows"]["test"] = {
+            "description": "test description",
+            "steps": {"1": {"flow": "nested_flow_2"}},
+        }
+        flow_config = self.project_config.get_flow("test")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        actual_output = flow.get_flow_steps()
+        expected_output = [
+            "1) flow: nested_flow_2 [from current folder]",
+            "    1) task: pass_name",
+            "    2) flow: nested_flow",
+            "        1) task: pass_name",
+        ]
+        self.assertEqual(expected_output, actual_output)
+
+    def test_get_flow_steps__for_docs(self):
+        self.project_config.config["flows"]["test"] = {
+            "description": "test description",
+            "steps": {"1": {"flow": "nested_flow_2"}},
+        }
+        flow_config = self.project_config.get_flow("test")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        actual_output = flow.get_flow_steps(for_docs=True)
+        expected_output = [
+            "1) flow: nested_flow_2",
+            "    1) task: pass_name",
+            "    2) flow: nested_flow",
+            "        1) task: pass_name",
+        ]
         self.assertEqual(expected_output, actual_output)
 
     def test_get_summary__substeps(self):
@@ -174,11 +216,13 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 ),
             ],
         )
+        actual_output = flow.get_summary()
         assert (
-            "1) flow: test"
+            "\nFlow Steps"
+            + "\n1) flow: test"
             + "\n    1) task: other:test1 [from other source]"
             + "\n    2) task: test2 [from current folder]"
-        ) == flow.get_summary()
+        ) == actual_output
 
     def test_init__options(self):
         """ A flow can accept task options and pass them to the task. """
@@ -233,8 +277,8 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
             FlowCoordinator(self.project_config, flow_config, name="test")
 
     def test_init__task_not_found(self):
-        """ A flow with reference to a task that doesn't exist in the
-        project will throw a TaskNotFoundError """
+        """A flow with reference to a task that doesn't exist in the
+        project will throw a TaskNotFoundError"""
 
         flow_config = FlowConfig(
             {
@@ -466,7 +510,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         self.assertEqual(1, len(org_id_logs))
 
     def test_init_org_updates_keychain(self):
-        self.project_config.keychain.set_org = set_org = mock.Mock()
+        self.org_config.save = save = mock.Mock()
 
         def change_username(keychain):
             self.org_config.config["username"] = "sample2@example"
@@ -478,7 +522,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow.org_config = self.org_config
         flow._init_org()
 
-        set_org.assert_called_once()
+        save.assert_called_once()
 
 
 class StepSpecTest(unittest.TestCase):
