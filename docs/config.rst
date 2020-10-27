@@ -33,21 +33,41 @@ With some simple changes to this section, you can configure a lot of build autom
 
 Overriding a Task Option
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The `internal cumulusci.yml file <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ that ships with CumulusCI defines the `deploy task <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L129>`_ with the following YAML::
+If you are continually specifying the same value for an option while running a task, you can configure CumulusCI to use that particular value when running a task without needing to specify it yourself.
+Say that you want to enforce a 90% code coverage requirement for Apex code in your project. 
+The `run_tests <TODO>`_ task, which executes all Apex Tests in a target org, can be passed the `required_org_code_coverage_percent` option to enfore code coverage at a given percentage.
 
-    tasks:
-        deploy:
-            description: Deploys the src directory of the repository to the org
-            class_path: cumulusci.tasks.salesforce.Deploy
-            options:
-                path: src
+.. code-block:: yaml
 
-You can **override** the ``path`` option by adding the following to your project's ``cumulusci.yml`` file::
+    run_tests:
+        options:
+            required_org_code_coverage_percent: 90
 
-    tasks:
-        deploy:
-            options:
-                path: some_other_dir
+Placing this code under the ``tasks`` section of the project's ``cumulusci.yml`` file tells CumulusCI to override the given option with a value of ``90`` everytime the ``run_tests`` task executes.
+With this change in place we can verify the change by looking for a default option value when examining the task information:
+
+.. code-block:: yaml
+
+    $ cci task info run_tests
+    run_tests
+
+    Description: Runs all apex tests
+
+    Class: cumulusci.tasks.apex.testrunner.RunApexTests
+
+    Command Syntax
+
+        $ cci task run run_tests
+
+    Options
+        .
+        .
+        .
+      -o required_org_code_coverage_percent PERCENTAGE
+        Optional
+        Require at least X percent code coverage across the org following the test run.
+        Default: 90
+
 
 
 Add a Custom Task
@@ -107,7 +127,7 @@ To define a new flow for your porject, simply add the name of the new flow under
                 task: util_sleep
 
 This is a flow comprised of two tasks; ``command`` greets the user by echoing and string, and ``util_sleep`` then tells CumulusCI to sleep for five seconds.
-You can reference how we defined the flows for the standard library `here <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L565>`_.
+You can reference how the flows are defined in the internal ``cumulusci.yml`` file `here <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L565>`_.
 
 
 Add a Flow Step
@@ -148,15 +168,27 @@ If we wanted to add a step at the beginning of the dev org flow, valid step numb
 Example values would include: 0, 0.3, and 0.89334.
 All of these would cause the step to execute before step 1 in the ``dev_org`` flow.
 
-If you wanted to add a step between steps 2 and 3, then a step number of 2.5 could be utilized.
+If you want to add a step **between** steps 2 and 3, then a step number of 2.5 can be used.
 
-If you wanted to add a step number that runs after all steps in the flow, then any step number greater than 4 could be utilized.
+If you want to add a step **after** all steps in the flow, then any step number greater than 4 can be used.
+
+You could add an additional log line at the end of the ``dev_org`` flow with the following under the ``flows`` section of your project's ``cumulusci.yml`` file:
+
+.. code-block:: yaml
+
+    dev_org:
+        steps:
+            5:
+                task: log
+                    options:
+                        line: dev_org flow has completed
+
 
 
 
 Skip a Flow Step
 ^^^^^^^^^^^^^^^^
-To skip a flow step, set the desired step number to a task with the value of ``None``.
+To skip a flow step, set the desired step number to a task or flow with the value of ``None``.
 The following would skip the 4th step from the ``dev_org`` flow.
 
 .. code-block:: yaml
@@ -165,6 +197,10 @@ The following would skip the 4th step from the ``dev_org`` flow.
         steps:
             4:
                 task: None
+
+.. note::
+    The value of ``task`` must be used when skipping a flow step that is a task.
+    The value of ``flow`` must be used when skipping a flow step that corresponds to a flow.
 
 When CumulusCI detects a task with this value, it is skipped:
 
@@ -188,19 +224,53 @@ You can swap two steps in a flow by replacing one with the other.
 
 
 
-
-
-
 Configuring Options on Tasks When Running a Subflow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TODO
+You can specify options on tasks in subflows with the following syntax:
+
+.. code-block:: yaml
+
+    <flow_to_modify>:
+        steps:
+            <step_number>:
+                flow: <sub_flow_name>
+                options:
+                    <task_name>:
+                        <option_name>: <value>
+
+All values with ``<>`` would be replaced with the desired values.
+Let's examine the definition of the ``ci_master`` flow from the internal ``cumulusci.yml`` file:
+
+.. code-block::
+
+    ci_master:
+        group: Continuous Integration
+        description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
+        steps:
+            1:
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: False
+            2:
+                flow: deploy_packaging
+            3:
+                flow: config_packaging
+
+This flow specifies that when the sub-flow ``dependencies`` runs, to pass the ``include_beta`` option with a value of ``False`` to the ``update_dependencies`` task (executed in the ``dependencies`` sub-flow). 
 
 
 
 Using ``when`` Clauses
 ^^^^^^^^^^^^^^^^^^^^^^
-TODO
+You can specify a ``when`` clause in a flow step to conditionally run that step.
+A ``when`` clause is written in a Pythonic syntax that can evaluate to a boolean result.
 
+The variables that are available for reference in when clasues 
+
+A common use case is to be able to check 
+
+See `using variables for task options`_ for more information.
 
 Org Configurations
 -------------------
