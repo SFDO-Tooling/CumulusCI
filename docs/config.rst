@@ -1,5 +1,8 @@
 Configuring CumulusCI
 =====================
+CumulusCI is configured using files called cumulusci.yml which define the automation that is available for a project.
+By default, a project inherits a default configuration from the cumulusci.yml file in CumulusCI itself, which we call the "universal config".
+A project can tailor CumulusCI by overriding specific parts of the configuration in the cumulusci.yml file within the project directory, which we call the "project config."
 
 
 
