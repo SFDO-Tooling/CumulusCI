@@ -160,7 +160,8 @@ class RunApexTests(BaseSalesforceApiTask):
             "a retry. Set retry_always to True to retry all failed tests if any failure matches."
         },
         "required_org_code_coverage_percent": {
-            "description": "Require at least X percent code coverage across the org following the test run."
+            "description": "Require at least X percent code coverage across the org following the test run.",
+            "usage": "-o required_org_code_coverage_percent PERCENTAGE",
         },
         "verbose": {
             "description": "By default, only failures get detailed output. "
