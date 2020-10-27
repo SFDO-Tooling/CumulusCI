@@ -3248,6 +3248,11 @@ Options
 
 	 Set an XUnit format output file for test results
 
+``-o sources SOURCES``
+	 *Optional*
+
+	 List of sources defined in cumulusci.yml that are required by the robot task.
+
 ``-o options OPTIONS``
 	 *Optional*
 
