@@ -99,10 +99,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             version_type=self.options.get("version_type") or "minor",
         )
         self.options["skip_validation"] = process_bool_arg(
-            self.options.get("skip_validation", False)
+            self.options.get("skip_validation") or False
         )
         self.options["force_upload"] = process_bool_arg(
-            self.options.get("force_upload", False)
+            self.options.get("force_upload") or False
         )
 
     def _init_task(self):

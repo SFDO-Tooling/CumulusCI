@@ -132,7 +132,9 @@ class ParentPullRequestNotes(BaseGithubTask):
         self.repo = self.get_repo()
         self.commit = self.repo.commit(self.project_config.repo_commit)
         self.branch_name = self.options.get("branch_name")
-        self.force_rebuild_change_notes = process_bool_arg(self.options["force"])
+        self.force_rebuild_change_notes = process_bool_arg(
+            self.options["force"] or False
+        )
         self.generator = ParentPullRequestNotesGenerator(
             self.github, self.repo, self.project_config
         )

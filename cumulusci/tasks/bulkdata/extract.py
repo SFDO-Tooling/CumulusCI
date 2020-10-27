@@ -23,9 +23,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     get_query_operation,
 )
-from cumulusci.tasks.bulkdata.dates import (
-    adjust_relative_dates,
-)
+from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
 from cumulusci.utils import os_friendly_path, log_progress
 from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
@@ -71,11 +69,12 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 "You must set either the database_url or sql_path option."
             )
 
+        inject_namespaces = self.options.get("inject_namespaces")
         self.options["inject_namespaces"] = process_bool_arg(
-            self.options.get("inject_namespaces", True)
+            True if inject_namespaces is None else inject_namespaces
         )
         self.options["drop_missing_schema"] = process_bool_arg(
-            self.options.get("drop_missing_schema", False)
+            self.options.get("drop_missing_schema") or False
         )
 
     def _run_task(self):

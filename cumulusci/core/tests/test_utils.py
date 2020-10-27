@@ -28,7 +28,10 @@ class TestUtils(unittest.TestCase):
         for arg in (False, "False", "false", "0"):
             self.assertFalse(utils.process_bool_arg(arg))
 
-        assert utils.process_bool_arg(None) is False
+        import warnings
+
+        with warnings.catch_warnings(record=True):
+            assert utils.process_bool_arg(None) is False
 
         with pytest.raises(TypeError):
             utils.process_bool_arg(datetime.datetime.now())
