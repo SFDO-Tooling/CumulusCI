@@ -99,10 +99,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             version_type=self.options.get("version_type") or "minor",
         )
         self.options["skip_validation"] = process_bool_arg(
-            self.options.get("skip_validation", False)
+            self.options.get("skip_validation") or False
         )
         self.options["force_upload"] = process_bool_arg(
-            self.options.get("force_upload", False)
+            self.options.get("force_upload") or False
         )
 
     def _init_task(self):
@@ -319,7 +319,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
             # Add the dependencies for the package
             is_dependency = package_config is not self.package_config
-            if not package_config.org_dependent and not is_dependency:
+            if (
+                not (package_config.org_dependent or skip_validation)
+                and not is_dependency
+            ):
                 self.logger.info("Determining dependencies for package")
                 dependencies = self._get_dependencies()
             if dependencies:

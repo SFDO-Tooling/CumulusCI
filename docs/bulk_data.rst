@@ -302,21 +302,29 @@ the automatic primary key.
 Handling Namespaces
 +++++++++++++++++++
 
-All CumulusCI bulk data tasks support automatic namespace injection. When you build a
-mapping file for a managed package product, it is recommended to start with a non-namespaced,
-unmanaged scratch org, resulting in a mapping that does not contain any references to the
-product's namespace. 
+All CumulusCI bulk data tasks support automatic namespace injection or removal. In other words,
+the same mapping file will work for namespaced and unnamespaced orgs, as well as orgs with
+the package installed managed or unmanaged. If a mapping element has no namespace prefix and
+adding the project's namespace prefix is required to match a name in the org, CumulusCI will
+add one. Similarly, if removing a namespace is necessary, CumulusCI will do so.
 
-CumulusCI by default will automatically resolve these fields to their namespaced versions 
-when data operations are run against an org that contains the project in managed form. In the
-extremely rare circumstance that an org contains the same mapped schema element in both
-namespaced and non-namespaced form, CumulusCI does not perform namespace injection for that element.
+In the extremely rare circumstance that an org contains the same mapped schema element in both
+namespaced and non-namespaced form, CumulusCI does not perform namespace injection or removal
+for that element.
 
 Namespace injection can be deactivated by setting the ``inject_namespaces`` option to ``False``.
 
-It's also possible, and common in existing managed package products, to use multiple mapping files
-to achieve loading the same data set in both namespaced and non-namespaced contexts. A mapping file
-that is converted to use explicit namespacing might look like this:
+The ``generate_dataset_mapping`` generates mapping files with no namespace and this is the
+most common pattern in CumulusCI projects.
+
+Multiple Namespaces Through Multiple Mapping Files
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+It's also possible, and common in older managed package products, to use multiple mapping files
+to achieve loading the same data set in both namespaced and non-namespaced contexts. This is no
+longer recommended practice.
+
+A mapping file that is converted to use explicit namespacing might look like this:
 
 Original version: ::
 

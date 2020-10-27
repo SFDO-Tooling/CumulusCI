@@ -69,7 +69,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _get_api(self, path=None):
         if not path:
-            path = self.task_config.options__path
+            path = self.options.get("path")
 
         package_zip = self._get_package_zip(path)
         self.logger.info("Payload size: {} bytes".format(len(package_zip)))
@@ -94,6 +94,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
         return ns == self.org_config.namespace
 
     def _get_package_zip(self, path):
+        assert path, f"Path should be specified for {self.__class__.name}"
         if "namespace_inject" in self.options:
             namespace = self.options["namespace_inject"]
         else:
