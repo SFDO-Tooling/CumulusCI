@@ -228,7 +228,7 @@ To define a new flow for your project, simply add the name of the new flow under
             2:
                 task: util_sleep
 
-This is a flow comprised of two tasks; ``command`` greets the user by echoing and string, and ``util_sleep`` then tells CumulusCI to sleep for five seconds.
+This is a flow comprised of two tasks; ``command`` greets the user by echoing a string, and ``util_sleep`` then tells CumulusCI to sleep for five seconds.
 You can reference how the flows are defined in the universal ``cumulusci.yml`` file `here <https://github.com/SFDO-Tooling/CumulusCI/blob/d038f606d97f50a71ba1d2d6e9462a249b28864e/cumulusci/cumulusci.yml#L565>`_.
 
 

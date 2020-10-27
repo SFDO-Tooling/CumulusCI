@@ -41,8 +41,12 @@ In this case, we actually utilize ``SFDXBaseTask``, if you would like to run a `
 
 Custom Deploy
 ************************
-It is often useful to be able to define multiple custom deployment tasks, particularly when working with `unpackaged Metadata <TODO>`_.
-For example,  here is a custom task that is defined to only deploy reports::
+It is often useful to be able to define multiple custom deployment tasks that deployg a specific subset of your projects metadata.
+This is particularly true when working with `unpackaged Metadata <TODO>`_.
+
+Here is a custom task that is defined to only deploy only the metadata contained in ``unmanaged/config/reports``.
+
+.. code-block:: yaml
 
     deploy_reports:
         description: Deploy Reports 
@@ -50,6 +54,7 @@ For example,  here is a custom task that is defined to only deploy reports::
         options:
             path: unmanaged/config/reports    
 
+Being able to give this task a new name makes it much more intuitive as to what the task is actually doing.
 Multiple custom deploy tasks like this allow NPSP to `create flows <https://github.com/SalesforceFoundation/NPSP/blob/87daa94f9494d28ce3a5cc52bd5d5308cc804a2b/cumulusci.yml#L692>` that make it easy to define the order that Metadata is deployed in.
             
 
