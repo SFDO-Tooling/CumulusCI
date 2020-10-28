@@ -312,8 +312,12 @@ def version():
     "--scope",
     help="Scope of the configuraiton you would like to see. Ex: 'tasks:robot'",
 )
+@click.option(
+    "--outfile",
+    help="Writes the output to a file with the given name.",
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def config(runtime, scope):
+def config(runtime, scope, outfile):
     # the various cumulusci.yml files
     u_conf = runtime.universal_config.config_universal
     g_conf = runtime.universal_config.config_global
@@ -352,8 +356,9 @@ def config(runtime, scope):
 
     click.echo(pprint(conf_debug))
 
-    with open("config_debug.yml", "w") as f:
-        yaml.dump(conf_debug, f)
+    if outfile:
+        with open(outfile, "w") as f:
+            yaml.dump(conf_debug, f)
 
 
 def filter_dicts(scope, configs):
