@@ -1377,7 +1377,7 @@ def task_doc(runtime, project=False, write=False):
             continue
         task_config = TaskConfig(task_config_dict)
         doc = doc_task(name, task_config)
-        result += [f"{doc}", ""]
+        result += [doc, ""]
     result = "\r\n".join(result)
 
     if write:
