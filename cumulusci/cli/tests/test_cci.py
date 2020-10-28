@@ -1801,31 +1801,42 @@ Environment Info: Rossian / x68_46
         run_click_command(cci.task_doc, runtime=runtime, project=False)
         doc_task.assert_called()
 
+    def test_task_doc__project__outside_project(self):
+        runtime = mock.Mock()
+        runtime.project_config = None
+        with pytest.raises(click.UsageError):
+            run_click_command(cci.task_doc, runtime=runtime, project=True)
+
     @mock.patch("click.echo")
     @mock.patch("cumulusci.cli.cci.doc_task")
     def test_task_doc_project(self, doc_task, echo):
         runtime = mock.Mock()
-        runtime.universal_config.tasks = {"test": {}}
-        runtime.project_config.config = {
-            "project": {"name": "Test"},
-            "tasks": {"option": {"a": "b"}},
-        }
-        runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
+        runtime.universal_config = {"tasks": {}}
+        runtime.project_config = BaseProjectConfig(
+            runtime.universal_config,
+            {
+                "project": {"name": "Test"},
+                "tasks": {"task1": {"a": "b"}, "task2": {}},
+            },
+        )
+        runtime.project_config.config_project = {"tasks": {"task1": {"a": "b"}}}
         run_click_command(cci.task_doc, runtime=runtime, project=True)
         doc_task.assert_called()
         echo.assert_called()
 
-    @mock.patch("cumulusci.cli.cci.open")
+    @mock.patch("cumulusci.cli.cci.Path")
     @mock.patch("click.echo")
     @mock.patch("cumulusci.cli.cci.doc_task")
-    def test_task_doc_project_write(self, doc_task, echo, open):
+    def test_task_doc_project_write(self, doc_task, echo, Path):
         runtime = mock.Mock()
         runtime.universal_config.tasks = {"test": {}}
-        runtime.project_config.config = {
-            "project": {"name": "Test"},
-            "tasks": {"option": {"a": "b"}},
-        }
-        open.__enter__ = mock.Mock()
+        runtime.project_config = BaseProjectConfig(
+            runtime.universal_config,
+            {
+                "project": {"name": "Test"},
+                "tasks": {"option": {"a": "b"}},
+            },
+        )
         runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
         run_click_command(cci.task_doc, runtime=runtime, project=True, write=True)
         doc_task.assert_called()
