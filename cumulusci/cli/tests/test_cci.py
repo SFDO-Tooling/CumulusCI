@@ -1794,7 +1794,7 @@ Environment Info: Rossian / x68_46
 
         json_.assert_called_with([task_dicts])
 
-    @mock.patch("cumulusci.cli.cci.doc_task")
+    @mock.patch("cumulusci.cli.cci.doc_task", return_value="docs")
     def test_task_doc(self, doc_task):
         runtime = mock.Mock()
         runtime.universal_config.tasks = {"test": {}}
@@ -1808,7 +1808,7 @@ Environment Info: Rossian / x68_46
             run_click_command(cci.task_doc, runtime=runtime, project=True)
 
     @mock.patch("click.echo")
-    @mock.patch("cumulusci.cli.cci.doc_task")
+    @mock.patch("cumulusci.cli.cci.doc_task", return_value="docs")
     def test_task_doc_project(self, doc_task, echo):
         runtime = mock.Mock()
         runtime.universal_config = {"tasks": {}}
@@ -1826,7 +1826,7 @@ Environment Info: Rossian / x68_46
 
     @mock.patch("cumulusci.cli.cci.Path")
     @mock.patch("click.echo")
-    @mock.patch("cumulusci.cli.cci.doc_task")
+    @mock.patch("cumulusci.cli.cci.doc_task", return_value="docs")
     def test_task_doc_project_write(self, doc_task, echo, Path):
         runtime = mock.Mock()
         runtime.universal_config.tasks = {"test": {}}
