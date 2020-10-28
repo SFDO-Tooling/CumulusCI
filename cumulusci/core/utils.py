@@ -13,7 +13,11 @@ from shutil import rmtree
 from typing import Union
 import warnings
 
-from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
+from cumulusci.core.exceptions import (
+    ConfigMergeError,
+    CumulusCIException,
+    TaskOptionsError,
+)
 
 
 def import_global(path):
@@ -151,10 +155,11 @@ def merge_config(configs):
     return new_config
 
 
-def dictmerge(a, b, name=None):
+def dictmerge(a, b, name=None, prefix=None):
     """Deeply merge two ``dict``s that consist of lists, dicts, and scalars.
     This function (recursively) merges ``b`` INTO ``a``, does not copy any values, and returns ``a``.
 
+    prefix: will append
     based on https://stackoverflow.com/a/15836901/5042831
     NOTE: tuples and arbitrary objects are NOT handled and will raise TypeError"""
 
@@ -165,14 +170,20 @@ def dictmerge(a, b, name=None):
 
     try:
         if a is None or isinstance(a, (bytes, int, str, float)):
+            if prefix:
+                b = f"{prefix} {b}"
             # first run, or if ``a``` is a scalar
             a = b
         elif isinstance(a, list):
             # lists can be only appended
             if isinstance(b, list):
+                if prefix:
+                    b = [f"{prefix} {str(i)}" for i in b]
                 # merge lists
                 a.extend(b)
             else:
+                if prefix:
+                    b = f"{prefix} {b}"
                 # append to list
                 a.append(b)
         elif isinstance(a, dict):
@@ -180,8 +191,10 @@ def dictmerge(a, b, name=None):
             if isinstance(b, dict):
                 for key in b:
                     if key in a:
-                        a[key] = dictmerge(a[key], b[key], name)
+                        a[key] = dictmerge(a[key], b[key], name, prefix)
                     else:
+                        if prefix:
+                            b = prefix_dict_values(b, prefix)
                         a[key] = copy.deepcopy(b[key])
             else:
                 raise TypeError(
@@ -197,6 +210,39 @@ def dictmerge(a, b, name=None):
             config_name=name,
         )
     return a
+
+
+def prefix_dict_values(d, prefix, new=None):
+    """
+    Recursively traverse d and convert all values to strings and prefix them with: '{prefix} '.
+
+    Returns
+        A new dictionary with prefixed values.
+
+    Raises
+        CumulusCIException when an unsupported type is encountered
+    """
+    if d is None:
+        return None
+
+    if new is None:
+        new = {}
+
+    for key in d:
+        v = d[key]
+        if isinstance(v, (bytes, int, str, float)):
+            new[key] = f"{prefix} {v}"
+        elif isinstance(v, list):
+            new[key] = [f"{prefix} {i}" for i in v]
+        elif isinstance(v, dict):
+            new[key] = {}
+            new[key] = prefix_dict_values(v, prefix, new=new[key])
+        else:
+            raise CumulusCIException(
+                f"Found unsupported type <{type(v)}> parsing dictionary."
+            )
+
+    return new
 
 
 def cleanup_org_cache_dirs(keychain, project_config):
