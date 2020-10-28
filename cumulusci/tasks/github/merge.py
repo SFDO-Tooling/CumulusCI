@@ -460,9 +460,9 @@ class MergeBranch(BaseGithubTask):
                 self.logger.info(
                     f"Merge conflict on branch {branch_name}: created pull request #{pull.number}"
                 )
-            except github3.exceptions.Conflict as e:
+            except github3.exceptions.UnprocessableEntity as e:
                 self.logger.error(
-                    f"Error creating merge conflict pull request to merge {source} into {branch_name}:\n{e}"
+                    f"Error creating merge conflict pull request to merge {source} into {branch_name}:\n{e.response.text}"
                 )
 
     def _is_source_branch_direct_descendent(self, branch_name):

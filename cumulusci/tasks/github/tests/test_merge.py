@@ -304,20 +304,17 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         # merge
         self._mock_merge(http.client.CONFLICT)
         # merge conflict PR to return exception
-        self._mock_pull_create(8, 8, status=http.client.CONFLICT)
+        self._mock_pull_create(8, 8, status=http.client.UNPROCESSABLE_ENTITY)
         with LogCapture() as log:
             task = self._create_task()
             task._init_task()
             task._merge("feature/one", "main", self.project_config.repo_commit)
             actual_log = self._get_log_lines(log)
 
-        expected_log = [
-            (
-                "ERROR",
-                "Error creating merge conflict pull request to merge main into feature/one:\n409 None",
-            )
-        ]
-        assert expected_log == actual_log
+        assert actual_log[0][0] == "ERROR"
+        assert actual_log[0][1].startswith(
+            "Error creating merge conflict pull request to merge main into feature/one:\n"
+        )
 
     @responses.activate
     def test_task_output__feature_branch_existing_pull(self):
