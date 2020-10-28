@@ -1354,15 +1354,12 @@ def task_list(runtime, plain, print_json):
     require_project=False,
 )
 def task_doc(runtime, project=False, write=False):
-    config = runtime.universal_config
-    tasks = config.tasks.items()
-    file_name = "./docs/cumulusci_tasks.rst"
+    config = runtime.project_config.config if project else runtime.universal_config
+    tasks = config["tasks"].items() if project else config.tasks.items()
+    file_name = "./docs/project_tasks.rst" if project else "./docs/cumulusci_tasks.rst"
     # setting to read for project specific configuration
     if project:
-        config = runtime.project_config.config
         project_name = runtime.project_config.project__name.capitalize()
-        tasks = config["tasks"].items()
-        file_name = "./docs/project_tasks.rst"
     # handling for general and project specific documentation
     result = ["=========================================="]
     result.append(f"{project_name} Tasks Reference") if project else result.append(
@@ -1375,7 +1372,11 @@ def task_doc(runtime, project=False, write=False):
     for name, options in tasks:
         task_config = TaskConfig(options)
         doc = doc_task(name, task_config)
-        result += [f"{doc}", ""]
+        if project:
+            if name in runtime.project_config.config_project["tasks"]:
+                result += [f"{doc}", ""]
+        else:
+            result += [f"{doc}", ""]
     result = "\r\n".join(result)
     if write:
         Path("docs").mkdir(exist_ok=True)
