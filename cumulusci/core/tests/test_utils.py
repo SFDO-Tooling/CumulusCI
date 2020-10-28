@@ -123,6 +123,43 @@ class TestDictMerger(unittest.TestCase):
         with self.assertRaises(ConfigMergeError):
             utils.dictmerge(pytz, 2)
 
+    def test_merge_dict(self):
+        d1 = {"s": "str", "l": [1, 2, 3], "d": {"another": "dict"}}
+        d2 = {"i": "str", "l": [4], "d": {"another": "dict"}}
+        merged = utils.dictmerge(d1, d2)
+        assert merged == {
+            "s": "str",
+            "i": "str",
+            "l": [1, 2, 3, 4],
+            "d": {"another": "dict"},
+        }
+
+    def test_merge_dict__with_prefix(self):
+        d1 = {"s": "str", "l": [1, 2, 3], "d": {"another": "dict"}}
+        d2 = {"i": "str", "l": [4], "d": {"another": "dict"}}
+        merged = utils.dictmerge(d1, d2, prefix="*")
+        assert merged == {
+            "s": "str",
+            "i": "*str",
+            "l": [1, 2, 3, "*4"],
+            "d": {"another": "dict"},
+        }
+
+
+class TestPrefixDictValues:
+    def test_prefix_dict_values(self):
+        d = {
+            "s": "str",
+            "l": [1, 2, 3],
+            "d": {"another": {"yet another": "dict"}},
+        }
+        prefixed = utils.prefix_dict_values(d, "*")
+        assert prefixed == {
+            "s": "* str",
+            "l": ["* 1", "* 2", "* 3"],
+            "d": {"another": {"yet another": "* dict"}},
+        }
+
 
 class TestCleanupCacheDir:
     def test_cleanup_cache_dir(self):

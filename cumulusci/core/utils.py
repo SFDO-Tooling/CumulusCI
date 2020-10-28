@@ -164,6 +164,7 @@ def dictmerge(a, b, name=None, prefix=None):
     NOTE: tuples and arbitrary objects are NOT handled and will raise TypeError"""
 
     key = None
+    has_prefixed_sub_dict = False
 
     if b is None:
         return a
@@ -193,8 +194,9 @@ def dictmerge(a, b, name=None, prefix=None):
                     if key in a:
                         a[key] = dictmerge(a[key], b[key], name, prefix)
                     else:
-                        if prefix:
+                        if prefix and not has_prefixed_sub_dict:
                             b = prefix_dict_values(b, prefix)
+                            has_prefixed_sub_dict = True
                         a[key] = copy.deepcopy(b[key])
             else:
                 raise TypeError(
@@ -237,7 +239,7 @@ def prefix_dict_values(d, prefix, new=None):
         elif isinstance(v, dict):
             new[key] = {}
             new[key] = prefix_dict_values(v, prefix, new=new[key])
-        else:
+        elif v is not None:
             raise CumulusCIException(
                 f"Found unsupported type <{type(v)}> parsing dictionary."
             )

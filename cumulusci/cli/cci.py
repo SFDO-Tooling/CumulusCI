@@ -1,6 +1,7 @@
 from collections import defaultdict
 from urllib.parse import urlparse
 
+import yaml
 import code
 import functools
 import json
@@ -41,7 +42,7 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
 
-from cumulusci.core.utils import import_global
+from cumulusci.core.utils import import_global, dictmerge
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
@@ -301,6 +302,87 @@ def version():
         click.echo("You have the latest version of CumulusCI.")
 
     click.echo()
+
+
+@cli.command(
+    name="config",
+    help="Displays CumulusCI's current configuration, for the given scope.",
+)
+@click.option(
+    "--scope",
+    help="Scope of the configuraiton you would like to see. Ex: 'tasks:robot'",
+)
+@pass_runtime(require_project=False, require_keychain=True)
+def config(runtime, scope):
+    # the various cumulusci.yml files
+    u_conf = runtime.universal_config.config_universal
+    g_conf = runtime.universal_config.config_global
+    p_conf = runtime.project_config.config_project
+    lp_conf = runtime.project_config.config_project_local
+
+    config_ordered = [u_conf, g_conf, p_conf, lp_conf]
+
+    if scope:
+        levels = scope.split(":")
+        for i, config in enumerate(config_ordered):
+            # set empty dicts to None
+            if not config:
+                config_ordered[i] = None
+            for level in levels:
+                try:
+                    if config_ordered[i]:
+                        config_ordered[i] = config_ordered[i][level]
+                except KeyError:
+                    # if the config doesn't contain keys for the
+                    # given scope, then set it to None
+                    config_ordered[i] = None
+
+    conf_debug = {}
+    conf_syms = ["u_conf", "g_conf", "p_conf", "lp_conf"]
+    for i, config in enumerate(config_ordered):
+        try:
+            # configs can be None if the user is looking
+            # for a level that doesn't exist in the given config
+            if config:
+                conf_debug = dictmerge(conf_debug, config, prefix=conf_syms[i])
+        except KeyError:
+            pass
+
+    from pprint import pprint
+
+    click.echo(pprint(conf_debug))
+
+    with open("config_debug.yml", "w") as f:
+        yaml.dump(conf_debug, f)
+
+
+def filter_dicts(scope, configs):
+    """
+    Given a list of config dictionaries, filter them based on scope.
+    Scope is a string defined in the form first:second:third...
+    If the corresponding scope (keys) are not found in the dictionary,
+    then the entire dicitonary is set to a value of None.
+
+    If scope is not defined then return the original configs
+
+    Example:
+        If `scope == 'tasks:dependencies'`, then all of the config
+        dictionaries will be filtered down to everything in
+        config['tasks']['dependencies'].
+    """
+    if not scope:
+        return configs
+
+    levels = scope.split(":")
+    for i, config in enumerate(configs):
+        for level in levels:
+            try:
+                if config[i]:
+                    config[i] = config[i][level]
+            except KeyError:
+                config[i] = None
+
+    return configs
 
 
 @cli.command(name="shell", help="Drop into a Python shell")
