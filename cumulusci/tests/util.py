@@ -23,7 +23,10 @@ def random_sha():
 
 
 def create_project_config(
-    repo_name="TestRepo", repo_owner="TestOwner", repo_commit=None
+    repo_name="TestRepo",
+    repo_owner="TestOwner",
+    repo_commit=None,
+    namespace=None,
 ):
     universal_config = UniversalConfig()
     project_config = DummyProjectConfig(
@@ -33,6 +36,8 @@ def create_project_config(
         repo_commit=repo_commit,
         config=copy.deepcopy(universal_config.config),
     )
+    if namespace:
+        project_config.config["project"]["package"]["namespace"] = namespace
     keychain = BaseProjectKeychain(project_config, None)
     project_config.set_keychain(keychain)
     return project_config

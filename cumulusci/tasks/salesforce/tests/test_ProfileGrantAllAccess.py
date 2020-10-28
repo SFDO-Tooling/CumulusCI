@@ -7,7 +7,7 @@ import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 from cumulusci.tasks.metadata_etl import MetadataOperation
-from cumulusci.tasks.salesforce import ProfileGrantAllAccess
+from cumulusci.tasks.salesforce.update_profile import ProfileGrantAllAccess
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.tests.util import create_project_config
@@ -190,7 +190,6 @@ def test_run_task():
                         "person_account_default": True,
                     }
                 ],
-                "namespaced_org": True,
                 "include_packaged_objects": False,
             },
         )
@@ -221,7 +220,6 @@ def test_transforms_profile():
                     "person_account_default": True,
                 }
             ],
-            "namespaced_org": True,
         },
     )
 
@@ -244,7 +242,6 @@ def test_transforms_profile__multi_object_rt():
                     "person_account_default": True,
                 }
             ],
-            "namespaced_org": True,
         },
     )
 
@@ -259,7 +256,9 @@ def test_transforms_profile__multi_object_rt():
 def test_throws_exception_record_type_not_found():
     task = create_task(
         ProfileGrantAllAccess,
-        {"record_types": [{"record_type": "DOESNT_EXIST"}], "namespaced_org": True},
+        {
+            "record_types": [{"record_type": "DOESNT_EXIST"}],
+        },
     )
 
     with pytest.raises(TaskOptionsError):
@@ -386,13 +385,16 @@ def test_expand_profile_members__no_profile_section():
 
 
 def test_expand_profile_members__namespaced_org():
+    project_config = create_project_config(namespace="ns")
     task = create_task(
         ProfileGrantAllAccess,
         {
-            "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
+            "api_names": ["Admin", "%%%NAMESPACED_ORG%%%Continuous Integration"],
             "namespace_inject": "ns",
             "namespaced_org": True,
+            "managed": False,
         },
+        project_config,
     )
     package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
 
@@ -401,31 +403,34 @@ def test_expand_profile_members__namespaced_org():
     types = package_xml.find("types", name="Profile")
     assert {elem.text for elem in types.findall("members")} == {
         "Admin",
-        "Continuous Integration",
+        "ns__Continuous Integration",
     }
 
 
 def test_init_options__general():
-    pc = create_project_config()
-    pc.project__package__namespace = "ns"
-    task = create_task(ProfileGrantAllAccess, {"managed": "true"}, project_config=pc)
+    project_config = create_project_config(namespace="ns")
+    task = create_task(
+        ProfileGrantAllAccess, {"managed": "true"}, project_config=project_config
+    )
     assert task.options["managed"]
     assert not task.options["namespaced_org"]
     assert task.options["namespace_inject"] == "ns"
     assert task.namespace_prefixes == {"managed": "ns__", "namespaced_org": ""}
 
     task = create_task(
-        ProfileGrantAllAccess, {"namespaced_org": "true"}, project_config=pc
+        ProfileGrantAllAccess,
+        {"namespaced_org": "true", "managed": False},
+        project_config=project_config,
     )
-    assert task.options["managed"]
+    assert not task.options["managed"]
     assert task.options["namespaced_org"]
     assert task.options["namespace_inject"] == "ns"
-    assert task.namespace_prefixes == {"managed": "ns__", "namespaced_org": "ns__"}
+    assert task.namespace_prefixes == {"managed": "", "namespaced_org": "ns__"}
 
-    task = create_task(ProfileGrantAllAccess, {}, project_config=pc)
+    task = create_task(ProfileGrantAllAccess, {})
     assert not task.options["managed"]
     assert not task.options["namespaced_org"]
-    assert task.options["namespace_inject"] == "ns"
+    assert task.options["namespace_inject"] is None
     assert task.namespace_prefixes == {"managed": "", "namespaced_org": ""}
 
 

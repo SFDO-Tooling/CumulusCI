@@ -1,3 +1,5 @@
+from typing import Optional
+
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
@@ -83,15 +85,15 @@ class Deploy(BaseSalesforceMetadataApiTask):
             run_tests=self.specified_tests,
         )
 
-    def _has_namespaced_package(self, ns):
+    def _has_namespaced_package(self, ns: Optional[str]) -> bool:
         if "unmanaged" in self.options:
             return not process_bool_arg(self.options.get("unmanaged", True))
-        return ns in self.org_config.installed_packages
+        return bool(ns) and ns in self.org_config.installed_packages
 
-    def _is_namespaced_org(self, ns):
+    def _is_namespaced_org(self, ns: Optional[str]) -> bool:
         if "namespaced_org" in self.options:
             return process_bool_arg(self.options.get("namespaced_org", False))
-        return ns == self.org_config.namespace
+        return bool(ns) and ns == self.org_config.namespace
 
     def _get_package_zip(self, path):
         assert path, f"Path should be specified for {self.__class__.name}"

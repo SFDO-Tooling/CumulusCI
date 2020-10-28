@@ -607,7 +607,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
 
     @responses.activate
     def test_run_task__code_coverage_managed(self):
-        self._mock_apex_class_query()
+        self._mock_apex_class_query(namespace="TEST")
         self._mock_run_tests()
         self._mock_get_failed_test_classes()
         self._mock_tests_complete()
@@ -780,6 +780,7 @@ class TestAnonymousApexTask(unittest.TestCase):
             "path": apex_path,
             "apex": 'system.debug("Hello World!")',
             "namespaced": True,
+            "managed": False,
             "param1": "StringValue",
         }
         self.project_config = BaseProjectConfig(
@@ -856,7 +857,15 @@ class TestAnonymousApexTask(unittest.TestCase):
 
     @responses.activate
     def test_run_string_only(self):
-        task_config = TaskConfig({"options": {"apex": 'System.debug("test");'}})
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "apex": 'System.debug("test");',
+                    "managed": False,
+                    "namespaced": False,
+                }
+            }
+        )
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
         url = self.base_tooling_url + "executeAnonymous"
         responses.add(

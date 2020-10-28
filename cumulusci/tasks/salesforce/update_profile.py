@@ -81,7 +81,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         # Build the api_names list, taking into account legacy behavior.
         # If we're using a custom package.xml, we will union the api_names list with
         # any Profiles specified there.
-        self.api_names = set(process_list_arg(self.options.get("api_names", [])))
+        self.api_names = set(process_list_arg(self.options.get("api_names") or []))
         if "profile_name" in self.options:
             self.api_names.add(self.options["profile_name"])
         if not self.api_names and "package_xml" not in self.options:
@@ -96,18 +96,25 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
             )
 
+        # If the task is being instantiated without an org (such as while freezing steps for MetaDeploy),
+        # wait to pick defaults for "managed" and "namespaced_org" options until we have an org.
+        # Otherwise do it right away (mostly useful for tests which don't run the entire task).
+        if self.org_config is not None:
+            self._init_org_based_options()
+
     def _run_task(self):
         self._init_org_based_options()
         super()._run_task()
 
     def _init_org_based_options(self):
+        namespace = self.options["namespace_inject"]
         if "managed" in self.options:
             self.options["managed"] = process_bool_arg(
                 self.options.get("managed", False)
             )
         else:
-            self.options["managed"] = (
-                self.options["namespace_inject"] in self.org_config.installed_packages
+            self.options["managed"] = bool(namespace) and (
+                namespace in self.org_config.installed_packages
             )
 
         if "namespaced_org" in self.options:
@@ -115,12 +122,12 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 self.options.get("namespaced_org", False)
             )
         else:
-            self.options["namespaced_org"] = (
-                self.options["namespace_inject"] == self.org_config.namespace
+            self.options["namespaced_org"] = bool(namespace) and (
+                namespace == self.org_config.namespace
             )
 
         # Set up namespace prefix strings
-        namespace_prefix = "{}__".format(self.options["namespace_inject"])
+        namespace_prefix = f"{namespace}__" if namespace else ""
         self.namespace_prefixes = {
             "managed": namespace_prefix if self.options["managed"] else "",
             "namespaced_org": namespace_prefix

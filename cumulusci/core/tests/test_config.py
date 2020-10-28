@@ -1313,6 +1313,7 @@ class TestOrgConfig(unittest.TestCase):
                 "OrganizationType": "Enterprise Edition",
                 "IsSandbox": False,
                 "InstanceName": "cs420",
+                "NamespacePrefix": "ns",
             },
         )
 
@@ -1321,6 +1322,7 @@ class TestOrgConfig(unittest.TestCase):
         self.assertEqual("Enterprise Edition", config.org_type)
         self.assertEqual(False, config.is_sandbox)
         self.assertIsNotNone(config.organization_sobject)
+        assert config.namespace == "ns"
 
     @responses.activate
     def test_get_community_info__cached(self):

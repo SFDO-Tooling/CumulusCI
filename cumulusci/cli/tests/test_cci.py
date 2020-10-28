@@ -906,6 +906,7 @@ Environment Info: Rossian / x68_46
                 "OrganizationType": "Developer Edition",
                 "IsSandbox": False,
                 "InstanceName": "CS420",
+                "NamespacePrefix": None,
             },
             status=200,
         )
@@ -951,6 +952,7 @@ Environment Info: Rossian / x68_46
                 "OrganizationType": "Developer Edition",
                 "IsSandbox": True,
                 "InstanceName": "CS420",
+                "NamespacePrefix": None,
             },
             status=200,
         )
