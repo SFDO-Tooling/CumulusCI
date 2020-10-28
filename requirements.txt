@@ -16,7 +16,7 @@ keyring==21.4.0
 lxml==4.5.2
 MarkupSafe==1.1.1
 pycparser==2.20
-pydantic==1.6.1
+pydantic==1.7
 PyJWT==1.7.1
 python-dateutil==2.8.1
 pytz==2020.1
