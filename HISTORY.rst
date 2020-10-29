@@ -13,7 +13,6 @@ Changes:
   - When running the ``robot`` task, the folder containing downloaded repositories via the ``sources`` option are added to ``PYTHONPATH`` so that robot tests can find library and resource files in those repositories
 - Bulk Data tasks now support adding or removing a namespace from a mapping file to match the target org.
 - We improved how we parse Boolean values in Bulk Data tasks and in command line options. True can be represented as "yes", "y", "true", "on", or "1", with any capitalization, and False as "no", "n", "false", "off", "0". None as a synonym for False is deprecated.
-- CumulusCI is tested against Python 3.9.
 - We added support for including managed package release details in automatically generated release notes.
 - We added a task, ``assign_permission_sets``, to assign Permission Sets to a user.
 - We updated the default API version for new projects to 50.0.
