@@ -145,6 +145,15 @@ class TestDictMerger(unittest.TestCase):
             "d": {"another": "* dict"},
         }
 
+        d3 = {"i": "bla", "l": [5, 6, 7], "d": {"another": "thing"}}
+        merged = utils.dictmerge(merged, d3, prefix="$")
+        assert merged == {
+            "s": "str",
+            "i": "$ bla",
+            "l": [1, 2, 3, "* 4", "$ 5", "$ 6", "$ 7"],
+            "d": {"another": "$ thing"},
+        }
+
 
 class TestPrefixDictValues:
     def test_prefix_dict_values(self):

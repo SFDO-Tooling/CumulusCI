@@ -155,7 +155,7 @@ def merge_config(configs):
     return new_config
 
 
-def dictmerge(a, b, name=None, prefix=None, has_prefix=False):
+def dictmerge(a, b, name=None, prefix=None):
     """Deeply merge two ``dict``s that consist of lists, dicts, and scalars.
     This function (recursively) merges ``b`` INTO ``a``, does not copy any values, and returns ``a``.
 
@@ -180,7 +180,9 @@ def dictmerge(a, b, name=None, prefix=None, has_prefix=False):
         elif isinstance(a, list):
             # lists can be only appended
             if isinstance(b, list):
-                if prefix and not any([i.startswith(f"{prefix} ") for i in b]):
+                if prefix and not any(
+                    [i.startswith(f"{prefix} ") for i in b if isinstance(i, str)]
+                ):
                     b = [f"{prefix} {str(i)}" for i in b]
                 # merge lists
                 a.extend(b)
