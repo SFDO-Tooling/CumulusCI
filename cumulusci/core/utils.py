@@ -247,6 +247,43 @@ def prefix_dict_values(d, prefix, new=None):
     return new
 
 
+def filter_dicts(keys, dicts):
+    """
+    Filters through dicts and returns only the sections pertaining
+    to the given keys. The keys list correlates to the depth of the
+    dictionary.
+
+    For example, if `keys == ['tasks','execut_anon']` then this function
+    attempts to access and copy whatever is under `dicts[i][keys[0]][keys[1]]`
+    for each dict in the list.
+
+    If any of the keys do not exist on a dict, then that dict is set to
+    None in the returned list.
+
+    Argument
+        param1 - list of strings that represent keys at specific levels of a dicitonary.
+        param2 - list of dicts to filter based on the given keys.
+
+    Returns
+        The filtered list of dicts
+    """
+    if not keys:
+        return dicts
+
+    for i in range(len(dicts)):
+        if not dicts[i]:
+            dicts[i] = None
+            continue
+        for key in keys:
+            try:
+                if dicts[i]:
+                    dicts[i] = dicts[i][key]
+            except KeyError:
+                dicts[i] = None
+
+    return dicts
+
+
 def cleanup_org_cache_dirs(keychain, project_config):
     """Cleanup directories that are not associated with a connected/live org."""
 

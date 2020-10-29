@@ -18,6 +18,7 @@ import webbrowser
 import contextlib
 from pathlib import Path
 from datetime import datetime
+from pprint import pprint
 
 import click
 import github3
@@ -42,7 +43,7 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
 
-from cumulusci.core.utils import import_global, dictmerge
+from cumulusci.core.utils import import_global, dictmerge, filter_dicts
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
@@ -314,7 +315,8 @@ def version():
 )
 @click.option(
     "--outfile",
-    help="Writes the output to a file with the given name.",
+    is_flag=True,
+    help="Writes the output to config_debug.yml in the current working directory.",
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def config(runtime, scope, outfile):
@@ -327,67 +329,28 @@ def config(runtime, scope, outfile):
     config_ordered = [u_conf, g_conf, p_conf, lp_conf]
 
     if scope:
-        levels = scope.split(":")
-        for i, config in enumerate(config_ordered):
-            # set empty dicts to None
-            if not config:
-                config_ordered[i] = None
-            for level in levels:
-                try:
-                    if config_ordered[i]:
-                        config_ordered[i] = config_ordered[i][level]
-                except KeyError:
-                    # if the config doesn't contain keys for the
-                    # given scope, then set it to None
-                    config_ordered[i] = None
+        config_ordered = filter_dicts(scope.split(":"), config_ordered)
 
     conf_debug = {}
     conf_syms = ["u_conf", "g_conf", "p_conf", "lp_conf"]
     for i, config in enumerate(config_ordered):
         try:
-            # configs can be None if the user is looking
-            # for a level that doesn't exist in the given config
             if config:
                 conf_debug = dictmerge(conf_debug, config, prefix=conf_syms[i])
         except KeyError:
             pass
 
-    from pprint import pprint
-
-    click.echo(pprint(conf_debug))
+    if not conf_debug:
+        click.echo(
+            f"No configurations were found for scope '{scope}' in any cumulusci.yml files."
+        )
+        return
 
     if outfile:
-        with open(outfile, "w") as f:
+        with open("config_debug.yml", "w") as f:
             yaml.dump(conf_debug, f)
-
-
-def filter_dicts(scope, configs):
-    """
-    Given a list of config dictionaries, filter them based on scope.
-    Scope is a string defined in the form first:second:third...
-    If the corresponding scope (keys) are not found in the dictionary,
-    then the entire dicitonary is set to a value of None.
-
-    If scope is not defined then return the original configs
-
-    Example:
-        If `scope == 'tasks:dependencies'`, then all of the config
-        dictionaries will be filtered down to everything in
-        config['tasks']['dependencies'].
-    """
-    if not scope:
-        return configs
-
-    levels = scope.split(":")
-    for i, config in enumerate(configs):
-        for level in levels:
-            try:
-                if config[i]:
-                    config[i] = config[i][level]
-            except KeyError:
-                config[i] = None
-
-    return configs
+    else:
+        click.echo(pprint(conf_debug))
 
 
 @cli.command(name="shell", help="Drop into a Python shell")
