@@ -251,18 +251,17 @@ def prefix_dict_values(d, prefix, new=None):
     return new
 
 
-def filter_dicts(keys, dicts):
+def get_sub_dicts(keys, dicts):
     """
-    Filters through dicts and returns only the sections pertaining
-    to the given keys. The keys list correlates to the depth of the
-    dictionary.
+    Attempts set each dict in dicts equal to the subdict located
+    at dict[key[i]][key[i+1]]... The length of the keys list correlates to
+    the depth of the subdictionary to retrieve.
 
-    For example, if `keys == ['tasks','execut_anon']` then this function
-    attempts to access and copy whatever is under `dicts[i][keys[0]][keys[1]]`
+    If no sub-dict exists in the given dict, then set that dict to None.
+
+    For example, if `keys == ['tasks','execute_anon']` then this function
+    attempts to set each dict in the list to whatever is under `dicts['tasks']['execute_anon']`
     for each dict in the list.
-
-    If any of the keys do not exist on a dict, then that dict is set to
-    None in the returned list.
 
     Argument
         param1 - list of strings that represent keys at specific levels of a dicitonary.

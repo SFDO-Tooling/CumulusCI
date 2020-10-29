@@ -43,7 +43,7 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import FlowNotFoundError
 
 
-from cumulusci.core.utils import import_global, dictmerge, filter_dicts
+from cumulusci.core.utils import import_global, dictmerge, get_sub_dicts
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
@@ -326,7 +326,7 @@ def config(runtime, scope, outfile):
     config_ordered = [u_conf, g_conf, p_conf, lp_conf]
 
     if scope:
-        config_ordered = filter_dicts(scope.split(":"), config_ordered)
+        config_ordered = get_sub_dicts(scope.split(":"), config_ordered)
 
     conf_debug = {}
     conf_syms = ["u_conf", "g_conf", "p_conf", "lp_conf"]
