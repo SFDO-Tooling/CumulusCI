@@ -437,7 +437,6 @@ class MergeBranch(BaseGithubTask):
             self.logger.info(
                 f"Merged {compare.behind_by} commits into branch: {branch_name}"
             )
-
         except GitHubError as e:
             if e.code != http.client.CONFLICT:
                 raise
@@ -450,17 +449,21 @@ class MergeBranch(BaseGithubTask):
                 )
                 return
 
-            pull = self.repo.create_pull(
-                title=f"Merge {source} into {branch_name}",
-                base=branch_name,
-                head=source,
-                body="This pull request was automatically generated because "
-                "an automated merge hit a merge conflict",
-            )
-
-            self.logger.info(
-                f"Merge conflict on branch {branch_name}: created pull request #{pull.number}"
-            )
+            try:
+                pull = self.repo.create_pull(
+                    title=f"Merge {source} into {branch_name}",
+                    base=branch_name,
+                    head=source,
+                    body="This pull request was automatically generated because "
+                    "an automated merge hit a merge conflict",
+                )
+                self.logger.info(
+                    f"Merge conflict on branch {branch_name}: created pull request #{pull.number}"
+                )
+            except github3.exceptions.UnprocessableEntity as e:
+                self.logger.error(
+                    f"Error creating merge conflict pull request to merge {source} into {branch_name}:\n{e.response.text}"
+                )
 
     def _is_source_branch_direct_descendent(self, branch_name):
         """Returns True if branch is a direct descendent of the source branch"""
