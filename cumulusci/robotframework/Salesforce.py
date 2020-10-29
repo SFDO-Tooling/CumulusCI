@@ -941,7 +941,8 @@ class Salesforce(object):
 
         You can supply keys and values to match against
         in keyword arguments, or a full SQOL where-clause
-        in a keyword named ``where``.
+        in a keyword argument named ``where``. If you supply
+        both, they will be combined with a SOQL "AND".
 
         Examples:
 
@@ -967,16 +968,15 @@ class Salesforce(object):
         else:
             query += "Id"
         query += " FROM {}".format(obj_name)
-        where = []
+        where_clauses = []
         if "where" in kwargs:
-            where = [kwargs["where"]]
-        else:
-            for key, value in kwargs.items():
-                if key == "select":
-                    continue
-                where.append("{} = '{}'".format(key, value))
-        if where:
-            query += " WHERE " + " AND ".join(where)
+            where_clauses = [kwargs["where"]]
+        for key, value in kwargs.items():
+            if key == "select" or key == "where":
+                continue
+            where_clauses.append("{} = '{}'".format(key, value))
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
         self.builtin.log("Running SOQL Query: {}".format(query))
         return self.cumulusci.sf.query_all(query).get("records", [])
 

@@ -58,6 +58,27 @@ Salesforce Query Where
     Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
     Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
 
+Salesforce Query Where Plus Clauses
+    &{new_contact} =  Create Contact
+    @{records} =  Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where=LastName='${new_contact}[LastName]'
+    ...              FirstName=${new_contact}[FirstName]
+    &{contact} =  Get From List  ${records}  0
+    Should Be Equal  ${contact}[Id]  ${new_contact}[Id]
+    Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
+    Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
+
+Salesforce Query Where Not Equal
+    &{new_contact} =  Create Contact
+    @{records} =  Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where= LastName!='${new_contact}[LastName]'
+    ...              FirstName=${new_contact}[FirstName]
+    ${cnt}=    Get length    ${records}
+    Should Be Equal As Numbers   ${cnt}  0
+
+
 SOQL Query
     &{new_contact} =  Create Contact
     &{result} =  Soql Query  Select Id, FirstName, LastName from Contact WHERE Id = '${new_contact}[Id]'
