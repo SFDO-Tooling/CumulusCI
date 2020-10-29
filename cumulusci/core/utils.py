@@ -155,7 +155,7 @@ def merge_config(configs):
     return new_config
 
 
-def dictmerge(a, b, name=None, prefix=None):
+def dictmerge(a, b, name=None, prefix=None, has_prefix=False):
     """Deeply merge two ``dict``s that consist of lists, dicts, and scalars.
     This function (recursively) merges ``b`` INTO ``a``, does not copy any values, and returns ``a``.
 
@@ -164,21 +164,23 @@ def dictmerge(a, b, name=None, prefix=None):
     NOTE: tuples and arbitrary objects are NOT handled and will raise TypeError"""
 
     key = None
-    has_prefixed_sub_dict = False
-
+    has_prefix = False
     if b is None:
         return a
 
     try:
         if a is None or isinstance(a, (bytes, int, str, float)):
-            if prefix:
+            if prefix and (
+                (isinstance(b, str) and not b.startswith(f"{prefix} "))
+                or not isinstance(b, str)
+            ):
                 b = f"{prefix} {b}"
             # first run, or if ``a``` is a scalar
             a = b
         elif isinstance(a, list):
             # lists can be only appended
             if isinstance(b, list):
-                if prefix:
+                if prefix and not any([i.startswith(f"{prefix} ") for i in b]):
                     b = [f"{prefix} {str(i)}" for i in b]
                 # merge lists
                 a.extend(b)
@@ -194,9 +196,9 @@ def dictmerge(a, b, name=None, prefix=None):
                     if key in a:
                         a[key] = dictmerge(a[key], b[key], name, prefix)
                     else:
-                        if prefix and not has_prefixed_sub_dict:
+                        if prefix and not has_prefix:
                             b = prefix_dict_values(b, prefix)
-                            has_prefixed_sub_dict = True
+                            has_prefix = True
                         a[key] = copy.deepcopy(b[key])
             else:
                 raise TypeError(

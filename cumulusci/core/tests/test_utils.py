@@ -140,9 +140,9 @@ class TestDictMerger(unittest.TestCase):
         merged = utils.dictmerge(d1, d2, prefix="*")
         assert merged == {
             "s": "str",
-            "i": "*str",
-            "l": [1, 2, 3, "*4"],
-            "d": {"another": "dict"},
+            "i": "* str",
+            "l": [1, 2, 3, "* 4"],
+            "d": {"another": "* dict"},
         }
 
 

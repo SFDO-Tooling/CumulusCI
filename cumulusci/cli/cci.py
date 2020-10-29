@@ -309,10 +309,7 @@ def version():
     name="config",
     help="Displays CumulusCI's current configuration, for the given scope.",
 )
-@click.option(
-    "--scope",
-    help="Scope of the configuraiton you would like to see. Ex: 'tasks:robot'",
-)
+@click.argument("scope", required=False)
 @click.option(
     "--outfile",
     is_flag=True,
@@ -325,7 +322,7 @@ def config(runtime, scope, outfile):
     g_conf = runtime.universal_config.config_global
     p_conf = runtime.project_config.config_project
     lp_conf = runtime.project_config.config_project_local
-
+    # config order of precedence (lowest <---> highest)
     config_ordered = [u_conf, g_conf, p_conf, lp_conf]
 
     if scope:
@@ -340,7 +337,7 @@ def config(runtime, scope, outfile):
         except KeyError:
             pass
 
-    if not conf_debug:
+    if not conf_debug and scope:
         click.echo(
             f"No configurations were found for scope '{scope}' in any cumulusci.yml files."
         )
@@ -350,6 +347,10 @@ def config(runtime, scope, outfile):
         with open("config_debug.yml", "w") as f:
             yaml.dump(conf_debug, f)
     else:
+        click.echo("\n lp_conf - local project config file")
+        click.echo("  p_conf - project config file")
+        click.echo("  g_conf - global config file")
+        click.echo("  u_conf - universal config file\n")
         click.echo(pprint(conf_debug))
 
 
