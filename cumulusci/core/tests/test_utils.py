@@ -145,12 +145,21 @@ class TestDictMerger(unittest.TestCase):
             "d": {"another": "* dict"},
         }
 
-        d3 = {"i": "bla", "l": [5, 6, 7], "d": {"another": "thing"}}
+        d3 = {"i": "bla", "l": 888, "d": {"another": "thing"}}
         merged = utils.dictmerge(merged, d3, prefix="$")
         assert merged == {
             "s": "str",
             "i": "$ bla",
-            "l": [1, 2, 3, "* 4", "$ 5", "$ 6", "$ 7"],
+            "l": [1, 2, 3, "* 4", "$ 888"],
+            "d": {"another": "$ thing"},
+        }
+
+        d3 = {"l": [8, 9]}
+        merged = utils.dictmerge(merged, d3, prefix="^")
+        assert merged == {
+            "s": "str",
+            "i": "$ bla",
+            "l": [1, 2, 3, "* 4", "$ 888", "^ 8", "^ 9"],
             "d": {"another": "$ thing"},
         }
 

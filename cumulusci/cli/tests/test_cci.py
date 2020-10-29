@@ -509,6 +509,41 @@ Environment Info: Rossian / x68_46
             "You have the latest version of CumulusCI." in echo.call_args_list[-2][0][0]
         )
 
+    @mock.patch("cumulusci.cli.cci.dictmerge")
+    def test_config(self, dictmerge):
+        dictmerge.return_value = "hello"
+        run_click_command(cci.config, scope=None, outfile=None)
+        assert 4 == dictmerge.call_count
+
+    @mock.patch("cumulusci.cli.cci.filter_dicts")
+    @mock.patch("cumulusci.cli.cci.dictmerge")
+    def test_config__with_scope(self, dictmerge, filter_dicts):
+        dictmerge.return_value = "hello"
+        filter_dicts.return_value = [{"a": "a"}, {"b": "b"}, {"a": "a"}, {"d": "d"}]
+        run_click_command(cci.config, scope="tasks:util_sleep", outfile=False)
+        assert 4 == dictmerge.call_count
+        filter_dicts.assert_called_once()
+
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.filter_dicts")
+    @mock.patch("cumulusci.cli.cci.dictmerge")
+    def test_config__scope_not_found(self, dictmerge, filter_dicts, echo):
+        dictmerge.return_value = {}
+        filter_dicts.return_value = [{"a": "a"}, {"b": "b"}, {"a": "a"}, {"d": "d"}]
+        run_click_command(cci.config, scope="tasks:util_sleep", outfile=False)
+        assert 4 == dictmerge.call_count
+        filter_dicts.assert_called_once()
+        assert 1 == echo.call_count
+
+    @mock.patch("cumulusci.cli.cci.dictmerge")
+    @mock.patch("cumulusci.cli.cci.open")
+    def test_config__outfile(self, open, dictmerge):
+        dictmerge.return_value = "hello"
+        open.__enter__ = mock.Mock()
+        run_click_command(cci.config, scope=None, outfile=True)
+        assert 4 == dictmerge.call_count
+        open.assert_called_once_with("config_debug.yml", "w")
+
     @mock.patch("code.interact")
     def test_shell(self, interact):
         run_click_command(cci.shell)

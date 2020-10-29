@@ -331,11 +331,8 @@ def config(runtime, scope, outfile):
     conf_debug = {}
     conf_syms = ["u_conf", "g_conf", "p_conf", "lp_conf"]
     for i, config in enumerate(config_ordered):
-        try:
-            if config:
-                conf_debug = dictmerge(conf_debug, config, prefix=conf_syms[i])
-        except KeyError:
-            pass
+        if config:
+            conf_debug = dictmerge(conf_debug, config, prefix=conf_syms[i])
 
     if not conf_debug and scope:
         click.echo(
