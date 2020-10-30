@@ -169,6 +169,7 @@ class MappingStep(CCIDictModel):
     @classmethod
     def validate_batch_size(cls, v):
         assert v <= 200 and v > 0
+        return v
 
     @validator("anchor_date")
     @classmethod
