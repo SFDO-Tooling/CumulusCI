@@ -1,8 +1,9 @@
 Run CumulusCI from Github Actions
 =================================
 The "CI" in CumulusCI stands for "continuous integration".
-Continuous integration is the practice of automatically running a project's tests for any change before that change is merged to the main branch. This
-helps keep the main branch in a state where it can be released at any
+Continuous integration is the practice of automatically running a
+project's tests for any change before that change is merged to the main branch.
+This helps keep the main branch in a state where it can be released at any
 time, because the repository can be configured to protect the main
 branch so that changes can only be merged if the tests have passed.
 
@@ -87,7 +88,7 @@ configuration from environment variables instead of from files.
 
 Configure Secrets
 -----------------
-You may have noticed that the workflow refers to a couple of â€œsecrets,â€
+You may have noticed that the workflow refers to a couple of "secrets":
 ``CUMULUSCI_SERVICE_github`` and ``SFDX_AUTH_URL``. You need to add
 these secrets to the repository settings before you can use this
 workflow.
@@ -106,7 +107,7 @@ a secret to configure the CumulusCI github service.
 First, follow GitHubâ€™s instructions to `create a Personal Access Token
 <https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line>`_.
 
-Now, in your repositoryâ€™s Secrets settings, click the â€œAdd a new secretâ€
+Now, in your repository's Secrets settings, click the "Add a new secret"
 link. Enter ``CUMULUSCI_SERVICE_github`` as the Name of the secret. For
 the Value, enter the following JSON:
 
@@ -116,7 +117,7 @@ the Value, enter the following JSON:
 
 But replace ``USERNAME`` with your github username, ``TOKEN`` with the Personal
 Access Token you just created, and ``EMAIL`` with your email address.
-Finally, click the â€œAdd secretâ€ button to save the secret.
+Finally, click the "Add secret" button to save the secret.
 
 
 
@@ -125,7 +126,7 @@ Finally, click the â€œAdd secretâ€ button to save the secret.
 CumulusCI needs to be able to access a Salesforce org with the Dev Hub feature enabled in order to create scratch orgs.
 The easiest way to do this is to set up this connection locally, then copy its sfdx auth URL to a secret on GitHub.
 
-Since you already have CumulusCI working locally, you should be able to run ``sfdx force:org:list`` to identify the username that is configured as the default Dev Hub username â€” it is marked with ``(D)``.
+Since you already have CumulusCI working locally, you should be able to run ``sfdx force:org:list`` to identify the username that is configured as the default Dev Hub username it is marked with ``(D)``.
 
 Now run ``sfdx force:org:display --verbose -u [username]``, replacing ``[username]`` with your Dev Hub username.
 Look for the ``Sfdx Auth Url`` and copy it.
