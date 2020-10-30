@@ -2,6 +2,29 @@
 History
 =======
 
+3.22.0 (2020-10-29)
+-------------------
+
+Changes:
+
+- We added support for using Robot keywords from other projects that are included as ``sources``.
+  - The ``suites`` option of the robot task can now take a list of suite paths. Paths can include a prefix representing a remote repository as defined by the ``sources`` configuration option (eg: ``-o suites npsp:robot/Cumulus/tests/api``)
+  - The robot task has a new ``sources`` option to work in conjunction with the global ``sources`` option to allow the use of keywords and tests from other repositories.
+  - When running the ``robot`` task, the folder containing downloaded repositories via the ``sources`` option are added to ``PYTHONPATH`` so that robot tests can find library and resource files in those repositories
+- Bulk Data tasks now support adding or removing a namespace from a mapping file to match the target org.
+- We improved how we parse Boolean values in Bulk Data tasks and in command line options. True can be represented as "yes", "y", "true", "on", or "1", with any capitalization, and False as "no", "n", "false", "off", "0". None as a synonym for False is deprecated.
+- We added support for including managed package release details in automatically generated release notes.
+- We added a task, ``assign_permission_sets``, to assign Permission Sets to a user.
+- We updated the default API version for new projects to 50.0.
+- The ``build_feature_test_package`` flow now creates a 2GP package version with the "skip validation" option turned on.
+- ``github_automerge_main`` now only merges to the lowest numbered release branch when multiple are detected.
+
+Issues closed:
+
+- We fixed an issue with relative imports within parallel Robot test runs by adding the repo root to PYTHONPATH.
+- We fixed an issue with generating ``package.xml`` manifests for directories that contain reports in folders that aren't owned by the project.
+- We now handle an exception that may occur while creating merge conflict PRs during parent-child automerges.
+
 3.21.1 (2020-10-19)
 -------------------
 

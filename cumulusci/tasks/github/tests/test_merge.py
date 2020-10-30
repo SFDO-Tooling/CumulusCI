@@ -1,9 +1,9 @@
+import github3
 import http.client
+import responses
 import unittest
 
 from testfixtures import LogCapture
-from github3 import GitHubError
-import responses
 
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
@@ -89,7 +89,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         )
         return expected_response
 
-    def _mock_pull_create(self, pull_id, issue_id):
+    def _mock_pull_create(self, pull_id, issue_id, status=None):
         api_url = f"{self.repo_api_url}/pulls"
         expected_response = self._get_expected_pull_request(pull_id, issue_id)
 
@@ -97,7 +97,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             method=responses.POST,
             url=api_url,
             json=expected_response,
-            status=http.client.CREATED,  # 201
+            status=status or http.client.CREATED,  # 201
         )
 
     def _mock_compare(self, base, head, files=None):
@@ -243,7 +243,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         )
         self._mock_merge(http.client.INTERNAL_SERVER_ERROR)
         task = self._create_task()
-        with self.assertRaises(GitHubError):
+        with self.assertRaises(github3.GitHubError):
             task()
 
     @responses.activate
@@ -278,6 +278,43 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
             ]
             assert expected_log == actual_log
         assert 7 == len(responses.calls)
+
+    @responses.activate
+    def test_merge__error_on_merge_conflict_pr(self):
+        self._mock_repo()
+        self._mock_branch(self.branch)
+        self.mock_pulls()
+        # branches
+        branches = []
+        branches.append(self._get_expected_branch("main"))
+        branches.append(self._get_expected_branch("feature/one"))
+        branches = self._mock_branches(branches)
+        # pull request
+        pull = self._get_expected_pull_request(1, 2)
+        pull["base"]["ref"] = "feature/one"
+        pull["base"]["sha"] = branches[1]["commit"]["sha"]
+        pull["head"]["ref"] = "main"
+        self.mock_pulls(pulls=[pull])
+        # compare
+        self._mock_compare(
+            base="feature/one",
+            head=self.project_config.repo_commit,
+            files=[{"filename": "test.txt"}],
+        )
+        # merge
+        self._mock_merge(http.client.CONFLICT)
+        # merge conflict PR to return exception
+        self._mock_pull_create(8, 8, status=http.client.UNPROCESSABLE_ENTITY)
+        with LogCapture() as log:
+            task = self._create_task()
+            task._init_task()
+            task._merge("feature/one", "main", self.project_config.repo_commit)
+            actual_log = self._get_log_lines(log)
+
+        assert actual_log[0][0] == "ERROR"
+        assert actual_log[0][1].startswith(
+            "Error creating merge conflict pull request to merge main into feature/one:\n"
+        )
 
     @responses.activate
     def test_task_output__feature_branch_existing_pull(self):
