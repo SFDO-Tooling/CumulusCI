@@ -1,6 +1,7 @@
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api.package_install import install_package_version
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.tasks.salesforce import Deploy
 
@@ -60,7 +61,9 @@ class InstallPackageVersion(Deploy):
             self.options["version"] = self.project_config.get_latest_version(beta=True)
         elif version == "previous":
             self.options["version"] = self.project_config.get_previous_version()
-        self.options["activateRSS"] = process_bool_arg(self.options.get("activateRSS"))
+        self.options["activateRSS"] = process_bool_arg(
+            self.options.get("activateRSS") or False
+        )
         self.options["security_type"] = self.options.get("security_type", "FULL")
         if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
             raise TaskOptionsError(
@@ -78,10 +81,20 @@ class InstallPackageVersion(Deploy):
         return self.api_class(self, package_zip(), purge_on_delete=False)
 
     def _run_task(self):
-        self.logger.info(
-            f"Installing {self.options['name']} release: {self.options['version']}"
-        )
-        self._retry()
+        version = self.options["version"]
+        self.logger.info(f"Installing {self.options['name']} {version}")
+        if isinstance(version, str) and version.startswith("04t"):
+            install_options = {**self.options, "version_id": version}
+            retry_options = {
+                "retries": self.options["retries"],
+                "retry_interval": self.options["retry_interval"],
+                "retry_interval_add": self.options["retry_interval_add"],
+            }
+            install_package_version(
+                self.project_config, self.org_config, install_options, retry_options
+            )
+        else:
+            self._retry()
         self.org_config.reset_installed_packages()
 
     def _try(self):

@@ -60,10 +60,7 @@ class BaseTask(object):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
-        self.poll_count = 0
-        self.poll_interval_level = 0
-        self.poll_interval_s = 1
-        self.poll_complete = False
+        self._reset_poll()
 
         # dict of return_values that can be used by task callers
         self.return_values = {}
@@ -101,9 +98,11 @@ class BaseTask(object):
 
     def _init_options(self, kwargs):
         """ Initializes self.options """
-        self.options = self.task_config.options
-        if self.options is None:
+        if self.task_config.options is None:
             self.options = {}
+        else:
+            self.options = self.task_config.options.copy()
+
         if kwargs:
             self.options.update(kwargs)
 
@@ -111,7 +110,9 @@ class BaseTask(object):
         for option, value in self.options.items():
             if isinstance(value, str):
                 value = PROJECT_CONFIG_RE.sub(
-                    lambda match: getattr(self.project_config, match.group(1), None),
+                    lambda match: str(
+                        getattr(self.project_config, match.group(1), None)
+                    ),
                     value,
                 )
                 self.options[option] = value
@@ -214,6 +215,12 @@ class BaseTask(object):
 
     def _is_retry_valid(self, e):
         return True
+
+    def _reset_poll(self):
+        self.poll_complete = False
+        self.poll_count = 0
+        self.poll_interval_level = 0
+        self.poll_interval_s = 1
 
     def _poll(self):
         """ poll for a result in a loop """

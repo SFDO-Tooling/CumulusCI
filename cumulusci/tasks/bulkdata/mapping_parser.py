@@ -169,6 +169,7 @@ class MappingStep(CCIDictModel):
     @classmethod
     def validate_batch_size(cls, v):
         assert v <= 200 and v > 0
+        return v
 
     @validator("anchor_date")
     @classmethod
@@ -253,10 +254,19 @@ class MappingStep(CCIDictModel):
         describe: CaseInsensitiveDict,
         field_dict: Dict[str, Any],
         inject: Optional[Callable[[str], str]],
+        strip: Optional[Callable[[str], str]],
         drop_missing: bool,
         data_operation_type: DataOperationType,
     ) -> bool:
         ret = True
+
+        def replace_if_necessary(dct, name, replacement):
+            if name not in describe and replacement in describe:
+                dct[replacement] = dct[name]
+                del dct[name]
+                return replacement
+            else:
+                return name
 
         orig_fields = field_dict.copy()
         for f, entry in orig_fields.items():
@@ -272,10 +282,9 @@ class MappingStep(CCIDictModel):
                         f"Both {self.sf_object}.{f} and {self.sf_object}.{inject(f)} are present in the target org. Using {f}."
                     )
 
-                if f not in describe and inject(f) in describe:
-                    field_dict[inject(f)] = entry
-                    del field_dict[f]
-                    f = inject(f)
+                f = replace_if_necessary(field_dict, f, inject(f))
+            if strip:
+                f = replace_if_necessary(field_dict, f, strip(f))
 
             # Canonicalize the key's case
             try:
@@ -374,8 +383,15 @@ class MappingStep(CCIDictModel):
             def inject(element: str):
                 return f"{namespace}__{element}"
 
+            def strip(element: str):
+                parts = element.split("__")
+                if len(parts) == 3 and parts[0] == namespace:
+                    return parts[1] + "__" + parts[2]
+                else:
+                    return element
+
         else:
-            inject = None
+            inject = strip = None
 
         global_describe = CaseInsensitiveDict(
             {
@@ -396,12 +412,12 @@ class MappingStep(CCIDictModel):
         )
 
         if not self._validate_field_dict(
-            describe, self.fields, inject, drop_missing, operation
+            describe, self.fields, inject, strip, drop_missing, operation
         ):
             return False
 
         if not self._validate_field_dict(
-            describe, self.lookups, inject, drop_missing, operation
+            describe, self.lookups, inject, strip, drop_missing, operation
         ):
             return False
 
@@ -450,7 +466,11 @@ def validate_and_inject_mapping(
     ]
 
     if not drop_missing and not all(should_continue):
-        raise BulkDataException("One or more permissions errors blocked the operation.")
+        raise BulkDataException(
+            "One or more schema or permissions errors blocked the operation.\n"
+            "If you would like to attempt the load regardless, you can specify "
+            "'-o drop_missing_schema True' on the command."
+        )
 
     if drop_missing:
         # Drop any steps with sObjects that are not present.

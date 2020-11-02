@@ -4,7 +4,6 @@ from contextlib import contextmanager
 import csv
 from enum import Enum
 import io
-import itertools
 import os
 import pathlib
 import tempfile
@@ -16,15 +15,7 @@ import requests
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
-
-
-def get_batch_iterator(iterator, n):
-    while True:
-        batch = list(itertools.islice(iterator, n))
-        if not batch:
-            return
-
-        yield batch
+from cumulusci.tasks.bulkdata.utils import get_batch_iterator
 
 
 class DataOperationType(Enum):
@@ -429,7 +420,12 @@ class RestApiDmlOperation(BaseDmlOperation):
         def _convert(rec):
             result = dict(zip(self.fields, rec))
             for boolean_field in self.boolean_fields:
-                result[boolean_field] = bool(result[boolean_field])
+                try:
+                    result[boolean_field] = process_bool_arg(
+                        result[boolean_field] or False
+                    )
+                except TypeError as e:
+                    raise BulkDataException(e)
 
             # Remove empty fields (different semantics in REST API)
             # We do this for insert only - on update, any fields set to `null`
@@ -452,7 +448,7 @@ class RestApiDmlOperation(BaseDmlOperation):
         }[self.operation]
 
         for chunk in get_batch_iterator(
-            records, self.api_options.get("batch_size", 200)
+            self.api_options.get("batch_size", 200), records
         ):
             if self.operation is DataOperationType.DELETE:
                 url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
