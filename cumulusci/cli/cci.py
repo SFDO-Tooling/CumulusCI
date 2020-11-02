@@ -1469,12 +1469,12 @@ class RunTaskCommand(click.MultiCommand):
                     task_config.project_config, task_config, org_config=org_config
                 )
 
-                if kwargs.pop("debug_before", None):
+                if kwargs.get("debug_before", None):
                     self._import_pdb_and_set_trace()
 
                 task()
 
-                if kwargs.pop("debug_after", None):
+                if kwargs.get("debug_after", None):
                     self._import_pdb_and_set_trace()
 
             finally:
@@ -1510,7 +1510,7 @@ class RunTaskCommand(click.MultiCommand):
         duplicate = self._has_duplicate_options(args)
         if duplicate:
             raise CumulusCIUsageError(
-                f"Found duplicate option `{duplicate}` in given command:\n cci task run {' '.join(args)}"
+                f"Please make sure to specify options only once. Found duplicate option `{duplicate}` in given command: cci task run {' '.join(args)}"
             )
 
         task_name = args[0]
@@ -1602,19 +1602,18 @@ class RunTaskCommand(click.MultiCommand):
         corresponding list of click.Option instances
         """
         click_options = []
-        if task_options:
-            for name, properties in task_options.items():
-                # NOTE: When task options aren't explicitly given via the command line
-                # click complains that there are no values for options. We set required=False
-                # to mitigate this error. Task option validation should be performed at the
-                # task level via task._validate_options() or Pydantic models.
-                click_options.append(
-                    click.Option(
-                        param_decls=(f"--{name}",),
-                        required=False,  # don't enforce option values in Click
-                        help=properties.pop("description", ""),
-                    )
+        for name, properties in task_options.items():
+            # NOTE: When task options aren't explicitly given via the command line
+            # click complains that there are no values for options. We set required=False
+            # to mitigate this error. Task option validation should be performed at the
+            # task level via task._validate_options() or Pydantic models.
+            click_options.append(
+                click.Option(
+                    param_decls=(f"--{name}",),
+                    required=False,  # don't enforce option values in Click
+                    help=properties.get("description", ""),
                 )
+            )
         return click_options
 
     def _get_default_command_options(self, is_salesforce_task):
