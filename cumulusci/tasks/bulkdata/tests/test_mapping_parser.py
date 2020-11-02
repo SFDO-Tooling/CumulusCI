@@ -19,6 +19,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
 )
 from cumulusci.tasks.bulkdata.step import DataOperationType
 from cumulusci.tests.util import DummyOrgConfig, mock_describe_calls
+from cumulusci.tasks.bulkdata.step import DataApi
 
 
 class TestMappingParser:
@@ -1028,3 +1029,23 @@ class TestMappingLookup:
         assert mapping["Insert Accounts"].sf_object != "account"
         assert "Name" in mapping["Insert Accounts"].fields
         assert "name" not in mapping["Insert Accounts"].fields
+
+    @responses.activate
+    def test_bulk_attributes(self):
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        api: rest
+                        bulk_mode: Serial
+                        batch_size: 50
+                        fields:
+                            - name"""
+                )
+            )
+        )
+        assert mapping["Insert Accounts"].api == DataApi.REST
+        assert mapping["Insert Accounts"].bulk_mode == "Serial"
+        assert mapping["Insert Accounts"].batch_size == 50
