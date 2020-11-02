@@ -1427,19 +1427,19 @@ def task_info(runtime, task_name):
 
 class RunTaskCommand(click.MultiCommand):
     def list_commands(self, ctx):
-        tasks = self._get_configured_tasks(RUNTIME)
-        return sorted(tasks)
-
-    def _get_configured_tasks(self, runtime):
-        return list(
-            runtime.project_config.config["tasks"].keys()
-            if runtime.project_config
-            else runtime.global_config.config["tasks"].keys()
+        return sorted(
+            RUNTIME.project_config.config["tasks"].keys()
+            if RUNTIME.project_config
+            else RUNTIME.global_config.config["tasks"].keys()
         )
 
     def get_command(self, ctx, task_name):
         RUNTIME._load_keychain()
-        task_config = RUNTIME.project_config.get_task(task_name)
+        if RUNTIME.project_config is None:
+            task_config = RUNTIME.universal_config.get_task(task_name)
+        else:
+            task_config = RUNTIME.project_config.get_task(task_name)
+
         task_class = import_global(task_config.class_path)
         task_options = task_class.task_options
 

@@ -133,7 +133,8 @@ class BaseTask(object):
 
         with stacked_task(self):
             self.working_path = os.getcwd()
-            with cd(self.project_config.repo_root):
+            path = self.project_config.repo_root if self.project_config else None
+            with cd(path):
                 self._log_begin()
                 self.result = self._run_task()
                 return self.return_values
