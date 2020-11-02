@@ -1443,7 +1443,7 @@ class RunTaskCommand(click.MultiCommand):
         task_class = import_global(task_config.class_path)
         task_options = task_class.task_options
 
-        params = self._get_default_command_options()
+        params = self._get_default_command_options(task_class.salesforce_task)
         params.extend(self._get_click_options_for_task(task_options))
 
         def run_task(*args, **kwargs):
@@ -1617,12 +1617,9 @@ class RunTaskCommand(click.MultiCommand):
                 )
         return click_options
 
-    def _get_default_command_options(self):
-        return [
-            click.Option(
-                param_decls=("--org",),
-                help="Specify the target org. By default, runs against the current default org.",
-            ),
+    def _get_default_command_options(self, is_salesforce_task):
+
+        click_options = [
             click.Option(
                 param_decls=("--debug",),
                 is_flag=True,
@@ -1644,6 +1641,16 @@ class RunTaskCommand(click.MultiCommand):
                 help="Disables all prompts. Set for non-interactive mode such as calling from scripts or CI sytems",
             ),
         ]
+
+        if is_salesforce_task:
+            click_options.append(
+                click.Option(
+                    param_decls=("--org",),
+                    help="Specify the target org. By default, runs against the current default org.",
+                )
+            )
+
+        return click_options
 
     def _import_pdb_and_set_trace(self):
         import pdb
