@@ -1430,7 +1430,7 @@ class RunTaskCommand(click.MultiCommand):
         return sorted(
             RUNTIME.project_config.config["tasks"].keys()
             if RUNTIME.project_config
-            else RUNTIME.global_config.config["tasks"].keys()
+            else RUNTIME.universal_config.config["tasks"].keys()
         )
 
     def get_command(self, ctx, task_name):
