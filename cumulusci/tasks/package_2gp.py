@@ -81,6 +81,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         "force_upload": {
             "description": "If true, force creating a new package version even if one with the same contents already exists"
         },
+        "static_resource_path": {
+            "description": "The path where decompressed static resources are stored. Any subdirectories found will be zipped and added to the staticresources directory of the build."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -137,10 +140,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.return_values["package_id"] = self.package_id
 
         # submit request to create package version
+        options = {"package_type": self.package_config.package_type.value}
+        if "static_resource_path" in self.options:
+            options["static_resource_path"] = self.options["static_resource_path"]
+
         package_zip_builder = MetadataPackageZipBuilder(
             path=self.project_config.default_package_path,
             name=self.package_config.package_name,
-            options={"package_type": self.package_config.package_type.value},
+            options=options,
             logger=self.logger,
         )
         self.request_id = self._create_version_request(
