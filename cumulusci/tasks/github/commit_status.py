@@ -19,6 +19,12 @@ class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
         "version_id": {"description": "Package version id"},
     }
 
+    def _init_api(self, base_url=None):
+        if float(self.project_config.project__package__api_version) < 44.0:
+            # We need at least API 44.0 to query for the Dependencies field.
+            self.api_version = "44.0"
+        return super()._init_api(base_url=base_url)
+
     def _run_task(self):
         repo = self.get_repo()
         context = self.options["context"]

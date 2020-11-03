@@ -13,6 +13,35 @@ from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 
 
 class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
+    def test_init_api_minimum_api_version(self):
+        project_config = create_project_config()
+        project_config.project__package__api_version = "40.0"
+        project_config.keychain.set_service(
+            "github",
+            ServiceConfig(
+                {
+                    "username": "TestUser",
+                    "password": "TestPass",
+                    "email": "testuser@testdomain.com",
+                }
+            ),
+        )
+        task_config = TaskConfig({"options": {"context": "2gp"}})
+        org_config = OrgConfig(
+            {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
+        )
+        task = GetPackageDataFromCommitStatus(project_config, task_config, org_config)
+        task._init_task()
+
+        assert task.api_version == "44.0"
+
+        project_config.project__package__api_version = "45.0"
+        task = GetPackageDataFromCommitStatus(project_config, task_config, org_config)
+        task._init_task()
+
+        assert task.api_version is None
+
+        
     @responses.activate
     def test_run_task(self):
         self.init_github()
