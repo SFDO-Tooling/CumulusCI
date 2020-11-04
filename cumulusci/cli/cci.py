@@ -42,6 +42,7 @@ from cumulusci.core.exceptions import FlowNotFoundError
 
 
 from cumulusci.core.utils import import_global
+from cumulusci.cli.utils import get_available_tasks, get_available_flows, group_items
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
@@ -1319,11 +1320,7 @@ def org_shell(runtime, org_name, script=None, python=None):
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False)
 def task_list(runtime, plain, print_json):
-    tasks = (
-        runtime.project_config.list_tasks()
-        if runtime.project_config is not None
-        else runtime.universal_config.list_tasks()
-    )
+    tasks = get_available_tasks(runtime)
     plain = plain or runtime.universal_config.cli__plain_output
 
     if print_json:
@@ -1371,11 +1368,7 @@ def flow_doc(runtime):
 
     flow_info_groups = list(flow_info["groups"].keys())
 
-    flows = (
-        runtime.project_config.list_flows()
-        if runtime.project_config is not None
-        else runtime.universal_config.list_flows()
-    )
+    flows = get_available_flows(runtime)
     flows_by_group = group_items(flows)
     flow_groups = sorted(
         flows_by_group.keys(),
@@ -1491,6 +1484,26 @@ class RunTaskCommand(click.MultiCommand):
         """
         args = self._convert_old_option_syntax(args)
         return click.MultiCommand.resolve_command(self, ctx, args)
+
+    def format_help(self, ctx, formatter):
+        """Custom help for `cci task run`"""
+
+        tasks = get_available_tasks(RUNTIME)
+        plain = RUNTIME.universal_config.cli__plain_output or False
+        task_groups = group_items(tasks)
+        for group, tasks in task_groups.items():
+            data = [["Task", "Description"]]
+            data.extend(sorted(tasks))
+            table = CliTable(data, group, wrap_cols=["Description"])
+            table.echo(plain)
+
+        click.echo("Usage: cci task run <task_name> [TASK_OPTIONS...]\n")
+        click.echo("See above for a complete list of available tasks.")
+        click.echo(
+            "Use "
+            + click.style("cci task info <task_name>", bold=True)
+            + " to get more information about a task and its options."
+        )
 
     def _convert_old_option_syntax(self, args):
         """
@@ -1668,12 +1681,7 @@ def task_run():
 @pass_runtime(require_project=False)
 def flow_list(runtime, plain, print_json):
     plain = plain or runtime.universal_config.cli__plain_output
-    flows = (
-        runtime.project_config.list_flows()
-        if runtime.project_config is not None
-        else runtime.universal_config.list_flows()
-    )
-
+    flows = get_available_flows(runtime)
     if print_json:
         click.echo(json.dumps(flows))
         return None
@@ -1845,12 +1853,3 @@ def gist(runtime):
     else:
         click.echo(f"Gist created: {gist.html_url}")
         webbrowser.open(gist.html_url)
-
-
-def group_items(items):
-    groups = defaultdict(list)
-    for item in items:
-        group_name = item["group"] or "Other"
-        groups[group_name].append([item["name"], item["description"]])
-
-    return groups

@@ -326,6 +326,32 @@ def test_has_duplicate_options__duplicate_mixed_syntax():
     assert duplicate == "hotdog"
 
 
+def test_format_help__proj_conf_exists(runtime):
+    with patch("cumulusci.cli.cci.click.echo") as echo:
+        with patch("cumulusci.cli.cci.RUNTIME", runtime) as rt:
+            RunTaskCommand().format_help(Mock(), Mock())
+            assert 4 == echo.call_count
+            assert 0 == len(rt.universal_config.method_calls)
+
+
+def test_format_help__proj_conf_does_not_exist(runtime):
+    with patch("cumulusci.cli.cci.click.echo") as echo:
+        with patch("cumulusci.cli.cci.RUNTIME", runtime) as rt:
+            rt.universal_config = rt.project_config
+            rt.project_config = None
+            RunTaskCommand().format_help(Mock(), Mock())
+            assert 4 == echo.call_count
+
+
+def test_get_default_command_options():
+    opts = RunTaskCommand()._get_default_command_options(is_salesforce_task=False)
+    assert len(opts) == 4
+
+    opts = RunTaskCommand()._get_default_command_options(is_salesforce_task=True)
+    assert len(opts) == 5
+    assert any([o.name == "org" for o in opts])
+
+
 class SetTrace(Exception):
     pass
 
