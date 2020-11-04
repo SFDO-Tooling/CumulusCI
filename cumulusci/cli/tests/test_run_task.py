@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 from cumulusci.cli import cci
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.exceptions import CumulusCIUsageError, CumulusCIException
+from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.cli.tests.utils import run_click_command, DummyTask
 
 
@@ -101,9 +101,10 @@ def test_task_run__resolve_command(runtime):
     ]
 
 
-def test_convert_old_option_syntax__nothing_to_convert():
-    args = ["test-task", "run", "util_sleep", "--seconds", "3.88"]
-    converted = RunTaskCommand()._convert_old_option_syntax(args)
+def test_convert_old_option_syntax__nothing_to_convert(runtime):
+    args = ["dummy-task", "--color", "blue"]
+    with patch("cumulusci.cli.cci.RUNTIME", runtime):
+        converted = RunTaskCommand()._convert_old_option_syntax(args)
     assert args == converted
 
 
@@ -237,92 +238,29 @@ def test_option_in_task__false(runtime):
         assert not RunTaskCommand()._option_in_task("pizza", "dummy-task")
 
 
-def test_option_in_task__option_in_base_class(runtime):
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        assert RunTaskCommand()._option_in_task("color", "dummy-derived-task")
+def test_parse_option_name_value_pairs__no_option_value_old_syntax():
+    args = ["task-name", "-o", "old-opt"]
+    with pytest.raises(CumulusCIUsageError):
+        RunTaskCommand()._parse_option_name_value_pairs(args)
 
 
-def test_get_task_options_in_hierarchy__task_options_not_present_on_base(runtime):
-    task_class = Mock(__bases__=["one", "two"])
-    with pytest.raises(CumulusCIException):
-        RunTaskCommand()._get_task_options_in_hierarchy(task_class)
+def test_parse_option_name_value_pairs__no_option_value_new_syntax():
+    args = ["task-name", "--option-name"]
+    with pytest.raises(CumulusCIUsageError):
+        RunTaskCommand()._parse_option_name_value_pairs(args)
 
 
-def test_get_task_options_in_hierarchy__options_found(runtime):
-    class_w_opts = Mock(task_options={"color": "blue"})
-    task_class = Mock(__bases__=["one", class_w_opts])
-
-    options = RunTaskCommand()._get_task_options_in_hierarchy(task_class)
-    assert options == ["color"]
-
-
-def test_parse_option_names():
+def test_has_duplicate_options():
     """Test that we can parse option names correctly"""
-    args = [
-        "-o",
-        "name1",
-        "value1",
-        "--name2",
-        "value2",
-        "--name3",
-        "value3",
-        "-o",
-        "name4",
-        "value4",
+    options = [
+        ("hotdog", "chicago"),
+        ("pizza", "new york"),
     ]
-    opt_names = RunTaskCommand()._parse_option_names(args)
-    assert opt_names == ["name1", "name2", "name3", "name4"]
+    duplicate = RunTaskCommand()._has_duplicate_options(options)
+    assert duplicate is False
 
-
-def test_has_duplicate_options__duplicate_old_syntax():
-    args = [
-        "-o",
-        "dupe",
-        "dupe1",
-        "-o",
-        "name2",
-        "value2",
-        "--name3",
-        "value3",
-        "-o",
-        "dupe",
-        "dupe2",
-    ]
-    duplicate = RunTaskCommand()._has_duplicate_options(args)
-    assert duplicate == "dupe"
-
-
-def test_has_duplicate_options__duplicate_new_syntax():
-    args = [
-        "-o",
-        "pizza",
-        "olives",
-        "--dupe",
-        "value2",
-        "--dupe",
-        "value3",
-        "-o",
-        "salad",
-        "ceasar",
-    ]
-    duplicate = RunTaskCommand()._has_duplicate_options(args)
-    assert duplicate == "dupe"
-
-
-def test_has_duplicate_options__duplicate_mixed_syntax():
-    args = [
-        "-o",
-        "pizza",
-        "olives",
-        "--hotdog",
-        "Chicago",
-        "--drink",
-        "water",
-        "-o",
-        "hotdog",
-        "Cincinnati",
-    ]
-    duplicate = RunTaskCommand()._has_duplicate_options(args)
+    options.append(("hotdog", "Cincinnati"))
+    duplicate = RunTaskCommand()._has_duplicate_options(options)
     assert duplicate == "hotdog"
 
 

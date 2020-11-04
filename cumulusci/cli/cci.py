@@ -1433,6 +1433,9 @@ class RunTaskCommand(click.MultiCommand):
         else:
             task_config = RUNTIME.project_config.get_task(task_name)
 
+        if "options" not in task_config.config:
+            task_config.config["options"] = {}
+
         task_class = import_global(task_config.class_path)
         task_options = task_class.task_options
 
@@ -1450,11 +1453,8 @@ class RunTaskCommand(click.MultiCommand):
             # Values come in as None when they are specified via a cumulusci.yml file
             for name, value in kwargs.items():
                 if value and name in task_options.keys():
-
                     # Add options if they aren't present on this task
-                    # they are defined on the parent class
-                    if "options" not in task_config.config:
-                        task_config.config["options"] = {}
+                    # they are defined on a parent class
                     task_config.config["options"][name] = value
 
             try:
@@ -1479,19 +1479,8 @@ class RunTaskCommand(click.MultiCommand):
 
         return click.Command(task_name, params=params, callback=run_task)
 
-    def resolve_command(self, ctx, args):
-        """
-        CumulusCI overrides this method from the MultiCommand
-        class to allow us access to the raw command line
-        args being passed in. This allows us to convert
-        the old option syntax to the new option syntax.
-        """
-        args = self._convert_old_option_syntax(args)
-        return click.MultiCommand.resolve_command(self, ctx, args)
-
     def format_help(self, ctx, formatter):
         """Custom help for `cci task run`"""
-
         tasks = get_available_tasks(RUNTIME)
         plain = RUNTIME.universal_config.cli__plain_output or False
         task_groups = group_items(tasks)
@@ -1509,75 +1498,107 @@ class RunTaskCommand(click.MultiCommand):
             + " to get more information about a task and its options."
         )
 
+    def resolve_command(self, ctx, args):
+        """
+        CumulusCI overrides this method from the MultiCommand
+        class to allow us access to the raw command line
+        args being passed in. This allows us to convert
+        the old option syntax to the new option syntax.
+        """
+        args = self._convert_old_option_syntax(args)
+        return click.MultiCommand.resolve_command(self, ctx, args)
+
     def _convert_old_option_syntax(self, args):
         """
-        Given a list of args, convert any options specified
-        with the old format `-o name value` to the new format `--name value`.
+        Given a list of args, parse them by name/value pairs and
+        ensure that the options are valid for the given task, and
+        no duplicate options are present. Then convert all options
+        to the new syntax (--name value).
+
 
         Args:
             param1: The list of arguments to convert
 
         Returns:
-            The list of arguments
+            The list of converted arguments
 
         Raises:
             CumulusCIUsageError: if there is an error in parsing the old option syntax,
             or the option doesn't exist for the given task.
         """
-        duplicate = self._has_duplicate_options(args)
+        name_vals = self._parse_option_name_value_pairs(args)
+        duplicate = self._has_duplicate_options(name_vals)
         if duplicate:
             raise CumulusCIUsageError(
                 f"Please make sure to specify options only once. Found duplicate option `{duplicate}` in given command: cci task run {' '.join(args)}"
             )
 
         task_name = args[0]
-        while "-o" in args:
-            idx = args.index("-o")
-            opt_name = args[idx + 1]
-            opt_value = args[idx + 2]
-
-            if opt_name.startswith("-") or opt_value.startswith("-"):
+        for opt in name_vals:
+            opt_name, val = opt
+            if opt_name and not self._option_in_task(opt_name, task_name):
                 raise CumulusCIUsageError(
-                    f"Names and values for options specified with `-o` cannot start with '-'.\nFound: -o {opt_name} {opt_value}"
-                )
-            elif not self._option_in_task(opt_name, task_name):
-                raise CumulusCIUsageError(
-                    f"Task <{task_name}> received unrecognized option: {opt_name}"
+                    f"No option `{opt_name}` found in task {task_name}.\nTo view available task option run: `cci task info {task_name}`"
                 )
 
-            args[idx + 1] = f"--{opt_name}"
-            args.remove("-o")
+        new_args = self._convert_to_new_syntax(name_vals)
+        return [task_name] + new_args
 
-        return args
-
-    def _has_duplicate_options(self, args):
-        """Checks for the precense of duplicate options.
-        Returns the first occurrence of a duplicate option
-        name, None otherwise."""
-        opt_names = sorted(self._parse_option_names(args))
-        for i, name in enumerate(opt_names):
-            if i == len(opt_names) - 1:
-                break
-            elif name == opt_names[i + 1]:
-                return name
-
-        return None
-
-    def _parse_option_names(self, args):
+    def _parse_option_name_value_pairs(self, args):
         """
-        Given a list of arguments, parse
-        out the provided option names.
-        new syntax: --name value
-        old syntax: -o name value
+        Given a list of arguments, return a list
+        of tuples in the form of: (option_name, value)
         """
-        opt_names = []
+        opts = []
+        opt_name = None
+        opt_value = None
         for i, opt in enumerate(args):
             if opt == "-o":
-                opt_names.append(args[i + 1])
+                if i + 2 > len(args) - 1:
+                    raise CumulusCIUsageError(
+                        "Expecting name/value pair for option specified with `-o`, but found no more arguments"
+                    )
+                opt_name = args[i + 1]
+                opt_value = args[i + 2]
+                if opt_name.startswith("-") or opt_value.startswith("-"):
+                    raise CumulusCIUsageError(
+                        f"Names and values for options specified with `-o` cannot start with '-'.\nFound: -o {opt_name} {opt_value}"
+                    )
             elif opt.startswith("--"):
-                opt_names.append(opt.strip("-"))
+                if i + 1 > len(args) - 1:
+                    raise CumulusCIUsageError(
+                        f"Expecting value for option `{opt}`, but found no more arguments."
+                    )
+                opt_name = args[i].strip("-")
+                opt_value = args[i + 1]
 
-        return opt_names
+            if opt_name and opt_value:
+                opts.append((opt_name, opt_value))
+                opt_name = None
+                opt_value = None
+
+        return opts
+
+    def _has_duplicate_options(self, name_vals):
+        """Given a list of option name/value pairs,
+        return the name of the duplicate option if it exists, False otherwise"""
+        opt_names = set()
+        for opt in name_vals:
+            name, val = opt
+            if name in opt_names:
+                return name
+            opt_names.add(name)
+        return False
+
+    def _convert_to_new_syntax(self, name_vals):
+        """Given a list of option name/value pairs,
+        convert them to a list of options in the new syntax"""
+        opts = []
+        for opt in name_vals:
+            name, value = opt
+            opts.append(f"--{name}")
+            opts.append(value)
+        return opts
 
     def _option_in_task(self, opt_name, task_name):
         """
@@ -1586,32 +1607,7 @@ class RunTaskCommand(click.MultiCommand):
         """
         task = RUNTIME.project_config.get_task(task_name)
         task_class = import_global(task.config["class_path"])
-
-        if "task_options" not in task_class.__dict__.keys():
-            task_option_names = self._get_task_options_in_hierarchy(task_class)
-        else:
-            task_option_names = task_class.__dict__["task_options"].keys()
-
-        return opt_name in task_option_names
-
-    def _get_task_options_in_hierarchy(self, task_class):
-        """
-        Given a task class, search all base classes
-        for the first defines `task_options`.
-
-        Returns:
-            A list of the option names
-
-        Raises:
-            CumulusCIException if `task_options` are not defined
-        """
-        for base in task_class.__bases__:
-            if hasattr(base, "task_options"):
-                return [name for name in base.task_options.keys()]
-
-        raise CumulusCIException(
-            f"Unable to find `task_options` in base classes:\n{task_class.__bases__}"
-        )
+        return opt_name in task_class.task_options.keys()
 
     def _get_click_options_for_task(self, task_options):
         """

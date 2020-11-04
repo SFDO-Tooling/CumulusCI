@@ -21,7 +21,6 @@ import github3
 from requests.exceptions import ConnectionError
 
 import cumulusci
-from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import ScratchOrgConfig
@@ -1791,68 +1790,6 @@ Environment Info: Rossian / x68_46
 
         doc_task.assert_called_once()
         rst2ansi.assert_called_once()
-
-    @mock.patch("pdb.set_trace")
-    def test_task_run_debug_before(self, set_trace):
-        multi_cmd = cci.RunTaskCommand()
-
-        runtime = mock.Mock()
-        runtime.get_org.return_value = (None, None)
-        runtime.project_config = BaseProjectConfig(
-            None,
-            config={
-                "tasks": {
-                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-                }
-            },
-        )
-
-        ctx = mock.Mock()
-        set_trace.side_effect = SetTrace
-        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
-            with self.assertRaises(SetTrace):
-                cmd = multi_cmd.get_command(ctx, "test")
-                run_click_command(
-                    cmd,
-                    project=True,
-                    runtime=runtime,
-                    debug=False,
-                    debug_after=False,
-                    debug_before=True,
-                    no_prompt=False,
-                    color="blue",
-                )
-
-    @mock.patch("pdb.set_trace")
-    def test_task_run_debug_after(self, set_trace):
-        multi_cmd = cci.RunTaskCommand()
-
-        runtime = mock.Mock()
-        runtime.get_org.return_value = (None, None)
-        runtime.project_config = BaseProjectConfig(
-            None,
-            config={
-                "tasks": {
-                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-                }
-            },
-        )
-
-        ctx = mock.Mock()
-        set_trace.side_effect = SetTrace
-        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
-            with self.assertRaises(SetTrace):
-                cmd = multi_cmd.get_command(ctx, "test")
-                run_click_command(
-                    cmd,
-                    project=True,
-                    runtime=runtime,
-                    debug=False,
-                    debug_after=True,
-                    debug_before=False,
-                    no_prompt=False,
-                    color="blue",
-                )
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_flow_list(self, cli_tbl):
