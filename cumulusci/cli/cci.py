@@ -1343,49 +1343,48 @@ def task_list(runtime, plain, print_json):
 
 
 @task.command(name="doc", help="Exports RST format documentation for all tasks")
-@click.option("--project", "project", is_flag=True, help="Write project specific tasks")
+@click.option(
+    "--project", "project", is_flag=True, help="Include project-specific tasks only"
+)
 @click.option(
     "--write",
     "write",
     is_flag=True,
-    help="If project flag is toggled will write to ./docs/project_tasks.rst otherwise will write by default to ./docs/cumulusci_tasks.rst",
+    help="If true, write output to a file (./docs/project_tasks.rst or ./docs/cumulusci_tasks.rst)",
 )
 @pass_runtime(
     require_project=False,
 )
 def task_doc(runtime, project=False, write=False):
-    config = runtime.project_config.config if project else runtime.universal_config
-    tasks = config["tasks"].items() if project else config.tasks.items()
-    file_name = "./docs/project_tasks.rst" if project else "./docs/cumulusci_tasks.rst"
-    # setting to read for project specific configuration
+    if project and runtime.project_config is None:
+        raise click.UsageError(
+            "The --project option can only be used inside a project."
+        )
     if project:
-        project_name = runtime.project_config.project__name.capitalize()
-    # handling for general and project specific documentation
-    result = ["=========================================="]
-    result.append(f"{project_name} Tasks Reference") if project else result.append(
-        "Tasks Reference"
-    )
-    result += [
-        "==========================================",
-        "",
-    ]  # extra space for formatting
-    for name, options in tasks:
-        task_config = TaskConfig(options)
+        full_tasks = runtime.project_config.tasks
+        selected_tasks = runtime.project_config.config_project.get("tasks", {})
+        file_name = "project_tasks.rst"
+        project_name = runtime.project_config.project__name
+        title = f"{project_name} Tasks Reference"
+    else:
+        full_tasks = selected_tasks = runtime.universal_config.tasks
+        file_name = "cumulusci_tasks.rst"
+        title = "Tasks Reference"
+
+    result = ["=" * len(title), title, "=" * len(title), ""]
+    for name, task_config_dict in full_tasks.items():
+        if name not in selected_tasks:
+            continue
+        task_config = TaskConfig(task_config_dict)
         doc = doc_task(name, task_config)
-        if project:
-            if name in runtime.project_config.config_project["tasks"]:
-                result += [f"{doc}", ""]
-        else:
-            result += [f"{doc}", ""]
+        result += [doc, ""]
     result = "\r\n".join(result)
+
     if write:
         Path("docs").mkdir(exist_ok=True)
-        file_name = "project_tasks" if project else "cumulusci_tasks"
-        with open(f"./docs/{file_name}.rst", "w", encoding="utf-8") as f:
-            f.write(f"{result}")
-        return  # return to not echo output
-
-    click.echo(f"{result}")
+        (Path("docs") / file_name).write_text(result, encoding="utf-8")
+    else:
+        click.echo(result)
 
 
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
