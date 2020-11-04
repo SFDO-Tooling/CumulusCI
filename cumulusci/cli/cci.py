@@ -1463,12 +1463,16 @@ class RunTaskCommand(click.MultiCommand):
                 )
 
                 if kwargs.get("debug_before", None):
-                    self._import_pdb_and_set_trace()
+                    import pdb
+
+                    pdb.set_trace()
 
                 task()
 
                 if kwargs.get("debug_after", None):
-                    self._import_pdb_and_set_trace()
+                    import pdb
+
+                    pdb.set_trace()
 
             finally:
                 RUNTIME.alert(f"Task complete: {task_name}")
@@ -1663,11 +1667,6 @@ class RunTaskCommand(click.MultiCommand):
             )
 
         return click_options
-
-    def _import_pdb_and_set_trace(self):
-        import pdb
-
-        pdb.set_trace()
 
 
 @task.command(cls=RunTaskCommand, name="run", help="Runs a task")
