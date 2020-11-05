@@ -271,7 +271,8 @@ Full Documentation
 Full documentation of the keywords in the CumulusCI and Salesforce
 keyword libraries can be found here:
 
-* `CumulusCI and Salesforce keyword libraries <Keywords.html>`_
+* :download:`CumulusCI and Salesforce Keyword Documentation <../docs/robot/Keywords.html>`
+
 
 .. _salesforce-library-overview:
 
