@@ -261,7 +261,7 @@ Managed Package dependencies can handle a hierarchy of dependencies between pack
             - namespace: npe5
               version: 3.5
 
-In the example above, the project requires npo02 version 3.8, which requires npe01 version 3.6.  By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently. 
+In the example above, the project requires npo02 version 3.8, which requires npe01 version 3.6.  By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently.
 
 Consider the following scenario:  If the target org currently has npe01 version 3.7, npe01 needs to be uninstalled to downgrade to 3.6.  However, npo02 requires npe01, so uninstalling npe01 requires also uninstalling npo02.  In this scenario npe03, npe4, and npe5 do not have to be uninstalled to uninstall npe01.
 
@@ -544,6 +544,8 @@ Prior to the addition of this functionality, we often experienced unnecessary de
 
 One drawback of this approach is that there may be diffs in the meta.xml files that developers need to handle by either ignoring them or commiting them as part of their work in a feature branch.  The diffs come from a scenario of Package B which extends Package A.  When a new production release of Package A is published, the ``update_dependencies`` task for Package B will install the new version.  When metadata is then retrieved from the org, the meta.xml files will reference the new version while the repository's meta.xml files reference an older version.  The main difference between this situation and the previous situation without automatically cleaning the meta.xml is that avoiding the diffs in meta.xml files is a convenience for developers rather than a requirement for builds and releases.  Developers can also use the ``meta_xml_dependencies`` task to update the meta.xml files locally using the versions from CumulusCI's calculated project dependencies.
 
+.. _sources:
+
 Using Tasks and Flows from a Different Project
 ----------------------------------------------
 
@@ -745,7 +747,7 @@ The ``--debug`` Argument
 All CumulusCI commands can be passed the ``--debug`` argument. When this is used, the following occurs:
     * Any calls to CumulusCI's logger at the debug level are shown.
     * Any errors captured by ``requests.packages.urllib3.add_stderr_logger()`` are shown.
-    * If an error is present, the corresponding stacktrace is shown. 
+    * If an error is present, the corresponding stacktrace is shown.
     * The user is dropped into a `post-mortem debugging <https://docs.python.org/3/library/pdb.html#pdb.post_mortem>`_ session.
 
 Log Files
@@ -763,13 +765,13 @@ If you encounter an error and want more information on what went wrong, you can 
 
 By default, CumulusCI displays the last 30 lines from the stacktrace. You can use the ``-m`` or ``--max-lines`` option specify how much of the stacktrace you would like to see. The following displays the last 10 lines from the stacktrace:
 
-.. code-block:: console 
+.. code-block:: console
 
     cci error info --max-lines 10
 
-Reporting Error Logs 
+Reporting Error Logs
 --------------------
-Use the ``cci error gist`` command to send the most recent logfile to a `GitHub gist <https://docs.github.com/en/github/writing-on-github/creating-gists>`_ so you can quickly and easily share logs with others. 
+Use the ``cci error gist`` command to send the most recent logfile to a `GitHub gist <https://docs.github.com/en/github/writing-on-github/creating-gists>`_ so you can quickly and easily share logs with others.
 
 For this feature to work you will need to ensure that your `github service is setup with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
 

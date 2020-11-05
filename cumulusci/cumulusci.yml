@@ -38,6 +38,10 @@ tasks:
             namespace_inject: $project_config.project__package__namespace
             metadata_type: CustomObject
             tag: compactLayoutAssignment
+    assign_permission_sets:
+        group: Salesforce Users
+        description: "Assigns specified Permission Sets to the current user, if not already assigned."
+        class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
     batch_apex_wait:
         description: Waits on a batch apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
@@ -986,15 +990,14 @@ flows:
         description: Create a 2gp managed package version
         steps:
             1:
-                flow: dependencies
-            2:
                 task: update_package_xml
                 when: project_config.project__source_format != "sfdx"
-            3:
+            2:
                 task: create_package_version
                 options:
                     package_type: Managed
                     package_name: $project_config.project__package__name Managed Feature Test
+                    skip_validation: True
 
     unmanaged_ee:
         group: Deployment
@@ -1118,7 +1121,7 @@ project:
                     title: Deleted Metadata
                 6:
                     class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
-                    title: Installation Links
+                    title: Installation Info
     test:
         name_match: '%_TEST%'
     dependencies:

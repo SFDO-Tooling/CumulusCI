@@ -160,7 +160,8 @@ class RunApexTests(BaseSalesforceApiTask):
             "a retry. Set retry_always to True to retry all failed tests if any failure matches."
         },
         "required_org_code_coverage_percent": {
-            "description": "Require at least X percent code coverage across the org following the test run."
+            "description": "Require at least X percent code coverage across the org following the test run.",
+            "usage": "-o required_org_code_coverage_percent PERCENTAGE",
         },
         "verbose": {
             "description": "By default, only failures get detailed output. "
@@ -194,7 +195,7 @@ class RunApexTests(BaseSalesforceApiTask):
             "json_output", "test_results.json"
         )
 
-        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
+        self.options["managed"] = process_bool_arg(self.options.get("managed") or False)
 
         self.options["retry_failures"] = process_list_arg(
             self.options.get("retry_failures", [])
@@ -211,9 +212,9 @@ class RunApexTests(BaseSalesforceApiTask):
                 )
         self.options["retry_failures"] = compiled_res
         self.options["retry_always"] = process_bool_arg(
-            self.options.get("retry_always", False)
+            self.options.get("retry_always") or False
         )
-        self.verbose = process_bool_arg(self.options.get("verbose", False))
+        self.verbose = process_bool_arg(self.options.get("verbose") or False)
 
         self.counts = {}
 
