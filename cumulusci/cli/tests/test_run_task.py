@@ -1,34 +1,31 @@
 """Tests for the RunTaskCommand class"""
 
+from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.cci import RunTaskCommand
 import click
 import pytest
 from unittest.mock import Mock, patch
 
 from cumulusci.cli import cci
-from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.cli.tests.utils import run_click_command, DummyTask
 
 
+test_tasks = {
+    "dummy-task": {"class_path": "cumulusci.cli.tests.utils.DummyTask"},
+    "lots-o-options-task": {
+        "class_path": "cumulusci.cli.tests.utils.MultipleOptionsTask"
+    },
+    "dummy-derived-task": {
+        "class_path": "cumulusci.cli.tests.test_run_task.DummyDerivedTask"
+    },
+}
+
+
 @pytest.fixture
 def runtime():
-    runtime = Mock()
-    runtime.get_org.return_value = (None, None)
-    runtime.project_config = BaseProjectConfig(
-        None,
-        config={
-            "tasks": {
-                "dummy-task": {"class_path": "cumulusci.cli.tests.utils.DummyTask"},
-                "lots-o-options-task": {
-                    "class_path": "cumulusci.cli.tests.utils.MultipleOptionsTask"
-                },
-                "dummy-derived-task": {
-                    "class_path": "cumulusci.cli.tests.test_run_task.DummyDerivedTask"
-                },
-            }
-        },
-    )
+    runtime = CliRuntime(load_keychain=False)
+    runtime.project_config.config["tasks"] = {**test_tasks}
     with patch("cumulusci.cli.cci.RUNTIME", runtime):
         yield runtime
 
@@ -256,6 +253,7 @@ def test_has_duplicate_options():
 
 def test_format_help__proj_conf_exists(runtime):
     with patch("cumulusci.cli.cci.click.echo") as echo:
+        runtime.universal_config = Mock()
         RunTaskCommand().format_help(Mock(), Mock())
         assert 4 == echo.call_count
         assert 0 == len(runtime.universal_config.method_calls)
