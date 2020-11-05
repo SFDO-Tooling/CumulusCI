@@ -238,6 +238,11 @@ def test_option_in_task__false(runtime):
         assert not RunTaskCommand()._option_in_task("pizza", "dummy-task")
 
 
+def test_option_in_task__non_task_option(runtime):
+    with patch("cumulusci.cli.cci.RUNTIME", runtime):
+        assert RunTaskCommand()._option_in_task("org", "dummy-task")
+
+
 def test_parse_option_name_value_pairs__no_option_value_old_syntax():
     args = ["task-name", "-o", "old-opt"]
     with pytest.raises(CumulusCIUsageError):

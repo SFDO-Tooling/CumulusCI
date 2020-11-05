@@ -1419,6 +1419,30 @@ def task_info(runtime, task_name):
 
 
 class RunTaskCommand(click.MultiCommand):
+    # options that are not task specific
+    not_task_options = {
+        "org": {
+            "help": "Specify the target org. By default, runs against the current default org.",
+            "is_flag": True,
+        },
+        "no-prompt": {
+            "help": "Disables all prompts. Set for non-interactive mode such as calling from scripts or CI sytems",
+            "is_flag": True,
+        },
+        "debug": {
+            "help": "Drops into the Python debugger on an exception",
+            "is_flag": True,
+        },
+        "debug-before": {
+            "help": "Drops into the Python debugger right before the task starts",
+            "is_flag": True,
+        },
+        "debug-after": {
+            "help": "Drops into the Python debugger at task completion.",
+            "is_flag": True,
+        },
+    }
+
     def list_commands(self, ctx):
         return sorted(
             RUNTIME.project_config.config["tasks"].keys()
@@ -1515,7 +1539,6 @@ class RunTaskCommand(click.MultiCommand):
         no duplicate options are present. Then convert all options
         to the new syntax (--name value).
 
-
         Args:
             param1: The list of arguments to convert
 
@@ -1605,6 +1628,10 @@ class RunTaskCommand(click.MultiCommand):
         Returns True if opt_name is the name of an
         option defined in the given task, else False.
         """
+        # skip options that aren't task specific
+        if opt_name in self.not_task_options:
+            return True
+
         task = RUNTIME.project_config.get_task(task_name)
         task_class = import_global(task.config["class_path"])
         return opt_name in task_class.task_options.keys()
@@ -1630,35 +1657,23 @@ class RunTaskCommand(click.MultiCommand):
         return click_options
 
     def _get_default_command_options(self, is_salesforce_task):
-
-        click_options = [
-            click.Option(
-                param_decls=("--debug",),
-                is_flag=True,
-                help="Drops into the Python debugger on an exception",
-            ),
-            click.Option(
-                param_decls=("--debug-before",),
-                is_flag=True,
-                help="Drops into the Python debugger right before the task starts",
-            ),
-            click.Option(
-                param_decls=("--debug-after",),
-                is_flag=True,
-                help="Drops into the Python debugger at task completion.",
-            ),
-            click.Option(
-                param_decls=("--no-prompt",),
-                is_flag=True,
-                help="Disables all prompts. Set for non-interactive mode such as calling from scripts or CI sytems",
-            ),
-        ]
+        click_options = []
+        for opt_name, config in self.not_task_options.items():
+            if opt_name == "org":
+                continue
+            click_options.append(
+                click.Option(
+                    param_decls=(f"--{opt_name}",),
+                    is_flag=config["is_flag"],
+                    help=config["help"],
+                )
+            )
 
         if is_salesforce_task:
             click_options.append(
                 click.Option(
                     param_decls=("--org",),
-                    help="Specify the target org. By default, runs against the current default org.",
+                    help=self.not_task_options["org"]["help"],
                 )
             )
 
