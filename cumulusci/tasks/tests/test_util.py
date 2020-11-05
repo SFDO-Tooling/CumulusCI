@@ -1,6 +1,7 @@
 from unittest import mock
 import os
 import unittest
+import pytest
 
 from cumulusci.tasks import util
 from cumulusci.core.config import UniversalConfig
@@ -9,9 +10,18 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.utils import temporary_dir
 from cumulusci.tests.util import DummyLogger
+from cumulusci.core.exceptions import TaskOptionsError
 
 
 class TestUtilTasks(unittest.TestCase):
+    # @pytest.fixture
+    # def mock_set_env(monkeypatch):
+    #     monkeypatch.setenv("bar", "bars")
+
+    # @pytest.fixture
+    # def mock_remove_env(monkeypatch):
+    #     monkeypatch.delenv("bar", raising=False)
+
     def setUp(self):
         os.mkdir(os.path.join(self.tempdir, ".git"))
         self.universal_config = UniversalConfig()
@@ -110,6 +120,45 @@ class TestUtilTasks(unittest.TestCase):
         task = util.FindReplace(self.project_config, task_config, self.org_config)
         task()
         find_replace.assert_called_once()
+
+    @mock.patch("cumulusci.tasks.util.find_replace")
+    def test_FindReplace_env_replace_error(self, find_replace):
+        os.unsetenv("bar")
+        with pytest.raises(TaskOptionsError):
+            task_config = TaskConfig(
+                {
+                    "options": {
+                        "find": "foo",
+                        "replace": "bar",
+                        "env_replace": True,
+                        "path": ".",
+                        "max": 1,
+                    }
+                }
+            )
+            task = util.FindReplace(self.project_config, task_config, self.org_config)
+            task()
+            find_replace.assert_called_once()
+
+    @mock.patch("cumulusci.tasks.util.find_replace")
+    def test_FindReplace_env_replace(self, find_replace):
+        os.environ["bar"] = "bars"
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "find": "foo",
+                    "replace": "bar",
+                    "env_replace": True,
+                    "path": ".",
+                    "max": 1,
+                }
+            }
+        )
+        task = util.FindReplace(self.project_config, task_config, self.org_config)
+        task()
+        assert task.options["replace"] == "bars"
+        find_replace.assert_called_once()
+        os.environ.pop("bar")
 
     @mock.patch("cumulusci.tasks.util.find_replace_regex")
     def test_FindReplaceRegex(self, find_replace_regex):

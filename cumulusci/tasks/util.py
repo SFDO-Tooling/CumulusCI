@@ -4,8 +4,9 @@ import time
 import glob
 from xml.dom.minidom import parse
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_list_arg
+from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
 
 
@@ -129,6 +130,10 @@ class FindReplace(BaseTask):
             "description": "The string to replace matches with. Defaults to an empty string",
             "required": True,
         },
+        "env_replace": {
+            "description": "The boolean value to treat the replace option as systems environment variable for replace. Ensure it's set in your system for best results. Defaults to False",
+            "required": False,
+        },
         "path": {"description": "The path to recursively search", "required": True},
         "file_pattern": {
             "description": "A UNIX like filename pattern used for matching filenames, or a list of them. See python fnmatch docs for syntax. If passed via command line, use a comma separated string. Defaults to *"
@@ -140,11 +145,22 @@ class FindReplace(BaseTask):
 
     def _init_options(self, kwargs):
         super(FindReplace, self)._init_options(kwargs)
+
         if "replace" not in self.options:
             self.options["replace"] = ""
         self.options["file_pattern"] = process_list_arg(
             self.options.get("file_pattern") or "*"
         )
+        self.options["env_replace"] = process_bool_arg(
+            self.options.get("env_replace") or False
+        )
+        if self.options["env_replace"]:
+            if self.options["replace"] in os.environ.keys():
+                self.options["replace"] = os.environ[self.options["replace"]]
+            else:
+                raise TaskOptionsError(
+                    "Please declare the replace variable in  your local environment, not found at runtime. To turn this off, set env_replace option to False."
+                )
 
     def _run_task(self):
         kwargs = {}
