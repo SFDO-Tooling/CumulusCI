@@ -19,6 +19,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
 )
 from cumulusci.tasks.bulkdata.step import DataOperationType
 from cumulusci.tests.util import DummyOrgConfig, mock_describe_calls
+from cumulusci.tasks.bulkdata.step import DataApi
 
 
 class TestMappingParser:
@@ -208,23 +209,25 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            CaseInsensitiveDict(
+            describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "Website": {"createable": True}}
             ),
-            ms.fields_,
-            None,
-            False,
-            DataOperationType.INSERT,
+            field_dict=ms.fields_,
+            inject=None,
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
         )
 
         assert not ms._validate_field_dict(
-            CaseInsensitiveDict(
+            describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "Website": {"createable": False}}
             ),
-            ms.fields_,
-            None,
-            False,
-            DataOperationType.INSERT,
+            field_dict=ms.fields_,
+            inject=None,
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
         )
 
     def test_validate_field_dict__injection(self):
@@ -235,13 +238,14 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            CaseInsensitiveDict(
+            describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "npsp__Test__c": {"createable": True}}
             ),
-            ms.fields_,
-            lambda field: f"npsp__{field}",
-            False,
-            DataOperationType.INSERT,
+            field_dict=ms.fields_,
+            inject=lambda field: f"npsp__{field}",
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
         )
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name", "npsp__Test__c": "Test__c"}
@@ -254,17 +258,18 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            CaseInsensitiveDict(
+            describe=CaseInsensitiveDict(
                 {
                     "Name": {"createable": True},
                     "npsp__Test__c": {"createable": True},
                     "Test__c": {"createable": True},
                 }
             ),
-            ms.fields_,
-            lambda field: f"npsp__{field}",
-            False,
-            DataOperationType.INSERT,
+            field_dict=ms.fields_,
+            inject=lambda field: f"npsp__{field}",
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
         )
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name", "Test__c": "Test__c"}
@@ -277,13 +282,14 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            CaseInsensitiveDict(
+            describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "Website": {"createable": False}}
             ),
-            ms.fields_,
-            None,
-            True,
-            DataOperationType.INSERT,
+            field_dict=ms.fields_,
+            inject=None,
+            strip=None,
+            drop_missing=True,
+            data_operation_type=DataOperationType.INSERT,
         )
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name"}
@@ -388,12 +394,14 @@ class TestMappingParser:
                     ),
                     ms.fields,
                     mock.ANY,  # local function def
+                    mock.ANY,  # local function def
                     False,
                     DataOperationType.INSERT,
                 ),
                 mock.call(
                     {"ns__Test__c": {"name": "ns__Test__c", "createable": True}},
                     ms.lookups,
+                    mock.ANY,  # local function def
                     mock.ANY,  # local function def
                     False,
                     DataOperationType.INSERT,
@@ -459,6 +467,7 @@ class TestMappingParser:
                     },
                     ms.fields,
                     mock.ANY,  # local function def.
+                    mock.ANY,  # local function def.
                     False,
                     DataOperationType.INSERT,
                 ),
@@ -472,6 +481,7 @@ class TestMappingParser:
                         },
                     },
                     ms.lookups,
+                    mock.ANY,  # local function def.
                     mock.ANY,  # local function def.
                     False,
                     DataOperationType.INSERT,
@@ -515,12 +525,14 @@ class TestMappingParser:
                     {"Field__c": {"name": "Field__c", "createable": True}},
                     {"Field__c": "Field__c"},
                     None,
+                    None,
                     False,
                     DataOperationType.INSERT,
                 ),
                 mock.call(
                     {"Field__c": {"name": "Field__c", "createable": True}},
                     {},
+                    None,
                     None,
                     False,
                     DataOperationType.INSERT,
@@ -600,6 +612,7 @@ class TestMappingParser:
                     {"Name": {"name": "Name", "createable": False}},
                     {"Name": "Name"},
                     None,
+                    None,
                     False,
                     DataOperationType.INSERT,
                 )
@@ -663,6 +676,7 @@ class TestMappingParser:
                     },
                     {"Name": "Name"},
                     None,
+                    None,
                     False,
                     DataOperationType.INSERT,
                 ),
@@ -676,6 +690,7 @@ class TestMappingParser:
                         },
                     },
                     ms.lookups,
+                    None,
                     None,
                     False,
                     DataOperationType.INSERT,
@@ -741,6 +756,7 @@ class TestMappingParser:
                     },
                     {"Name": "Name"},
                     None,
+                    None,
                     False,
                     DataOperationType.INSERT,
                 ),
@@ -754,6 +770,7 @@ class TestMappingParser:
                         },
                     },
                     ms.lookups,
+                    None,
                     None,
                     False,
                     DataOperationType.INSERT,
@@ -889,6 +906,29 @@ class TestMappingParser:
         assert list(ms.fields.keys()) == ["ns__Description__c"]
 
     @responses.activate
+    def test_validate_and_inject_mapping_removes_namespaces(self):
+        mock_describe_calls()
+        # Note: History__c is a mock field added to our stored, mock describes (in JSON)
+        ms = parse_from_yaml(
+            StringIO(
+                """Insert Accounts:
+                  sf_object: Account
+                  table: Account
+                  fields:
+                    - ns__History__c"""
+            )
+        )["Insert Accounts"]
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        assert ms.validate_and_inject_namespace(
+            org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
+        )
+
+        assert list(ms.fields.keys()) == ["History__c"]
+
+    @responses.activate
     def test_validate_and_inject_mapping_queries_is_person_account_field(self):
         mock_describe_calls()
         mapping = parse_from_yaml(
@@ -989,3 +1029,23 @@ class TestMappingLookup:
         assert mapping["Insert Accounts"].sf_object != "account"
         assert "Name" in mapping["Insert Accounts"].fields
         assert "name" not in mapping["Insert Accounts"].fields
+
+    @responses.activate
+    def test_bulk_attributes(self):
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        api: rest
+                        bulk_mode: Serial
+                        batch_size: 50
+                        fields:
+                            - name"""
+                )
+            )
+        )
+        assert mapping["Insert Accounts"].api == DataApi.REST
+        assert mapping["Insert Accounts"].bulk_mode == "Serial"
+        assert mapping["Insert Accounts"].batch_size == 50
