@@ -29,15 +29,15 @@ def runtime():
             }
         },
     )
-    return runtime
+    with patch("cumulusci.cli.cci.RUNTIME", runtime):
+        yield runtime
 
 
 def test_task_run(runtime):
     DummyTask._run_task = Mock()
     multi_cmd = cci.RunTaskCommand()
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        cmd = multi_cmd.get_command(Mock(), "dummy-task")
-        run_click_command(cmd, "dummy-task", color="blue", runtime=runtime)
+    cmd = multi_cmd.get_command(Mock(), "dummy-task")
+    run_click_command(cmd, "dummy-task", color="blue", runtime=runtime)
 
     DummyTask._run_task.assert_called_once()
 
@@ -47,18 +47,17 @@ def test_task_run__debug_before(runtime):
     multi_cmd = cci.RunTaskCommand()
 
     set_trace = Mock(side_effect=SetTrace)
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        with patch("pdb.set_trace", set_trace):
-            with pytest.raises(SetTrace):
-                cmd = multi_cmd.get_command(Mock(), "dummy-task")
-                run_click_command(
-                    cmd,
-                    "dummy_task",
-                    color="blue",
-                    debug_before=True,
-                    debug_after=False,
-                    runtime=runtime,
-                )
+    with patch("pdb.set_trace", set_trace):
+        with pytest.raises(SetTrace):
+            cmd = multi_cmd.get_command(Mock(), "dummy-task")
+            run_click_command(
+                cmd,
+                "dummy_task",
+                color="blue",
+                debug_before=True,
+                debug_after=False,
+                runtime=runtime,
+            )
 
 
 def test_task_run__debug_after(runtime):
@@ -66,32 +65,29 @@ def test_task_run__debug_after(runtime):
     multi_cmd = cci.RunTaskCommand()
 
     set_trace = Mock(side_effect=SetTrace)
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        with patch("pdb.set_trace", set_trace):
-            with pytest.raises(SetTrace):
-                cmd = multi_cmd.get_command(Mock(), "dummy-task")
-                run_click_command(
-                    cmd,
-                    "dummy-task",
-                    color="blue",
-                    debug_before=False,
-                    debug_after=True,
-                    runtime=runtime,
-                )
+    with patch("pdb.set_trace", set_trace):
+        with pytest.raises(SetTrace):
+            cmd = multi_cmd.get_command(Mock(), "dummy-task")
+            run_click_command(
+                cmd,
+                "dummy-task",
+                color="blue",
+                debug_before=False,
+                debug_after=True,
+                runtime=runtime,
+            )
 
 
 def test_task_run__list_commands(runtime):
     multi_cmd = cci.RunTaskCommand()
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        commands = multi_cmd.list_commands(Mock())
+    commands = multi_cmd.list_commands(Mock())
     assert commands == ["dummy-derived-task", "dummy-task", "lots-o-options-task"]
 
 
 def test_task_run__resolve_command(runtime):
     args = ["dummy-task", "-o", "color", "blue"]
     multi_cmd = cci.RunTaskCommand()
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        cmd_name, cmd, args = multi_cmd.resolve_command(Mock(), args)
+    cmd_name, cmd, args = multi_cmd.resolve_command(Mock(), args)
 
     assert cmd_name == "dummy-task"
     assert isinstance(cmd, click.Command)
@@ -103,15 +99,13 @@ def test_task_run__resolve_command(runtime):
 
 def test_convert_old_option_syntax__nothing_to_convert(runtime):
     args = ["dummy-task", "--color", "blue"]
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        converted = RunTaskCommand()._convert_old_option_syntax(args)
+    converted = RunTaskCommand()._convert_old_option_syntax(args)
     assert args == converted
 
 
 def test_convert_old_option_syntax__convert_single_option(runtime):
     args = ["dummy-task", "-o", "color", "blue"]
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        converted = RunTaskCommand()._convert_old_option_syntax(args)
+    converted = RunTaskCommand()._convert_old_option_syntax(args)
     assert converted == ["dummy-task", "--color", "blue"]
 
 
@@ -128,8 +122,7 @@ def test_convert_old_option_syntax__convert_multiple_options(runtime):
         "baz",
         "bazzy",
     ]
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        converted = RunTaskCommand()._convert_old_option_syntax(args)
+    converted = RunTaskCommand()._convert_old_option_syntax(args)
     assert converted == [
         "lots-o-options-task",
         "--foo",
@@ -153,8 +146,7 @@ def test_convert_old_option_syntax__convert_mixed_options(runtime):
         "baz",
         "bazzy",
     ]
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        converted = RunTaskCommand()._convert_old_option_syntax(args)
+    converted = RunTaskCommand()._convert_old_option_syntax(args)
     assert converted == [
         "lots-o-options-task",
         "--foo",
@@ -184,9 +176,8 @@ def test_convert_old_option_syntax__duplicate_option(runtime):
         "foo",
         "duplicate",
     ]
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        with pytest.raises(CumulusCIUsageError):
-            RunTaskCommand()._convert_old_option_syntax(args)
+    with pytest.raises(CumulusCIUsageError):
+        RunTaskCommand()._convert_old_option_syntax(args)
 
 
 def test_convert_old_option_syntax__extra_dashes(runtime):
@@ -203,15 +194,13 @@ def test_convert_old_option_syntax__extra_dashes(runtime):
     ]
 
     # test option value fails
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        with pytest.raises(CumulusCIUsageError):
-            RunTaskCommand()._convert_old_option_syntax(args)
+    with pytest.raises(CumulusCIUsageError):
+        RunTaskCommand()._convert_old_option_syntax(args)
 
     args[2] = "-foo"
     # test option name fails
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        with pytest.raises(CumulusCIUsageError):
-            RunTaskCommand()._convert_old_option_syntax(args)
+    with pytest.raises(CumulusCIUsageError):
+        RunTaskCommand()._convert_old_option_syntax(args)
 
 
 def test_convert_old_option_syntax__option_not_found(runtime):
@@ -223,24 +212,20 @@ def test_convert_old_option_syntax__option_not_found(runtime):
     ]
 
     # test option value fails
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        with pytest.raises(CumulusCIUsageError):
-            RunTaskCommand()._convert_old_option_syntax(args)
+    with pytest.raises(CumulusCIUsageError):
+        RunTaskCommand()._convert_old_option_syntax(args)
 
 
 def test_option_in_task__true(runtime):
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        assert RunTaskCommand()._option_in_task("color", "dummy-task")
+    assert RunTaskCommand()._option_in_task("color", "dummy-task")
 
 
 def test_option_in_task__false(runtime):
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        assert not RunTaskCommand()._option_in_task("pizza", "dummy-task")
+    assert not RunTaskCommand()._option_in_task("pizza", "dummy-task")
 
 
 def test_option_in_task__non_task_option(runtime):
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        assert RunTaskCommand()._option_in_task("org", "dummy-task")
+    assert RunTaskCommand()._option_in_task("org", "dummy-task")
 
 
 def test_parse_option_name_value_pairs__no_option_value_old_syntax():
@@ -271,19 +256,17 @@ def test_has_duplicate_options():
 
 def test_format_help__proj_conf_exists(runtime):
     with patch("cumulusci.cli.cci.click.echo") as echo:
-        with patch("cumulusci.cli.cci.RUNTIME", runtime) as rt:
-            RunTaskCommand().format_help(Mock(), Mock())
-            assert 4 == echo.call_count
-            assert 0 == len(rt.universal_config.method_calls)
+        RunTaskCommand().format_help(Mock(), Mock())
+        assert 4 == echo.call_count
+        assert 0 == len(runtime.universal_config.method_calls)
 
 
 def test_format_help__proj_conf_does_not_exist(runtime):
     with patch("cumulusci.cli.cci.click.echo") as echo:
-        with patch("cumulusci.cli.cci.RUNTIME", runtime) as rt:
-            rt.universal_config = rt.project_config
-            rt.project_config = None
-            RunTaskCommand().format_help(Mock(), Mock())
-            assert 4 == echo.call_count
+        runtime.universal_config = runtime.project_config
+        runtime.project_config = None
+        RunTaskCommand().format_help(Mock(), Mock())
+        assert 4 == echo.call_count
 
 
 def test_get_default_command_options():
