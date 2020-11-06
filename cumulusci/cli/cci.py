@@ -723,8 +723,6 @@ def project_dependencies(runtime):
 
 
 # Commands for group: service
-
-
 @service.command(name="list", help="List services available for configuration and use")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
@@ -1345,20 +1343,48 @@ def task_list(runtime, plain, print_json):
 
 
 @task.command(name="doc", help="Exports RST format documentation for all tasks")
-@pass_runtime(require_project=False)
-def task_doc(runtime):
-    config_src = runtime.universal_config
+@click.option(
+    "--project", "project", is_flag=True, help="Include project-specific tasks only"
+)
+@click.option(
+    "--write",
+    "write",
+    is_flag=True,
+    help="If true, write output to a file (./docs/project_tasks.rst or ./docs/cumulusci_tasks.rst)",
+)
+@pass_runtime(
+    require_project=False,
+)
+def task_doc(runtime, project=False, write=False):
+    if project and runtime.project_config is None:
+        raise click.UsageError(
+            "The --project option can only be used inside a project."
+        )
+    if project:
+        full_tasks = runtime.project_config.tasks
+        selected_tasks = runtime.project_config.config_project.get("tasks", {})
+        file_name = "project_tasks.rst"
+        project_name = runtime.project_config.project__name
+        title = f"{project_name} Tasks Reference"
+    else:
+        full_tasks = selected_tasks = runtime.universal_config.tasks
+        file_name = "cumulusci_tasks.rst"
+        title = "Tasks Reference"
 
-    click.echo("==========================================")
-    click.echo("Tasks Reference")
-    click.echo("==========================================")
-    click.echo("")
-
-    for name, options in config_src.tasks.items():
-        task_config = TaskConfig(options)
+    result = ["=" * len(title), title, "=" * len(title), ""]
+    for name, task_config_dict in full_tasks.items():
+        if name not in selected_tasks:
+            continue
+        task_config = TaskConfig(task_config_dict)
         doc = doc_task(name, task_config)
-        click.echo(doc)
-        click.echo("")
+        result += [doc, ""]
+    result = "\r\n".join(result)
+
+    if write:
+        Path("docs").mkdir(exist_ok=True)
+        (Path("docs") / file_name).write_text(result, encoding="utf-8")
+    else:
+        click.echo(result)
 
 
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
@@ -1366,9 +1392,7 @@ def task_doc(runtime):
 def flow_doc(runtime):
     with open("docs/flows.yml", "r", encoding="utf-8") as f:
         flow_info = cci_safe_load(f)
-
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
-
     flow_info_groups = list(flow_info["groups"].keys())
 
     flows = (

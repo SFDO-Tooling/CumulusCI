@@ -131,7 +131,7 @@ class FindReplace(BaseTask):
             "required": True,
         },
         "env_replace": {
-            "description": "The boolean value to treat the replace option as systems environment variable for replace. Ensure it's set in your system for best results. Defaults to False",
+            "description": "If True, treat the value of the replace option as the name of an environment variable, and use the value of that variable as the replacement string. Defaults to False",
             "required": False,
         },
         "path": {"description": "The path to recursively search", "required": True},
@@ -165,7 +165,7 @@ class FindReplace(BaseTask):
                 self.options["replace"] = os.environ[self.options["replace"]]
             else:
                 raise TaskOptionsError(
-                    "Please declare the replace variable in  your local environment, not found at runtime. To turn this off, set env_replace option to False."
+                    f"The environment variable {self.options['replace']} was not found. Ensure that this value is populated or set env_replace to False."
                 )
 
         for file_pattern in self.options["file_pattern"]:
@@ -175,7 +175,7 @@ class FindReplace(BaseTask):
                 directory=self.options["path"],
                 filePattern=file_pattern,
                 logger=self.logger,
-                **kwargs
+                **kwargs,
             )
 
 

@@ -688,7 +688,7 @@ flows:
 
     config_managed:
         group: Post-Install Configuration 
-        description: Configure an org for use as a dev org after package metadata is deployed
+        description: Configure an org for use after the managed package has been installed.
         steps:
             1:
                 task: deploy_post
