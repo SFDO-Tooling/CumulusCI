@@ -1443,12 +1443,8 @@ def task_info(runtime, task_name):
 
 
 class RunTaskCommand(click.MultiCommand):
-    # options hat are not task specific
+    # options that are not task specific
     global_options = {
-        "org": {
-            "help": "Specify the target org. By default, runs against the current default org.",
-            "is_flag": True,
-        },
         "no-prompt": {
             "help": "Disables all prompts. Set for non-interactive mode such as calling from scripts or CI sytems",
             "is_flag": True,
@@ -1590,8 +1586,6 @@ class RunTaskCommand(click.MultiCommand):
     def _get_default_command_options(self, is_salesforce_task):
         click_options = []
         for opt_name, config in self.global_options.items():
-            if opt_name == "org":
-                continue
             click_options.append(
                 click.Option(
                     param_decls=(f"--{opt_name}",),
@@ -1604,7 +1598,7 @@ class RunTaskCommand(click.MultiCommand):
             click_options.append(
                 click.Option(
                     param_decls=("--org",),
-                    help=self.global_options["org"]["help"],
+                    help="Specify the target org. By default, runs against the current default org.",
                 )
             )
 
