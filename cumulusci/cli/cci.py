@@ -1444,14 +1444,10 @@ class RunTaskCommand(click.MultiCommand):
     }
 
     def list_commands(self, ctx):
-        return sorted(
-            RUNTIME.project_config.config["tasks"].keys()
-            if RUNTIME.project_config
-            else RUNTIME.universal_config.config["tasks"].keys()
-        )
+        tasks = RUNTIME.get_available_tasks()
+        return sorted([t["name"] for t in tasks])
 
     def get_command(self, ctx, task_name):
-        RUNTIME._load_keychain()
         if RUNTIME.project_config is None:
             task_config = RUNTIME.universal_config.get_task(task_name)
         else:
@@ -1460,10 +1456,8 @@ class RunTaskCommand(click.MultiCommand):
         if "options" not in task_config.config:
             task_config.config["options"] = {}
 
-        task_class = import_global(task_config.class_path)
-        task_options = task_class.task_options
-
-        params = self._get_default_command_options(task_class.salesforce_task)
+        task_options = ctx.task_class.task_options
+        params = self._get_default_command_options(ctx.task_class.salesforce_task)
         params.extend(self._get_click_options_for_task(task_options))
 
         def run_task(*args, **kwargs):
@@ -1482,7 +1476,7 @@ class RunTaskCommand(click.MultiCommand):
                     task_config.config["options"][name] = value
 
             try:
-                task = task_class(
+                task = ctx.task_class(
                     task_config.project_config, task_config, org_config=org_config
                 )
 
@@ -1529,10 +1523,20 @@ class RunTaskCommand(click.MultiCommand):
         args being passed in. This allows us to convert
         the old option syntax to the new option syntax.
         """
-        args = self._convert_old_option_syntax(args)
+        task = None
+        task_name = args[0]
+        RUNTIME._load_keychain()
+        if RUNTIME.project_config is None:
+            task = RUNTIME.universal_config.get_task(task_name)
+        else:
+            task = RUNTIME.project_config.get_task(task_name)
+
+        ctx.task_class = import_global(task.config["class_path"])
+
+        args = self._convert_old_option_syntax(args, ctx.task_class)
         return click.MultiCommand.resolve_command(self, ctx, args)
 
-    def _convert_old_option_syntax(self, args):
+    def _convert_old_option_syntax(self, args, task_class):
         """
         Given a list of args, parse them by name/value pairs and
         ensure that the options are valid for the given task, and
@@ -1559,7 +1563,7 @@ class RunTaskCommand(click.MultiCommand):
         task_name = args[0]
         for opt in name_vals:
             opt_name, val = opt
-            if opt_name and not self._option_in_task(opt_name, task_name):
+            if opt_name and not self._option_in_task(opt_name, task_class):
                 raise CumulusCIUsageError(
                     f"No option `{opt_name}` found in task {task_name}.\nTo view available task option run: `cci task info {task_name}`"
                 )
@@ -1623,7 +1627,7 @@ class RunTaskCommand(click.MultiCommand):
             opts.append(value)
         return opts
 
-    def _option_in_task(self, opt_name, task_name):
+    def _option_in_task(self, opt_name, task_class):
         """
         Returns True if opt_name is the name of an
         option defined in the given task, else False.
@@ -1632,8 +1636,6 @@ class RunTaskCommand(click.MultiCommand):
         if opt_name in self.not_task_options:
             return True
 
-        task = RUNTIME.project_config.get_task(task_name)
-        task_class = import_global(task.config["class_path"])
         return opt_name in task_class.task_options.keys()
 
     def _get_click_options_for_task(self, task_options):

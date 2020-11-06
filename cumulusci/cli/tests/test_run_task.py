@@ -7,9 +7,12 @@ import pytest
 from unittest.mock import Mock, patch
 
 from cumulusci.cli import cci
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.cli.tests.utils import run_click_command, DummyTask
+from cumulusci.cli.tests.utils import run_click_command, DummyTask, MultipleOptionsTask
 
+color_opts = {"options": {"color": {}}}
+multiple_opts = {"options": {"foo": {}, "bar": {}, "baz": {}}}
 
 test_tasks = {
     "dummy-task": {"class_path": "cumulusci.cli.tests.utils.DummyTask"},
@@ -23,30 +26,42 @@ test_tasks = {
 
 
 @pytest.fixture
+def ctx():
+    ctx = Mock()
+    ctx.task_class = DummyTask
+    return ctx
+
+
+@pytest.fixture
 def runtime():
     runtime = CliRuntime(load_keychain=False)
     runtime.project_config.config["tasks"] = {**test_tasks}
+
+    runtime.keychain = Mock()
+    runtime.keychain.get_default_org.return_value = (None, None)
+
     with patch("cumulusci.cli.cci.RUNTIME", runtime):
         yield runtime
 
 
-def test_task_run(runtime):
+def test_task_run(runtime, ctx):
     DummyTask._run_task = Mock()
     multi_cmd = cci.RunTaskCommand()
-    cmd = multi_cmd.get_command(Mock(), "dummy-task")
+    cmd = multi_cmd.get_command(ctx, "dummy-task")
+
     run_click_command(cmd, "dummy-task", color="blue", runtime=runtime)
 
     DummyTask._run_task.assert_called_once()
 
 
-def test_task_run__debug_before(runtime):
+def test_task_run__debug_before(runtime, ctx):
     DummyTask._run_task = Mock()
     multi_cmd = cci.RunTaskCommand()
-
     set_trace = Mock(side_effect=SetTrace)
+
     with patch("pdb.set_trace", set_trace):
         with pytest.raises(SetTrace):
-            cmd = multi_cmd.get_command(Mock(), "dummy-task")
+            cmd = multi_cmd.get_command(ctx, "dummy-task")
             run_click_command(
                 cmd,
                 "dummy_task",
@@ -57,14 +72,14 @@ def test_task_run__debug_before(runtime):
             )
 
 
-def test_task_run__debug_after(runtime):
+def test_task_run__debug_after(runtime, ctx):
     DummyTask._run_task = Mock()
     multi_cmd = cci.RunTaskCommand()
 
     set_trace = Mock(side_effect=SetTrace)
     with patch("pdb.set_trace", set_trace):
         with pytest.raises(SetTrace):
-            cmd = multi_cmd.get_command(Mock(), "dummy-task")
+            cmd = multi_cmd.get_command(ctx, "dummy-task")
             run_click_command(
                 cmd,
                 "dummy-task",
@@ -75,9 +90,9 @@ def test_task_run__debug_after(runtime):
             )
 
 
-def test_task_run__list_commands(runtime):
+def test_task_run__list_commands(runtime, ctx):
     multi_cmd = cci.RunTaskCommand()
-    commands = multi_cmd.list_commands(Mock())
+    commands = multi_cmd.list_commands(ctx)
     assert commands == ["dummy-derived-task", "dummy-task", "lots-o-options-task"]
 
 
@@ -96,13 +111,16 @@ def test_task_run__resolve_command(runtime):
 
 def test_convert_old_option_syntax__nothing_to_convert(runtime):
     args = ["dummy-task", "--color", "blue"]
-    converted = RunTaskCommand()._convert_old_option_syntax(args)
+    converted = RunTaskCommand()._convert_old_option_syntax(
+        args, Mock(task_options={"color": {}})
+    )
     assert args == converted
 
 
 def test_convert_old_option_syntax__convert_single_option(runtime):
     args = ["dummy-task", "-o", "color", "blue"]
-    converted = RunTaskCommand()._convert_old_option_syntax(args)
+    converted = RunTaskCommand()._convert_old_option_syntax(args, DummyTask)
+
     assert converted == ["dummy-task", "--color", "blue"]
 
 
@@ -119,7 +137,9 @@ def test_convert_old_option_syntax__convert_multiple_options(runtime):
         "baz",
         "bazzy",
     ]
-    converted = RunTaskCommand()._convert_old_option_syntax(args)
+    task = MultipleOptionsTask(None, TaskConfig(multiple_opts))
+    converted = RunTaskCommand()._convert_old_option_syntax(args, task)
+
     assert converted == [
         "lots-o-options-task",
         "--foo",
@@ -143,7 +163,9 @@ def test_convert_old_option_syntax__convert_mixed_options(runtime):
         "baz",
         "bazzy",
     ]
-    converted = RunTaskCommand()._convert_old_option_syntax(args)
+
+    converted = RunTaskCommand()._convert_old_option_syntax(args, MultipleOptionsTask)
+
     assert converted == [
         "lots-o-options-task",
         "--foo",
@@ -173,8 +195,10 @@ def test_convert_old_option_syntax__duplicate_option(runtime):
         "foo",
         "duplicate",
     ]
+
+    task = DummyTask(None, TaskConfig(color_opts))
     with pytest.raises(CumulusCIUsageError):
-        RunTaskCommand()._convert_old_option_syntax(args)
+        RunTaskCommand()._convert_old_option_syntax(args, task)
 
 
 def test_convert_old_option_syntax__extra_dashes(runtime):
@@ -189,15 +213,15 @@ def test_convert_old_option_syntax__extra_dashes(runtime):
         "baz",
         "-bazzy",
     ]
-
+    task = DummyTask(None, TaskConfig(color_opts))
     # test option value fails
     with pytest.raises(CumulusCIUsageError):
-        RunTaskCommand()._convert_old_option_syntax(args)
+        RunTaskCommand()._convert_old_option_syntax(args, task)
 
     args[2] = "-foo"
     # test option name fails
     with pytest.raises(CumulusCIUsageError):
-        RunTaskCommand()._convert_old_option_syntax(args)
+        RunTaskCommand()._convert_old_option_syntax(args, task)
 
 
 def test_convert_old_option_syntax__option_not_found(runtime):
@@ -208,21 +232,26 @@ def test_convert_old_option_syntax__option_not_found(runtime):
         "olives",
     ]
 
-    # test option value fails
+    task = MultipleOptionsTask(None, TaskConfig(multiple_opts))
     with pytest.raises(CumulusCIUsageError):
-        RunTaskCommand()._convert_old_option_syntax(args)
+        RunTaskCommand()._convert_old_option_syntax(args, task)
 
 
 def test_option_in_task__true(runtime):
-    assert RunTaskCommand()._option_in_task("color", "dummy-task")
+    assert RunTaskCommand()._option_in_task(
+        "color", DummyTask(None, TaskConfig(color_opts))
+    )
 
 
 def test_option_in_task__false(runtime):
-    assert not RunTaskCommand()._option_in_task("pizza", "dummy-task")
+    assert not RunTaskCommand()._option_in_task(
+        "pizza", DummyTask(None, TaskConfig(color_opts))
+    )
 
 
 def test_option_in_task__non_task_option(runtime):
-    assert RunTaskCommand()._option_in_task("org", "dummy-task")
+    task = DummyTask(None, TaskConfig(color_opts))
+    assert RunTaskCommand()._option_in_task("org", task)
 
 
 def test_parse_option_name_value_pairs__no_option_value_old_syntax():
@@ -283,11 +312,3 @@ class SetTrace(Exception):
 class DummyDerivedTask(DummyTask):
     def _run_task(self):
         click.echo(f"<{self.__class__}>\n\tcolor: {self.options['color']}")
-
-
-class DummyBaseNoOpts:
-    pass
-
-
-class DummyDerivedNoOpts(DummyBaseNoOpts):
-    pass
