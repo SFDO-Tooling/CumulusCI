@@ -159,7 +159,7 @@ class FindReplace(BaseTask):
                 self.options["replace"] = os.environ[self.options["replace"]]
             else:
                 raise TaskOptionsError(
-                    "Please declare the replace variable in  your local environment, not found at runtime. To turn this off, set env_replace option to False."
+                    f"The environment variable {self.options['replace']} was not found. Ensure that this value is populated or set env_replace to False."
                 )
 
     def _run_task(self):
