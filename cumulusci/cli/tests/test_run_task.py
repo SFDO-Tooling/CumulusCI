@@ -7,18 +7,14 @@ import pytest
 from unittest.mock import Mock, patch
 
 from cumulusci.cli import cci
-from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.cli.tests.utils import run_click_command, DummyTask, MultipleOptionsTask
+from cumulusci.cli.tests.utils import run_click_command, DummyTask
 
 color_opts = {"options": {"color": {}}}
 multiple_opts = {"options": {"foo": {}, "bar": {}, "baz": {}}}
 
 test_tasks = {
     "dummy-task": {"class_path": "cumulusci.cli.tests.utils.DummyTask"},
-    "lots-o-options-task": {
-        "class_path": "cumulusci.cli.tests.utils.MultipleOptionsTask"
-    },
     "dummy-derived-task": {
         "class_path": "cumulusci.cli.tests.test_run_task.DummyDerivedTask"
     },
@@ -93,191 +89,7 @@ def test_task_run__debug_after(runtime, ctx):
 def test_task_run__list_commands(runtime, ctx):
     multi_cmd = cci.RunTaskCommand()
     commands = multi_cmd.list_commands(ctx)
-    assert commands == ["dummy-derived-task", "dummy-task", "lots-o-options-task"]
-
-
-def test_task_run__resolve_command(runtime):
-    args = ["dummy-task", "-o", "color", "blue"]
-    multi_cmd = cci.RunTaskCommand()
-    cmd_name, cmd, args = multi_cmd.resolve_command(Mock(), args)
-
-    assert cmd_name == "dummy-task"
-    assert isinstance(cmd, click.Command)
-    assert args == [
-        "--color",
-        "blue",
-    ]
-
-
-def test_convert_old_option_syntax__nothing_to_convert(runtime):
-    args = ["dummy-task", "--color", "blue"]
-    converted = RunTaskCommand()._convert_old_option_syntax(
-        args, Mock(task_options={"color": {}})
-    )
-    assert args == converted
-
-
-def test_convert_old_option_syntax__convert_single_option(runtime):
-    args = ["dummy-task", "-o", "color", "blue"]
-    converted = RunTaskCommand()._convert_old_option_syntax(args, DummyTask)
-
-    assert converted == ["dummy-task", "--color", "blue"]
-
-
-def test_convert_old_option_syntax__convert_multiple_options(runtime):
-    args = [
-        "lots-o-options-task",
-        "-o",
-        "foo",
-        "fooey",
-        "-o",
-        "bar",
-        "bary",
-        "-o",
-        "baz",
-        "bazzy",
-    ]
-    task = MultipleOptionsTask(None, TaskConfig(multiple_opts))
-    converted = RunTaskCommand()._convert_old_option_syntax(args, task)
-
-    assert converted == [
-        "lots-o-options-task",
-        "--foo",
-        "fooey",
-        "--bar",
-        "bary",
-        "--baz",
-        "bazzy",
-    ]
-
-
-def test_convert_old_option_syntax__convert_mixed_options(runtime):
-    args = [
-        "lots-o-options-task",
-        "-o",
-        "foo",
-        "fooey",
-        "--bar",
-        "bary",
-        "-o",
-        "baz",
-        "bazzy",
-    ]
-
-    converted = RunTaskCommand()._convert_old_option_syntax(args, MultipleOptionsTask)
-
-    assert converted == [
-        "lots-o-options-task",
-        "--foo",
-        "fooey",
-        "--bar",
-        "bary",
-        "--baz",
-        "bazzy",
-    ]
-
-
-def test_convert_old_option_syntax__duplicate_option(runtime):
-    """We only test duplicate options specified in the old
-    option syntax: -o name value. Click takes care of the new
-    syntax for us."""
-    args = [
-        "lots-o-options-task",
-        "-o",
-        "foo",
-        "fooey",
-        "--bar",
-        "bary",
-        "-o",
-        "baz",
-        "bazzy",
-        "-o",
-        "foo",
-        "duplicate",
-    ]
-
-    task = DummyTask(None, TaskConfig(color_opts))
-    with pytest.raises(CumulusCIUsageError):
-        RunTaskCommand()._convert_old_option_syntax(args, task)
-
-
-def test_convert_old_option_syntax__extra_dashes(runtime):
-    args = [
-        "lots-o-options-task",
-        "-o",
-        "foo",
-        "fooey",
-        "--bar",
-        "bary",
-        "-o",
-        "baz",
-        "-bazzy",
-    ]
-    task = DummyTask(None, TaskConfig(color_opts))
-    # test option value fails
-    with pytest.raises(CumulusCIUsageError):
-        RunTaskCommand()._convert_old_option_syntax(args, task)
-
-    args[2] = "-foo"
-    # test option name fails
-    with pytest.raises(CumulusCIUsageError):
-        RunTaskCommand()._convert_old_option_syntax(args, task)
-
-
-def test_convert_old_option_syntax__option_not_found(runtime):
-    args = [
-        "lots-o-options-task",
-        "-o",
-        "pizza",
-        "olives",
-    ]
-
-    task = MultipleOptionsTask(None, TaskConfig(multiple_opts))
-    with pytest.raises(CumulusCIUsageError):
-        RunTaskCommand()._convert_old_option_syntax(args, task)
-
-
-def test_option_in_task__true(runtime):
-    assert RunTaskCommand()._option_in_task(
-        "color", DummyTask(None, TaskConfig(color_opts))
-    )
-
-
-def test_option_in_task__false(runtime):
-    assert not RunTaskCommand()._option_in_task(
-        "pizza", DummyTask(None, TaskConfig(color_opts))
-    )
-
-
-def test_option_in_task__non_task_option(runtime):
-    task = DummyTask(None, TaskConfig(color_opts))
-    assert RunTaskCommand()._option_in_task("org", task)
-
-
-def test_parse_option_name_value_pairs__no_option_value_old_syntax():
-    args = ["task-name", "-o", "old-opt"]
-    with pytest.raises(CumulusCIUsageError):
-        RunTaskCommand()._parse_option_name_value_pairs(args)
-
-
-def test_parse_option_name_value_pairs__no_option_value_new_syntax():
-    args = ["task-name", "--option-name"]
-    with pytest.raises(CumulusCIUsageError):
-        RunTaskCommand()._parse_option_name_value_pairs(args)
-
-
-def test_has_duplicate_options():
-    """Test that we can parse option names correctly"""
-    options = [
-        ("hotdog", "chicago"),
-        ("pizza", "new york"),
-    ]
-    duplicate = RunTaskCommand()._has_duplicate_options(options)
-    assert duplicate is False
-
-    options.append(("hotdog", "Cincinnati"))
-    duplicate = RunTaskCommand()._has_duplicate_options(options)
-    assert duplicate == "hotdog"
+    assert commands == ["dummy-derived-task", "dummy-task"]
 
 
 def test_format_help__proj_conf_exists(runtime):
@@ -303,6 +115,36 @@ def test_get_default_command_options():
     opts = RunTaskCommand()._get_default_command_options(is_salesforce_task=True)
     assert len(opts) == 5
     assert any([o.name == "org" for o in opts])
+
+
+def test_collect_task_options():
+    new_options = {}
+    old_options = (("color", "green"),)
+
+    opts = RunTaskCommand()._collect_task_options(
+        new_options, old_options, "dummy-task", color_opts["options"]
+    )
+    assert opts == {"color": "green"}
+
+
+def test_collect_task_options__duplicate():
+    new_options = {"color": "aqua"}
+    old_options = (("color", "green"),)
+
+    with pytest.raises(CumulusCIUsageError):
+        RunTaskCommand()._collect_task_options(
+            new_options, old_options, "dummy-task", color_opts["options"]
+        )
+
+
+def test_collect_task_options__not_in_task():
+    new_options = {}
+    old_options = (("color", "green"),)
+
+    with pytest.raises(CumulusCIUsageError):
+        RunTaskCommand()._collect_task_options(
+            new_options, old_options, "dummy-task", {"not-color": {}}
+        )
 
 
 class SetTrace(Exception):
