@@ -42,6 +42,7 @@ from cumulusci.core.exceptions import FlowNotFoundError
 
 
 from cumulusci.core.utils import import_global
+from cumulusci.cli.utils import group_items
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
@@ -1317,11 +1318,7 @@ def org_shell(runtime, org_name, script=None, python=None):
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False)
 def task_list(runtime, plain, print_json):
-    tasks = (
-        runtime.project_config.list_tasks()
-        if runtime.project_config is not None
-        else runtime.universal_config.list_tasks()
-    )
+    tasks = runtime.get_available_tasks()
     plain = plain or runtime.universal_config.cli__plain_output
 
     if print_json:
@@ -1395,11 +1392,7 @@ def flow_doc(runtime):
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
     flow_info_groups = list(flow_info["groups"].keys())
 
-    flows = (
-        runtime.project_config.list_flows()
-        if runtime.project_config is not None
-        else runtime.universal_config.list_flows()
-    )
+    flows = runtime.get_available_flows()
     flows_by_group = group_items(flows)
     flow_groups = sorted(
         flows_by_group.keys(),
@@ -1449,83 +1442,172 @@ def task_info(runtime, task_name):
     click.echo(rst2ansi(doc))
 
 
-@task.command(name="run", help="Runs a task")
-@click.argument("task_name")
-@click.option(
-    "--org",
-    help="Specify the target org.  By default, runs against the current default org",
-)
-@click.option(
-    "-o",
-    nargs=2,
-    multiple=True,
-    help="Pass task specific options for the task as '-o option value'.  You can specify more than one option by using -o more than once.",
-)
-@click.option(
-    "--debug", is_flag=True, help="Drops into pdb, the Python debugger, on an exception"
-)
-@click.option(
-    "--debug-before",
-    is_flag=True,
-    help="Drops into the Python debugger right before task start.",
-)
-@click.option(
-    "--debug-after",
-    is_flag=True,
-    help="Drops into the Python debugger at task completion.",
-)
-@click.option(
-    "--no-prompt",
-    is_flag=True,
-    help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-)
-@pass_runtime(require_keychain=True)
-def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_prompt):
+class RunTaskCommand(click.MultiCommand):
+    # options that are not task specific
+    global_options = {
+        "no-prompt": {
+            "help": "Disables all prompts. Set for non-interactive mode such as calling from scripts or CI sytems",
+            "is_flag": True,
+        },
+        "debug": {
+            "help": "Drops into the Python debugger on an exception",
+            "is_flag": True,
+        },
+        "debug-before": {
+            "help": "Drops into the Python debugger right before the task starts",
+            "is_flag": True,
+        },
+        "debug-after": {
+            "help": "Drops into the Python debugger at task completion.",
+            "is_flag": True,
+        },
+    }
 
-    # Get necessary configs
-    org, org_config = runtime.get_org(org, fail_if_missing=False)
-    task_config = runtime.project_config.get_task(task_name)
+    def list_commands(self, ctx):
+        tasks = RUNTIME.get_available_tasks()
+        return sorted([t["name"] for t in tasks])
 
-    # Get the class to look up options
-    class_path = task_config.class_path
-    task_class = import_global(class_path)
+    def get_command(self, ctx, task_name):
+        RUNTIME._load_keychain()
+        if RUNTIME.project_config is None:
+            task_config = RUNTIME.universal_config.get_task(task_name)
+        else:
+            task_config = RUNTIME.project_config.get_task(task_name)
 
-    # Parse command line options and add to task config
-    if o:
         if "options" not in task_config.config:
             task_config.config["options"] = {}
-        for name, value in o:
-            # Validate the option
-            if name not in task_class.task_options:
-                raise click.UsageError(
-                    f'Option "{name}" is not available for task {task_name}'
+
+        task_class = import_global(task_config.class_path)
+        task_options = task_class.task_options
+
+        params = self._get_default_command_options(task_class.salesforce_task)
+        params.extend(self._get_click_options_for_task(task_options))
+
+        def run_task(*args, **kwargs):
+            """Callback function that executes when the command fires."""
+            org, org_config = RUNTIME.get_org(
+                kwargs.pop("org", None), fail_if_missing=False
+            )
+
+            # Merge old-style and new-style command line options
+            old_options = kwargs.pop("o", ())
+            new_options = {
+                k: v for k, v in kwargs.items() if k not in self.global_options
+            }
+            options = self._collect_task_options(
+                new_options, old_options, task_name, task_options
+            )
+
+            # Merge options from the command line into options from the task config.
+            task_config.config["options"].update(options)
+
+            try:
+                task = task_class(
+                    task_config.project_config, task_config, org_config=org_config
                 )
 
-            # Override the option in the task config
-            task_config.config["options"][name] = value
+                if kwargs.get("debug_before", None):
+                    import pdb
 
-    # Create and run the task
-    try:
-        task = task_class(
-            task_config.project_config, task_config, org_config=org_config
+                    pdb.set_trace()
+
+                task()
+
+                if kwargs.get("debug_after", None):
+                    import pdb
+
+                    pdb.set_trace()
+
+            finally:
+                RUNTIME.alert(f"Task complete: {task_name}")
+
+        return click.Command(task_name, params=params, callback=run_task)
+
+    def format_help(self, ctx, formatter):
+        """Custom help for `cci task run`"""
+        tasks = RUNTIME.get_available_tasks()
+        plain = RUNTIME.universal_config.cli__plain_output or False
+        task_groups = group_items(tasks)
+        for group, tasks in task_groups.items():
+            data = [["Task", "Description"]]
+            data.extend(sorted(tasks))
+            table = CliTable(data, group, wrap_cols=["Description"])
+            table.echo(plain)
+
+        click.echo("Usage: cci task run <task_name> [TASK_OPTIONS...]\n")
+        click.echo("See above for a complete list of available tasks.")
+        click.echo(
+            "Use "
+            + click.style("cci task info <task_name>", bold=True)
+            + " to get more information about a task and its options."
         )
 
-        if debug_before:
-            import pdb
+    def _collect_task_options(self, new_options, old_options, task_name, task_options):
+        """Merge new style --options with old style -o options.
 
-            pdb.set_trace()
+        Raises:
+            CumulusCIUsageError: if there is an old option which duplicates a new one,
+            or the option doesn't exist for the given task.
+        """
+        # filter out options with no values
+        options = {k: v for k, v in new_options.items() if v is not None}
+        for k, v in old_options:
+            if options.get(k):
+                raise CumulusCIUsageError(
+                    f"Please make sure to specify options only once. Found duplicate option `{k}`."
+                )
+            if k not in task_options:
+                raise CumulusCIUsageError(
+                    f"No option `{k}` found in task {task_name}.\nTo view available task options run: `cci task info {task_name}`"
+                )
+            options[k] = v
+        return options
 
-        task()
+    def _get_click_options_for_task(self, task_options):
+        """
+        Given a dict of options in a task, constructs and returns the
+        corresponding list of click.Option instances
+        """
+        click_options = [click.Option(["-o"], nargs=2, multiple=True, hidden=True)]
+        for name, properties in task_options.items():
+            # NOTE: When task options aren't explicitly given via the command line
+            # click complains that there are no values for options. We set required=False
+            # to mitigate this error. Task option validation should be performed at the
+            # task level via task._validate_options() or Pydantic models.
+            click_options.append(
+                click.Option(
+                    param_decls=(f"--{name}",),
+                    required=False,  # don't enforce option values in Click
+                    help=properties.get("description", ""),
+                )
+            )
+        return click_options
 
-        if debug_after:
-            import pdb
+    def _get_default_command_options(self, is_salesforce_task):
+        click_options = []
+        for opt_name, config in self.global_options.items():
+            click_options.append(
+                click.Option(
+                    param_decls=(f"--{opt_name}",),
+                    is_flag=config["is_flag"],
+                    help=config["help"],
+                )
+            )
 
-            pdb.set_trace()
-    finally:
-        runtime.alert(f"Task complete: {task_name}")
+        if is_salesforce_task:
+            click_options.append(
+                click.Option(
+                    param_decls=("--org",),
+                    help="Specify the target org. By default, runs against the current default org.",
+                )
+            )
+
+        return click_options
 
 
-# Commands for group: flow
+@task.command(cls=RunTaskCommand, name="run", help="Runs a task")
+def task_run():
+    pass  # pragma: no cover
 
 
 @flow.command(name="list", help="List available flows for the current context")
@@ -1534,12 +1616,7 @@ def task_run(runtime, task_name, org, o, debug, debug_before, debug_after, no_pr
 @pass_runtime(require_project=False)
 def flow_list(runtime, plain, print_json):
     plain = plain or runtime.universal_config.cli__plain_output
-    flows = (
-        runtime.project_config.list_flows()
-        if runtime.project_config is not None
-        else runtime.universal_config.list_flows()
-    )
-
+    flows = runtime.get_available_flows()
     if print_json:
         click.echo(json.dumps(flows))
         return None
@@ -1711,12 +1788,3 @@ def gist(runtime):
     else:
         click.echo(f"Gist created: {gist.html_url}")
         webbrowser.open(gist.html_url)
-
-
-def group_items(items):
-    groups = defaultdict(list)
-    for item in items:
-        group_name = item["group"] or "Other"
-        groups[group_name].append([item["name"], item["description"]])
-
-    return groups
