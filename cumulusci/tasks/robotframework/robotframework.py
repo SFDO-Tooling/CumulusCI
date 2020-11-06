@@ -69,13 +69,10 @@ class Robot(BaseSalesforceTask):
 
         # processes needs to be an integer.
         try:
-            if self.options.get("processes") is not None:
-                self.options["processes"] = int(self.options.get("processes"))
-            else:
-                self.options["processes"] = 1
+            self.options["processes"] = int(self.options.get("processes", 1))
         except (TypeError, ValueError):
             raise TaskOptionsError(
-                f"Please specify an integer for the `processes` option. self.options: {self.options}"
+                "Please specify an integer for the `processes` option."
             )
 
         # There are potentially many robot options that are or could
@@ -83,10 +80,12 @@ class Robot(BaseSalesforceTask):
         # listener option since we may need to append additional values
         # onto it.
         for option in ("listener",):
-            if option in self.options:
-                self.options[option] = process_list_arg(self.options["options"][option])
+            if option in self.options["options"]:
+                self.options["options"][option] = process_list_arg(
+                    self.options["options"][option]
+                )
 
-        listeners = self.options.setdefault("listener", [])
+        listeners = self.options["options"].setdefault("listener", [])
         if process_bool_arg(self.options.get("verbose") or False):
             listeners.append(KeywordLogger())
 
