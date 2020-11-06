@@ -40,7 +40,6 @@ class PackageConfig(BaseModel):
     package_type: PackageTypeEnum
     org_dependent: bool = False
     namespace: Optional[str]
-    branch: Optional[str] = None
     version_name: str
     version_type: VersionTypeEnum = VersionTypeEnum.minor
 
@@ -97,7 +96,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             org_dependent=self.options.get("org_dependent", False),
             namespace=self.options.get("namespace")
             or self.project_config.project__package__namespace,
-            branch=self.project_config.repo_branch,
             version_name=self.options.get("version_name") or "Release",
             version_type=self.options.get("version_type") or "minor",
         )
@@ -342,7 +340,6 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "Package2VersionCreateRequest"
         )
         request = {
-            "Branch": package_config.branch,
             "Package2Id": package_id,
             "SkipValidation": skip_validation,
             "Tag": f"hash:{package_hash}",
