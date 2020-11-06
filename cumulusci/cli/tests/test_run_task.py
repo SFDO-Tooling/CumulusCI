@@ -104,7 +104,7 @@ def test_get_default_command_options():
 
 
 def test_collect_task_options():
-    new_options = {}
+    new_options = {"debug-before": None}
     old_options = (("color", "green"),)
 
     opts = RunTaskCommand()._collect_task_options(
