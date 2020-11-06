@@ -832,8 +832,8 @@ class TestAnonymousApexTask(unittest.TestCase):
 
     def test_prepare_apex(self):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
-        before = "String %%%NAMESPACE%%%str = 'foo';"
-        expected = "String abc__str = 'foo';"
+        before = "String %%%NAMESPACED_ORG%%%str = '%%%NAMESPACED_RT%%%';"
+        expected = "String abc__str = 'abc.';"
         self.assertEqual(expected, task._prepare_apex(before))
 
     def test_optional_parameter_1_replacement(self):
