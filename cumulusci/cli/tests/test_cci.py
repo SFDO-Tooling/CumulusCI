@@ -24,6 +24,7 @@ import cumulusci
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import NotInProject
