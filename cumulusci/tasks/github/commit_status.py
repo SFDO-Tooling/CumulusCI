@@ -11,6 +11,8 @@ VERSION_ID_RE = re.compile(r"version_id: (\S+)")
 
 class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
 
+    api_version = "50.0"
+
     task_options = {
         "context": {
             "description": "Name of the commit status context",
