@@ -131,7 +131,7 @@ class FindReplace(BaseTask):
             "required": True,
         },
         "env_replace": {
-            "description": "The boolean value to treat the replace option as systems environment variable for replace. Ensure it's set in your system for best results. Defaults to False",
+            "description": "If True, treat the value of the replace option as the name of an environment variable, and use the value of that variable as the replacement string. Defaults to False",
             "required": False,
         },
         "path": {"description": "The path to recursively search", "required": True},
