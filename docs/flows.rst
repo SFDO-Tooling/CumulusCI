@@ -375,7 +375,7 @@ config_dev
 config_managed
 ^^^^^^^^^^^^^^
 
-**Description:** Configure an org for use as a dev org after package metadata is deployed
+**Description:** Configure an org for use after the managed package has been installed.
 
 **Flow Steps**
 
