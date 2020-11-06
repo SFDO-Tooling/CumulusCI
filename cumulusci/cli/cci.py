@@ -1473,7 +1473,7 @@ class RunTaskCommand(click.MultiCommand):
             )
 
             # Merge old-style and new-style command line options
-            old_options = kwargs.pop("o", {})
+            old_options = kwargs.pop("o", ())
             new_options = {
                 k: v for k, v in kwargs.items() if k not in self.not_task_options
             }
@@ -1534,7 +1534,7 @@ class RunTaskCommand(click.MultiCommand):
         """
         options = {**new_options}
         for k, v in old_options:
-            if k in options and new_options.get(k):
+            if options.get(k):
                 raise CumulusCIUsageError(
                     f"Please make sure to specify options only once. Found duplicate option `{k}`."
                 )
