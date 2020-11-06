@@ -1553,7 +1553,8 @@ class RunTaskCommand(click.MultiCommand):
             CumulusCIUsageError: if there is an old option which duplicates a new one,
             or the option doesn't exist for the given task.
         """
-        options = {**new_options}
+        # filter out options with no values
+        options = {k: v for k, v in new_options.items() if v is not None}
         for k, v in old_options:
             if options.get(k):
                 raise CumulusCIUsageError(
