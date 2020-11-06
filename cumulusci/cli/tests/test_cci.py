@@ -1745,7 +1745,7 @@ Environment Info: Rossian / x68_46
     def test_task_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.universal_config.cli__plain_output = None
-        runtime.project_config.list_tasks.return_value = [
+        runtime.get_available_tasks.return_value = [
             {"name": "test_task", "description": "Test Task", "group": "Test Group"}
         ]
 
@@ -1766,7 +1766,7 @@ Environment Info: Rossian / x68_46
         }
         runtime = mock.Mock()
         runtime.universal_config.cli__plain_output = None
-        runtime.project_config.list_tasks.return_value = [task_dicts]
+        runtime.get_available_tasks.return_value = [task_dicts]
 
         run_click_command(cci.task_list, runtime=runtime, plain=False, print_json=True)
 
@@ -1794,7 +1794,7 @@ Environment Info: Rossian / x68_46
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_flow_list(self, cli_tbl):
         runtime = mock.Mock()
-        runtime.project_config.list_flows.return_value = [
+        runtime.get_available_flows.return_value = [
             {"name": "test_flow", "description": "Test Flow", "group": "Testing"}
         ]
         runtime.universal_config.cli__plain_output = None
@@ -1810,7 +1810,7 @@ Environment Info: Rossian / x68_46
     def test_flow_list_json(self, json_):
         flows = [{"name": "test_flow", "description": "Test Flow"}]
         runtime = mock.Mock()
-        runtime.project_config.list_flows.return_value = flows
+        runtime.get_available_flows.return_value = flows
         runtime.universal_config.cli__plain_output = None
 
         run_click_command(cci.flow_list, runtime=runtime, plain=False, print_json=True)
