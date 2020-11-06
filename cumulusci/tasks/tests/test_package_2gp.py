@@ -119,6 +119,7 @@ def task(project_config, devhub_config, org_config):
                     "package_type": "Unlocked",
                     "org_dependent": False,
                     "package_name": "Test Package",
+                    "static_resource_path": "static-resources",
                 }
             }
         ),
