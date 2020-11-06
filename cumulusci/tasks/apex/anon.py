@@ -100,11 +100,13 @@ class AnonymousApexTask(BaseSalesforceApiTask):
         if "managed" in self.options:
             managed = process_bool_arg(self.options["managed"])
         else:
-            managed = namespace in self.org_config.installed_packages
+            managed = (
+                bool(namespace) and namespace in self.org_config.installed_packages
+            )
         if "namespaced" in self.options:
             namespaced = process_bool_arg(self.options["namespaced"])
         else:
-            namespaced = namespace == self.org_config.namespace
+            namespaced = bool(namespace) and namespace == self.org_config.namespace
 
         namespace_prefix = ""
         record_type_prefix = ""
