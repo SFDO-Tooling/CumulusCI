@@ -154,6 +154,12 @@ class FindReplace(BaseTask):
         self.options["env_replace"] = process_bool_arg(
             self.options.get("env_replace") or False
         )
+
+    def _run_task(self):
+        kwargs = {}
+        if "max" in self.options:
+            kwargs["max"] = self.options["max"]
+
         if self.options["env_replace"]:
             if self.options["replace"] in os.environ.keys():
                 self.options["replace"] = os.environ[self.options["replace"]]
@@ -161,11 +167,6 @@ class FindReplace(BaseTask):
                 raise TaskOptionsError(
                     "Please declare the replace variable in  your local environment, not found at runtime. To turn this off, set env_replace option to False."
                 )
-
-    def _run_task(self):
-        kwargs = {}
-        if "max" in self.options:
-            kwargs["max"] = self.options["max"]
 
         for file_pattern in self.options["file_pattern"]:
             find_replace(
