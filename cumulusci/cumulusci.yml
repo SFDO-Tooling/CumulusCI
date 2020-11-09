@@ -748,6 +748,8 @@ flows:
             4:
                 task: uninstall_packaged_incremental
                 when: project_config.project__source_format != "sfdx" or not org_config.scratch
+            5:
+                task: snapshot_changes
 
     deploy_unmanaged_ee:
         group: Deployment
