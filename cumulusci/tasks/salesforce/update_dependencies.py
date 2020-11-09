@@ -250,7 +250,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         if "zip_url" in dependency:
             self.logger.info(
                 "Deploying unmanaged metadata from /{} of {}".format(
-                    dependency["subfolder"], dependency["zip_url"]
+                    dependency.get("subfolder") or "", dependency["zip_url"]
                 )
             )
             zip_src = self._download_extract_zip(
