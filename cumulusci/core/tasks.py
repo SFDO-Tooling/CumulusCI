@@ -135,7 +135,8 @@ class BaseTask(object):
 
         with stacked_task(self):
             self.working_path = os.getcwd()
-            with cd(self.project_config.repo_root):
+            path = self.project_config.repo_root if self.project_config else None
+            with cd(path):
                 self._log_begin()
                 self.result = self._run_task()
                 return self.return_values
@@ -146,10 +147,10 @@ class BaseTask(object):
 
     def _log_begin(self):
         """ Log the beginning of the task execution """
-        self.logger.info("Beginning task: %s", self.__class__.__name__)
+        self.logger.info(f"Beginning task: {self.__class__.__name__}")
         if self.salesforce_task and not self.flow:
-            self.logger.info("%15s %s", "As user:", self.org_config.username)
-            self.logger.info("%15s %s", "In org:", self.org_config.org_id)
+            self.logger.info(f"As user: {self.org_config.username}")
+            self.logger.info(f"In org: {self.org_config.org_id}")
         self.logger.info("")
 
     def _retry(self):

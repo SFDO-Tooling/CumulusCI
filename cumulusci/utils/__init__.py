@@ -443,11 +443,11 @@ def get_option_usage_string(name, option):
     """Returns a usage string if one exists
     else creates a usage string in the form of:
 
-        -o option_name OPTIONNAME
+        --option-name OPTIONNAME
     """
     usage_str = option.get("usage")
     if not usage_str:
-        usage_str = f"-o {name} {str.upper(name.replace('_',''))}"
+        usage_str = f"--{name.replace('_','-')} {name.replace('_','').upper()}"
     return usage_str
 
 
