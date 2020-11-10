@@ -497,12 +497,9 @@ class RunApexTests(BaseSalesforceApiTask):
             self.options["managed"] = process_bool_arg(self.options["managed"] or False)
         else:
             namespace = self.options.get("namespace")
-            if namespace:
-                self.options["managed"] = (
-                    namespace in self.org_config.installed_packages
-                )
-            else:
-                self.options["managed"] = False
+            self.options["managed"] = (
+                bool(namespace) and namespace in self.org_config.installed_packages
+            )
 
     def _run_task(self):
         result = self._get_test_classes()

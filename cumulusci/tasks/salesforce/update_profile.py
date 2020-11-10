@@ -96,46 +96,19 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
             )
 
-        # If the task is being instantiated without an org (such as while freezing steps for MetaDeploy),
-        # wait to pick defaults for "managed" and "namespaced_org" options until we have an org.
-        # Otherwise do it right away (mostly useful for tests which don't run the entire task).
         if self.org_config is not None:
-            self._init_org_based_options()
-
-    def _run_task(self):
-        self._init_org_based_options()
-        super()._run_task()
-
-    def _init_org_based_options(self):
-        namespace = self.options["namespace_inject"]
-        if "managed" in self.options:
-            self.options["managed"] = process_bool_arg(
-                self.options.get("managed", False)
-            )
-        else:
-            self.options["managed"] = bool(namespace) and (
-                namespace in self.org_config.installed_packages
-            )
-
-        if "namespaced_org" in self.options:
-            self.options["namespaced_org"] = process_bool_arg(
-                self.options.get("namespaced_org", False)
-            )
-        else:
-            self.options["namespaced_org"] = bool(namespace) and (
-                namespace == self.org_config.namespace
-            )
-
-        # Set up namespace prefix strings
-        namespace_prefix = f"{namespace}__" if namespace else ""
-        self.namespace_prefixes = {
-            "managed": namespace_prefix if self.options["managed"] else "",
-            "namespaced_org": namespace_prefix
-            if self.options["namespaced_org"]
-            else "",
-        }
-
-        self.api_names = {self._inject_namespace(x) for x in self.api_names}
+            # Set up namespace prefix strings.
+            # We can only do this if we actually have an org_config;
+            # i.e. not while freezing steps for metadeploy
+            namespace = self.options["namespace_inject"]
+            namespace_prefix = f"{namespace}__" if namespace else ""
+            self.namespace_prefixes = {
+                "managed": namespace_prefix if self.options["managed"] else "",
+                "namespaced_org": namespace_prefix
+                if self.options["namespaced_org"]
+                else "",
+            }
+            self.api_names = {self._inject_namespace(x) for x in self.api_names}
 
     def freeze(self, step):
         # Preserve behavior from when we subclassed Deploy.

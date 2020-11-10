@@ -10,7 +10,7 @@ from cumulusci.tasks.metadata_etl import MetadataOperation
 from cumulusci.tasks.salesforce.update_profile import ProfileGrantAllAccess
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils.xml import metadata_tree
-from cumulusci.tests.util import create_project_config
+from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
 from .util import create_task
 
@@ -492,6 +492,18 @@ def test_init_options__include_packaged_objects():
         ProfileGrantAllAccess, {"include_packaged_objects": True}, project_config=pc
     )
     assert task.options["include_packaged_objects"]
+
+
+def test_init_options__namespace_injection():
+    pc = create_project_config(namespace="ns")
+    org_config = DummyOrgConfig({"namespace": "ns"})
+    org_config._installed_packages = {"ns": None}
+    task = create_task(
+        ProfileGrantAllAccess, {}, project_config=pc, org_config=org_config
+    )
+    assert task.options["namespace_inject"] == "ns"
+    assert task.options["namespaced_org"]
+    assert task.options["managed"]
 
 
 def test_generate_package_xml__retrieve():

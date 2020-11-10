@@ -779,8 +779,6 @@ class TestAnonymousApexTask(unittest.TestCase):
         self.task_config.config["options"] = {
             "path": apex_path,
             "apex": 'system.debug("Hello World!")',
-            "namespaced": True,
-            "managed": False,
             "param1": "StringValue",
         }
         self.project_config = BaseProjectConfig(
@@ -798,9 +796,11 @@ class TestAnonymousApexTask(unittest.TestCase):
                 "id": "foo/1",
                 "instance_url": "https://example.com",
                 "access_token": "abc123",
+                "namespace": "abc",
             },
             "test",
         )
+        self.org_config._installed_packages = {}
         self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
@@ -831,6 +831,14 @@ class TestAnonymousApexTask(unittest.TestCase):
             task()
 
     def test_prepare_apex(self):
+        self.task_config.config["options"]["namespaced"] = True
+
+        task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
+        before = "String %%%NAMESPACED_ORG%%%str = '%%%NAMESPACED_RT%%%';"
+        expected = "String abc__str = 'abc.';"
+        self.assertEqual(expected, task._prepare_apex(before))
+
+    def test_prepare_apex__detect_namespace(self):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
         before = "String %%%NAMESPACED_ORG%%%str = '%%%NAMESPACED_RT%%%';"
         expected = "String abc__str = 'abc.';"
@@ -857,15 +865,7 @@ class TestAnonymousApexTask(unittest.TestCase):
 
     @responses.activate
     def test_run_string_only(self):
-        task_config = TaskConfig(
-            {
-                "options": {
-                    "apex": 'System.debug("test");',
-                    "managed": False,
-                    "namespaced": False,
-                }
-            }
-        )
+        task_config = TaskConfig({"options": {"apex": 'System.debug("test");'}})
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
         url = self.base_tooling_url + "executeAnonymous"
         responses.add(
