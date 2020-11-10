@@ -245,51 +245,52 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
     def _install_dependency(self, dependency):
         package_zip = None
-        if "zip_url" or "repo_name" in dependency:
-            zip_src = None
-            if "zip_url" in dependency:
-                self.logger.info(
-                    "Deploying unmanaged metadata from /{} of {}".format(
-                        dependency["subfolder"], dependency["zip_url"]
-                    )
+
+        zip_src = None
+        if "zip_url" in dependency:
+            self.logger.info(
+                "Deploying unmanaged metadata from /{} of {}".format(
+                    dependency.get("subfolder") or "", dependency["zip_url"]
                 )
-                zip_src = self._download_extract_zip(
-                    dependency["zip_url"], subfolder=dependency.get("subfolder")
-                )
-            elif "repo_name" in dependency:
-                self.logger.info(
-                    "Deploying unmanaged metadata from /{} of {}/{}".format(
-                        dependency["subfolder"],
-                        dependency["repo_owner"],
-                        dependency["repo_name"],
-                    )
-                )
-                gh_for_repo = self.project_config.get_github_api(
-                    dependency["repo_owner"], dependency["repo_name"]
-                )
-                zip_src = self._download_extract_github(
-                    gh_for_repo,
+            )
+            zip_src = self._download_extract_zip(
+                dependency["zip_url"], subfolder=dependency.get("subfolder")
+            )
+        elif "repo_name" in dependency:
+            self.logger.info(
+                "Deploying unmanaged metadata from /{} of {}/{}".format(
+                    dependency["subfolder"],
                     dependency["repo_owner"],
                     dependency["repo_name"],
-                    dependency["subfolder"],
-                    ref=dependency.get("ref"),
                 )
+            )
+            gh_for_repo = self.project_config.get_github_api(
+                dependency["repo_owner"], dependency["repo_name"]
+            )
+            zip_src = self._download_extract_github(
+                gh_for_repo,
+                dependency["repo_owner"],
+                dependency["repo_name"],
+                dependency["subfolder"],
+                ref=dependency.get("ref"),
+            )
 
-            if zip_src:
-                package_zip = MetadataPackageZipBuilder.from_zipfile(
-                    zip_src, options=dependency, logger=self.logger
-                ).as_base64()
-            elif "namespace" in dependency:
-                self.logger.info(
-                    "Installing {} version {}".format(
-                        dependency["namespace"], dependency["version"]
-                    )
+        if zip_src:
+            package_zip = MetadataPackageZipBuilder.from_zipfile(
+                zip_src, options=dependency, logger=self.logger
+            ).as_base64()
+        elif "namespace" in dependency:
+            self.logger.info(
+                "Installing {} version {}".format(
+                    dependency["namespace"], dependency["version"]
                 )
-                package_zip = InstallPackageZipBuilder(
-                    dependency["namespace"],
-                    dependency["version"],
-                    securityType=self.options["security_type"],
-                )()
+            )
+            package_zip = InstallPackageZipBuilder(
+                dependency["namespace"],
+                dependency["version"],
+                securityType=self.options["security_type"],
+            )()
+
         if package_zip:
             api = self.api_class(
                 self, package_zip, purge_on_delete=self.options["purge_on_delete"]
