@@ -108,7 +108,7 @@ class TestCCI(unittest.TestCase):
 
         cci.check_latest_version()
 
-        self.assertEqual(2, click.echo.call_count)
+        click.echo.assert_called_once()
 
     @mock.patch("cumulusci.cli.cci.get_latest_final_version")
     @mock.patch("cumulusci.cli.cci.click")
@@ -119,7 +119,7 @@ class TestCCI(unittest.TestCase):
 
         cci.check_latest_version()
 
-        click.echo.assert_any_call("Error checking cci version:")
+        click.echo.assert_any_call("Error checking cci version:", err=True)
 
     def test_render_recursive(self):
         out = []
