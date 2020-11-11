@@ -147,18 +147,12 @@ tasks:
         class_path: cumulusci.tasks.salesforce.DeployBundles
         options:
             path: unpackaged/post
-            unmanaged: True
-            namespace_inject: $project_config.project__package__namespace
-            namespace_token: '%%%NAMESPACE%%%'
-            filename_token: '___NAMESPACE___'
         group: Salesforce Metadata
     deploy_qa_config:
         description: Deploys configuration for QA.
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
-            namespace_inject: $project_config.project__package__namespace
             path: unpackaged/config/qa
-            unmanaged: True
         group: Salesforce Metadata
     dx:
         description: Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
@@ -575,8 +569,6 @@ flows:
                 flow: install_beta
             2:
                 task: run_tests
-                options:
-                    managed: True
 
     ci_feature:
         group: Continuous Integration
@@ -639,9 +631,6 @@ flows:
                 flow: config_managed
             5:
                 task: run_tests
-                options:
-                    managed: True
-
 
     ci_master:
         group: Continuous Integration
@@ -665,8 +654,6 @@ flows:
                 flow: install_prod
             2:
                 task: run_tests
-                options:
-                    managed: True
 
     config_apextest:
         group: Post-Install Configuration
@@ -692,12 +679,8 @@ flows:
         steps:
             1:
                 task: deploy_post
-                options:
-                    unmanaged: False
             2:
                 task: update_admin_profile
-                options:
-                    managed: true
 
     config_packaging:
         group: Post-Install Configuration 
@@ -705,8 +688,6 @@ flows:
         steps:
             1:
                 task: update_admin_profile
-                options:
-                    managed: True
 
     config_qa:
         group: Post-Install Configuration 
@@ -760,11 +741,15 @@ flows:
                 task: deploy
                 when: project_config.project__source_format != "sfdx" or not org_config.scratch
             3.1:
-                task: dx_push
+                task: deploy
+                options:
+                    path: force-app
                 when: project_config.project__source_format == "sfdx" and org_config.scratch
             4:
                 task: uninstall_packaged_incremental
                 when: project_config.project__source_format != "sfdx" or not org_config.scratch
+            5:
+                task: snapshot_changes
 
     deploy_unmanaged_ee:
         group: Deployment
@@ -840,19 +825,10 @@ flows:
         steps:
             1:
                 flow: dependencies
-                options:
-                    update_dependencies:
-                        namespaced_org: True
             2:
                 flow: deploy_unmanaged
             3:
                 flow: config_dev
-                options:
-                    deploy_post:
-                        unmanaged: False
-                        namespaced_org: True
-                    update_admin_profile:
-                        namespaced_org: True
             4:
                 task: snapshot_changes
 
@@ -925,8 +901,6 @@ flows:
                 task: install_managed
             3:
                 task: deploy_post
-                options:
-                    unmanaged: False
 
     install_regression:
         group: Install / Uninstall

@@ -195,8 +195,6 @@ class RunApexTests(BaseSalesforceApiTask):
             "json_output", "test_results.json"
         )
 
-        self.options["managed"] = process_bool_arg(self.options.get("managed") or False)
-
         self.options["retry_failures"] = process_list_arg(
             self.options.get("retry_failures", [])
         )
@@ -240,7 +238,7 @@ class RunApexTests(BaseSalesforceApiTask):
         self.retry_details = None
 
     def _get_namespace_filter(self):
-        if self.options["managed"]:
+        if self.options.get("managed"):
             namespace = self.options.get("namespace")
             if not namespace:
                 raise TaskOptionsError(
@@ -351,7 +349,7 @@ class RunApexTests(BaseSalesforceApiTask):
             )
 
             # In Spring '20, we cannot get symbol tables for managed classes.
-            if self.options["managed"]:
+            if self.options.get("managed"):
                 self.logger.error(
                     f"Cannot access symbol table for managed class {class_name}. Failure will not be retried."
                 )
@@ -492,6 +490,16 @@ class RunApexTests(BaseSalesforceApiTask):
         return self.tooling._call_salesforce(
             method="POST", url=self.tooling.base_url + "runTestsAsynchronous", json=body
         ).json()
+
+    def _init_task(self):
+        super()._init_task()
+        if "managed" in self.options:
+            self.options["managed"] = process_bool_arg(self.options["managed"] or False)
+        else:
+            namespace = self.options.get("namespace")
+            self.options["managed"] = (
+                bool(namespace) and namespace in self.org_config.installed_packages
+            )
 
     def _run_task(self):
         result = self._get_test_classes()

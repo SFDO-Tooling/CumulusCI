@@ -607,7 +607,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
 
     @responses.activate
     def test_run_task__code_coverage_managed(self):
-        self._mock_apex_class_query()
+        self._mock_apex_class_query(namespace="TEST")
         self._mock_run_tests()
         self._mock_get_failed_test_classes()
         self._mock_tests_complete()
@@ -779,7 +779,6 @@ class TestAnonymousApexTask(unittest.TestCase):
         self.task_config.config["options"] = {
             "path": apex_path,
             "apex": 'system.debug("Hello World!")',
-            "namespaced": True,
             "param1": "StringValue",
         }
         self.project_config = BaseProjectConfig(
@@ -797,9 +796,11 @@ class TestAnonymousApexTask(unittest.TestCase):
                 "id": "foo/1",
                 "instance_url": "https://example.com",
                 "access_token": "abc123",
+                "namespace": "abc",
             },
             "test",
         )
+        self.org_config._installed_packages = {}
         self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
@@ -830,9 +831,17 @@ class TestAnonymousApexTask(unittest.TestCase):
             task()
 
     def test_prepare_apex(self):
+        self.task_config.config["options"]["namespaced"] = True
+
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
-        before = "String %%%NAMESPACE%%%str = 'foo';"
-        expected = "String abc__str = 'foo';"
+        before = "String %%%NAMESPACED_ORG%%%str = '%%%NAMESPACED_RT%%%';"
+        expected = "String abc__str = 'abc.';"
+        self.assertEqual(expected, task._prepare_apex(before))
+
+    def test_prepare_apex__detect_namespace(self):
+        task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
+        before = "String %%%NAMESPACED_ORG%%%str = '%%%NAMESPACED_RT%%%';"
+        expected = "String abc__str = 'abc.';"
         self.assertEqual(expected, task._prepare_apex(before))
 
     def test_optional_parameter_1_replacement(self):

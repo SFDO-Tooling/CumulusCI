@@ -138,7 +138,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.return_values["package_id"] = self.package_id
 
         # submit request to create package version
-        options = {"package_type": self.package_config.package_type.value}
+        options = {
+            "package_type": self.package_config.package_type.value,
+            "namespace_inject": self.package_config.namespace,
+            "namespaced_org": self.package_config.namespace is not None,
+        }
         if "static_resource_path" in self.options:
             options["static_resource_path"] = self.options["static_resource_path"]
 
