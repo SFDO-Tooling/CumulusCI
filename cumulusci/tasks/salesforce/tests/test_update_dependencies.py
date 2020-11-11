@@ -5,7 +5,7 @@ import zipfile
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import StepSpec
-from cumulusci.tasks.salesforce import UpdateDependencies
+from cumulusci.tasks.salesforce.update_dependencies import UpdateDependencies
 from cumulusci.tests.util import create_project_config
 from .util import create_task
 
@@ -363,7 +363,6 @@ class TestUpdateDependencies(unittest.TestCase):
                         "options": {
                             "dependencies": [{"namespace": "ns", "version": "1.0"}],
                             "include_beta": False,
-                            "namespaced_org": False,
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,
@@ -391,7 +390,6 @@ class TestUpdateDependencies(unittest.TestCase):
                                 }
                             ],
                             "include_beta": False,
-                            "namespaced_org": False,
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,

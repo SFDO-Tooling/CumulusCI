@@ -224,8 +224,6 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "task_class": "cumulusci.tasks.salesforce.ProfileGrantAllAccess",
                     "task_config": {
                         "options": {
-                            "managed": True,
-                            "namespaced_org": False,
                             "namespace_inject": "ns",
                             "include_packaged_objects": False,
                         },

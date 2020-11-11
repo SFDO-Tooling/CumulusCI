@@ -32,6 +32,14 @@ class DeployOrgSettings(Deploy):
         "api_version": {"description": "API version used to deploy the settings"},
     }
 
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        # We have no need for namespace injection when deploying settings,
+        # so let's explicitly disable it to prevent the Deploy task
+        # from making API calls to check if it's needed.
+        self.options["managed"] = False
+        self.options["namespaced_org"] = False
+
     def _run_task(self):
         with open(self.options["definition_file"], "r") as f:
             scratch_org_definition = json.load(f)
