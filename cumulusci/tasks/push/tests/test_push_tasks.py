@@ -349,7 +349,7 @@ def test_schedule_push_org_list_init_options(org_file):
         },
     )
     task._init_task()
-    assert task.options["namespace"] is None
+    assert task.options["namespace"] == task.project_config.project__package__namespace
     assert task.options["batch_size"] == 200
     assert task.options["orgs"] == ORG_FILE
     assert task.options["version"] == VERSION

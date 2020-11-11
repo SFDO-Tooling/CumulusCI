@@ -252,7 +252,7 @@ def inject_namespace(
     # Handle tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___
     namespaced_org_token = "%%%NAMESPACED_ORG%%%"
     namespaced_org_file_token = "___NAMESPACED_ORG___"
-    namespaced_org = namespace_prefix if namespaced_org else ""
+    namespaced_org = namespace + "__" if namespaced_org else ""
 
     # Handle token %%%NAMESPACE_OR_C%%% for lightning components
     namespace_or_c_token = "%%%NAMESPACE_OR_C%%%"

@@ -31,9 +31,6 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "dependencies. Dependencies can be specified using the 'github' or 'namespace' keys (all other keys "
             "are not used). Note that this can cause installations to fail if required prerequisites are not available."
         },
-        "namespaced_org": {
-            "description": "If True, the changes namespace token injection on any dependencies so tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org."
-        },
         "purge_on_delete": {
             "description": "Sets the purgeOnDelete option for the deployment. Defaults to True"
         },
@@ -57,9 +54,6 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         super(UpdateDependencies, self)._init_options(kwargs)
         self.options["purge_on_delete"] = process_bool_arg(
             self.options.get("purge_on_delete", True)
-        )
-        self.options["namespaced_org"] = process_bool_arg(
-            self.options.get("namespaced_org", False)
         )
         self.options["include_beta"] = process_bool_arg(
             self.options.get("include_beta", False)

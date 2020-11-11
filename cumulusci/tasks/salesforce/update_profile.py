@@ -57,28 +57,9 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
     def _init_options(self, kwargs):
         super(ProfileGrantAllAccess, self)._init_options(kwargs)
 
-        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
-
-        self.options["namespaced_org"] = process_bool_arg(
-            self.options.get("namespaced_org", False)
-        )
-
-        # For namespaced orgs, managed should always be True
-        if self.options["namespaced_org"]:
-            self.options["managed"] = True
-
         self.options["namespace_inject"] = self.options.get(
             "namespace_inject", self.project_config.project__package__namespace
         )
-
-        # Set up namespace prefix strings
-        namespace_prefix = "{}__".format(self.options["namespace_inject"])
-        self.namespace_prefixes = {
-            "managed": namespace_prefix if self.options["managed"] else "",
-            "namespaced_org": namespace_prefix
-            if self.options["namespaced_org"]
-            else "",
-        }
 
         # We enable new functionality to extend the package.xml to packaged objects
         # by default only if we meet specific requirements: the project has to require
@@ -100,7 +81,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         # Build the api_names list, taking into account legacy behavior.
         # If we're using a custom package.xml, we will union the api_names list with
         # any Profiles specified there.
-        self.api_names = set(process_list_arg(self.options.get("api_names", [])))
+        self.api_names = set(process_list_arg(self.options.get("api_names") or []))
         if "profile_name" in self.options:
             self.api_names.add(self.options["profile_name"])
         if not self.api_names and "package_xml" not in self.options:
@@ -115,16 +96,19 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
             )
 
-        # Namespace injection.
-        if self.options["namespaced_org"]:
-            # Namespaced orgs don't use the explicit namespace references in `package.xml`.
-            # Preserving historic behavior but guarding here
-            self.options["managed"] = False
-
-        self.api_names = {self._inject_namespace(x) for x in self.api_names}
-
-        if self.options["namespaced_org"]:
-            self.options["managed"] = True
+        if self.org_config is not None:
+            # Set up namespace prefix strings.
+            # We can only do this if we actually have an org_config;
+            # i.e. not while freezing steps for metadeploy
+            namespace = self.options["namespace_inject"]
+            namespace_prefix = f"{namespace}__" if namespace else ""
+            self.namespace_prefixes = {
+                "managed": namespace_prefix if self.options["managed"] else "",
+                "namespaced_org": namespace_prefix
+                if self.options["namespaced_org"]
+                else "",
+            }
+            self.api_names = {self._inject_namespace(x) for x in self.api_names}
 
     def freeze(self, step):
         # Preserve behavior from when we subclassed Deploy.

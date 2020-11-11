@@ -79,9 +79,7 @@ makes it easy to add more tasks.
 Namespace Injection
 -------------------
 
-All out-of-the-box Metadata ETL tasks accept a Boolean ``managed`` option. If ``True``, CumulusCI
-will replace the token ``%%%NAMESPACE%%%`` in API names and in values used for transforming metadata
-with the project's namespace; if ``False``, the token will simply be removed.
+All out-of-the-box Metadata ETL tasks can handle namespace tokens in API names and in values used for transforming metadata. The ``%%%NAMESPACE%%%`` token will be replaced with the project's namespace if the project's primary package is installed as a managed package; otherwise it will be removed. The ``%%%NAMESPACED_ORG%%%`` token will be replaced with the project's namespace if the task is running against a namespaced org with that namespace; otherwise it will be removed.
 
 
 Implementation of Metadata ETL Tasks
@@ -188,8 +186,6 @@ must define the ``entity``, targeted ``attribute``, and desired ``value`` to set
      description: "Assigns the Fancy Compact Layout as Account's Compact Layout."
      class_path: cumulusci.tasks.metadata_etl.UpdateFirstAttributeTextTask
      options:
-         managed: False
-         namespace_inject: $project_config.project__package__namespace
          entity: CustomObject
          api_names: Account
          attribute: compactLayoutAssignment
