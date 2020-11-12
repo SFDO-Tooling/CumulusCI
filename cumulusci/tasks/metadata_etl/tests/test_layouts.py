@@ -117,18 +117,22 @@ class TestAddLayoutSectionFields:
                 "fields": "foo__c,bar__c",
             },
         )
-        breakpoint()
+
         tree = metadata_tree.fromstring(LAYOUT_XML.encode("utf-8"))
         element = tree._element
-        breakpoint()
 
-        assert len(element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 0
-
+        assert (
+            len(element.findall(f".//{MD}layoutSections[{MD}layoutSection='TEST']"))
+            == 0
+        )
         task._transform_entity(tree, "Layout")
 
-        assert len(element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
+        assert (
+            len(element.findall(f".//{MD}layoutSections[{MD}layoutSection='TEST']"))
+            == 1
+        )
         field_elements = element.findall(
-            f".//{MD}relatedLists[{MD}relatedList='TEST']/{MD}fields"
+            f".//{MD}layoutSections[{MD}layoutSection='TEST']/{MD}fields"
         )
         field_names = {elem.text for elem in field_elements}
         assert field_names == set(["foo__c", "bar__c"])

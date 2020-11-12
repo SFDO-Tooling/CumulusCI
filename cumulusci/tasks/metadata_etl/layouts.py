@@ -29,43 +29,34 @@ class AddLayoutSectionField(MetadataSingleEntityTransformTask):
         self, metadata: MetadataElement, api_name: str
     ) -> Optional[MetadataElement]:
         label = self._inject_namespace(self.options["label"])
-        existing_search_layouts = metadata.findall("layoutSections", label=label)
+        existing_search_layouts = metadata.findall("layoutSections")
+
+        if not existing_search_layouts:
+            raise Exception("Are you sure this search layout exists?")
         breakpoint()
-        if existing_related_lists:
-            return None
-
-        self._create_new_related_list(metadata, api_name, related_list)
-
+        self._create_new_layout_section_field(
+            existing_search_layouts, api_name, label, "field"
+        )
+        breakpoint()
         return metadata
 
-    def _create_new_related_list(self, metadata, api_name, related_list):
-        self.logger.info(f"Adding Related List {related_list} to {api_name}")
-
+    def _create_new_layout_section_field(self, metadata, api_name, label, field):
+        self.logger.info(
+            f"Adding Field {field} on the layoutSection {label} to {api_name}"
+        )
         fields = [
             self._inject_namespace(f)
             for f in process_list_arg(self.options.get("fields", []))
         ]
-        exclude_buttons = [
-            self._inject_namespace(f)
-            for f in process_list_arg(self.options.get("exclude_buttons", []))
-        ]
-        custom_buttons = [
-            self._inject_namespace(f)
-            for f in process_list_arg(self.options.get("custom_buttons", []))
-        ]
+        for layoutSection in metadata:
+            if label == layoutSection.label.text:
+                elem = layoutSection
+                print(elem)
+                breakpoint()
+                for f in fields:
+                    elem.append("fields", text=f)
 
-        elem = metadata.append("relatedLists")
-
-        for f in fields:
-            elem.append("fields", text=f)
-
-        for button in exclude_buttons:
-            elem.append("excludeButtons", button)
-
-        for button in custom_buttons:
-            elem.append("customButtons", button)
-
-        elem.append("relatedList", text=related_list)
+        # elem.append("layoutSections", text=label)
 
 
 class AddRelatedLists(MetadataSingleEntityTransformTask):
