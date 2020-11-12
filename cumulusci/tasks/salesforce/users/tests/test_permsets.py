@@ -149,7 +149,6 @@ class TestCreatePermissionSet:
         with pytest.raises(CumulusCIException):
             task()
 
-
     @responses.activate
     def test_create_permset_raises(self):
         task = create_task(
