@@ -7,14 +7,14 @@ This helps keep the ``main`` branch in a state where it can be released at
 any time, because the repository can be configured to protect the ``main`` branch
 so that changes can only be merged if the tests have passed.
 
-Teams can put significant efforts into creating bespoke automation for 
-CumulusCI that is tailored to your project's specific needs.
+Teams can put significant effort into creating bespoke automation for 
+CumulusCI that is tailored to their project's specific needs.
 Once created, the automation is available to all project participants; 
 from Developers and Quality Engineers, to Documentation Writers and Product Managers.
 CumulusCI let's you take this reuse of automation one step further by allowing
-it to be run on CI systems like GitHub Actions, CircleCI, or Azure Pipelines.
+it to be run in the context of CI systems like GitHub Actions, CircleCI, or Azure Pipelines.
 This consistent reuse of automation from local environments to cloud based
-CI systems gives teams the confidence to develop, test, and deploy their projects with confidence.
+CI systems gives teams the ability to develop, test, and deploy their projects with the confidence.
 
 
 
@@ -30,7 +30,7 @@ automatically generating product documentation, and more.
 CumulusCI in GitHub Actions
 ---------------------------
 GitHub actions allow you to specify custom workflows that can be run directly in your GitHub repository. 
-These workflows can do anything from running test suites, to providing linting checks on your code.
+These workflows can perform a variety of tasks, like running test suites, performing linting checks on your code, and creating code coverage reports.
 CumulusCI makes GitHub actions even more powerful by allowing you to leverage the custom automation defined
 in your project's ``cumulusci.yml`` file, and execute it from within your custom workflows. This allows
 you to do things like, spin up a scratch org, load in your projects Metadata, and execute Apex or Robot tests against the org.
