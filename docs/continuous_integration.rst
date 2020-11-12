@@ -47,8 +47,11 @@ However, MetaCI is a bit complicated to set up and operate, so this recipe aims 
 For additional information on MetaCI visit the `GitHub Repository <https://github.com/SFDO-Tooling/MetaCI>`_.
  
 
+Further Reading
+---------------
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    cumulusci_flow.rst
    github_actions.rst
