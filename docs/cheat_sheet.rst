@@ -1,3 +1,4 @@
+
 Cheat sheet
 ===========
 
@@ -9,6 +10,8 @@ List Changes
 * ``list_changes``
 
 
+
+.. _retrieve changes:
 
 Retrieve Changes
 ^^^^^^^^^^^^^^^^

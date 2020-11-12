@@ -97,7 +97,7 @@ You can also include all changed components of specific types:
 Retrieve Changes
 ----------------
 The ``retrieve_changes`` task supports both ``sfdx`` and ``mdapi`` formatted source code. 
-It also utilizes the `SourceMember <TODO>`_ sObject to detect what has changed in an org,
+It also utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_ sObject to detect what has changed in an org,
 but allows you to be more selective regarding which components to retrieve when compared to the ``dx_pull`` task. 
 Manual tracking of component versions also allows for the possibility of retrieving some changes into one directory,
 and then running the task again to retrieve other changes into a different directory.
@@ -105,7 +105,7 @@ and then running the task again to retrieve other changes into a different direc
 .. note::
 
     CumulusCI has multiple tasks for retrieving Metadata from an org environment.
-    For a comprehensive list, see the `retrieve changes`_ section of the cheat sheet.
+    For a comprehensive list, see the list of :ref:`retrieve changes` tasks in the cheat sheet.
 
 When you are ready to capture changes in an org, run the ``retrieve_changes`` task:
 
