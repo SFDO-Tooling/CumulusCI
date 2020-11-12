@@ -42,7 +42,7 @@ Issues closed:
    using a cross-project task has been fixed.
 -  The ``github_package_data`` task will now work for projects using API
    versions prior to 44.0.
--  Fixed an bug where namespace injection of the
+-  Fixed a bug where namespace injection of the
    ``%%%NAMESPACED_ORG%%%`` token with the ``namespaced_org`` option
    enabled did not actually add the namespace prefix unless the
    ``managed`` option was also enabled.
