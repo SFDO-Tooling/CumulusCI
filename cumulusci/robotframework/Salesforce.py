@@ -940,7 +940,7 @@ class Salesforce(object):
         argument.
 
         You can supply keys and values to match against
-        in keyword arguments, or a full SQOL where-clause
+        in keyword arguments, or a full SOQL where-clause
         in a keyword argument named ``where``. If you supply
         both, they will be combined with a SOQL "AND".
 
