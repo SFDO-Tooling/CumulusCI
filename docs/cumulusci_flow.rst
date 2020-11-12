@@ -1,9 +1,9 @@
 CumulusCI Flow
 ==============
 CumulusCI Flow is the branching model and process we use for development of our products at Salesforce.org.
-CumulusCI Flow is based on the Github Flow model with a few changes and additions.
+CumulusCI Flow is based on the GitHub Flow model with a few changes and additions.
 
-CumulusCI Flow is implemented in the default flows provided by CumulusCI, but the approach to working with a Github repository does not require the use of CumulusCI.
+CumulusCI Flow is implemented in the default flows provided by CumulusCI, but the approach to working with a GitHub repository does not require the use of CumulusCI.
 
 .. image:: images/salesforce-org-process.png
    :scale: 50 %
@@ -30,7 +30,7 @@ To test that we can package main, we upload a beta release on every commit to ma
 This build ranges from 15 minutes to 2 hours depending on the project and a passing build is proof we can package main at any point in time.
 
 When the upload of the beta release is completed, the main branch is auto-merged_ into all open feature branches.
-New betas are published on Github as a Github Release along with automatically generated release notes created by parsing the body of all Pull Requests merged since the last production release
+New betas are published on GitHub as a GitHub Release along with automatically generated release notes created by parsing the body of all Pull Requests merged since the last production release
 
 
 
@@ -39,7 +39,7 @@ CumulusCI and Main Builds
 There are four main flows that facilitate main builds:
 
 * ``ci_master``: Deploys the main branch and all dependencies into the packaging org including incrementally deleting any metadata deleted in the commit.  The end result is a package that is ready to be uploaded from the packaging org.
-* ``release_beta``: Uploads a beta release of the code staged in the packaging org, creates a Github Tag and Release, generates release notes, adds them to the release, and merges main into all feature branches.
+* ``release_beta``: Uploads a beta release of the code staged in the packaging org, creates a GitHub Tag and Release, generates release notes, adds them to the release, and merges main into all feature branches.
 * ``ci_beta``: Installs the beta and all dependencies into a fresh scratch org and runs the Apex tests.
 * ``ci_beta_install``: Installs the beta and all dependencies into a fresh scratch org. This is used to prepare environments for non-Apex testing such as automated browser tests.
 
@@ -69,7 +69,7 @@ CumulusCI's default tag prefixes can be overridden if needed for particular proj
 
 Feature Branches
 ----------------
-Like Github Flow, CumulusCI Flow uses a simple main/feature branch model.
+Like GitHub Flow, CumulusCI Flow uses a simple main/feature branch model.
 The main branch is the only permanent branch in the repository.
 All development work (features and bug fixes) is done in feature branches prefixed with ``feature/``.
 All commits on all feature branches are tested concurrently by our CI app, MetaCI, though any CI app could be used for the same purpose.
@@ -80,7 +80,7 @@ Once a developer is done with a feature branch, they create a Pull Request to me
 * **Release Notes**: We use the Pull Request body to create release notes content relevant to the PR.  This content is automatically parsed by CumulusCI's release notes generation task to automatically build cumulative release notes on each release.
 * **QA**: The goal of the Pull Request is to serve as a gate blocking a change from going into main until it's ready to release.  As a result, we do QA on the feature before merging the Pull Request.
 
-When a Pull Request is approved and passing build, it is merged using the Merge button in GitHub's web interface.  We use Github Protected Branches to enforce both code reviews and passing builds before a Pull Request can be merged to main.
+When a Pull Request is approved and passing build, it is merged using the Merge button in GitHub's web interface.  We use GitHub Protected Branches to enforce both code reviews and passing builds before a Pull Request can be merged to main.
 
 Once the Pull Request is merged, the feature branch is deleted.
 
@@ -104,11 +104,14 @@ These long-lived branches are created off of the ``main`` branch, serve as the t
 features associated with that release and are eventually merged back to the ``main`` branch when a release occurs.
 To be able to clearly track what work is associated with a specific release, release branches adhere to the following:
 
-* They are the parent branches of ALL feature work associated with a release. Put another way; all feature branches use the parent-child naming convention with its target release branch.
+* They are the parent branches of ALL feature work associated with a release. Put another way; 
+all feature branches use the parent-child naming convention with its target release branch.
 * Use a strict naming format: ``feature/release_num`` where ``release_num`` is a valid integer.
 
-Using ``feature/`` branch prefix for the release branch names allow those branches to stay in sync with our main branch (they are just another feature branch to CumulusCI).
-The release number immediately after the ``feature/`` prefix allows CumulusCI to detect and merge changes from one release branch to other future release branches.
+Using ``feature/`` branch prefix for the release branch names allow those branches to stay in 
+sync with our main branch (they are just another feature branch to CumulusCI).
+The release number immediately after the ``feature/`` prefix allows CumulusCI to detect and merge
+changes from one release branch to other future release branches.
 See `Release to (Future) Release Merges`_ for more information.
 
 An example of a release branch with two items of work associated with it could look like this:
@@ -150,7 +153,7 @@ CumulusCI helps to keep large diffs and merge conflicts from being the norm. Cum
 
 Main to Feature Merges 
 ^^^^^^^^^^^^^^^^^^^^^^
-One of the bigger differences between CumulusCI Flow and Github Flow or git-flow is that we automate the merging of commits to a projects main branch into all open feature branches.  This auto-merge does a lot for us:
+One of the bigger differences between CumulusCI Flow and GitHub Flow or git-flow is that we automate the merging of commits to a projects main branch into all open feature branches.  This auto-merge does a lot for us:
 
 * Ensures feature branches are in sync with the  main branch.
 * Re-tests each feature branch with any changes to main since the merge generates a new commit
@@ -250,24 +253,24 @@ Renaming ``feature/myFeature__child`` to ``feature/child`` will allow the orphan
 
 
 
-CumulusCI Flow vs Github Flow
+CumulusCI Flow vs GitHub Flow
 -----------------------------
-Since CumulusCI Flow is largely an extension of Github Flow, the differences are mostly additional process in CumulusCI Flow that's not in Github Flow:
+Since CumulusCI Flow is largely an extension of GitHub Flow, the differences are mostly additional process in CumulusCI Flow that's not in GitHub Flow:
 
 * Feature branches must be prefixed feature/ or they don't get built or receive auto-merges.  This allows developers to have experimental branches that don't get built or merged.
 * CumulusCI Flow is focused on an agile release process (we use 2 week sprints/releases) instead of continuous delivery.
-* CumulusCI Flow requires the beta and release tag naming convention so tooling can use the Github API to determine the latest beta and the latest production release.
-* Github Flow does not do any auto-merging of commits which is a core part of CumulusCI Flow
-* Github Flow does not have any concept of parent/child branches though they could be manually created and maintained
+* CumulusCI Flow requires the beta and release tag naming convention so tooling can use the GitHub API to determine the latest beta and the latest production release.
+* GitHub Flow does not do any auto-merging of commits which is a core part of CumulusCI Flow
+* GitHub Flow does not have any concept of parent/child branches though they could be manually created and maintained
 
 
 
 CumulusCI Flow vs git-flow
 --------------------------
-When I first started figuring out our development/release process, I started where most people do in looking at git-flow.  Unlike both CumulusCI Flow and Github Flow, git-flow uses multiple permanent branches to separate development work from releases.  We decided to go with a main/feature branching model instead of git-flow for a few reasons:
+When I first started figuring out our development/release process, I started where most people do in looking at git-flow.  Unlike both CumulusCI Flow and GitHub Flow, git-flow uses multiple permanent branches to separate development work from releases.  We decided to go with a main/feature branching model instead of git-flow for a few reasons:
 
 * We only cut and release new releases.  We never patch old releases which makes the complexity of git-flow less necessary.
-* git-flow is not natively supported in git or Github.  Using git-flow effectively usually requires extending your git tooling to enforce structure and merging rules for a more complex branching model.
+* git-flow is not natively supported in git or GitHub.  Using git-flow effectively usually requires extending your git tooling to enforce structure and merging rules for a more complex branching model.
 * The main reason for git-flow is to be able to integrate your features together.  We get this, along with many other benefits, already from auto-merging main to feature branches.
 * Feature branches provide better isolation necessary for a rapid, agile release cycle by keeping all features not ready for release out of the release. Doing testing in the development branch means you've already integrated your features together.  If one feature is bad, it is harder to unwind that feature from the development branch than if it were still isolated in its feature branch, tested there, and only merged when truly ready.  Plus, with the auto-merge of main, we get the same integration as a development branch.
 * In short, auto-merging and parent/child feature branches in CumulusCI Flow provide us everything we would want from git-flow in a simpler branching model.    
