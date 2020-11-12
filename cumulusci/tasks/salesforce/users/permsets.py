@@ -11,7 +11,7 @@ class AssignPermissionSets(BaseSalesforceApiTask):
         },
         "user_alias": {
             "description": "Alias of target user (if not the current running user, the default)."
-        }
+        },
     }
 
     def _init_options(self, kwargs):
@@ -36,7 +36,9 @@ class AssignPermissionSets(BaseSalesforceApiTask):
 
         result = self.sf.query(query)
         if result["totalSize"] != 1:
-            raise CumulusCIException("A single User was not found matching the specified alias.")
+            raise CumulusCIException(
+                "A single User was not found matching the specified alias."
+            )
         user = result["records"][0]
 
         assigned_permsets = {
@@ -67,4 +69,3 @@ class AssignPermissionSets(BaseSalesforceApiTask):
                 )
             else:
                 self.logger.info(f"Permission set {api_name} is already assigned.")
-
