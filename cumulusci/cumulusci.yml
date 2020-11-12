@@ -580,7 +580,7 @@ flows:
                     branch_name: $project_config.repo_branch
                     build_notes_label: "Build Change Notes"
             1:
-                flow: dependencies
+                flow: beta_dependencies
             2:
                 flow: deploy_unmanaged
             3:
@@ -592,7 +592,7 @@ flows:
 
     ci_feature_beta_deps:
         group: Continuous Integration
-        description: Install the latest beta version of dependencies and run apex tests.
+        description: This flow is deprecated. Please use ci_feature instead.
         steps:
             0.5:
                 task: github_parent_pr_notes
@@ -800,7 +800,7 @@ flows:
         description: Set up an org as a development environment for unmanaged metadata
         steps:
             1:
-                flow: dependencies
+                flow: beta_dependencies
             2:
                 flow: deploy_unmanaged
             3:
@@ -810,7 +810,7 @@ flows:
 
     dev_org_beta_deps:
         group: Org Setup
-        description: Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
+        description: This flow is deprecated. Please use dev_org instead.
         steps:
             1:
                 flow: beta_dependencies
@@ -824,7 +824,7 @@ flows:
         description: Set up a namespaced scratch org as a development environment for unmanaged metadata
         steps:
             1:
-                flow: dependencies
+                flow: beta_dependencies
             2:
                 flow: deploy_unmanaged
             3:
@@ -837,7 +837,7 @@ flows:
         description: Set up an org as a QA environment for unmanaged metadata
         steps:
             1:
-                flow: dependencies
+                flow: beta_dependencies
             2:
                 flow: deploy_unmanaged
             3:
@@ -870,7 +870,7 @@ flows:
         description: Install and configure the latest beta version
         steps:
             1:
-                flow: dependencies
+                flow: beta_dependencies
             2:
                 task: install_managed_beta
             3:
