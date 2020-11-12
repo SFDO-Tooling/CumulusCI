@@ -1,5 +1,5 @@
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tasks.metadata_etl import AddRelatedLists
+from cumulusci.tasks.metadata_etl import AddRelatedLists, AddLayoutSectionField
 from cumulusci.utils.xml import metadata_tree
 
 MD = "{%s}" % metadata_tree.METADATA_NAMESPACE
@@ -21,6 +21,60 @@ LAYOUT_XML = """<?xml version="1.0" encoding="UTF-8"?>
         <layoutColumns/>
         <style>TwoColumnsTopToBottom</style>
     </layoutSections>
+    <layoutSections>
+        <customLabel>true</customLabel>
+        <detailHeading>false</detailHeading>
+        <editHeading>false</editHeading>
+        <label>Fields</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Required</behavior>
+                <field>Name</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>RecordTypeId</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Phone</field>
+            </layoutItems>
+        </layoutColumns>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>ParentId</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>Website</field>
+            </layoutItems>
+        </layoutColumns>
+        <style>TwoColumnsLeftToRight</style>
+    </layoutSections>
+    <layoutSections>
+        <customLabel>true</customLabel>
+        <detailHeading>true</detailHeading>
+        <editHeading>true</editHeading>
+        <label>Address</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>BillingAddress</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>hed__Current_Address__c</field>
+            </layoutItems>
+        </layoutColumns>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>ShippingAddress</field>
+            </layoutItems>
+        </layoutColumns>
+        <style>TwoColumnsLeftToRight</style>
+    </layoutSections>
     {relatedLists}
 </Layout>
 """
@@ -33,6 +87,51 @@ RELATED_LIST = """    <relatedLists>
         <relatedList>RelatedContactList</relatedList>
     </relatedLists>
 """
+
+LAYOUT_SECTION = """    <layoutSections>
+        <customLabel>false</customLabel>
+        <detailHeading>false</detailHeading>
+        <editHeading>true</editHeading>
+        <label>Information</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>Name</field>
+            </layoutItems>
+        </layoutColumns>
+        <layoutColumns/>
+        <style>TwoColumnsTopToBottom</style>
+    </layoutSections>
+"""
+
+
+class TestAddLayoutSectionFields:
+    def test_adds_layouts(self):
+        task = create_task(
+            AddLayoutSectionField,
+            {
+                "managed": True,
+                "api_version": "47.0",
+                "api_names": "bar,foo",
+                "label": "Information",
+                "fields": "foo__c,bar__c",
+            },
+        )
+        breakpoint()
+        tree = metadata_tree.fromstring(LAYOUT_XML.encode("utf-8"))
+        element = tree._element
+        breakpoint()
+
+        assert len(element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 0
+
+        task._transform_entity(tree, "Layout")
+
+        assert len(element.findall(f".//{MD}relatedLists[{MD}relatedList='TEST']")) == 1
+        field_elements = element.findall(
+            f".//{MD}relatedLists[{MD}relatedList='TEST']/{MD}fields"
+        )
+        field_names = {elem.text for elem in field_elements}
+        assert field_names == set(["foo__c", "bar__c"])
 
 
 class TestAddRelatedLists:
