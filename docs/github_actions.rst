@@ -1,18 +1,7 @@
+.. _GitHub Actions:
+
 Run CumulusCI from Github Actions
 =================================
-The "CI" in CumulusCI stands for "continuous integration".
-Continuous integration is the practice of automatically running a
-project's tests for any change before that change is merged to the main branch.
-This helps keep the main branch in a state where it can be released at any
-time, because the repository can be configured to protect the main
-branch so that changes can only be merged if the tests have passed.
-
-CumulusCI flows can be run on your own computer, or they can be run in a
-CI system such as GitHub Actions, CircleCI, or Azure Pipelines. This
-recipe will show how to use GitHub Actions to run Apex tests in a
-scratch org after every commit. (For other CI systems the steps should
-be similar, though the details of the configuration will be different.)
-
 In order to follow along, you should already have a repository that is
 hosted on GitHub and configured as a CumulusCI project. In other words,
 we're assuming your project already has a ``cumulusci.yml`` and that you are

@@ -1,3 +1,5 @@
+.. _CumulusCI Flow:
+
 CumulusCI Flow
 ==============
 CumulusCI Flow is the branching model and process we use for development of our products at Salesforce.org.
