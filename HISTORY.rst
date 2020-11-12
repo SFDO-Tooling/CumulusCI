@@ -47,6 +47,7 @@ Issues closed:
    enabled did not actually add the namespace prefix unless the
    ``managed`` option was also enabled.
 - We fixed an issue that resulted in the `batch_size` option in a data mapping file being ignored.
+
 3.22.0 (2020-10-29)
 -------------------
 
