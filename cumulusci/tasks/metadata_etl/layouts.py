@@ -44,17 +44,20 @@ class AddLayoutSectionField(MetadataSingleEntityTransformTask):
         self.logger.info(
             f"Adding Field {field} on the layoutSection {label} to {api_name}"
         )
-        fields = [
-            self._inject_namespace(f)
-            for f in process_list_arg(self.options.get("fields", []))
-        ]
+        # fields = [
+        #     self._inject_namespace(f)
+        #     for f in process_list_arg(self.options.get("fields", []))
+        # ]
         for layoutSection in metadata:
             if label == layoutSection.label.text:
-                elem = layoutSection
-                print(elem)
-                breakpoint()
-                for f in fields:
-                    elem.append("fields", text=f)
+                elem = layoutSection.layoutColumns
+                elem.append("layoutItems")
+                elem.append("behavior", text="Required")
+                elem.append("field", text=field)
+                elem.append("layoutItems")
+
+                # for f in fields:
+                #     elem.append("fields", text=f)
 
         # elem.append("layoutSections", text=label)
 
