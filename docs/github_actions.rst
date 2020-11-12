@@ -104,7 +104,7 @@ CumulusCI may need access to the GitHub API in order to do things like
 look up information about dependency packages. To set this up, we'll set
 a secret to configure the CumulusCI github service.
 
-First, follow GitHubâ€™s instructions to `create a Personal Access Token
+First, follow GitHub's instructions to `create a Personal Access Token
 <https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line>`_.
 
 Now, in your repository's Secrets settings, click the "Add a new secret"
@@ -159,7 +159,7 @@ Commit the new ``.github/workflows/apex_tests.yml`` file to the repository and p
 You should be able to watch the status of this workflow in the repository's Actions tab:
 
 .. image:: images/github_workflow.png
-   :alt: Screenshot showing a running Github Action workflow
+   :alt: Screenshot showing a running GitHub Action workflow
 
 If you open a pull request for a branch that includes the workflow, you will find a section at the bottom of the pull request that shows the results of the checks that were performed by the workflow:
 
@@ -181,7 +181,7 @@ Firefox and geckodriver.
 
 Fortunately GitHub Actions comes preconfigured with an image that
 includes these browsers. However it is necessary to run the browser in
-headless mode. When using CumulusCIâ€™s ``robot`` task, this can be done
+headless mode. When using CumulusCI's ``robot`` task, this can be done
 by passing the ``-o vars BROWSER:headlesschrome`` option.
 
 Here is a complete workflow to run Robot Framework tests for any commit:
