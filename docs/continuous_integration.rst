@@ -35,7 +35,7 @@ CumulusCI makes GitHub actions even more powerful by allowing you to leverage th
 in your project's ``cumulusci.yml`` file, and execute it from within your custom workflows. This allows
 you to do things like, spin up a scratch org, load in your projects Metadata, and execute Apex or Robot tests against the org.
 If you're an Engineer looking to setup CumulusCI in GitHub action, the :ref:`GitHub Actions` section
-includes everything from a sample workflow, to which secrets will need to be configured
+includes everything from a sample workflow, to which secrets need to be configured.
 
 
 
