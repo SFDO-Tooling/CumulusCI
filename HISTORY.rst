@@ -9,7 +9,7 @@ Changes:
 
 -  CumulusCI now accepts a normalized task option syntax in the form of:
    ``--opt-name value``. This can be used in place of the old task
-   option syntax: ``-o opt-name value``
+   option syntax: ``-o opt-name value``.
 -  Tasks which perform namespace injection can now automatically
    determine whether they are running in the context of a managed
    installation or a namespaced scratch org. This means that in many
