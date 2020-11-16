@@ -6,6 +6,7 @@ import re
 from contextlib import contextmanager
 from urllib.parse import urlparse
 from cumulusci.utils.fileutils import open_fs_resource
+from json import JSONDecodeError
 
 import requests
 from simple_salesforce import Salesforce
@@ -104,7 +105,7 @@ class OrgConfig(BaseConfig):
             raise SalesforceCredentialsException(
                 f"Error refreshing OAuth token: {resp.text}"
             )
-        return resp.json()
+        return _safe_json_from_response(resp)
 
     @property
     def lightning_base_url(self):
@@ -131,7 +132,13 @@ class OrgConfig(BaseConfig):
             response = requests.get(
                 self.instance_url + "/services/data", headers=headers
             )
-            self._latest_api_version = str(response.json()[-1]["version"])
+            try:
+                version = _safe_json_from_response(response)[-1]["version"]
+            except (KeyError, IndexError):
+                raise CumulusCIException(
+                    f"Cannot decode API Version `{response.text[0:100]}``"
+                )
+            self._latest_api_version = str(version)
 
         return self._latest_api_version
 
@@ -168,7 +175,8 @@ class OrgConfig(BaseConfig):
             self.instance_url + "/services/oauth2/userinfo", headers=headers
         )
         if response != self.config.get("userinfo", {}):
-            self.config.update({"userinfo": response.json()})
+            config_data = _safe_json_from_response(response)
+            self.config.update({"userinfo": config_data})
 
     def can_delete(self):
         return False
@@ -366,3 +374,10 @@ class OrgConfig(BaseConfig):
 
             new_dependencies.append(dependency)
         return new_dependencies
+
+
+def _safe_json_from_response(response):
+    try:
+        return response.json()
+    except JSONDecodeError:
+        raise CumulusCIException(f"Cannot decode as JSON:  {response.text}")
