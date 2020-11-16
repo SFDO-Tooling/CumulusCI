@@ -134,7 +134,7 @@ class OrgConfig(BaseConfig):
             )
             try:
                 version = _safe_json_from_response(response)[-1]["version"]
-            except (KeyError, IndexError):
+            except (KeyError, IndexError, TypeError):
                 raise CumulusCIException(
                     f"Cannot decode API Version `{response.text[0:100]}``"
                 )
