@@ -219,6 +219,50 @@ Here is a complete workflow to run Robot Framework tests for any commit:
            cci org scratch_delete dev
 
 
+Connect a Persistent Org
+------------------------
+To connect to a persistent org in the context of a CI system you need to:
+
+#. Set ``CUMULUSCI_KEYCHAIN_CLASS`` to ``EnvironmentProjectKeychain`` so that CumulusCI 
+   will look for org configs in environment variables instead of files.
+#. Set ``CUMULUSCI_ORG_sandbox`` to this json: ``{“username”: “USERNAME”, “instance_url”: “INSTANCE_URL”}`` 
+   (replacing USERNAME and INSTANCE_URL with actual values).
+#. ``Set SFDX_CLIENT_ID`` to your connected app client id and ``SFDX_HUB_KEY`` to the private key 
+   (contents of your server.key file). 
+   This will make cci authenticate to the org using jwt instead of the web auth flow
+
+Setting ``CUMULUSCI_KEYCHAIN_CLASS`` to ``EnvironmentProjectKeychain`` along with specifying
+a value for ``CUMULUSCI_ORG_sandbox`` negates the need to use the ``cci org connect`` command.
+You can now simply run a CumulusCI command along with specifying ``--org sandbox``.
+
+In the context of GitHub Actions, all of these changes would occur under the ``env`` section of the workflow:
+
+.. code-block:: yaml
+
+   env:
+     CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
+     CUMULUSCI_SERVICE_sandbox: {"username": "peter.gibbons@initech.co", "instance_url": "initech--sbxname.my.salesforce.com"}
+     SFDX_CLIENT_ID: {{ $secrets.client_id }}
+     SFDX_HUB_KEY: {{ $secrets.server_key }}
+
+.. note::
+
+  The above assumes that you have added ``client_id`` and ``server_key`` values to you GitHub secrets.
+
+Deploy to a Persistent Org
+--------------------------
+In order to deploy to a persistent org, you first need to follow the steps outlined in `connect a persisten org`_.
+Once completed, you should be able to 
+
+
+
+Build Managed Package Versions
+------------------------------
+If you want 
+
+
+
+
 
 References
 ----------
