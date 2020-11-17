@@ -12,6 +12,8 @@ from urllib.parse import parse_qs
 from urllib.parse import urljoin
 from urllib.parse import urlparse
 import webbrowser
+import threading
+import random
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
 
@@ -131,7 +133,16 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             http_body = f"error: {args['error'][0]}\nerror description: {args['error_description'][0]}"
         else:
             http_status = http.client.OK
-            http_body = "Congratulations! Your authentication succeeded."
+            gif = random.choice(
+                [
+                    "l378jKRUCSZUEZ5FC",
+                    "mPDQOax4YMOpqwR3Dw",
+                    "sRKgdVOw6qEwDAbJR1",
+                    "l1IYk3l6xcEDN5RFS",
+                ]
+            )
+            http_body = f"""<html><p>Congratulations! Your authentication succeeded.</p>
+            <iframe src="https://giphy.com/embed/{gif}" width="480" height="360" frameBorder="0"></iframe></html>"""
             code = args["code"]
             self.parent.response = self.parent.oauth_api.get_token(code)
             if self.parent.response.status_code >= http.client.BAD_REQUEST:
@@ -145,6 +156,11 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             response.status_code = http_status
             response._content = http_body
             self.parent.response = response
+
+        #  https://docs.python.org/3/library/socketserver.html#socketserver.BaseServer.shutdown
+        # shutdown() must be called while serve_forever() is running in a different thread otherwise it will deadlock.
+        t = threading.Thread(target=self.server.shutdown)
+        t.start()
 
 
 class CaptureSalesforceOAuth(object):
@@ -168,7 +184,9 @@ class CaptureSalesforceOAuth(object):
             + "If you are unable to log in to Salesforce you can "
             + "press ctrl+c to kill the server and return to the command line."
         )
-        self.httpd.handle_request()
+        # use serve_forever because it is smarter abot polling for Ctrl-C
+        # on Windows
+        self.httpd.serve_forever()
         self._check_response(self.response)
         return self.response.json()
 
