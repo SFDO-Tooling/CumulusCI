@@ -93,7 +93,8 @@ Open Test Browser
     ...  a specific user; if not specified then the org default will be used.
 
     [Arguments]  ${size}=${DEFAULT BROWSER SIZE}  ${alias}=${NONE}  ${wait}=True  ${useralias}=${NONE}
-    ${login_url}=  Login URL  alias=${useralias}
+    ${login_url}=  Run keyword if  $useralias  Login URL  alias=${useralias}
+    ...  ELSE  Login URL
 
     Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome  ${login_url}  alias=${alias}
     ...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox  ${login_url}  alias=${alias}
