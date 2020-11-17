@@ -12,6 +12,7 @@ from cumulusci.core.exceptions import (
     CumulusCIException,
 )
 from cumulusci.core.utils import process_bool_arg, process_list_arg, decode_to_unicode
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 APEX_LIMITS = {
     "Soql": {
@@ -487,9 +488,13 @@ class RunApexTests(BaseSalesforceApiTask):
         else:
             body = {"classids": ",".join(class_ids)}
 
-        return self.tooling._call_salesforce(
-            method="POST", url=self.tooling.base_url + "runTestsAsynchronous", json=body
-        ).json()
+        return safe_json_from_response(
+            self.tooling._call_salesforce(
+                method="POST",
+                url=self.tooling.base_url + "runTestsAsynchronous",
+                json=body,
+            )
+        )
 
     def _init_task(self):
         super()._init_task()
