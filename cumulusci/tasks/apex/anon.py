@@ -5,6 +5,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import in_directory, inject_namespace
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 class AnonymousApexTask(BaseSalesforceApiTask):
@@ -132,7 +133,7 @@ class AnonymousApexTask(BaseSalesforceApiTask):
     def _check_result(self, result):
         # anon_results is an ExecuteAnonymous Result
         # https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/sforce_api_calls_executeanonymous_result.htm
-        anon_results = result.json()
+        anon_results = safe_json_from_response(result)
 
         # A result of `None` (body == "null") with a 200 status code
         # means that a gack occurred.
