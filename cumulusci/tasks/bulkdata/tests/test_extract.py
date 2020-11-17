@@ -389,7 +389,9 @@ class TestExtractData:
         task.mapping["Opportunity"] = mapping
         with task._init_db():
             task._import_results(mapping, step)
-            output_Opportunties = list(task.engine.execute("select * from Opportunity"))
+            output_Opportunties = list(
+                task.session.execute("select * from Opportunity")
+            )
             assert output_Opportunties == [(1,), (2,)]
 
     @responses.activate
@@ -716,7 +718,6 @@ class TestExtractData:
         with task._init_db():
             assert task.models == {}
             assert task.session.query
-            assert task.engine.execute
 
     def assert_person_accounts_in_mapping(
         self, mapping, org_has_person_accounts_enabled

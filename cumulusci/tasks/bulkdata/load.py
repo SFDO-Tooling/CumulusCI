@@ -413,21 +413,19 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         with self._database_url() as database_url:
             parent_engine = create_engine(database_url)
             with parent_engine.connect() as connection:
-                self.engine = connection
-
                 # initialize the DB session
-                self.session = Session(self.engine)
+                self.session = Session(connection)
 
                 if self.options.get("sql_path"):
                     self._sqlite_load()
 
                 # initialize DB metadata
                 self.metadata = MetaData()
-                self.metadata.bind = self.engine
+                self.metadata.bind = connection
 
                 # initialize the automap mapping
-                self.base = automap_base(bind=self.engine, metadata=self.metadata)
-                self.base.prepare(self.engine, reflect=True)
+                self.base = automap_base(bind=connection, metadata=self.metadata)
+                self.base.prepare(connection, reflect=True)
 
                 # Loop through mappings and reflect each referenced table
                 self.models = {}
