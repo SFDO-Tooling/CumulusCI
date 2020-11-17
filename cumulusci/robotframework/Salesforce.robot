@@ -88,9 +88,13 @@ Open Test Browser
     ...  The keyword `Log Browser Capabilities` will automatically be called.
     ...  The keyword will also call `Wait Until Salesforce is Ready` unless
     ...  the `wait` parameter is set to False.
+    ...
+    ...  The arguments 'username' or 'useralias' may be used to specify
+    ...  a specific user; if not specified then the org default will be used.
 
-    [Arguments]  ${size}=${DEFAULT BROWSER SIZE}  ${alias}=${NONE}  ${wait}=True
-    ${login_url} =  Login Url
+    [Arguments]  ${size}=${DEFAULT BROWSER SIZE}  ${alias}=${NONE}  ${wait}=True  ${useralias}=${NONE}
+    ${login_url}=  Login URL  alias=${useralias}
+
     Run Keyword If  '${BROWSER}' == 'chrome'  Open Test Browser Chrome  ${login_url}  alias=${alias}
     ...    ELSE IF  '${BROWSER}' == 'firefox'  Open Test Browser Firefox  ${login_url}  alias=${alias}
     ...    ELSE IF  '${BROWSER}' == 'headlesschrome'  Open Test Browser Chrome  ${login_url}  alias=${alias}
