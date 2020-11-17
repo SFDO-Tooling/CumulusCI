@@ -41,6 +41,7 @@ class OrgConfig(BaseConfig):
         self._latest_api_version = None
         self._installed_packages = None
         self._is_person_accounts_enabled = None
+        self._is_multi_currency_enabled = None
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -340,6 +341,18 @@ class OrgConfig(BaseConfig):
                 for field in self.salesforce_client.Account.describe()["fields"]
             )
         return self._is_person_accounts_enabled
+
+    @property
+    def is_multi_currency_enabled(self):
+        """
+        Returns if the org has multi-currency enabled by checking if the ``CurrencyType`` Sobject is exposed.
+        """
+        if self._is_multi_currency_enabled is None:
+            # Check if CurrencyType Sobject is exposed.  Cache the result.
+            self._is_multi_currency_enabled = "CurrencyType" in [
+                s["name"] for s in self.salesforce_client.describe()["sobjects"]
+            ]
+        return self._is_multi_currency_enabled
 
     def resolve_04t_dependencies(self, dependencies):
         """Look up 04t SubscriberPackageVersion ids for 1gp project dependencies"""
