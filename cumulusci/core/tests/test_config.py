@@ -1186,7 +1186,6 @@ class TestOrgConfig(unittest.TestCase):
             "test",
         )
         keychain = mock.Mock()
-        # resp.json.side_effect = json.JSONDecodeError("blah", "Blah", 0)
 
         responses.add(
             responses.POST, "http://instance_url_111.com/services/oauth2/token"
