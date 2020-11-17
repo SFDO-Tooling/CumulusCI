@@ -5,8 +5,6 @@ import os
 import re
 from contextlib import contextmanager
 from urllib.parse import urlparse
-from cumulusci.utils.fileutils import open_fs_resource
-from json import JSONDecodeError
 
 import requests
 from simple_salesforce import Salesforce
@@ -17,6 +15,8 @@ from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.oauth.salesforce import jwt_session
+from cumulusci.utils.fileutils import open_fs_resource
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
@@ -105,7 +105,7 @@ class OrgConfig(BaseConfig):
             raise SalesforceCredentialsException(
                 f"Error refreshing OAuth token: {resp.text}"
             )
-        return _safe_json_from_response(resp)
+        return safe_json_from_response(resp)
 
     @property
     def lightning_base_url(self):
@@ -133,7 +133,7 @@ class OrgConfig(BaseConfig):
                 self.instance_url + "/services/data", headers=headers
             )
             try:
-                version = _safe_json_from_response(response)[-1]["version"]
+                version = safe_json_from_response(response)[-1]["version"]
             except (KeyError, IndexError, TypeError):
                 raise CumulusCIException(
                     f"Cannot decode API Version `{response.text[0:100]}``"
@@ -175,7 +175,7 @@ class OrgConfig(BaseConfig):
             self.instance_url + "/services/oauth2/userinfo", headers=headers
         )
         if response != self.config.get("userinfo", {}):
-            config_data = _safe_json_from_response(response)
+            config_data = safe_json_from_response(response)
             self.config.update({"userinfo": config_data})
 
     def can_delete(self):
@@ -374,10 +374,3 @@ class OrgConfig(BaseConfig):
 
             new_dependencies.append(dependency)
         return new_dependencies
-
-
-def _safe_json_from_response(response):
-    try:
-        return response.json()
-    except JSONDecodeError:
-        raise CumulusCIException(f"Cannot decode as JSON:  {response.text}")
