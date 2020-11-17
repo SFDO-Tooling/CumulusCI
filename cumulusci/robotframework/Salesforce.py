@@ -935,21 +935,32 @@ class Salesforce(object):
         """Constructs and runs a simple SOQL query and returns a list of dictionaries.
 
         By default the results will only contain object Ids. You can
-        specify a SOQL SELECT clase via keyword arguments by passing
+        specify a SOQL SELECT clause via keyword arguments by passing
         a comma-separated list of fields with the ``select`` keyword
         argument.
 
-        Example:
+        You can supply keys and values to match against
+        in keyword arguments, or a full SOQL where-clause
+        in a keyword argument named ``where``. If you supply
+        both, they will be combined with a SOQL "AND".
+
+        Examples:
 
         The following example searches for all Contacts where the
         first name is "Eleanor". It returns the "Name" and "Id"
         fields and logs them to the robot report:
 
         | @{records}=  Salesforce Query  Contact  select=Id,Name
+        | ...          FirstName=Eleanor
         | FOR  ${record}  IN  @{records}
         |     log  Name: ${record['Name']} Id: ${record['Id']}
         | END
 
+        Or with a WHERE-clause, we can look for every contact where
+        the first name is NOT Eleanor.
+
+        | @{records}=  Salesforce Query  Contact  select=Id,Name
+        | ...          where=FirstName!='Eleanor'
         """
         query = "SELECT "
         if "select" in kwargs:
@@ -957,13 +968,15 @@ class Salesforce(object):
         else:
             query += "Id"
         query += " FROM {}".format(obj_name)
-        where = []
+        where_clauses = []
+        if "where" in kwargs:
+            where_clauses = [kwargs["where"]]
         for key, value in kwargs.items():
-            if key == "select":
+            if key == "select" or key == "where":
                 continue
-            where.append("{} = '{}'".format(key, value))
-        if where:
-            query += " WHERE " + " AND ".join(where)
+            where_clauses.append("{} = '{}'".format(key, value))
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
         self.builtin.log("Running SOQL Query: {}".format(query))
         return self.cumulusci.sf.query_all(query).get("records", [])
 

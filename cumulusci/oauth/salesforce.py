@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 import webbrowser
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
 SANDBOX_DOMAIN_RE = re.compile(
@@ -68,8 +69,7 @@ def jwt_session(client_id, private_key, username, url=None, auth_url=None):
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     token_url = urljoin(url, "services/oauth2/token")
     response = requests.post(url=token_url, data=data, headers=headers)
-    response.raise_for_status()
-    return response.json()
+    return safe_json_from_response(response)
 
 
 class SalesforceOAuth2(object):
@@ -170,7 +170,7 @@ class CaptureSalesforceOAuth(object):
         )
         self.httpd.handle_request()
         self._check_response(self.response)
-        return self.response.json()
+        return safe_json_from_response(self.response)
 
     def _check_response(self, response):
         if response.status_code == http.client.OK:

@@ -34,11 +34,14 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.github import create_gist, get_github_api
-from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import FlowNotFoundError
+from cumulusci.core.exceptions import (
+    OrgNotFound,
+    CumulusCIException,
+    CumulusCIUsageError,
+    ServiceNotConfigured,
+    FlowNotFoundError,
+)
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 from cumulusci.core.utils import import_global
@@ -90,7 +93,9 @@ def is_final_release(version: str) -> bool:
 def get_latest_final_version():
     """ return the latest version of cumulusci in pypi, be defensive """
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
-    res = requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5).json()
+    res = safe_json_from_response(
+        requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5)
+    )
     with timestamp_file() as f:
         f.write(str(time.time()))
     versions = []
@@ -115,15 +120,15 @@ def check_latest_version():
         try:
             latest_version = get_latest_final_version()
         except requests.exceptions.RequestException as e:
-            click.echo("Error checking cci version:")
-            click.echo(str(e))
+            click.echo("Error checking cci version:", err=True)
+            click.echo(str(e), err=True)
             return
 
         result = latest_version > get_installed_version()
-        click.echo("Checking the version!")
         if result:
             click.echo(
-                f"""An update to CumulusCI is available. To install the update, run this command: {get_cci_upgrade_command()}"""
+                f"""An update to CumulusCI is available. To install the update, run this command: {get_cci_upgrade_command()}""",
+                err=True,
             )
 
 
@@ -224,7 +229,7 @@ def main(args=None):
         try:
             cli(standalone_mode=False)
         except click.Abort:  # Keyboard interrupt
-            show_debug_info() if debug else click.echo("\nAborted!")
+            show_debug_info() if debug else click.echo("\nAborted!", err=True)
             sys.exit(1)
         except Exception as e:
             if debug:
@@ -243,12 +248,12 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=
     if isinstance(error, exceptions.ConnectionError):
         connection_error_message()
     elif isinstance(error, click.ClickException):
-        click.echo(click.style(f"Error: {error.format_message()}", fg="red"))
+        click.echo(click.style(f"Error: {error.format_message()}", fg="red"), err=True)
     else:
-        click.echo(click.style(f"Error: {error}", fg="red"))
+        click.echo(click.style(f"Error: {error}", fg="red"), err=True)
     # Only suggest gist command if it wasn't run
     if not is_error_cmd:
-        click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"))
+        click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"), err=True)
 
     # This is None if we're handling an exception for a
     # `cci error` command.
@@ -265,7 +270,7 @@ def connection_error_message():
         "We encountered an error with your internet connection. "
         "Please check your connection and try the last cci command again."
     )
-    click.echo(click.style(message, fg="red"))
+    click.echo(click.style(message, fg="red"), err=True)
 
 
 def show_debug_info():
