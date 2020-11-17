@@ -97,8 +97,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         with self._database_url() as database_url:
 
             # initialize the DB engine
-            self.engine = create_engine(database_url)
-            with self.engine.connect() as connection:
+            parent_engine = create_engine(database_url)
+            with parent_engine.connect() as connection:
+                self.engine = connection
 
                 # initialize DB metadata
                 self.metadata = MetaData()

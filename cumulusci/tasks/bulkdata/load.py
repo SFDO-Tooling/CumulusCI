@@ -411,37 +411,39 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         """Initialize the database and automapper."""
         # initialize the DB engine
         with self._database_url() as database_url:
-            self.engine = create_engine(database_url)
+            parent_engine = create_engine(database_url)
+            with parent_engine.connect() as connection:
+                self.engine = connection
 
-            # initialize the DB session
-            self.session = Session(self.engine)
+                # initialize the DB session
+                self.session = Session(self.engine)
 
-            if self.options.get("sql_path"):
-                self._sqlite_load()
+                if self.options.get("sql_path"):
+                    self._sqlite_load()
 
-            # initialize DB metadata
-            self.metadata = MetaData()
-            self.metadata.bind = self.engine
+                # initialize DB metadata
+                self.metadata = MetaData()
+                self.metadata.bind = self.engine
 
-            # initialize the automap mapping
-            self.base = automap_base(bind=self.engine, metadata=self.metadata)
-            self.base.prepare(self.engine, reflect=True)
+                # initialize the automap mapping
+                self.base = automap_base(bind=self.engine, metadata=self.metadata)
+                self.base.prepare(self.engine, reflect=True)
 
-            # Loop through mappings and reflect each referenced table
-            self.models = {}
-            for name, mapping in self.mapping.items():
-                if mapping.table not in self.models:
-                    self.models[mapping.table] = self.base.classes[mapping.table]
+                # Loop through mappings and reflect each referenced table
+                self.models = {}
+                for name, mapping in self.mapping.items():
+                    if mapping.table not in self.models:
+                        self.models[mapping.table] = self.base.classes[mapping.table]
 
-                # create any Record Type tables we need
-                if "RecordTypeId" in mapping.fields:
-                    self._create_record_type_table(
-                        mapping.get_destination_record_type_table()
-                    )
-            self.metadata.create_all()
+                    # create any Record Type tables we need
+                    if "RecordTypeId" in mapping.fields:
+                        self._create_record_type_table(
+                            mapping.get_destination_record_type_table()
+                        )
+                self.metadata.create_all()
 
-            self._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
-            yield
+                self._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+                yield
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
