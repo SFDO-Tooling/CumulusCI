@@ -18,7 +18,7 @@ Create a GitHub Action Workflow
 In GitHub Actions, you can define *workflows* which run 
 automatically in response to events in the repository.
 We're going to create an action called ``Apex Tests`` 
-which runs whenever commits are pushed to GitHub.
+which runs whenever commits are pushed to a target GitHub repository.
 
 Workflows are defined using files in YAML format in the
 ``.github/workflows`` folder within the repository. To set up the Apex
@@ -221,39 +221,91 @@ Here is a complete workflow to run Robot Framework tests for any commit:
 
 Connect a Persistent Org
 ------------------------
-To connect to a persistent org in the context of a CI system you need to:
+Using the JWT flow for authentication is the recommended approach when running
+CumulusCI in a non-interactive environment for continuous integration with an existing org.
 
-#. Set ``CUMULUSCI_KEYCHAIN_CLASS`` to ``EnvironmentProjectKeychain`` so that CumulusCI 
-   will look for org configs in environment variables instead of files.
-#. Set ``CUMULUSCI_ORG_sandbox`` to this json: ``{“username”: “USERNAME”, “instance_url”: “INSTANCE_URL”}`` 
-   (replacing USERNAME and INSTANCE_URL with actual values).
-#. ``Set SFDX_CLIENT_ID`` to your connected app client id and ``SFDX_HUB_KEY`` to the private key 
-   (contents of your server.key file). 
-   This will make cci authenticate to the org using jwt instead of the web auth flow
+First, you need a Connected app that is configured with a certificate in the
+"Use digital signatures" setting in its OAuth settings. You can follow the Salesforce
+DX Developer Guide to get this set up:
 
-Setting ``CUMULUSCI_KEYCHAIN_CLASS`` to ``EnvironmentProjectKeychain`` along with specifying
-a value for ``CUMULUSCI_ORG_sandbox`` negates the need to use the ``cci org connect`` command.
-You can now simply run a CumulusCI command along with specifying ``--org sandbox``.
+* `Create a private key and self-signed certificate <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_key_and_cert.htm>`_
+* `Create a Connected app <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_connected_app.htm>`_
 
-In the context of GitHub Actions, all of these changes would occur under the ``env`` section of the workflow:
+Once the connected app has been created, you can configure CumulusCI to use this connected
+app by setting the following environment variables:
+
+* ``CUMULUSCI_KEYCHAIN_CLASS`` - Set this equal to ``EnvironmentProjectKeychain``.
+  This instructs CumulusCI to look for org configurations in environment variables instead of files.
+* ``CUMULUSCI_ORG_orgName`` - Set this equal to the following json string: ``{“username”: “USERNAME”, “instance_url”: “INSTANCE_URL”}``
+  (replacing USERNAME and INSTANCE_URL with actual values). Note that whatever name comes after
+  ``CUMULUSCI_ORG_`` is the name of the org that you will use for the ``--org`` option ``cci`` commands.
+  In this case it would be ``--org orgName``. 
+  
+.. note:: 
+  If the target org's instance URL is instanceless (i.e. does not contain a segment like 
+  cs46 identifying the instance), then for sandboxes it is also necessary to set 
+  ``SFDX_AUDIENCE_URL`` to ``https://test.salesforce.com". This instructs CumulusCI to set
+  the correct ``aud`` value in the JWT (which is normally determined from the instance URL).
+
+* ``Set SFDX_CLIENT_ID`` - Set this to your connected app client id.
+* ``SFDX_HUB_KEY`` - Set this to the private key associated with your connected app
+  (this is the contents of your ``server.key`` file). This instructs CumulusCI to
+  authenticate to the org using jwt instead of the web auth flow.
+
+.. note::
+
+  Setting the above environment variables negates the need to use the ``cci org connect`` command.
+  You can simply run a ``cci`` command and pass the ``--org orgName`` option, where ``orgName``
+  corresponds to the name used in the ``CUMULUSCI_ORG_*`` environment variable.
+  
+In the context of GitHub Actions, all of these environment variables would occur under the ``env`` section of the workflow.
+Below is an example of what this would look like:
 
 .. code-block:: yaml
 
    env:
      CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
-     CUMULUSCI_SERVICE_sandbox: {"username": "peter.gibbons@initech.co", "instance_url": "initech--sbxname.my.salesforce.com"}
+     CUMULUSCI_ORG_sandbox: {"username": "peter.gibbons@initech.co", "instance_url": "initech--sbxname.my.salesforce.com"}
      SFDX_CLIENT_ID: {{ $secrets.client_id }}
      SFDX_HUB_KEY: {{ $secrets.server_key }}
 
 .. note::
 
-  The above assumes that you have added ``client_id`` and ``server_key`` values to you GitHub secrets.
+  The above assumes that you have ``client_id`` and ``server_key`` setup in your GitHub
+  `encrypted secrets <https://docs.github.com/en/free-pro-team@latest/actions/reference/encrypted-secrets>`_
+
 
 Deploy to a Persistent Org
 --------------------------
-In order to deploy to a persistent org, you first need to follow the steps outlined in `connect a persisten org`_.
-Once completed, you should be able to 
+The final step in a CI pipeline is often deploying newly verified changes into a production environment.
+In the context of a Salesforce this could mean a couple of different things.
+It could mean that you want to deploy changes in a managed package project into a packaging org.
+It could also mean that you want to deploy changes in a project to a production org.
 
+The following sections cover which tasks and flows you would want to consider based on your project's
+particular needs.
+
+Deploy to a Packaging Org
+^^^^^^^^^^^^^^^^^^^^^^^^^
+When working on a managed package project, there are two out-of-the-box flows that are generally of 
+interest when deploying to a packaging org: ``deploy_packaging`` and ``ci_master``.
+
+The ``deploy_packaging`` flow...
+
+
+The ``ci_master`` flow includes the ``deploy_packaging`` flow, but also takes care of:
+
+#. Updating any dependencies in the packaging org
+#. Deploying any unpackaged Metadata under ``unpackaged/pre``
+#. Sets up the ``System Administrator`` profile with full FLS permissions on all objects/fields.
+
+
+Deploy to a Production Org
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deployments to a Production org environment will typically want to utilize either
+the  ``deploy_unmanaged`` flow or the ``deploy`` task. 
+
+In most cases, ``deploy_unmanaged`` will have the desired outcome. This will deploy
 
 
 Build Managed Package Versions
