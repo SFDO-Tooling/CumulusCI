@@ -348,12 +348,11 @@ class OrgConfig(BaseConfig):
             # default user
             return self.access_token
 
-        cache_key = str(userfields)
-
+        cache_key = str(sorted(userfields.items()))
         if cache_key not in self._access_token_cache:
-            username = userfields.get("username", None)
             # if we have a username, use it. Otherwise we need to do a
             # lookup using the passed-in fields.
+            username = userfields.get("username", None)
             if username is None:
                 where = [f"{key} = '{value}'" for key, value in userfields.items()]
                 query = f"SELECT Username FROM User WHERE {' AND '.join(where)}"
