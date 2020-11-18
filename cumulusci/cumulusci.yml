@@ -580,7 +580,10 @@ flows:
                     branch_name: $project_config.repo_branch
                     build_notes_label: "Build Change Notes"
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -600,7 +603,10 @@ flows:
                     branch_name: $project_config.repo_branch
                     build_notes_label: "Build Change Notes"
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -619,7 +625,7 @@ flows:
                 options:
                     context: "Build Feature Test Package"
             2:
-                flow: beta_dependencies
+                flow: dependencies
                 options:
                     update_dependencies:
                         dependencies: ^^github_package_data.dependencies
@@ -716,7 +722,7 @@ flows:
 
     beta_dependencies:
         group: Dependency Management
-        description: Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata
+        description: "This flow is deprecated. Please use the `dependencies` flow and set the `include_beta` option on the first task, `update_dependencies`. Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata"
         steps:
             1:
                 task: update_dependencies
@@ -800,7 +806,10 @@ flows:
         description: Set up an org as a development environment for unmanaged metadata
         steps:
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -813,7 +822,10 @@ flows:
         description: This flow is deprecated. Please use dev_org instead.
         steps:
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -824,7 +836,10 @@ flows:
         description: Set up a namespaced scratch org as a development environment for unmanaged metadata
         steps:
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -837,7 +852,10 @@ flows:
         description: Set up an org as a QA environment for unmanaged metadata
         steps:
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -870,7 +888,10 @@ flows:
         description: Install and configure the latest beta version
         steps:
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 task: install_managed_beta
             3:
@@ -907,7 +928,10 @@ flows:
         description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
         steps:
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 task: install_managed
             3:
