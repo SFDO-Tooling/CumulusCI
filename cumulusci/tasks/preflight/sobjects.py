@@ -6,6 +6,17 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 
 class CheckSObjectsAvailable(BaseSalesforceApiTask):
+    task_docs = """As a MetaDeploy preflight check, validates that an sObject is present in the schema.
+
+    The task can be used as a preflight check thus::
+
+        3:
+            task: insert_sobject_records
+            checks:
+                - when: "'ContentNote' not in tasks.check_sobjects_available()"
+                  action: error
+                  message: "Enhanced Notes are not turned on."
+    """
     api_version = "48.0"
 
     def _run_task(self):
@@ -19,10 +30,36 @@ class CheckSObjectsAvailable(BaseSalesforceApiTask):
 
 
 class CheckSObjectPerms(BaseSalesforceApiTask):
+    task_docs = """As a MetaDeploy preflight check, validates that an sObject's permissions are in the expected state.
+
+    For example, specify::
+
+        check_sobject_permissions:
+            options:
+                Account:
+                    createable: True
+                    updateable: False
+                Contact:
+                    createable: False
+
+    to validate that the Account object is createable but not updateable, and the Contact object is not createable.
+    The output is True if all sObjects and permissions are present and matching the specification.
+
+    Given the above configuration, the task can be used as a preflight check in a MetaDeploy plan::
+
+        3:
+            task: insert_sobject_records
+            checks:
+                - when: "not tasks.check_sobject_permissions()"
+                  action: error
+                  message: "sObject permissions are not configured correctly."
+    """
+
     task_options = {
         "permissions": {
-            "description": "The object permissions to check. Each key should be an sObject API name, under which Boolean describe values can be specified, "
-            "for example, Account: queryable: True. The output is True if all sObjects and permissions are present and matching the specification.",
+            "description": "The object permissions to check. Each key should be an sObject API name, whose value is a map of describe keys, "
+            "such as `queryable` and `createable`, to their desired values (True or False). The output is True if all sObjects and permissions "
+            "are present and matching the specification. See the task documentation for examples.",
             "required": True
         }
     }
@@ -30,7 +67,7 @@ class CheckSObjectPerms(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        if type(self.options["permissions"]) is not dict:
+        if type(self.options.get("permissions")) is not dict:
             raise TaskOptionsError("Each sObject should contain a map of permissions to desired values")
 
         self.permissions = {}
@@ -45,22 +82,47 @@ class CheckSObjectPerms(BaseSalesforceApiTask):
         for sobject, perms in self.permissions.items():
             if sobject not in describe:
                 success = False
-                self.logger.warning(f"sObject {sobject} is not present in the describe.")
+                self.logger.info(f"sObject {sobject} is not present in the describe.")
             else:
                 for perm in perms:
                     if perm not in describe[sobject]:
                         success = False
-                        self.logger.warning(f"Permission {perm} is not present for sObject {sobject}.")
+                        self.logger.info(f"Permission {perm} is not present for sObject {sobject}.")
                     else:
                         if describe[sobject][perm] is not perms[perm]:
                             success = False
-                            self.logger.warning(f"Permission {perm} for sObject {sobject} is {describe[sobject][perm]}, not {perms[perm]}.")
+                            self.logger.info(f"Permission {perm} for sObject {sobject} is {describe[sobject][perm]}, not {perms[perm]}.")
 
         self.return_values = success
         self.logger.info(f"Completing preflight check with result {self.return_values}")
 
 
 class CheckSObjectOWDs(BaseSalesforceApiTask):
+    task_docs = """As a MetaDeploy preflight check, validates that an sObject's Org-Wide Defaults are in the expected state.
+
+    For example, specify::
+
+        check_org_wide_defaults:
+            options:
+                org_wide_defaults:
+                    - api_name: Account
+                      internal_sharing_model: Private
+                      external_sharing_model: Private
+                    - api_name: Contact
+                      internal_sharing_model: Private
+
+    to validate that the Account object has Private internal and external OWDs, and Contact a Private internal model.
+    The output is True if all sObjects and permissions are present and matching the specification.
+
+    Given the above configuration, the task can be used as a preflight check in a MetaDeploy plan::
+
+        3:
+            task: insert_sobject_records
+            checks:
+                - when: "not tasks.check_org_wide_defaults()"
+                  action: error
+                  message: "Org-Wide Defaults are not configured correctly."
+    """
     task_options = {
         "org_wide_defaults": {
             "description": "The Organization-Wide Defaults to check, "
