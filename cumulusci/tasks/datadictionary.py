@@ -47,7 +47,7 @@ class GenerateDataDictionary(BaseGithubTask):
     with one row per packaged object.
 
     The other, in `field_path`, includes
-    
+
     - Object Label
     - Object API Name
     - Field Label
