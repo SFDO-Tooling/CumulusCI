@@ -152,8 +152,7 @@ Options
 ``--entries ENTRIES``
 	 *Required*
 
-	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed).
-To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
+	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed). To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
 
 ``--record-types RECORDTYPES``
 	 *Optional*
@@ -1660,10 +1659,29 @@ Options
 
 Generate a data dictionary for the project by walking all GitHub releases.
 The data dictionary is output as two CSV files.
-One, in `object_path`, includes the Object Name, Object Label, and Version Introduced,
+One, in `object_path`, includes
+
+- Object Label
+- Object API Name
+- Object Description
+- Version Introduced
+
 with one row per packaged object.
-The other, in `field_path`, includes Object Name, Field Name, Field Label, Field Type,
-Valid Picklist Values (if any) or a Lookup referenced table (if any), Version Introduced.
+
+The other, in `field_path`, includes
+
+- Object Label
+- Object API Name
+- Field Label
+- Field API Name
+- Field Type
+- Valid Picklist Values
+- Help Text
+- Field Description
+- Version Introduced
+- Version Picklist Values Last Changed
+- Version Help Text Last Changed
+
 Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
 is processed for SFDX projects.
 
