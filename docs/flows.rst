@@ -35,10 +35,11 @@ dev_org
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_dev
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -64,10 +65,11 @@ dev_org_beta_deps
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_dev
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -92,10 +94,11 @@ dev_org_namespaced
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_dev
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -157,10 +160,11 @@ qa_org
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_qa
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -253,10 +257,11 @@ deploy_unmanaged
 	   when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	3) task: deploy
 	   when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	3.1) task: dx_push
+	3.1) task: deploy
 	     when: project_config.project__source_format == "sfdx" and org_config.scratch
 	4) task: uninstall_packaged_incremental
 	   when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	5) task: snapshot_changes
 
 deploy_unmanaged_ee
 ^^^^^^^^^^^^^^^^^^^
@@ -466,10 +471,11 @@ ci_feature
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_apextest
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -516,10 +522,11 @@ ci_feature_beta_deps
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_apextest
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -583,12 +590,9 @@ build_feature_test_package
 
 .. code-block:: console
 
-	1) flow: dependencies
-	    1) task: update_dependencies
-	    2) task: deploy_pre
-	2) task: update_package_xml
+	1) task: update_package_xml
 	   when: project_config.project__source_format != "sfdx"
-	3) task: create_package_version
+	2) task: create_package_version
 
 release_beta
 ^^^^^^^^^^^^

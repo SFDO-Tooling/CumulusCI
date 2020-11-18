@@ -50,6 +50,18 @@ tasks:
         description: Runs as a preflight check to determine whether specific sObjects are available.
         class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
         group: Salesforce Preflight Checks
+    check_sobject_permissions:
+        description: Runs as a preflight check to determine whether specific sObjects are permissioned as desired (options are required).
+        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
+        group: Salesforce Preflight Checks
+    check_advanced_currency_management:
+        description: Runs as a preflight check to determine whether Advanced Currency Management is active (True result means the feature is active).
+        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
+        group: Salesforce Preflight Checks
+        options:
+            permissions:
+                DatedConversionRate:
+                    createable: True
     check_org_wide_defaults:
         description: Runs as a preflight check to validate Organization-Wide Defaults.
         class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs

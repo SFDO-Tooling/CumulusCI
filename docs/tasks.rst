@@ -152,8 +152,7 @@ Options
 ``--entries ENTRIES``
 	 *Required*
 
-	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed).
-To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
+	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed). To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
 
 ``--record-types RECORDTYPES``
 	 *Optional*
@@ -397,6 +396,17 @@ Options
 
 **Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
 
+As a MetaDeploy preflight check, validates that an sObject is present in the schema.
+
+    The task can be used as a preflight check thus::
+
+        3:
+            task: insert_sobject_records
+            checks:
+                - when: "'ContentNote' not in tasks.check_sobjects_available()"
+                  action: error
+                  message: "Enhanced Notes are not turned on."
+
 Command Syntax
 ------------------------------------------
 
@@ -404,12 +414,131 @@ Command Syntax
 
 
 
+**check_sobject_permissions**
+==========================================
+
+**Description:** Runs as a preflight check to determine whether specific sObjects are permissioned as desired (options are required).
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
+
+As a MetaDeploy preflight check, validates that an sObject's permissions are in the expected state.
+
+    For example, specify::
+
+        check_sobject_permissions:
+            options:
+                Account:
+                    createable: True
+                    updateable: False
+                Contact:
+                    createable: False
+
+    to validate that the Account object is createable but not updateable, and the Contact object is not createable.
+    The output is True if all sObjects and permissions are present and matching the specification.
+
+    Given the above configuration, the task can be used as a preflight check in a MetaDeploy plan::
+
+        3:
+            task: insert_sobject_records
+            checks:
+                - when: "not tasks.check_sobject_permissions()"
+                  action: error
+                  message: "sObject permissions are not configured correctly."
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_sobject_permissions``
+
+
+Options
+------------------------------------------
+
+
+``--permissions PERMISSIONS``
+	 *Required*
+
+	 The object permissions to check. Each key should be an sObject API name, whose value is a map of describe keys, such as `queryable` and `createable`, to their desired values (True or False). The output is True if all sObjects and permissions are present and matching the specification. See the task documentation for examples.
+
+**check_advanced_currency_management**
+==========================================
+
+**Description:** Runs as a preflight check to determine whether Advanced Currency Management is active (True result means the feature is active).
+
+**Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
+
+As a MetaDeploy preflight check, validates that an sObject's permissions are in the expected state.
+
+    For example, specify::
+
+        check_sobject_permissions:
+            options:
+                Account:
+                    createable: True
+                    updateable: False
+                Contact:
+                    createable: False
+
+    to validate that the Account object is createable but not updateable, and the Contact object is not createable.
+    The output is True if all sObjects and permissions are present and matching the specification.
+
+    Given the above configuration, the task can be used as a preflight check in a MetaDeploy plan::
+
+        3:
+            task: insert_sobject_records
+            checks:
+                - when: "not tasks.check_sobject_permissions()"
+                  action: error
+                  message: "sObject permissions are not configured correctly."
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_advanced_currency_management``
+
+
+Options
+------------------------------------------
+
+
+``--permissions PERMISSIONS``
+	 *Required*
+
+	 The object permissions to check. Each key should be an sObject API name, whose value is a map of describe keys, such as `queryable` and `createable`, to their desired values (True or False). The output is True if all sObjects and permissions are present and matching the specification. See the task documentation for examples.
+
+	 Default: {'DatedConversionRate': {'createable': True}}
+
 **check_org_wide_defaults**
 ==========================================
 
 **Description:** Runs as a preflight check to validate Organization-Wide Defaults.
 
 **Class:** cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
+
+As a MetaDeploy preflight check, validates that an sObject's Org-Wide Defaults are in the expected state.
+
+    For example, specify::
+
+        check_org_wide_defaults:
+            options:
+                org_wide_defaults:
+                    - api_name: Account
+                      internal_sharing_model: Private
+                      external_sharing_model: Private
+                    - api_name: Contact
+                      internal_sharing_model: Private
+
+    to validate that the Account object has Private internal and external OWDs, and Contact a Private internal model.
+    The output is True if all sObjects and permissions are present and matching the specification.
+
+    Given the above configuration, the task can be used as a preflight check in a MetaDeploy plan::
+
+        3:
+            task: insert_sobject_records
+            checks:
+                - when: "not tasks.check_org_wide_defaults()"
+                  action: error
+                  message: "Org-Wide Defaults are not configured correctly."
 
 Command Syntax
 ------------------------------------------
