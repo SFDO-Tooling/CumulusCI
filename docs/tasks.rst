@@ -2,6 +2,10 @@
 Standard Tasks
 ==========================================
 
+
+
+.. _activate_flow:
+
 **activate_flow**
 ==========================================
 
@@ -23,6 +27,10 @@ Options
 	 *Required*
 
 	 List of DeveloperNames to query in SOQL
+
+
+
+.. _add_page_layout_related_lists:
 
 **add_page_layout_related_lists**
 ==========================================
@@ -83,6 +91,10 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+
+
+.. _add_standard_value_set_entries:
+
 **add_standard_value_set_entries**
 ==========================================
 
@@ -126,6 +138,10 @@ Options
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
+
+
+
+.. _add_picklist_entries:
 
 **add_picklist_entries**
 ==========================================
@@ -181,6 +197,10 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+
+
+.. _add_permission_set_perms:
+
 **add_permission_set_perms**
 ==========================================
 
@@ -229,6 +249,10 @@ Options
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
+
+
+
+.. _assign_compact_layout:
 
 **assign_compact_layout**
 ==========================================
@@ -335,6 +359,10 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+
+
+.. _batch_apex_wait:
+
 **batch_apex_wait**
 ==========================================
 
@@ -362,6 +390,10 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
+
+
+.. _check_sobjects_available:
+
 **check_sobjects_available**
 ==========================================
 
@@ -375,6 +407,10 @@ Command Syntax
 ``$ cci task run check_sobjects_available``
 
 
+
+
+
+.. _check_org_wide_defaults:
 
 **check_org_wide_defaults**
 ==========================================
@@ -397,6 +433,10 @@ Options
 	 *Required*
 
 	 The Organization-Wide Defaults to check, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature. Checking External Sharing Model when it is turned off will fail the preflight.
+
+
+
+.. _custom_settings_value_wait:
 
 **custom_settings_value_wait**
 ==========================================
@@ -444,6 +484,10 @@ Options
 	 *Optional*
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+
+
+
+.. _command:
 
 **command**
 ==========================================
@@ -500,6 +544,10 @@ Options
 
 	 If True, the command will use stderr, stdout, and stdin of the main process.Defaults to False.
 
+
+
+.. _connected_app:
+
 **connected_app**
 ==========================================
 
@@ -545,6 +593,10 @@ Options
 	 *Optional*
 
 	 If True, any existing connected_app service in the CumulusCI keychain will be overwritten.  Has no effect if the connect option is False.
+
+
+
+.. _create_community:
 
 **create_community**
 ==========================================
@@ -603,6 +655,10 @@ Options
 
 	 If True, an existing community with the same name will not raise an exception.
 
+
+
+.. _insert_record:
+
 **insert_record**
 ==========================================
 
@@ -634,6 +690,10 @@ Options
 
 	 Field names and values in the format 'aa:bb,cc:dd'
 
+
+
+.. _create_package:
+
 **create_package**
 ==========================================
 
@@ -660,6 +720,10 @@ Options
 	 *Required*
 
 	 The api version to use when creating the package.  Defaults to project__package__api_version
+
+
+
+.. _create_managed_src:
 
 **create_managed_src**
 ==========================================
@@ -692,6 +756,10 @@ Options
 
 	 Default: src.orig
 
+
+
+.. _create_unmanaged_ee_src:
+
 **create_unmanaged_ee_src**
 ==========================================
 
@@ -722,6 +790,10 @@ Options
 	 The path to copy the original metadata to for the revert call
 
 	 Default: src.orig
+
+
+
+.. _delete_data:
 
 **delete_data**
 ==========================================
@@ -764,6 +836,10 @@ Options
 	 *Optional*
 
 	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
+
+
+
+.. _deploy:
 
 **deploy**
 ==========================================
@@ -839,6 +915,10 @@ Options
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
+
+
+.. _deploy_pre:
+
 **deploy_pre**
 ==========================================
 
@@ -912,6 +992,10 @@ Options
 	 *Optional*
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
+
+
+
+.. _deploy_post:
 
 **deploy_post**
 ==========================================
@@ -991,6 +1075,10 @@ Options
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
+
+
+.. _deploy_qa_config:
+
 **deploy_qa_config**
 ==========================================
 
@@ -1069,6 +1157,10 @@ Options
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
+
+
+.. _dx:
+
 **dx**
 ==========================================
 
@@ -1095,6 +1187,10 @@ Options
 	 *Optional*
 
 	 Append additional options to the command
+
+
+
+.. _dx_convert_to:
 
 **dx_convert_to**
 ==========================================
@@ -1125,6 +1221,10 @@ Options
 
 	 Append additional options to the command
 
+
+
+.. _dx_convert_from:
+
 **dx_convert_from**
 ==========================================
 
@@ -1153,6 +1253,10 @@ Options
 	 *Optional*
 
 	 Append additional options to the command
+
+
+
+.. _dx_pull:
 
 **dx_pull**
 ==========================================
@@ -1183,6 +1287,10 @@ Options
 
 	 Append additional options to the command
 
+
+
+.. _dx_push:
+
 **dx_push**
 ==========================================
 
@@ -1211,6 +1319,10 @@ Options
 	 *Optional*
 
 	 Append additional options to the command
+
+
+
+.. _ensure_record_types:
 
 **ensure_record_types**
 ==========================================
@@ -1247,6 +1359,10 @@ Options
 	 *Required*
 
 	 The sObject on which to deploy the Record Type and optional Business Process.
+
+
+
+.. _execute_anon:
 
 **execute_anon**
 ==========================================
@@ -1299,6 +1415,10 @@ Options
 
 	 Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code.Defaults to an empty value.
 
+
+
+.. _generate_data_dictionary:
+
 **generate_data_dictionary**
 ==========================================
 
@@ -1344,6 +1464,10 @@ Options
 	 *Optional*
 
 	 Include schema from additional GitHub repositories that are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of dicts as in project__dependencies in cumulusci.yml. Note: only repository dependencies are supported.
+
+
+
+.. _generate_and_load_from_yaml:
 
 **generate_and_load_from_yaml**
 ==========================================
@@ -1467,6 +1591,10 @@ Options
 
 	 Path for Snowfakery to put its next continuation file
 
+
+
+.. _get_installed_packages:
+
 **get_installed_packages**
 ==========================================
 
@@ -1480,6 +1608,10 @@ Command Syntax
 ``$ cci task run get_installed_packages``
 
 
+
+
+
+.. _get_available_licenses:
 
 **get_available_licenses**
 ==========================================
@@ -1495,6 +1627,10 @@ Command Syntax
 
 
 
+
+
+.. _get_available_permission_set_licenses:
+
 **get_available_permission_set_licenses**
 ==========================================
 
@@ -1508,6 +1644,10 @@ Command Syntax
 ``$ cci task run get_available_permission_set_licenses``
 
 
+
+
+
+.. _github_parent_pr_notes:
 
 **github_parent_pr_notes**
 ==========================================
@@ -1558,6 +1698,10 @@ Options
 
 	 force rebuilding of change notes from child branches in the given branch.
 
+
+
+.. _github_clone_tag:
+
 **github_clone_tag**
 ==========================================
 
@@ -1584,6 +1728,10 @@ Options
 	 *Required*
 
 	 The new tag to create by cloning the src tag.  Ex: release/1.0
+
+
+
+.. _github_master_to_feature:
 
 **github_master_to_feature**
 ==========================================
@@ -1621,6 +1769,10 @@ Options
 	 *Optional*
 
 	 If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
+
+
+
+.. _github_parent_to_children:
 
 **github_parent_to_children**
 ==========================================
@@ -1662,6 +1814,10 @@ Options
 	 If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
 
 	 Default: True
+
+
+
+.. _github_copy_subtree:
 
 **github_copy_subtree**
 ==========================================
@@ -1715,6 +1871,10 @@ Options
 
 	 If True, skip creating Github data.  Defaults to False
 
+
+
+.. _github_pull_requests:
+
 **github_pull_requests**
 ==========================================
 
@@ -1728,6 +1888,10 @@ Command Syntax
 ``$ cci task run github_pull_requests``
 
 
+
+
+
+.. _github_release:
 
 **github_release**
 ==========================================
@@ -1765,6 +1929,10 @@ Options
 	 *Optional*
 
 	 Override the commit used to create the release. Defaults to the current local HEAD commit
+
+
+
+.. _github_release_notes:
 
 **github_release_notes**
 ==========================================
@@ -1813,6 +1981,10 @@ Options
 
 	 The package version id used by the InstallLinksParser to add install urls
 
+
+
+.. _github_release_report:
+
 **github_release_report**
 ==========================================
 
@@ -1849,6 +2021,10 @@ Options
 	 *Optional*
 
 	 Print info to screen as JSON [default=False]
+
+
+
+.. _install_managed:
 
 **install_managed**
 ==========================================
@@ -1916,6 +2092,10 @@ Options
 
 	 Which users to install package for (FULL = all users, NONE = admins only)
 
+
+
+.. _install_managed_beta:
+
 **install_managed_beta**
 ==========================================
 
@@ -1982,6 +2162,10 @@ Options
 
 	 Which users to install package for (FULL = all users, NONE = admins only)
 
+
+
+.. _list_communities:
+
 **list_communities**
 ==========================================
 
@@ -1998,6 +2182,10 @@ Command Syntax
 
 
 
+
+
+.. _list_community_templates:
+
 **list_community_templates**
 ==========================================
 
@@ -2013,6 +2201,10 @@ Command Syntax
 ``$ cci task run list_community_templates``
 
 
+
+
+
+.. _list_metadata_types:
 
 **list_metadata_types**
 ==========================================
@@ -2035,6 +2227,10 @@ Options
 	 *Optional*
 
 	 The project package.xml file. Defaults to <project_root>/src/package.xml
+
+
+
+.. _meta_xml_apiversion:
 
 **meta_xml_apiversion**
 ==========================================
@@ -2063,6 +2259,10 @@ Options
 
 	 Base directory to search for ``*-meta.xml`` files
 
+
+
+.. _meta_xml_dependencies:
+
 **meta_xml_dependencies**
 ==========================================
 
@@ -2084,6 +2284,10 @@ Options
 	 *Optional*
 
 	 Base directory to search for ``*-meta.xml`` files
+
+
+
+.. _metadeploy_publish:
 
 **metadeploy_publish**
 ==========================================
@@ -2132,6 +2336,10 @@ Options
 
 	 Path to a folder containing translations.
 
+
+
+.. _org_settings:
+
 **org_settings**
 ==========================================
 
@@ -2158,6 +2366,10 @@ Options
 	 *Optional*
 
 	 API version used to deploy the settings
+
+
+
+.. _publish_community:
 
 **publish_community**
 ==========================================
@@ -2187,6 +2399,10 @@ Options
 	 *Optional*
 
 	 The id of the Community to publish.
+
+
+
+.. _push_all:
 
 **push_all**
 ==========================================
@@ -2230,6 +2446,10 @@ Options
 
 	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
 
+
+
+.. _push_list:
+
 **push_list**
 ==========================================
 
@@ -2271,6 +2491,10 @@ Options
 	 *Optional*
 
 	 Break pull requests into batches of this many orgs. Defaults to 200.
+
+
+
+.. _push_qa:
 
 **push_qa**
 ==========================================
@@ -2316,6 +2540,10 @@ Options
 
 	 Break pull requests into batches of this many orgs. Defaults to 200.
 
+
+
+.. _push_sandbox:
+
 **push_sandbox**
 ==========================================
 
@@ -2359,6 +2587,10 @@ Options
 	 *Optional*
 
 	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
+
+
+
+.. _push_trial:
 
 **push_trial**
 ==========================================
@@ -2404,6 +2636,10 @@ Options
 
 	 Break pull requests into batches of this many orgs. Defaults to 200.
 
+
+
+.. _push_failure_report:
+
 **push_failure_report**
 ==========================================
 
@@ -2438,6 +2674,10 @@ Options
 
 	 Default: ['Salesforce Subscription Expired', 'Package Uninstalled']
 
+
+
+.. _query:
+
 **query**
 ==========================================
 
@@ -2469,6 +2709,10 @@ Options
 	 *Required*
 
 	 The name of the csv file to write the results to
+
+
+
+.. _retrieve_packaged:
 
 **retrieve_packaged**
 ==========================================
@@ -2529,6 +2773,10 @@ Options
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
 
+
+
+.. _retrieve_src:
+
 **retrieve_src**
 ==========================================
 
@@ -2588,6 +2836,10 @@ Options
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
 
+
+
+.. _retrieve_unpackaged:
+
 **retrieve_unpackaged**
 ==========================================
 
@@ -2645,6 +2897,10 @@ Options
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
 
+
+
+.. _list_changes:
+
 **list_changes**
 ==========================================
 
@@ -2681,6 +2937,10 @@ Options
 	 *Optional*
 
 	 If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
+
+
+
+.. _retrieve_changes:
 
 **retrieve_changes**
 ==========================================
@@ -2733,6 +2993,10 @@ Options
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
+
+
+
+.. _retrieve_qa_config:
 
 **retrieve_qa_config**
 ==========================================
@@ -2790,6 +3054,10 @@ Options
 
 	 Default: $project_config.project__package__namespace
 
+
+
+.. _set_field_help_text:
+
 **set_field_help_text**
 ==========================================
 
@@ -2839,6 +3107,10 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+
+
+.. _snapshot_changes:
+
 **snapshot_changes**
 ==========================================
 
@@ -2852,6 +3124,10 @@ Command Syntax
 ``$ cci task run snapshot_changes``
 
 
+
+
+
+.. _revert_managed_src:
 
 **revert_managed_src**
 ==========================================
@@ -2884,6 +3160,10 @@ Options
 
 	 Default: src.orig
 
+
+
+.. _revert_unmanaged_ee_src:
+
 **revert_unmanaged_ee_src**
 ==========================================
 
@@ -2914,6 +3194,10 @@ Options
 	 The path to copy the original metadata to for the revert call
 
 	 Default: src.orig
+
+
+
+.. _robot:
 
 **robot**
 ==========================================
@@ -2994,6 +3278,10 @@ Options
 
 	 *experimental* Number of processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robotframework. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.
 
+
+
+.. _robot_libdoc:
+
 **robot_libdoc**
 ==========================================
 
@@ -3029,6 +3317,10 @@ Options
 	 A string to use as the title of the generated output
 
 	 Default: $project_config.project__package__name
+
+
+
+.. _robot_lint:
 
 **robot_lint**
 ==========================================
@@ -3119,6 +3411,10 @@ Options
 
 	 The path to one or more files or folders. If the path includes wildcard characters, they will be expanded. If not provided, the default will be to process all files under robot/<project name>
 
+
+
+.. _robot_testdoc:
+
 **robot_testdoc**
 ==========================================
 
@@ -3149,6 +3445,10 @@ Options
 	 The output html file where the documentation will be written
 
 	 Default: tests/test_suites.html
+
+
+
+.. _run_tests:
 
 **run_tests**
 ==========================================
@@ -3222,6 +3522,10 @@ Options
 
 	 By default, only failures get detailed output. Set verbose to True to see all passed test methods.
 
+
+
+.. _set_duplicate_rule_status:
+
 **set_duplicate_rule_status**
 ==========================================
 
@@ -3265,6 +3569,10 @@ Options
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
+
+
+
+.. _set_organization_wide_defaults:
 
 **set_organization_wide_defaults**
 ==========================================
@@ -3315,6 +3623,10 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+
+
+.. _uninstall_managed:
+
 **uninstall_managed**
 ==========================================
 
@@ -3342,6 +3654,10 @@ Options
 
 	 Sets the purgeOnDelete option for the deployment.  Defaults to True
 
+
+
+.. _uninstall_packaged:
+
 **uninstall_packaged**
 ==========================================
 
@@ -3368,6 +3684,10 @@ Options
 	 *Required*
 
 	 Sets the purgeOnDelete option for the deployment.  Defaults to True
+
+
+
+.. _uninstall_packaged_incremental:
 
 **uninstall_packaged_incremental**
 ==========================================
@@ -3410,6 +3730,10 @@ Options
 	 *Optional*
 
 	 List of component types to ignore in the org and not try to delete. Defaults to ['RecordType']
+
+
+
+.. _uninstall_src:
 
 **uninstall_src**
 ==========================================
@@ -3490,6 +3814,10 @@ Options
 
 	 Sets the purgeOnDelete option for the deployment. Defaults to True
 
+
+
+.. _uninstall_pre:
+
 **uninstall_pre**
 ==========================================
 
@@ -3569,6 +3897,10 @@ Options
 
 	 Sets the purgeOnDelete option for the deployment. Defaults to True
 
+
+
+.. _uninstall_post:
+
 **uninstall_post**
 ==========================================
 
@@ -3614,6 +3946,10 @@ Options
 	 *Optional*
 
 	 The namespace to replace the token with if in managed mode. Defaults to project__package__namespace
+
+
+
+.. _unschedule_apex:
 
 **unschedule_apex**
 ==========================================
@@ -3667,6 +4003,10 @@ Options
 	 *Optional*
 
 	 Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code.Defaults to an empty value.
+
+
+
+.. _update_admin_profile:
 
 **update_admin_profile**
 ==========================================
@@ -3725,6 +4065,10 @@ Options
 
 	 List of API names of Profiles to affect
 
+
+
+.. _update_dependencies:
+
 **update_dependencies**
 ==========================================
 
@@ -3781,6 +4125,10 @@ Options
 	 *Optional*
 
 	 Which users to install packages for (FULL = all users, NONE = admins only)
+
+
+
+.. _update_metadata_first_child_text:
 
 **update_metadata_first_child_text**
 ==========================================
@@ -3883,6 +4231,10 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+
+
+.. _update_package_xml:
+
 **update_package_xml**
 ==========================================
 
@@ -3926,6 +4278,10 @@ Options
 	 *Optional*
 
 	 If True, generate a package.xml for use as a destructiveChanges.xml file for deleting metadata
+
+
+
+.. _upload_beta:
 
 **upload_beta**
 ==========================================
@@ -3978,6 +4334,10 @@ Options
 	 *Optional*
 
 	 The namespace of the package.  Defaults to project__package__namespace
+
+
+
+.. _upload_production:
 
 **upload_production**
 ==========================================
@@ -4035,6 +4395,10 @@ Options
 
 	 The namespace of the package.  Defaults to project__package__namespace
 
+
+
+.. _util_sleep:
+
 **util_sleep**
 ==========================================
 
@@ -4058,6 +4422,10 @@ Options
 	 The number of seconds to sleep
 
 	 Default: 5
+
+
+
+.. _log:
 
 **log**
 ==========================================
@@ -4092,6 +4460,10 @@ Options
 	 *Optional*
 
 	 A Dict of format vars
+
+
+
+.. _generate_dataset_mapping:
 
 **generate_dataset_mapping**
 ==========================================
@@ -4164,6 +4536,10 @@ Options
 
 	 If True, CumulusCI removes the project's namespace where found in fields  and objects to support automatic namespace injection. On by default.
 
+
+
+.. _extract_dataset:
+
 **extract_dataset**
 ==========================================
 
@@ -4209,6 +4585,10 @@ Options
 	 *Optional*
 
 	 Set to True to skip any missing objects or fields instead of stopping with an error.
+
+
+
+.. _load_dataset:
 
 **load_dataset**
 ==========================================
@@ -4276,6 +4656,10 @@ Options
 
 	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
+
+
+.. _load_custom_settings:
+
 **load_custom_settings**
 ==========================================
 
@@ -4297,6 +4681,10 @@ Options
 	 *Required*
 
 	 The path to a YAML settings file
+
+
+
+.. _remove_metadata_xml_elements:
 
 **remove_metadata_xml_elements**
 ==========================================
@@ -4334,6 +4722,10 @@ Options
 	 *Optional*
 
 	 Change the current directory before running the replace
+
+
+
+.. _disable_tdtm_trigger_handlers:
 
 **disable_tdtm_trigger_handlers**
 ==========================================
@@ -4378,6 +4770,10 @@ Options
 	 *Optional*
 
 	 If True, restore the state of Trigger Handlers to that stored in the restore file.
+
+
+
+.. _restore_tdtm_trigger_handlers:
 
 **restore_tdtm_trigger_handlers**
 ==========================================
