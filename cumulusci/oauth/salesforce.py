@@ -14,8 +14,10 @@ from urllib.parse import urlparse
 import webbrowser
 import threading
 import random
+import time
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
+from cumulusci.core.exceptions import CumulusCIUsageError
 
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
 SANDBOX_DOMAIN_RE = re.compile(
@@ -123,6 +125,28 @@ class SalesforceOAuth2(object):
         return response
 
 
+class HTTPDTimeout(threading.Thread):
+    daemon = True
+
+    def __init__(self, httpd, timeout):
+        self.httpd = httpd
+        self.timeout = timeout
+        super().__init__()
+
+    def run(self):
+        for i in range(self.timeout):
+            time.sleep(1)
+            if not self.httpd:
+                break
+
+        if self.httpd:  # extremely minor race condition
+            self.httpd.shutdown()
+
+    def quit(self):
+        print("Quittiing")
+        self.httpd = None
+
+
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
     parent = None
 
@@ -135,10 +159,10 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             http_status = http.client.OK
             gif = random.choice(
                 [
-                    "l378jKRUCSZUEZ5FC",
-                    "mPDQOax4YMOpqwR3Dw",
-                    "sRKgdVOw6qEwDAbJR1",
-                    "l1IYk3l6xcEDN5RFS",
+                    "tMUMi4Ylnzk88",
+                    "Cj3Ce7e8h2EKY",
+                    "3MibWRcT0AOYG7HUeT",
+                    "9uoYC7cjcU6w8",
                 ]
             )
             http_body = f"""<html><p>Congratulations! Your authentication succeeded.</p>
@@ -184,14 +208,19 @@ class CaptureSalesforceOAuth(object):
             + "If you are unable to log in to Salesforce you can "
             + "press ctrl+c to kill the server and return to the command line."
         )
+        timeout_thread = HTTPDTimeout(self.httpd, self.httpd_timeout)
         # use serve_forever because it is smarter abot polling for Ctrl-C
         # on Windows
+        timeout_thread.start()
         self.httpd.serve_forever()
+        timeout_thread.quit()
         self._check_response(self.response)
         return self.response.json()
 
     def _check_response(self, response):
-        if response.status_code == http.client.OK:
+        if not response:
+            raise CumulusCIUsageError("Authentication timed out or otherwise failed.")
+        elif response.status_code == http.client.OK:
             return
         raise SalesforceOAuthError(
             f"status_code: {response.status_code} content: {response.content}"
