@@ -78,6 +78,8 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             self.options.get("include_packaged_objects", default_packages_arg)
         )
 
+        self.record_types = self.options.get("record_types") or []
+
         # Build the api_names list, taking into account legacy behavior.
         # If we're using a custom package.xml, we will union the api_names list with
         # any Profiles specified there.
@@ -110,6 +112,10 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             }
             self.api_names = {self._inject_namespace(x) for x in self.api_names}
 
+            # Do namespace injection on record types, if any
+            for rt in self.record_types:
+                rt["record_type"] = rt["record_type"].format(**self.namespace_prefixes)
+
     def freeze(self, step):
         # Preserve behavior from when we subclassed Deploy.
 
@@ -138,6 +144,9 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 self._expand_package_xml(package_xml)
 
             self._expand_profile_members(package_xml)
+
+            if self.record_types:
+                self._append_record_types(package_xml)
 
             package_xml_content = package_xml.tostring(xml_declaration=True)
 
@@ -179,6 +188,15 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 text=f"{record['NamespacePrefix']}__{record['DeveloperName']}__c",
             )
 
+    def _append_record_types(self, package_xml):
+        record_types = package_xml.find("types", name="RecordType")
+        if not record_types:
+            record_types = package_xml.append("types")
+            record_types.append("name", text="RecordType")
+
+        for member_name in self.record_types:
+            record_types.append("members", text=member_name["record_type"])
+
     def _transform_entity(self, tree, api_name):
         # Custom applications
         self._set_elements_visible(tree, "applicationVisibilities", "visible")
@@ -209,11 +227,6 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             elem.find(inner_tag).text = true_value
 
     def _set_record_types(self, tree, api_name):
-        # Do namespace injection
-        record_types = self.options.get("record_types") or []
-        for rt in record_types:
-            rt["record_type"] = rt["record_type"].format(**self.namespace_prefixes)
-
         # If defaults are specified, clear any pre-existing defaults
         # that apply to the same object
         defaults = {
@@ -223,7 +236,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         objects_with_defaults = defaultdict(set)
 
         for option, default_element in defaults.items():
-            for rt in record_types:
+            for rt in self.record_types:
                 if option in rt:
                     objects_with_defaults[option].add(rt["record_type"].split(".")[0])
 
@@ -236,7 +249,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                     elem.find(default_element).text = "false"
 
         # Set recordTypeVisibilities
-        for rt in record_types:
+        for rt in self.record_types:
             # Look for the recordTypeVisibilities element
             elem = tree.find("recordTypeVisibilities", recordType=rt["record_type"])
             if elem is None:
