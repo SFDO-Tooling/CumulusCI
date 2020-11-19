@@ -10,7 +10,7 @@ from unittest import mock
 import tempfile
 
 import responses
-from sqlalchemy import Column, Table, Unicode
+from sqlalchemy import Column, Table, Unicode, create_engine
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import LoadData
@@ -93,14 +93,9 @@ class TestLoadData(unittest.TestCase):
                 ["Test", "User", "test@example.com", "001000000000000"],
                 ["Error", "User", "error@example.com", "001000000000000"],
             ]
-
-            hh_ids = task.session.query(
-                *task.metadata.tables["households_sf_ids"].columns
-            ).one()
-            assert hh_ids == ("1", "001000000000000")
-
-            task.session.close()
-            task.engine.dispose()
+            with create_engine(task.options["database_url"]).connect() as c:
+                hh_ids = next(c.execute("SELECT * from households_sf_ids"))
+                assert hh_ids == ("1", "001000000000000")
 
     def test_run_task__start_step(self):
         task = _make_task(
@@ -1572,12 +1567,9 @@ class TestLoadData(unittest.TestCase):
                 ["Error", "User", "error@example.com", "001000000000000"],
             ]
 
-            hh_ids = task.session.query(
-                *task.metadata.tables["households_sf_ids"].columns
-            ).one()
-            assert hh_ids == ("1", "001000000000000")
-
-            task.session.close()
+            with create_engine(task.options["database_url"]).connect() as c:
+                hh_ids = next(c.execute("SELECT * from households_sf_ids"))
+                assert hh_ids == ("1", "001000000000000")
 
     @responses.activate
     def test_run__complex_lookups(self):
@@ -2259,5 +2251,3 @@ class TestLoadData(unittest.TestCase):
                 15 * MEGABYTE
             ):
                 task()
-            task.session.close()
-            task.engine.dispose()

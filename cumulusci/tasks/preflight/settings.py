@@ -22,9 +22,9 @@ class CheckSettingsValue(BaseSalesforceApiTask):
     }
 
     def _run_task(self):
+        field = self.options["settings_field"]
+        entity = self.options["settings_type"]
         try:
-            field = self.options["settings_field"]
-            entity = self.options["settings_type"]
             results = self.tooling.query(f"SELECT {field} FROM {entity}")["records"]
         except SalesforceMalformedRequest as e:
             self.logger.error(

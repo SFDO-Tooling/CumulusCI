@@ -50,6 +50,18 @@ tasks:
         description: Runs as a preflight check to determine whether specific sObjects are available.
         class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
         group: Salesforce Preflight Checks
+    check_sobject_permissions:
+        description: Runs as a preflight check to determine whether specific sObjects are permissioned as desired (options are required).
+        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
+        group: Salesforce Preflight Checks
+    check_advanced_currency_management:
+        description: Runs as a preflight check to determine whether Advanced Currency Management is active (True result means the feature is active).
+        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
+        group: Salesforce Preflight Checks
+        options:
+            permissions:
+                DatedConversionRate:
+                    createable: True
     check_org_wide_defaults:
         description: Runs as a preflight check to validate Organization-Wide Defaults.
         class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
@@ -581,6 +593,9 @@ flows:
                     build_notes_label: "Build Change Notes"
             1:
                 flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -592,7 +607,7 @@ flows:
 
     ci_feature_beta_deps:
         group: Continuous Integration
-        description: Install the latest beta version of dependencies and run apex tests.
+        description: This flow is deprecated. Please use ci_feature instead.
         steps:
             0.5:
                 task: github_parent_pr_notes
@@ -600,7 +615,10 @@ flows:
                     branch_name: $project_config.repo_branch
                     build_notes_label: "Build Change Notes"
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -619,7 +637,7 @@ flows:
                 options:
                     context: "Build Feature Test Package"
             2:
-                flow: beta_dependencies
+                flow: dependencies
                 options:
                     update_dependencies:
                         dependencies: ^^github_package_data.dependencies
@@ -716,7 +734,7 @@ flows:
 
     beta_dependencies:
         group: Dependency Management
-        description: Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata
+        description: "This flow is deprecated. Please use the `dependencies` flow and set the `include_beta` option on the first task, `update_dependencies`. Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata"
         steps:
             1:
                 task: update_dependencies
@@ -801,6 +819,9 @@ flows:
         steps:
             1:
                 flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -810,10 +831,13 @@ flows:
 
     dev_org_beta_deps:
         group: Org Setup
-        description: Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
+        description: This flow is deprecated. Please use dev_org instead.
         steps:
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -825,6 +849,9 @@ flows:
         steps:
             1:
                 flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -838,6 +865,9 @@ flows:
         steps:
             1:
                 flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -871,6 +901,9 @@ flows:
         steps:
             1:
                 flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 task: install_managed_beta
             3:
@@ -907,7 +940,10 @@ flows:
         description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
         steps:
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 task: install_managed
             3:
