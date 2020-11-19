@@ -143,7 +143,6 @@ class HTTPDTimeout(threading.Thread):
             self.httpd.shutdown()
 
     def quit(self):
-        print("Quittiing")
         self.httpd = None
 
 
