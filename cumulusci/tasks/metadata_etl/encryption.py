@@ -38,4 +38,10 @@ class EncryptAllFields(BaseMetadataSynthesisTask):
                     field_element.append("fullName", text=field_name)
                     field_element.append("encryptionScheme", "ProbabilisticEncryption")
 
-            root_element.write(self.deploy_dir / f"{sobject_name}.object")
+            object_dir = self.deploy_dir / "objects"
+            if not object_dir.exists():
+                object_dir.mkdir()
+
+            (object_dir / f"{sobject_name}.object").write_text(
+                root_element.tostring(xml_declaration=True), encoding="utf-8"
+            )
