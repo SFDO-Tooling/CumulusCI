@@ -182,8 +182,11 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
         #  https://docs.python.org/3/library/socketserver.html#socketserver.BaseServer.shutdown
         # shutdown() must be called while serve_forever() is running in a different thread otherwise it will deadlock.
-        t = threading.Thread(target=self.server.shutdown)
-        t.start()
+        def delayed_shutdown():
+            time.sleep(1)
+            self.server.shutdown()
+
+        threading.Thread(target=delayed_shutdown).start()
 
 
 class CaptureSalesforceOAuth(object):
@@ -208,7 +211,7 @@ class CaptureSalesforceOAuth(object):
             + "press ctrl+c to kill the server and return to the command line."
         )
         timeout_thread = HTTPDTimeout(self.httpd, self.httpd_timeout)
-        # use serve_forever because it is smarter abot polling for Ctrl-C
+        # use serve_forever because it is smarter about polling for Ctrl-C
         # on Windows
         timeout_thread.start()
         self.httpd.serve_forever()
