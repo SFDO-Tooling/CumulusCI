@@ -134,7 +134,8 @@ class HTTPDTimeout(threading.Thread):
         super().__init__()
 
     def run(self):
-        for i in range(self.timeout):
+        target_time = time.time() + self.timeout
+        while time.time() < target_time:
             time.sleep(1)
             if not self.httpd:
                 break
@@ -182,11 +183,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
         #  https://docs.python.org/3/library/socketserver.html#socketserver.BaseServer.shutdown
         # shutdown() must be called while serve_forever() is running in a different thread otherwise it will deadlock.
-        def delayed_shutdown():
-            time.sleep(1)
-            self.server.shutdown()
-
-        threading.Thread(target=delayed_shutdown).start()
+        threading.Thread(target=self.server.shutdown).start()
 
 
 class CaptureSalesforceOAuth(object):
