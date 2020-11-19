@@ -549,3 +549,34 @@ def test_generate_package_xml__retrieve():
         task._expand_package_xml = mock.Mock()
         task._generate_package_xml(MetadataOperation.RETRIEVE)
         task._expand_package_xml.assert_not_called()
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "package_xml": admin_profile,
+                "include_packaged_objects": False,
+                "record_types": [{"record_type": "foo"}, {"record_type": "bar"}],
+            },
+        )
+
+        task._expand_profile_members = mock.Mock()
+        task._expand_package_xml = mock.Mock()
+        task._generate_package_xml(MetadataOperation.RETRIEVE)
+        task._expand_package_xml.assert_not_called()
+
+        task._expand_profile_members = mock.Mock()
+        task._expand_package_xml = mock.Mock()
+        task._generate_package_xml(MetadataOperation.DEPLOY)
+        task._expand_package_xml.assert_not_called()
+        task = create_task(
+            ProfileGrantAllAccess,
+            {
+                "package_xml": admin_profile,
+                "include_packaged_objects": False,
+                "record_types": [{"record_type": "foo"}, {"record_type": "bar"}],
+            },
+        )
+
+        task._expand_profile_members = mock.Mock()
+        task._expand_package_xml = mock.Mock()
+        task._generate_package_xml(MetadataOperation.RETRIEVE)
+        task._expand_package_xml.assert_not_called()
