@@ -3,11 +3,12 @@ import json
 import os
 import pathlib
 
+import responses
+
 from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.salesforce.sourcetracking import ListChanges
 from cumulusci.tasks.salesforce.sourcetracking import RetrieveChanges
 from cumulusci.tasks.salesforce.sourcetracking import SnapshotChanges
-from cumulusci.tasks.salesforce.sourcetracking import _write_manifest
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 
@@ -134,18 +135,18 @@ class TestRetrieveChanges:
         with temporary_dir():
             project_config = create_project_config()
             project_config.project__source_format = "sfdx"
-            with open("sfdx-project.json", "w") as f:
+            with open(
+                pathlib.Path(project_config.repo_root) / "sfdx-project.json", "w"
+            ) as f:
                 json.dump(
                     {"packageDirectories": [{"path": "force-app", "default": True}]}, f
                 )
             task = create_task_fixture(RetrieveChanges, {}, project_config)
             assert not task.md_format
-            assert task.options["path"] == "force-app"
+            assert str(task.path).endswith("/force-app")
 
+    @responses.activate
     def test_run_task(self, sfdx, create_task_fixture):
-        sfdx_calls = []
-        sfdx.side_effect = lambda cmd, *args, **kw: sfdx_calls.append(cmd)
-
         with temporary_dir():
             task = create_task_fixture(
                 RetrieveChanges, {"include": "Test", "namespace_tokenize": "ns"}
@@ -165,11 +166,6 @@ class TestRetrieveChanges:
 
             task._run_task()
 
-            assert sfdx_calls == [
-                "force:mdapi:convert",
-                "force:source:retrieve",
-                "force:source:convert",
-            ]
             assert os.path.exists(os.path.join("src", "package.xml"))
 
     def test_run_task__no_changes(self, sfdx, create_task_fixture):
@@ -224,12 +220,3 @@ class TestSnapshotChanges:
         task = create_task_fixture(SnapshotChanges)
         steps = task.freeze(None)
         assert steps == []
-
-
-def test_write_manifest__folder():
-    with temporary_dir() as path:
-        _write_manifest(
-            [{"MemberType": "ReportFolder", "MemberName": "TestFolder"}], path, "50.0"
-        )
-        package_xml = pathlib.Path(path, "package.xml").read_text()
-        assert "<name>Report</name>" in package_xml

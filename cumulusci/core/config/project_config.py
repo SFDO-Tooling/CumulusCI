@@ -451,9 +451,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def sfdx_project_config(self):
-        with open(
-            Path(self.repo_root) / "sfdx-project.json", "r", encoding="utf-8"
-        ) as f:
+        path = Path(self.repo_root) / "sfdx-project.json"
+        if not path.exists():
+            return {}
+        with open(path, "r", encoding="utf-8") as f:
             config = json.load(f)
         return config
 

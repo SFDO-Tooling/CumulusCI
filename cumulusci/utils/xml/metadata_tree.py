@@ -23,6 +23,7 @@ from .salesforce_encoding import serialize_xml_for_salesforce
 
 
 METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
+StrOrElement = Union[str, "MetadataElement"]
 
 
 def parse(source):
@@ -87,15 +88,23 @@ class MetadataElement:
 
     __slots__ = ["_element", "_parent", "_ns", "tag"]
 
-    def __init__(self, element: etree._Element, parent: etree._Element = None):
+    def __init__(
+        self, element: Union[etree._Element, str], parent: etree._Element = None
+    ):
+        """Construct a MetadataElement from either an lxml element or a string with the tag name."""
+        if isinstance(element, str):
+            element = etree.Element(
+                "{%s}%s" % (METADATA_NAMESPACE, element),
+                nsmap={None: METADATA_NAMESPACE},
+            )
         assert isinstance(element, etree._Element)
-        self._element = element
+        self._element: etree._Element = element
         self._parent = parent
-        self._ns = next(iter(element.nsmap.values()))
-        self.tag = element.tag.split("}")[1]
+        self._ns = next(iter(self._element.nsmap.values()))
+        self.tag = self._element.tag.split("}")[1]
 
     @property
-    def text(self):
+    def text(self) -> StrOrElement:
         if len(self._element):  # if self has any element children
             return self._get_child("text")
         return self._element.text
@@ -116,9 +125,13 @@ class MetadataElement:
             raise AttributeError(f"{childname} not found in {self.tag}")
         return self._wrap_element(child_element)
 
-    def _create_child(self, tag, text=None):
-        element = etree.Element(self._add_namespace(tag))
-        element.text = text
+    def _create_child(self, tag: StrOrElement, text: str = None):
+        if isinstance(tag, str):
+            element = etree.Element(self._add_namespace(tag))
+            element.text = text
+        else:
+            assert text is None
+            element = tag._element
         return self._wrap_element(element)
 
     def __getattr__(self, childname):
@@ -148,7 +161,11 @@ class MetadataElement:
                 f"Indices must be integers or strings, not {type(item)}"
             )  # # pragma: no cover
 
-    def append(self, tag: str, text: str = None):
+    def index(self, child: "MetadataElement") -> int:
+        """Get the index of the child's position within its parent."""
+        return self._element.index(child._element)
+
+    def append(self, tag: StrOrElement, text: str = None):
         '''Append a new element at the appropriate place.
 
         If the parent element (self) already one or more children that match,
@@ -178,16 +195,16 @@ class MetadataElement:
         </types>
         '''
         newchild = self._create_child(tag, text)
-        same_elements = self._element.findall(self._add_namespace(tag))
+        same_elements = self.findall(newchild.tag)
         if same_elements:
             last = same_elements[-1]
-            index = self._element.index(last)
+            index = self.index(last)
             self._element.insert(index + 1, newchild._element)
         else:
             self._element.append(newchild._element)
         return newchild
 
-    def insert(self, index: int, tag: str, text: str = None):
+    def insert(self, index: int, tag: StrOrElement, text: str = None):
         """Insert at a particular index.
 
         Tag and text can be supplied. Return value is the new element.
@@ -206,14 +223,21 @@ class MetadataElement:
         self._element.insert(index, newchild._element)
         return newchild
 
-    def insert_before(self, oldElement: "MetadataElement", tag: str, text: str = None):
+    def insert_before(
+        self,
+        oldElement: "MetadataElement",
+        tag: StrOrElement,
+        text: str = None,
+    ):
         """Insert before some other element
 
         Tag and text can be supplied. Return value is the new element."""
         index = self._element.index(oldElement._element)
         return self.insert(index, tag, text)
 
-    def insert_after(self, oldElement: "MetadataElement", tag: str, text: str = None):
+    def insert_after(
+        self, oldElement: "MetadataElement", tag: StrOrElement, text: str = None
+    ):
         """Insert after some other element
 
         Tag and text can be supplied. Return value is the new element."""
@@ -221,9 +245,18 @@ class MetadataElement:
         index = self._element.index(oldElement._element)
         return self.insert(index + 1, tag, text)
 
+    def replace(
+        self, existing_element: "MetadataElement", new_element: "MetadataElement"
+    ) -> None:
+        """Replace an existing child with a new element."""
+        self._element.replace(existing_element._element, new_element._element)
+
     def remove(self, metadata_element: "MetadataElement") -> None:
         """Remove an element from its parent (self)"""
         self._element.remove(metadata_element._element)
+
+    def iterchildren(self, *args):
+        return (self._wrap_element(el) for el in self._element.iterchildren(*args))
 
     def find(self, tag, **kwargs):
         """Find a single direct child-elements with name `tag`"""
@@ -273,7 +306,7 @@ class MetadataElement:
         children = self._element.getchildren()
         if children:
             contents = f"<!-- {len(children)} children -->"
-        elif self.text:
+        elif isinstance(self.text, str):
             contents = f"{self.text.strip()}"
         else:
             contents = ""

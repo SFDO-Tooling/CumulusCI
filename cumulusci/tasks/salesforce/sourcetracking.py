@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import List, cast
+from typing import Dict, List, cast
 import contextlib
 import functools
 import json
@@ -15,11 +15,12 @@ from cumulusci.core.utils import process_list_arg
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.salesforce.BaseRetrieveMetadata import BaseRetrieveMetadata
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
-from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import process_text_in_directory
 from cumulusci.utils import tokenize_namespace
-from cumulusci.utils.metadata import MetadataPackage
+from cumulusci.utils.metadata import merge_metadata
+from cumulusci.utils.metadata import update_manifest
+from cumulusci.utils.metadata import write_manifest
 
 
 class ListChanges(BaseSalesforceApiTask):
@@ -166,13 +167,23 @@ class BaseRetrieveChanges(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        path = self.options.get("path")
-        if path is None:
-            path = self.project_config.default_package_directory
-        self.path = pathlib.Path(path)
+        sfdx_package_directories = self.project_config.sfdx_project_config.get(
+            "packageDirectories", []
+        )
+        relpath = self.options.get("path")
+        if relpath is None:
+            if self.project_config.project__source_format == "sfdx":
+                relpath = "force-app"
+                for pkg in sfdx_package_directories:
+                    if pkg.get("default"):
+                        relpath = pkg["path"]
+            else:
+                relpath = "src"
+        self.path = pathlib.Path(relpath).resolve()
 
-        package_xml_path = self.path / "package.xml"
-        self.md_format = package_xml_path.exists()
+        self.md_format = relpath not in [
+            pkg["path"] for pkg in sfdx_package_directories
+        ]
 
         self.options["namespace_tokenize"] = self.options.get("namespace_tokenize")
         self.options["api_version"] = self.options.get(
@@ -182,7 +193,7 @@ class BaseRetrieveChanges(BaseSalesforceApiTask):
     def _run_task(self):
         self._retrieve_components(self.options["components"])
 
-    def _retrieve_components(self, components):
+    def _retrieve_components(self, components: Dict[str, List[str]]):
         """Retrieve specified components from an org into a target folder.
 
         Retrieval is done using the Metadata API.
@@ -194,46 +205,37 @@ class BaseRetrieveChanges(BaseSalesforceApiTask):
         target.mkdir(parents=True, exist_ok=True)
 
         # Construct package.xml with components to retrieve, in its own tempdir
-        with temporary_dir(chdir=False) as manifest_path:
-            package_xml_path = pathlib.Path(manifest_path) / "package.xml"
-            self._write_manifest(components, package_xml_path)
+        with temporary_dir(chdir=False) as retrieval_path:
+            retrieval_path = pathlib.Path(retrieval_path)
+            write_manifest(components, self.options["api_version"], retrieval_path)
 
             if self.md_format:
-                self._retrieve_mdapi_format(package_xml_path, target)
+                self._retrieve_mdapi_format(retrieval_path, target)
             else:
                 sfdx(
                     "force:source:retrieve",
                     access_token=self.org_config.access_token,
                     log_note="Retrieving components",
-                    args=["-a", str(api_version), "-x", package_xml_path, "-w", "5"],
+                    args=[
+                        "-a",
+                        str(api_version),
+                        "-x",
+                        str(retrieval_path / "package.xml"),
+                        "-w",
+                        "5",
+                    ],
                     capture_output=False,
                     check_return=True,
                     env={"SFDX_INSTANCE_URL": self.org_config.instance_url},
                 )
 
-    def _write_manifest(self, changes: List, path: pathlib.Path):
-        """Write a package.xml for the specified changes and API version."""
-        type_members = defaultdict(list)
-        for change in changes:
-            type_members[change["MemberType"]].append(change["MemberName"])
-
-        generator = PackageXmlGenerator(
-            ".",
-            self.options["api_version"],
-            types=[
-                MetadataType(name, members) for name, members in type_members.items()
-            ],
-        )
-        package_xml = generator()
-        path.write_text(package_xml)
-
     def _retrieve_mdapi_format(
         self,
-        package_xml_path: pathlib.Path,
+        retrieval_path: pathlib.Path,
         target_path: pathlib.Path,
     ):
         # Retrieve metadata
-        package_xml = package_xml_path.read_text()
+        package_xml = (retrieval_path / "package.xml").read_text()
         src_zip = cast(
             zipfile.ZipFile,
             ApiRetrieveUnpackaged(self, package_xml, self.options["api_version"])(),
@@ -241,8 +243,8 @@ class BaseRetrieveChanges(BaseSalesforceApiTask):
         src_zip.extractall(target_path)
 
         # Merge retrieved metadata into target
-        target_package = MetadataPackage(target_path)
-        MetadataPackage(package_xml_path.parent).merge_to(target_package)
+        # (wait to update manifest until we tokenize namespace prefixes)
+        merge_metadata(retrieval_path, target_path, update_manifest=False)
 
         namespace_tokenize = self.options["namespace_tokenize"]
         if namespace_tokenize:
@@ -252,7 +254,7 @@ class BaseRetrieveChanges(BaseSalesforceApiTask):
             )
 
         # Update package.xml
-        target_package.write_manifest()
+        update_manifest(target_path)
 
 
 class RetrieveChanges(BaseRetrieveChanges, ListChanges, BaseSalesforceApiTask):
@@ -265,6 +267,7 @@ class RetrieveChanges(BaseRetrieveChanges, ListChanges, BaseSalesforceApiTask):
     }
 
     def _init_options(self, kwargs):
+        super()._init_options(kwargs)
         # default "snapshot" to true instead of false
         self.options["snapshot"] = process_bool_arg(kwargs.get("snapshot") or True)
 
@@ -276,10 +279,11 @@ class RetrieveChanges(BaseRetrieveChanges, ListChanges, BaseSalesforceApiTask):
         if not filtered:
             self.logger.info("No changes to retrieve")
             return
+        components = defaultdict(list)
         for change in filtered:
             self.logger.info("{MemberType}: {MemberName}".format(**change))
-
-        self._retrieve_components(filtered)
+            components[change["MemberType"]].append(change["MemberName"])
+        self._retrieve_components(components)
 
         if self.options["snapshot"]:
             self.logger.info("Storing snapshot of changes")
@@ -315,16 +319,3 @@ class SnapshotChanges(ListChanges):
 
     def freeze(self, step):
         return []
-
-
-class MetadataType(object):
-    def __init__(self, name, members):
-        self.metadata_type = name
-        self.members = members
-
-    def __call__(self):
-        return (
-            ["    <types>"]
-            + [f"        <members>{member}</members>" for member in self.members]
-            + [f"        <name>{self.metadata_type}</name>", "    </types>"]
-        )
