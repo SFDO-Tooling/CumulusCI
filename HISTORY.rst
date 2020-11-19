@@ -2,6 +2,52 @@
 History
 =======
 
+3.23.0 (2020-11-12)
+-------------------
+
+Changes:
+
+-  CumulusCI now accepts a normalized task option syntax in the form of:
+   ``--opt-name value``. This can be used in place of the old task
+   option syntax: ``-o opt-name value``.
+-  Tasks which perform namespace injection can now automatically
+   determine whether they are running in the context of a managed
+   installation or a namespaced scratch org. This means that in many
+   cases it is no longer necessary to explicitly specify options like
+   ``managed``/``unmanaged``/``namespaced``/``namespaced_org``/``namespace_inject``,
+   or to use a separate flow for namespaced scratch orgs.
+-  The ``deploy_unmanaged`` flow now deploys sfdx-formatted metadata
+   using the Metadata API rather than the sfdx ``force:source:push``
+   command. This avoids an issue where sfdx could show an error about
+   the pushed components conflicting with other changes that already
+   happened in the org. It also improves consistency between how
+   metadata is deployed to a scratch org and how it is deployed to a
+   packaging org.
+-  Removed the ``namespaced_org`` option for the ``update_dependencies``
+   task, which was not functional.
+-  We added support for including SOQL where-clauses
+   ``Salesforce Query`` Robot keyword via the ``where`` keyword
+   argument.
+-  The ``create_package_version`` task can accept a
+   ``static_resource_path`` option.
+-  The FindReplace task now has a ``replace_env`` option which, if true,
+   will interpret the ``replace`` option as the name of an environment
+   variable whose value should be used for the replacement.
+-  We added a new command, ``cci project doc``, which will document
+   project-specific tasks to a reStructuredText file.
+
+Issues closed:
+
+-  An error that occurred when building a second-generation package
+   using a cross-project task has been fixed.
+-  The ``github_package_data`` task will now work for projects using API
+   versions prior to 44.0.
+-  Fixed a bug where namespace injection of the
+   ``%%%NAMESPACED_ORG%%%`` token with the ``namespaced_org`` option
+   enabled did not actually add the namespace prefix unless the
+   ``managed`` option was also enabled.
+- We fixed an issue that resulted in the `batch_size` option in a data mapping file being ignored.
+
 3.22.0 (2020-10-29)
 -------------------
 
