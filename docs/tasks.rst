@@ -365,7 +365,7 @@ Options
 **batch_apex_wait**
 ==========================================
 
-**Description:** Waits on a batch apex job to finish.
+**Description:** Waits on a batch apex or queueable apex job to finish.
 
 **Class:** cumulusci.tasks.apex.batch.BatchApexWait
 
@@ -387,7 +387,7 @@ Options
 ``--poll-interval POLLINTERVAL``
 	 *Optional*
 
-	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
+	 Seconds to wait before polling for batch or queueable job completion. Defaults to 10 seconds.
 
 **check_sobjects_available**
 ==========================================
