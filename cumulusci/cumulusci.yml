@@ -182,6 +182,10 @@ tasks:
         options:
             command: 'force:source:push'
         group: Salesforce DX
+    encrypt_all_fields:
+        group: Metadata Transformations
+        description: "Applies probabilistic encryption to all fields in the org."
+        class_path: cumulusci.tasks.metadata_etl.EncryptAllFields
     ensure_record_types:
         description: Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
         class_path: cumulusci.tasks.salesforce.EnsureRecordTypes
