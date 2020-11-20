@@ -1,13 +1,11 @@
+Checking the version!
+An update to CumulusCI is available. To install the update, run this command: pip install --upgrade cumulusci
 ==========================================
 Standard Tasks
 ==========================================
 
-
-
-.. _activate_flow:
-
-**activate_flow**
-==========================================
+activate_flow
+=============
 
 **Description:** Activates Flows identified by a given list of Developer Names
 
@@ -28,12 +26,8 @@ Options
 
 	 List of DeveloperNames to query in SOQL
 
-
-
-.. _add_page_layout_related_lists:
-
-**add_page_layout_related_lists**
-==========================================
+add_page_layout_related_lists
+=============================
 
 **Description:** Adds specified Related List to one or more Page Layouts.
 
@@ -91,12 +85,8 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
-
-
-.. _add_standard_value_set_entries:
-
-**add_standard_value_set_entries**
-==========================================
+add_standard_value_set_entries
+==============================
 
 **Description:** Adds specified picklist entries to a Standard Value Set.
 
@@ -139,12 +129,8 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
-
-
-.. _add_picklist_entries:
-
-**add_picklist_entries**
-==========================================
+add_picklist_entries
+====================
 
 **Description:** Adds specified picklist entries to a custom picklist field.
 
@@ -197,12 +183,8 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
-
-
-.. _add_permission_set_perms:
-
-**add_permission_set_perms**
-==========================================
+add_permission_set_perms
+========================
 
 **Description:** Adds specified Apex class access and Field-Level Security to a Permission Set.
 
@@ -250,12 +232,8 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
-
-
-.. _assign_compact_layout:
-
-**assign_compact_layout**
-==========================================
+assign_compact_layout
+=====================
 
 **Description:** Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option.
 
@@ -359,12 +337,8 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
-
-
-.. _batch_apex_wait:
-
-**batch_apex_wait**
-==========================================
+batch_apex_wait
+===============
 
 **Description:** Waits on a batch apex job to finish.
 
@@ -390,12 +364,8 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
-
-
-.. _check_sobjects_available:
-
-**check_sobjects_available**
-==========================================
+check_sobjects_available
+========================
 
 **Description:** Runs as a preflight check to determine whether specific sObjects are available.
 
@@ -408,12 +378,8 @@ Command Syntax
 
 
 
-
-
-.. _check_org_wide_defaults:
-
-**check_org_wide_defaults**
-==========================================
+check_org_wide_defaults
+=======================
 
 **Description:** Runs as a preflight check to validate Organization-Wide Defaults.
 
@@ -434,12 +400,8 @@ Options
 
 	 The Organization-Wide Defaults to check, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature. Checking External Sharing Model when it is turned off will fail the preflight.
 
-
-
-.. _custom_settings_value_wait:
-
-**custom_settings_value_wait**
-==========================================
+custom_settings_value_wait
+==========================
 
 **Description:** Waits for a specific field value on the specified custom settings object and field
 
@@ -485,12 +447,8 @@ Options
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
 
-
-
-.. _command:
-
-**command**
-==========================================
+command
+=======
 
 **Description:** Run an arbitrary command
 
@@ -544,12 +502,8 @@ Options
 
 	 If True, the command will use stderr, stdout, and stdin of the main process.Defaults to False.
 
-
-
-.. _connected_app:
-
-**connected_app**
-==========================================
+connected_app
+=============
 
 **Description:** Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
 
@@ -594,12 +548,8 @@ Options
 
 	 If True, any existing connected_app service in the CumulusCI keychain will be overwritten.  Has no effect if the connect option is False.
 
-
-
-.. _create_community:
-
-**create_community**
-==========================================
+create_community
+================
 
 **Description:** Creates a Community in the target org using the Connect API
 
@@ -655,12 +605,8 @@ Options
 
 	 If True, an existing community with the same name will not raise an exception.
 
-
-
-.. _insert_record:
-
-**insert_record**
-==========================================
+insert_record
+=============
 
 **Description:** Inserts a record of any sObject using the REST API
 
@@ -690,12 +636,8 @@ Options
 
 	 Field names and values in the format 'aa:bb,cc:dd'
 
-
-
-.. _create_package:
-
-**create_package**
-==========================================
+create_package
+==============
 
 **Description:** Creates a package in the target org with the default package name for the project
 
@@ -721,12 +663,8 @@ Options
 
 	 The api version to use when creating the package.  Defaults to project__package__api_version
 
-
-
-.. _create_managed_src:
-
-**create_managed_src**
-==========================================
+create_managed_src
+==================
 
 **Description:** Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
 
@@ -756,12 +694,8 @@ Options
 
 	 Default: src.orig
 
-
-
-.. _create_unmanaged_ee_src:
-
-**create_unmanaged_ee_src**
-==========================================
+create_unmanaged_ee_src
+=======================
 
 **Description:** Modifies the src directory for unmanaged deployment to an EE org
 
@@ -791,12 +725,8 @@ Options
 
 	 Default: src.orig
 
-
-
-.. _delete_data:
-
-**delete_data**
-==========================================
+delete_data
+===========
 
 **Description:** Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
 
@@ -837,12 +767,8 @@ Options
 
 	 If True, the package namespace prefix will be automatically added to objects and fields for which it is present in the org. Defaults to True.
 
-
-
-.. _deploy:
-
-**deploy**
-==========================================
+deploy
+======
 
 **Description:** Deploys the src directory of the repository to the org
 
@@ -915,12 +841,8 @@ Options
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
-
-
-.. _deploy_pre:
-
-**deploy_pre**
-==========================================
+deploy_pre
+==========
 
 **Description:** Deploys all metadata bundles under unpackaged/pre/
 
@@ -993,12 +915,8 @@ Options
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
-
-
-.. _deploy_post:
-
-**deploy_post**
-==========================================
+deploy_post
+===========
 
 **Description:** Deploys all metadata bundles under unpackaged/post/
 
@@ -1075,12 +993,8 @@ Options
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
-
-
-.. _deploy_qa_config:
-
-**deploy_qa_config**
-==========================================
+deploy_qa_config
+================
 
 **Description:** Deploys configuration for QA.
 
@@ -1157,12 +1071,8 @@ Options
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
-
-
-.. _dx:
-
-**dx**
-==========================================
+dx
+==
 
 **Description:** Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
 
@@ -1188,12 +1098,8 @@ Options
 
 	 Append additional options to the command
 
-
-
-.. _dx_convert_to:
-
-**dx_convert_to**
-==========================================
+dx_convert_to
+=============
 
 **Description:** Converts src directory metadata format into sfdx format under force-app
 
@@ -1221,12 +1127,8 @@ Options
 
 	 Append additional options to the command
 
-
-
-.. _dx_convert_from:
-
-**dx_convert_from**
-==========================================
+dx_convert_from
+===============
 
 **Description:** Converts force-app directory in sfdx format into metadata format under src
 
@@ -1254,12 +1156,8 @@ Options
 
 	 Append additional options to the command
 
-
-
-.. _dx_pull:
-
-**dx_pull**
-==========================================
+dx_pull
+=======
 
 **Description:** Uses sfdx to pull from a scratch org into the force-app directory
 
@@ -1287,12 +1185,8 @@ Options
 
 	 Append additional options to the command
 
-
-
-.. _dx_push:
-
-**dx_push**
-==========================================
+dx_push
+=======
 
 **Description:** Uses sfdx to push the force-app directory metadata into a scratch org
 
@@ -1320,12 +1214,8 @@ Options
 
 	 Append additional options to the command
 
-
-
-.. _ensure_record_types:
-
-**ensure_record_types**
-==========================================
+ensure_record_types
+===================
 
 **Description:** Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
 
@@ -1360,12 +1250,8 @@ Options
 
 	 The sObject on which to deploy the Record Type and optional Business Process.
 
-
-
-.. _execute_anon:
-
-**execute_anon**
-==========================================
+execute_anon
+============
 
 **Description:** Execute anonymous apex via the tooling api.
 
@@ -1415,12 +1301,8 @@ Options
 
 	 Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code.Defaults to an empty value.
 
-
-
-.. _generate_data_dictionary:
-
-**generate_data_dictionary**
-==========================================
+generate_data_dictionary
+========================
 
 **Description:** Create a data dictionary for the project in CSV format.
 
@@ -1465,12 +1347,8 @@ Options
 
 	 Include schema from additional GitHub repositories that are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of dicts as in project__dependencies in cumulusci.yml. Note: only repository dependencies are supported.
 
-
-
-.. _generate_and_load_from_yaml:
-
-**generate_and_load_from_yaml**
-==========================================
+generate_and_load_from_yaml
+===========================
 
 **Description:** None
 
@@ -1591,12 +1469,8 @@ Options
 
 	 Path for Snowfakery to put its next continuation file
 
-
-
-.. _get_installed_packages:
-
-**get_installed_packages**
-==========================================
+get_installed_packages
+======================
 
 **Description:** Retrieves a list of the currently installed managed package namespaces and their versions
 
@@ -1609,12 +1483,8 @@ Command Syntax
 
 
 
-
-
-.. _get_available_licenses:
-
-**get_available_licenses**
-==========================================
+get_available_licenses
+======================
 
 **Description:** Retrieves a list of the currently available license definition keys
 
@@ -1627,12 +1497,8 @@ Command Syntax
 
 
 
-
-
-.. _get_available_permission_set_licenses:
-
-**get_available_permission_set_licenses**
-==========================================
+get_available_permission_set_licenses
+=====================================
 
 **Description:** Retrieves a list of the currently available Permission Set License definition keys
 
@@ -1645,12 +1511,8 @@ Command Syntax
 
 
 
-
-
-.. _github_parent_pr_notes:
-
-**github_parent_pr_notes**
-==========================================
+github_parent_pr_notes
+======================
 
 **Description:** Merges the description of a child pull request to the respective parent's pull request (if one exists).
 
@@ -1698,12 +1560,8 @@ Options
 
 	 force rebuilding of change notes from child branches in the given branch.
 
-
-
-.. _github_clone_tag:
-
-**github_clone_tag**
-==========================================
+github_clone_tag
+================
 
 **Description:** Clones a github tag under a new name.
 
@@ -1729,12 +1587,8 @@ Options
 
 	 The new tag to create by cloning the src tag.  Ex: release/1.0
 
-
-
-.. _github_master_to_feature:
-
-**github_master_to_feature**
-==========================================
+github_master_to_feature
+========================
 
 **Description:** Merges the latest commit on the main branch into all open feature branches
 
@@ -1770,12 +1624,8 @@ Options
 
 	 If True, merge will only be done to child branches.  This assumes source branch is a parent feature branch.  Defaults to False
 
-
-
-.. _github_parent_to_children:
-
-**github_parent_to_children**
-==========================================
+github_parent_to_children
+=========================
 
 **Description:** Merges the latest commit on a parent feature branch into all child feature branches
 
@@ -1815,12 +1665,8 @@ Options
 
 	 Default: True
 
-
-
-.. _github_copy_subtree:
-
-**github_copy_subtree**
-==========================================
+github_copy_subtree
+===================
 
 **Description:** Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
 
@@ -1871,12 +1717,8 @@ Options
 
 	 If True, skip creating Github data.  Defaults to False
 
-
-
-.. _github_pull_requests:
-
-**github_pull_requests**
-==========================================
+github_pull_requests
+====================
 
 **Description:** Lists open pull requests in project Github repository
 
@@ -1889,12 +1731,8 @@ Command Syntax
 
 
 
-
-
-.. _github_release:
-
-**github_release**
-==========================================
+github_release
+==============
 
 **Description:** Creates a Github release for a given managed package version number
 
@@ -1930,12 +1768,8 @@ Options
 
 	 Override the commit used to create the release. Defaults to the current local HEAD commit
 
-
-
-.. _github_release_notes:
-
-**github_release_notes**
-==========================================
+github_release_notes
+====================
 
 **Description:** Generates release notes by parsing pull request bodies of merged pull requests between two tags
 
@@ -1981,12 +1815,8 @@ Options
 
 	 The package version id used by the InstallLinksParser to add install urls
 
-
-
-.. _github_release_report:
-
-**github_release_report**
-==========================================
+github_release_report
+=====================
 
 **Description:** Parses GitHub release notes to report various info
 
@@ -2022,12 +1852,8 @@ Options
 
 	 Print info to screen as JSON [default=False]
 
-
-
-.. _install_managed:
-
-**install_managed**
-==========================================
+install_managed
+===============
 
 **Description:** Install the latest managed production release
 
@@ -2092,12 +1918,8 @@ Options
 
 	 Which users to install package for (FULL = all users, NONE = admins only)
 
-
-
-.. _install_managed_beta:
-
-**install_managed_beta**
-==========================================
+install_managed_beta
+====================
 
 **Description:** Installs the latest managed beta release
 
@@ -2162,12 +1984,8 @@ Options
 
 	 Which users to install package for (FULL = all users, NONE = admins only)
 
-
-
-.. _list_communities:
-
-**list_communities**
-==========================================
+list_communities
+================
 
 **Description:** Lists Communities for the current org using the Connect API.
 
@@ -2182,12 +2000,8 @@ Command Syntax
 
 
 
-
-
-.. _list_community_templates:
-
-**list_community_templates**
-==========================================
+list_community_templates
+========================
 
 **Description:** Prints the Community Templates available to the current org
 
@@ -2202,12 +2016,8 @@ Command Syntax
 
 
 
-
-
-.. _list_metadata_types:
-
-**list_metadata_types**
-==========================================
+list_metadata_types
+===================
 
 **Description:** Prints the metadata types in a project
 
@@ -2228,12 +2038,8 @@ Options
 
 	 The project package.xml file. Defaults to <project_root>/src/package.xml
 
-
-
-.. _meta_xml_apiversion:
-
-**meta_xml_apiversion**
-==========================================
+meta_xml_apiversion
+===================
 
 **Description:** Set the API version in ``*meta.xml`` files
 
@@ -2259,12 +2065,8 @@ Options
 
 	 Base directory to search for ``*-meta.xml`` files
 
-
-
-.. _meta_xml_dependencies:
-
-**meta_xml_dependencies**
-==========================================
+meta_xml_dependencies
+=====================
 
 **Description:** Set the version for dependent packages
 
@@ -2285,12 +2087,8 @@ Options
 
 	 Base directory to search for ``*-meta.xml`` files
 
-
-
-.. _metadeploy_publish:
-
-**metadeploy_publish**
-==========================================
+metadeploy_publish
+==================
 
 **Description:** Publish a release to the MetaDeploy web installer
 
@@ -2336,12 +2134,8 @@ Options
 
 	 Path to a folder containing translations.
 
-
-
-.. _org_settings:
-
-**org_settings**
-==========================================
+org_settings
+============
 
 **Description:** Apply org settings from a scratch org definition file
 
@@ -2367,12 +2161,8 @@ Options
 
 	 API version used to deploy the settings
 
-
-
-.. _publish_community:
-
-**publish_community**
-==========================================
+publish_community
+=================
 
 **Description:** Publishes a Community in the target org using the Connect API
 
@@ -2400,12 +2190,8 @@ Options
 
 	 The id of the Community to publish.
 
-
-
-.. _push_all:
-
-**push_all**
-==========================================
+push_all
+========
 
 **Description:** Schedules a push upgrade of a package version to all subscribers
 
@@ -2446,12 +2232,8 @@ Options
 
 	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
 
-
-
-.. _push_list:
-
-**push_list**
-==========================================
+push_list
+=========
 
 **Description:** Schedules a push upgrade of a package version to all orgs listed in the specified file
 
@@ -2492,12 +2274,8 @@ Options
 
 	 Break pull requests into batches of this many orgs. Defaults to 200.
 
-
-
-.. _push_qa:
-
-**push_qa**
-==========================================
+push_qa
+=======
 
 **Description:** Schedules a push upgrade of a package version to all orgs listed in push/orgs_qa.txt
 
@@ -2540,12 +2318,8 @@ Options
 
 	 Break pull requests into batches of this many orgs. Defaults to 200.
 
-
-
-.. _push_sandbox:
-
-**push_sandbox**
-==========================================
+push_sandbox
+============
 
 **Description:** Schedules a push upgrade of a package version to all subscribers
 
@@ -2588,12 +2362,8 @@ Options
 
 	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
 
-
-
-.. _push_trial:
-
-**push_trial**
-==========================================
+push_trial
+==========
 
 **Description:** Schedules a push upgrade of a package version to Trialforce Template orgs listed in push/orgs_trial.txt
 
@@ -2636,12 +2406,8 @@ Options
 
 	 Break pull requests into batches of this many orgs. Defaults to 200.
 
-
-
-.. _push_failure_report:
-
-**push_failure_report**
-==========================================
+push_failure_report
+===================
 
 **Description:** Produce a CSV report of the failed and otherwise anomalous push jobs.
 
@@ -2674,12 +2440,8 @@ Options
 
 	 Default: ['Salesforce Subscription Expired', 'Package Uninstalled']
 
-
-
-.. _query:
-
-**query**
-==========================================
+query
+=====
 
 **Description:** Queries the connected org
 
@@ -2710,12 +2472,8 @@ Options
 
 	 The name of the csv file to write the results to
 
-
-
-.. _retrieve_packaged:
-
-**retrieve_packaged**
-==========================================
+retrieve_packaged
+=================
 
 **Description:** Retrieves the packaged metadata from the org
 
@@ -2773,12 +2531,8 @@ Options
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
 
-
-
-.. _retrieve_src:
-
-**retrieve_src**
-==========================================
+retrieve_src
+============
 
 **Description:** Retrieves the packaged metadata into the src directory
 
@@ -2836,12 +2590,8 @@ Options
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
 
-
-
-.. _retrieve_unpackaged:
-
-**retrieve_unpackaged**
-==========================================
+retrieve_unpackaged
+===================
 
 **Description:** Retrieve the contents of a package.xml file.
 
@@ -2897,12 +2647,8 @@ Options
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
 
-
-
-.. _list_changes:
-
-**list_changes**
-==========================================
+list_changes
+============
 
 **Description:** List the changes from a scratch org
 
@@ -2938,12 +2684,8 @@ Options
 
 	 If True, all matching items will be set to be ignored at their current revision number.  This will exclude them from the results unless a new edit is made.
 
-
-
-.. _retrieve_changes:
-
-**retrieve_changes**
-==========================================
+retrieve_changes
+================
 
 **Description:** Retrieve changed components from a scratch org
 
@@ -2994,12 +2736,8 @@ Options
 
 	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
-
-
-.. _retrieve_qa_config:
-
-**retrieve_qa_config**
-==========================================
+retrieve_qa_config
+==================
 
 **Description:** Retrieves the current changes in the scratch org into unpackaged/config/qa
 
@@ -3054,12 +2792,8 @@ Options
 
 	 Default: $project_config.project__package__namespace
 
-
-
-.. _set_field_help_text:
-
-**set_field_help_text**
-==========================================
+set_field_help_text
+===================
 
 **Description:** Sets specified fields' Help Text values.
 
@@ -3107,12 +2841,8 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
-
-
-.. _snapshot_changes:
-
-**snapshot_changes**
-==========================================
+snapshot_changes
+================
 
 **Description:** Tell SFDX source tracking to ignore previous changes in a scratch org
 
@@ -3125,12 +2855,8 @@ Command Syntax
 
 
 
-
-
-.. _revert_managed_src:
-
-**revert_managed_src**
-==========================================
+revert_managed_src
+==================
 
 **Description:** Reverts the changes from create_managed_src
 
@@ -3160,12 +2886,8 @@ Options
 
 	 Default: src.orig
 
-
-
-.. _revert_unmanaged_ee_src:
-
-**revert_unmanaged_ee_src**
-==========================================
+revert_unmanaged_ee_src
+=======================
 
 **Description:** Reverts the changes from create_unmanaged_ee_src
 
@@ -3195,12 +2917,8 @@ Options
 
 	 Default: src.orig
 
-
-
-.. _robot:
-
-**robot**
-==========================================
+robot
+=====
 
 **Description:** Runs a Robot Framework test from a .robot file
 
@@ -3278,12 +2996,8 @@ Options
 
 	 *experimental* Number of processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robotframework. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.
 
-
-
-.. _robot_libdoc:
-
-**robot_libdoc**
-==========================================
+robot_libdoc
+============
 
 **Description:** Generates documentation for project keyword files
 
@@ -3318,12 +3032,8 @@ Options
 
 	 Default: $project_config.project__package__name
 
-
-
-.. _robot_lint:
-
-**robot_lint**
-==========================================
+robot_lint
+==========
 
 **Description:** Static analysis tool for robot framework files
 
@@ -3411,12 +3121,8 @@ Options
 
 	 The path to one or more files or folders. If the path includes wildcard characters, they will be expanded. If not provided, the default will be to process all files under robot/<project name>
 
-
-
-.. _robot_testdoc:
-
-**robot_testdoc**
-==========================================
+robot_testdoc
+=============
 
 **Description:** Generates html documentation of your Robot test suite and writes to tests/test_suite.
 
@@ -3446,12 +3152,8 @@ Options
 
 	 Default: tests/test_suites.html
 
-
-
-.. _run_tests:
-
-**run_tests**
-==========================================
+run_tests
+=========
 
 **Description:** Runs all apex tests
 
@@ -3522,12 +3224,8 @@ Options
 
 	 By default, only failures get detailed output. Set verbose to True to see all passed test methods.
 
-
-
-.. _set_duplicate_rule_status:
-
-**set_duplicate_rule_status**
-==========================================
+set_duplicate_rule_status
+=========================
 
 **Description:** Sets the active status of Duplicate Rules.
 
@@ -3570,12 +3268,8 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
-
-
-.. _set_organization_wide_defaults:
-
-**set_organization_wide_defaults**
-==========================================
+set_organization_wide_defaults
+==============================
 
 **Description:** Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
 
@@ -3623,12 +3317,8 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
-
-
-.. _uninstall_managed:
-
-**uninstall_managed**
-==========================================
+uninstall_managed
+=================
 
 **Description:** Uninstalls the managed version of the package
 
@@ -3654,12 +3344,8 @@ Options
 
 	 Sets the purgeOnDelete option for the deployment.  Defaults to True
 
-
-
-.. _uninstall_packaged:
-
-**uninstall_packaged**
-==========================================
+uninstall_packaged
+==================
 
 **Description:** Uninstalls all deleteable metadata in the package in the target org
 
@@ -3685,12 +3371,8 @@ Options
 
 	 Sets the purgeOnDelete option for the deployment.  Defaults to True
 
-
-
-.. _uninstall_packaged_incremental:
-
-**uninstall_packaged_incremental**
-==========================================
+uninstall_packaged_incremental
+==============================
 
 **Description:** Deletes any metadata from the package in the target org not in the local workspace
 
@@ -3731,12 +3413,8 @@ Options
 
 	 List of component types to ignore in the org and not try to delete. Defaults to ['RecordType']
 
-
-
-.. _uninstall_src:
-
-**uninstall_src**
-==========================================
+uninstall_src
+=============
 
 **Description:** Uninstalls all metadata in the local src directory
 
@@ -3814,12 +3492,8 @@ Options
 
 	 Sets the purgeOnDelete option for the deployment. Defaults to True
 
-
-
-.. _uninstall_pre:
-
-**uninstall_pre**
-==========================================
+uninstall_pre
+=============
 
 **Description:** Uninstalls the unpackaged/pre bundles
 
@@ -3897,12 +3571,8 @@ Options
 
 	 Sets the purgeOnDelete option for the deployment. Defaults to True
 
-
-
-.. _uninstall_post:
-
-**uninstall_post**
-==========================================
+uninstall_post
+==============
 
 **Description:** Uninstalls the unpackaged/post bundles
 
@@ -3947,12 +3617,8 @@ Options
 
 	 The namespace to replace the token with if in managed mode. Defaults to project__package__namespace
 
-
-
-.. _unschedule_apex:
-
-**unschedule_apex**
-==========================================
+unschedule_apex
+===============
 
 **Description:** Unschedule all scheduled apex jobs (CronTriggers).
 
@@ -4004,12 +3670,8 @@ Options
 
 	 Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code.Defaults to an empty value.
 
-
-
-.. _update_admin_profile:
-
-**update_admin_profile**
-==========================================
+update_admin_profile
+====================
 
 **Description:** Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
 
@@ -4065,12 +3727,8 @@ Options
 
 	 List of API names of Profiles to affect
 
-
-
-.. _update_dependencies:
-
-**update_dependencies**
-==========================================
+update_dependencies
+===================
 
 **Description:** Installs all dependencies in project__dependencies into the target org
 
@@ -4126,12 +3784,8 @@ Options
 
 	 Which users to install packages for (FULL = all users, NONE = admins only)
 
-
-
-.. _update_metadata_first_child_text:
-
-**update_metadata_first_child_text**
-==========================================
+update_metadata_first_child_text
+================================
 
 **Description:** Updates the text of the first child of Metadata with matching tag.  Adds a child for tag if it does not exist.
 
@@ -4231,12 +3885,8 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
-
-
-.. _update_package_xml:
-
-**update_package_xml**
-==========================================
+update_package_xml
+==================
 
 **Description:** Updates src/package.xml with metadata in src/
 
@@ -4279,12 +3929,8 @@ Options
 
 	 If True, generate a package.xml for use as a destructiveChanges.xml file for deleting metadata
 
-
-
-.. _upload_beta:
-
-**upload_beta**
-==========================================
+upload_beta
+===========
 
 **Description:** Uploads a beta release of the metadata currently in the packaging org
 
@@ -4335,12 +3981,8 @@ Options
 
 	 The namespace of the package.  Defaults to project__package__namespace
 
-
-
-.. _upload_production:
-
-**upload_production**
-==========================================
+upload_production
+=================
 
 **Description:** Uploads a production release of the metadata currently in the packaging org
 
@@ -4395,12 +4037,8 @@ Options
 
 	 The namespace of the package.  Defaults to project__package__namespace
 
-
-
-.. _util_sleep:
-
-**util_sleep**
-==========================================
+util_sleep
+==========
 
 **Description:** Sleeps for N seconds
 
@@ -4423,12 +4061,8 @@ Options
 
 	 Default: 5
 
-
-
-.. _log:
-
-**log**
-==========================================
+log
+===
 
 **Description:** Log a line at the info level.
 
@@ -4461,12 +4095,8 @@ Options
 
 	 A Dict of format vars
 
-
-
-.. _generate_dataset_mapping:
-
-**generate_dataset_mapping**
-==========================================
+generate_dataset_mapping
+========================
 
 **Description:** Create a mapping for extracting data from an org.
 
@@ -4536,12 +4166,8 @@ Options
 
 	 If True, CumulusCI removes the project's namespace where found in fields  and objects to support automatic namespace injection. On by default.
 
-
-
-.. _extract_dataset:
-
-**extract_dataset**
-==========================================
+extract_dataset
+===============
 
 **Description:** Extract a sample dataset using the bulk API.
 
@@ -4586,12 +4212,8 @@ Options
 
 	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
-
-
-.. _load_dataset:
-
-**load_dataset**
-==========================================
+load_dataset
+============
 
 **Description:** Load a sample dataset using the bulk API.
 
@@ -4656,12 +4278,8 @@ Options
 
 	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
-
-
-.. _load_custom_settings:
-
-**load_custom_settings**
-==========================================
+load_custom_settings
+====================
 
 **Description:** Load Custom Settings specified in a YAML file to the target org
 
@@ -4682,12 +4300,8 @@ Options
 
 	 The path to a YAML settings file
 
-
-
-.. _remove_metadata_xml_elements:
-
-**remove_metadata_xml_elements**
-==========================================
+remove_metadata_xml_elements
+============================
 
 **Description:** Remove specified XML elements from one or more metadata files
 
@@ -4723,12 +4337,8 @@ Options
 
 	 Change the current directory before running the replace
 
-
-
-.. _disable_tdtm_trigger_handlers:
-
-**disable_tdtm_trigger_handlers**
-==========================================
+disable_tdtm_trigger_handlers
+=============================
 
 **Description:** Disable specified TDTM trigger handlers
 
@@ -4771,12 +4381,8 @@ Options
 
 	 If True, restore the state of Trigger Handlers to that stored in the restore file.
 
-
-
-.. _restore_tdtm_trigger_handlers:
-
-**restore_tdtm_trigger_handlers**
-==========================================
+restore_tdtm_trigger_handlers
+=============================
 
 **Description:** Restore status of TDTM trigger handlers
 
