@@ -289,10 +289,18 @@ class TestScratchOrgConfig(unittest.TestCase):
                 "username": "username",
                 "created_date": "1970-01-01T00:00:00Z",
                 "expiration_date": "1970-01-08",
+                "access_token_cache": {},
             },
         )
         self.assertIs(info, config._sfdx_info)
-        for key in ("access_token", "instance_url", "org_id", "password", "username"):
+        for key in (
+            "access_token",
+            "instance_url",
+            "org_id",
+            "password",
+            "username",
+            "access_token_cache",
+        ):
             assert key in config.config
         self.assertTrue(config._sfdx_info_date)
 
@@ -344,6 +352,99 @@ class TestScratchOrgConfig(unittest.TestCase):
         _marker = object()
         config._sfdx_info = {"access_token": _marker}
         self.assertIs(config.access_token, _marker)
+
+    def test_get_access_token(self, Command):
+        """Verify that get_access_token calls out to sfdx"""
+        sf = mock.Mock()
+        sf.query_all.return_value = {"records": [{"Username": "whatever@example.com"}]}
+
+        sfdx_response = mock.Mock(returncode=0)
+        sfdx_response.stdout_text.read.return_value = (
+            '{"result": {"accessToken": "the-token"}}'
+        )
+        sfdx = mock.Mock(return_value=sfdx_response)
+
+        config = ScratchOrgConfig({}, "test")
+        config._sfdx_info = {"access_token_cache": {}}
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+            with mock.patch("cumulusci.core.config.SfdxOrgConfig.sfdx", sfdx):
+                access_token = config.get_access_token(alias="dadvisor")
+                sfdx.assert_called_once_with(
+                    "force:org:display --targetusername=whatever@example.com --json"
+                )
+                self.assertEqual(access_token, "the-token")
+                cache_key = "[('alias', 'dadvisor')]"
+
+                # make sure it got added to the cache
+                self.assertIn(cache_key, config.sfdx_info["access_token_cache"])
+
+    def test_get_access_token__default(self, Command):
+        """Verify that with no args, get_access_token returns the default token"""
+        config = ScratchOrgConfig({}, "test")
+        _marker = object()
+        config._sfdx_info = {"access_token": _marker}
+        access_token = config.get_access_token()
+        self.assertIs(access_token, _marker)
+
+    def test_get_access_token__cache(self, Command):
+        """Verify that get_access_token returns a cached value if available"""
+        config = ScratchOrgConfig({}, "test")
+        config._sfdx_info = {
+            "access_token_cache": {"[('alias', 'dadvisor')]": "the-token"}
+        }
+        token = config.get_access_token(alias="dadvisor")
+        self.assertEqual(token, "the-token")
+
+    def test_get_access_token__unknown_user(self, Command):
+        sf = mock.Mock()
+        sf.query_all.return_value = {"records": []}
+
+        config = ScratchOrgConfig({}, "test")
+        config._sfdx_info = {"access_token_cache": {}}
+
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+            with pytest.raises(
+                SfdxOrgException,
+                match="Couldn't find a username for the specified user",
+            ):
+                config.get_access_token(alias="dadvisor")
+
+    def test_get_access_token__multiple_users(self, Command):
+        sf = mock.Mock()
+        sf.query_all.return_value = {
+            "records": [
+                {"Username": "test1@example.com"},
+                {"Username": "test2@example.com"},
+            ]
+        }
+
+        config = ScratchOrgConfig({}, "test")
+        config._sfdx_info = {"access_token_cache": {}}
+
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+            with pytest.raises(
+                SfdxOrgException,
+                match="More than one user matched the search critiera.",
+            ):
+                config.get_access_token(alias="dadvisor")
+
+    def test_get_access_token__no_access_token(self, Command):
+        sf = mock.Mock()
+        sf.query_all.return_value = {"records": [{"Username": "whatever@example.com"}]}
+
+        sfdx_response = mock.Mock(returncode=1)
+        sfdx_response.stdout_text.read.return_value = '{"message": "blah blah..."}'
+        sfdx = mock.Mock(return_value=sfdx_response)
+
+        config = ScratchOrgConfig({}, "test")
+        config._sfdx_info = {"access_token_cache": {}}
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+            with mock.patch("cumulusci.core.config.SfdxOrgConfig.sfdx", sfdx):
+                exception = (
+                    "Unable to find access token for whatever@example.com\nblah blah..."
+                )
+                with pytest.raises(SfdxOrgException, match=exception):
+                    config.get_access_token(alias="dadvisor")
 
     def test_instance_url(self, Command):
         config = ScratchOrgConfig({}, "test")
