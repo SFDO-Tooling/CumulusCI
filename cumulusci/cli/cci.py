@@ -1780,7 +1780,7 @@ def gist(runtime):
     try:
         gh = RUNTIME.keychain.get_service("github")
         gist = create_gist(
-            get_github_api(gh.config["username"], gh.config["password"]),
+            get_github_api(gh.username, gh.password or gh.token),
             "CumulusCI Error Output",
             files,
         )
