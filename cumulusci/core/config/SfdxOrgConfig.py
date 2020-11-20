@@ -1,5 +1,6 @@
 import datetime
 import json
+from json.decoder import JSONDecodeError
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import SfdxOrgException
@@ -28,7 +29,7 @@ class SfdxOrgConfig(OrgConfig):
 
         # Call force:org:display and parse output to get instance_url and
         # access_token
-        p = sfdx("force:org:display --json", self.username)
+        p = self.sfdx("force:org:display --json", self.username)
 
         org_info = None
         stderr_list = [line.strip() for line in p.stderr_text]
@@ -59,6 +60,7 @@ class SfdxOrgConfig(OrgConfig):
             "access_token": org_info["result"]["accessToken"],
             "org_id": org_id,
             "username": org_info["result"]["username"],
+            "access_token_cache": {},
         }
         if org_info["result"].get("password"):
             sfdx_info["password"] = org_info["result"]["password"]
@@ -73,6 +75,11 @@ class SfdxOrgConfig(OrgConfig):
             }
         )
         return sfdx_info
+
+    @property
+    def sfdx(self):
+        """This exists primarily so that I can mock it out for testing"""
+        return sfdx
 
     @property
     def access_token(self):
@@ -121,10 +128,81 @@ class SfdxOrgConfig(OrgConfig):
 
         return email_address
 
+    def get_access_token(self, **userfields):
+        """Get the access token for a specific user
+
+        If no keyword arguments are passed in, this will return the
+        access token for the default user. If userfields has the key
+        "username", the access token for that user will be returned.
+        Otherwise, a SOQL query will be made based off of the
+        passed-in fields to find the username, and the token for that
+        username will be returned.
+
+        Values are cached; the cache can be reset with the 'Refresh
+        oauth token' keyword.
+
+        Examples:
+
+        | # default user access token:
+        | token = org.get_access_token()
+
+        | # access token for 'test@example.com'
+        | token = org.get_access_token(username='test@example.com')
+
+        | # access token for user based on lookup fields
+        | token = org.get_access_token(alias='dadvisor')
+
+        """
+        if not userfields:
+            # No lookup fields specified? Return the token for the
+            # default user
+            return self.access_token
+
+        cache_key = str(sorted(userfields.items()))
+        if cache_key not in self.sfdx_info["access_token_cache"]:
+            # if we have a username, use it. Otherwise we need to do a
+            # lookup using the passed-in fields.
+            username = userfields.get("username", None)
+            if username is None:
+                where = [f"{key} = '{value}'" for key, value in userfields.items()]
+                query = f"SELECT Username FROM User WHERE {' AND '.join(where)}"
+                result = self.salesforce_client.query_all(query).get("records", [])
+                if len(result) == 0:
+                    raise SfdxOrgException(
+                        "Couldn't find a username for the specified user."
+                    )
+                elif len(result) > 1:
+                    raise SfdxOrgException(
+                        "More than one user matched the search critiera."
+                    )
+                else:
+                    username = result[0]["Username"]
+
+            p = self.sfdx(f"force:org:display --targetusername={username} --json")
+            if p.returncode:
+                output = p.stdout_text.read()
+                try:
+                    info = json.loads(output)
+                    explanation = info["message"]
+                except (JSONDecodeError, KeyError):
+                    explanation = output
+
+                raise SfdxOrgException(
+                    f"Unable to find access token for {username}\n{explanation}"
+                )
+            else:
+                info = json.loads(p.stdout_text.read())
+                self.sfdx_info["access_token_cache"][cache_key] = info["result"][
+                    "accessToken"
+                ]
+        return self.sfdx_info["access_token_cache"][cache_key]
+
     def force_refresh_oauth_token(self):
         # Call force:org:display and parse output to get instance_url and
         # access_token
-        p = sfdx("force:org:open -r", self.username, log_note="Refreshing OAuth token")
+        p = self.sfdx(
+            "force:org:open -r", self.username, log_note="Refreshing OAuth token"
+        )
 
         stdout_list = [line.strip() for line in p.stdout_text]
 

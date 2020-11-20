@@ -1,7 +1,6 @@
 from collections import defaultdict
 from collections import namedtuple
 from distutils.version import StrictVersion
-import json
 import os
 import re
 from contextlib import contextmanager
@@ -10,7 +9,6 @@ from urllib.parse import urlparse
 import requests
 from simple_salesforce import Salesforce
 
-from cumulusci.core.sfdx import sfdx
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import DependencyResolutionError
@@ -40,7 +38,6 @@ class OrgConfig(BaseConfig):
         self.global_org = global_org
 
         self.name = name
-        self._access_token_cache = {}
         self._community_info_cache = {}
         self._latest_api_version = None
         self._installed_packages = None
@@ -317,62 +314,6 @@ class OrgConfig(BaseConfig):
 
         cache_dir.mkdir(parents=True, exist_ok=True)
         return open_fs_resource(cache_dir)
-
-    def get_access_token(self, **userfields):
-        """Get the access token for a specific user
-
-        If no keyword arguments are passed in, this will return the
-        access token for the default user. If userfields has the key
-        "username", the access token for that user will be returned.
-        Otherwise, a SOQL query will be made based off of the
-        passed-in fields to find the username, and the token for that
-        username will be returned.
-
-        Values are cached; the cache can be reset with the 'Refresh
-        oauth token' keyword.
-
-        Examples:
-
-        | # default user access token:
-        | token = org.get_access_token()
-
-        | # access token for 'test@example.com'
-        | token = org.get_access_token(username='test@example.com')
-
-        | # access token for user based on lookup fields
-        | token = org.get_access_token(alias='dadvisor')
-
-        """
-        if not userfields:
-            # No lookup fields specified? Return the token for the
-            # default user
-            return self.access_token
-
-        cache_key = str(sorted(userfields.items()))
-        if cache_key not in self._access_token_cache:
-            # if we have a username, use it. Otherwise we need to do a
-            # lookup using the passed-in fields.
-            username = userfields.get("username", None)
-            if username is None:
-                where = [f"{key} = '{value}'" for key, value in userfields.items()]
-                query = f"SELECT Username FROM User WHERE {' AND '.join(where)}"
-                result = self.salesforce_client.query_all(query).get("records", [])
-                if len(result) == 0:
-                    raise Exception("Couldn't find a username for the specified user.")
-                elif len(result) > 1:
-                    raise Exception("More than one user matched the search critiera.")
-                else:
-                    username = result[0]["Username"]
-
-            p = sfdx(f"force:org:display --targetusername={username} --json")
-            info = json.loads(p.stdout_text.read())
-            if p.returncode:
-                raise Exception(
-                    f"Unable to find access token for {username}\n{info['message']}"
-                )
-            else:
-                self._access_token_cache[cache_key] = info["result"]["accessToken"]
-        return self._access_token_cache[cache_key]
 
     @property
     def is_person_accounts_enabled(self):
