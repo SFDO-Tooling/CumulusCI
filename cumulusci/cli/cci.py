@@ -34,11 +34,14 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.github import create_gist, get_github_api
-from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import FlowNotFoundError
+from cumulusci.core.exceptions import (
+    OrgNotFound,
+    CumulusCIException,
+    CumulusCIUsageError,
+    ServiceNotConfigured,
+    FlowNotFoundError,
+)
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 from cumulusci.core.utils import import_global
@@ -90,7 +93,9 @@ def is_final_release(version: str) -> bool:
 def get_latest_final_version():
     """ return the latest version of cumulusci in pypi, be defensive """
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
-    res = requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5).json()
+    res = safe_json_from_response(
+        requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5)
+    )
     with timestamp_file() as f:
         f.write(str(time.time()))
     versions = []
@@ -1375,7 +1380,7 @@ def task_doc(runtime, project=False, write=False):
         task_config = TaskConfig(task_config_dict)
         doc = doc_task(name, task_config)
         result += [doc, ""]
-    result = "\r\n".join(result)
+    result = "\n".join(result)
 
     if write:
         Path("docs").mkdir(exist_ok=True)
@@ -1775,7 +1780,7 @@ def gist(runtime):
     try:
         gh = RUNTIME.keychain.get_service("github")
         gist = create_gist(
-            get_github_api(gh.config["username"], gh.config["password"]),
+            get_github_api(gh.username, gh.password or gh.token),
             "CumulusCI Error Output",
             files,
         )

@@ -64,7 +64,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
             ServiceConfig(
                 {
                     "username": "TestUser",
-                    "password": "TestPass",
+                    "token": "TestPass",
                     "email": "testuser@testdomain.com",
                 }
             ),
@@ -99,7 +99,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
             ServiceConfig(
                 {
                     "username": "TestUser",
-                    "password": "TestPass",
+                    "token": "TestPass",
                     "email": "testuser@testdomain.com",
                 }
             ),
@@ -145,7 +145,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
             ServiceConfig(
                 {
                     "username": "TestUser",
-                    "password": "TestPass",
+                    "token": "TestPass",
                     "email": "testuser@testdomain.com",
                 }
             ),
@@ -176,7 +176,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
             ServiceConfig(
                 {
                     "username": "TestUser",
-                    "password": "TestPass",
+                    "token": "TestPass",
                     "email": "testuser@testdomain.com",
                 }
             ),

@@ -404,7 +404,7 @@ the Value, enter the following JSON:
 
 .. code-block:: json
 
-   {"username": "USERNAME", "password": "TOKEN", "email": "EMAIL"}
+   {"username": "USERNAME", "token": "TOKEN", "email": "EMAIL"}
 
 But replace ``USERNAME`` with your github username, ``TOKEN`` with the Personal
 Access Token you just created, and ``EMAIL`` with your email address.
