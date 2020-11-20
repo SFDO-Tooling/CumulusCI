@@ -43,7 +43,7 @@ tasks:
         description: "Assigns specified Permission Sets to the current user, if not already assigned."
         class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
     batch_apex_wait:
-        description: Waits on a batch apex job to finish.
+        description: Waits on a batch apex or queueable apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
     check_sobjects_available:
@@ -692,7 +692,7 @@ flows:
                 task: update_admin_profile
 
     config_managed:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure an org for use after the managed package has been installed.
         steps:
             1:
@@ -701,14 +701,14 @@ flows:
                 task: update_admin_profile
 
     config_packaging:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure packaging org for upload after package metadata is deployed
         steps:
             1:
                 task: update_admin_profile
 
     config_qa:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure an org for use as a QA org after package metadata is deployed
         steps:
             1:
@@ -717,7 +717,7 @@ flows:
                 task: update_admin_profile
 
     config_regression:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure an org for QA regression after the package is installed
         steps:
             1:
