@@ -1,4 +1,7 @@
 import csv
+import itertools
+from contextlib import contextmanager
+
 from sqlalchemy import create_engine
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -6,32 +9,30 @@ from sqlalchemy import MetaData
 from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import create_session, mapper
-from sqlalchemy.ext.automap import automap_base
-import tempfile
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
-    OrgInfoMixin,
     SqlAlchemyMixin,
     create_table,
-    fields_for_mapping,
 )
 from cumulusci.core.utils import process_bool_arg
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata.step import (
-    BulkApiQueryOperation,
     DataOperationStatus,
     DataOperationType,
+    get_query_operation,
 )
+from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
 from cumulusci.utils import os_friendly_path, log_progress
 from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
     validate_and_inject_mapping,
 )
+from cumulusci.tasks.bulkdata.utils import consume
 
 
-class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
+class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
     """Perform Bulk Queries to extract data for a mapping and persist to a SQL file or database."""
 
     task_options = {
@@ -47,8 +48,9 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
             + "This is useful for keeping data in the repository and allowing diffs."
         },
         "inject_namespaces": {
-            "description": "If True, the package namespace prefix will be automatically added to objects "
-            "and fields for which it is present in the org. Defaults to True."
+            "description": "If True, the package namespace prefix will be "
+            "automatically added to (or removed from) objects "
+            "and fields based on the name used in the org. Defaults to True."
         },
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
@@ -61,60 +63,60 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
             # prefer database_url if it's set
             self.options["sql_path"] = None
         elif self.options.get("sql_path"):
-            self.logger.info("Using in-memory sqlite database")
-            self.options["database_url"] = "sqlite://"
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
         else:
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
             )
 
+        inject_namespaces = self.options.get("inject_namespaces")
         self.options["inject_namespaces"] = process_bool_arg(
-            self.options.get("inject_namespaces", True)
+            True if inject_namespaces is None else inject_namespaces
         )
         self.options["drop_missing_schema"] = process_bool_arg(
-            self.options.get("drop_missing_schema", False)
+            self.options.get("drop_missing_schema") or False
         )
 
     def _run_task(self):
         self._init_mapping()
-        self._init_db()
+        with self._init_db():
+            for mapping in self.mapping.values():
+                soql = self._soql_for_mapping(mapping)
+                self._run_query(soql, mapping)
 
-        for mapping in self.mapping.values():
-            soql = self._soql_for_mapping(mapping)
-            self._run_query(soql, mapping)
+            self._map_autopks()
 
-        self._drop_sf_id_columns()
+            if self.options.get("sql_path"):
+                self._sqlite_dump()
 
-        if self.options.get("sql_path"):
-            self._sqlite_dump()
-
+    @contextmanager
     def _init_db(self):
         """Initialize the database and automapper."""
         self.models = {}
 
-        # initialize the DB engine
-        self.engine = create_engine(self.options["database_url"])
+        with self._database_url() as database_url:
 
-        # initialize DB metadata
-        self.metadata = MetaData()
-        self.metadata.bind = self.engine
+            # initialize the DB engine
+            parent_engine = create_engine(database_url)
+            with parent_engine.connect() as connection:
+                # initialize DB metadata
+                self.metadata = MetaData()
+                self.metadata.bind = connection
 
-        # Create the tables
-        self._create_tables()
+                # Create the tables
+                self._create_tables()
 
-        # initialize the automap mapping
-        self.base = automap_base(bind=self.engine, metadata=self.metadata)
-        self.base.prepare(self.engine, reflect=True)
+                # initialize session
+                self.session = create_session(bind=connection, autocommit=False)
 
-        # initialize session
-        self.session = create_session(bind=self.engine, autocommit=False)
+                yield self.session, self.metadata, connection
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
         mapping_file_path = self.options["mapping"]
         if not mapping_file_path:
             raise TaskOptionsError("Mapping file path required")
+        self.logger.info(f"Mapping file: {self.options['mapping']}")
 
         self.mapping = parse_from_yaml(mapping_file_path)
 
@@ -125,38 +127,37 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
             data_operation=DataOperationType.QUERY,
             inject_namespaces=self.options["inject_namespaces"],
             drop_missing=self.options["drop_missing_schema"],
-            org_has_person_accounts_enabled=self._org_has_person_accounts_enabled(),
+            org_has_person_accounts_enabled=self.org_config.is_person_accounts_enabled,
         )
-
-    def _fields_for_mapping(self, mapping):
-        """Return a flat list of fields for this mapping."""
-        fields = []
-        if not mapping["oid_as_pk"]:
-            fields.append("Id")
-        fields += [field["sf"] for field in fields_for_mapping(mapping)]
-
-        return fields
 
     def _soql_for_mapping(self, mapping):
         """Return a SOQL query suitable for extracting data for this mapping."""
-        sf_object = mapping["sf_object"]
-        fields = self._fields_for_mapping(mapping)
+        sf_object = mapping.sf_object
+        fields = mapping.get_complete_field_map(include_id=True).keys()
         soql = f"SELECT {', '.join(fields)} FROM {sf_object}"
+
         if mapping.record_type:
             soql += f" WHERE RecordType.DeveloperName = '{mapping.record_type}'"
 
         return soql
 
     def _run_query(self, soql, mapping):
-        """Execute a Bulk API query job and store the results."""
-        step = BulkApiQueryOperation(
-            sobject=mapping["sf_object"], api_options={}, context=self, query=soql
+        """Execute a Bulk or REST API query job and store the results."""
+        step = get_query_operation(
+            sobject=mapping.sf_object,
+            api=mapping.api,
+            fields=list(mapping.get_complete_field_map(include_id=True).keys()),
+            api_options={},
+            context=self,
+            query=soql,
         )
+
         self.logger.info(f"Extracting data for sObject {mapping['sf_object']}")
         step.query()
 
         if step.job_result.status is DataOperationStatus.SUCCESS:
             if step.job_result.records_processed:
+                self.logger.info("Downloading and importing records")
                 self._import_results(mapping, step)
             else:
                 self.logger.info(f"No records found for sObject {mapping['sf_object']}")
@@ -170,90 +171,97 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
         conn = self.session.connection()
 
         # Map SF field names to local db column names
-        fields = self._fields_for_mapping(mapping)
-        columns = []
-        lookup_keys = []
-        for field_name in fields:
-            column = mapping.get("fields", {}).get(field_name)
-            if not column:
-                lookup = mapping.get("lookups", {}).get(field_name, {})
-                if lookup:
-                    lookup_keys.append(field_name)
-                    column = lookup.get_lookup_key_field()
-            if column:
-                columns.append(column)
+        field_map = mapping.get_complete_field_map(include_id=True)
+        columns = [field_map[f] for f in field_map]  # Get values in insertion order.
 
-        if not columns:
-            return
-        record_type = mapping.get("record_type")
+        record_type = mapping.record_type
         if record_type:
             columns.append("record_type")
 
-        # FIXME: log_progress needs to know our batch size, when made configurable.
+        # TODO: log_progress needs to know our batch size, when made configurable.
         record_iterator = log_progress(step.get_results(), self.logger)
         if record_type:
             record_iterator = (record + [record_type] for record in record_iterator)
 
+        # Convert relative dates to stable dates.
+        if mapping.anchor_date:
+            date_context = mapping.get_relative_date_context(self.org_config)
+            if date_context[0] or date_context[1]:
+                record_iterator = (
+                    adjust_relative_dates(
+                        mapping, date_context, record, DataOperationType.QUERY
+                    )
+                    for record in record_iterator
+                )
+
         # Set Name field as blank for Person Account "Account" records.
         if (
-            mapping["sf_object"] == "Account"
-            and "Name" in mapping.get("fields", {})
-            and self._org_has_person_accounts_enabled()
+            mapping.sf_object == "Account"
+            and "Name" in field_map
+            and self.org_config.is_person_accounts_enabled
         ):
             # Bump indices by one since record's ID is the first column.
-            Name_index = columns.index(mapping["fields"]["Name"]) + 1
-            IsPersonAccount_index = (
-                columns.index(mapping["fields"]["IsPersonAccount"]) + 1
-            )
+            Name_index = columns.index(mapping.fields["Name"])
+            IsPersonAccount_index = columns.index(mapping.fields["IsPersonAccount"])
 
             def strip_name_field(record):
                 nonlocal Name_index, IsPersonAccount_index
-                if record[IsPersonAccount_index] == "true":
+                if record[IsPersonAccount_index].lower() == "true":
                     record[Name_index] = ""
                 return record
 
             record_iterator = (strip_name_field(record) for record in record_iterator)
 
-        if mapping["oid_as_pk"]:
+        if mapping.get_oid_as_pk():
             self._sql_bulk_insert_from_records(
                 connection=conn,
-                table=mapping["table"],
+                table=mapping.table,
                 columns=columns,
                 record_iterable=record_iterator,
             )
         else:
             # If using the autogenerated id field, split out the returned records
-            # into two separate files and load into the main table and the sf_id_table
+            # into two separate streams and load into the main table and the sf_id_table
+            values, ids = itertools.tee(record_iterator)
+            f_values = (row[1:] for row in values)
+            f_ids = (row[:1] for row in ids)
 
-            with tempfile.TemporaryFile("w+", newline="", encoding="utf-8") as f_values:
-                with tempfile.TemporaryFile(
-                    "w+", newline="", encoding="utf-8"
-                ) as f_ids:
-                    data_file_values, data_file_ids = self._split_batch_csv(
-                        record_iterator, f_values, f_ids
-                    )
-                    self._sql_bulk_insert_from_records(
-                        connection=conn,
-                        table=mapping["table"],
-                        columns=columns,
-                        record_iterable=csv.reader(data_file_values),
-                    )
-                    self._sql_bulk_insert_from_records(
-                        connection=conn,
-                        table=mapping["sf_id_table"],
-                        columns=["sf_id"],
-                        record_iterable=csv.reader(data_file_ids),
-                    )
+            values_chunks = self._sql_bulk_insert_from_records_incremental(
+                connection=conn,
+                table=mapping.table,
+                columns=columns[1:],  # Strip off the Id column
+                record_iterable=f_values,
+            )
+            ids_chunks = self._sql_bulk_insert_from_records_incremental(
+                connection=conn,
+                table=mapping.get_sf_id_table(),
+                columns=["sf_id"],
+                record_iterable=f_ids,
+            )
 
-        if "RecordTypeId" in mapping["fields"]:
+            # do the inserts one chunk at a time based on all of the
+            # generators nested previously.
+            consume(zip(values_chunks, ids_chunks))
+
+        if "RecordTypeId" in mapping.fields:
             self._extract_record_types(
-                mapping["sf_object"], mapping["record_type_table"], conn
+                mapping.sf_object, mapping.get_source_record_type_table(), conn
             )
 
         self.session.commit()
 
-        if lookup_keys and not mapping["oid_as_pk"]:
-            self._convert_lookups_to_id(mapping, lookup_keys)
+    def _map_autopks(self):
+        # Convert Salesforce Ids to autopks
+        for m in self.mapping.values():
+            lookup_keys = list(m.lookups.keys())
+            if not m.get_oid_as_pk():
+                if lookup_keys:
+                    self._convert_lookups_to_id(m, lookup_keys)
+
+        # Drop sf_id tables
+        for m in self.mapping.values():
+            if not m.get_oid_as_pk():
+                self.metadata.tables[m.get_sf_id_table()].drop()
 
     def _get_mapping_for_table(self, table):
         """Return the first mapping for a table name """
@@ -276,10 +284,10 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
         for lookup_key in lookup_keys:
-            lookup_info = mapping["lookups"][lookup_key]
-            model = self.models[mapping["table"]]
-            lookup_mapping = self._get_mapping_for_table(lookup_info["table"])
-            lookup_model = self.models[lookup_mapping["sf_id_table"]]
+            lookup_info = mapping.lookups[lookup_key]
+            model = self.models[mapping.table]
+            lookup_mapping = self._get_mapping_for_table(lookup_info.table)
+            lookup_model = self.models[lookup_mapping.get_sf_id_table()]
             key_field = lookup_info.get_lookup_key_field()
             key_attr = getattr(model, key_field)
             try:
@@ -304,46 +312,37 @@ class ExtractData(SqlAlchemyMixin, OrgInfoMixin, BaseSalesforceApiTask):
 
     def _create_table(self, mapping):
         """Create a table for the given mapping."""
-        model_name = f"{mapping['table']}Model"
+        model_name = f"{mapping.table}Model"
         mapper_kwargs = {}
-        self.models[mapping["table"]] = type(model_name, (object,), {})
+        self.models[mapping.table] = type(model_name, (object,), {})
 
         t = create_table(mapping, self.metadata)
 
-        if "RecordTypeId" in mapping["fields"]:
+        if "RecordTypeId" in mapping.fields:
             # We're using Record Type Mapping support.
-            mapping["record_type_table"] = mapping["sf_object"] + "_rt_mapping"
             # If multiple mappings point to the same table, don't recreate the table
-            if mapping["record_type_table"] not in self.models:
-                self._create_record_type_table(mapping["record_type_table"])
+            if mapping.get_source_record_type_table() not in self.models:
+                self._create_record_type_table(mapping.get_source_record_type_table())
 
-        if not mapping["oid_as_pk"]:
-            mapping["sf_id_table"] = mapping["table"] + "_sf_id"
+        if not mapping.get_oid_as_pk():
             # If multiple mappings point to the same table, don't recreate the table
-            if mapping["sf_id_table"] not in self.models:
-                sf_id_model_name = f"{mapping['sf_id_table']}Model"
-                self.models[mapping["sf_id_table"]] = type(
+            if mapping.get_sf_id_table() not in self.models:
+                sf_id_model_name = f"{mapping.get_sf_id_table()}Model"
+                self.models[mapping.get_sf_id_table()] = type(
                     sf_id_model_name, (object,), {}
                 )
                 sf_id_fields = [
                     Column("id", Integer(), primary_key=True, autoincrement=True),
                     Column("sf_id", Unicode(24)),
                 ]
-                id_t = Table(mapping["sf_id_table"], self.metadata, *sf_id_fields)
-                mapper(self.models[mapping["sf_id_table"]], id_t)
+                id_t = Table(mapping.get_sf_id_table(), self.metadata, *sf_id_fields)
+                mapper(self.models[mapping.get_sf_id_table()], id_t)
 
-        mapper(self.models[mapping["table"]], t, **mapper_kwargs)
-
-    def _drop_sf_id_columns(self):
-        """Drop Salesforce Id storage tables after rewriting Ids to auto-PKs."""
-        for mapping in self.mapping.values():
-            if mapping.get("oid_as_pk"):
-                continue
-            self.metadata.tables[mapping["sf_id_table"]].drop()
+        mapper(self.models[mapping.table], t, **mapper_kwargs)
 
     def _sqlite_dump(self):
         """Write a SQLite script output file."""
         path = self.options["sql_path"]
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")

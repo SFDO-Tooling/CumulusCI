@@ -30,7 +30,7 @@ class _SfdcTask(BaseTask):
 
 
 class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
-    """ Tests for the BaseTask callable interface.
+    """Tests for the BaseTask callable interface.
 
     BaseTask is a callable interface
     BaseTask has return_values and results
@@ -98,6 +98,24 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
         self.task_config.config["options"] = {"test_option": "$project_config.foo__bar"}
         task = BaseTask(self.project_config, self.task_config, self.org_config)
         self.assertEqual("baz", task.options["test_option"])
+
+    def test_init_options__not_shared(self):
+        self.project_config.config["foo"] = {"bar": "baz"}
+        self.task_config.config["options"] = {}
+        task1 = BaseTask(self.project_config, self.task_config, self.org_config)
+        self.task_config.options["test_option"] = "baz"
+        task1._init_options({})
+        self.task_config.options["test_option"] = "jazz"
+        task2 = BaseTask(self.project_config, self.task_config, self.org_config)
+        task2._init_options({})
+        self.assertEqual("baz", task1.options["test_option"])
+        self.assertEqual("jazz", task2.options["test_option"])
+
+    def test_init_options__project_config_integer(self):
+        self.project_config.config["foo"] = {"bar": 32}
+        self.task_config.config["options"] = {"test_option": "$project_config.foo__bar"}
+        task = BaseTask(self.project_config, self.task_config, self.org_config)
+        self.assertEqual("32", task.options["test_option"])
 
     def test_init_options__project_config_substitution__substring(self):
         self.project_config.config["foo"] = {"bar": "baz"}

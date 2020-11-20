@@ -48,6 +48,37 @@ Salesforce Query
     Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
     Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
 
+Salesforce Query Where
+    &{new_contact} =  Create Contact
+    @{records} =  Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where=FirstName='${new_contact}[FirstName]' AND LastName='${new_contact}[LastName]'
+    &{contact} =  Get From List  ${records}  0
+    Should Be Equal  ${contact}[Id]  ${new_contact}[Id]
+    Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
+    Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
+
+Salesforce Query Where Plus Clauses
+    &{new_contact} =  Create Contact
+    @{records} =  Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where=LastName='${new_contact}[LastName]'
+    ...              FirstName=${new_contact}[FirstName]
+    &{contact} =  Get From List  ${records}  0
+    Should Be Equal  ${contact}[Id]  ${new_contact}[Id]
+    Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
+    Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
+
+Salesforce Query Where Not Equal
+    &{new_contact} =  Create Contact
+    @{records} =  Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where= LastName!='${new_contact}[LastName]'
+    ...              FirstName=${new_contact}[FirstName]
+    ${cnt}=    Get length    ${records}
+    Should Be Equal As Numbers   ${cnt}  0
+
+
 SOQL Query
     &{new_contact} =  Create Contact
     &{result} =  Soql Query  Select Id, FirstName, LastName from Contact WHERE Id = '${new_contact}[Id]'
@@ -101,7 +132,7 @@ Collection API Errors Test
         ...  FirstName=User {{number}}
         ...  LastName={{fake.last_name}}
         ...  Xyzzy=qwertz
-    Run Keyword And Expect Error   SalesforceMalformedRequest*   Salesforce Collection Insert  ${objects}
+    Run Keyword And Expect Error   *No such column*Xyzzy*   Salesforce Collection Insert  ${objects}
 
     @{objects} =  Generate Test Data  Contact  20
         ...  FirstName=User {{number}}
@@ -115,7 +146,7 @@ Collection API Errors Test
     FOR     ${record}   IN  @{records}
         set to dictionary   ${record}   Age    Iron
     END
-    Run Keyword And Expect Error   SalesforceMalformedRequest*     Salesforce Collection Update  ${objects}
+    Run Keyword And Expect Error   *No such column*Age*   Salesforce Collection Update  ${objects}
 
 Get Version
     ${version} =   Get Latest Api Version

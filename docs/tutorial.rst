@@ -668,11 +668,7 @@ To set up our newly connected dev org, run the dev_org flow:
     2016-11-03 12:02:42:
     2016-11-03 12:02:42: Running task: deploy_post
     2016-11-03 12:02:43: Options:
-    2016-11-03 12:02:43:   namespace_token: %%%NAMESPACE%%%
     2016-11-03 12:02:43:   path: unpackaged/post
-    2016-11-03 12:02:43:   namespace: ccitest
-    2016-11-03 12:02:43:   managed: False
-    2016-11-03 12:02:43:   filename_token: ___NAMESPACE___
     2016-11-03 12:02:43: Deploying all metadata bundles in path /Users/jlantz/dev/CumulusCI-Test/unpackaged/post
     2016-11-03 12:02:43: Deploying bundle: unpackaged/post/salesforce1
     2016-11-03 12:02:43: Pending
@@ -742,7 +738,6 @@ Create the file **tasks/salesforce.py** with the following content:
 .. code-block:: python
 
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-    from cumulusci.tasks.salesforce import BaseSalesforceToolingApiTask
 
     class ListContacts(BaseSalesforceApiTask):
 
@@ -751,7 +746,7 @@ Create the file **tasks/salesforce.py** with the following content:
             for contact in res['records']:
                 self.logger.info('{Id}: {FirstName} {LastName}'.format(**contact))
 
-    class ListApexClasses(BaseSalesforceToolingApiTask):
+    class ListApexClasses(BaseSalesforceApiTask):
 
         def _run_task(self):
             res = self.tooling.query('Select Id, Name, NamespacePrefix from ApexClass LIMIT 10')

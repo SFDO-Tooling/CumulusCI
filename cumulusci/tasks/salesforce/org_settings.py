@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 
@@ -31,6 +32,14 @@ class DeployOrgSettings(Deploy):
         "api_version": {"description": "API version used to deploy the settings"},
     }
 
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        # We have no need for namespace injection when deploying settings,
+        # so let's explicitly disable it to prevent the Deploy task
+        # from making API calls to check if it's needed.
+        self.options["managed"] = False
+        self.options["namespaced_org"] = False
+
     def _run_task(self):
         with open(self.options["definition_file"], "r") as f:
             scratch_org_definition = json.load(f)
@@ -39,12 +48,26 @@ class DeployOrgSettings(Deploy):
         if not settings:
             return
 
-        with temporary_dir() as path:
-            self._generate_package(settings)
+        api_version = (
+            self.options.get("api_version") or self.org_config.latest_api_version
+        )
+        with build_settings_package(settings, api_version) as path:
             self.options["path"] = path
             return super()._run_task()
 
-    def _generate_package(self, settings):
+
+def capitalize(s):
+    """
+    Just capitalize first letter (different from .title, as it preserves
+    the rest of the case).
+    e.g. accountSettings -> AccountSettings
+    """
+    return s[0].upper() + s[1:]
+
+
+@contextlib.contextmanager
+def build_settings_package(settings: dict, api_version: str):
+    with temporary_dir() as path:
         os.mkdir("settings")
         for section, section_settings in settings.items():
             settings_name = capitalize(section)
@@ -66,17 +89,7 @@ class DeployOrgSettings(Deploy):
             )
             with open(settings_file, "w") as f:
                 f.write(SETTINGS_XML.format(settingsName=settings_name, values=values))
-        api_version = (
-            self.options.get("api_version") or self.org_config.latest_api_version
-        )
         with open("package.xml", "w") as f:
             f.write(PACKAGE_XML.format(api_version=api_version))
 
-
-def capitalize(s):
-    """
-    Just capitalize first letter (different from .title, as it preserves
-    the rest of the case).
-    e.g. accountSettings -> AccountSettings
-    """
-    return s[0].upper() + s[1:]
+        yield path

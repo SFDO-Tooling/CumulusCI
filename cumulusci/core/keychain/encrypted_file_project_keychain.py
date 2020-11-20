@@ -125,16 +125,20 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     @property
     def _default_org_path(self):
-        return Path(self.project_local_dir) / "DEFAULT_ORG.txt"
+        if self.project_local_dir:
+            return Path(self.project_local_dir) / "DEFAULT_ORG.txt"
 
     def get_default_org(self):
         """ Retrieve the name and configuration of the default org """
         # first look for a file with the default org in it
         default_org_path = self._default_org_path
-        if default_org_path.exists():
+        if default_org_path and default_org_path.exists():
             org_name = default_org_path.read_text().strip()
-            org_config = self.get_org(org_name)
-            return org_name, org_config
+            try:
+                org_config = self.get_org(org_name)
+                return org_name, org_config
+            except OrgNotFound:  # org was deleted
+                default_org_path.unlink()  # we don't really have a usable default anymore
 
         # fallback to old way of doing it
         org_name, org_config = super().get_default_org()

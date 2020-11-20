@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 
 import pkg_resources
@@ -56,28 +57,9 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
     def _init_options(self, kwargs):
         super(ProfileGrantAllAccess, self)._init_options(kwargs)
 
-        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
-
-        self.options["namespaced_org"] = process_bool_arg(
-            self.options.get("namespaced_org", False)
-        )
-
-        # For namespaced orgs, managed should always be True
-        if self.options["namespaced_org"]:
-            self.options["managed"] = True
-
         self.options["namespace_inject"] = self.options.get(
             "namespace_inject", self.project_config.project__package__namespace
         )
-
-        # Set up namespace prefix strings
-        namespace_prefix = "{}__".format(self.options["namespace_inject"])
-        self.namespace_prefixes = {
-            "managed": namespace_prefix if self.options["managed"] else "",
-            "namespaced_org": namespace_prefix
-            if self.options["namespaced_org"]
-            else "",
-        }
 
         # We enable new functionality to extend the package.xml to packaged objects
         # by default only if we meet specific requirements: the project has to require
@@ -97,39 +79,36 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         )
 
         # Build the api_names list, taking into account legacy behavior.
-        # If we're using a custom package.xml, Profiles to alter should be
-        # specified there.
-        self.api_names = set(process_list_arg(self.options.get("api_names", [])))
-        if "package_xml" in self.options:
-            if self.api_names or "profile_name" in self.options:
-                raise TaskOptionsError(
-                    "The package_xml option is not compatible with the profile_name or api_names options. "
-                    "Specify desired profiles in the custom package.xml"
-                )
+        # If we're using a custom package.xml, we will union the api_names list with
+        # any Profiles specified there.
+        self.api_names = set(process_list_arg(self.options.get("api_names") or []))
+        if "profile_name" in self.options:
+            self.api_names.add(self.options["profile_name"])
+        if not self.api_names and "package_xml" not in self.options:
+            self.api_names.add(
+                "Admin"
+            )  # Don't add a default if using custom package.xml
 
-            # Infer items to affect from what is retrieved.
-            self.api_names = {"*"}
+        if "package_xml" in self.options:
             self.package_xml_path = self.options["package_xml"]
         else:
-            if "profile_name" in self.options:
-                self.api_names.add(self.options["profile_name"])
-
-            if not self.api_names:
-                self.api_names.add("Admin")
-
-            if self.options["namespaced_org"]:
-                # Namespaced orgs don't use the explicit namespace references in `package.xml`.
-                # Preserving historic behavior but guarding here
-                self.options["managed"] = False
-
-            self.api_names = {self._inject_namespace(x) for x in self.api_names}
-
-            if self.options["namespaced_org"]:
-                self.options["managed"] = True
-
             self.package_xml_path = os.path.join(
                 CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
             )
+
+        if self.org_config is not None:
+            # Set up namespace prefix strings.
+            # We can only do this if we actually have an org_config;
+            # i.e. not while freezing steps for metadeploy
+            namespace = self.options["namespace_inject"]
+            namespace_prefix = f"{namespace}__" if namespace else ""
+            self.namespace_prefixes = {
+                "managed": namespace_prefix if self.options["managed"] else "",
+                "namespaced_org": namespace_prefix
+                if self.options["namespaced_org"]
+                else "",
+            }
+            self.api_names = {self._inject_namespace(x) for x in self.api_names}
 
     def freeze(self, step):
         # Preserve behavior from when we subclassed Deploy.
@@ -142,32 +121,25 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
 
     def _generate_package_xml(self, operation):
         if operation is MetadataOperation.RETRIEVE:
-            with open(self.package_xml_path, "r") as f:
+            with open(self.package_xml_path, "r", encoding="utf-8") as f:
                 package_xml_content = f.read()
 
             package_xml_content = package_xml_content.format(**self.namespace_prefixes)
 
-            if (
-                self.options["include_packaged_objects"]
-                or "package_xml" not in self.options
-            ):
-                # We need to rewrite the package.xml for one or two reasons.
-                # Either we are using packaged-object expansion, or we're using
-                # the built-in admin_profile.xml and need to substitute in
-                # profile API names.
+            # We need to rewrite the package.xml for one or two reasons.
+            # Either we are using packaged-object expansion, or we're using
+            # a package.xml and need to substitute in profile API names.
 
-                # Convert to bytes because stored `package.xml`s typically have an encoding declaration,
-                # which `fromstring()` doesn't like.
-                package_xml = metadata_tree.fromstring(
-                    package_xml_content.encode("utf-8")
-                )
+            # Convert to bytes because stored `package.xml`s typically have an encoding declaration,
+            # which `fromstring()` doesn't like.
+            package_xml = metadata_tree.fromstring(package_xml_content.encode("utf-8"))
 
-                if self.options["include_packaged_objects"]:
-                    self._expand_package_xml(package_xml)
-                if "package_xml" not in self.options:
-                    self._expand_profile_members(package_xml)
+            if self.options["include_packaged_objects"]:
+                self._expand_package_xml(package_xml)
 
-                package_xml_content = package_xml.tostring(xml_declaration=True)
+            self._expand_profile_members(package_xml)
+
+            package_xml_content = package_xml.tostring(xml_declaration=True)
 
             return package_xml_content
         else:
@@ -176,11 +148,16 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
     def _expand_profile_members(self, package_xml):
         profile_names = package_xml.find("types", name="Profile")
         if not profile_names:
-            raise CumulusCIException(
-                "The package.xml does not contain a Profiles member."
-            )
+            profile_names = package_xml.append("types")
+            profile_names.append("name", "Profile")
+
+        listed_api_names = {p.text for p in profile_names.findall("members")}
+
         for profile in self.api_names:
-            profile_names.append("members", text=profile)
+            if profile not in listed_api_names:
+                profile_names.append("members", text=profile)
+
+        self.api_names.update(listed_api_names)
 
     def _expand_package_xml(self, package_xml):
         # Query the target org for all namespaced objects
@@ -232,23 +209,36 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             elem.find(inner_tag).text = true_value
 
     def _set_record_types(self, tree, api_name):
+        # Do namespace injection
         record_types = self.options.get("record_types") or []
+        for rt in record_types:
+            rt["record_type"] = rt["record_type"].format(**self.namespace_prefixes)
 
-        # If defaults are specified,
-        # clear any pre-existing defaults
-        if any("default" in rt for rt in record_types):
-            for default in ("default", "personAccountDefault"):
-                for elem in tree.findall("recordTypeVisibilities"):
-                    if elem.find(default):
-                        elem.find(default).text = "false"
+        # If defaults are specified, clear any pre-existing defaults
+        # that apply to the same object
+        defaults = {
+            "default": "default",
+            "person_account_default": "personAccountDefault",
+        }
+        objects_with_defaults = defaultdict(set)
+
+        for option, default_element in defaults.items():
+            for rt in record_types:
+                if option in rt:
+                    objects_with_defaults[option].add(rt["record_type"].split(".")[0])
+
+            for elem in tree.findall("recordTypeVisibilities"):
+                if (
+                    elem.find(default_element)
+                    and elem.recordType.text.split(".")[0]
+                    in objects_with_defaults[option]
+                ):
+                    elem.find(default_element).text = "false"
 
         # Set recordTypeVisibilities
         for rt in record_types:
-            # Replace namespace prefix tokens in rt name
-            rt_prefixed = rt["record_type"].format(**self.namespace_prefixes)
-
-            # Look for the recordTypeVisiblities element
-            elem = tree.find("recordTypeVisibilities", recordType=rt_prefixed)
+            # Look for the recordTypeVisibilities element
+            elem = tree.find("recordTypeVisibilities", recordType=rt["record_type"])
             if elem is None:
                 raise TaskOptionsError(
                     f"Record Type {rt['record_type']} not found in retrieved {api_name}.profile"

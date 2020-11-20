@@ -1,11 +1,17 @@
 import os
+import shlex
 import sys
 import subprocess
 
 from robot import run as robot_run
+from robot import pythonpathsetter
 from robot.testdoc import testdoc
 
-from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
+from cumulusci.core.exceptions import (
+    RobotTestFailure,
+    TaskOptionsError,
+    NamespaceNotFoundError,
+)
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
@@ -29,6 +35,10 @@ class Robot(BaseSalesforceTask):
             "description": "Pass values to override variables in the format VAR1:foo,VAR2:bar"
         },
         "xunit": {"description": "Set an XUnit format output file for test results"},
+        "sources": {
+            "description": "List of sources defined in cumulusci.yml that are required by the robot task.",
+            "required": False,
+        },
         "options": {
             "description": "A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml."
         },
@@ -47,7 +57,7 @@ class Robot(BaseSalesforceTask):
     def _init_options(self, kwargs):
         super(Robot, self)._init_options(kwargs)
 
-        for option in ("test", "include", "exclude", "vars"):
+        for option in ("test", "include", "exclude", "vars", "sources", "suites"):
             if option in self.options:
                 self.options[option] = process_list_arg(self.options[option])
         if "vars" not in self.options:
@@ -76,14 +86,16 @@ class Robot(BaseSalesforceTask):
                 )
 
         listeners = self.options["options"].setdefault("listener", [])
-        if process_bool_arg(self.options.get("verbose")):
+        if process_bool_arg(self.options.get("verbose") or False):
             listeners.append(KeywordLogger())
 
-        if process_bool_arg(self.options.get("debug")):
+        if process_bool_arg(self.options.get("debug") or False):
             listeners.append(DebugListener())
 
-        if process_bool_arg(self.options.get("pdb")):
+        if process_bool_arg(self.options.get("pdb") or False):
             patch_statusreporter()
+
+        self.options.setdefault("sources", [])
 
     def _run_task(self):
         self.options["vars"].append("org:{}".format(self.org_config.name))
@@ -96,7 +108,30 @@ class Robot(BaseSalesforceTask):
             os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
         )
 
+        # get_namespace will potentially download sources that have
+        # yet to be downloaded. For these downloaded sources we'll add
+        # the cached directories to PYTHONPATH before running.
+        source_paths = {}
+        for source in self.options["sources"]:
+            try:
+                source_config = self.project_config.get_namespace(source)
+                source_paths[source] = source_config.repo_root
+            except NamespaceNotFoundError:
+                raise TaskOptionsError(f"robot source '{source}' could not be found")
+
+        # replace namespace prefixes with path to cached folder
+        for i, path in enumerate(self.options["suites"]):
+            prefix, _, path = path.rpartition(":")
+            if prefix in source_paths:
+                self.options["suites"][i] = os.path.join(source_paths[prefix], path)
+
         if self.options["processes"] > 1:
+            # Since pabot runs multiple robot processes, and because
+            # those processes aren't cci tasks, we have to set up the
+            # environment to match what we do with a cci task. Specifically,
+            # we need to add the repo root to PYTHONPATH (via the --pythonpath
+            # option). Otherwise robot won't be able to find libraries and
+            # resource files referenced as relative to the repo root
             cmd = [
                 sys.executable,
                 "-m",
@@ -104,6 +139,8 @@ class Robot(BaseSalesforceTask):
                 "--pabotlib",
                 "--processes",
                 str(self.options["processes"]),
+                "--pythonpath",
+                str(self.project_config.repo_root),
             ]
             # We need to convert options to their commandline equivalent
             for option, value in options.items():
@@ -113,12 +150,27 @@ class Robot(BaseSalesforceTask):
                 else:
                     cmd.extend([f"--{option}", str(value)])
 
-            cmd.append(self.options["suites"])
+            # Add each source to pythonpath. Use --pythonpath since
+            # pybot will need to use that option for each process that
+            # it spawns.
+            for path in source_paths.values():
+                cmd.extend(["--pythonpath", path])
+
+            cmd.extend(self.options["suites"])
+            self.logger.info(
+                f"pabot command: {' '.join([shlex.quote(x) for x in cmd])}"
+            )
             result = subprocess.run(cmd)
             num_failed = result.returncode
 
         else:
-            num_failed = robot_run(self.options["suites"], **options)
+            # Add each source to PYTHONPATH. Robot recommends that we
+            # use pythonpathsetter instead of directly setting
+            # sys.path. <shrug>
+            for path in source_paths.values():
+                pythonpathsetter.add_path(path, end=True)
+
+            num_failed = robot_run(*self.options["suites"], **options)
 
         # These numbers are from the robot framework user guide:
         # http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#return-codes
@@ -163,8 +215,7 @@ class KeywordLogger(object):
 
 
 def patch_statusreporter():
-    """Monkey patch robotframework to do postmortem debugging
-    """
+    """Monkey patch robotframework to do postmortem debugging"""
     from robot.running.statusreporter import StatusReporter
 
     orig_exit = StatusReporter.__exit__

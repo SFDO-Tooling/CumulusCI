@@ -2,8 +2,10 @@ from cumulusci.core.exceptions import ApexCompilationException
 from cumulusci.core.exceptions import ApexException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils import in_directory
+from cumulusci.utils import in_directory, inject_namespace
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 class AnonymousApexTask(BaseSalesforceApiTask):
@@ -70,7 +72,7 @@ class AnonymousApexTask(BaseSalesforceApiTask):
                 )
             self.logger.info("Executing anonymous Apex from {}".format(apex_path))
             try:
-                with open(apex_path, "r") as f:
+                with open(apex_path, "r", encoding="utf-8") as f:
                     apex = f.read()
             except IOError:
                 raise TaskOptionsError(
@@ -95,18 +97,30 @@ class AnonymousApexTask(BaseSalesforceApiTask):
 
     def _prepare_apex(self, apex):
         # Process namespace tokens
-        managed = self.options.get("managed") or False
-        namespaced = self.options.get("namespaced") or False
         namespace = self.project_config.project__package__namespace
-        namespace_prefix = ""
-        record_type_prefix = ""
-        if managed or namespaced:
-            namespace_prefix = namespace + "__"
-        if namespaced:
-            record_type_prefix = namespace + "."
-        apex = apex.replace("%%%NAMESPACE%%%", namespace_prefix)
-        apex = apex.replace("%%%NAMESPACED_ORG%%%", namespace_prefix)
-        apex = apex.replace("%%%NAMESPACED_RT%%%", record_type_prefix)
+        if "managed" in self.options:
+            managed = process_bool_arg(self.options["managed"])
+        else:
+            managed = (
+                bool(namespace) and namespace in self.org_config.installed_packages
+            )
+        if "namespaced" in self.options:
+            namespaced = process_bool_arg(self.options["namespaced"])
+        else:
+            namespaced = bool(namespace) and namespace == self.org_config.namespace
+
+        _, apex = inject_namespace(
+            "",
+            apex,
+            namespace=namespace,
+            managed=managed,
+            namespaced_org=namespaced,
+        )
+
+        # This is an extra token which is not handled by inject_namespace.
+        apex = apex.replace(
+            "%%%NAMESPACED_RT%%%", namespace + "." if namespaced else ""
+        )
 
         # Process optional parameter token replacement
         param1 = self.options.get("param1") or ""
@@ -119,7 +133,7 @@ class AnonymousApexTask(BaseSalesforceApiTask):
     def _check_result(self, result):
         # anon_results is an ExecuteAnonymous Result
         # https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/sforce_api_calls_executeanonymous_result.htm
-        anon_results = result.json()
+        anon_results = safe_json_from_response(result)
 
         # A result of `None` (body == "null") with a 200 status code
         # means that a gack occurred.

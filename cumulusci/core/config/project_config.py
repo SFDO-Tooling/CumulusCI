@@ -1,9 +1,12 @@
 from distutils.version import LooseVersion
 import io
+import json
 import os
 import re
 from pathlib import Path
 from configparser import ConfigParser
+from itertools import chain
+from contextlib import contextmanager
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -29,6 +32,7 @@ from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
 from cumulusci.utils.git import current_branch, git_path
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from cumulusci.utils.fileutils import open_fs_resource
 
 from github3.exceptions import NotFoundError
 
@@ -93,7 +97,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
         # Load the project's yaml config file
-        with open(self.config_project_path, "r") as f_config:
+        with open(self.config_project_path, "r", encoding="utf-8") as f_config:
             project_config = cci_safe_load(f_config)
 
         if project_config:
@@ -101,7 +105,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
-            with open(self.config_project_local_path, "r") as f_local_config:
+            with open(
+                self.config_project_local_path, "r", encoding="utf-8"
+            ) as f_local_config:
                 local_config = cci_safe_load(f_local_config)
             if local_config:
                 self.config_project_local.update(local_config)
@@ -184,7 +190,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return self._repo_info
 
     def _apply_repo_env_var_overrides(self, info):
-        """ Apply CUMULUSCI_REPO_* environment variables last so they can
+        """Apply CUMULUSCI_REPO_* environment variables last so they can
         override and fill in missing values from the CI environment"""
         self._override_repo_env_var("CUMULUSCI_REPO_BRANCH", "branch", info)
         self._override_repo_env_var("CUMULUSCI_REPO_COMMIT", "commit", info)
@@ -251,7 +257,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         """Returns the url under the [remote origin]
         section of the .git/config file. Returns None
         if .git/config file not present or no matching
-        line is found. """
+        line is found."""
         config = ConfigParser(strict=False)
         try:
             config.read(git_path(self.repo_root, "config"))
@@ -266,15 +272,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if path:
             return path
 
-        path = Path(os.path.splitdrive(Path.cwd())[1])
-        while True:
+        path = Path.cwd().resolve()
+        paths = chain((path,), path.parents)
+        for path in paths:
             if (path / ".git").is_dir():
                 return str(path)
-            head, tail = os.path.split(path)
-            if not tail:
-                # reached the root
-                break
-            path = Path(head)
 
     @property
     def repo_name(self):
@@ -421,8 +423,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     @property
     def project_local_dir(self):
-        """ location of the user local directory for the project
-        e.g., ~/.cumulusci/NPSP-Extension-Test/ """
+        """location of the user local directory for the project
+        e.g., ~/.cumulusci/NPSP-Extension-Test/"""
 
         # depending on where we are in bootstrapping the UniversalConfig
         # the canonical projectname could be located in one of two places
@@ -435,6 +437,25 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not os.path.isdir(path):
             os.makedirs(path)
         return path
+
+    @property
+    def default_package_path(self):
+        if self.project__source_format == "sfdx":
+            relpath = "force-app"
+            for pkg in self.sfdx_project_config.get("packageDirectories", []):
+                if pkg.get("default"):
+                    relpath = pkg["path"]
+        else:
+            relpath = "src"
+        return Path(self.repo_root, relpath).resolve()
+
+    @property
+    def sfdx_project_config(self):
+        with open(
+            Path(self.repo_root) / "sfdx-project.json", "r", encoding="utf-8"
+        ) as f:
+            config = json.load(f)
+        return config
 
     def get_tag_for_version(self, version):
         if "(Beta" in version:
@@ -580,7 +601,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             indent = ""
 
         self.logger.info(
-            f"{indent}Processing dependencies from Github repo {dependency['github']}"
+            f"{indent}Collecting dependencies from Github repo {dependency['github']}"
         )
 
         skip = dependency.get("skip")
@@ -639,7 +660,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         "ref": ref,
                         "subfolder": subfolder,
                         "unmanaged": dependency.get("unmanaged"),
-                        "namespace_tokenize": dependency.get("namespace_tokenize"),
                         "namespace_inject": dependency.get("namespace_inject"),
                         "namespace_strip": dependency.get("namespace_strip"),
                     }
@@ -659,7 +679,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
-                    "namespace_tokenize": dependency.get("namespace_tokenize"),
                     "namespace_inject": dependency.get("namespace_inject"),
                     "namespace_strip": dependency.get("namespace_strip"),
                 }
@@ -686,7 +705,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     "ref": ref,
                     "subfolder": subfolder,
                     "unmanaged": dependency.get("unmanaged"),
-                    "namespace_tokenize": dependency.get("namespace_tokenize"),
                     "namespace_inject": dependency.get("namespace_inject"),
                     "namespace_strip": dependency.get("namespace_strip"),
                 }
@@ -822,3 +840,19 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def relpath(self, path):
         """Convert path to be relative to the project repo root."""
         return os.path.relpath(os.path.join(self.repo_root, path))
+
+    @property
+    def cache_dir(self):
+        "A project cache which is on the local filesystem. Prefer open_cache where possible."
+        assert self.repo_root
+        cache_dir = Path(self.repo_root, ".cci")
+        cache_dir.mkdir(exist_ok=True)
+        return cache_dir
+
+    @contextmanager
+    def open_cache(self, cache_name):
+        "A context managed PyFilesystem-based cache which could theoretically be on any filesystem."
+        with open_fs_resource(self.cache_dir) as cache_dir:
+            cache = cache_dir / cache_name
+            cache.mkdir(exist_ok=True)
+            yield cache

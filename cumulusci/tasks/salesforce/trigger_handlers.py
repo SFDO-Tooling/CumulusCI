@@ -1,10 +1,11 @@
 import yaml
-import os
 from collections import defaultdict
+from contextlib import contextmanager
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
+from cumulusci.utils.fileutils import open_fs_resource, FSResource
 
 
 class SetTDTMHandlerStatus(BaseSalesforceApiTask):
@@ -23,28 +24,52 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
             "description": "True or False to activate or deactivate trigger handlers."
         },
         "restore_file": {
-            "description": "Path to the state file to store the current trigger handler state."
+            "description": "Path to the state file to store or restore the current trigger handler state. Set to False to discard trigger state information. By default the state is cached in an org-specific directory for later restore."
         },
         "restore": {
-            "description": "If True, restore the state of Trigger Handlers to that stored in the restore file."
+            "description": "If True, restore the state of Trigger Handlers to that stored in the (specified or default) restore file."
         },
     }
+    should_restore = False
+    should_save = False
 
     def _init_options(self, kwargs):
         super(SetTDTMHandlerStatus, self)._init_options(kwargs)
         self.options["handlers"] = process_list_arg(self.options.get("handlers", []))
-        self.options["active"] = process_bool_arg(self.options.get("active", False))
-        self.options["restore"] = process_bool_arg(self.options.get("restore", False))
+        self.options["active"] = process_bool_arg(self.options.get("active") or False)
+        has_restore_file = (
+            self.options.get("restore_file") is not False
+            and self.options.get("restore_file") != "False"
+        )
+        should_restore = process_bool_arg(self.options.get("restore", False))
+        if should_restore:
+            if not has_restore_file:
+                raise TaskOptionsError("Restoring requires a restore file name")
+            self.should_restore = True
+        else:
+            self.should_save = has_restore_file
 
-        if self.options["restore"] and not self.options.get("restore_file"):
-            raise TaskOptionsError("Restoring requires a restore file name")
+    @contextmanager
+    def _default_restore_resource(self):
+        with self.org_config.get_orginfo_cache_dir(self.__module__) as cache:
+            yield cache / "trigger_status.yml"
 
     def _run_task(self):
+        restore_path = self.options.get("restore_file")
+        if restore_path:
+            restore_file = open_fs_resource(restore_path)
+        else:
+            restore_file = self._default_restore_resource()
+
+        with restore_file as f:
+            self._do_trigger_handlers(f)
+
+    def _do_trigger_handlers(self, restore_file: FSResource):
         global_describe = self.sf.describe()
         sobject_names = [x["name"] for x in global_describe["sobjects"]]
 
-        if self.options["restore"]:
-            with open(self.options["restore_file"], "r") as f:
+        if self.should_restore:
+            with restore_file.open("r") as f:
                 target_status = yaml.safe_load(f)
                 self.options["handlers"] = list(target_status.keys())
         else:
@@ -86,9 +111,8 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
                     {f"{namespace}Active__c": target_status[compound_name]},
                 )
 
-        if "restore_file" in self.options:
-            if not self.options["restore"]:
-                with open(self.options["restore_file"], "w") as f:
-                    yaml.safe_dump(current_status, f)
-            else:
-                os.remove(self.options["restore_file"])
+        if self.should_save:
+            with restore_file.open("w") as f:
+                yaml.safe_dump(current_status, f)
+        elif self.should_restore:
+            restore_file.unlink()

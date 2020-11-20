@@ -18,7 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache
@@ -42,11 +42,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8"]
+        python-version: ["3.6", "3.7", "3.8", "3.9"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: "${{ matrix.python-version }}"
     - name: pip cache
@@ -70,7 +70,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache
@@ -93,7 +93,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache
@@ -144,7 +144,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache
@@ -195,7 +195,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: pip cache
@@ -241,12 +241,12 @@ jobs:
         path: robot/CumulusCI/results
 
   # robot_ui_prerelease:
-  #   name: "Robot: Summer '20"
+  #   name: "Robot: Winter '21"
   #   runs-on: ubuntu-latest
   #   steps:
   #   - uses: actions/checkout@v2
   #   - name: Set up Python 3.8
-  #     uses: actions/setup-python@v1
+  #     uses: actions/setup-python@v2
   #     with:
   #       python-version: 3.8
   #   - name: pip cache

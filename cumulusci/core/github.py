@@ -11,6 +11,7 @@ from github3.pulls import ShortPullRequest
 from github3.session import GitHubSession
 
 from cumulusci.core.exceptions import GithubException
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 # Prepare request retry policy to be attached to github sessions.
@@ -126,7 +127,7 @@ def get_pull_requests_by_commit(github, repo, commit_sha):
     response = github.session.get(
         endpoint, headers={"Accept": "application/vnd.github.groot-preview+json"}
     )
-    json_list = response.json()
+    json_list = safe_json_from_response(response)
 
     # raises github3.exceptions.IncompleteResposne
     # when these are not present

@@ -1,9 +1,10 @@
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.bulkdata.step import (
-    BulkApiDmlOperation,
-    BulkApiQueryOperation,
     DataOperationType,
     DataOperationStatus,
+    DataApi,
+    get_query_operation,
+    get_dml_operation,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
@@ -29,8 +30,13 @@ class DeleteData(BaseSalesforceApiTask):
             "description": "If True, allow the operation to continue even if individual rows fail to delete."
         },
         "inject_namespaces": {
-            "description": "If True, the package namespace prefix will be automatically added to objects "
-            "and fields for which it is present in the org. Defaults to True."
+            "description": "If True, the package namespace prefix will be "
+            "automatically added to (or removed from) objects "
+            "and fields based on the name used in the org. Defaults to True."
+        },
+        "api": {
+            "description": "The desired Salesforce API to use, which may be 'rest', 'bulk', or "
+            "'smart' to auto-select based on record volume. The default is 'smart'."
         },
     }
     row_warning_limit = 10
@@ -48,13 +54,29 @@ class DeleteData(BaseSalesforceApiTask):
             raise TaskOptionsError(
                 "Criteria cannot be specified if more than one object is specified."
             )
-        self.options["hardDelete"] = process_bool_arg(self.options.get("hardDelete"))
+        self.options["hardDelete"] = process_bool_arg(
+            self.options.get("hardDelete") or False
+        )
         self.options["ignore_row_errors"] = process_bool_arg(
-            self.options.get("ignore_row_errors")
+            self.options.get("ignore_row_errors") or False
         )
+        inject_namespaces = self.options.get("inject_namespaces")
         self.options["inject_namespaces"] = process_bool_arg(
-            self.options.get("inject_namespaces", True)
+            True if inject_namespaces is None else inject_namespaces
         )
+        try:
+            self.options["api"] = {
+                "bulk": DataApi.BULK,
+                "rest": DataApi.REST,
+                "smart": DataApi.SMART,
+            }[self.options.get("api", "smart").lower()]
+        except KeyError:
+            raise TaskOptionsError(
+                f"{self.options['api']} is not a valid value for API (valid: bulk, rest, smart)"
+            )
+
+        if self.options["hardDelete"] and self.options["api"] is DataApi.REST:
+            raise TaskOptionsError("The hardDelete option requires Bulk API.")
 
     @staticmethod
     def _is_injectable(element: str) -> bool:
@@ -114,31 +136,40 @@ class DeleteData(BaseSalesforceApiTask):
             if self.options["where"]:
                 query += f" WHERE {self.options['where']}"
 
-            self.logger.info(f"Querying for {obj} objects")
-            qs = BulkApiQueryOperation(
-                sobject=obj, api_options={}, context=self, query=query
+            qs = get_query_operation(
+                sobject=obj,
+                fields=["Id"],
+                api_options={},
+                context=self,
+                query=query,
+                api=self.options["api"],
             )
+
+            self.logger.info(f"Querying for {obj} objects")
             qs.query()
             if qs.job_result.status is not DataOperationStatus.SUCCESS:
                 raise BulkDataException(
                     f"Unable to query records for {obj}: {','.join(qs.job_result.job_errors)}"
                 )
-
             if not qs.job_result.records_processed:
-                self.logger.info("No records found, skipping delete operation")
+                self.logger.info(
+                    f"No records found, skipping delete operation for {obj}"
+                )
                 continue
 
             self.logger.info(f"Deleting {self._object_description(obj)} ")
-            ds = BulkApiDmlOperation(
+            ds = get_dml_operation(
                 sobject=obj,
                 operation=(
                     DataOperationType.HARD_DELETE
                     if self.options["hardDelete"]
                     else DataOperationType.DELETE
                 ),
+                fields=["Id"],
                 api_options={},
                 context=self,
-                fields=["Id"],
+                api=self.options["api"],
+                volume=qs.job_result.records_processed,
             )
             ds.start()
             ds.load_records(qs.get_results())
