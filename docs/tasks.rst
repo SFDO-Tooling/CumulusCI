@@ -1,5 +1,3 @@
-Checking the version!
-An update to CumulusCI is available. To install the update, run this command: pip install --upgrade cumulusci
 ==========================================
 Standard Tasks
 ==========================================
