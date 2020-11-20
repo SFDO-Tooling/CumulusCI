@@ -48,13 +48,13 @@ dev_org
 dev_org_beta_deps
 ^^^^^^^^^^^^^^^^^
 
-**Description:** Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
+**Description:** This flow is deprecated. Please use dev_org instead.
 
 **Flow Steps**
 
 .. code-block:: console
 
-	1) flow: beta_dependencies
+	1) flow: dependencies
 	    1) task: update_dependencies
 	    2) task: deploy_pre
 	2) flow: deploy_unmanaged
@@ -180,7 +180,7 @@ regression_org
 .. code-block:: console
 
 	1) flow: install_regression
-	    1) flow: beta_dependencies
+	    1) flow: dependencies
 	        1) task: update_dependencies
 	        2) task: deploy_pre
 	    2) task: install_managed
@@ -198,7 +198,7 @@ These flows deploy dependencies (base packages and unmanaged metadata) to a targ
 beta_dependencies
 ^^^^^^^^^^^^^^^^^
 
-**Description:** Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata
+**Description:** This flow is deprecated. Please use the `dependencies` flow and set the `include_beta` option on the first task, `update_dependencies`. Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata
 
 **Flow Steps**
 
@@ -331,7 +331,7 @@ install_regression
 
 .. code-block:: console
 
-	1) flow: beta_dependencies
+	1) flow: dependencies
 	    1) task: update_dependencies
 	    2) task: deploy_pre
 	2) task: install_managed
@@ -492,7 +492,7 @@ ci_feature_2gp
 .. code-block:: console
 
 	1) task: github_package_data
-	2) flow: beta_dependencies
+	2) flow: dependencies
 	    1) task: update_dependencies
 	    2) task: deploy_pre
 	3) task: install_managed
@@ -504,14 +504,14 @@ ci_feature_2gp
 ci_feature_beta_deps
 ^^^^^^^^^^^^^^^^^^^^
 
-**Description:** Install the latest beta version of dependencies and run apex tests.
+**Description:** This flow is deprecated. Please use ci_feature instead.
 
 **Flow Steps**
 
 .. code-block:: console
 
 	0.5) task: github_parent_pr_notes
-	1) flow: beta_dependencies
+	1) flow: dependencies
 	    1) task: update_dependencies
 	    2) task: deploy_pre
 	2) flow: deploy_unmanaged

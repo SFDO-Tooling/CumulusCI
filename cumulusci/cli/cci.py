@@ -1380,7 +1380,7 @@ def task_doc(runtime, project=False, write=False):
         task_config = TaskConfig(task_config_dict)
         doc = doc_task(name, task_config)
         result += [doc, ""]
-    result = "\r\n".join(result)
+    result = "\n".join(result)
 
     if write:
         Path("docs").mkdir(exist_ok=True)
