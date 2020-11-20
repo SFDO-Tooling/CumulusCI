@@ -12,7 +12,7 @@ FAILED_STATUSES = ["Failed"]
 
 
 class BatchApexWait(BaseSalesforceApiTask):
-    """BatchApexWait polls an org until the latest batch job
+    """BatchApexWait polls an org until the latest batch job or queueable job
     for an apex class completes or fails."""
 
     name = "BatchApexWait"
@@ -24,7 +24,7 @@ class BatchApexWait(BaseSalesforceApiTask):
             "required": True,
         },
         "poll_interval": {
-            "description": "Seconds to wait before polling for batch job completion. "
+            "description": "Seconds to wait before polling for batch or queueable job completion. "
             "Defaults to 10 seconds."
         },
     }
@@ -171,7 +171,7 @@ class BatchApexWait(BaseSalesforceApiTask):
             "SELECT Id, ApexClass.Name, Status, ExtendedStatus, TotalJobItems, "
             "JobItemsProcessed, NumberOfErrors, CreatedDate, CompletedDate "
             "FROM AsyncApexJob "
-            "WHERE JobType='BatchApex' "
+            "WHERE JobType IN ('BatchApex','Queueable') "
             + f"AND ApexClass.Name='{self.options['class_name']}' "
             + date_clause
             + " ORDER BY CreatedDate DESC "
