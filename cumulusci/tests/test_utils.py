@@ -197,8 +197,8 @@ class TestUtils:
 
 .. _scoop_icecream:
 
-**scoop_icecream**
-==========================================\n
+scoop_icecream
+==============\n
 **Description:** Scoops icecream\n
 **Class:** cumulusci.tests.test_utils.FunTestTask\n
 extra docs
