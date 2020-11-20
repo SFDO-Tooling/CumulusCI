@@ -417,7 +417,7 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     from cumulusci.core.utils import import_global
 
     doc = []
-    doc.append(f"**{task_name}**\n==========================================\n")
+    doc.append(f"{task_name}\n{'=' * len(task_name)}\n")
     doc.append(f"**Description:** {task_config.description}\n")
     doc.append(f"**Class:** {task_config.class_path}\n")
 

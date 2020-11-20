@@ -193,8 +193,8 @@ class TestUtils:
         task_doc = utils.doc_task("scoop_icecream", task_config)
         assert (
             task_doc
-            == """**scoop_icecream**
-==========================================\n
+            == """scoop_icecream
+==============\n
 **Description:** Scoops icecream\n
 **Class:** cumulusci.tests.test_utils.FunTestTask\n
 extra docs
