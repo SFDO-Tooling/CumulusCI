@@ -273,7 +273,8 @@ class TestMetadataPackageZipBuilder:
         )
 
         # don't include __tests__ within lwc components
-        assert builder._include_directory(["lwc", "myComponent", "__tests__"]) is False
+        assert not builder._include_directory(["lwc", "myComponent", "__tests__"])
+        assert not builder._include_directory(["lwc", "myComponent", "__mocks__"])
 
         # include any non-lwc directory
         assert builder._include_directory(["not-lwc"]) is True

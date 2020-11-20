@@ -157,7 +157,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             return True
 
         # don't include lwc tests
-        if root_parts[0] == "lwc" and "__tests__" in root_parts:
+        if root_parts[0] == "lwc" and any(part.startswith("__") for part in root_parts):
             return False
 
         # include everything else
