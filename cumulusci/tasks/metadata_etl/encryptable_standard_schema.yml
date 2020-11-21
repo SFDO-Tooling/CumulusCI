@@ -1,0 +1,6 @@
+Account:
+  - Name
+  - Website
+Contact:
+  - Phone
+  - Email

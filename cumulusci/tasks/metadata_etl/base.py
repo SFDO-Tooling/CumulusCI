@@ -5,7 +5,7 @@ import tempfile
 from urllib.parse import quote, unquote
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.core.tasks import BaseSalesforceTask
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.core.utils import process_bool_arg, process_list_arg
@@ -20,7 +20,7 @@ class MetadataOperation(enum.Enum):
     RETRIEVE = "retrieve"
 
 
-class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
+class BaseMetadataETLTask(BaseSalesforceApiTask, metaclass=ABCMeta):
     """Abstract base class for all Metadata ETL tasks. Concrete tasks should
     generally subclass BaseMetadataSynthesisTask, BaseMetadataTransformTask,
     or MetadataSingleEntityTransformTask."""
