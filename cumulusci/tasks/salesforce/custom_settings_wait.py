@@ -73,7 +73,7 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
         except SalesforceError as e:
             message = e.content[0]["message"]
             if "No such column 'SetupOwnerId'" in message:
-                message = "Only Custom Settings objects are supported."
+                message = "Only Hierarchical Custom Settings objects are supported."
             raise TaskOptionsError(f"Query Error: {message}")
 
         self.record = None
@@ -83,7 +83,7 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
                 if setupOwnerId.startswith("00D"):
                     self.record = row
             else:
-                raise TaskOptionsError("Only Custom Settings objects are supported.")
+                raise TaskOptionsError("Only Hierarchical Custom Settings objects are supported.")
 
         if self.record:
             self.poll_complete = not self._poll_again()
@@ -109,8 +109,8 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
 
     @property
     def success(self):
-        lowerCaseRecord = {k.lower(): v for k, v in self.record.items()}
-        self.field_value = lowerCaseRecord[self.field_name.lower()]
+        lower_case_record = {k.lower(): v for k, v in self.record.items()}
+        self.field_value = lower_case_record[self.field_name.lower()]
 
         if isinstance(self.field_value, bool):
             self.check_value = process_bool_arg(self.check_value)
