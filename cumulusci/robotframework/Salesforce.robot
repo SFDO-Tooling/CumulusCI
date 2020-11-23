@@ -85,12 +85,18 @@ Open Test Browser
     ...  Once the browser has been opened, it will be set to the given
     ...  size (default=${DEFAULT BROWSER SIZE})
     ...
+    ...  If you open multiple browsers you can use the optional
+    ...  argument `alias` to give each browser a name. This name can
+    ...  be used when calling the `Switch Browser` keyword from
+    ...  SeleniumLibrary
+    ...
+    ...  The optional argument 'useralias' may be used to specify a
+    ...  specific user by their alias; if not specified then the org's
+    ...  default user will be used.
+    ...
     ...  The keyword `Log Browser Capabilities` will automatically be called.
     ...  The keyword will also call `Wait Until Salesforce is Ready` unless
     ...  the `wait` parameter is set to False.
-    ...
-    ...  The arguments 'username' or 'useralias' may be used to specify
-    ...  a specific user; if not specified then the org default will be used.
 
     [Arguments]  ${size}=${DEFAULT BROWSER SIZE}  ${alias}=${NONE}  ${wait}=True  ${useralias}=${NONE}
     ${login_url}=  Run keyword if  $useralias  Login URL  alias=${useralias}
