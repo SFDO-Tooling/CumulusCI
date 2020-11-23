@@ -157,16 +157,10 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             http_body = f"error: {args['error'][0]}\nerror description: {args['error_description'][0]}"
         else:
             http_status = http.client.OK
-            gif = random.choice(
-                [
-                    "tMUMi4Ylnzk88",
-                    "Cj3Ce7e8h2EKY",
-                    "3MibWRcT0AOYG7HUeT",
-                    "9uoYC7cjcU6w8",
-                ]
-            )
-            http_body = f"""<html><p>Congratulations! Your authentication succeeded.</p>
-            <iframe src="https://giphy.com/embed/{gif}" width="480" height="360" frameBorder="0"></iframe></html>"""
+            emoji = random.choice(["🎉", "👍", "👍🏿", "🥳", "🎈"])
+            http_body = f"""<html>
+            <h1 style="font-size: large">{emoji}</h1>
+            <p>Congratulations! Your authentication succeeded.</p>"""
             code = args["code"]
             self.parent.response = self.parent.oauth_api.get_token(code)
             if self.parent.response.status_code >= http.client.BAD_REQUEST:
