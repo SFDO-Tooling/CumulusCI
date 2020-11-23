@@ -130,9 +130,17 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
         }
 
         task, url = self._get_url_and_task()
-        response = self._get_query_resp()
-        del response["records"][0]["SetupOwnerId"]
-        responses.add(responses.GET, url, json=response)
+        responses.add(
+            responses.GET,
+            url,
+            status=400,
+            json=[
+                {
+                    "message": "\nSELECT SetupOwnerId FROM npe5__Affiliation__c\n       ^\nERROR at Row:1:Column:8\nNo such column 'SetupOwnerId' on entity 'npe5__Affiliation__c'. If you are attempting to use a custom field, be sure to append the '__c' after the custom field name. Please reference your WSDL or the describe call for the appropriate names.",
+                    "errorCode": "INVALID_FIELD",
+                }
+            ],
+        )
 
         with self.assertRaises(TaskOptionsError) as e:
             task()

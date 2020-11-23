@@ -3,7 +3,6 @@
 from simple_salesforce.exceptions import SalesforceError
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 
@@ -78,12 +77,8 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
 
         self.record = None
         for row in query_results["records"]:
-            if "SetupOwnerId" in row:
-                setupOwnerId = str(row["SetupOwnerId"])
-                if setupOwnerId.startswith("00D"):
-                    self.record = row
-            else:
-                raise TaskOptionsError("Only Hierarchical Custom Settings objects are supported.")
+            if row["SetupOwnerId"].startswith("00D"):
+                self.record = row
 
         if self.record:
             self.poll_complete = not self._poll_again()
