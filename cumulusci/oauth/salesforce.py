@@ -167,8 +167,10 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
                 http_status = self.parent.response.status_code
                 http_body = self.parent.response.text
         self.send_response(http_status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+
         self.end_headers()
-        self.wfile.write(http_body.encode("ascii"))
+        self.wfile.write(http_body.encode("utf-8"))
         if self.parent.response is None:
             response = requests.Response()
             response.status_code = http_status
