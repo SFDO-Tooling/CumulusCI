@@ -126,7 +126,9 @@ class SalesforceOAuth2(object):
 
 
 class HTTPDTimeout(threading.Thread):
-    daemon = True
+    "Establishes a timeout for a SimpleHTTPServer"
+    daemon = True  # allow the process to quit even if the timeout thread
+    # is still alive
 
     def __init__(self, httpd, timeout):
         self.httpd = httpd
@@ -134,6 +136,7 @@ class HTTPDTimeout(threading.Thread):
         super().__init__()
 
     def run(self):
+        "Check every second for HTTPD or quit after timeout"
         target_time = time.time() + self.timeout
         while time.time() < target_time:
             time.sleep(1)
@@ -144,6 +147,7 @@ class HTTPDTimeout(threading.Thread):
             self.httpd.shutdown()
 
     def quit(self):
+        "Quit before timeout"
         self.httpd = None
 
 
@@ -152,6 +156,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         args = parse_qs(urlparse(self.path).query, keep_blank_values=True)
+
         if "error" in args:
             http_status = http.client.BAD_REQUEST
             http_body = f"error: {args['error'][0]}\nerror description: {args['error_description'][0]}"
@@ -203,11 +208,18 @@ class CaptureSalesforceOAuth(object):
             + "If you are unable to log in to Salesforce you can "
             + "press ctrl+c to kill the server and return to the command line."
         )
+        # Implement the 300 second timeout
         timeout_thread = HTTPDTimeout(self.httpd, self.httpd_timeout)
-        # use serve_forever because it is smarter about polling for Ctrl-C
-        # on Windows
         timeout_thread.start()
+        # use serve_forever because it is smarter about polling for Ctrl-C
+        # on Windows.
+        #
+        # There are two ways it can be shutdown.
+        # 1. Get a callback from Salesforce.
+        # 2. Timeout
         self.httpd.serve_forever()
+
+        # timeout thread can stop polling and just finish
         timeout_thread.quit()
         self._check_response(self.response)
         return safe_json_from_response(self.response)
