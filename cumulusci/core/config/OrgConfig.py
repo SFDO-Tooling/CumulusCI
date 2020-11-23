@@ -70,7 +70,6 @@ class OrgConfig(BaseConfig):
                 info = self._refresh_token(keychain, connected_app)
             if info != self.config:
                 self.config.update(info)
-        self._access_token_cache = {}
         self._load_userinfo()
         self._load_orginfo()
 

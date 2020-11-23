@@ -40,7 +40,6 @@ class CumulusCI(object):
         self.org_name = org_name
         self._project_config = None
         self._org = None
-        self._access_token_cache = {}
 
         # Turn off info logging of all http requests
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(
