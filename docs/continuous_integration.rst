@@ -20,7 +20,7 @@ CI systems gives teams the ability to develop, test, and deploy their projects w
 
 CumulusCI Flow
 --------------
-CumulusCI Flow is the process by which code is developed, tested, and deployed to our customers.
+CumulusCI Flow is the process by which Salesforce metadata is developed, tested, and deployed to our customers.
 It is similar to the GitHub Flow, with a few tweaks and additions. The :ref:`CumulusCI Flow` section
 covers everything from branching and merging strategies, which CumulusCI flows are intended for CI builds,
 automatically generating product documentation, and more.
