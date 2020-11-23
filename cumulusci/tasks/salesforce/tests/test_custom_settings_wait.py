@@ -10,7 +10,7 @@ from cumulusci.core.config import (
     TaskConfig,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.exceptions import SalesforceException
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.custom_settings_wait import CustomSettingValueWait
 from cumulusci.core.tests.utils import MockLoggerMixin
 
@@ -91,6 +91,21 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
         task()
 
     @responses.activate
+    def test_run_custom_settings_wait_match_bool_changed_case(self):
+        self.task_config.config["options"] = {
+            "object": "CUSTOMIZABLE_Rollup_Setings__c",
+            "field": "CUSTOMIZABLE_Rollups_enabled__C",
+            "value": True,
+            "poll_interval": 1,
+        }
+
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"][0]["Customizable_Rollups_Enabled__c"] = True
+        responses.add(responses.GET, url, json=response)
+        task()
+
+    @responses.activate
     def test_run_custom_settings_wait_match_int(self):
         self.task_config.config["options"] = {
             "object": "Customizable_Rollup_Setings__c",
@@ -106,7 +121,7 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
         task()
 
     @responses.activate
-    def test_run_custom_settings_wait_bad_object(self):
+    def test_run_custom_settings_wait_not_settings_object(self):
         self.task_config.config["options"] = {
             "object": "Customizable_Rollup_Setings__c",
             "field": "Rollups_Account_Batch_Size__c",
@@ -116,11 +131,10 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
 
         task, url = self._get_url_and_task()
         response = self._get_query_resp()
-        response["records"][0]["SetupOwnerId"] = "00X"
+        del response["records"][0]["SetupOwnerId"]
         responses.add(responses.GET, url, json=response)
-        # task()
 
-        with self.assertRaises(SalesforceException) as e:
+        with self.assertRaises(TaskOptionsError) as e:
             task()
 
-        assert "found" in str(e.exception)
+        assert "supported" in str(e.exception)
