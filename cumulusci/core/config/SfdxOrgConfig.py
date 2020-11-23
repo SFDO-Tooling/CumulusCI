@@ -60,7 +60,6 @@ class SfdxOrgConfig(OrgConfig):
             "access_token": org_info["result"]["accessToken"],
             "org_id": org_id,
             "username": org_info["result"]["username"],
-            "access_token_cache": {},
         }
         if org_info["result"].get("password"):
             sfdx_info["password"] = org_info["result"]["password"]
@@ -158,44 +157,39 @@ class SfdxOrgConfig(OrgConfig):
             # default user
             return self.access_token
 
-        cache_key = str(sorted(userfields.items()))
-        if cache_key not in self.sfdx_info["access_token_cache"]:
-            # if we have a username, use it. Otherwise we need to do a
-            # lookup using the passed-in fields.
-            username = userfields.get("username", None)
-            if username is None:
-                where = [f"{key} = '{value}'" for key, value in userfields.items()]
-                query = f"SELECT Username FROM User WHERE {' AND '.join(where)}"
-                result = self.salesforce_client.query_all(query).get("records", [])
-                if len(result) == 0:
-                    raise SfdxOrgException(
-                        "Couldn't find a username for the specified user."
-                    )
-                elif len(result) > 1:
-                    raise SfdxOrgException(
-                        "More than one user matched the search critiera."
-                    )
-                else:
-                    username = result[0]["Username"]
-
-            p = self.sfdx(f"force:org:display --targetusername={username} --json")
-            if p.returncode:
-                output = p.stdout_text.read()
-                try:
-                    info = json.loads(output)
-                    explanation = info["message"]
-                except (JSONDecodeError, KeyError):
-                    explanation = output
-
+        # if we have a username, use it. Otherwise we need to do a
+        # lookup using the passed-in fields.
+        username = userfields.get("username", None)
+        if username is None:
+            where = [f"{key} = '{value}'" for key, value in userfields.items()]
+            query = f"SELECT Username FROM User WHERE {' AND '.join(where)}"
+            result = self.salesforce_client.query_all(query).get("records", [])
+            if len(result) == 0:
                 raise SfdxOrgException(
-                    f"Unable to find access token for {username}\n{explanation}"
+                    "Couldn't find a username for the specified user."
+                )
+            elif len(result) > 1:
+                raise SfdxOrgException(
+                    "More than one user matched the search critiera."
                 )
             else:
-                info = json.loads(p.stdout_text.read())
-                self.sfdx_info["access_token_cache"][cache_key] = info["result"][
-                    "accessToken"
-                ]
-        return self.sfdx_info["access_token_cache"][cache_key]
+                username = result[0]["Username"]
+
+        p = self.sfdx(f"force:org:display --targetusername={username} --json")
+        if p.returncode:
+            output = p.stdout_text.read()
+            try:
+                info = json.loads(output)
+                explanation = info["message"]
+            except (JSONDecodeError, KeyError):
+                explanation = output
+
+            raise SfdxOrgException(
+                f"Unable to find access token for {username}\n{explanation}"
+            )
+        else:
+            info = json.loads(p.stdout_text.read())
+            return info["result"]["accessToken"]
 
     def force_refresh_oauth_token(self):
         # Call force:org:display and parse output to get instance_url and
