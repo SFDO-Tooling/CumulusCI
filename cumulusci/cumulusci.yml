@@ -42,6 +42,14 @@ tasks:
         group: Salesforce Users
         description: "Assigns specified Permission Sets to the current user, if not already assigned."
         class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
+    assign_permission_set_groups:
+        group: Salesforce Users
+        description: "Assigns specified Permission Set Groups to the current user, if not already assigned."
+        class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetGroups
+    assign_permission_set_licenses:
+        group: Salesforce Users
+        description: "Assigns specified Permission Set Licenses to the current user, if not already assigned."
+        class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetLicenses
     batch_apex_wait:
         description: Waits on a batch apex or queueable apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
