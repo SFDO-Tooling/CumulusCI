@@ -147,8 +147,16 @@ class TestUtilTasks(unittest.TestCase):
             )
             task = util.FindReplace(self.project_config, task_config, self.org_config)
             task()
-            assert task.options["replace"] == "bars"
+            assert task.parsed_options["replace"] == "bars"
             find_replace.assert_called_once()
+            assert find_replace.mock_calls[0] == mock.call(
+                find="foo",
+                replace="bars",
+                directory=mock.ANY,
+                filePattern="*",
+                logger=mock.ANY,
+                max=1,
+            )
 
     @mock.patch("cumulusci.tasks.util.find_replace_regex")
     def test_FindReplaceRegex(self, find_replace_regex):

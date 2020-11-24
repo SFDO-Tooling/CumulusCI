@@ -175,15 +175,17 @@ class FindReplace(BaseTask):
         if self.parsed_options.max:
             kwargs["max"] = self.parsed_options.max
 
-        if self.options["env_replace"]:
-            if self.options["replace"] in os.environ.keys():
-                self.options["replace"] = os.environ[self.options["replace"]]
+        if self.parsed_options["env_replace"]:
+            if self.parsed_options["replace"] in os.environ.keys():
+                self.parsed_options["replace"] = os.environ[
+                    self.parsed_options["replace"]
+                ]
             else:
                 raise TaskOptionsError(
-                    f"The environment variable {self.options['replace']} was not found. Ensure that this value is populated or set env_replace to False."
+                    f"The environment variable {self.parsed_options['replace']} was not found. Ensure that this value is populated or set env_replace to False."
                 )
 
-        for file_pattern in self.options["file_pattern"]:
+        for file_pattern in self.parsed_options["file_pattern"]:
             find_replace(
                 find=self.parsed_options.find,
                 replace=self.parsed_options.replace,
