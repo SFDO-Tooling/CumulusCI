@@ -122,7 +122,7 @@ To get through some of the tasks later in the tutorial, you will need to connect
 
 Go to https://github.com/settings/tokens/new and create a new personal access token with both "repo" and "gist" scopes specified. Copy the access token to use as the password when configuring the GitHub service.
 
-Run the following and provide your GitHub username and use the access token as the password:
+Run the following and provide your GitHub username and token:
 
 .. code-block:: console
 

@@ -63,7 +63,8 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         self.auth_site = "https://login.salesforce.com"
 
     @responses.activate
-    def test_oauth_flow(self):
+    @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
+    def test_oauth_flow_simple(self):
 
         # mock response to URL validation
         responses.add(
@@ -113,6 +114,7 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         self.assertEqual(o.response.json(), expected_response)
         self.assertIn(b"Congratulations", response.read())
 
+    @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
     @responses.activate
     def test_oauth_flow_error_from_auth(self):
 
@@ -163,6 +165,7 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         # wait for thread to complete
         t.join()
 
+    @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
     @responses.activate
     def test_oauth_flow_error_from_token(self):
 

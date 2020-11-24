@@ -88,7 +88,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         project_config.keychain.set_service(
             "github",
             ServiceConfig(
-                {"username": "foo", "password": "bar", "email": "foo@example.com"}
+                {"username": "foo", "token": "bar", "email": "foo@example.com"}
             ),
         )
 
