@@ -43,7 +43,7 @@ tasks:
         description: "Assigns specified Permission Sets to the current user, if not already assigned."
         class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
     batch_apex_wait:
-        description: Waits on a batch apex job to finish.
+        description: Waits on a batch apex or queueable apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
     check_sobjects_available:
@@ -692,7 +692,7 @@ flows:
                 task: update_admin_profile
 
     config_managed:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure an org for use after the managed package has been installed.
         steps:
             1:
@@ -701,14 +701,14 @@ flows:
                 task: update_admin_profile
 
     config_packaging:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure packaging org for upload after package metadata is deployed
         steps:
             1:
                 task: update_admin_profile
 
     config_qa:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure an org for use as a QA org after package metadata is deployed
         steps:
             1:
@@ -717,7 +717,7 @@ flows:
                 task: update_admin_profile
 
     config_regression:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure an org for QA regression after the package is installed
         steps:
             1:
@@ -1046,8 +1046,8 @@ services:
       username:
         description: The Github username to use for tasks.
         required: True
-      password:
-        description:  Github password to use for tasks.  It is recommended to use a Github Application Token instead of password to allow bypassing 2fa.
+      token:
+        description: Personal Access Token for GitHub. See https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token for more info.
         required: True
       email:
         description: The email address to used by Github tasks when an operation requires an email address.

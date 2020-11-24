@@ -1380,7 +1380,7 @@ def task_doc(runtime, project=False, write=False):
         task_config = TaskConfig(task_config_dict)
         doc = doc_task(name, task_config)
         result += [doc, ""]
-    result = "\r\n".join(result)
+    result = "\n".join(result)
 
     if write:
         Path("docs").mkdir(exist_ok=True)
@@ -1780,7 +1780,7 @@ def gist(runtime):
     try:
         gh = RUNTIME.keychain.get_service("github")
         gist = create_gist(
-            get_github_api(gh.config["username"], gh.config["password"]),
+            get_github_api(gh.username, gh.password or gh.token),
             "CumulusCI Error Output",
             files,
         )
