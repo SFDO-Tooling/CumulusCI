@@ -69,6 +69,11 @@ class Deploy(BaseSalesforceMetadataApiTask):
                 "The specified_tests option and test_level RunSpecifiedTests must be used together."
             )
 
+        self.options["namespace_inject"] = (
+            self.options.get("namespace_inject")
+            or self.project_config.project__package__namespace
+        )
+
     def _get_api(self, path=None):
         if not path:
             path = self.options.get("path")
@@ -97,10 +102,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _get_package_zip(self, path):
         assert path, f"Path should be specified for {self.__class__.name}"
-        if "namespace_inject" in self.options:
-            namespace = self.options["namespace_inject"]
-        else:
-            namespace = self.project_config.project__package__namespace
+        namespace = self.options["namespace_inject"]
         options = {
             **self.options,
             "clean_meta_xml": process_bool_arg(
