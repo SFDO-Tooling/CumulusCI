@@ -364,7 +364,7 @@ class TestScratchOrgConfig(unittest.TestCase):
 
         config = ScratchOrgConfig({}, "test")
         with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
-            with mock.patch("cumulusci.core.config.SfdxOrgConfig.sfdx", sfdx):
+            with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx):
                 access_token = config.get_access_token(alias="dadvisor")
                 sfdx.assert_called_once_with(
                     "force:org:display --targetusername=whatever@example.com --json"
@@ -420,7 +420,7 @@ class TestScratchOrgConfig(unittest.TestCase):
 
         config = ScratchOrgConfig({}, "test")
         with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
-            with mock.patch("cumulusci.core.config.SfdxOrgConfig.sfdx", sfdx):
+            with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx):
                 exception = (
                     "Unable to find access token for whatever@example.com\nblah blah..."
                 )
