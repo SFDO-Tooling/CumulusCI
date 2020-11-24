@@ -43,6 +43,7 @@ class OrgConfig(BaseConfig):
         self._latest_api_version = None
         self._installed_packages = None
         self._is_person_accounts_enabled = None
+        self._multiple_currencies_is_enabled = False
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -402,13 +403,16 @@ class OrgConfig(BaseConfig):
         # - simple_salesforce raises a SalesforceResourceNotFound exception when trying to describe CurrencyType.
         # NOTE: Multiple Currencies can be enabled through Metadata API by setting CurrencySettings.enableMultiCurrency as "true". Therefore, we should try to dynamically check if Multiple Currencies is enabled.
         # NOTE: Once enabled, Multiple Currenies cannot be disabled.
-        try:
-            # Multiple Currencies is enabled if CurrencyType can be described (implying the Sobject is exposed).
-            self.salesforce_client.CurrencyType.describe()
-            return True
-        except SalesforceResourceNotFound:
-            # CurrencyType Sobject is not exposed meaning Multiple Currencies is not enabled.
-            return False
+        if not self._multiple_currencies_is_enabled:
+            try:
+                # Multiple Currencies is enabled if CurrencyType can be described (implying the Sobject is exposed).
+                self.salesforce_client.CurrencyType.describe()
+                self._multiple_currencies_is_enabled = True
+            except SalesforceResourceNotFound:
+                # CurrencyType Sobject is not exposed meaning Multiple Currencies is not enabled.
+                # Keep self._multiple_currencies_is_enabled False.
+                pass
+        return self._multiple_currencies_is_enabled
 
     @property
     def is_advanced_currency_management_enabled(self):
