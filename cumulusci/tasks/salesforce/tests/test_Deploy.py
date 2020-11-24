@@ -23,6 +23,7 @@ class TestDeploy(unittest.TestCase):
                     "namespace_tokenize": "ns",
                     "namespace_inject": "ns",
                     "namespace_strip": "ns",
+                    "unmanaged": True,
                 },
             )
 
@@ -61,7 +62,14 @@ class TestDeploy(unittest.TestCase):
     def test_get_api__skip_clean_meta_xml(self):
         with temporary_dir() as path:
             touch("package.xml")
-            task = create_task(Deploy, {"path": path, "clean_meta_xml": False})
+            task = create_task(
+                Deploy,
+                {
+                    "path": path,
+                    "clean_meta_xml": False,
+                    "unmanaged": True,
+                },
+            )
 
             api = task._get_api()
             zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(api.package_zip)), "r")
@@ -93,6 +101,7 @@ class TestDeploy(unittest.TestCase):
                         "namespace_tokenize": "ns",
                         "namespace_inject": "ns",
                         "namespace_strip": "ns",
+                        "unmanaged": True,
                     },
                 )
 

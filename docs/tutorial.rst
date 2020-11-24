@@ -122,7 +122,7 @@ To get through some of the tasks later in the tutorial, you will need to connect
 
 Go to https://github.com/settings/tokens/new and create a new personal access token with both "repo" and "gist" scopes specified. Copy the access token to use as the password when configuring the GitHub service.
 
-Run the following and provide your GitHub username and use the access token as the password:
+Run the following and provide your GitHub username and token:
 
 .. code-block:: console
 
@@ -668,11 +668,7 @@ To set up our newly connected dev org, run the dev_org flow:
     2016-11-03 12:02:42:
     2016-11-03 12:02:42: Running task: deploy_post
     2016-11-03 12:02:43: Options:
-    2016-11-03 12:02:43:   namespace_token: %%%NAMESPACE%%%
     2016-11-03 12:02:43:   path: unpackaged/post
-    2016-11-03 12:02:43:   namespace: ccitest
-    2016-11-03 12:02:43:   managed: False
-    2016-11-03 12:02:43:   filename_token: ___NAMESPACE___
     2016-11-03 12:02:43: Deploying all metadata bundles in path /Users/jlantz/dev/CumulusCI-Test/unpackaged/post
     2016-11-03 12:02:43: Deploying bundle: unpackaged/post/salesforce1
     2016-11-03 12:02:43: Pending

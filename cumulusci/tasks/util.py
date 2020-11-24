@@ -4,6 +4,7 @@ import time
 import glob
 from xml.dom.minidom import parse
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
 from cumulusci.utils.options import (
@@ -154,6 +155,10 @@ class FindReplaceOptions(CCIOptions):
         "*",
         description="A UNIX like filename pattern used for matching filenames, or a list of them. See python fnmatch docs for syntax. If passed via command line, use a comma separated string. Defaults to *",
     )
+    env_replace: bool = Field(
+        False,
+        description="If True, treat the value of the replace option as the name of an environment variable, and use the value of that variable as the replacement string. Defaults to False",
+    )
 
 
 class FindReplace(BaseTask):
@@ -170,14 +175,22 @@ class FindReplace(BaseTask):
         if self.parsed_options.max:
             kwargs["max"] = self.parsed_options.max
 
-        for file_pattern in self.parsed_options.file_pattern:
+        if self.options["env_replace"]:
+            if self.options["replace"] in os.environ.keys():
+                self.options["replace"] = os.environ[self.options["replace"]]
+            else:
+                raise TaskOptionsError(
+                    f"The environment variable {self.options['replace']} was not found. Ensure that this value is populated or set env_replace to False."
+                )
+
+        for file_pattern in self.options["file_pattern"]:
             find_replace(
                 find=self.parsed_options.find,
                 replace=self.parsed_options.replace,
                 directory=self.parsed_options.path,
                 filePattern=file_pattern,
                 logger=self.logger,
-                **kwargs
+                **kwargs,
             )
 
 

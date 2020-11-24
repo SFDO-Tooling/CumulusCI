@@ -5,7 +5,6 @@ import os
 import re
 from contextlib import contextmanager
 from urllib.parse import urlparse
-from cumulusci.utils.fileutils import open_fs_resource
 
 import requests
 from simple_salesforce import Salesforce
@@ -16,6 +15,8 @@ from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.oauth.salesforce import jwt_session
+from cumulusci.utils.fileutils import open_fs_resource
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
@@ -104,7 +105,7 @@ class OrgConfig(BaseConfig):
             raise SalesforceCredentialsException(
                 f"Error refreshing OAuth token: {resp.text}"
             )
-        return resp.json()
+        return safe_json_from_response(resp)
 
     @property
     def lightning_base_url(self):
@@ -131,7 +132,13 @@ class OrgConfig(BaseConfig):
             response = requests.get(
                 self.instance_url + "/services/data", headers=headers
             )
-            self._latest_api_version = str(response.json()[-1]["version"])
+            try:
+                version = safe_json_from_response(response)[-1]["version"]
+            except (KeyError, IndexError, TypeError):
+                raise CumulusCIException(
+                    f"Cannot decode API Version `{response.text[0:100]}``"
+                )
+            self._latest_api_version = str(version)
 
         return self._latest_api_version
 
@@ -168,7 +175,8 @@ class OrgConfig(BaseConfig):
             self.instance_url + "/services/oauth2/userinfo", headers=headers
         )
         if response != self.config.get("userinfo", {}):
-            self.config.update({"userinfo": response.json()})
+            config_data = safe_json_from_response(response)
+            self.config.update({"userinfo": config_data})
 
     def can_delete(self):
         return False
@@ -180,6 +188,7 @@ class OrgConfig(BaseConfig):
             "org_type": self._org_sobject["OrganizationType"],
             "is_sandbox": self._org_sobject["IsSandbox"],
             "instance_name": self._org_sobject["InstanceName"],
+            "namespace": self._org_sobject["NamespacePrefix"],
         }
         self.config.update(result)
 

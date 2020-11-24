@@ -1162,6 +1162,38 @@ class TestOrgConfig(unittest.TestCase):
 
         oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
 
+    @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
+    def test_refresh_oauth_token__bad_refresh_json(self, SalesforceOAuth2):
+        config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
+        SalesforceOAuth2.return_value = oauth = mock.Mock()
+        oauth.refresh_token.return_value = resp = mock.Mock(status_code=200)
+        keychain = mock.Mock()
+        resp.json.side_effect = json.JSONDecodeError("blah", "Blah", 0)
+
+        with pytest.raises(CumulusCIException) as e:
+            config.refresh_oauth_token(keychain)
+        assert "Cannot decode" in str(e.value)
+
+        oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
+
+    @responses.activate
+    def test_load_user_info__bad_json(self):
+        config = OrgConfig(
+            {
+                "refresh_token": mock.sentinel.refresh_token,
+                "instance_url": "http://instance_url_111.com",
+            },
+            "test",
+        )
+        keychain = mock.Mock()
+
+        responses.add(
+            responses.POST, "http://instance_url_111.com/services/oauth2/token"
+        )
+        with pytest.raises(CumulusCIException) as e:
+            config.refresh_oauth_token(keychain)
+        assert "Cannot decode" in str(e.value)
+
     def test_refresh_oauth_token_no_connected_app(self):
         config = OrgConfig({}, "test")
         with self.assertRaises(AttributeError):
@@ -1274,6 +1306,26 @@ class TestOrgConfig(unittest.TestCase):
         config.access_token = "TOKEN"
         assert config.latest_api_version == "42.0"
 
+    @responses.activate
+    def test_get_salesforce_version_bad_json(self):
+        responses.add("GET", "https://na01.salesforce.com/services/data", "NOTJSON!")
+        config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
+        config.access_token = "TOKEN"
+        with pytest.raises(CumulusCIException) as e:
+            assert config.latest_api_version == "42.0"
+        assert "NOTJSON" in str(e.value)
+
+    @responses.activate
+    def test_get_salesforce_version_weird_json(self):
+        responses.add(
+            "GET", "https://na01.salesforce.com/services/data", json=["NOTADICT"]
+        )
+        config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
+        config.access_token = "TOKEN"
+        with pytest.raises(CumulusCIException) as e:
+            assert config.latest_api_version == "42.0"
+        assert "NOTADICT" in str(e.value)
+
     def test_start_url(self):
         config = OrgConfig(
             {"instance_url": "https://na01.salesforce.com", "access_token": "TOKEN"},
@@ -1313,6 +1365,7 @@ class TestOrgConfig(unittest.TestCase):
                 "OrganizationType": "Enterprise Edition",
                 "IsSandbox": False,
                 "InstanceName": "cs420",
+                "NamespacePrefix": "ns",
             },
         )
 
@@ -1321,6 +1374,7 @@ class TestOrgConfig(unittest.TestCase):
         self.assertEqual("Enterprise Edition", config.org_type)
         self.assertEqual(False, config.is_sandbox)
         self.assertIsNotNone(config.organization_sobject)
+        assert config.namespace == "ns"
 
     @responses.activate
     def test_get_community_info__cached(self):

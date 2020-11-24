@@ -31,9 +31,6 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "dependencies. Dependencies can be specified using the 'github' or 'namespace' keys (all other keys "
             "are not used). Note that this can cause installations to fail if required prerequisites are not available."
         },
-        "namespaced_org": {
-            "description": "If True, the changes namespace token injection on any dependencies so tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org."
-        },
         "purge_on_delete": {
             "description": "Sets the purgeOnDelete option for the deployment. Defaults to True"
         },
@@ -57,9 +54,6 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         super(UpdateDependencies, self)._init_options(kwargs)
         self.options["purge_on_delete"] = process_bool_arg(
             self.options.get("purge_on_delete", True)
-        )
-        self.options["namespaced_org"] = process_bool_arg(
-            self.options.get("namespaced_org", False)
         )
         self.options["include_beta"] = process_bool_arg(
             self.options.get("include_beta", False)
@@ -245,51 +239,52 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
 
     def _install_dependency(self, dependency):
         package_zip = None
-        if "zip_url" or "repo_name" in dependency:
-            zip_src = None
-            if "zip_url" in dependency:
-                self.logger.info(
-                    "Deploying unmanaged metadata from /{} of {}".format(
-                        dependency["subfolder"], dependency["zip_url"]
-                    )
+
+        zip_src = None
+        if "zip_url" in dependency:
+            self.logger.info(
+                "Deploying unmanaged metadata from /{} of {}".format(
+                    dependency.get("subfolder") or "", dependency["zip_url"]
                 )
-                zip_src = self._download_extract_zip(
-                    dependency["zip_url"], subfolder=dependency.get("subfolder")
-                )
-            elif "repo_name" in dependency:
-                self.logger.info(
-                    "Deploying unmanaged metadata from /{} of {}/{}".format(
-                        dependency["subfolder"],
-                        dependency["repo_owner"],
-                        dependency["repo_name"],
-                    )
-                )
-                gh_for_repo = self.project_config.get_github_api(
-                    dependency["repo_owner"], dependency["repo_name"]
-                )
-                zip_src = self._download_extract_github(
-                    gh_for_repo,
+            )
+            zip_src = self._download_extract_zip(
+                dependency["zip_url"], subfolder=dependency.get("subfolder")
+            )
+        elif "repo_name" in dependency:
+            self.logger.info(
+                "Deploying unmanaged metadata from /{} of {}/{}".format(
+                    dependency["subfolder"],
                     dependency["repo_owner"],
                     dependency["repo_name"],
-                    dependency["subfolder"],
-                    ref=dependency.get("ref"),
                 )
+            )
+            gh_for_repo = self.project_config.get_github_api(
+                dependency["repo_owner"], dependency["repo_name"]
+            )
+            zip_src = self._download_extract_github(
+                gh_for_repo,
+                dependency["repo_owner"],
+                dependency["repo_name"],
+                dependency["subfolder"],
+                ref=dependency.get("ref"),
+            )
 
-            if zip_src:
-                package_zip = MetadataPackageZipBuilder.from_zipfile(
-                    zip_src, options=dependency, logger=self.logger
-                ).as_base64()
-            elif "namespace" in dependency:
-                self.logger.info(
-                    "Installing {} version {}".format(
-                        dependency["namespace"], dependency["version"]
-                    )
+        if zip_src:
+            package_zip = MetadataPackageZipBuilder.from_zipfile(
+                zip_src, options=dependency, logger=self.logger
+            ).as_base64()
+        elif "namespace" in dependency:
+            self.logger.info(
+                "Installing {} version {}".format(
+                    dependency["namespace"], dependency["version"]
                 )
-                package_zip = InstallPackageZipBuilder(
-                    dependency["namespace"],
-                    dependency["version"],
-                    securityType=self.options["security_type"],
-                )()
+            )
+            package_zip = InstallPackageZipBuilder(
+                dependency["namespace"],
+                dependency["version"],
+                securityType=self.options["security_type"],
+            )()
+
         if package_zip:
             api = self.api_class(
                 self, package_zip, purge_on_delete=self.options["purge_on_delete"]

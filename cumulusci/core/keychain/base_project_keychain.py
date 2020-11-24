@@ -238,7 +238,11 @@ class BaseProjectKeychain(BaseConfig):
                 return DEFAULT_CONNECTED_APP
             self._raise_service_not_configured(name)
 
-        return self._get_service(name)
+        service = self._get_service(name)
+        # transparent migration of github API tokens to new key
+        if name == "github" and service.password and not service.token:
+            service.config["token"] = service.password
+        return service
 
     def _get_service(self, name):
         return self.services.get(name)

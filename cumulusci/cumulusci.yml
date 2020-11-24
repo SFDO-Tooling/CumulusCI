@@ -43,13 +43,25 @@ tasks:
         description: "Assigns specified Permission Sets to the current user, if not already assigned."
         class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
     batch_apex_wait:
-        description: Waits on a batch apex job to finish.
+        description: Waits on a batch apex or queueable apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
     check_sobjects_available:
         description: Runs as a preflight check to determine whether specific sObjects are available.
         class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
         group: Salesforce Preflight Checks
+    check_sobject_permissions:
+        description: Runs as a preflight check to determine whether specific sObjects are permissioned as desired (options are required).
+        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
+        group: Salesforce Preflight Checks
+    check_advanced_currency_management:
+        description: Runs as a preflight check to determine whether Advanced Currency Management is active (True result means the feature is active).
+        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
+        group: Salesforce Preflight Checks
+        options:
+            permissions:
+                DatedConversionRate:
+                    createable: True
     check_org_wide_defaults:
         description: Runs as a preflight check to validate Organization-Wide Defaults.
         class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
@@ -147,18 +159,12 @@ tasks:
         class_path: cumulusci.tasks.salesforce.DeployBundles
         options:
             path: unpackaged/post
-            unmanaged: True
-            namespace_inject: $project_config.project__package__namespace
-            namespace_token: '%%%NAMESPACE%%%'
-            filename_token: '___NAMESPACE___'
         group: Salesforce Metadata
     deploy_qa_config:
         description: Deploys configuration for QA.
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
-            namespace_inject: $project_config.project__package__namespace
             path: unpackaged/config/qa
-            unmanaged: True
         group: Salesforce Metadata
     dx:
         description: Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
@@ -575,8 +581,6 @@ flows:
                 flow: install_beta
             2:
                 task: run_tests
-                options:
-                    managed: True
 
     ci_feature:
         group: Continuous Integration
@@ -589,6 +593,9 @@ flows:
                     build_notes_label: "Build Change Notes"
             1:
                 flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -600,7 +607,7 @@ flows:
 
     ci_feature_beta_deps:
         group: Continuous Integration
-        description: Install the latest beta version of dependencies and run apex tests.
+        description: This flow is deprecated. Please use ci_feature instead.
         steps:
             0.5:
                 task: github_parent_pr_notes
@@ -608,7 +615,10 @@ flows:
                     branch_name: $project_config.repo_branch
                     build_notes_label: "Build Change Notes"
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -627,7 +637,7 @@ flows:
                 options:
                     context: "Build Feature Test Package"
             2:
-                flow: beta_dependencies
+                flow: dependencies
                 options:
                     update_dependencies:
                         dependencies: ^^github_package_data.dependencies
@@ -639,9 +649,6 @@ flows:
                 flow: config_managed
             5:
                 task: run_tests
-                options:
-                    managed: True
-
 
     ci_master:
         group: Continuous Integration
@@ -665,8 +672,6 @@ flows:
                 flow: install_prod
             2:
                 task: run_tests
-                options:
-                    managed: True
 
     config_apextest:
         group: Post-Install Configuration
@@ -687,29 +692,23 @@ flows:
                 task: update_admin_profile
 
     config_managed:
-        group: Post-Install Configuration 
-        description: Configure an org for use as a dev org after package metadata is deployed
+        group: Post-Install Configuration
+        description: Configure an org for use after the managed package has been installed.
         steps:
             1:
                 task: deploy_post
-                options:
-                    unmanaged: False
             2:
                 task: update_admin_profile
-                options:
-                    managed: true
 
     config_packaging:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure packaging org for upload after package metadata is deployed
         steps:
             1:
                 task: update_admin_profile
-                options:
-                    managed: True
 
     config_qa:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure an org for use as a QA org after package metadata is deployed
         steps:
             1:
@@ -718,7 +717,7 @@ flows:
                 task: update_admin_profile
 
     config_regression:
-        group: Post-Install Configuration 
+        group: Post-Install Configuration
         description: Configure an org for QA regression after the package is installed
         steps:
             1:
@@ -735,7 +734,7 @@ flows:
 
     beta_dependencies:
         group: Dependency Management
-        description: Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata
+        description: "This flow is deprecated. Please use the `dependencies` flow and set the `include_beta` option on the first task, `update_dependencies`. Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata"
         steps:
             1:
                 task: update_dependencies
@@ -760,11 +759,15 @@ flows:
                 task: deploy
                 when: project_config.project__source_format != "sfdx" or not org_config.scratch
             3.1:
-                task: dx_push
+                task: deploy
+                options:
+                    path: force-app
                 when: project_config.project__source_format == "sfdx" and org_config.scratch
             4:
                 task: uninstall_packaged_incremental
                 when: project_config.project__source_format != "sfdx" or not org_config.scratch
+            5:
+                task: snapshot_changes
 
     deploy_unmanaged_ee:
         group: Deployment
@@ -816,6 +819,9 @@ flows:
         steps:
             1:
                 flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -825,10 +831,13 @@ flows:
 
     dev_org_beta_deps:
         group: Org Setup
-        description: Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
+        description: This flow is deprecated. Please use dev_org instead.
         steps:
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -842,17 +851,11 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        namespaced_org: True
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
                 flow: config_dev
-                options:
-                    deploy_post:
-                        unmanaged: False
-                        namespaced_org: True
-                    update_admin_profile:
-                        namespaced_org: True
             4:
                 task: snapshot_changes
 
@@ -862,6 +865,9 @@ flows:
         steps:
             1:
                 flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 flow: deploy_unmanaged
             3:
@@ -895,6 +901,9 @@ flows:
         steps:
             1:
                 flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 task: install_managed_beta
             3:
@@ -925,15 +934,16 @@ flows:
                 task: install_managed
             3:
                 task: deploy_post
-                options:
-                    unmanaged: False
 
     install_regression:
         group: Install / Uninstall
         description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
         steps:
             1:
-                flow: beta_dependencies
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        include_beta: True
             2:
                 task: install_managed
             3:
@@ -1036,8 +1046,8 @@ services:
       username:
         description: The Github username to use for tasks.
         required: True
-      password:
-        description:  Github password to use for tasks.  It is recommended to use a Github Application Token instead of password to allow bypassing 2fa.
+      token:
+        description: Personal Access Token for GitHub. See https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token for more info.
         required: True
       email:
         description: The email address to used by Github tasks when an operation requires an email address.
