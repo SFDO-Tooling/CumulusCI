@@ -1,24 +1,19 @@
 import unittest
-from unittest.mock import MagicMock, patch
 
 import responses
 
 from cumulusci.core.config import (
     UniversalConfig,
     BaseProjectConfig,
-    OrgConfig,
     TaskConfig,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.salesforce.custom_settings_wait import CustomSettingValueWait
 from cumulusci.core.tests.utils import MockLoggerMixin
+from cumulusci.tasks.salesforce.custom_settings_wait import CustomSettingValueWait
+from cumulusci.tests.util import DummyOrgConfig
 
 
-@patch(
-    "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
-    MagicMock(return_value=None),
-)
 class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
         self.api_version = 42.0
@@ -34,7 +29,7 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
         }
         keychain = BaseProjectKeychain(self.project_config, "")
         self.project_config.set_keychain(keychain)
-        self.org_config = OrgConfig(
+        self.org_config = DummyOrgConfig(
             {
                 "id": "foo/1",
                 "instance_url": "https://example.com",
@@ -146,3 +141,19 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
             task()
 
         assert "supported" in str(e.exception)
+
+    def test_apply_namespace__managed(self):
+        self.project_config.config["project"]["package"]["namespace"] = "ns"
+        self.task_config.config["options"] = {
+            "object": "%%%NAMESPACE%%%Test__c",
+            "field": "Field__c",
+            "value": "x",
+            "managed": True,
+            "namespaced": True,
+        }
+        task, url = self._get_url_and_task()
+        task.object_name = "%%%NAMESPACE%%%Test__c"
+        task.field_name = "%%%NAMESPACE%%%Field__c"
+        task._apply_namespace()
+        assert task.object_name == "ns__Test__c"
+        assert task.field_name == "ns__Field__c"

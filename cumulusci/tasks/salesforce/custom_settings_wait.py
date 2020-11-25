@@ -92,13 +92,21 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
 
     def _apply_namespace(self):
         # Process namespace tokens
-        managed = process_bool_arg(self.options.get("managed", False))
-        namespaced = process_bool_arg(self.options.get("namespaced", False))
         namespace = self.project_config.project__package__namespace
-        namespace_prefix = ""
-        if managed or namespaced:
-            namespace_prefix = namespace + "__"
+        if "managed" in self.options:
+            managed = process_bool_arg(self.options["managed"])
+        else:
+            managed = (
+                bool(namespace) and namespace in self.org_config.installed_packages
+            )
+        if "namespaced" in self.options:
+            namespaced = process_bool_arg(self.options["namespaced"])
+        else:
+            namespaced = bool(namespace) and self.org_config.namespace == namespace
 
+        namespace_prefix = ""
+        if namespace and (managed or namespaced):
+            namespace_prefix = namespace + "__"
         self.object_name = self.object_name.replace("%%%NAMESPACE%%%", namespace_prefix)
         self.field_name = self.field_name.replace("%%%NAMESPACE%%%", namespace_prefix)
 
