@@ -79,7 +79,11 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
             "poll_interval": 1,
         }
 
+        # simulate finding no settings record and then finding one with the expected value
         task, url = self._get_url_and_task()
+        responses.add(
+            responses.GET, url, json={"totalSize": 0, "done": True, "records": []}
+        )
         response = self._get_query_resp()
         response["records"][0]["Customizable_Rollups_Enabled__c"] = True
         responses.add(responses.GET, url, json=response)
@@ -112,6 +116,21 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
         task, url = self._get_url_and_task()
         response = self._get_query_resp()
         response["records"][0]["Rollups_Account_Batch_Size__c"] = 200
+        responses.add(responses.GET, url, json=response)
+        task()
+
+    @responses.activate
+    def test_run_custom_settings_wait_match_str(self):
+        self.task_config.config["options"] = {
+            "object": "Customizable_Rollup_Setings__c",
+            "field": "Rollups_Account_Batch_Size__c",
+            "value": "asdf",
+            "poll_interval": 1,
+        }
+
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"][0]["Rollups_Account_Batch_Size__c"] = "asdf"
         responses.add(responses.GET, url, json=response)
         task()
 
