@@ -4,9 +4,13 @@ import pathlib
 import shutil
 
 from cumulusci.core.config import UniversalConfig
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.metadata.package import metadata_sort_key
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.xml.metadata_tree import MetadataElement
+
+
+TypeMembers = Dict[str, List[str]]
 
 
 class MetadataProcessor:
@@ -21,44 +25,53 @@ class MetadataProcessor:
         self.additional = additional or {}
 
     def __iter__(self):
-        # horrible hack to make it simpler to construct MD_PROCESSORS below
-        # (so that a single MetadataProcessor instance can pass type checking
-        # for Iterable[MetadataProcessor])
+        """hack to make it simpler to construct MD_PROCESSORS below
+
+        (so that a single MetadataProcessor instance can pass type checking
+        for Iterable[MetadataProcessor])
+        """
         return iter((self,))
 
-    def collect_members(self, path: pathlib.Path) -> Dict[str, List[str]]:
+    def collect_members(self, path: pathlib.Path) -> TypeMembers:
         """List metadata components found in this path."""
         types = defaultdict(list)
         for item in sorted(path.iterdir()):
-            name = item.name
-            if name.startswith("."):
+            if item.name.startswith("."):
                 continue
 
-            for name in self.collect_members_from_subpath(item):
-                name = self._strip_extension(name)
-                name = name.replace("___NAMESPACE___", "%%%NAMESPACE%%%")
-                if self.type_name is not None:
-                    types[self.type_name].append(name)
-
-            if self.additional:
-                self.collect_additional_members(types, item)
+            for mdtype, members in self.collect_members_from_subpath(item).items():
+                types[mdtype].extend(members)
 
         return types
 
-    def collect_members_from_subpath(self, path: pathlib.Path):
+    def collect_members_from_subpath(self, path: pathlib.Path) -> TypeMembers:
         if self.extension and not path.name.endswith(self.extension):
-            return
-        yield path.name
+            return {}
 
-    def collect_additional_members(
-        self, types: Dict[str, List[str]], path: pathlib.Path
-    ):
-        parent = self._strip_extension(path.name)
-        tree = metadata_tree.parse(path)
-        for tag, type_name in self.additional.items():
-            for el in tree.findall(tag):
-                name = f"{parent}.{el.fullName.text}"
-                types[type_name].append(name)
+        parent_name = self._strip_extension(path.name).replace(
+            "___NAMESPACE___", "%%%NAMESPACE%%%"
+        )
+
+        types = defaultdict(list)
+        # Include the component represented by the file as a whole,
+        # unless it may contain additional separate components,
+        # in which case we need to check the file contents.
+        include_parent = not bool(self.additional)
+        if not include_parent:
+            # Scan XML and add each additional component.
+            # If any element is not an additional component, include the parent.
+            tree = metadata_tree.parse(path)
+            for el in tree.iterchildren():
+                if el.tag in self.additional:
+                    mdtype = self.additional[el.tag]
+                    name = f"{parent_name}.{el.fullName.text}"
+                    types[mdtype].append(name)
+                else:
+                    include_parent = True
+        if include_parent and self.type_name is not None:
+            types[self.type_name].append(parent_name)
+
+        return types
 
     def _strip_extension(self, name: str):
         if self.extension and name.endswith(self.extension):
@@ -82,6 +95,8 @@ class MetadataProcessor:
                 self._merge_xml(item, target_item_path)
             else:
                 # copy entire folder or file
+                if target_item_path.exists():
+                    shutil.rmtree(str(target_item_path))
                 copy_op = shutil.copytree if item.is_dir() else shutil.copy
                 copy_op(str(item), str(target_item_path))
 
@@ -135,22 +150,29 @@ class MetadataProcessor:
 class FolderMetadataProcessor(MetadataProcessor):
     type_name: str
 
-    def collect_members_from_subpath(self, path):
-        if not path.is_dir():
-            return
-
-        # Add the member if it is not namespaced
+    def collect_members_from_subpath(self, path: pathlib.Path) -> TypeMembers:
         name = path.name
-        if "__" not in name:
-            yield name
+        members = []
+
+        # Add the folder itself if there's a -meta.xml file
+        if pathlib.Path(str(path) + "-meta.xml").exists():
+            members.append(name)
+
+        # Ignore non-folders
+        if not path.is_dir():
+            return {}
 
         # Add subitems
         for subpath in sorted(path.iterdir()):
             subname = subpath.name
-            if subname.startswith(".") or subname.endswith("-meta.xml"):
+            if self.extension and not subname.endswith(self.extension):
+                continue
+            if subname.endswith("-meta.xml"):
                 continue
             subname = self._strip_extension(subname)
-            yield f"{name}/{subname}"
+            members.append(f"{name}/{subname}")
+
+        return {self.type_name: members}
 
     def merge(self, path: pathlib.Path, src: pathlib.Path, target: pathlib.Path):
         # Copy each component's file to the corresponding path in the target package.
@@ -171,41 +193,12 @@ class FolderMetadataProcessor(MetadataProcessor):
 
 
 class BundleMetadataProcessor(MetadataProcessor):
-    def collect_members_from_subpath(self, path):
+    type_name: str
+
+    def collect_members_from_subpath(self, path: pathlib.Path) -> TypeMembers:
         if path.is_dir():
-            yield path.name
-
-
-class XmlElementMetadataProcessor(MetadataProcessor):
-    def __init__(self, type_name: Optional[str], extension: str, tag: str):
-        self.type_name = type_name
-        self.extension = extension
-        self.tag = tag
-        self.additional = ()
-
-    def collect_members_from_subpath(self, path):
-        parent = self._strip_extension(path.name)
-        tree = metadata_tree.parse(path)
-        for el in tree.findall(self.tag):
-            name = el.fullName.text
-            yield f"{parent}.{name}"
-
-
-class ObjectMetadataProcessor(MetadataProcessor):
-    def collect_members_from_subpath(self, path):
-        name = path.name
-
-        # Skip namespaced custom objects
-        if len(name.split("__")) > 2:
-            return
-
-        # Skip standard objects
-        if not name.endswith(
-            ("__c.object", "__mdt.object", "__e.object", "__b.object")
-        ):
-            return
-
-        yield name
+            return {self.type_name: [path.name]}
+        return {}
 
 
 def _iter_processors(
@@ -218,7 +211,7 @@ def _iter_processors(
         try:
             processors = MD_PROCESSORS[item.name]
         except KeyError:
-            raise Exception(f"Unexpected folder in metadata package: {item}")
+            raise CumulusCIException(f"Unexpected folder in metadata package: {item}")
         for processor in processors:
             yield item, processor
 
@@ -228,26 +221,26 @@ class MetadataPackage:
     https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_package.htm
     """
 
-    def __init__(self, types: Dict[str, List[str]] = None, version: str = None):
+    def __init__(self, types: TypeMembers = None, version: str = None):
         self.types = defaultdict(list)
         for k, v in types.items():
             self.types[k] = v
         self.version = version or UniversalConfig().package__api_version
 
     @classmethod
-    def from_path(cls, path: pathlib.Path):
+    def from_path(cls, path: pathlib.Path) -> "MetadataPackage":
         version = None
         manifest_path = path / "package.xml"
         if manifest_path.exists():
             manifest = metadata_tree.parse(manifest_path)
             version = str(manifest.version.text)
 
-        types: Dict[str, List[str]] = {}
+        types: TypeMembers = {}
         for folder_path, processor in _iter_processors(path):
             types.update(processor.collect_members(folder_path))
         return MetadataPackage(types, version)
 
-    def write_manifest(self, path):
+    def write_manifest(self, path: pathlib.Path) -> None:
         manifest_path = path / "package.xml"
         manifest = MetadataElement("Package")
         for name, members in sorted(self.types.items()):
@@ -259,19 +252,19 @@ class MetadataPackage:
         manifest_path.write_text(manifest.tostring(xml_declaration=True))
 
 
-def write_manifest(components: Dict[str, List[str]], api_version, path: pathlib.Path):
+def write_manifest(components: TypeMembers, api_version, path: pathlib.Path) -> None:
     """Write package.xml including components to the specified path."""
     MetadataPackage(components, api_version).write_manifest(path)
 
 
-def update_manifest(path: pathlib.Path):
+def update_manifest(path: pathlib.Path) -> None:
     """Generate package.xml based on actual metadata present in a folder."""
     MetadataPackage.from_path(path).write_manifest(path)
 
 
 def merge_metadata(
     src: pathlib.Path, dest: pathlib.Path, update_manifest=update_manifest
-):
+) -> None:
     """Merge one metadata package into another.
 
     The merging logic for each subfolder is delegated to a MetadataProcessor.
@@ -284,10 +277,55 @@ def merge_metadata(
 
 
 MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
+    "accountRelationshipShareRules": MetadataProcessor(
+        "AccountRelationshipShareRule", ".accountRelationshipShareRule"
+    ),
+    "actionLinkGroupTemplates": MetadataProcessor(
+        "ActionLinkGroupTemplate", ".actionLinkGroupTemplate"
+    ),
+    "actionPlanTemplates": MetadataProcessor("ActionPlanTemplate", ".apt"),
+    "analyticSnapshots": MetadataProcessor("AnalyticSnapshot", ".analyticsnapshot"),
+    "animationRules": MetadataProcessor("AnimationRule", ".animationRule"),
+    "apexEmailNotifications": MetadataProcessor(
+        "ApexEmailNotification", ".notifications"
+    ),
     "applications": MetadataProcessor("CustomApplication", ".app"),
+    "appMenus": MetadataProcessor("AppMenu", ".appMenu"),
+    "appointmentSchedulingPolicies": MetadataProcessor(
+        "AppointmentSchedulingPolicy", ".policy"
+    ),
+    "approvalProcesses": MetadataProcessor("ApprovalProcess", ".approvalProcess"),
+    "assignmentRules": MetadataProcessor("AssignmentRules", ".assignmentRules"),
+    "audience": MetadataProcessor("Audience", ".audience"),
     "aura": BundleMetadataProcessor("AuraDefinitionBundle"),
+    "authproviders": MetadataProcessor("AuthProvider", ".authprovider"),
+    "autoResponseRules": MetadataProcessor("AutoResponseRules", ".autoResponseRules"),
+    "blacklistedConsumers": MetadataProcessor(
+        "BlacklistedConsumer", ".blacklistedConsumer"
+    ),
+    "bot": MetadataProcessor("Bot", ".bot", {"botVersions": "BotVersion"}),
+    "brandingSets": MetadataProcessor("BrandingSet", ".brandingSet"),
+    "businessProcessGroups": MetadataProcessor(
+        "BusinessProcessGroup", ".businessProcessGroup"
+    ),
+    "callCenters": MetadataProcessor("CallCenter", ".callCenter"),
+    "CallCoachingMediaProviders": MetadataProcessor(
+        "CallCoachingMediaProvider", ".callCoachingMediaProvider"
+    ),
+    "campaignInfluenceModels": MetadataProcessor(
+        "CampaignInfluenceModel", ".campaignInfluenceModel"
+    ),
+    "CaseSubjectParticles": MetadataProcessor(
+        "CaseSubjectParticle", ".caseSubjectParticle"
+    ),
+    "certs": MetadataProcessor("Certificate", ".crt-meta.xml"),
+    "channelLayouts": MetadataProcessor("ChannelLayout", ".channelLayout"),
+    "ChatterExtensions": MetadataProcessor("ChatterExtension", ".ChatterExtension"),
     "classes": MetadataProcessor("ApexClass", ".cls-meta.xml"),
-    "components": MetadataProcessor("ApexComponent", ".component"),
+    "cleanDataServices": MetadataProcessor("CleanDataService", ".cleanDataService"),
+    "cmsConnectSource": MetadataProcessor("CMSConnectSource", ".cmsConnectSource"),
+    "communities": MetadataProcessor("Community", ".community"),
+    "components": MetadataProcessor("ApexComponent", ".component-meta.xml"),
     "customMetadata": MetadataProcessor("CustomMetadata", ".md"),
     "documents": FolderMetadataProcessor("Document"),
     "email": FolderMetadataProcessor("EmailTemplate", ".email"),
@@ -300,10 +338,14 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
     "layouts": MetadataProcessor("Layout", ".layout"),
     "letterhead": MetadataProcessor("Letterhead", ".letter"),
     "lwc": BundleMetadataProcessor("LightningComponentBundle"),
-    "matchingRules": XmlElementMetadataProcessor(
-        "MatchingRule", ".matchingRule", "matchingRules"
+    "matchingRules": MetadataProcessor(
+        None,
+        ".matchingRule",
+        {
+            "matchingRules": "MatchingRule",
+        },
     ),
-    "objects": ObjectMetadataProcessor(
+    "objects": MetadataProcessor(
         "CustomObject",
         ".object",
         {
@@ -323,15 +365,16 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
     "objectTranslations": MetadataProcessor(
         "CustomObjectTranslation", ".objectTranslation"
     ),
-    "pages": MetadataProcessor("ApexPage", ".page"),
+    "pages": MetadataProcessor("ApexPage", ".page-meta.xml"),
     "quickActions": MetadataProcessor("QuickAction", ".quickAction"),
     "remoteSiteSettings": MetadataProcessor("RemoteSiteSetting", ".remoteSite"),
     "reports": FolderMetadataProcessor("Report", ".report"),
     "reportTypes": MetadataProcessor("ReportType", ".reportType"),
     "staticresources": MetadataProcessor("StaticResource", ".resource"),
     "tabs": MetadataProcessor("CustomTab", ".tab"),
+    "testSuites": MetadataProcessor("ApexTestSuite", ".testSuite"),
     "translations": MetadataProcessor("Translations", ".translation"),
-    "triggers": MetadataProcessor("ApexTrigger", ".trigger"),
+    "triggers": MetadataProcessor("ApexTrigger", ".trigger-meta.xml"),
     "workflows": MetadataProcessor(
         None,
         ".workflow",
@@ -346,7 +389,9 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
 }
 
 # To do:
-# - coverage
 # - add missing types
+# - functional testing
 # - preserve package settings
+# - destructive?
 # - use it to generate package.xml elsewhere
+# - comments

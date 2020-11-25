@@ -1,7 +1,10 @@
+from cumulusci.utils.metadata import MetadataPackage
 from unittest import mock
+import io
 import json
 import os
 import pathlib
+import zipfile
 
 import responses
 
@@ -164,9 +167,22 @@ class TestRetrieveChanges:
                 ],
             }
 
-            task._run_task()
+            with mock.patch(
+                "cumulusci.tasks.salesforce.sourcetracking.ApiRetrieveUnpackaged"
+            ) as retrieve:
+                package_zip = zipfile.ZipFile(io.BytesIO(), "w")
+                package_zip.writestr(
+                    "objects/Test__c.object",
+                    """<?xml version="1.0" encoding="utf-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Test</label>
+</CustomObject>""",
+                )
+                retrieve.return_value.return_value = package_zip
+                task._run_task()
 
-            assert os.path.exists(os.path.join("src", "package.xml"))
+            pkg = MetadataPackage.from_path(pathlib.Path("src"))
+            assert "Test__c" in pkg.types["CustomObject"]
 
     def test_run_task__no_changes(self, sfdx, create_task_fixture):
         with temporary_dir() as path:
