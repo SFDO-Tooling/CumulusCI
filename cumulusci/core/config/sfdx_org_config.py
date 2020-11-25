@@ -29,7 +29,7 @@ class SfdxOrgConfig(OrgConfig):
 
         # Call force:org:display and parse output to get instance_url and
         # access_token
-        p = self.sfdx("force:org:display --json", self.username)
+        p = sfdx("force:org:display --json", self.username)
 
         org_info = None
         stderr_list = [line.strip() for line in p.stderr_text]
@@ -74,11 +74,6 @@ class SfdxOrgConfig(OrgConfig):
             }
         )
         return sfdx_info
-
-    @property
-    def sfdx(self):
-        """This exists primarily so that I can mock it out for testing"""
-        return sfdx
 
     @property
     def access_token(self):
@@ -137,9 +132,6 @@ class SfdxOrgConfig(OrgConfig):
         passed-in fields to find the username, and the token for that
         username will be returned.
 
-        Values are cached; the cache can be reset with the 'Refresh
-        oauth token' keyword.
-
         Examples:
 
         | # default user access token:
@@ -153,8 +145,7 @@ class SfdxOrgConfig(OrgConfig):
 
         """
         if not userfields:
-            # No lookup fields specified? Return the token for the
-            # default user
+            # No lookup fields specified? Return the token for the default user
             return self.access_token
 
         # if we have a username, use it. Otherwise we need to do a
@@ -175,7 +166,7 @@ class SfdxOrgConfig(OrgConfig):
             else:
                 username = result[0]["Username"]
 
-        p = self.sfdx(f"force:org:display --targetusername={username} --json")
+        p = sfdx(f"force:org:display --targetusername={username} --json")
         if p.returncode:
             output = p.stdout_text.read()
             try:
@@ -194,9 +185,7 @@ class SfdxOrgConfig(OrgConfig):
     def force_refresh_oauth_token(self):
         # Call force:org:display and parse output to get instance_url and
         # access_token
-        p = self.sfdx(
-            "force:org:open -r", self.username, log_note="Refreshing OAuth token"
-        )
+        p = sfdx("force:org:open -r", self.username, log_note="Refreshing OAuth token")
 
         stdout_list = [line.strip() for line in p.stdout_text]
 
