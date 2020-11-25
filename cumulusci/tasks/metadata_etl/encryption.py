@@ -1,3 +1,6 @@
+from collections import defaultdict
+from datetime import datetime
+
 import os
 import yaml
 
@@ -5,8 +8,8 @@ from cumulusci.tasks.metadata_etl.base import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 from cumulusci.utils import os_friendly_path
 from cumulusci.utils.xml import metadata_tree
-
-# from cumulusci.utils import process_list_arg
+from cumulusci.tasks.bulkdata.generate_mapping import GenerateMapping
+from cumulusci.core.exceptions import CumulusCIException
 
 
 class EncryptAllFields(MetadataSingleEntityTransformTask):
@@ -27,46 +30,64 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
         "blocklist_path": {
             "description": "The path to a YAML settings file of Object.Field entities known to be unencrpytable.",
             "required": False,
-        }
+        },
+        "timeout": {
+            "description": "The max amount of time to wait in seconds",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs):
         self.task_config.options["api_names"] = "dummy"
         super()._init_options(kwargs)
 
-        # inline list option version
-        # self.blocklist_path = process_list_arg(self.options.get("blocklist", []))
-
-        # yml file path version
-        self.blocklist_path = os_friendly_path(self.options.get("blocklist_path"))
+        self.options["timeout"] = int(self.options.get("timeout", 60))
+        self.blocklist_path = os_friendly_path(
+            self.options.get("blocklist_path")
+            if self.options.get("blocklist_path")
+            else ""
+        )
         if self.blocklist_path is None or not os.path.isfile(self.blocklist_path):
             raise TaskOptionsError(f"File {self.blocklist_path} does not exist")
-        print(self.blocklist_path)
 
     def _run_task(self):
-        with open(self.blocklist_path, "r") as f:
-            ## TODO: namespace inject this contents based on tokens in the yml
-            content = f.read()
-            content = self._inject_namespace(content)
-            self.blocklist = yaml.safe_load(content)
+        if os.path.isfile(self.blocklist_path):
+            with open(self.blocklist_path, "r") as f:
+                ## TODO: namespace inject this contents based on tokens in the yml
+                content = f.read()
+                content = self._inject_namespace(content)
+                self.blocklist = yaml.safe_load(content)
+        else:
+            self.blocklist = {}  # project has no blocklist
 
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "encryptable_standard_schema.yml")
         with open(mapping_path, "r") as f:
             self.standard_object_allowlist = yaml.safe_load(f)
 
-        # self.api_names also needs to include the standard objects that have encryptable fields
-        # self.api_names also needs standard objects that don't have standard encryptable fields but do have custom fields
-        self.api_names = [
+        self.api_names = {
             sobject["name"]
             for sobject in self.sf.describe()["sobjects"]
             if (
-                sobject["name"].endswith("__c")
-                or sobject["name"] == "Account"
-                or sobject["name"] == "Contact"
+                not (sobject["name"].endswith("ChangeEvent"))
+                and not sobject["customSetting"]
+                and (
+                    # custom objects
+                    sobject["name"].endswith("__c")
+                    # standard objects that have encryptable fields
+                    or sobject["name"] in self.standard_object_allowlist.keys()
+                    # standard objects that have custom fields
+                    or any(
+                        field["name"].endswith("__c")
+                        for field in getattr(self.sf, sobject["name"]).describe()[
+                            "fields"
+                        ]
+                    )
+                )
             )
-            and not sobject["customSetting"]
-        ]
+        }
+
+        self.fields_to_encrypt = defaultdict(list)
 
         super()._run_task()
 
@@ -106,18 +127,67 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
     def _transform_entity(self, custom_object: MetadataElement, object_api_name: str):
         dirty_object = False
 
+        # MD Api bug
+        existing_list_views = custom_object.findall("listViews")
+        for lv in existing_list_views:
+            custom_object.remove(lv)
+
         # special handling required for custom object Name fields, as they don't live in a "fields" tag
-        if object_api_name.endswith("__c"):
+        if object_api_name.endswith("__c") and not self._is_in_blocklist(
+            object_api_name, "Name"
+        ):
             name_field = custom_object.find("nameField")
             self.encrypt_field(name_field)
+            self.fields_to_encrypt[object_api_name].append("Name")
+
             dirty_object = True
 
         for field in custom_object.findall("fields"):
             if self._is_encryptable(object_api_name, field):
                 self.encrypt_field(field)
+                self.fields_to_encrypt[object_api_name].append(field.fullName.text)
                 dirty_object = True
 
-        if dirty_object:
-            print(custom_object.tostring())
-
         return custom_object if dirty_object else None
+
+    def _post_deploy(self, result):
+        if result == "Success":
+            super()._post_deploy(result)
+            self.logger.info("Waiting for encrypytion enablement to complete.")
+            self.time_start = datetime.now()
+            self._poll()
+
+    def _poll_action(self):
+        elapsed = datetime.now() - self.time_start
+        if elapsed.total_seconds() > self.options["timeout"]:
+            self.logger.warn(
+                (
+                    f'Encryption enablement not successfully completed after {self.options["timeout"]} seconds.'
+                )
+            )
+            for sobject_api_name in self.fields_to_encrypt.keys():
+                if self.fields_to_encrypt[sobject_api_name]:
+                    self.logger.warn(
+                        f"Couldn't encrypt: {sobject_api_name} fields {self.fields_to_encrypt[sobject_api_name]}"
+                    )
+            self.poll_complete = True
+
+        for sobject_api_name in self.fields_to_encrypt.keys():
+
+            field_map = {
+                field["name"]: field
+                for field in getattr(self.sf, sobject_api_name).describe()["fields"]
+                if field["name"] in self.fields_to_encrypt[sobject_api_name]
+            }
+
+            for field_api_name in self.fields_to_encrypt[sobject_api_name]:
+                if not field_map[field_api_name]["filterable"]:
+                    self.fields_to_encrypt[sobject_api_name].remove(field_api_name)
+
+        if not any(self.fields_to_encrypt.values()):
+            self.logger.info(
+                (f"Platform Encryption enablement successfully completed! 🛡")
+            )
+            self.poll_complete = True
+        else:
+            return

@@ -1,6 +1,160 @@
+# derived from https://help.salesforce.com/articleView?id=security_pe_standard_fields.htm
+# does not (yet) include Health Cloud, Financial Services Cloud, or CPQ sections
 Account:
   - Name
-  - Website
-Contact:
+  - Site
+  - BillingAddress
+  - Description
+  - Fax
   - Phone
+  - ShippingAddress
+  - Website
+  - Assistant # person accounts only
+  - AssistantPhone # person accounts only
+  - Email # person accounts only
+  - HomePhone # person accounts only
+  - Mobile # person accounts only
+  - MailingAddress # person accounts only
+  - OtherAddress # person accounts only
+  - OtherPhone # person accounts only
+  - Title # person accounts only
+Activity:
+  - Description
+  - Subject
+BusinessLicense:
+  - Identifier
+BusinessLicenseApplication:
+  - SiteAddress
+BusinessProfile:
+  - BusinessOperatingName
+  - BusinessTaxIdentifier
+Case:
+  - Description
+  - Subject
+CaseComment:
+  - Body
+ChatTranscript:
+  - Body
+  - SupervisorTranscriptBody
+Contact:
+  - Assistant
+  - AssistantPhone
+  - Description
   - Email
+  - Fax
+  - HomePhone
+  - MailingAddress
+  - Mobile
+  - Name
+  - OtherAddress
+  - OtherPhone
+  - Phone
+  - Title
+Contract:
+  - BillingAddress
+  - ShippingAddress
+ConversationEntry:
+  - ActorName
+  - Message
+  - CourseOffering
+  - Name
+EmailMessage:
+  - FromName
+  - FromAddress
+  - ToAddress
+  - CCAddress
+  - BCCAddress
+  - Subject
+  - TextBody
+  - HTMLBody
+  - Headers
+# not yet supported by MD api: https://docs.gearset.com/en/articles/3498891-can-gearset-migrate-the-email-message-relation-object-and-its-encryption-setting
+# EmailMessageRelation:
+# - RelationAddress
+IdentityDocument:
+  - DocumentNumber
+  - ExpirationDate
+  - IssueDate
+  - Individual
+  - Name
+Lead:
+  - Address
+  - Company
+  - Description
+  - Email
+  - Fax
+  - Mobile
+  - Name
+  - Phone
+  - Title
+  - Website
+# not yet supported by MD api
+# ListEmail:
+#   - FromName
+#   - FromAddress
+#   - ReplyToAddress
+ListEmailSentResult:
+  - Email
+  - MessagingEndUser
+  - ProfilePictureURL
+Opportunity:
+  - Description
+  - NextStep
+  - OpportunityName
+PublicComplaint:
+  - BusinessAddress
+  - BusinessName
+  - Email
+  - FirstName
+  - LastName
+  - MobileNumber
+Recommendation:
+  - Description
+  - RegulatoryCodeViolation
+  - CorrectiveActionDescription
+  - Description
+  - Note
+ServiceAppointment:
+  - Address
+  - Description
+  - Subject
+TrainingCourse:
+  - Description
+  - Name
+  - Note
+ViolationEnforcementAction:
+  - Description
+  - Note
+WebQuote:
+  - Introduction
+  - Notes
+  - ShiptoCity
+  - ShiptoCountry
+  - ShiptoName
+  - ShiptoPostalCode
+  - ShiptoState
+  - ShiptoStreet
+  - Description
+  - ProductCode
+WorkOrder:
+  - Address
+  - Description
+  - Subject
+WorkOrderLineItem:
+  - Address
+  - Description
+  - Subject
+OCRDocumentScanResult:
+  - ExtractedValues
+OCRScanResultTemplateMapping:
+  - MappedFields
+Employee:
+  - AlternateEmail
+  - Email
+  - FirstName
+  - HomeAddress
+  - HomePhone
+  - LastName
+  - MiddleName
+  - PreferredFirstName
+  - WorkPhone
