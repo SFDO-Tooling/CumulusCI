@@ -369,7 +369,7 @@ class TestScratchOrgConfig(unittest.TestCase):
                 sfdx.assert_called_once_with(
                     "force:org:display --targetusername=whatever@example.com --json"
                 )
-                self.assertEqual(access_token, "the-token")
+                assert access_token == "the-token"
 
     def test_get_access_token__default(self, Command):
         """Verify that with no args, get_access_token returns the default token"""
@@ -377,7 +377,7 @@ class TestScratchOrgConfig(unittest.TestCase):
         _marker = object()
         config._sfdx_info = {"access_token": _marker}
         access_token = config.get_access_token()
-        self.assertIs(access_token, _marker)
+        assert access_token is _marker
 
     def test_get_access_token__unknown_user(self, Command):
         sf = mock.Mock()
