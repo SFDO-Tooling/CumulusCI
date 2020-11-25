@@ -165,6 +165,9 @@ class Robot(BaseSalesforceTask):
             num_failed = result.returncode
 
         else:
+            # Save it so that we can restore it later
+            orig_sys_path = sys.path.copy()
+
             # Add each source to PYTHONPATH. Robot recommends that we
             # use pythonpathsetter instead of directly setting
             # sys.path. <shrug>
@@ -182,7 +185,10 @@ class Robot(BaseSalesforceTask):
             if self.project_config.repo_root not in sys.path:
                 pythonpathsetter.add_path(self.project_config.repo_root)
 
-            num_failed = robot_run(*self.options["suites"], **options)
+            try:
+                num_failed = robot_run(*self.options["suites"], **options)
+            finally:
+                sys.path = orig_sys_path
 
         # These numbers are from the robot framework user guide:
         # http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#return-codes

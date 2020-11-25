@@ -210,7 +210,10 @@ class TestRobot(unittest.TestCase):
         self.assertIn(KeywordLogger, listener_classes)
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
-    def test_sources(self, mock_robot_run):
+    @mock.patch(
+        "cumulusci.tasks.robotframework.robotframework.pythonpathsetter.add_path"
+    )
+    def test_sources(self, mock_add_path, mock_robot_run):
         """Verify that sources get added to PYTHONPATH when task runs"""
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(
@@ -238,17 +241,23 @@ class TestRobot(unittest.TestCase):
         )
 
         mock_robot_run.return_value = 0
-        self.assertFalse("dummy1" in sys.path)
-        self.assertFalse("dummy2" in sys.path)
+        self.assertNotIn("dummy1", sys.path)
+        self.assertNotIn("dummy2", sys.path)
         task()
         project_config.get_namespace.assert_has_calls(
             [mock.call("test1"), mock.call("test2")]
         )
-        self.assertTrue("dummy1" in sys.path)
-        self.assertTrue("dummy2" in sys.path)
+        mock_add_path.assert_has_calls(
+            [mock.call("dummy1", end=True), mock.call("dummy2", end=True)]
+        )
+        self.assertNotIn("dummy1", sys.path)
+        self.assertNotIn("dummy2", sys.path)
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
-    def test_repo_root_in_sys_path(self, mock_robot_run):
+    @mock.patch(
+        "cumulusci.tasks.robotframework.robotframework.pythonpathsetter.add_path"
+    )
+    def test_repo_root_in_sys_path(self, mock_add_path, mock_robot_run):
         """Verify that the repo root is added to sys.path
 
         Normally, the repo root is added to sys.path in the __init__
@@ -267,9 +276,8 @@ class TestRobot(unittest.TestCase):
             )
             self.assertNotIn(d, sys.path)
             task()
-            # verify not only that it was added, but that it was added
-            # at the front of the list.
-            self.assertEqual(d, sys.path[0])
+            mock_add_path.assert_called_once_with(d)
+            self.assertNotIn(d, sys.path)
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_sources_not_found(self, mock_robot_run):
