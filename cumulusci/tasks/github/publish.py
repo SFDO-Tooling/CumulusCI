@@ -32,7 +32,7 @@ class PublishSubtree(BaseGithubTask):
             "description": "A list of paths to rename in the target repo, given as `local:` `target:` pairs."
         },
         "create_release": {
-            "description": "If True, create a release in the public repo.  Defaults to True"
+            "description": "If True, create a release in the public repo.  Defaults to False"
         },
         "release_body": {
             "description": "If True, the entire release body will be published to the public repo.  Defaults to False"
@@ -59,8 +59,9 @@ class PublishSubtree(BaseGithubTask):
             )
         if "ref" not in self.options and "version" not in self.options:
             raise TaskOptionsError("Either `ref` or `version` option is required")
+
         self.options["create_release"] = process_bool_arg(
-            self.options.get("create_release", True)
+            self.options.get("create_release", False)
         )
         self.options["release_body"] = process_bool_arg(
             self.options.get("release_body", False)

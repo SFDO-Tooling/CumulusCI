@@ -95,6 +95,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
                     "options": {
                         "branch": "master",
                         "version": "latest",
+                        "create_release": True,
                         "repo_url": self.public_repo_url,
                         "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                     }
@@ -187,6 +188,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "branch": "master",
                     "version": "latest",
+                    "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                 }
@@ -242,6 +244,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "branch": "master",
                     "version": "latest",
+                    "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                 }
@@ -298,6 +301,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "branch": "master",
                     "version": "latest",
+                    "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                 }
@@ -367,6 +371,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "branch": "master",
                     "version": "latest",
+                    "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                 }
@@ -443,6 +448,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "branch": "master",
                     "repo_url": self.public_repo_url,
+                    "create_release": True,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                     "renames": [
                         {
