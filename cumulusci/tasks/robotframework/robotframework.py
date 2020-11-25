@@ -86,6 +86,7 @@ class Robot(BaseSalesforceTask):
                 )
 
         listeners = self.options["options"].setdefault("listener", [])
+
         if process_bool_arg(self.options.get("verbose") or False):
             listeners.append(KeywordLogger())
 
@@ -169,6 +170,17 @@ class Robot(BaseSalesforceTask):
             # sys.path. <shrug>
             for path in source_paths.values():
                 pythonpathsetter.add_path(path, end=True)
+
+            # Make sure the path to the repo root is on sys.path. Normally
+            # it will be, but if we're running this task from another repo
+            # it might not be.
+            #
+            # Note: we can't just set the pythonpath option; that
+            # option is specifically called out as not being supported
+            # by robot.run. Plus, robot recommends we call a special
+            # function instead of directly modifying sys.path
+            if self.project_config.repo_root not in sys.path:
+                pythonpathsetter.add_path(self.project_config.repo_root)
 
             num_failed = robot_run(*self.options["suites"], **options)
 
