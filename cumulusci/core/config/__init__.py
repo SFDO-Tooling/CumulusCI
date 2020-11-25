@@ -40,7 +40,7 @@ from cumulusci.core.config.BaseTaskFlowConfig import BaseTaskFlowConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 
 # inherit from OrgConfig
-from cumulusci.core.config.SfdxOrgConfig import SfdxOrgConfig
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 
 # inherit from SfdxOrgConfig
 from cumulusci.core.config.ScratchOrgConfig import ScratchOrgConfig
