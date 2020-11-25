@@ -97,17 +97,28 @@ class CumulusCI(object):
         """
         return self.org.config
 
-    def login_url(self, org=None):
+    def login_url(self, org=None, **userfields):
         """Returns the login url which will automatically log into the target
         Salesforce org.  By default, the org_name passed to the library
         constructor is used but this can be overridden with the org option
         to log into a different org.
+
+        If userfields are provided, the username and access token
+        for the given user will be used. If not provided, the access token
+        for the org's default user will be used.
+
+        Example:
+
+        | ${login url}=  Login URL  alias=dadvisor
+
         """
-        if org is None:
-            org = self.org
+        org = self.org if org is None else self.keychain.get_org(org)
+        if userfields:
+            access_token = org.get_access_token(**userfields)
+            login_url = f"{org.instance_url}/secur/frontdoor.jsp?sid={access_token}"
+            return login_url
         else:
-            org = self.keychain.get_org(org)
-        return org.start_url
+            return org.start_url
 
     def get_community_info(self, community_name, key=None, force_refresh=False):
         """This keyword uses the Salesforce API to get information about a community.
