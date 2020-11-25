@@ -1,4 +1,4 @@
-from cumulusci.core.config.SfdxOrgConfig import SfdxOrgConfig
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from typing import Optional
 import base64
 import enum
