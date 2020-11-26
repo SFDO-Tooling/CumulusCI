@@ -131,27 +131,22 @@ class FakeSF:
     """Extremely simplistic mock of the Simple-Salesforce API
 
     Can be improved as needed over time.
+    In particular, __getattr__ is not implemented yet.
     """
 
     fakes = {}
 
     def describe(self):
-        describe = self._get_json("global_describe")
-        core_sobjects = ["Account", "Contact", "Case"]
-        describe["sobjects"] = [sobject for sobject in describe["sobjects"] if sobject["name"] in core_sobjects]
-        return describe
-
-    def __getattr__(self, name: str):
-        return self.describe[name]
+        return self._get_json("global_describe")
 
     @property
     def sf_version(self):
         return "47.0"
 
     def _get_json(self, fake_dataset):
-        self.fakes[fake_dataset] = self.fakes.get(fake_dataset, None) or json.loads(read_mock(
+        self.fakes[fake_dataset] = self.fakes.get("sobjname", None) or read_mock(
             fake_dataset
-        ))
+        )
         return self.fakes[fake_dataset]
 
 
