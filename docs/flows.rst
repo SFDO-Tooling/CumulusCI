@@ -35,10 +35,11 @@ dev_org
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_dev
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -47,13 +48,13 @@ dev_org
 dev_org_beta_deps
 ^^^^^^^^^^^^^^^^^
 
-**Description:** Set up an org as a development environment for unmanaged metadata based on the latest dependencies (including betas).
+**Description:** This flow is deprecated. Please use dev_org instead.
 
 **Flow Steps**
 
 .. code-block:: console
 
-	1) flow: beta_dependencies
+	1) flow: dependencies
 	    1) task: update_dependencies
 	    2) task: deploy_pre
 	2) flow: deploy_unmanaged
@@ -64,10 +65,11 @@ dev_org_beta_deps
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_dev
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -92,10 +94,11 @@ dev_org_namespaced
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_dev
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -157,10 +160,11 @@ qa_org
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_qa
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -176,7 +180,7 @@ regression_org
 .. code-block:: console
 
 	1) flow: install_regression
-	    1) flow: beta_dependencies
+	    1) flow: dependencies
 	        1) task: update_dependencies
 	        2) task: deploy_pre
 	    2) task: install_managed
@@ -194,7 +198,7 @@ These flows deploy dependencies (base packages and unmanaged metadata) to a targ
 beta_dependencies
 ^^^^^^^^^^^^^^^^^
 
-**Description:** Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata
+**Description:** This flow is deprecated. Please use the `dependencies` flow and set the `include_beta` option on the first task, `update_dependencies`. Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata
 
 **Flow Steps**
 
@@ -253,10 +257,11 @@ deploy_unmanaged
 	   when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	3) task: deploy
 	   when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	3.1) task: dx_push
+	3.1) task: deploy
 	     when: project_config.project__source_format == "sfdx" and org_config.scratch
 	4) task: uninstall_packaged_incremental
 	   when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	5) task: snapshot_changes
 
 deploy_unmanaged_ee
 ^^^^^^^^^^^^^^^^^^^
@@ -326,7 +331,7 @@ install_regression
 
 .. code-block:: console
 
-	1) flow: beta_dependencies
+	1) flow: dependencies
 	    1) task: update_dependencies
 	    2) task: deploy_pre
 	2) task: install_managed
@@ -466,10 +471,11 @@ ci_feature
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_apextest
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -486,7 +492,7 @@ ci_feature_2gp
 .. code-block:: console
 
 	1) task: github_package_data
-	2) flow: beta_dependencies
+	2) flow: dependencies
 	    1) task: update_dependencies
 	    2) task: deploy_pre
 	3) task: install_managed
@@ -498,14 +504,14 @@ ci_feature_2gp
 ci_feature_beta_deps
 ^^^^^^^^^^^^^^^^^^^^
 
-**Description:** Install the latest beta version of dependencies and run apex tests.
+**Description:** This flow is deprecated. Please use ci_feature instead.
 
 **Flow Steps**
 
 .. code-block:: console
 
 	0.5) task: github_parent_pr_notes
-	1) flow: beta_dependencies
+	1) flow: dependencies
 	    1) task: update_dependencies
 	    2) task: deploy_pre
 	2) flow: deploy_unmanaged
@@ -516,10 +522,11 @@ ci_feature_beta_deps
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
 	    3) task: deploy
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
-	    3.1) task: dx_push
+	    3.1) task: deploy
 	         when: project_config.project__source_format == "sfdx" and org_config.scratch
 	    4) task: uninstall_packaged_incremental
 	       when: project_config.project__source_format != "sfdx" or not org_config.scratch
+	    5) task: snapshot_changes
 	3) flow: config_apextest
 	    1) task: deploy_post
 	    2) task: update_admin_profile
@@ -583,12 +590,9 @@ build_feature_test_package
 
 .. code-block:: console
 
-	1) flow: dependencies
-	    1) task: update_dependencies
-	    2) task: deploy_pre
-	2) task: update_package_xml
+	1) task: update_package_xml
 	   when: project_config.project__source_format != "sfdx"
-	3) task: create_package_version
+	2) task: create_package_version
 
 release_beta
 ^^^^^^^^^^^^

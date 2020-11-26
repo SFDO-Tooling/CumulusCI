@@ -64,14 +64,15 @@ def get_github_api_for_repo(keychain, owner, repo, session=None):
         gh.login(token=GITHUB_TOKEN)
     else:
         github_config = keychain.get_service("github")
-        gh.login(github_config.username, github_config.password)
+        token = github_config.password or github_config.token
+        gh.login(github_config.username, token)
     return gh
 
 
 def validate_service(options):
     username = options["username"]
-    password = options["password"]
-    gh = get_github_api(username, password)
+    token = options["token"]
+    gh = get_github_api(username, token)
     try:
         gh.rate_limit()
     except Exception as e:
