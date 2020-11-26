@@ -3,7 +3,7 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_install import install_package_version
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
-from cumulusci.tasks.salesforce import Deploy
+from cumulusci.tasks.salesforce.Deploy import Deploy
 
 
 class InstallPackageVersion(Deploy):
@@ -39,7 +39,8 @@ class InstallPackageVersion(Deploy):
     }
 
     def _init_options(self, kwargs):
-        super(InstallPackageVersion, self)._init_options(kwargs)
+        super()._init_options(kwargs)
+        del self.options["namespace_inject"]
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
         if "name" not in self.options:

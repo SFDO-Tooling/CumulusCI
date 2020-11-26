@@ -17,7 +17,8 @@ from cumulusci.tasks.robotframework import RobotTestDoc
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.robotframework.debugger import DebugListener
 from cumulusci.tasks.robotframework.robotframework import KeywordLogger
-from cumulusci.utils import touch
+from cumulusci.utils import touch, temporary_dir
+
 
 from cumulusci.tasks.robotframework.libdoc import KeywordFile
 
@@ -209,7 +210,10 @@ class TestRobot(unittest.TestCase):
         self.assertIn(KeywordLogger, listener_classes)
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
-    def test_sources(self, mock_robot_run):
+    @mock.patch(
+        "cumulusci.tasks.robotframework.robotframework.pythonpathsetter.add_path"
+    )
+    def test_sources(self, mock_add_path, mock_robot_run):
         """Verify that sources get added to PYTHONPATH when task runs"""
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(
@@ -237,14 +241,43 @@ class TestRobot(unittest.TestCase):
         )
 
         mock_robot_run.return_value = 0
-        self.assertFalse("dummy1" in sys.path)
-        self.assertFalse("dummy2" in sys.path)
+        self.assertNotIn("dummy1", sys.path)
+        self.assertNotIn("dummy2", sys.path)
         task()
         project_config.get_namespace.assert_has_calls(
             [mock.call("test1"), mock.call("test2")]
         )
-        self.assertTrue("dummy1" in sys.path)
-        self.assertTrue("dummy2" in sys.path)
+        mock_add_path.assert_has_calls(
+            [mock.call("dummy1", end=True), mock.call("dummy2", end=True)]
+        )
+        self.assertNotIn("dummy1", sys.path)
+        self.assertNotIn("dummy2", sys.path)
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    @mock.patch(
+        "cumulusci.tasks.robotframework.robotframework.pythonpathsetter.add_path"
+    )
+    def test_repo_root_in_sys_path(self, mock_add_path, mock_robot_run):
+        """Verify that the repo root is added to sys.path
+
+        Normally, the repo root is added to sys.path in the __init__
+        of BaseSalesforceTask. However, if we're running a task from
+        another repo, the git root of that other repo isn't added. The
+        robot task will do that; this verifies that.
+
+        """
+        mock_robot_run.return_value = 0
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
+        with temporary_dir() as d:
+            project_config.repo_info["root"] = d
+            task = create_task(
+                Robot, {"suites": "tests"}, project_config=project_config
+            )
+            self.assertNotIn(d, sys.path)
+            task()
+            mock_add_path.assert_called_once_with(d)
+            self.assertNotIn(d, sys.path)
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_sources_not_found(self, mock_robot_run):

@@ -380,7 +380,7 @@ class TestCCI(unittest.TestCase):
         runtime.project_config.repo_root = None
         runtime.keychain.get_service.return_value.config = {
             "username": "usrnm",
-            "password": "pwd",
+            "token": "token",
         }
 
         run_click_command(cci.gist, runtime=runtime)
@@ -430,7 +430,7 @@ Environment Info: Rossian / x68_46
         runtime.project_config.repo_root = None
         runtime.keychain.get_service.return_value.config = {
             "username": "usrnm",
-            "password": "pwd",
+            "token": "token",
         }
 
         with self.assertRaises(CumulusCIException) as context:
