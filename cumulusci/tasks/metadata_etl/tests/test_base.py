@@ -100,7 +100,6 @@ class TestBaseMetadataETLTask:
 
 
 class MetadataSynthesisTask(BaseMetadataSynthesisTask):
-    _get_package_xml_content = mock.Mock()
     _synthesize = mock.Mock()
 
 
@@ -121,14 +120,14 @@ class TestBaseMetadataSynthesisTask:
         task._synthesize.assert_called_once_with()
 
     @mock.patch("cumulusci.tasks.metadata_etl.base.PackageXmlGenerator")
-    def test_generate_package_xml(self, package_mock):
+    def test_get_package_xml_content(self, package_mock):
         task = create_task(
             MetadataSynthesisTask,
             {"managed": False, "namespace_inject": "test", "api_version": "47.0"},
         )
         task.deploy_dir = "test"
 
-        result = task._generate_package_xml(True)
+        result = task._get_package_xml_content(True)
         package_mock.assert_called_once_with(str(task.deploy_dir), task.api_version)
         package_mock.return_value.assert_called_once_with()
         assert result == package_mock.return_value.return_value

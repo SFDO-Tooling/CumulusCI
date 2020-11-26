@@ -9,7 +9,7 @@ from cumulusci.utils.xml.metadata_tree import MetadataElement
 from cumulusci.utils import os_friendly_path
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.tasks.bulkdata.generate_mapping import GenerateMapping
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 
 
 class EncryptAllFields(MetadataSingleEntityTransformTask):
@@ -28,12 +28,11 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
 
     task_options = {
         "blocklist_path": {
-            "description": "The path to a YAML settings file of Object.Field entities known to be unencrpytable.",
-            "required": False,
+            "description": "The path to a YAML settings file of Object.Field entities known to be unencrpytable. "
+            "Defaults to unencryptable.yml. Custom entities must be namespace tokenized."
         },
         "timeout": {
-            "description": "The max amount of time to wait in seconds",
-            "required": False,
+            "description": "The max amount of time to wait in seconds. Defaults to 60.",
         },
     }
 
@@ -45,20 +44,23 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
         self.blocklist_path = os_friendly_path(
             self.options.get("blocklist_path")
             if self.options.get("blocklist_path")
-            else ""
+            else "unencryptable.yml"
         )
-        if self.blocklist_path is None or not os.path.isfile(self.blocklist_path):
-            raise TaskOptionsError(f"File {self.blocklist_path} does not exist")
 
     def _run_task(self):
         if os.path.isfile(self.blocklist_path):
             with open(self.blocklist_path, "r") as f:
-                ## TODO: namespace inject this contents based on tokens in the yml
+                self.logger.info(f"Using blocklist provided at {self.blocklist_path}")
                 content = f.read()
                 content = self._inject_namespace(content)
                 self.blocklist = yaml.safe_load(content)
+        elif self.blocklist_path in self.options:
+            raise TaskOptionsError(f"No blocklist found at {self.blocklist_path}.")
         else:
-            self.blocklist = {}  # project has no blocklist
+            self.logger.info(
+                f"No blocklist found at {self.blocklist_path}. Attempting to encrypt all fields."
+            )
+            self.blocklist = {}
 
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, "encryptable_standard_schema.yml")
@@ -70,7 +72,10 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
             for sobject in self.sf.describe()["sobjects"]
             if (
                 not (sobject["name"].endswith("ChangeEvent"))
+                # sobject["queryable"]
+                # and
                 and not sobject["customSetting"]
+                # and not sobject["deprecatedAndHidden"]
                 and (
                     # custom objects
                     sobject["name"].endswith("__c")
@@ -86,6 +91,7 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
                 )
             )
         }
+        print((self.api_names))
 
         self.fields_to_encrypt = defaultdict(list)
 
@@ -120,7 +126,9 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
     def encrypt_field(self, field: MetadataElement):
         if field.find("encryptionScheme"):
             if field.encryptionScheme.text == "DeterministicEncryption":
-                self.logger.error(f"This org is already using DeterministicEncryption.")
+                raise CumulusCIException(
+                    f"This org is already using DeterministicEncryption."
+                )
             elif field.encryptionScheme.text == "None":
                 field.encryptionScheme.text = "ProbabilisticEncryption"
 
@@ -160,17 +168,16 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
     def _poll_action(self):
         elapsed = datetime.now() - self.time_start
         if elapsed.total_seconds() > self.options["timeout"]:
-            self.logger.warn(
-                (
-                    f'Encryption enablement not successfully completed after {self.options["timeout"]} seconds.'
-                )
-            )
             for sobject_api_name in self.fields_to_encrypt.keys():
                 if self.fields_to_encrypt[sobject_api_name]:
                     self.logger.warn(
                         f"Couldn't encrypt: {sobject_api_name} fields {self.fields_to_encrypt[sobject_api_name]}"
                     )
-            self.poll_complete = True
+            raise CumulusCIException(
+                (
+                    f'Encryption enablement not successfully completed after {self.options["timeout"]} seconds.'
+                )
+            )
 
         for sobject_api_name in self.fields_to_encrypt.keys():
 

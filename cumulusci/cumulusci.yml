@@ -119,6 +119,21 @@ tasks:
             user_permissions:
                 - PermissionsBulkApiHardDelete
                 - PermissionsCreateAuditFields
+    create_platform_encryption_permission_set:
+        group: Platform Encryption
+        description: "Creates a Permission Set with the PermissionsManageEncryptionKeys user permission."
+        class_path: cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
+        options:
+            api_name: Encryption
+            user_permissions:
+                - PermissionsManageEncryptionKeys
+    create_tenant_secret:
+        group: Platform Encryption
+        description: Create a placeholder Tenant Secret encryption key to use Shield Platform Encryption.
+        class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
+        options:
+            object: TenantSecret
+            values: "Description:test"
     create_unmanaged_ee_src:
         description: Modifies the src directory for unmanaged deployment to an EE org
         class_path: cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc
@@ -185,7 +200,7 @@ tasks:
     encrypt_all_fields:
         group: Metadata Transformations
         description: "Applies probabilistic encryption to all fields in the org."
-        class_path: cumulusci.tasks.metadata_etl.EncryptAllFields
+        class_path: cumulusci.tasks.metadata_etl.encrypt_all_fields.EncryptAllFields
     ensure_record_types:
         description: Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
         class_path: cumulusci.tasks.salesforce.EnsureRecordTypes
@@ -676,6 +691,16 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
+
+    config_encryption:
+        group: Post-Install Configuration
+        steps:
+            1:
+                task: create_platform_encryption_permission_set
+            2:
+                task: create_tenant_secret
+            3:
+                task: encrypt_all_fields
 
     config_managed:
         group: Post-Install Configuration 
