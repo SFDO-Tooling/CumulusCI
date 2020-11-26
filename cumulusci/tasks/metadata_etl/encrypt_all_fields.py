@@ -40,7 +40,6 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
     }
 
     def _init_options(self, kwargs):
-        self.task_config.options["api_names"] = "dummy"
         super()._init_options(kwargs)
 
         self.options["timeout"] = int(self.options.get("timeout", 60))
@@ -53,9 +52,10 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
     def _run_task(self):
         self._set_blocklist()
 
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "encryptable_standard_schema.yml")
-        with open(mapping_path, "r") as f:
+        standard_object_allowlist_path = os.path.join(
+            os.path.dirname(__file__), "encryptable_standard_schema.yml"
+        )
+        with open(standard_object_allowlist_path, "r") as f:
             self.standard_object_allowlist = yaml.safe_load(f)
 
         self._set_api_names()
@@ -84,11 +84,9 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
             sobject["name"]
             for sobject in self.sf.describe()["sobjects"]
             if (
+                # ChangeEvents and CustomSettings are sobjects but we can filter them out as non-encryptable
                 not (sobject["name"].endswith("ChangeEvent"))
-                # sobject["queryable"]
-                # and
                 and not sobject["customSetting"]
-                # and not sobject["deprecatedAndHidden"]
                 and (
                     # custom objects
                     sobject["name"].endswith("__c")
