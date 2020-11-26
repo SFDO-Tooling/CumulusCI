@@ -3,6 +3,7 @@ from datetime import datetime
 
 import os
 import yaml
+import pytest
 
 from cumulusci.tasks.metadata_etl.base import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
@@ -15,6 +16,8 @@ from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 class EncryptAllFields(MetadataSingleEntityTransformTask):
 
     entity = "CustomObject"
+
+    default_blocklist_path = "unencryptable.yml"
 
     encryptable_field_types = [
         "Email",
@@ -44,17 +47,31 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
         self.blocklist_path = os_friendly_path(
             self.options.get("blocklist_path")
             if self.options.get("blocklist_path")
-            else "unencryptable.yml"
+            else self.default_blocklist_path
         )
 
     def _run_task(self):
+        self._set_blocklist()
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, "encryptable_standard_schema.yml")
+        with open(mapping_path, "r") as f:
+            self.standard_object_allowlist = yaml.safe_load(f)
+
+        self._set_api_names()
+
+        self.fields_to_encrypt = defaultdict(list)
+
+        super()._run_task()
+
+    def _set_blocklist(self):
         if os.path.isfile(self.blocklist_path):
             with open(self.blocklist_path, "r") as f:
                 self.logger.info(f"Using blocklist provided at {self.blocklist_path}")
                 content = f.read()
                 content = self._inject_namespace(content)
                 self.blocklist = yaml.safe_load(content)
-        elif self.blocklist_path in self.options:
+        elif "blocklist_path" in self.options:
             raise TaskOptionsError(f"No blocklist found at {self.blocklist_path}.")
         else:
             self.logger.info(
@@ -62,11 +79,7 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
             )
             self.blocklist = {}
 
-        base_path = os.path.dirname(__file__)
-        mapping_path = os.path.join(base_path, "encryptable_standard_schema.yml")
-        with open(mapping_path, "r") as f:
-            self.standard_object_allowlist = yaml.safe_load(f)
-
+    def _set_api_names(self):
         self.api_names = {
             sobject["name"]
             for sobject in self.sf.describe()["sobjects"]
@@ -91,11 +104,6 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
                 )
             )
         }
-        print((self.api_names))
-
-        self.fields_to_encrypt = defaultdict(list)
-
-        super()._run_task()
 
     def _is_in_standard_object_allowlist(self, object_api_name, field_api_name):
         # allowlist is dict: object_api_name -> list of field_api_names
@@ -147,7 +155,6 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
             name_field = custom_object.find("nameField")
             self.encrypt_field(name_field)
             self.fields_to_encrypt[object_api_name].append("Name")
-
             dirty_object = True
 
         for field in custom_object.findall("fields"):
