@@ -177,7 +177,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
     def can_delete(self):
         return bool(self.date_created)
 
-    def delete_org(self):
+    def delete_org(self, force=False):
         """ Uses sfdx force:org:delete to delete the org """
         if not self.created:
             self.logger.info(
@@ -197,7 +197,15 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
         if p.returncode:
             message = f"Failed to delete scratch org: \n{''.join(stdout)}"
-            raise ScratchOrgException(message)
+            message += "\nPerhaps it was already deleted?"
+            if force:
+                message += "\nRemoving org regardless."
+                self.logger.info(message)
+            else:
+                message += (
+                    "\nUse `cci org remove {orgname}` to remove it from CumulusCI."
+                )
+                raise ScratchOrgException(message)
 
         # Flag that this org has been deleted
         self.config["created"] = False

@@ -1173,7 +1173,7 @@ def org_remove(runtime, org_name, global_org):
     if org_config.can_delete():
         click.echo("A scratch org was already created, attempting to delete...")
         try:
-            org_config.delete_org()
+            org_config.delete_org(force=True)
         except Exception as e:
             click.echo("Deleting scratch org failed with error:")
             click.echo(e)
