@@ -22,7 +22,6 @@ import click
 import github3
 import pkg_resources
 import requests
-import requests.exceptions
 from rst2ansi import rst2ansi
 from jinja2 import Environment
 from jinja2 import PackageLoader
