@@ -13,7 +13,7 @@ Critical Changes:
 
 - The ``ci_feature_2gp`` flow has been changed to use ``config_apextest`` instead of ``config_managed`` to avoid configuration steps that are unnecessary for running Apex tests. This means that in order for ``ci_feature_2gp`` to work, ``config_apextest`` must be set up to work in both managed and unmanaged contexts.
 
-- When connecting GitHub using ``cci service connect github``, we now prompt for a personal access token instead of a password. (GitHub has removed support for accessing the API using a password as of November 2020.) If you already had a token stored in the ``password`` field, it will be transparently migrated to ``token``. If you were specifying `--password` on the command line when running this command, you need to switch to `--token` instead.
+- When connecting GitHub using ``cci service connect github``, we now prompt for a personal access token instead of a password. (GitHub has removed support for accessing the API using a password as of November 2020.) If you already had a token stored in the ``password`` field, it will be transparently migrated to ``token``. If you were specifying ``--password`` on the command line when running this command, you need to switch to ``--token`` instead.
 
 - Removed the old ``cumulusci.tasks.command.SalesforceBrowserTest`` task class which has not been used for some time.
 
