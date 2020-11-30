@@ -325,15 +325,85 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
     "cleanDataServices": MetadataProcessor("CleanDataService", ".cleanDataService"),
     "cmsConnectSource": MetadataProcessor("CMSConnectSource", ".cmsConnectSource"),
     "communities": MetadataProcessor("Community", ".community"),
+    "communityTemplateDefinitions": MetadataProcessor(
+        "CommunityTemplateDefinition", ".communityTemplateDefinition"
+    ),
+    "communityThemeDefinitions": MetadataProcessor(
+        "CommunityThemeDefinition", ".communityThemeDefinition"
+    ),
     "components": MetadataProcessor("ApexComponent", ".component-meta.xml"),
+    "connectedApps": MetadataProcessor("ConnectedApp", ".connectedApp"),
+    "contentassets": MetadataProcessor("ContentAsset", ".asset-meta.xml"),
+    "corswhitelistorigins": MetadataProcessor(
+        "CorsWhitelistOrigin", ".corswhitelistorigin"
+    ),
+    "cspTrustedSites": MetadataProcessor("CspTrustedSite", ".cspTrustedSite"),
+    "customApplicationComponent": MetadataProcessor(
+        "CustomApplicationComponent", ".customApplicationComponent"
+    ),
+    "customHelpMenuSections": MetadataProcessor(
+        "CustomHelpMenuSection", ".customHelpMenuSection"
+    ),
     "customMetadata": MetadataProcessor("CustomMetadata", ".md"),
+    "customPermissions": MetadataProcessor("CustomPermission", ".customPermission"),
+    "dashboards": FolderMetadataProcessor("Dashboard", ".dashboard"),
+    "datacategorygroups": MetadataProcessor("DataCategoryGroup", ".datacategorygroup"),
+    "dataStreamDefinitions": MetadataProcessor(
+        "DataStreamDefinition", ".dataStreamDefinition"
+    ),
+    "dataSources": MetadataProcessor("ExternalDataSource", ".dataSource"),
+    "delegateGroups": MetadataProcessor("DelegateGroup", ".delegateGroup"),
     "documents": FolderMetadataProcessor("Document"),
+    "duplicateRules": MetadataProcessor("DuplicateRule", ".duplicateRule"),
+    "eclair": MetadataProcessor("EclairGeoData", ".geodata"),
     "email": FolderMetadataProcessor("EmailTemplate", ".email"),
+    "emailservices": MetadataProcessor("EmailServicesFunction", ".xml"),
+    "EmbeddedServiceBranding": MetadataProcessor(
+        "EmbeddedServiceBranding", ".EmbeddedServiceBranding"
+    ),
+    "EmbeddedServiceConfig": MetadataProcessor(
+        "EmbeddedServiceConfig", ".EmbeddedServiceConfig"
+    ),
+    "EmbeddedServiceFieldService": MetadataProcessor(
+        "EmbeddedServiceFieldService", ".EmbeddedServiceFieldService"
+    ),
+    "EmbeddedServiceFlowConfig": MetadataProcessor(
+        "EmbeddedServiceFlowConfig", ".EmbeddedServiceFlowConfig"
+    ),
+    "EmbeddedServiceLiveAgent": MetadataProcessor(
+        "EmbeddedServiceLiveAgent",
+        ".EmbeddedServiceLiveAgent",
+    ),
+    "EmbeddedServiceMenuSettings": MetadataProcessor(
+        "EmbeddedServiceMenuSettings", ".EmbeddedServiceMenuSettings"
+    ),
+    "entitlementProcesses": MetadataProcessor(
+        "EntitlementProcess", ".entitlementProcess"
+    ),
+    "entitlementTemplates": MetadataProcessor(
+        "EntitlementTemplate", ".entitlementTemplate"
+    ),
+    "escalationRules": MetadataProcessor("EscalationRules", ".escalationRules"),
+    "experiences": BundleMetadataProcessor("ExperienceBundle"),
+    "externalServiceRegistrations": MetadataProcessor(
+        "ExternalServiceRegistration", ".externalServiceRegistration"
+    ),
     "featureParameters": (
         MetadataProcessor("FeatureParameterBoolean", ".featureParameterBoolean"),
+        MetadataProcessor("FeatureParameterDate", ".featureParameterDate"),
         MetadataProcessor("FeatureParameterInteger", ".featureParameterInteger"),
     ),
+    "feedFilters": MetadataProcessor("CustomFeedFilter", ".feedFilter"),
     "flexipages": MetadataProcessor("FlexiPage", ".flexipage"),
+    "flows": MetadataProcessor("Flow", ".flow"),
+    "flowCategories": MetadataProcessor("FlowCategory", ".flowCategory"),
+    "flowDefinitions": MetadataProcessor("FlowDefinition", ".flowDefinition"),
+    "globalPicklist": MetadataProcessor("GlobalPicklist", ".globalPicklist"),
+    "globalValueSets": MetadataProcessor("GlobalValueSet", ".globalValueSet"),
+    "globalValueSetTranslations": MetadataProcessor(
+        "GlobalValueSetTranslation", ".globalValueSetTranslation"
+    ),
+    "groups": MetadataProcessor("Group", ".group"),
     "labels": MetadataProcessor("CustomLabels", ".labels"),
     "layouts": MetadataProcessor("Layout", ".layout"),
     "letterhead": MetadataProcessor("Letterhead", ".letter"),
@@ -345,6 +415,9 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
             "matchingRules": "MatchingRule",
         },
     ),
+    "mktDataSources": MetadataProcessor("DataSource", ".dataSource"),
+    "mktDataSourceObjects": MetadataProcessor("DataSourceObject", ".dataSourceObject"),
+    "notificationtypes": MetadataProcessor("CustomNotificationType", ".notiftype"),
     "objects": MetadataProcessor(
         "CustomObject",
         ".object",
@@ -371,10 +444,12 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
     "reports": FolderMetadataProcessor("Report", ".report"),
     "reportTypes": MetadataProcessor("ReportType", ".reportType"),
     "staticresources": MetadataProcessor("StaticResource", ".resource"),
+    "sites": MetadataProcessor("CustomSite", ".site"),
     "tabs": MetadataProcessor("CustomTab", ".tab"),
     "testSuites": MetadataProcessor("ApexTestSuite", ".testSuite"),
     "translations": MetadataProcessor("Translations", ".translation"),
     "triggers": MetadataProcessor("ApexTrigger", ".trigger-meta.xml"),
+    "weblinks": MetadataProcessor("CustomPageWebLink", ".weblink"),
     "workflows": MetadataProcessor(
         None,
         ".workflow",
