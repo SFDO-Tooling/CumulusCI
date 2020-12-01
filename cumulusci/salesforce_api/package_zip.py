@@ -117,7 +117,8 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
     def _convert_sfdx_format(self, path, name):
         orig_path = path
         with contextlib.ExitStack() as stack:
-            if not pathlib.Path(path, "package.xml").exists():
+            # convert sfdx -> mdapi format if path exists but does not have package.xml
+            if len(os.listdir(path)) and not pathlib.Path(path, "package.xml").exists():
                 self.logger.info("Converting from sfdx to mdapi format")
                 path = stack.enter_context(temporary_dir(chdir=False))
                 args = ["-r", str(orig_path), "-d", path]
@@ -156,8 +157,8 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         if len(root_parts) == 0:
             return True
 
-        # include top level only within lwc
-        if root_parts[0] == "lwc" and len(root_parts) != 2:
+        # don't include lwc tests
+        if root_parts[0] == "lwc" and any(part.startswith("__") for part in root_parts):
             return False
 
         # include everything else
@@ -165,10 +166,9 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
 
     def _include_file(self, root_parts, f):
         """Return boolean for whether this file should be included in the package."""
-        if len(root_parts) == 2 and root_parts[0] == "lwc":
-            # is file of lwc component directory
-            lower_f = f.lower()
-            return lower_f.endswith((".js", ".js-meta.xml", ".html", ".css", ".svg"))
+        if len(root_parts) and root_parts[0] == "lwc":
+            # only include expected file extensions within lwc components
+            return f.lower().endswith((".js", ".js-meta.xml", ".html", ".css", ".svg"))
         return True
 
     def _process(self):
