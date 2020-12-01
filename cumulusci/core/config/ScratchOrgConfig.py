@@ -187,9 +187,9 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
         p = sfdx("force:org:delete -p", self.username, "Deleting scratch org")
 
-        stdout = []
-        for line in p.stderr_text:
-            stdout.append(line)
+        output = []
+        for line in list(p.stdout_text) + list(p.stderr_text):
+            output.append(line)
             if "error" in line.lower():
                 self.logger.error(line)
             else:

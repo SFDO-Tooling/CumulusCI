@@ -1245,6 +1245,7 @@ def org_scratch_delete(runtime, org_name):
     except Exception as e:
         click.echo(e)
         click.echo(f"Use `cci org remove {org_name}` to remove it from your keychain.")
+        return
 
     org_config.save()
 
