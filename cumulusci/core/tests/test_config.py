@@ -1796,15 +1796,6 @@ class TestOrgConfig(unittest.TestCase):
             },
         )
 
-        # Add a second describe call to demonstrate we always check the describe until we detect Multiple Currencies is enabled.  From then on, we cache the fact that Multiple Currencies is enabled knowing Multiple Currencies cannot be disabled.
-        responses.add(
-            "GET",
-            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
-            json={
-                # The actual payload doesn't matter; only matters is we get a 200.
-            },
-        )
-
         # Check 1: is_multiple_currencies_enabled should be True since the CurrencyType describe gives a 200.
         actual = config.is_multiple_currencies_enabled
         assert (
