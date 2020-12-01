@@ -1864,7 +1864,7 @@ class TestOrgConfig(unittest.TestCase):
             actual is False
         ), "config.is_advanced_currency_management_enabled should be False since the describe gives a 404."
 
-        # We should have made 3 calls: 1 token call + 1 describe call
+        # We should have made 2 calls: 1 token call + 1 describe call
         assert len(responses.calls) == 1 + 1
 
     @responses.activate
