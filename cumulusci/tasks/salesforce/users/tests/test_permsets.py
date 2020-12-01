@@ -22,7 +22,7 @@ class TestCreatePermissionSet:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetId%0A+++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Username+%3D+%27test-cci%40example.com%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Username+%3D+%27test-cci%40example.com%27",
             status=200,
             json={
                 "done": True,
@@ -41,7 +41,7 @@ class TestCreatePermissionSet:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C+Name+FROM+PermissionSet+WHERE+Name+IN+%28%27PermSet1%27%2C+%27PermSet2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2CName+FROM+PermissionSet+WHERE+Name+IN+%28%27PermSet1%27%2C+%27PermSet2%27%29",
             status=200,
             json={
                 "done": True,
@@ -82,7 +82,7 @@ class TestCreatePermissionSet:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetId%0A+++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
             status=200,
             json={
                 "done": True,
@@ -101,7 +101,7 @@ class TestCreatePermissionSet:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C+Name+FROM+PermissionSet+WHERE+Name+IN+%28%27PermSet1%27%2C+%27PermSet2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2CName+FROM+PermissionSet+WHERE+Name+IN+%28%27PermSet1%27%2C+%27PermSet2%27%29",
             status=200,
             json={
                 "done": True,
@@ -142,7 +142,7 @@ class TestCreatePermissionSet:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetId%0A+++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
             status=200,
             json={
                 "done": True,
@@ -164,7 +164,7 @@ class TestCreatePermissionSet:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetId%0A+++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Username+%3D+%27test-cci%40example.com%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Username+%3D+%27test-cci%40example.com%27",
             status=200,
             json={
                 "done": True,
@@ -183,7 +183,7 @@ class TestCreatePermissionSet:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C+Name+FROM+PermissionSet+WHERE+Name+IN+%28%27PermSet1%27%2C+%27PermSet2%27%2C+%27PermSet3%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2CName+FROM+PermissionSet+WHERE+Name+IN+%28%27PermSet1%27%2C+%27PermSet2%27%2C+%27PermSet3%27%29",
             status=200,
             json={
                 "done": True,
@@ -217,7 +217,7 @@ class TestCreatePermissionSetLicense:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetLicenseId%0A+++++++++++++++++++++++++++++FROM+PermissionSetLicenseAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Username+%3D+%27test-cci%40example.com%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetLicenseId+FROM+PermissionSetLicenseAssignments%29+FROM+User+WHERE+Username+%3D+%27test-cci%40example.com%27",
             status=200,
             json={
                 "done": True,
@@ -236,7 +236,7 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C+DeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
             status=200,
             json={
                 "done": True,
@@ -276,7 +276,7 @@ class TestCreatePermissionSetLicense:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetLicenseId%0A+++++++++++++++++++++++++++++FROM+PermissionSetLicenseAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Username+%3D+%27test-cci%40example.com%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetLicenseId+FROM+PermissionSetLicenseAssignments%29+FROM+User+WHERE+Username+%3D+%27test-cci%40example.com%27",
             status=200,
             json={
                 "done": True,
@@ -292,7 +292,7 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C+DeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
             status=200,
             json={
                 "done": True,
@@ -340,7 +340,7 @@ class TestCreatePermissionSetLicense:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetLicenseId%0A+++++++++++++++++++++++++++++FROM+PermissionSetLicenseAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetLicenseId+FROM+PermissionSetLicenseAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
             status=200,
             json={
                 "done": True,
@@ -359,7 +359,7 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C+DeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%29",
             status=200,
             json={
                 "done": True,
@@ -400,7 +400,7 @@ class TestCreatePermissionSetLicense:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetLicenseId%0A+++++++++++++++++++++++++++++FROM+PermissionSetLicenseAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetLicenseId+FROM+PermissionSetLicenseAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
             status=200,
             json={
                 "done": True,
@@ -422,7 +422,7 @@ class TestCreatePermissionSetLicense:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetLicenseId%0A+++++++++++++++++++++++++++++FROM+PermissionSetLicenseAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Username+%3D+%27test-cci%40example.com%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetLicenseId+FROM+PermissionSetLicenseAssignments%29+FROM+User+WHERE+Username+%3D+%27test-cci%40example.com%27",
             status=200,
             json={
                 "done": True,
@@ -441,7 +441,7 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C+DeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%2C+%27PermSetLicense3%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetLicense+WHERE+DeveloperName+IN+%28%27PermSetLicense1%27%2C+%27PermSetLicense2%27%2C+%27PermSetLicense3%27%29",
             status=200,
             json={
                 "done": True,
@@ -475,7 +475,7 @@ class TestCreatePermissionSetGroup:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetGroupId%0A+++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Username+%3D+%27test-cci%40example.com%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetGroupId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Username+%3D+%27test-cci%40example.com%27",
             status=200,
             json={
                 "done": True,
@@ -494,7 +494,7 @@ class TestCreatePermissionSetGroup:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C+DeveloperName+FROM+PermissionSetGroup+WHERE+DeveloperName+IN+%28%27PermSetGroup1%27%2C+%27PermSetGroup2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetGroup+WHERE+DeveloperName+IN+%28%27PermSetGroup1%27%2C+%27PermSetGroup2%27%29",
             status=200,
             json={
                 "done": True,
@@ -535,7 +535,7 @@ class TestCreatePermissionSetGroup:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetGroupId%0A+++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetGroupId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
             status=200,
             json={
                 "done": True,
@@ -554,7 +554,7 @@ class TestCreatePermissionSetGroup:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C+DeveloperName+FROM+PermissionSetGroup+WHERE+DeveloperName+IN+%28%27PermSetGroup1%27%2C+%27PermSetGroup2%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetGroup+WHERE+DeveloperName+IN+%28%27PermSetGroup1%27%2C+%27PermSetGroup2%27%29",
             status=200,
             json={
                 "done": True,
@@ -595,7 +595,7 @@ class TestCreatePermissionSetGroup:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetGroupId%0A+++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetGroupId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
             status=200,
             json={
                 "done": True,
@@ -617,7 +617,7 @@ class TestCreatePermissionSetGroup:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%0A++++++++++++++++++++++++++++%28SELECT+PermissionSetGroupId%0A+++++++++++++++++++++++++++++FROM+PermissionSetAssignments%29%0A++++++++++++++++++++++++FROM+User%0A++++++++++++++++++++++++WHERE+Username+%3D+%27test-cci%40example.com%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetGroupId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Username+%3D+%27test-cci%40example.com%27",
             status=200,
             json={
                 "done": True,
@@ -636,7 +636,7 @@ class TestCreatePermissionSetGroup:
         )
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C+DeveloperName+FROM+PermissionSetGroup+WHERE+DeveloperName+IN+%28%27PermSetGroup1%27%2C+%27PermSetGroup2%27%2C+%27PermSetGroup3%27%29",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2CDeveloperName+FROM+PermissionSetGroup+WHERE+DeveloperName+IN+%28%27PermSetGroup1%27%2C+%27PermSetGroup2%27%2C+%27PermSetGroup3%27%29",
             status=200,
             json={
                 "done": True,

@@ -18,49 +18,32 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
         },
     }
 
+    permission_name = "PermissionSet"
+    permission_name_field = "Name"
+    permission_label = "Permission Set"
+    assignment_name = "PermissionSetAssignment"
+    assignment_lookup = "PermissionSetId"
+    assignment_child_relationship = "PermissionSetAssignments"
+
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
         self.options["api_names"] = process_list_arg(self.options["api_names"])
 
-    @property
-    def permission_name(self):
-        return "PermissionSet"
-
-    @property
-    def permission_name_field(self):
-        return "Name"
-
-    @property
-    def permission_label(self):
-        return "Permission Set"
-
-    @property
-    def assignment_name(self):
-        return "PermissionSetAssignment"
-
-    @property
-    def assignment_lookup(self):
-        return "PermissionSetId"
-
-    @property
-    def assignment_child_relationship(self):
-        return "PermissionSetAssignments"
-
     def _run_task(self):
         # Determine existing assignments
         if "user_alias" not in self.options:
-            query = f"""SELECT Id,
-                            (SELECT {self.assignment_lookup}
-                             FROM {self.assignment_child_relationship})
-                        FROM User
-                        WHERE Username = '{self.org_config.username}'"""
+            query = (
+                f"SELECT Id,(SELECT {self.assignment_lookup} FROM {self.assignment_child_relationship}) "
+                "FROM User "
+                f"WHERE Username = '{self.org_config.username}'"
+            )
         else:
-            query = f"""SELECT Id,
-                            (SELECT {self.assignment_lookup}
-                             FROM {self.assignment_child_relationship})
-                        FROM User
-                        WHERE Alias = '{self.options["user_alias"]}'"""
+            query = (
+                f"SELECT Id,(SELECT {self.assignment_lookup} FROM {self.assignment_child_relationship}) "
+                "FROM User "
+                f"""WHERE Alias = '{self.options["user_alias"]}'"""
+            )
 
         result = self.sf.query(query)
         if result["totalSize"] != 1:
@@ -80,7 +63,7 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
         # Find Ids for requested Perms
         api_names = "', '".join(self.options["api_names"])
         perms = self.sf.query(
-            f"""SELECT Id, {self.permission_name_field} FROM {self.permission_name} WHERE {self.permission_name_field} IN ('{api_names}')"""
+            f"SELECT Id,{self.permission_name_field} FROM {self.permission_name} WHERE {self.permission_name_field} IN ('{api_names}')"
         )
         perms = {p[self.permission_name_field]: p["Id"] for p in perms["records"]}
 
@@ -124,29 +107,12 @@ Permission Set Licenses are usually associated with a Permission Set, and assign
         },
     }
 
-    @property
-    def permission_name(self):
-        return "PermissionSetLicense"
-
-    @property
-    def permission_name_field(self):
-        return "DeveloperName"
-
-    @property
-    def permission_label(self):
-        return "Permission Set License"
-
-    @property
-    def assignment_name(self):
-        return "PermissionSetLicenseAssign"
-
-    @property
-    def assignment_lookup(self):
-        return "PermissionSetLicenseId"
-
-    @property
-    def assignment_child_relationship(self):
-        return "PermissionSetLicenseAssignments"
+    permission_name = "PermissionSetLicense"
+    permission_name_field = "DeveloperName"
+    permission_label = "Permission Set License"
+    assignment_name = "PermissionSetLicenseAssign"
+    assignment_lookup = "PermissionSetLicenseId"
+    assignment_child_relationship = "PermissionSetLicenseAssignments"
 
 
 class AssignPermissionSetGroups(AssignPermissionSets):
@@ -164,26 +130,9 @@ Assigns Permission Set Groups whose Developer Names are in ``api_names`` to eith
         },
     }
 
-    @property
-    def permission_name(self):
-        return "PermissionSetGroup"
-
-    @property
-    def permission_name_field(self):
-        return "DeveloperName"
-
-    @property
-    def permission_label(self):
-        return "Permission Set Group"
-
-    @property
-    def assignment_name(self):
-        return "PermissionSetAssignment"
-
-    @property
-    def assignment_lookup(self):
-        return "PermissionSetGroupId"
-
-    @property
-    def assignment_child_relationship(self):
-        return "PermissionSetAssignments"
+    permission_name = "PermissionSetGroup"
+    permission_name_field = "DeveloperName"
+    permission_label = "Permission Set Group"
+    assignment_name = "PermissionSetAssignment"
+    assignment_lookup = "PermissionSetGroupId"
+    assignment_child_relationship = "PermissionSetAssignments"
