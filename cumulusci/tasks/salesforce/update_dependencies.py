@@ -35,7 +35,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "description": "Sets the purgeOnDelete option for the deployment. Defaults to True"
         },
         "include_beta": {
-            "description": "Install the most recent release, even if beta. Defaults to False."
+            "description": "Install the most recent release, even if beta. Defaults to False. "
+            "This option is only supported for scratch orgs, "
+            "to avoid installing a package that can't be upgraded in persistent orgs."
         },
         "allow_newer": {
             "description": "If the org already has a newer release, use it. Defaults to True."
@@ -83,15 +85,21 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     "An invalid dependency was specified for ignore_dependencies."
                 )
 
+        if (
+            self.org_config
+            and self.options["include_beta"]
+            and not self.org_config.scratch
+        ):
+            self.logger.warning(
+                "The `include_beta` option is enabled but this not a scratch org.\n"
+                "Setting `include_beta` to False to avoid installing beta package versions in a persistent org."
+            )
+            self.options["include_beta"] = False
+
     def _run_task(self):
         if not self.options["dependencies"]:
             self.logger.info("Project has no dependencies, doing nothing")
             return
-
-        if self.options["include_beta"] and not self.org_config.scratch:
-            raise TaskOptionsError(
-                "Target org must be a scratch org when `include_beta` is true."
-            )
 
         self.logger.info("Preparing static dependencies map")
         dependencies = self.project_config.get_static_dependencies(
