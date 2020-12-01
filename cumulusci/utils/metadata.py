@@ -308,6 +308,7 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
     "businessProcessGroups": MetadataProcessor(
         "BusinessProcessGroup", ".businessProcessGroup"
     ),
+    "cachePartitions": MetadataProcessor("PlatformCachePartition", ".cachePartition"),
     "callCenters": MetadataProcessor("CallCenter", ".callCenter"),
     "CallCoachingMediaProviders": MetadataProcessor(
         "CallCoachingMediaProvider", ".callCoachingMediaProvider"
@@ -404,10 +405,36 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
         "GlobalValueSetTranslation", ".globalValueSetTranslation"
     ),
     "groups": MetadataProcessor("Group", ".group"),
+    "homepagecomponents": MetadataProcessor("HomePageComponent", ".homePageComponent"),
+    "homePageLayouts": MetadataProcessor("HomePageLayout", ".homePageLayout"),
+    "inboundCertificate": MetadataProcessor(
+        "InboundCertificate", ".inboundCertificate"
+    ),
     "labels": MetadataProcessor("CustomLabels", ".labels"),
     "layouts": MetadataProcessor("Layout", ".layout"),
     "letterhead": MetadataProcessor("Letterhead", ".letter"),
+    "lightningBolts": MetadataProcessor("LightningBolt", ".lightningBolt"),
+    "lightningExperienceThemes": MetadataProcessor(
+        "LightningExperienceTheme", ".lightningExperienceTheme"
+    ),
+    "LightningOnboardingConfigs": MetadataProcessor(
+        "LightningOnboardingConfig", ".lightningOnboardingConfig"
+    ),
+    "liveChatAgentConfigs": MetadataProcessor(
+        "LiveChatAgentConfig", ".liveChatAgentConfig"
+    ),
+    "liveChatButtons": MetadataProcessor("LiveChatButton", ".liveChatButton"),
+    "liveChatDeployments": MetadataProcessor(
+        "LiveChatDeployment", ".liveChatDeployment"
+    ),
+    "liveChatSensitiveDataRule": MetadataProcessor(
+        "LiveChatSensitiveDataRule", ".liveChatSensitiveDataRule"
+    ),
     "lwc": BundleMetadataProcessor("LightningComponentBundle"),
+    "managedContentTypes": MetadataProcessor(
+        "ManagedContentType", ".managedContentType"
+    ),
+    "managedTopics": MetadataProcessor("ManagedTopics", ".managedTopics"),
     "matchingRules": MetadataProcessor(
         None,
         ".matchingRule",
@@ -415,9 +442,31 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
             "matchingRules": "MatchingRule",
         },
     ),
+    "messageChannels": MetadataProcessor("LightningMessageChannel", ".messageChannel"),
+    "milestoneTypes": MetadataProcessor("MilestoneType", ".milestoneType"),
     "mktDataSources": MetadataProcessor("DataSource", ".dataSource"),
     "mktDataSourceObjects": MetadataProcessor("DataSourceObject", ".dataSourceObject"),
+    "mktDataTranObjects": MetadataProcessor("MktDataTranObject", ".mktDataTranObject"),
+    "mlDomains": MetadataProcessor("MlDomain", ".mlDomain"),
+    "moderation": [
+        MetadataProcessor("KeywordList", ".keywords"),
+        MetadataProcessor("ModerationRule", ".rule"),
+    ],
+    "mutingpermissionsets": MetadataProcessor(
+        "MutingPermissionSet", ".mutingpermissionset"
+    ),
+    "myDomainDiscoverableLogins": MetadataProcessor(
+        "MyDomainDiscoverableLogin", ".myDomainDiscoverableLogin"
+    ),
+    "namedCredentials": MetadataProcessor("NamedCredential", ".namedCredential"),
+    "navigationMenus": MetadataProcessor("NavigationMenu", ".navigationMenu"),
+    "networks": MetadataProcessor("Network", ".network"),
+    "networkBranding": MetadataProcessor(
+        "NetworkBranding", ".networkBranding-meta.xml"
+    ),
     "notificationtypes": MetadataProcessor("CustomNotificationType", ".notiftype"),
+    "notificationTypeConfig": MetadataProcessor("NotificationTypeConfig", ".config"),
+    "oauthcustomscopes": MetadataProcessor("OauthCustomScope", ".oauthcustomscope"),
     "objects": MetadataProcessor(
         "CustomObject",
         ".object",
@@ -439,17 +488,119 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
         "CustomObjectTranslation", ".objectTranslation"
     ),
     "pages": MetadataProcessor("ApexPage", ".page-meta.xml"),
+    "pathAssistants": MetadataProcessor("PathAssistant", ".pathAssistant"),
+    "paymentGatewayProviders": MetadataProcessor(
+        "PaymentGatewayProvider", ".paymentGatewayProfider"
+    ),
+    "permissionsets": MetadataProcessor("PermissionSet", ".permissionset"),
+    "permissionsetgroups": MetadataProcessor(
+        "PermissionSetGroup", ".permissionsetgroup"
+    ),
+    "platformEventChannels": MetadataProcessor(
+        "PlatformEventChannel", ".platformEventChannel"
+    ),
+    "platformEventChannelMembers": MetadataProcessor(
+        "PlatformEventChannelMember", ".platformEventChannelMember"
+    ),
+    "portals": MetadataProcessor("Portal", ".portal"),
+    "postTemplates": MetadataProcessor("PostTemplate", ".postTemplate"),
+    "presenceDeclineReasons": MetadataProcessor(
+        "PresenceDeclineReason", ".presenceDeclineReason"
+    ),
+    "presenceUserConfigs": MetadataProcessor(
+        "PresenceUserConfig", ".presenceUserConfig"
+    ),
+    "profiles": MetadataProcessor("Profile", ".profile"),
+    "profilePasswordPolicies": MetadataProcessor(
+        "ProfilePasswordPolicy", ".profilePasswordPolicy"
+    ),
+    "profileSessionSettings": MetadataProcessor(
+        "ProfileSessionSetting", ".profileSessionSetting"
+    ),
+    "prompts": MetadataProcessor("Prompt", ".prompt"),
+    "queues": MetadataProcessor("Queue", ".queue"),
+    "queueRoutingConfigs": MetadataProcessor(
+        "QueueRoutingConfig", ".queueRoutingConfig"
+    ),
     "quickActions": MetadataProcessor("QuickAction", ".quickAction"),
+    "recommendationStrategies": MetadataProcessor(
+        "RecommendationStrategy", ".recommendationStrategy"
+    ),
+    "recordActionDeployments": MetadataProcessor(
+        "RecordActionDeployment", ".deployment"
+    ),
+    "redirectWhitelistUrls": MetadataProcessor(
+        "RedirectWhitelistUrl", ".redirectWhitelistUrl"
+    ),
     "remoteSiteSettings": MetadataProcessor("RemoteSiteSetting", ".remoteSite"),
     "reports": FolderMetadataProcessor("Report", ".report"),
     "reportTypes": MetadataProcessor("ReportType", ".reportType"),
-    "staticresources": MetadataProcessor("StaticResource", ".resource"),
+    "roles": MetadataProcessor("Role", ".role"),
+    "rules": MetadataProcessor("Territory2Rule", ".territory2Rule"),
+    "salesworkqueuesettings": MetadataProcessor(
+        "SalesWorkQueueSettings", ".salesworkqueuesetting"
+    ),
+    "samlssoconfigs": MetadataProcessor("SamlSsoConfig", ".samlssoconfig"),
+    "scontrols": MetadataProcessor("Scontrol", ".scf-meta.xml"),
+    "serviceChannels": MetadataProcessor("ServiceChannel", ".serviceChannel"),
+    "servicePresenceStatuses": MetadataProcessor(
+        "ServicePresenceStatus", ".servicePresenceStatus"
+    ),
+    "settings": MetadataProcessor("Settings", ".settings"),
+    "sharingRules": MetadataProcessor(
+        None,
+        ".sharingRules",
+        {
+            "sharingCriteriaRules": "SharingCriteriaRule",
+            "sharingGuestRules": "SharingGuestRule",
+            "sharingOwnerRules": "SharingOwnerRule",
+            "sharingTerritoryRules": "SharingTerritoryRule",
+        },
+    ),
+    "sharingSets": MetadataProcessor("SharingSet", ".sharingSet"),
+    "standardValueSets": MetadataProcessor("StandardValueSet", ".standardValueSet"),
+    "standardValueSetTranslations": MetadataProcessor(
+        "StandardValueSetTranslation", ".standardValueSetTranslation"
+    ),
+    "staticresources": MetadataProcessor("StaticResource", ".resource-meta.xml"),
+    "siteDotComSites": MetadataProcessor("SiteDotCom", ".site-meta.xml"),
     "sites": MetadataProcessor("CustomSite", ".site"),
+    "skills": MetadataProcessor("Skill", ".skill"),
+    "synonymDictionaries": MetadataProcessor("SynonymDictionary", ".synonymDictionary"),
     "tabs": MetadataProcessor("CustomTab", ".tab"),
+    "territories": [
+        MetadataProcessor("Territory", ".territory"),
+        MetadataProcessor("Territory2", ".territory2"),
+    ],
+    "territory2Models": MetadataProcessor("Territory2Model", ".territory2Model"),
+    "territory2Types": MetadataProcessor("Territory2Type", ".territory2Type"),
     "testSuites": MetadataProcessor("ApexTestSuite", ".testSuite"),
+    "timeSheetTemplates": MetadataProcessor("TimeSheetTemplate", ".timeSheetTemplate"),
+    "topicsForObjects": MetadataProcessor("TopicsForObjects", ".topicsForObjects"),
+    "transactionSecurityPolicies": MetadataProcessor(
+        "TransactionSecurityPolicy", ".transactionSecurityPolicy"
+    ),
     "translations": MetadataProcessor("Translations", ".translation"),
     "triggers": MetadataProcessor("ApexTrigger", ".trigger-meta.xml"),
+    "userAuthCertificates": MetadataProcessor(
+        "UserAuthCertificate", ".userAuthCertificate"
+    ),
+    "UserCriteria": MetadataProcessor("UserCriteria", ".userCriteria"),
+    "UserProvisioningConfigs": MetadataProcessor(
+        "UserProvisioningConfig", ".userProvisioningConfig"
+    ),
+    "wave": [
+        MetadataProcessor("WaveApplication", ".wapp"),
+        MetadataProcessor("WaveDashboard", ".wdash"),
+        MetadataProcessor("WaveDataflow", ".wdf"),
+        MetadataProcessor("WaveDataset", ".wds"),
+        MetadataProcessor("WaveLens", ".wlens"),
+        MetadataProcessor("WaveRecipe", ".wdpr"),
+        MetadataProcessor("WaveXmd", ".xmd"),
+    ],
+    "waveTemplates": BundleMetadataProcessor("WaveTemplateBundle"),
     "weblinks": MetadataProcessor("CustomPageWebLink", ".weblink"),
+    "webstoretemplate": MetadataProcessor("WebStoreTemplate", ".webstoretemplate"),
     "workflows": MetadataProcessor(
         None,
         ".workflow",
@@ -461,10 +612,10 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
             "tasks": "WorkflowTask",
         },
     ),
+    "workSkillRoutings": MetadataProcessor("WorkSkillRouting", ".workSkillRouting"),
 }
 
 # To do:
-# - add missing types
 # - functional testing
 # - preserve package settings
 # - destructive?
