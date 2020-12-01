@@ -14,7 +14,7 @@ from sqlalchemy import create_engine
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
     GenerateAndLoadDataFromYaml,
 )
-from snowfakery import data_generator_runtime
+from snowfakery import data_generator_runtime, data_generator
 
 sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
 simple_yaml = Path(__file__).parent / "snowfakery/include_parent.yml"
@@ -217,7 +217,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             task()
         assert "without num_records_tablename" in str(e.exception)
 
-    def generate_continuation_data(self):
+    def generate_continuation_data(self, fileobj):
         g = data_generator_runtime.Globals()
         o = data_generator_runtime.ObjectRow(
             "Account", {"Name": "Johnston incorporated", "id": 5}
@@ -226,14 +226,13 @@ class TestGenerateFromDataTask(unittest.TestCase):
         for i in range(0, 5):
             # burn through 5 imaginary accounts
             g.id_manager.generate_id("Account")
-        return yaml.safe_dump(g)
+        data_generator.save_continuation_yaml(g, fileobj)
 
     def test_with_continuation_file(self):
-        continuation_data = self.generate_continuation_data()
         with temp_sqlite_database_url() as database_url:
             with temporary_file_path("cont.yml") as continuation_file_path:
                 with open(continuation_file_path, "w") as continuation_file:
-                    continuation_file.write(continuation_data)
+                    self.generate_continuation_data(continuation_file)
 
                 task = _make_task(
                     GenerateDataFromYaml,
