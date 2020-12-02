@@ -2,6 +2,14 @@
 History
 =======
 
+3.24.1 (2020-12-01)
+-------------------
+
+Issues Closed:
+
+- Fixed a regression that prevented running unmanaged flows on persistent orgs, due to the use of the ``include_beta`` option while installing dependencies, which is not allowed for persistent orgs. We changed the ``update_dependencies`` task to ignore the option and log a warning when running against a persistent org, instead of erroring.
+
+
 3.24.0 (2020-11-30)
 -------------------
 
