@@ -73,28 +73,25 @@ class PublishSubtree(BaseGithubTask):
         For each entry in renames, any renames and store them
         in self.local_to_target_paths.
         """
-        is_list_of_dicts = all(
-            [isinstance(pair, dict) for pair in renamed_paths if renamed_paths]
-        )
-        dicts_have_correct_keys = all(
-            [
-                {"local", "target"} == pair.keys()
-                for pair in renamed_paths
-                if is_list_of_dicts
-            ]
+        if not renamed_paths:
+            return {}
+
+        is_list_of_dicts = all(isinstance(pair, dict) for pair in renamed_paths)
+        dicts_have_correct_keys = is_list_of_dicts and all(
+            {"local", "target"} == pair.keys() for pair in renamed_paths
         )
 
         ERROR_MSG = (
             "Renamed paths must be a list of dicts with `local:` and `target:` keys."
         )
-        if not is_list_of_dicts and dicts_have_correct_keys:
+        if not dicts_have_correct_keys:
             raise TaskOptionsError(ERROR_MSG)
 
         local_to_target_paths = {}
 
         for rename in renamed_paths:
-            local_path = rename.get("local", None)
-            target_path = rename.get("target", None)
+            local_path = rename.get("local")
+            target_path = rename.get("target")
 
             if local_path and target_path:
                 local_to_target_paths[local_path] = target_path
