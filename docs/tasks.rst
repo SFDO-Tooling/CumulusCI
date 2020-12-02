@@ -342,6 +342,8 @@ Options
 
 **Class:** cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
 
+Assigns Permission Sets whose Names are in ``api_names`` to either the default org user or the user whose Alias is ``user_alias``. This task skips assigning Permission Sets that are already assigned.
+
 Command Syntax
 ------------------------------------------
 
@@ -355,7 +357,67 @@ Options
 ``--api-names APINAMES``
 	 *Required*
 
-	 API names of desired Permission Sets, separated by commas.
+	 API Names of desired Permission Sets, separated by commas.
+
+``--user-alias USERALIAS``
+	 *Optional*
+
+	 Alias of target user (if not the current running user, the default).
+
+**assign_permission_set_groups**
+==========================================
+
+**Description:** Assigns specified Permission Set Groups to the current user, if not already assigned.
+
+**Class:** cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetGroups
+
+Assigns Permission Set Groups whose Developer Names are in ``api_names`` to either the default org user or the user whose Alias is ``user_alias``. This task skips assigning Permission Set Groups that are already assigned.
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run assign_permission_set_groups``
+
+
+Options
+------------------------------------------
+
+
+``--api-names APINAMES``
+	 *Required*
+
+	 API Developer Names of desired Permission Set Groups, separated by commas.
+
+``--user-alias USERALIAS``
+	 *Optional*
+
+	 Alias of target user (if not the current running user, the default).
+
+**assign_permission_set_licenses**
+==========================================
+
+**Description:** Assigns specified Permission Set Licenses to the current user, if not already assigned.
+
+**Class:** cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetLicenses
+
+Assigns Permission Set Licenses whose Developer Names are in ``api_names`` to either the default org user or the user whose Alias is ``user_alias``. This task skips assigning Permission Set Licenses that are already assigned.
+
+Permission Set Licenses are usually associated with a Permission Set, and assigning the Permission Set usually assigns the associated Permission Set License automatically.  However, in non-namespaced developer scratch orgs, assigning the associated Permission Set may not automatically assign the Permission Set License, and this task will ensure the Permission Set Licenses are assigned.
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run assign_permission_set_licenses``
+
+
+Options
+------------------------------------------
+
+
+``--api-names APINAMES``
+	 *Required*
+
+	 API Developer Names of desired Permission Set Licenses, separated by commas.
 
 ``--user-alias USERALIAS``
 	 *Optional*
