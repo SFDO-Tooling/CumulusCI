@@ -190,7 +190,9 @@ class FlowCallback(object):
 
     def post_flow(self, coordinator):
         """This is passed an instance of FlowCoordinator,
-        that pertains to the flow just finished running."""
+        that pertains to the flow just finished running.
+        This step executes whether or not the flow completed
+        successfully."""
         pass
 
     def pre_task(self, step):
@@ -202,8 +204,7 @@ class FlowCallback(object):
         """This method is called after a task has executed.
 
         :param step: Instance of StepSpec that relates to the task which executed
-        # TODO: Is this really an instance of Task?
-        :param result: Instance of the Task class that was run. Attributes of
+        :param result: Instance of the StepResult class that was run. Attributes of
         interest include, `result.result`, `result.return_values`, and `result.exception`
         """
         pass
