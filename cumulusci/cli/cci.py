@@ -1106,7 +1106,6 @@ def org_list(runtime, plain):
 )
 @pass_runtime(require_project=True, require_keychain=True)
 def org_prune(runtime, include_active=False):
-
     predefined_scratch_configs = getattr(runtime.project_config, "orgs__scratch", {})
 
     expired_orgs_removed = []
