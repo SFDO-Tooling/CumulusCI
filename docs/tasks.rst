@@ -2149,10 +2149,15 @@ Options
 
 	 A list of paths from repo root to include. Directories must end with a trailing slash.
 
+``--renames RENAMES``
+	 *Optional*
+
+	 A list of paths to rename in the target repo, given as `local:` `target:` pairs.
+
 ``--create-release CREATERELEASE``
 	 *Optional*
 
-	 If True, create a release in the public repo.  Defaults to True
+	 If True, create a release in the public repo.  Defaults to False
 
 ``--release-body RELEASEBODY``
 	 *Optional*

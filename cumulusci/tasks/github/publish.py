@@ -1,5 +1,6 @@
 import tempfile
 from datetime import datetime
+from pathlib import Path
 
 import github3.exceptions
 from cumulusci.core.exceptions import GithubException, TaskOptionsError
@@ -27,8 +28,11 @@ class PublishSubtree(BaseGithubTask):
         "include": {
             "description": "A list of paths from repo root to include. Directories must end with a trailing slash."
         },
+        "renames": {
+            "description": "A list of paths to rename in the target repo, given as `local:` `target:` pairs."
+        },
         "create_release": {
-            "description": "If True, create a release in the public repo.  Defaults to True"
+            "description": "If True, create a release in the public repo.  Defaults to False"
         },
         "release_body": {
             "description": "If True, the entire release body will be published to the public repo.  Defaults to False"
@@ -45,6 +49,9 @@ class PublishSubtree(BaseGithubTask):
                 "include", ["datasets/", "documentation/", "tasks/", "unpackaged/"]
             )
         )
+
+        self.options["renames"] = self._process_renames(self.options.get("renames", []))
+
         if self.options.get("version") in ("latest", "latest_beta"):
             get_beta = self.options["version"] == "latest_beta"
             self.options["version"] = str(
@@ -52,13 +59,46 @@ class PublishSubtree(BaseGithubTask):
             )
         if "ref" not in self.options and "version" not in self.options:
             raise TaskOptionsError("Either `ref` or `version` option is required")
+
         self.options["create_release"] = process_bool_arg(
-            self.options.get("create_release", True)
+            self.options.get("create_release", False)
         )
         self.options["release_body"] = process_bool_arg(
             self.options.get("release_body", False)
         )
         self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
+
+    def _process_renames(self, renamed_paths):
+        """
+        For each entry in renames, any renames and store them
+        in self.local_to_target_paths.
+        """
+        if not renamed_paths:
+            return {}
+
+        is_list_of_dicts = all(isinstance(pair, dict) for pair in renamed_paths)
+        dicts_have_correct_keys = is_list_of_dicts and all(
+            {"local", "target"} == pair.keys() for pair in renamed_paths
+        )
+
+        ERROR_MSG = (
+            "Renamed paths must be a list of dicts with `local:` and `target:` keys."
+        )
+        if not dicts_have_correct_keys:
+            raise TaskOptionsError(ERROR_MSG)
+
+        local_to_target_paths = {}
+
+        for rename in renamed_paths:
+            local_path = rename.get("local")
+            target_path = rename.get("target")
+
+            if local_path and target_path:
+                local_to_target_paths[local_path] = target_path
+            else:
+                raise TaskOptionsError(ERROR_MSG)
+
+        return local_to_target_paths
 
     def _get_target_repo_api(self):
         target_repo_info = self.project_config._split_repo_url(self.options["repo_url"])
@@ -73,6 +113,7 @@ class PublishSubtree(BaseGithubTask):
 
         with tempfile.TemporaryDirectory() as target:
             self._download_repo_and_extract(target)
+            self._rename_files(target)
             commit = self._create_commit(target)
             if commit and self.options["create_release"]:
                 self._create_release(target, commit.sha)
@@ -98,6 +139,14 @@ class PublishSubtree(BaseGithubTask):
         return list(
             {name for name in namelist if name.startswith(dirs) or name in includes}
         )
+
+    def _rename_files(self, zip_dir):
+        for local_name, target_name in self.options["renames"].items():
+            local_path = Path(zip_dir, local_name)
+            if local_path.exists():
+                target_path = Path(zip_dir, target_name)
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                local_path.replace(target_path)
 
     def _create_commit(self, path):
         committer = CommitDir(self.target_repo, logger=self.logger)
