@@ -19,10 +19,12 @@ class MetadataProcessor:
         type_name: Optional[str],
         extension: str = None,
         additional: Dict[str, str] = None,
+        additional_name_format: str = "{parent}.{fullName}",
     ):
         self.type_name = type_name
         self.extension = extension
         self.additional = additional or {}
+        self.additional_name_format = additional_name_format
 
     def __iter__(self):
         """hack to make it simpler to construct MD_PROCESSORS below
@@ -64,7 +66,9 @@ class MetadataProcessor:
             for el in tree.iterchildren():
                 if el.tag in self.additional:
                     mdtype = self.additional[el.tag]
-                    name = f"{parent_name}.{el.fullName.text}"
+                    name = self.additional_name_format.format(
+                        parent=parent_name, fullName=el.fullName.text
+                    )
                     types[mdtype].append(name)
                 else:
                     include_parent = True
@@ -144,7 +148,7 @@ class MetadataProcessor:
             merged_tree.append(el)
 
         # write merged file
-        target.write_text(merged_tree.tostring())
+        target.write_text(merged_tree.tostring(xml_declaration=True))
 
 
 class FolderMetadataProcessor(MetadataProcessor):
@@ -221,40 +225,48 @@ class MetadataPackage:
     https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_package.htm
     """
 
-    def __init__(self, types: TypeMembers = None, version: str = None):
+    def __init__(self, types: TypeMembers = None, **properties):
         self.types = defaultdict(list)
         for k, v in types.items():
             self.types[k] = v
-        self.version = version or UniversalConfig().package__api_version
+        self.properties = properties.copy()
+        if "version" not in properties:
+            properties["version"] = UniversalConfig().package__api_version
 
     @classmethod
     def from_path(cls, path: pathlib.Path) -> "MetadataPackage":
-        version = None
         manifest_path = path / "package.xml"
+        properties = {}
         if manifest_path.exists():
             manifest = metadata_tree.parse(manifest_path)
-            version = str(manifest.version.text)
+            for el in manifest.iterchildren():
+                if el.tag != "types":
+                    properties[el.tag] = el.text
 
         types: TypeMembers = {}
         for folder_path, processor in _iter_processors(path):
             types.update(processor.collect_members(folder_path))
-        return MetadataPackage(types, version)
+        return MetadataPackage(types, **properties)
 
     def write_manifest(self, path: pathlib.Path) -> None:
         manifest_path = path / "package.xml"
         manifest = MetadataElement("Package")
+        for name, value in sorted(self.properties.items()):
+            if name != "version":
+                manifest.append(name, value)
         for name, members in sorted(self.types.items()):
             types = MetadataElement("types")
             for member in sorted(members, key=metadata_sort_key):
                 types.append("members", member)
+            types.append("name", name)
             manifest.append(types)
-        manifest.append("version", self.version)
+        manifest.append("version", self.properties["version"])
         manifest_path.write_text(manifest.tostring(xml_declaration=True))
 
 
 def write_manifest(components: TypeMembers, api_version, path: pathlib.Path) -> None:
     """Write package.xml including components to the specified path."""
-    MetadataPackage(components, api_version).write_manifest(path)
+    MetadataPackage(components, version=api_version).write_manifest(path)
 
 
 def update_manifest(path: pathlib.Path) -> None:
@@ -410,7 +422,12 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
     "inboundCertificate": MetadataProcessor(
         "InboundCertificate", ".inboundCertificate"
     ),
-    "labels": MetadataProcessor("CustomLabels", ".labels"),
+    "labels": MetadataProcessor(
+        "CustomLabels",
+        ".labels",
+        {"labels": "CustomLabel"},
+        additional_name_format="{fullName}",
+    ),
     "layouts": MetadataProcessor("Layout", ".layout"),
     "letterhead": MetadataProcessor("Letterhead", ".letter"),
     "lightningBolts": MetadataProcessor("LightningBolt", ".lightningBolt"),
@@ -616,8 +633,10 @@ MD_PROCESSORS: Dict[str, Iterable[MetadataProcessor]] = {
 }
 
 # To do:
-# - functional testing
-# - preserve package settings
+# - XML output details
+#   - empty tags -> self-closing?
+#   - &apos;
+# - comments
+# Later:
 # - destructive?
 # - use it to generate package.xml elsewhere
-# - comments

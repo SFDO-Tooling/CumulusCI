@@ -186,8 +186,10 @@ class BaseRetrieveChanges(BaseSalesforceApiTask):
         ]
 
         self.options["namespace_tokenize"] = self.options.get("namespace_tokenize")
-        self.options["api_version"] = self.options.get(
-            "api_version", self.project_config.project__package__api_version
+        self.options["api_version"] = str(
+            self.options.get(
+                "api_version", self.project_config.project__package__api_version
+            )
         )
 
     def _run_task(self):
@@ -240,7 +242,7 @@ class BaseRetrieveChanges(BaseSalesforceApiTask):
             zipfile.ZipFile,
             ApiRetrieveUnpackaged(self, package_xml, self.options["api_version"])(),
         )
-        src_zip.extractall(target_path)
+        src_zip.extractall(retrieval_path)
 
         # Merge retrieved metadata into target
         # (wait to update manifest until we tokenize namespace prefixes)
