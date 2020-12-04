@@ -697,6 +697,49 @@ Options
 
 	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
 
+**check_enhanced_notes_enabled**
+==========================================
+
+**Description:** Preflight check to validate that Enhanced Notes are enabled.
+
+**Class:** cumulusci.tasks.preflight.settings.CheckSettingsValue
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_enhanced_notes_enabled``
+
+
+Options
+------------------------------------------
+
+
+``--settings-type SETTINGSTYPE``
+	 *Required*
+
+	 The API name of the Settings entity to be checked, such as ChatterSettings.
+
+	 Default: EnhancedNotesSettings
+
+``--settings-field SETTINGSFIELD``
+	 *Required*
+
+	 The API name of the field on the Settings entity to check.
+
+	 Default: IsEnhancedNotesEnabled
+
+``--value VALUE``
+	 *Required*
+
+	 The value to check for
+
+	 Default: True
+
+``--treat-missing-as-failure TREATMISSINGASFAILURE``
+	 *Optional*
+
+	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
+
 **custom_settings_value_wait**
 ==========================================
 
@@ -4251,7 +4294,7 @@ Options
 ``--include-beta INCLUDEBETA``
 	 *Optional*
 
-	 Install the most recent release, even if beta. Defaults to False.
+	 Install the most recent release, even if beta. Defaults to False. This option is only supported for scratch orgs, to avoid installing a package that can't be upgraded in persistent orgs.
 
 ``--allow-newer ALLOWNEWER``
 	 *Optional*
