@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text, func
 from sqlalchemy.orm import aliased, Session
 from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.sql import elements as sql_elements
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
@@ -242,6 +243,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     self.logger.warning(
                         f"Warning: Dataset does not include column `{name}``"
                     )
+                    columns.append(sql_elements.Null())
 
         lookups = {
             lookup_field: lookup
@@ -250,9 +252,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         }
 
         for lookup in lookups.values():
-            lookup.aliased_table = aliased(
-                self.metadata.tables[f"{lookup.table}_sf_ids"]
-            )
+            try:
+                aliased_table = self.metadata.tables[f"{lookup.table}_sf_ids"]
+            except KeyError as e:
+                raise BulkDataException(f"Cannot find table {aliased_table} : {e}")
+
+            lookup.aliased_table = aliased(aliased_table)
             columns.append(lookup.aliased_table.columns.sf_id)
 
         if "RecordTypeId" in mapping.fields:

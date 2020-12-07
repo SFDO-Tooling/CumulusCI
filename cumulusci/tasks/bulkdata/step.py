@@ -425,7 +425,9 @@ class RestApiDmlOperation(BaseDmlOperation):
                         result[boolean_field] or False
                     )
                 except TypeError as e:
-                    raise BulkDataException(e)
+                    raise BulkDataException(
+                        f"Error converting boolean: {boolean_field}: {e}"
+                    )
 
             # Remove empty fields (different semantics in REST API)
             # We do this for insert only - on update, any fields set to `null`

@@ -915,6 +915,7 @@ class TestRestApiDmlOperation:
         dml_op.start()
         with pytest.raises(BulkDataException) as e:
             dml_op.load_records(iter(recs))
+        assert "boolean" in str(e.value)
         assert "xyzzy" in str(e.value)
 
     @responses.activate
