@@ -16,7 +16,7 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
             "required": True,
         },
         "api_names": {
-            "description": "List of API names of StandardValuesets to affect, "
+            "description": "List of API names of StandardValueSets to affect, "
             "such as 'OpportunityStage', 'AccountType', 'CaseStatus'",
             "required": True,
         },
