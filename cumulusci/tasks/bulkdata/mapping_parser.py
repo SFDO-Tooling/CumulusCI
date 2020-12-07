@@ -60,7 +60,7 @@ class MappingLookup(CCIDictModel):
             if hasattr(model, guess):
                 return guess
         raise KeyError(
-            f"Could not find a key field for {self.name}.\n"
+            f"Could not find a key field for `{self.name}`. \n"
             + f"Tried {', '.join(guesses)}"
         )
 

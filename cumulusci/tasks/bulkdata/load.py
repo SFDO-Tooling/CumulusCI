@@ -235,7 +235,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         for name, f in mapping.fields.items():
             if name not in ("Id", "RecordTypeId", "RecordType"):
-                columns.append(model.__table__.columns[f])
+                column = model.__table__.columns.get(f, None)
+                if column is not None:
+                    columns.append(column)
+                else:
+                    self.logger.warning(
+                        f"Warning: Dataset does not include column `{name}``"
+                    )
 
         lookups = {
             lookup_field: lookup
@@ -265,12 +271,18 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             query = query.filter(*filter_args)
 
         if "RecordTypeId" in mapping.fields:
-            rt_source_table = self.metadata.tables[
-                mapping.get_source_record_type_table()
-            ]
-            rt_dest_table = self.metadata.tables[
-                mapping.get_destination_record_type_table()
-            ]
+            try:
+                rt_source_table = self.metadata.tables[
+                    mapping.get_source_record_type_table()
+                ]
+                rt_dest_table = self.metadata.tables[
+                    mapping.get_destination_record_type_table()
+                ]
+            except KeyError as e:  # pragma: no cover
+                # this error was tested in a specific project
+                raise BulkDataException(
+                    f"Record type name->id mapping table was not exported or provided: {e}"
+                )
             query = query.outerjoin(
                 rt_source_table,
                 rt_source_table.columns.record_type_id
@@ -429,15 +441,28 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
                 # Loop through mappings and reflect each referenced table
                 self.models = {}
-                for name, mapping in self.mapping.items():
-                    if mapping.table not in self.models:
-                        self.models[mapping.table] = self.base.classes[mapping.table]
+                for name, step in self.mapping.items():
+                    if step.table not in self.models:
+                        self.models[step.table] = self.base.classes.get(step.table)
+                        if not self.models[step.table]:
+                            self.logger.warning(
+                                f"No table called {step.table} in dataset."
+                            )
+                            self.logger.warning(f"Step {name} will be skipped.")
+                            self.logger.warning(
+                                "If other tables depend on this one, dataload may not succeed."
+                            )
+                            del self.models[step.table]
+                            self.mapping[name] = None
 
                     # create any Record Type tables we need
-                    if "RecordTypeId" in mapping.fields:
+                    if "RecordTypeId" in step.fields:
                         self._create_record_type_table(
-                            mapping.get_destination_record_type_table()
+                            step.get_destination_record_type_table()
                         )
+                self.mapping = {
+                    name: step for name, step in self.mapping.items() if step
+                }
                 self.metadata.create_all()
 
                 self._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
@@ -489,12 +514,18 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         action="update",
                         table=step.table,
                     )
+                    step_table = step["table"]
+                    key_field_table = self.models.get(step_table)
+                    if not key_field_table:
+                        raise BulkDataException(
+                            f"Cannot find lookup target table `{step_table}`"
+                        )
+
+                    key_field = key_field_table.__table__.primary_key.columns.keys()[0]
                     mapping.lookups["Id"] = MappingLookup(
                         name="Id",
                         table=step["table"],
-                        key_field=self.models[
-                            step["table"]
-                        ].__table__.primary_key.columns.keys()[0],
+                        key_field=key_field,
                     )
                     for lookup in lookups:
                         mapping.lookups[lookup] = lookups[lookup].copy()

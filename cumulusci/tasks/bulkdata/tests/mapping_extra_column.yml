@@ -1,0 +1,6 @@
+Insert Accounts:
+    api: bulk
+    sf_object: Account
+    table: households
+    fields:
+        - Name

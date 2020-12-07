@@ -9,6 +9,7 @@ import unittest
 from unittest import mock
 import tempfile
 
+import pytest
 import responses
 from sqlalchemy import Column, Table, Unicode, create_engine
 
@@ -216,6 +217,25 @@ class TestLoadData(unittest.TestCase):
             ["Error", "User", "error@example.com", "001000000000000"],
         ]
 
+    @responses.activate
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_dml_operation")
+    def test_run__extra_column_in_mapping(self, get_dml_operation):
+        mock_describe_calls()
+        base_path = os.path.dirname(__file__)
+        sql_path = os.path.join(base_path, "testdata.sql")
+        mapping_path = os.path.join(base_path, "mapping_extra_column.yml")
+
+        task = _make_task(
+            LoadData, {"options": {"sql_path": sql_path, "mapping": mapping_path}}
+        )
+
+        with self.assertLogs() as logging:
+            task()
+            assert "Dataset does not include column" in str(
+                logging.output
+            ), logging.output
+            assert "Name" in str(logging.output), logging.output
+
     def test_init_options__missing_input(self):
         with self.assertRaises(TaskOptionsError):
             _make_task(LoadData, {"options": {}})
@@ -240,6 +260,36 @@ class TestLoadData(unittest.TestCase):
         )
 
         assert t.bulk_mode is None
+
+    def test_init_options__bad_mode(self):
+        with pytest.raises(TaskOptionsError) as e:
+            _make_task(
+                LoadData,
+                {
+                    "options": {
+                        "database_url": "file:///test.db",
+                        "mapping": "mapping.yml",
+                        "bulk_mode": "xyzzy",
+                    }
+                },
+            )
+
+        assert "bulk_mode" in str(e.value)
+
+    def test_init_options__no_mapping_file(self):
+        with pytest.raises(TaskOptionsError) as e:
+            t = _make_task(
+                LoadData,
+                {
+                    "options": {
+                        "database_url": "file:///test.db",
+                        "mapping": None,
+                    }
+                },
+            )
+            t()
+
+        assert "Mapping file path required" in str(e.value)
 
     def test_init_options__bulk_mode_wrong(self):
         with self.assertRaises(TaskOptionsError):
@@ -370,6 +420,46 @@ class TestLoadData(unittest.TestCase):
                 "Update Account Dependencies After Insert Accounts"
             ],
         )
+
+    @responses.activate
+    def test_expand_mapping_deal_with_misspelled_table_option(self):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, "mapping_after.yml")
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+
+        mock_describe_calls()
+        task._init_mapping()
+        task.mapping["Insert Accounts"]["lookups"]["foo"] = MappingLookup(
+            table="xyzzy", key_field="account_id", after="Insert Accounts"
+        )
+        task.mapping["Insert Accounts"]["table"] = "foo"
+
+        model = mock.Mock()
+        model.__table__ = mock.Mock()
+        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
+        task.models = {"accounts": model, "contacts": model}
+        with pytest.raises(BulkDataException) as e:
+            task._expand_mapping()
+        assert "target table" in str(e.value)
+
+    @responses.activate
+    def test_missing_table(self):
+        mock_describe_calls()
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, "mapping_after.yml")
+
+        task = _make_task(
+            LoadData,
+            {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
+        )
+        with self.assertLogs() as logging:
+            task()
+            assert "No table called accounts in dataset." in str(
+                logging.output
+            ), logging.output
 
     def test_stream_queried_data__skips_empty_rows(self):
         task = _make_task(
