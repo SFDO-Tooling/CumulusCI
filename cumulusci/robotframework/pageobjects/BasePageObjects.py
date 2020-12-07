@@ -77,12 +77,7 @@ class ModalMixin:
     def click_modal_button(self, button_label):
         """Click the named modal button (Save, Save & New, Cancel, etc)"""
         # stolen from Salesforce.py:click_modal_button
-        locator = (
-            "//div[contains(@class,'uiModal')]"
-            "//div[contains(@class,'modal-footer') or contains(@class, 'actionsContainer')]"
-            "//button[.//span[text()='{}']]"
-        ).format(button_label)
-
+        locator = f"sf:modal.button:{button_label}"
         self.selenium.wait_until_page_contains_element(locator)
         self.selenium.wait_until_element_is_enabled(locator)
         self.salesforce._jsclick(locator)
