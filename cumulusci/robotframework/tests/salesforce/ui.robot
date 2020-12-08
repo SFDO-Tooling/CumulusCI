@@ -330,7 +330,7 @@ Select Dropdown Value
 
     # these two fields look and act identical, but they are
     # implemented differently in the DOM *sigh*
-    Select dropdown value  Salutation   Mr.
+    Select dropdown value  Salutation   Dr.
 
     Select dropdown value  Lead Source  Purchased List
 
@@ -346,7 +346,7 @@ Select Dropdown Value
     Wait until keyword succeeds  5 seconds  2 seconds
     ...    Object field should be  Contact  ${contact id}  LeadSource  Purchased List
     Wait until keyword succeeds  5 seconds  2 seconds
-    ...    Object field should be  Contact  ${contact id}  Salutation  Mr.
+    ...    Object field should be  Contact  ${contact id}  Salutation  Dr.
 
 Select Dropdown Value exceptions
     [Documentation]  Verify that the keyword throws appropriate errors
