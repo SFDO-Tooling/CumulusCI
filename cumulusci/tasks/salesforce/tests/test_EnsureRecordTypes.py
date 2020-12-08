@@ -154,9 +154,7 @@ class TestEnsureRecordTypes(unittest.TestCase):
         self.assertNotIn("stage_name", task.options)
 
     def test_generates_record_type_and_business_process(self):
-        """
-        Asserts Record Type Description is optional.
-        """
+        # Asserts Record Type Description is optional.
         task = create_task(
             EnsureRecordTypes,
             {
@@ -184,9 +182,7 @@ class TestEnsureRecordTypes(unittest.TestCase):
                 self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
 
     def test_generates_record_type_and_business_process__case(self):
-        """
-        Asserts Record Type Description is added and truncated to 255 characters.
-        """
+        # Asserts Record Type Description is added and truncated to 255 characters.
         task = create_task(
             EnsureRecordTypes,
             {
@@ -212,9 +208,7 @@ class TestEnsureRecordTypes(unittest.TestCase):
                 self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
 
     def test_generates_record_type_only(self):
-        """
-        Asserts Record Type Description is added when the Description is less than 255 characters.
-        """
+        # Asserts Record Type Description is added when the Description is less than 255 characters.
         task = create_task(
             EnsureRecordTypes,
             {
