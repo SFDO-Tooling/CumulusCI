@@ -169,22 +169,34 @@ class ModalMixin:
         self.selenium.driver.execute_script(
             "arguments[0].scrollIntoView()", input_element
         )
-        trigger = input_element.find_element_by_class_name("uiPopupTrigger")
-        trigger.click()
 
-        try:
-            popup_locator = (
-                "//div[contains(@class, 'uiPopupTarget')][contains(@class, 'visible')]"
-            )
-            popup = self.selenium.get_webelement(popup_locator)
-        except ElementNotFound:
-            raise ElementNotFound("Timed out waiting for the dropdown menu")
+        if input_element.get_attribute("role") == "combobox":
+            # new lightning combobox. So much easier!
+            self.builtin.log(f"New style combo for {label}", "DEBUG")
+            input_element.click()
+            try:
+                item = input_element.find_element_by_xpath(
+                    f'//lightning-base-combobox-item[.="{value}"]'
+                )
+                item.click()
+            except NoSuchElementException:
+                raise Exception(f"Dropdown value '{value}' not found")
+        else:
+            self.builtin.log(f"Old style combo for {label}", "DEBUG")
+            trigger = input_element.find_element_by_class_name("uiPopupTrigger")
+            trigger.click()
 
-        try:
-            value_element = popup.find_element_by_link_text(value)
-            value_element.click()
-        except NoSuchElementException:
-            raise Exception(f"Dropdown value '{value}' not found")
+            try:
+                popup_locator = "//div[contains(@class, 'uiPopupTarget')][contains(@class, 'visible')]"
+                popup = self.selenium.get_webelement(popup_locator)
+            except ElementNotFound:
+                raise ElementNotFound("Timed out waiting for the dropdown menu")
+
+            try:
+                value_element = popup.find_element_by_link_text(value)
+                value_element.click()
+            except NoSuchElementException:
+                raise Exception(f"Dropdown value '{value}' not found")
 
     @capture_screenshot_on_error
     def wait_until_modal_is_closed(self, timeout=None):
@@ -219,6 +231,18 @@ class ModalMixin:
             if modals:
                 root = modals[0]
         try:
+            # As salesforce evolves, more and more fields use <label for='some-id'>
+            # where "for" points to the associated input field. w00t! If we can,
+            # use that. If not, fall back to an older strategy
+            try:
+                label_element = root.find_element_by_xpath(f'//label[text()="{label}"]')
+                input_id = label_element.get_attribute("for")
+                element = root.find_element_by_id(input_id)
+                return element
+
+            except NoSuchElementException:
+                pass
+
             # gnarly, but effective.
             # this finds an element with the class slds-form-element which
             # has a child element with the class 'form-element__label' and
