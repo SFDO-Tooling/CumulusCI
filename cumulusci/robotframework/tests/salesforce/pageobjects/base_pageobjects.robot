@@ -100,5 +100,5 @@ NewModal - Modal should contain errors
     ...  AND  Wait for modal      New  Contact
 
     Click modal button  Save
-    Modal should contain errors
-    ...  These required fields must be completed: Last Name
+    capture page screenshot
+    Modal should show edit error for fields  Name

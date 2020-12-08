@@ -99,6 +99,23 @@ class ModalMixin:
             )
 
     @capture_screenshot_on_error
+    def modal_should_show_edit_error_for_fields(self, *field_names):
+        """Verify that a dialog is showing requiring a review of the given fields
+
+        This works by looking for a the "we hit a snag" popup, and
+        then looking for an anchor tag with the attribute
+        force-recordediterror_recordediterror, along with the given
+        text.
+
+        """
+        self.selenium.wait_until_page_contains_element("sf:modal.field_alert")
+        for field_name in field_names:
+            locator = f"sf:modal.review_alert:{field_name}"
+            self.selenium.page_should_contain_element(
+                locator, f"Unable to find alert with field '{field_name}'"
+            )
+
+    @capture_screenshot_on_error
     def populate_field(self, name, value):
         """Populate a field on the modal form
 
