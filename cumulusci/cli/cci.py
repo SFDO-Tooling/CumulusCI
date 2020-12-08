@@ -22,7 +22,6 @@ import click
 import github3
 import pkg_resources
 import requests
-from requests import exceptions
 from rst2ansi import rst2ansi
 from jinja2 import Environment
 from jinja2 import PackageLoader
@@ -245,7 +244,7 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
-    if isinstance(error, exceptions.ConnectionError):
+    if isinstance(error, requests.exceptions.ConnectionError):
         connection_error_message()
     elif isinstance(error, click.ClickException):
         click.echo(click.style(f"Error: {error.format_message()}", fg="red"), err=True)
@@ -1175,8 +1174,9 @@ def org_remove(runtime, org_name, global_org):
         try:
             org_config.delete_org()
         except Exception as e:
-            click.echo("Deleting scratch org failed with error:")
             click.echo(e)
+            click.echo("Perhaps it was already deleted?")
+            click.echo("Removing org regardless.")
 
     global_org = global_org or runtime.project_config is None
     runtime.keychain.remove_org(org_name, global_org)
@@ -1240,7 +1240,12 @@ def org_scratch_delete(runtime, org_name):
     if not org_config.scratch:
         raise click.UsageError(f"Org {org_name} is not a scratch org")
 
-    org_config.delete_org()
+    try:
+        org_config.delete_org()
+    except Exception as e:
+        click.echo(e)
+        click.echo(f"Use `cci org remove {org_name}` to remove it from your keychain.")
+        return
 
     org_config.save()
 
