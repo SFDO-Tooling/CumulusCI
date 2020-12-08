@@ -81,6 +81,7 @@ class TestUpdateDependencies(unittest.TestCase):
             {"allow_newer": False, "allow_uninstalls": True},
             project_config=project_config,
         )
+        task.org_config._installed_packages = {}
         ApiRetrieveInstalledPackages.return_value = INSTALLED_PACKAGES
         task.api_class = mock.Mock()
         task._download_extract_github = make_fake_zipfile
