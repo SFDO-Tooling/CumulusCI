@@ -1567,7 +1567,7 @@ Environment Info: Rossian / x68_46
             cci.org_remove, runtime=runtime, org_name="test", global_org=False
         )
 
-        echo.assert_any_call("Deleting scratch org failed with error:")
+        echo.assert_any_call("Removing org regardless.")
 
     def test_org_remove_not_found(self):
         runtime = mock.Mock()
@@ -1671,14 +1671,14 @@ Environment Info: Rossian / x68_46
         with self.assertRaises(click.UsageError):
             run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
 
-    def test_org_scratch_delete_error(self):
+    @mock.patch("click.echo")
+    def test_org_scratch_delete_error(self, echo):
         org_config = mock.Mock()
         org_config.delete_org.side_effect = ScratchOrgException
         runtime = mock.Mock()
         runtime.keychain.get_org.return_value = org_config
-
-        with self.assertRaises(ScratchOrgException):
-            run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
+        run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
+        assert "org remove" in str(echo.mock_calls)
 
     @mock.patch("cumulusci.cli.cci.get_simple_salesforce_connection")
     @mock.patch("code.interact")
