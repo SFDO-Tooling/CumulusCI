@@ -269,9 +269,14 @@ Open App Launcher
     Page Should Contain  All Apps
 
 Populate Field
+    [Setup]     Run keywords
+    ...  Go to object home  Account
+    ...  AND  Click Object Button  New
+    [Teardown]  Run keywords
+    ...  Click modal button  Cancel
+    ...  AND  Wait Until Modal Is Closed
+
     ${account_name} =    Get fake data  company
-    Go To Object Home    Account
-    Click Object Button  New
     Populate Field       Account Name  ${account_name}
     ${locator} =         Get Locator  object.field  Account Name
     ${value} =           Get Value  ${locator}
@@ -281,18 +286,28 @@ Populate Field
     Should Be Equal      ${value}  ${account_name}
 
 Populate Lookup Field
+    [Setup]     Run keywords
+    ...  Go to object home  Account
+    ...  AND  Click Object Button  New
+    [Teardown]  Run keywords
+    ...  Click modal button  Cancel
+    ...  AND  Wait Until Modal Is Closed
+
     &{account} =           Create Account
-    Go To Object Home      Contact
-    Click Object Button    New
     Populate Lookup Field  Account Name  ${account}[Name]
     ${locator} =           Get Locator  object.field_lookup_value  Account Name
     ${value} =             Get Text  ${locator}
     Should Be Equal        ${value}  ${account}[Name]
 
 Populate Form
+    [Setup]     Run keywords
+    ...  Go to object home  Account
+    ...  AND  Click Object Button  New
+    [Teardown]  Run keywords
+    ...  Click modal button  Cancel
+    ...  AND  Wait Until Modal Is Closed
+
     ${account_name} =    Get fake data  company
-    Go To Object Home    Account
-    Click Object Button  New
     Populate Form
     ...  Ticker Symbol=CASH
     ...  Account Name=${account_name}
