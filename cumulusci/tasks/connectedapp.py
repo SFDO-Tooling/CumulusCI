@@ -141,7 +141,7 @@ class CreateConnectedApp(SFDXBaseTask):
                 connected_app = self.project_config.keychain.get_service(
                     "connected_app"
                 )
-            except ServiceNotConfigured:
+            except ServiceNotConfigured:  # pragma: no cover
                 pass
             else:
                 if connected_app is not DEFAULT_CONNECTED_APP:
