@@ -19,7 +19,7 @@ Options
 ------------------------------------------
 
 
-``--developer-names DEVELOPERNAMES``
+``--developer_names DEVELOPERNAMES``
 	 *Required*
 
 	 List of DeveloperNames to query in SOQL
@@ -41,7 +41,7 @@ Options
 ------------------------------------------
 
 
-``--related-list RELATEDLIST``
+``--related_list RELATEDLIST``
 	 *Required*
 
 	 Name of the Related List to include
@@ -51,17 +51,17 @@ Options
 
 	 Array of field API names to include in the related list
 
-``--exclude-buttons EXCLUDEBUTTONS``
+``--exclude_buttons EXCLUDEBUTTONS``
 	 *Optional*
 
 	 Array of button names to suppress from the related list
 
-``--custom-buttons CUSTOMBUTTONS``
+``--custom_buttons CUSTOMBUTTONS``
 	 *Optional*
 
 	 Array of button names to add to the related list
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Optional*
 
 	 List of API names of entities to affect
@@ -71,14 +71,14 @@ Options
 
 	 If False, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
 	 Default: $project_config.project__package__namespace
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
@@ -100,29 +100,29 @@ Options
 ------------------------------------------
 
 
+``--api_names APINAMES``
+	 *Required*
+
+	 List of API names of StandardValueSets to affect, such as 'OpportunityStage', 'AccountType', 'CaseStatus'
+
 ``--entries ENTRIES``
-	 *Optional*
+	 *Required*
 
 	 Array of standardValues to insert. Each standardValue should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. OpportunityStage entries require the additional keys 'closed', 'won', 'forecastCategory', and 'probability'; CaseStatus entries require 'closed'.
-
-``--api-names APINAMES``
-	 *Optional*
-
-	 List of API names of entities to affect
 
 ``--managed MANAGED``
 	 *Optional*
 
 	 If False, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
 	 Default: $project_config.project__package__namespace
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
@@ -154,12 +154,12 @@ Options
 
 	 Array of picklist values to insert. Each value should contain the keys 'fullName', the API name of the entry, and 'label', the user-facing label. Optionally, specify `default: True` on exactly one entry to make that value the default. Any existing values will not be affected other than setting the default (labels of existing entries are not changed). To order values, include the 'add_before' key. This will insert the new value before the existing value with the given API name, or at the end of the list if not present.
 
-``--record-types RECORDTYPES``
+``--record_types RECORDTYPES``
 	 *Optional*
 
 	 List of Record Type developer names for which the new values should be available. If any of the entries have `default: True`, they are also made default for these Record Types. Any Record Types not present in the target org will be ignored, and * is a wildcard. Default behavior is to do nothing.
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Optional*
 
 	 List of API names of entities to affect
@@ -169,14 +169,14 @@ Options
 
 	 If False, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
 	 Default: $project_config.project__package__namespace
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
@@ -198,17 +198,17 @@ Options
 ------------------------------------------
 
 
-``--field-permissions FIELDPERMISSIONS``
+``--field_permissions FIELDPERMISSIONS``
 	 *Optional*
 
 	 Array of fieldPermissions objects to upsert into permission_set.  Each fieldPermission requires the following attributes: 'field': API Name of the field including namespace; 'readable': boolean if field can be read; 'editable': boolean if field can be edited
 
-``--class-accesses CLASSACCESSES``
+``--class_accesses CLASSACCESSES``
 	 *Optional*
 
 	 Array of classAccesses objects to upsert into permission_set.  Each classAccess requires the following attributes: 'apexClass': Name of Apex Class.  If namespaced, make sure to use the form "namespace__ApexClass"; 'enabled': boolean if the Apex Class can be accessed.
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Optional*
 
 	 List of API names of entities to affect
@@ -218,14 +218,14 @@ Options
 
 	 If False, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
 	 Default: $project_config.project__package__namespace
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
@@ -294,7 +294,7 @@ Options
 ------------------------------------------
 
 
-``--metadata-type METADATATYPE``
+``--metadata_type METADATATYPE``
 	 *Required*
 
 	 Metadata Type
@@ -313,7 +313,7 @@ Options
 
 	 Desired value to set for the targeted tag's text. This value is namespace-injected.
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Optional*
 
 	 List of API names of entities to affect
@@ -323,14 +323,14 @@ Options
 
 	 If False, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
 	 Default: $project_config.project__package__namespace
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
@@ -354,12 +354,12 @@ Options
 ------------------------------------------
 
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Required*
 
 	 API Names of desired Permission Sets, separated by commas.
 
-``--user-alias USERALIAS``
+``--user_alias USERALIAS``
 	 *Optional*
 
 	 Alias of target user (if not the current running user, the default).
@@ -383,12 +383,12 @@ Options
 ------------------------------------------
 
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Required*
 
 	 API Developer Names of desired Permission Set Groups, separated by commas.
 
-``--user-alias USERALIAS``
+``--user_alias USERALIAS``
 	 *Optional*
 
 	 Alias of target user (if not the current running user, the default).
@@ -414,12 +414,12 @@ Options
 ------------------------------------------
 
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Required*
 
 	 API Developer Names of desired Permission Set Licenses, separated by commas.
 
-``--user-alias USERALIAS``
+``--user_alias USERALIAS``
 	 *Optional*
 
 	 Alias of target user (if not the current running user, the default).
@@ -441,12 +441,12 @@ Options
 ------------------------------------------
 
 
-``--class-name CLASSNAME``
+``--class_name CLASSNAME``
 	 *Required*
 
 	 Name of the Apex class to wait for.
 
-``--poll-interval POLLINTERVAL``
+``--poll_interval POLLINTERVAL``
 	 *Optional*
 
 	 Seconds to wait before polling for batch or queueable job completion. Defaults to 10 seconds.
@@ -612,7 +612,7 @@ Options
 ------------------------------------------
 
 
-``--org-wide-defaults ORGWIDEDEFAULTS``
+``--org_wide_defaults ORGWIDEDEFAULTS``
 	 *Required*
 
 	 The Organization-Wide Defaults to check, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature. Checking External Sharing Model when it is turned off will fail the preflight.
@@ -634,12 +634,12 @@ Options
 ------------------------------------------
 
 
-``--settings-type SETTINGSTYPE``
+``--settings_type SETTINGSTYPE``
 	 *Required*
 
 	 The API name of the Settings entity to be checked, such as ChatterSettings.
 
-``--settings-field SETTINGSFIELD``
+``--settings_field SETTINGSFIELD``
 	 *Required*
 
 	 The API name of the field on the Settings entity to check.
@@ -649,7 +649,7 @@ Options
 
 	 The value to check for
 
-``--treat-missing-as-failure TREATMISSINGASFAILURE``
+``--treat_missing_as_failure TREATMISSINGASFAILURE``
 	 *Optional*
 
 	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
@@ -671,14 +671,14 @@ Options
 ------------------------------------------
 
 
-``--settings-type SETTINGSTYPE``
+``--settings_type SETTINGSTYPE``
 	 *Required*
 
 	 The API name of the Settings entity to be checked, such as ChatterSettings.
 
 	 Default: ChatterSettings
 
-``--settings-field SETTINGSFIELD``
+``--settings_field SETTINGSFIELD``
 	 *Required*
 
 	 The API name of the field on the Settings entity to check.
@@ -692,7 +692,7 @@ Options
 
 	 Default: True
 
-``--treat-missing-as-failure TREATMISSINGASFAILURE``
+``--treat_missing_as_failure TREATMISSINGASFAILURE``
 	 *Optional*
 
 	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
@@ -714,14 +714,14 @@ Options
 ------------------------------------------
 
 
-``--settings-type SETTINGSTYPE``
+``--settings_type SETTINGSTYPE``
 	 *Required*
 
 	 The API name of the Settings entity to be checked, such as ChatterSettings.
 
 	 Default: EnhancedNotesSettings
 
-``--settings-field SETTINGSFIELD``
+``--settings_field SETTINGSFIELD``
 	 *Required*
 
 	 The API name of the field on the Settings entity to check.
@@ -735,7 +735,7 @@ Options
 
 	 Default: True
 
-``--treat-missing-as-failure TREATMISSINGASFAILURE``
+``--treat_missing_as_failure TREATMISSINGASFAILURE``
 	 *Optional*
 
 	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
@@ -782,7 +782,7 @@ Options
 
 	 If True, the %%%NAMESPACE%%% token will get replaced with the namespace prefix for the object and field.Defaults to False.
 
-``--poll-interval POLLINTERVAL``
+``--poll_interval POLLINTERVAL``
 	 *Optional*
 
 	 Seconds to wait before polling for batch job completion. Defaults to 10 seconds.
@@ -822,7 +822,7 @@ Options
 
 	 The command to execute
 
-``--pass-env PASSENV``
+``--pass_env PASSENV``
 	 *Required*
 
 	 If False, the current environment variables will not be passed to the child process. Defaults to True
@@ -925,7 +925,7 @@ Options
 
 	 Description of the community.
 
-``--url-path-prefix URLPATHPREFIX``
+``--url_path_prefix URLPATHPREFIX``
 	 *Optional*
 
 	 URL prefix for the community.
@@ -940,7 +940,7 @@ Options
 
 	 Time to wait, in seconds, for the community to be created
 
-``--skip-existing SKIPEXISTING``
+``--skip_existing SKIPEXISTING``
 	 *Optional*
 
 	 If True, an existing community with the same name will not raise an exception.
@@ -1003,7 +1003,7 @@ Options
 
 	 The name of the package to create.  Defaults to project__package__name
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Required*
 
 	 The api version to use when creating the package.  Defaults to project__package__api_version
@@ -1025,12 +1025,12 @@ Options
 ------------------------------------------
 
 
-``--package-type PACKAGETYPE``
+``--package_type PACKAGETYPE``
 	 *Required*
 
 	 Package type (Unlocked or Managed)
 
-``--package-name PACKAGENAME``
+``--package_name PACKAGENAME``
 	 *Optional*
 
 	 Name of package
@@ -1040,32 +1040,32 @@ Options
 
 	 Package namespace
 
-``--version-name VERSIONNAME``
+``--version_name VERSIONNAME``
 	 *Optional*
 
 	 Version name
 
-``--version-type VERSIONTYPE``
+``--version_type VERSIONTYPE``
 	 *Optional*
 
 	 The part of the version number to increment. Options are major, minor, patch.  Defaults to minor
 
-``--skip-validation SKIPVALIDATION``
+``--skip_validation SKIPVALIDATION``
 	 *Optional*
 
 	 If true, skip validation of the package version. Default: false. Skipping validation creates packages more quickly, but they cannot be promoted for release.
 
-``--org-dependent ORGDEPENDENT``
+``--org_dependent ORGDEPENDENT``
 	 *Optional*
 
 	 If true, create an org-dependent unlocked package. Default: false.
 
-``--force-upload FORCEUPLOAD``
+``--force_upload FORCEUPLOAD``
 	 *Optional*
 
 	 If true, force creating a new package version even if one with the same contents already exists
 
-``--static-resource-path STATICRESOURCEPATH``
+``--static_resource_path STATICRESOURCEPATH``
 	 *Optional*
 
 	 The path where decompressed static resources are stored. Any subdirectories found will be zipped and added to the staticresources directory of the build.
@@ -1094,7 +1094,7 @@ Options
 
 	 Default: src
 
-``--revert-path REVERTPATH``
+``--revert_path REVERTPATH``
 	 *Required*
 
 	 The path to copy the original metadata to for the revert call
@@ -1118,12 +1118,12 @@ Options
 ------------------------------------------
 
 
-``--api-name APINAME``
+``--api_name APINAME``
 	 *Required*
 
 	 API name of generated Permission Set
 
-``--user-permissions USERPERMISSIONS``
+``--user_permissions USERPERMISSIONS``
 	 *Required*
 
 	 List of User Permissions to include in the Permission Set.
@@ -1150,14 +1150,14 @@ Options
 ------------------------------------------
 
 
-``--api-name APINAME``
+``--api_name APINAME``
 	 *Required*
 
 	 API name of generated Permission Set
 
 	 Default: CumulusCI_Bulk_Data
 
-``--user-permissions USERPERMISSIONS``
+``--user_permissions USERPERMISSIONS``
 	 *Required*
 
 	 List of User Permissions to include in the Permission Set.
@@ -1195,7 +1195,7 @@ Options
 
 	 Default: src
 
-``--revert-path REVERTPATH``
+``--revert_path REVERTPATH``
 	 *Required*
 
 	 The path to copy the original metadata to for the revert call
@@ -1234,12 +1234,12 @@ Options
 
 	 If True, perform a hard delete, bypassing the Recycle Bin. Note that this requires the Bulk API Hard Delete permission. Default: False
 
-``--ignore-row-errors IGNOREROWERRORS``
+``--ignore_row_errors IGNOREROWERRORS``
 	 *Optional*
 
 	 If True, allow the operation to continue even if individual rows fail to delete.
 
-``--inject-namespaces INJECTNAMESPACES``
+``--inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
 	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
@@ -1278,42 +1278,42 @@ Options
 
 	 If True, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
-``--namespace-strip NAMESPACESTRIP``
+``--namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``--check-only CHECKONLY``
+``--check_only CHECKONLY``
 	 *Optional*
 
 	 If True, performs a test deployment (validation) of components without saving the components in the target org
 
-``--test-level TESTLEVEL``
+``--test_level TESTLEVEL``
 	 *Optional*
 
 	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
 
-``--specified-tests SPECIFIEDTESTS``
+``--specified_tests SPECIFIEDTESTS``
 	 *Optional*
 
 	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 
-``--static-resource-path STATICRESOURCEPATH``
+``--static_resource_path STATICRESOURCEPATH``
 	 *Optional*
 
 	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 
-``--namespaced-org NAMESPACEDORG``
+``--namespaced_org NAMESPACEDORG``
 	 *Optional*
 
 	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 
-``--clean-meta-xml CLEANMETAXML``
+``--clean_meta_xml CLEANMETAXML``
 	 *Optional*
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -1347,42 +1347,42 @@ Options
 
 	 If True, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
-``--namespace-strip NAMESPACESTRIP``
+``--namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``--check-only CHECKONLY``
+``--check_only CHECKONLY``
 	 *Optional*
 
 	 If True, performs a test deployment (validation) of components without saving the components in the target org
 
-``--test-level TESTLEVEL``
+``--test_level TESTLEVEL``
 	 *Optional*
 
 	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
 
-``--specified-tests SPECIFIEDTESTS``
+``--specified_tests SPECIFIEDTESTS``
 	 *Optional*
 
 	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 
-``--static-resource-path STATICRESOURCEPATH``
+``--static_resource_path STATICRESOURCEPATH``
 	 *Optional*
 
 	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 
-``--namespaced-org NAMESPACEDORG``
+``--namespaced_org NAMESPACEDORG``
 	 *Optional*
 
 	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 
-``--clean-meta-xml CLEANMETAXML``
+``--clean_meta_xml CLEANMETAXML``
 	 *Optional*
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -1416,42 +1416,42 @@ Options
 
 	 If True, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
-``--namespace-strip NAMESPACESTRIP``
+``--namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``--check-only CHECKONLY``
+``--check_only CHECKONLY``
 	 *Optional*
 
 	 If True, performs a test deployment (validation) of components without saving the components in the target org
 
-``--test-level TESTLEVEL``
+``--test_level TESTLEVEL``
 	 *Optional*
 
 	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
 
-``--specified-tests SPECIFIEDTESTS``
+``--specified_tests SPECIFIEDTESTS``
 	 *Optional*
 
 	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 
-``--static-resource-path STATICRESOURCEPATH``
+``--static_resource_path STATICRESOURCEPATH``
 	 *Optional*
 
 	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 
-``--namespaced-org NAMESPACEDORG``
+``--namespaced_org NAMESPACEDORG``
 	 *Optional*
 
 	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 
-``--clean-meta-xml CLEANMETAXML``
+``--clean_meta_xml CLEANMETAXML``
 	 *Optional*
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -1485,42 +1485,42 @@ Options
 
 	 If True, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
-``--namespace-strip NAMESPACESTRIP``
+``--namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``--check-only CHECKONLY``
+``--check_only CHECKONLY``
 	 *Optional*
 
 	 If True, performs a test deployment (validation) of components without saving the components in the target org
 
-``--test-level TESTLEVEL``
+``--test_level TESTLEVEL``
 	 *Optional*
 
 	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
 
-``--specified-tests SPECIFIEDTESTS``
+``--specified_tests SPECIFIEDTESTS``
 	 *Optional*
 
 	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 
-``--static-resource-path STATICRESOURCEPATH``
+``--static_resource_path STATICRESOURCEPATH``
 	 *Optional*
 
 	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 
-``--namespaced-org NAMESPACEDORG``
+``--namespaced_org NAMESPACEDORG``
 	 *Optional*
 
 	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 
-``--clean-meta-xml CLEANMETAXML``
+``--clean_meta_xml CLEANMETAXML``
 	 *Optional*
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
@@ -1685,14 +1685,14 @@ Options
 ------------------------------------------
 
 
-``--record-type-developer-name RECORDTYPEDEVELOPERNAME``
+``--record_type_developer_name RECORDTYPEDEVELOPERNAME``
 	 *Required*
 
 	 The Developer Name of the Record Type (unique).  Must contain only alphanumeric characters and underscores.
 
 	 Default: Default
 
-``--record-type-label RECORDTYPELABEL``
+``--record_type_label RECORDTYPELABEL``
 	 *Required*
 
 	 The Label of the Record Type.
@@ -1703,6 +1703,11 @@ Options
 	 *Required*
 
 	 The sObject on which to deploy the Record Type and optional Business Process.
+
+``--record_type_description RECORDTYPEDESCRIPTION``
+	 *Optional*
+
+	 The Description of the Record Type.  Only uses the first 255 characters.
 
 **execute_anon**
 ==========================================
@@ -1755,6 +1760,11 @@ Options
 
 	 Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code.Defaults to an empty value.
 
+``--minimize_apex MINIMIZEAPEX``
+	 *Optional*
+
+	 Removes block comments, inline comments, and whitespace at the start of lines.  Default: False
+
 **generate_data_dictionary**
 ==========================================
 
@@ -1800,22 +1810,22 @@ Options
 ------------------------------------------
 
 
-``--object-path OBJECTPATH``
+``--object_path OBJECTPATH``
 	 *Optional*
 
 	 Path to a CSV file to contain an sObject-level data dictionary.
 
-``--field-path FIELDPATH``
+``--field_path FIELDPATH``
 	 *Optional*
 
 	 Path to a CSV file to contain an field-level data dictionary.
 
-``--include-dependencies INCLUDEDEPENDENCIES``
+``--include_dependencies INCLUDEDEPENDENCIES``
 	 *Optional*
 
 	 Process all of the GitHub dependencies of this project and include their schema in the data dictionary.
 
-``--additional-dependencies ADDITIONALDEPENDENCIES``
+``--additional_dependencies ADDITIONALDEPENDENCIES``
 	 *Optional*
 
 	 Include schema from additional GitHub repositories that are not explicit dependencies of this project to build a unified data dictionary. Specify as a list of dicts as in project__dependencies in cumulusci.yml. Note: only repository dependencies are supported.
@@ -1837,32 +1847,32 @@ Options
 ------------------------------------------
 
 
-``--data-generation-task DATAGENERATIONTASK``
+``--data_generation_task DATAGENERATIONTASK``
 	 *Required*
 
 	 Fully qualified class path of a task to generate the data. Look at cumulusci.tasks.bulkdata.tests.dummy_data_factory to learn how to write them.
 
-``--generator-yaml GENERATORYAML``
+``--generator_yaml GENERATORYAML``
 	 *Required*
 
 	 A generator YAML file to use
 
-``--num-records NUMRECORDS``
+``--num_records NUMRECORDS``
 	 *Optional*
 
 	 How many records to generate: total number of opportunities.
 
-``--num-records-tablename NUMRECORDSTABLENAME``
+``--num_records_tablename NUMRECORDSTABLENAME``
 	 *Optional*
 
 	 A string representing which table to count records in.
 
-``--batch-size BATCHSIZE``
+``--batch_size BATCHSIZE``
 	 *Optional*
 
 	 How many records to create and load at a time.
 
-``--data-generation-options DATAGENERATIONOPTIONS``
+``--data_generation_options DATAGENERATIONOPTIONS``
 	 *Optional*
 
 	 Options to pass to the data generator.
@@ -1872,17 +1882,17 @@ Options
 
 	 Pass values to override options in the format VAR1:foo,VAR2:bar
 
-``--replace-database REPLACEDATABASE``
+``--replace_database REPLACEDATABASE``
 	 *Optional*
 
 	 Confirmation that it is okay to delete the data in database_url
 
-``--working-directory WORKINGDIRECTORY``
+``--working_directory WORKINGDIRECTORY``
 	 *Optional*
 
 	 Default path for temporary / working files
 
-``--database-url DATABASEURL``
+``--database_url DATABASEURL``
 	 *Optional*
 
 	 A path to put a copy of the sqlite database (for debugging)
@@ -1892,52 +1902,52 @@ Options
 
 	 A mapping YAML file to use
 
-``--start-step STARTSTEP``
+``--start_step STARTSTEP``
 	 *Optional*
 
 	 If specified, skip steps before this one in the mapping
 
-``--sql-path SQLPATH``
+``--sql_path SQLPATH``
 	 *Optional*
 
 	 If specified, a database will be created from an SQL script at the provided path
 
-``--ignore-row-errors IGNOREROWERRORS``
+``--ignore_row_errors IGNOREROWERRORS``
 	 *Optional*
 
 	 If True, allow the load to continue even if individual rows fail to load.
 
-``--reset-oids RESETOIDS``
+``--reset_oids RESETOIDS``
 	 *Optional*
 
 	 If True (the default), and the _sf_ids tables exist, reset them before continuing.
 
-``--bulk-mode BULKMODE``
+``--bulk_mode BULKMODE``
 	 *Optional*
 
 	 Set to Serial to force serial mode on all jobs. Parallel is the default.
 
-``--inject-namespaces INJECTNAMESPACES``
+``--inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
 	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
-``--drop-missing-schema DROPMISSINGSCHEMA``
+``--drop_missing_schema DROPMISSINGSCHEMA``
 	 *Optional*
 
 	 Set to True to skip any missing objects or fields instead of stopping with an error.
 
-``--generate-mapping-file GENERATEMAPPINGFILE``
+``--generate_mapping_file GENERATEMAPPINGFILE``
 	 *Optional*
 
 	 A path to put a mapping file inferred from the generator_yaml
 
-``--continuation-file CONTINUATIONFILE``
+``--continuation_file CONTINUATIONFILE``
 	 *Optional*
 
 	 YAML file generated by Snowfakery representing next steps for data generation
 
-``--generate-continuation-file GENERATECONTINUATIONFILE``
+``--generate_continuation_file GENERATECONTINUATIONFILE``
 	 *Optional*
 
 	 Path for Snowfakery to put its next continuation file
@@ -2018,12 +2028,12 @@ Options
 ------------------------------------------
 
 
-``--branch-name BRANCHNAME``
+``--branch_name BRANCHNAME``
 	 *Required*
 
 	 Name of branch to check for parent status, and if so, reaggregate change notes from child branches.
 
-``--build-notes-label BUILDNOTESLABEL``
+``--build_notes_label BUILDNOTESLABEL``
 	 *Required*
 
 	 Name of the label that indicates that change notes on parent pull requests should be reaggregated when a child branch pull request is created.
@@ -2050,7 +2060,7 @@ Options
 ------------------------------------------
 
 
-``--src-tag SRCTAG``
+``--src_tag SRCTAG``
 	 *Required*
 
 	 The source tag to clone.  Ex: beta/1.0-Beta_2
@@ -2089,17 +2099,17 @@ Options
 
 	 The commit to merge into feature branches.  Defaults to the current head commit.
 
-``--source-branch SOURCEBRANCH``
+``--source_branch SOURCEBRANCH``
 	 *Optional*
 
 	 The source branch to merge from.  Defaults to project__git__default_branch.
 
-``--branch-prefix BRANCHPREFIX``
+``--branch_prefix BRANCHPREFIX``
 	 *Optional*
 
 	 A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature
 
-``--update-future-releases UPDATEFUTURERELEASES``
+``--update_future_releases UPDATEFUTURERELEASES``
 	 *Optional*
 
 	 If source_branch is a release branch, then merge all future release branches that exist. Defaults to False.
@@ -2133,19 +2143,19 @@ Options
 
 	 The commit to merge into feature branches.  Defaults to the current head commit.
 
-``--source-branch SOURCEBRANCH``
+``--source_branch SOURCEBRANCH``
 	 *Optional*
 
 	 The source branch to merge from.  Defaults to project__git__default_branch.
 
 	 Default: $project_config.repo_branch
 
-``--branch-prefix BRANCHPREFIX``
+``--branch_prefix BRANCHPREFIX``
 	 *Optional*
 
 	 A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature
 
-``--update-future-releases UPDATEFUTURERELEASES``
+``--update_future_releases UPDATEFUTURERELEASES``
 	 *Optional*
 
 	 If source_branch is a release branch, then merge all future release branches that exist. Defaults to False.
@@ -2167,7 +2177,7 @@ Options
 ------------------------------------------
 
 
-``--repo-url REPOURL``
+``--repo_url REPOURL``
 	 *Required*
 
 	 The url to the public repo
@@ -2197,17 +2207,17 @@ Options
 
 	 A list of paths to rename in the target repo, given as `local:` `target:` pairs.
 
-``--create-release CREATERELEASE``
+``--create_release CREATERELEASE``
 	 *Optional*
 
 	 If True, create a release in the public repo.  Defaults to False
 
-``--release-body RELEASEBODY``
+``--release_body RELEASEBODY``
 	 *Optional*
 
 	 If True, the entire release body will be published to the public repo.  Defaults to False
 
-``--dry-run DRYRUN``
+``--dry_run DRYRUN``
 	 *Optional*
 
 	 If True, skip creating Github data.  Defaults to False
@@ -2234,7 +2244,7 @@ Options
 
 	 Name of the commit status context
 
-``--version-id VERSIONID``
+``--version_id VERSIONID``
 	 *Optional*
 
 	 Package version id
@@ -2312,12 +2322,12 @@ Options
 
 	 The tag to generate release notes for. Ex: release/1.2
 
-``--last-tag LASTTAG``
+``--last_tag LASTTAG``
 	 *Optional*
 
 	 Override the last release tag. This is useful to generate release notes if you skipped one or more releases.
 
-``--link-pr LINKPR``
+``--link_pr LINKPR``
 	 *Optional*
 
 	 If True, insert link to source pull request at end of each line.
@@ -2327,27 +2337,27 @@ Options
 
 	 Publish to GitHub release if True (default=False)
 
-``--include-empty INCLUDEEMPTY``
+``--include_empty INCLUDEEMPTY``
 	 *Optional*
 
 	 If True, include links to PRs that have no release notes (default=False)
 
-``--version-id VERSIONID``
+``--version_id VERSIONID``
 	 *Optional*
 
 	 The package version id used by the InstallLinksParser to add install urls
 
-``--trial-info TRIALINFO``
+``--trial_info TRIALINFO``
 	 *Optional*
 
 	 If True, Includes trialforce template text for this product.
 
-``--sandbox-date SANDBOXDATE``
+``--sandbox_date SANDBOXDATE``
 	 *Optional*
 
 	 The date of the sandbox release in ISO format (Will default to None)
 
-``--production-date PRODUCTIONDATE``
+``--production_date PRODUCTIONDATE``
 	 *Optional*
 
 	 The date of the production release in ISO format (Will default to None)
@@ -2369,17 +2379,17 @@ Options
 ------------------------------------------
 
 
-``--date-start DATESTART``
+``--date_start DATESTART``
 	 *Optional*
 
 	 Filter out releases created before this date (YYYY-MM-DD)
 
-``--date-end DATEEND``
+``--date_end DATEEND``
 	 *Optional*
 
 	 Filter out releases created after this date (YYYY-MM-DD)
 
-``--include-beta INCLUDEBETA``
+``--include_beta INCLUDEBETA``
 	 *Optional*
 
 	 Include beta releases in report [default=False]
@@ -2440,17 +2450,17 @@ Options
 
 	 Number of retries (default=5)
 
-``--retry-interval RETRYINTERVAL``
+``--retry_interval RETRYINTERVAL``
 	 *Optional*
 
 	 Number of seconds to wait before the next retry (default=5),
 
-``--retry-interval-add RETRYINTERVALADD``
+``--retry_interval_add RETRYINTERVALADD``
 	 *Optional*
 
 	 Number of seconds to add before each retry (default=30),
 
-``--security-type SECURITYTYPE``
+``--security_type SECURITYTYPE``
 	 *Optional*
 
 	 Which users to install package for (FULL = all users, NONE = admins only)
@@ -2506,17 +2516,17 @@ Options
 
 	 Number of retries (default=5)
 
-``--retry-interval RETRYINTERVAL``
+``--retry_interval RETRYINTERVAL``
 	 *Optional*
 
 	 Number of seconds to wait before the next retry (default=5),
 
-``--retry-interval-add RETRYINTERVALADD``
+``--retry_interval_add RETRYINTERVALADD``
 	 *Optional*
 
 	 Number of seconds to add before each retry (default=30),
 
-``--security-type SECURITYTYPE``
+``--security_type SECURITYTYPE``
 	 *Optional*
 
 	 Which users to install package for (FULL = all users, NONE = admins only)
@@ -2570,7 +2580,7 @@ Options
 ------------------------------------------
 
 
-``--package-xml PACKAGEXML``
+``--package_xml PACKAGEXML``
 	 *Optional*
 
 	 The project package.xml file. Defaults to <project_root>/src/package.xml
@@ -2656,7 +2666,7 @@ Options
 
 	 Name of the plan(s) to publish. This refers to the `plans` section of cumulusci.yml. By default, all plans will be published.
 
-``--dry-run DRYRUN``
+``--dry_run DRYRUN``
 	 *Optional*
 
 	 If True, print steps without publishing.
@@ -2666,7 +2676,7 @@ Options
 
 	 If True, set is_listed to True on the version. Default: False
 
-``--labels-path LABELSPATH``
+``--labels_path LABELSPATH``
 	 *Optional*
 
 	 Path to a folder containing translations.
@@ -2688,12 +2698,12 @@ Options
 ------------------------------------------
 
 
-``--definition-file DEFINITIONFILE``
+``--definition_file DEFINITIONFILE``
 	 *Optional*
 
 	 sfdx scratch org definition file
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 API version used to deploy the settings
@@ -2722,7 +2732,7 @@ Options
 
 	 The name of the Community to publish.
 
-``--community-id COMMUNITYID``
+``--community_id COMMUNITYID``
 	 *Optional*
 
 	 The id of the Community to publish.
@@ -2749,12 +2759,12 @@ Options
 
 	 The managed package version to push
 
-``--subscriber-where SUBSCRIBERWHERE``
+``--subscriber_where SUBSCRIBERWHERE``
 	 *Optional*
 
 	 A SOQL style WHERE clause for filtering PackageSubscriber objects. Ex: OrgType = 'Sandbox'
 
-``--min-version MINVERSION``
+``--min_version MINVERSION``
 	 *Optional*
 
 	 If set, no subscriber with a version lower than min_version will be selected for push
@@ -2764,7 +2774,7 @@ Options
 
 	 The managed package namespace to push. Defaults to project__package__namespace.
 
-``--start-time STARTTIME``
+``--start_time STARTTIME``
 	 *Optional*
 
 	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
@@ -2796,7 +2806,7 @@ Options
 
 	 The path to a CSV file to read.
 
-``--csv-field-name CSVFIELDNAME``
+``--csv_field_name CSVFIELDNAME``
 	 *Optional*
 
 	 The CSV field name that contains organization IDs. Defaults to 'OrganizationID'
@@ -2811,12 +2821,12 @@ Options
 
 	 The managed package namespace to push. Defaults to project__package__namespace.
 
-``--start-time STARTTIME``
+``--start_time STARTTIME``
 	 *Optional*
 
 	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
 
-``--batch-size BATCHSIZE``
+``--batch_size BATCHSIZE``
 	 *Optional*
 
 	 Break pull requests into batches of this many orgs. Defaults to 200.
@@ -2848,7 +2858,7 @@ Options
 
 	 The path to a CSV file to read.
 
-``--csv-field-name CSVFIELDNAME``
+``--csv_field_name CSVFIELDNAME``
 	 *Optional*
 
 	 The CSV field name that contains organization IDs. Defaults to 'OrganizationID'
@@ -2865,12 +2875,12 @@ Options
 
 	 The managed package namespace to push. Defaults to project__package__namespace.
 
-``--start-time STARTTIME``
+``--start_time STARTTIME``
 	 *Optional*
 
 	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
 
-``--batch-size BATCHSIZE``
+``--batch_size BATCHSIZE``
 	 *Optional*
 
 	 Break pull requests into batches of this many orgs. Defaults to 200.
@@ -2897,14 +2907,14 @@ Options
 
 	 The managed package version to push
 
-``--subscriber-where SUBSCRIBERWHERE``
+``--subscriber_where SUBSCRIBERWHERE``
 	 *Optional*
 
 	 A SOQL style WHERE clause for filtering PackageSubscriber objects. Ex: OrgType = 'Sandbox'
 
 	 Default: OrgType = 'Sandbox'
 
-``--min-version MINVERSION``
+``--min_version MINVERSION``
 	 *Optional*
 
 	 If set, no subscriber with a version lower than min_version will be selected for push
@@ -2914,7 +2924,7 @@ Options
 
 	 The managed package namespace to push. Defaults to project__package__namespace.
 
-``--start-time STARTTIME``
+``--start_time STARTTIME``
 	 *Optional*
 
 	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
@@ -2946,7 +2956,7 @@ Options
 
 	 The path to a CSV file to read.
 
-``--csv-field-name CSVFIELDNAME``
+``--csv_field_name CSVFIELDNAME``
 	 *Optional*
 
 	 The CSV field name that contains organization IDs. Defaults to 'OrganizationID'
@@ -2963,12 +2973,12 @@ Options
 
 	 The managed package namespace to push. Defaults to project__package__namespace.
 
-``--start-time STARTTIME``
+``--start_time STARTTIME``
 	 *Optional*
 
 	 Set the start time (UTC) to queue a future push. Ex: 2016-10-19T10:00
 
-``--batch-size BATCHSIZE``
+``--batch_size BATCHSIZE``
 	 *Optional*
 
 	 Break pull requests into batches of this many orgs. Defaults to 200.
@@ -2990,17 +3000,17 @@ Options
 ------------------------------------------
 
 
-``--request-id REQUESTID``
+``--request_id REQUESTID``
 	 *Required*
 
 	 PackagePushRequest ID for the request you need to report on.
 
-``--result-file RESULTFILE``
+``--result_file RESULTFILE``
 	 *Optional*
 
 	 Path to write a CSV file with the results. Defaults to 'push_fails.csv'.
 
-``--ignore-errors IGNOREERRORS``
+``--ignore_errors IGNOREERRORS``
 	 *Optional*
 
 	 List of ErrorTitle and ErrorType values to omit from the report
@@ -3034,7 +3044,7 @@ Options
 
 	 A valid bulk SOQL query for the object
 
-``--result-file RESULTFILE``
+``--result_file RESULTFILE``
 	 *Required*
 
 	 The name of the csv file to write the results to
@@ -3068,22 +3078,22 @@ Options
 
 	 The package name to retrieve.  Defaults to project__package__name
 
-``--namespace-strip NAMESPACESTRIP``
+``--namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``--namespace-tokenize NAMESPACETOKENIZE``
+``--namespace_tokenize NAMESPACETOKENIZE``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
-``--namespaced-org NAMESPACEDORG``
+``--namespaced_org NAMESPACEDORG``
 	 *Optional*
 
 	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
@@ -3117,22 +3127,22 @@ Options
 
 	 The package name to retrieve.  Defaults to project__package__name
 
-``--namespace-strip NAMESPACESTRIP``
+``--namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``--namespace-tokenize NAMESPACETOKENIZE``
+``--namespace_tokenize NAMESPACETOKENIZE``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
-``--namespaced-org NAMESPACEDORG``
+``--namespaced_org NAMESPACEDORG``
 	 *Optional*
 
 	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
@@ -3159,27 +3169,27 @@ Options
 
 	 The path to write the retrieved metadata
 
-``--package-xml PACKAGEXML``
+``--package_xml PACKAGEXML``
 	 *Required*
 
 	 The path to a package.xml manifest to use for the retrieve.
 
-``--namespace-strip NAMESPACESTRIP``
+``--namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``--namespace-tokenize NAMESPACETOKENIZE``
+``--namespace_tokenize NAMESPACETOKENIZE``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
 
-``--namespaced-org NAMESPACEDORG``
+``--namespaced_org NAMESPACEDORG``
 	 *Optional*
 
 	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
@@ -3263,12 +3273,12 @@ Options
 
 	 The path to write the retrieved metadata
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
 
-``--namespace-tokenize NAMESPACETOKENIZE``
+``--namespace_tokenize NAMESPACETOKENIZE``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
@@ -3317,12 +3327,12 @@ Options
 
 	 Default: unpackaged/config/qa
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Override the default api version for the retrieve. Defaults to project__package__api_version
 
-``--namespace-tokenize NAMESPACETOKENIZE``
+``--namespace_tokenize NAMESPACETOKENIZE``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are replaced with tokens for use with namespace_inject
@@ -3356,7 +3366,7 @@ Options
 
 	 If set to True, overwrite any differing Help Text found on the field. By default, Help Text is set only if it is blank.
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Optional*
 
 	 List of API names of entities to affect
@@ -3366,14 +3376,14 @@ Options
 
 	 If False, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
 	 Default: $project_config.project__package__namespace
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
@@ -3416,7 +3426,7 @@ Options
 
 	 Default: src
 
-``--revert-path REVERTPATH``
+``--revert_path REVERTPATH``
 	 *Required*
 
 	 The path to copy the original metadata to for the revert call
@@ -3447,7 +3457,7 @@ Options
 
 	 Default: src
 
-``--revert-path REVERTPATH``
+``--revert_path REVERTPATH``
 	 *Required*
 
 	 The path to copy the original metadata to for the revert call
@@ -3711,12 +3721,12 @@ Options
 ------------------------------------------
 
 
-``--test-name-match TESTNAMEMATCH``
+``--test_name_match TESTNAMEMATCH``
 	 *Required*
 
 	 Pattern to find Apex test classes to run ("%" is wildcard).  Defaults to project__test__name_match from project config. Comma-separated list for multiple patterns.
 
-``--test-name-exclude TESTNAMEEXCLUDE``
+``--test_name_exclude TESTNAMEEXCLUDE``
 	 *Optional*
 
 	 Query to find Apex test classes to exclude ("%" is wildcard).  Defaults to project__test__name_exclude from project config. Comma-separated list for multiple patterns.
@@ -3731,27 +3741,27 @@ Options
 
 	 If True, search for tests in the namespace only.  Defaults to False
 
-``--poll-interval POLLINTERVAL``
+``--poll_interval POLLINTERVAL``
 	 *Optional*
 
 	 Seconds to wait between polling for Apex test results.
 
-``--junit-output JUNITOUTPUT``
+``--junit_output JUNITOUTPUT``
 	 *Optional*
 
 	 File name for JUnit output.  Defaults to test_results.xml
 
-``--json-output JSONOUTPUT``
+``--json_output JSONOUTPUT``
 	 *Optional*
 
 	 File name for json output.  Defaults to test_results.json
 
-``--retry-failures RETRYFAILURES``
+``--retry_failures RETRYFAILURES``
 	 *Optional*
 
 	 A list of regular expression patterns to match against test failures. If failures match, the failing tests are retried in serial mode.
 
-``--retry-always RETRYALWAYS``
+``--retry_always RETRYALWAYS``
 	 *Optional*
 
 	 By default, all failures must match retry_failures to perform a retry. Set retry_always to True to retry all failed tests if any failure matches.
@@ -3788,7 +3798,7 @@ Options
 
 	 Boolean value, set the Duplicate Rule to either active or inactive
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Optional*
 
 	 List of API names of entities to affect
@@ -3798,14 +3808,14 @@ Options
 
 	 If False, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
 	 Default: $project_config.project__package__namespace
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
@@ -3827,7 +3837,7 @@ Options
 ------------------------------------------
 
 
-``--org-wide-defaults ORGWIDEDEFAULTS``
+``--org_wide_defaults ORGWIDEDEFAULTS``
 	 *Required*
 
 	 The target Organization-Wide Defaults, organized as a list with each element containing the keys api_name, internal_sharing_model, and external_sharing_model. NOTE: you must have External Sharing Model turned on in Sharing Settings to use the latter feature.
@@ -3837,7 +3847,7 @@ Options
 
 	 The max amount of time to wait in seconds
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Optional*
 
 	 List of API names of entities to affect
@@ -3847,14 +3857,14 @@ Options
 
 	 If False, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
 	 Default: $project_config.project__package__namespace
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
@@ -3881,7 +3891,7 @@ Options
 
 	 The namespace of the package to uninstall.  Defaults to project__package__namespace
 
-``--purge-on-delete PURGEONDELETE``
+``--purge_on_delete PURGEONDELETE``
 	 *Required*
 
 	 Sets the purgeOnDelete option for the deployment.  Defaults to True
@@ -3908,7 +3918,7 @@ Options
 
 	 The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name
 
-``--purge-on-delete PURGEONDELETE``
+``--purge_on_delete PURGEONDELETE``
 	 *Required*
 
 	 Sets the purgeOnDelete option for the deployment.  Defaults to True
@@ -3940,7 +3950,7 @@ Options
 
 	 The package name to uninstall.  All metadata from the package will be retrieved and a custom destructiveChanges.xml package will be constructed and deployed to delete all deleteable metadata from the package.  Defaults to project__package__name
 
-``--purge-on-delete PURGEONDELETE``
+``--purge_on_delete PURGEONDELETE``
 	 *Required*
 
 	 Sets the purgeOnDelete option for the deployment.  Defaults to True
@@ -3950,7 +3960,7 @@ Options
 
 	 Components to ignore in the org and not try to delete. Mapping of component type to a list of member names.
 
-``--ignore-types IGNORETYPES``
+``--ignore_types IGNORETYPES``
 	 *Optional*
 
 	 List of component types to ignore in the org and not try to delete. Defaults to ['RecordType']
@@ -3984,47 +3994,47 @@ Options
 
 	 If True, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
-``--namespace-strip NAMESPACESTRIP``
+``--namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``--check-only CHECKONLY``
+``--check_only CHECKONLY``
 	 *Optional*
 
 	 If True, performs a test deployment (validation) of components without saving the components in the target org
 
-``--test-level TESTLEVEL``
+``--test_level TESTLEVEL``
 	 *Optional*
 
 	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
 
-``--specified-tests SPECIFIEDTESTS``
+``--specified_tests SPECIFIEDTESTS``
 	 *Optional*
 
 	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 
-``--static-resource-path STATICRESOURCEPATH``
+``--static_resource_path STATICRESOURCEPATH``
 	 *Optional*
 
 	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 
-``--namespaced-org NAMESPACEDORG``
+``--namespaced_org NAMESPACEDORG``
 	 *Optional*
 
 	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 
-``--clean-meta-xml CLEANMETAXML``
+``--clean_meta_xml CLEANMETAXML``
 	 *Optional*
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
-``--purge-on-delete PURGEONDELETE``
+``--purge_on_delete PURGEONDELETE``
 	 *Optional*
 
 	 Sets the purgeOnDelete option for the deployment. Defaults to True
@@ -4058,47 +4068,47 @@ Options
 
 	 If True, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
-``--namespace-strip NAMESPACESTRIP``
+``--namespace_strip NAMESPACESTRIP``
 	 *Optional*
 
 	 If set, all namespace prefixes for the namespace specified are stripped from files and filenames
 
-``--check-only CHECKONLY``
+``--check_only CHECKONLY``
 	 *Optional*
 
 	 If True, performs a test deployment (validation) of components without saving the components in the target org
 
-``--test-level TESTLEVEL``
+``--test_level TESTLEVEL``
 	 *Optional*
 
 	 Specifies which tests are run as part of a deployment. Valid values: NoTestRun, RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests.
 
-``--specified-tests SPECIFIEDTESTS``
+``--specified_tests SPECIFIEDTESTS``
 	 *Optional*
 
 	 Comma-separated list of test classes to run upon deployment. Applies only with test_level set to RunSpecifiedTests.
 
-``--static-resource-path STATICRESOURCEPATH``
+``--static_resource_path STATICRESOURCEPATH``
 	 *Optional*
 
 	 The path where decompressed static resources are stored.  Any subdirectories found will be zipped and added to the staticresources directory of the build.
 
-``--namespaced-org NAMESPACEDORG``
+``--namespaced_org NAMESPACEDORG``
 	 *Optional*
 
 	 If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.
 
-``--clean-meta-xml CLEANMETAXML``
+``--clean_meta_xml CLEANMETAXML``
 	 *Optional*
 
 	 Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False
 
-``--purge-on-delete PURGEONDELETE``
+``--purge_on_delete PURGEONDELETE``
 	 *Optional*
 
 	 Sets the purgeOnDelete option for the deployment. Defaults to True
@@ -4127,14 +4137,14 @@ Options
 
 	 Default: unpackaged/post
 
-``--filename-token FILENAMETOKEN``
+``--filename_token FILENAMETOKEN``
 	 *Required*
 
 	 The path to the parent directory containing the metadata bundles directories
 
 	 Default: ___NAMESPACE___
 
-``--purge-on-delete PURGEONDELETE``
+``--purge_on_delete PURGEONDELETE``
 	 *Required*
 
 	 Sets the purgeOnDelete option for the deployment.  Defaults to True
@@ -4202,6 +4212,11 @@ Options
 
 	 Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code.Defaults to an empty value.
 
+``--minimize_apex MINIMIZEAPEX``
+	 *Optional*
+
+	 Removes block comments, inline comments, and whitespace at the start of lines.  Default: False
+
 **update_admin_profile**
 ==========================================
 
@@ -4219,12 +4234,12 @@ Options
 ------------------------------------------
 
 
-``--package-xml PACKAGEXML``
+``--package_xml PACKAGEXML``
 	 *Optional*
 
 	 Override the default package.xml file for retrieving the Admin.profile and all objects and classes that need to be included by providing a path to your custom package.xml
 
-``--record-types RECORDTYPES``
+``--record_types RECORDTYPES``
 	 *Optional*
 
 	 A list of dictionaries containing the required key `record_type` with a value specifying the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set to visible and not default.  Use the additional keys `visible`, `default`, and `person_account_default` set to true/false to override.  NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported.
@@ -4234,27 +4249,27 @@ Options
 
 	 If True, uses the namespace prefix where appropriate.  Use if running against an org with the managed package installed.  Defaults to False
 
-``--namespaced-org NAMESPACEDORG``
+``--namespaced_org NAMESPACEDORG``
 	 *Optional*
 
 	 If True, attempts to prefix all unmanaged metadata references with the namespace prefix for deployment to the packaging org or a namespaced scratch org.  Defaults to False
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix. Defaults to project__package__namespace
 
-``--profile-name PROFILENAME``
+``--profile_name PROFILENAME``
 	 *Optional*
 
 	 Name of the Profile to target for updates (deprecated; use api_names to target multiple profiles).
 
-``--include-packaged-objects INCLUDEPACKAGEDOBJECTS``
+``--include_packaged_objects INCLUDEPACKAGEDOBJECTS``
 	 *Optional*
 
 	 Automatically include objects from all installed managed packages. Defaults to True in projects that require CumulusCI 3.9.0 and greater that don't use a custom package.xml, otherwise False.
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Optional*
 
 	 List of API names of Profiles to affect
@@ -4281,32 +4296,32 @@ Options
 
 	 List of dependencies to update. Defaults to project__dependencies. Each dependency is a dict with either 'github' set to a github repository URL or 'namespace' set to a Salesforce package namespace. Github dependencies may include 'tag' to install a particular git ref. Package dependencies may include 'version' to install a particular version.
 
-``--ignore-dependencies IGNOREDEPENDENCIES``
+``--ignore_dependencies IGNOREDEPENDENCIES``
 	 *Optional*
 
 	 List of dependencies to be ignored, including if they are present as transitive dependencies. Dependencies can be specified using the 'github' or 'namespace' keys (all other keys are not used). Note that this can cause installations to fail if required prerequisites are not available.
 
-``--purge-on-delete PURGEONDELETE``
+``--purge_on_delete PURGEONDELETE``
 	 *Optional*
 
 	 Sets the purgeOnDelete option for the deployment. Defaults to True
 
-``--include-beta INCLUDEBETA``
+``--include_beta INCLUDEBETA``
 	 *Optional*
 
 	 Install the most recent release, even if beta. Defaults to False. This option is only supported for scratch orgs, to avoid installing a package that can't be upgraded in persistent orgs.
 
-``--allow-newer ALLOWNEWER``
+``--allow_newer ALLOWNEWER``
 	 *Optional*
 
 	 If the org already has a newer release, use it. Defaults to True.
 
-``--allow-uninstalls ALLOWUNINSTALLS``
+``--allow_uninstalls ALLOWUNINSTALLS``
 	 *Optional*
 
 	 Allow uninstalling a beta release or newer final release in order to install the requested version. Defaults to False. Warning: Enabling this may destroy data.
 
-``--security-type SECURITYTYPE``
+``--security_type SECURITYTYPE``
 	 *Optional*
 
 	 Which users to install packages for (FULL = all users, NONE = admins only)
@@ -4375,7 +4390,7 @@ Options
 ------------------------------------------
 
 
-``--metadata-type METADATATYPE``
+``--metadata_type METADATATYPE``
 	 *Required*
 
 	 Metadata Type
@@ -4390,7 +4405,7 @@ Options
 
 	 Desired value to set for the targeted tag's text. This value is namespace-injected.
 
-``--api-names APINAMES``
+``--api_names APINAMES``
 	 *Optional*
 
 	 List of API names of entities to affect
@@ -4400,14 +4415,14 @@ Options
 
 	 If False, changes namespace_inject to replace tokens with a blank string
 
-``--namespace-inject NAMESPACEINJECT``
+``--namespace_inject NAMESPACEINJECT``
 	 *Optional*
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
 	 Default: $project_config.project__package__namespace
 
-``--api-version APIVERSION``
+``--api_version APIVERSION``
 	 *Optional*
 
 	 Metadata API version to use, if not project__package__api_version.
@@ -4441,7 +4456,7 @@ Options
 
 	 The output file, defaults to <path>/package.xml
 
-``--package-name PACKAGENAME``
+``--package_name PACKAGENAME``
 	 *Optional*
 
 	 If set, overrides the package name inserted into the <fullName> element
@@ -4493,12 +4508,12 @@ Options
 
 	 An optional password for sharing the package privately with anyone who has the password. Don't enter a password if you want to make the package available to anyone on AppExchange and share your package publicly.
 
-``--post-install-url POSTINSTALLURL``
+``--post_install_url POSTINSTALLURL``
 	 *Optional*
 
 	 The fully-qualified URL of the post-installation instructions. Instructions are shown as a link after installation and are available from the package detail view.
 
-``--release-notes-url RELEASENOTESURL``
+``--release_notes_url RELEASENOTESURL``
 	 *Optional*
 
 	 The fully-qualified URL of the package release notes. Release notes are shown as a link during the installation process and are available from the package detail view after installation.
@@ -4549,12 +4564,12 @@ Options
 
 	 An optional password for sharing the package privately with anyone who has the password. Don't enter a password if you want to make the package available to anyone on AppExchange and share your package publicly.
 
-``--post-install-url POSTINSTALLURL``
+``--post_install_url POSTINSTALLURL``
 	 *Optional*
 
 	 The fully-qualified URL of the post-installation instructions. Instructions are shown as a link after installation and are available from the package detail view.
 
-``--release-notes-url RELEASENOTESURL``
+``--release_notes_url RELEASENOTESURL``
 	 *Optional*
 
 	 The fully-qualified URL of the package release notes. Release notes are shown as a link during the installation process and are available from the package detail view after installation.
@@ -4682,7 +4697,7 @@ Options
 
 	 A formatstring like line to log
 
-``--format-vars FORMATVARS``
+``--format_vars FORMATVARS``
 	 *Optional*
 
 	 A Dict of format vars
@@ -4731,7 +4746,7 @@ Options
 
 	 Default: datasets/mapping.yml
 
-``--namespace-prefix NAMESPACEPREFIX``
+``--namespace_prefix NAMESPACEPREFIX``
 	 *Optional*
 
 	 The namespace prefix to use
@@ -4743,7 +4758,7 @@ Options
 
 	 Object API names, or fields in Object.Field format, to ignore
 
-``--break-cycles BREAKCYCLES``
+``--break_cycles BREAKCYCLES``
 	 *Optional*
 
 	 If the generator is unsure of the order to load, what to do? Set to `ask` (the default) to allow the user to choose or `auto` to pick randomly.
@@ -4753,7 +4768,7 @@ Options
 
 	 Object names to include even if they might not otherwise be included.
 
-``--strip-namespace STRIPNAMESPACE``
+``--strip_namespace STRIPNAMESPACE``
 	 *Optional*
 
 	 If True, CumulusCI removes the project's namespace where found in fields  and objects to support automatic namespace injection. On by default.
@@ -4782,24 +4797,24 @@ Options
 
 	 Default: datasets/mapping.yml
 
-``--database-url DATABASEURL``
+``--database_url DATABASEURL``
 	 *Optional*
 
 	 A DATABASE_URL where the query output should be written
 
-``--sql-path SQLPATH``
+``--sql_path SQLPATH``
 	 *Optional*
 
 	 If set, an SQL script will be generated at the path provided This is useful for keeping data in the repository and allowing diffs.
 
 	 Default: datasets/sample.sql
 
-``--inject-namespaces INJECTNAMESPACES``
+``--inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
 	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
-``--drop-missing-schema DROPMISSINGSCHEMA``
+``--drop_missing_schema DROPMISSINGSCHEMA``
 	 *Optional*
 
 	 Set to True to skip any missing objects or fields instead of stopping with an error.
@@ -4821,7 +4836,7 @@ Options
 ------------------------------------------
 
 
-``--database-url DATABASEURL``
+``--database_url DATABASEURL``
 	 *Optional*
 
 	 The database url to a database containing the test data to load
@@ -4833,39 +4848,39 @@ Options
 
 	 Default: datasets/mapping.yml
 
-``--start-step STARTSTEP``
+``--start_step STARTSTEP``
 	 *Optional*
 
 	 If specified, skip steps before this one in the mapping
 
-``--sql-path SQLPATH``
+``--sql_path SQLPATH``
 	 *Optional*
 
 	 If specified, a database will be created from an SQL script at the provided path
 
 	 Default: datasets/sample.sql
 
-``--ignore-row-errors IGNOREROWERRORS``
+``--ignore_row_errors IGNOREROWERRORS``
 	 *Optional*
 
 	 If True, allow the load to continue even if individual rows fail to load.
 
-``--reset-oids RESETOIDS``
+``--reset_oids RESETOIDS``
 	 *Optional*
 
 	 If True (the default), and the _sf_ids tables exist, reset them before continuing.
 
-``--bulk-mode BULKMODE``
+``--bulk_mode BULKMODE``
 	 *Optional*
 
 	 Set to Serial to force serial mode on all jobs. Parallel is the default.
 
-``--inject-namespaces INJECTNAMESPACES``
+``--inject_namespaces INJECTNAMESPACES``
 	 *Optional*
 
 	 If True, the package namespace prefix will be automatically added to (or removed from) objects and fields based on the name used in the org. Defaults to True.
 
-``--drop-missing-schema DROPMISSINGSCHEMA``
+``--drop_missing_schema DROPMISSINGSCHEMA``
 	 *Optional*
 
 	 Set to True to skip any missing objects or fields instead of stopping with an error.
@@ -4887,7 +4902,7 @@ Options
 ------------------------------------------
 
 
-``--settings-path SETTINGSPATH``
+``--settings_path SETTINGSPATH``
 	 *Required*
 
 	 The path to a YAML settings file
@@ -4961,7 +4976,7 @@ Options
 
 	 True or False to activate or deactivate trigger handlers.
 
-``--restore-file RESTOREFILE``
+``--restore_file RESTOREFILE``
 	 *Optional*
 
 	 Path to the state file to store or restore the current trigger handler state. Set to False to discard trigger state information. By default the state is cached in an org-specific directory for later restore.
@@ -5003,7 +5018,7 @@ Options
 
 	 True or False to activate or deactivate trigger handlers.
 
-``--restore-file RESTOREFILE``
+``--restore_file RESTOREFILE``
 	 *Optional*
 
 	 Path to the state file to store or restore the current trigger handler state. Set to False to discard trigger state information. By default the state is cached in an org-specific directory for later restore.

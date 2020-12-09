@@ -1,3 +1,4 @@
+import re
 from cumulusci.core.exceptions import ApexCompilationException
 from cumulusci.core.exceptions import ApexException
 from cumulusci.core.exceptions import SalesforceException
@@ -49,6 +50,10 @@ class AnonymousApexTask(BaseSalesforceApiTask):
                 "Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code."
                 "Defaults to an empty value."
             ),
+            "required": False,
+        },
+        "minimize_apex": {
+            "description": "Removes block comments, inline comments, and whitespace at the start of lines.  Default: False",
             "required": False,
         },
     }
@@ -127,6 +132,19 @@ class AnonymousApexTask(BaseSalesforceApiTask):
         apex = apex.replace("%%%PARAM_1%%%", param1)
         param2 = self.options.get("param2") or ""
         apex = apex.replace("%%%PARAM_2%%%", param2)
+
+        # Remove spaces for lines that start with one or more spaces.
+        if self.options.get("minimize_apex") is not None and process_bool_arg(
+            self.options.get("minimize_apex")
+        ):
+            # Remove block comments.
+            apex = re.sub(r"\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\/", "", apex)
+
+            # Remove inline comments.
+            apex = re.sub(r"\/\/.*$", "", apex, flags=re.MULTILINE)
+
+            # Remove whitespace at the start of lines.
+            apex = re.sub(r"^\s+", "", apex, flags=re.MULTILINE)
 
         return apex
 

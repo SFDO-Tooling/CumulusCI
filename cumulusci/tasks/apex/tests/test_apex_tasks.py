@@ -766,6 +766,52 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
     MagicMock(return_value=None),
 )
 class TestAnonymousApexTask(unittest.TestCase):
+    non_minimized_apex = """
+class Helper {
+
+    final String musician;
+
+    public Helper(String musician) {
+        this.musician = musician;
+    }
+
+    public void sing() {
+        if (this.musician == "The Beatles") {
+            System.debug('Help, I need somebody');
+        }
+        /*
+        else if (this.musician == "Papa Roach") {
+            System.debug('I think I need help');
+            System.debug('I\'m drowning in myself');
+        }
+    */
+    }
+}
+
+for (String helper : new List<String> {
+    'The Beatles'//,
+    //'Papa Roach'
+}) {
+    new Helper(musician).sing();
+}"""
+
+    minimized_apex = """class Helper {
+final String musician;
+public Helper(String musician) {
+this.musician = musician;
+}
+public void sing() {
+if (this.musician == "The Beatles") {
+System.debug('Help, I need somebody');
+}
+}
+}
+for (String helper : new List<String> {
+'The Beatles'
+}) {
+new Helper(musician).sing();
+}"""
+
     def setUp(self):
         self.api_version = 42.0
         self.universal_config = UniversalConfig(
@@ -936,6 +982,56 @@ class TestAnonymousApexTask(unittest.TestCase):
             task()
         err = str(cm.exception)
         assert "gack" in err
+
+    def test_prepare_apex__without_minimize_apex(self):
+        for minimize_apex in [None, False]:
+            with self.subTest(minimize_apex=minimize_apex):
+                task = AnonymousApexTask(
+                    self.project_config,
+                    TaskConfig(
+                        {
+                            "options": {
+                                "apex": self.non_minimized_apex,
+                                "minimize_apex": minimize_apex,
+                            }
+                        }
+                    ),
+                    self.org_config,
+                )
+
+                # Mimicing how apex is processed in _run_task.
+                apex = ""
+                apex_string = task.options.get("apex")
+                if apex_string:
+                    apex = apex + "\n" + apex_string
+
+                self.assertEquals(
+                    self.non_minimized_apex, task._prepare_apex(task.options["apex"])
+                )
+
+    def test_prepare_apex__minimize_apex(self):
+        task = AnonymousApexTask(
+            self.project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "apex": self.non_minimized_apex,
+                        "minimize_apex": True,
+                    }
+                }
+            ),
+            self.org_config,
+        )
+
+        # Mimicing how apex is processed in _run_task.
+        apex = ""
+        apex_string = task.options.get("apex")
+        if apex_string:
+            apex = apex + "\n" + apex_string
+
+        self.assertMultiLineEqual(
+            self.minimized_apex, task._prepare_apex(task.options["apex"])
+        )
 
 
 @patch(

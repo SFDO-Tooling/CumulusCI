@@ -170,6 +170,26 @@ qa_org
 	    2) task: update_admin_profile
 	4) task: snapshot_changes
 
+qa_org_2gp
+^^^^^^^^^^
+
+**Description:** Set up an org as a QA environment using a second-generation package
+
+**Flow Steps**
+
+.. code-block:: console
+
+	1) flow: install_2gp_commit
+	    1) task: github_package_data
+	    2) flow: dependencies
+	        1) task: update_dependencies
+	        2) task: deploy_pre
+	    3) task: install_managed
+	2) flow: config_qa
+	    1) task: deploy_post
+	    2) task: update_admin_profile
+	3) task: snapshot_changes
+
 regression_org
 ^^^^^^^^^^^^^^
 
@@ -306,6 +326,21 @@ unmanaged_ee
 Install / Uninstall
 -------------------
 These flows handle package installation and uninstallation in particular scenarios.
+
+install_2gp_commit
+^^^^^^^^^^^^^^^^^^
+
+**Description:** Install the 2GP package for the current commit
+
+**Flow Steps**
+
+.. code-block:: console
+
+	1) task: github_package_data
+	2) flow: dependencies
+	    1) task: update_dependencies
+	    2) task: deploy_pre
+	3) task: install_managed
 
 install_prod_no_config
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -491,15 +526,16 @@ ci_feature_2gp
 
 .. code-block:: console
 
-	1) task: github_package_data
-	2) flow: dependencies
-	    1) task: update_dependencies
-	    2) task: deploy_pre
-	3) task: install_managed
-	4) flow: config_managed
+	1) flow: install_2gp_commit
+	    1) task: github_package_data
+	    2) flow: dependencies
+	        1) task: update_dependencies
+	        2) task: deploy_pre
+	    3) task: install_managed
+	2) flow: config_apextest
 	    1) task: deploy_post
 	    2) task: update_admin_profile
-	5) task: run_tests
+	3) task: run_tests
 
 ci_feature_beta_deps
 ^^^^^^^^^^^^^^^^^^^^
