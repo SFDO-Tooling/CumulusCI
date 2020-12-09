@@ -644,7 +644,7 @@ class TestInstallLinkParser:
             version_id="04t0000asdf",
             sandbox_date=None,  # need to set explicitly due to mock, will default to None when using CLI
             production_date=None,  # need to set explicitly due to mock, will default to None when using CLI
-            trial_info=True,
+            trial_info="`TBD`",
         )
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
@@ -660,7 +660,7 @@ class TestInstallLinkParser:
             version_id="04t0000asdf",
             sandbox_date="2020-10-10",
             production_date="2020-10-11",
-            trial_info=True,
+            trial_info="`TBD`",
         )
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
@@ -676,7 +676,7 @@ class TestInstallLinkParser:
             version_id="04t0000asdf",
             sandbox_date="2020-10-10",
             production_date=None,  # need to set explicitly due to mock, will default to None when using CLI
-            trial_info=True,
+            trial_info="`TBD`",
         )
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
@@ -750,7 +750,7 @@ class TestInstallLinkParser:
             version_id="",
             sandbox_date="2020-10-10",  # need to set explicitly due to mock, will default to None when using CLI
             production_date=None,  # need to set explicitly due to mock, will default to None when using CLI
-            trial_info=True,  # need to set explicitly due to mock, will default to False when using CLI
+            trial_info="`TBD`",  # need to set explicitly due to mock, will default to False when using CLI
         )
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
@@ -765,7 +765,7 @@ class TestInstallLinkParser:
             version_id="",
             sandbox_date=None,  # need to set explicitly due to mock, will default to None when using CLI
             production_date="2020-10-10",
-            trial_info=True,  # need to set explicitly due to mock, will default to False when using CLI
+            trial_info="`TBD`",  # need to set explicitly due to mock, will default to False when using CLI
         )
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
@@ -780,7 +780,7 @@ class TestInstallLinkParser:
             version_id="",
             sandbox_date="2020-10-10",
             production_date="2020-10-11",
-            trial_info=True,
+            trial_info="`TBD`",
         )
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
@@ -795,7 +795,7 @@ class TestInstallLinkParser:
             version_id="",
             sandbox_date=None,  # need to set explicitly due to mock, will default to None when using CLI
             production_date=None,  # need to set explicitly due to mock, will default to None when using CLI
-            trial_info=True,
+            trial_info="`TBD`",
         )
         parser = InstallLinkParser(generator, "Title")
         parser.parse("abc")
