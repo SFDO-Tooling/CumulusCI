@@ -278,6 +278,14 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             )
 
         if zip_src:
+            # determine whether to inject namespace prefixes or not
+            options = dependency.copy()
+            if "unmanaged" not in options:
+                namespace = options.get("namespace_inject")
+                options["unmanaged"] = (
+                    not namespace
+                ) or namespace not in self.org_config.installed_packages
+
             package_zip = MetadataPackageZipBuilder.from_zipfile(
                 zip_src, options=dependency, logger=self.logger
             ).as_base64()
