@@ -211,3 +211,30 @@ class TestMetadataTree:
 </CustomMetadata>""".strip()
         CustomMetadata = fromstring(xml)
         assert xml.strip() == CustomMetadata.tostring().strip()
+
+    def test_namespaced_to_string(self):
+        xml = """
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <label>Account MD Isolation Rollup</label>
+    <protected>false</protected>
+    <values>
+        <field>dlrs__Active__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+</CustomMetadata>""".strip()
+
+        CustomMetadata = fromstring(xml)
+
+        xml_out = CustomMetadata.find("values").find("field").tostring()
+        assert xml_out.strip() == "<field>dlrs__Active__c</field>", xml_out.strip()
+
+        xml_out = (
+            CustomMetadata.find("values")
+            .find("field")
+            .tostring(xml_declaration=True, include_parent_namespaces=True)
+        )
+        expected_out = """<?xml version="1.0" encoding="UTF-8"?>
+             <field xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">dlrs__Active__c</field>"""
+        assert (
+            " ".join(xml_out.split()).strip() == " ".join(expected_out.split()).strip()
+        ), xml_out.strip()
