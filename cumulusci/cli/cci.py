@@ -856,7 +856,7 @@ def service_info(runtime, service_name, plain):
 
 def set_org_name(required):
     """Generate a callback for processing the `org_name` option or argument
-    
+
     `required` is a boolean for whether org_name is required
     """
     # could be generalized to work for any mutex pair (or list) but no obvious need
@@ -867,7 +867,6 @@ def set_org_name(required):
             raise click.UsageError(
                 f"Either ORGNAME or --org ORGNAME should be supplied, not both ({value}, {prev_value})"
             )
-        ctx.params.setdefault("org_name", value)
         ctx.params["org_name"] = value or prev_value
         if required and not ctx.params.get("org_name"):
             raise click.UsageError("Please specify ORGNAME or --org ORGNAME")
@@ -876,7 +875,7 @@ def set_org_name(required):
 
 
 def orgname_option_or_argument(*, required):
-    "Create decorator that allows org_name to be an option or an argument"
+    """Create decorator that allows org_name to be an option or an argument"""
 
     def decorator(func):
         if required:

@@ -318,7 +318,9 @@ class TestCCI(unittest.TestCase):
         # cci org remove should really need an attached org
         with contextlib.redirect_stderr(io.StringIO()) as stderr:
             cci.main(["cci", "org", "remove"])
-        assert "Missing argument" in stderr.getvalue(), stderr.getvalue()
+        assert (
+            "Please specify ORGNAME or --org ORGNAME" in stderr.getvalue()
+        ), stderr.getvalue()
 
     @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
