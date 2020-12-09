@@ -4,6 +4,18 @@ from cumulusci.core.utils import process_bool_arg
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 
+class CheckMyDomainActive(BaseSalesforceApiTask):
+    def _run_task(self):
+        self.return_values = (
+            ".my." in self.org_config.instance_url
+            or ".cloudforce.com" in self.org_config.instance_url
+        )
+
+        self.logger.info(
+            f"Completed My Domain preflight check with result {self.return_values}"
+        )
+
+
 class CheckSettingsValue(BaseSalesforceApiTask):
     task_options = {
         "settings_type": {
@@ -60,7 +72,5 @@ class CheckSettingsValue(BaseSalesforceApiTask):
         self.return_values = value == comparand
 
         self.logger.info(
-            "Completed Settings preflight check with result {}".format(
-                self.return_values
-            )
+            f"Completed Settings preflight check with result {self.return_values}"
         )
