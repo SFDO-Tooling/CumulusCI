@@ -1,10 +1,11 @@
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.utils import process_bool_arg
 
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 
-class CheckMyDomainActive(BaseSalesforceApiTask):
+class CheckMyDomainActive(BaseSalesforceTask):
     def _run_task(self):
         self.return_values = (
             ".my." in self.org_config.instance_url
