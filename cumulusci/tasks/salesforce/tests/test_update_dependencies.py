@@ -81,6 +81,7 @@ class TestUpdateDependencies(unittest.TestCase):
             {"allow_newer": False, "allow_uninstalls": True},
             project_config=project_config,
         )
+        task.org_config._installed_packages = {}
         ApiRetrieveInstalledPackages.return_value = INSTALLED_PACKAGES
         task.api_class = mock.Mock()
         task._download_extract_github = make_fake_zipfile
@@ -232,17 +233,17 @@ class TestUpdateDependencies(unittest.TestCase):
             },
         ]
 
-    def test_update_dependency_latest_option_err(self):
+    def test_init_options__include_beta_with_persistent_org(self):
         project_config = create_project_config()
         project_config.config["project"]["dependencies"] = [{"namespace": "foo"}]
-        task = create_task(UpdateDependencies, project_config=project_config)
-        task.options["include_beta"] = True
-        task.org_config = mock.Mock(scratch=False)
-        task.org_config.save_if_changed.return_value.__enter__ = lambda *args: ...
-        task.org_config.save_if_changed.return_value.__exit__ = lambda *args: ...
-
-        with self.assertRaises(TaskOptionsError):
-            task()
+        org_config = mock.Mock(scratch=False)
+        task = create_task(
+            UpdateDependencies,
+            {"include_beta": True},
+            project_config=project_config,
+            org_config=org_config,
+        )
+        assert not task.options["include_beta"]
 
     def test_dependency_no_package_zip(self):
         project_config = create_project_config()

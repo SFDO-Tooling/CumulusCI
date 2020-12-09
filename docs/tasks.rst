@@ -342,6 +342,8 @@ Options
 
 **Class:** cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
 
+Assigns Permission Sets whose Names are in ``api_names`` to either the default org user or the user whose Alias is ``user_alias``. This task skips assigning Permission Sets that are already assigned.
+
 Command Syntax
 ------------------------------------------
 
@@ -355,7 +357,67 @@ Options
 ``--api-names APINAMES``
 	 *Required*
 
-	 API names of desired Permission Sets, separated by commas.
+	 API Names of desired Permission Sets, separated by commas.
+
+``--user-alias USERALIAS``
+	 *Optional*
+
+	 Alias of target user (if not the current running user, the default).
+
+**assign_permission_set_groups**
+==========================================
+
+**Description:** Assigns specified Permission Set Groups to the current user, if not already assigned.
+
+**Class:** cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetGroups
+
+Assigns Permission Set Groups whose Developer Names are in ``api_names`` to either the default org user or the user whose Alias is ``user_alias``. This task skips assigning Permission Set Groups that are already assigned.
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run assign_permission_set_groups``
+
+
+Options
+------------------------------------------
+
+
+``--api-names APINAMES``
+	 *Required*
+
+	 API Developer Names of desired Permission Set Groups, separated by commas.
+
+``--user-alias USERALIAS``
+	 *Optional*
+
+	 Alias of target user (if not the current running user, the default).
+
+**assign_permission_set_licenses**
+==========================================
+
+**Description:** Assigns specified Permission Set Licenses to the current user, if not already assigned.
+
+**Class:** cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetLicenses
+
+Assigns Permission Set Licenses whose Developer Names are in ``api_names`` to either the default org user or the user whose Alias is ``user_alias``. This task skips assigning Permission Set Licenses that are already assigned.
+
+Permission Set Licenses are usually associated with a Permission Set, and assigning the Permission Set usually assigns the associated Permission Set License automatically.  However, in non-namespaced developer scratch orgs, assigning the associated Permission Set may not automatically assign the Permission Set License, and this task will ensure the Permission Set Licenses are assigned.
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run assign_permission_set_licenses``
+
+
+Options
+------------------------------------------
+
+
+``--api-names APINAMES``
+	 *Required*
+
+	 API Developer Names of desired Permission Set Licenses, separated by commas.
 
 ``--user-alias USERALIAS``
 	 *Optional*
@@ -622,6 +684,49 @@ Options
 	 The API name of the field on the Settings entity to check.
 
 	 Default: IsChatterEnabled
+
+``--value VALUE``
+	 *Required*
+
+	 The value to check for
+
+	 Default: True
+
+``--treat-missing-as-failure TREATMISSINGASFAILURE``
+	 *Optional*
+
+	 If True, treat a missing Settings entity as a preflight failure, instead of raising an exception. Defaults to False.
+
+**check_enhanced_notes_enabled**
+==========================================
+
+**Description:** Preflight check to validate that Enhanced Notes are enabled.
+
+**Class:** cumulusci.tasks.preflight.settings.CheckSettingsValue
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_enhanced_notes_enabled``
+
+
+Options
+------------------------------------------
+
+
+``--settings-type SETTINGSTYPE``
+	 *Required*
+
+	 The API name of the Settings entity to be checked, such as ChatterSettings.
+
+	 Default: EnhancedNotesSettings
+
+``--settings-field SETTINGSFIELD``
+	 *Required*
+
+	 The API name of the field on the Settings entity to check.
+
+	 Default: IsEnhancedNotesEnabled
 
 ``--value VALUE``
 	 *Required*
@@ -2087,10 +2192,15 @@ Options
 
 	 A list of paths from repo root to include. Directories must end with a trailing slash.
 
+``--renames RENAMES``
+	 *Optional*
+
+	 A list of paths to rename in the target repo, given as `local:` `target:` pairs.
+
 ``--create-release CREATERELEASE``
 	 *Optional*
 
-	 If True, create a release in the public repo.  Defaults to True
+	 If True, create a release in the public repo.  Defaults to False
 
 ``--release-body RELEASEBODY``
 	 *Optional*
@@ -4184,7 +4294,7 @@ Options
 ``--include-beta INCLUDEBETA``
 	 *Optional*
 
-	 Install the most recent release, even if beta. Defaults to False.
+	 Install the most recent release, even if beta. Defaults to False. This option is only supported for scratch orgs, to avoid installing a package that can't be upgraded in persistent orgs.
 
 ``--allow-newer ALLOWNEWER``
 	 *Optional*

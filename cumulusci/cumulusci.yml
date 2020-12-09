@@ -42,6 +42,14 @@ tasks:
         group: Salesforce Users
         description: "Assigns specified Permission Sets to the current user, if not already assigned."
         class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
+    assign_permission_set_groups:
+        group: Salesforce Users
+        description: "Assigns specified Permission Set Groups to the current user, if not already assigned."
+        class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetGroups
+    assign_permission_set_licenses:
+        group: Salesforce Users
+        description: "Assigns specified Permission Set Licenses to the current user, if not already assigned."
+        class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetLicenses
     batch_apex_wait:
         description: Waits on a batch apex or queueable apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
@@ -77,6 +85,14 @@ tasks:
         options:
             settings_type: ChatterSettings
             settings_field: IsChatterEnabled
+            value: True
+    check_enhanced_notes_enabled:
+        description: Preflight check to validate that Enhanced Notes are enabled.
+        group: Salesforce Preflight Checks
+        class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
+        options:
+            settings_type: EnhancedNotesSettings
+            settings_field: IsEnhancedNotesEnabled
             value: True
     custom_settings_value_wait:
         description: Waits for a specific field value on the specified custom settings object and field
@@ -633,21 +649,10 @@ flows:
         description: Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
         steps:
             1:
-                task: github_package_data
-                options:
-                    context: "Build Feature Test Package"
+                flow: install_2gp_commit
             2:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        dependencies: ^^github_package_data.dependencies
+                flow: config_apextest
             3:
-                task: install_managed
-                options:
-                    version: ^^github_package_data.version_id
-            4:
-                flow: config_managed
-            5:
                 task: run_tests
 
     ci_master:
@@ -875,6 +880,17 @@ flows:
             4:
                 task: snapshot_changes
 
+    qa_org_2gp:
+        group: Org Setup
+        description: Set up an org as a QA environment using a second-generation package
+        steps:
+            1:
+                flow: install_2gp_commit
+            2:
+                flow: config_qa
+            3:
+                task: snapshot_changes
+
     regression_org:
         group: Org Setup
         description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
@@ -894,6 +910,24 @@ flows:
                 task: uninstall_post
             2:
                 task: uninstall_managed
+
+    install_2gp_commit:
+        group: Install / Uninstall
+        description: Install the 2GP package for the current commit
+        steps:
+            1:
+                task: github_package_data
+                options:
+                    context: "Build Feature Test Package"
+            2:
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        dependencies: ^^github_package_data.dependencies
+            3:
+                task: install_managed
+                options:
+                    version: ^^github_package_data.version_id
 
     install_beta:
         group: Org Setup

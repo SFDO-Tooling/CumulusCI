@@ -1702,6 +1702,238 @@ class TestOrgConfig(unittest.TestCase):
             config._is_person_accounts_enabled, config.is_person_accounts_enabled
         )
 
+    @responses.activate
+    def test_is_multi_currency_enabled__not_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+        assert (
+            config._multiple_currencies_is_enabled is False
+        ), "_multiple_currencies_is_enabled should be initialized as False"
+
+        # Login call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # CurrencyType describe() call.
+        # Since Multiple Currencies is not enabled, CurrencyType Sobject is not exposed.
+        # Therefore, the describe call will result in a 404.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            status=404,
+            json={
+                "errorCode": "NOT_FOUND",
+                "message": "The requested resource does not exist",
+            },
+        )
+
+        # Add a second 404 to demonstrate we always check the describe until we detect Multiple Currencies is enabled.  From then on, we cache the fact that Multiple Currencies is enabled knowing Multiple Currencies cannot be disabled.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            status=404,
+            json={
+                "errorCode": "NOT_FOUND",
+                "message": "The requested resource does not exist",
+            },
+        )
+
+        # Check 1: is_multiple_currencies_enabled should be False since the CurrencyType describe gives a 404.
+        actual = config.is_multiple_currencies_enabled
+        assert (
+            actual is False
+        ), "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
+        assert (
+            config._multiple_currencies_is_enabled is False
+        ), "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+
+        # Check 2: We should still get the CurrencyType describe since we never cached that multiple currencies is enabled.
+        actual = config.is_multiple_currencies_enabled
+        assert (
+            actual is False
+        ), "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
+        assert (
+            config._multiple_currencies_is_enabled is False
+        ), "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+
+        # We should have made 3 calls: 1 token call + 2 describe calls
+        assert len(responses.calls) == 1 + 2
+
+    @responses.activate
+    def test_is_multi_currency_enabled__is_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+
+        assert (
+            config._multiple_currencies_is_enabled is False
+        ), "_multiple_currencies_is_enabled should be initialized as False"
+
+        # Token call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # CurrencyType describe() call.
+        # Since Multiple Currencies is enabled, so the describe call returns a 200.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            json={
+                # The actual payload doesn't matter; only matters is we get a 200.
+            },
+        )
+
+        # Check 1: is_multiple_currencies_enabled should be True since the CurrencyType describe gives a 200.
+        actual = config.is_multiple_currencies_enabled
+        assert (
+            actual is True
+        ), "config.is_multiple_currencies_enabled should be True since the CurrencyType describe returns a 200."
+        assert (
+            config._multiple_currencies_is_enabled is True
+        ), "config._multiple_currencies_is_enabled should be True since the CurrencyType describe returns a 200."
+
+        # Check 2: We should have cached that Multiple Currencies is enabled, so we should not make a 2nd descrobe call. This is ok to cache since Multiple Currencies cannot be disabled.
+        actual = config.is_multiple_currencies_enabled
+        assert (
+            actual is True
+        ), "config.is_multiple_currencies_enabled should be True since the our cached value in _multiple_currencies_is_enabled is True."
+        assert (
+            config._multiple_currencies_is_enabled is True
+        ), "config._multiple_currencies_is_enabled should still be True."
+
+        # We should have made 2 calls: 1 token call + 1 describe call
+        assert len(responses.calls) == 1 + 1
+
+    @responses.activate
+    def test_is_advanced_currency_management_enabled__multiple_currencies_not_enabled(
+        self,
+    ):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+
+        # Token call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # DatedConversionRate describe() call.
+        # Since Multiple Currencies is not enabled, DatedConversionRate Sobject is not exposed.
+        # Therefore, the describe call will result in a 404.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            status=404,
+            json={
+                "errorCode": "NOT_FOUND",
+                "message": "The requested resource does not exist",
+            },
+        )
+
+        # is_advanced_currency_management_enabled should be False since:
+        # - DatedConversionRate describe gives a 404 implying the Sobject is not exposed becuase Multiple Currencies is not enabled.
+        actual = config.is_advanced_currency_management_enabled
+        assert (
+            actual is False
+        ), "config.is_advanced_currency_management_enabled should be False since the describe gives a 404."
+
+        # We should have made 2 calls: 1 token call + 1 describe call
+        assert len(responses.calls) == 1 + 1
+
+    @responses.activate
+    def test_is_advanced_currency_management_enabled__multiple_currencies_enabled__acm_not_enabled(
+        self,
+    ):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+
+        # Token call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # DatedConversionRate describe() call.
+        # Since Multiple Currencies is enabled, so the describe call returns a 200.
+        # However, ACM is not enabled so DatedConversionRate is not createable.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            json={"createable": False},
+        )
+
+        # is_advanced_currency_management_enabled should be False:
+        # - DatedConversionRate describe gives a 200, so the Sobject is exposed (because Multiple Currencies is enabled).
+        # - But DatedConversionRate is not creatable implying ACM is not enabled.
+        actual = config.is_advanced_currency_management_enabled
+        assert (
+            actual is False
+        ), 'config.is_advanced_currency_management_enabled should be False since though the describe gives a 200, the describe is not "createable".'
+
+        # We should have made 2 calls: 1 token call + 1 describe call
+        assert len(responses.calls) == 1 + 1
+
+    @responses.activate
+    def test_is_advanced_currency_management_enabled__multiple_currencies_enabled__acm_enabled(
+        self,
+    ):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+
+        # Token call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # DatedConversionRate describe() call.
+        # Since Multiple Currencies is enabled, so the describe call returns a 200.
+        # However, ACM is not enabled so DatedConversionRate is not createable.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            json={"createable": True},
+        )
+
+        # is_advanced_currency_management_enabled should be False:
+        # - DatedConversionRate describe gives a 200, so the Sobject is exposed (because Multiple Currencies is enabled).
+        # - But DatedConversionRate is not creatable implying ACM is not enabled.
+        actual = config.is_advanced_currency_management_enabled
+        assert (
+            actual is True
+        ), 'config.is_advanced_currency_management_enabled should be False since both the describe gives a 200 and the describe is "createable".'
+
+        # We should have made 2 calls: 1 token call + 1 describe call
+        assert len(responses.calls) == 1 + 1
+
     def test_resolve_04t_dependencies(self):
         config = OrgConfig({}, "test")
         config._installed_packages = {

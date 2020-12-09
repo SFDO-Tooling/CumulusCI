@@ -22,6 +22,7 @@ OPPORTUNITY_METADATA = """<?xml version="1.0" encoding="utf-8"?>
         <active>true</active>
         <businessProcess>NPSP_Default</businessProcess>
         <label>NPSP Default</label>
+        <description></description>
     </recordTypes>
 </CustomObject>
 """
@@ -41,6 +42,7 @@ CASE_METADATA = """<?xml version="1.0" encoding="utf-8"?>
         <active>true</active>
         <businessProcess>NPSP_Default</businessProcess>
         <label>NPSP Default</label>
+        <description>The first 255 characters of record_type_descirption option-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</description>
     </recordTypes>
 </CustomObject>
 """
@@ -53,6 +55,7 @@ ACCOUNT_METADATA = """<?xml version="1.0" encoding="utf-8"?>
         <active>true</active>
         
         <label>NPSP Default</label>
+        <description>Default Account Record Type created by NPSP.</description>
     </recordTypes>
 </CustomObject>
 """  # noqa: W293
@@ -151,6 +154,7 @@ class TestEnsureRecordTypes(unittest.TestCase):
         self.assertNotIn("stage_name", task.options)
 
     def test_generates_record_type_and_business_process(self):
+        # Asserts Record Type Description is optional.
         task = create_task(
             EnsureRecordTypes,
             {
@@ -171,17 +175,20 @@ class TestEnsureRecordTypes(unittest.TestCase):
             task._build_package()
             with open(os.path.join("objects", "Opportunity.object"), "r") as f:
                 opp_contents = f.read()
+                self.assertEqual(OPPORTUNITY_METADATA, opp_contents)
                 self.assertMultiLineEqual(OPPORTUNITY_METADATA, opp_contents)
             with open(os.path.join("package.xml"), "r") as f:
                 pkg_contents = f.read()
                 self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
 
     def test_generates_record_type_and_business_process__case(self):
+        # Asserts Record Type Description is added and truncated to 255 characters.
         task = create_task(
             EnsureRecordTypes,
             {
                 "record_type_developer_name": "NPSP_Default",
                 "record_type_label": "NPSP Default",
+                "record_type_description": "The first 255 characters of record_type_descirption option-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------Everything past here is more than 255 characters",
                 "sobject": "Case",
             },
         )
@@ -201,11 +208,13 @@ class TestEnsureRecordTypes(unittest.TestCase):
                 self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
 
     def test_generates_record_type_only(self):
+        # Asserts Record Type Description is added when the Description is less than 255 characters.
         task = create_task(
             EnsureRecordTypes,
             {
                 "record_type_developer_name": "NPSP_Default",
                 "record_type_label": "NPSP Default",
+                "record_type_description": "Default Account Record Type created by NPSP.",
                 "sobject": "Account",
             },
         )
