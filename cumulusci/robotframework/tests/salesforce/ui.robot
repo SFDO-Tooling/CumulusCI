@@ -287,7 +287,7 @@ Populate Field
 
 Populate Lookup Field
     [Setup]     Run keywords
-    ...  Go to object home  Account
+    ...  Go to object home  Contact
     ...  AND  Click Object Button  New
     [Teardown]  Run keywords
     ...  Click modal button  Cancel
