@@ -855,7 +855,10 @@ def service_info(runtime, service_name, plain):
 
 
 def set_org_name(required):
-    """Generate a callback that enforces the 'required' rule as required"""
+    """Generate a callback for processing the `org_name` option or argument
+    
+    `required` is a boolean for whether org_name is required
+    """
     # could be generalized to work for any mutex pair (or list) but no obvious need
     def callback(ctx, param, value):
         """Callback which enforces mutex and 'required' behaviour (if required)."""
