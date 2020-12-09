@@ -11,6 +11,7 @@ import time
 import pytest
 import unittest
 from pathlib import Path
+import contextlib
 
 import click
 from unittest import mock
@@ -287,6 +288,58 @@ class TestCCI(unittest.TestCase):
         tee.assert_called_once()
 
         os.remove("tempfile.log")
+
+    @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("sys.exit")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_handle_org_name(
+        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+    ):
+
+        # get_tempfile_logger doesn't clean up after itself which breaks other tests
+        get_tempfile_logger.return_value = mock.Mock(), ""
+
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default", "xyzzy"])
+        assert "xyzzy is now the default org" in stdout.getvalue(), stdout.getvalue()
+
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default", "--org", "xyzzy2"])
+        assert "xyzzy2 is now the default org" in stdout.getvalue(), stdout.getvalue()
+
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            cci.main(["cci", "org", "default", "xyzzy1", "--org", "xyzzy2"])
+        assert "not both" in stderr.getvalue(), stderr.getvalue()
+
+        CliRuntime().keychain.get_default_org.return_value = ("xyzzy3", None)
+
+        # cci org remove should really need an attached org
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            cci.main(["cci", "org", "remove"])
+        assert "Missing argument" in stderr.getvalue(), stderr.getvalue()
+
+    @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("sys.exit")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_cci_org_default__no_orgname(
+        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+    ):
+        # get_tempfile_logger doesn't clean up after itself which breaks other tests
+        get_tempfile_logger.return_value = mock.Mock(), ""
+
+        CliRuntime().keychain.get_default_org.return_value = ("xyzzy4", None)
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default"])
+        assert "xyzzy4 is the default org" in stdout.getvalue(), stdout.getvalue()
+
+        CliRuntime().keychain.get_default_org.return_value = (None, None)
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default"])
+        assert "There is no default org" in stdout.getvalue(), stdout.getvalue()
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")

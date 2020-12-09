@@ -226,7 +226,7 @@ def main(args=None):
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
         try:
-            cli(standalone_mode=False)
+            cli(args[1:], standalone_mode=False)
         except click.Abort:  # Keyboard interrupt
             show_debug_info() if debug else click.echo("\nAborted!", err=True)
             sys.exit(1)
@@ -854,11 +854,58 @@ def service_info(runtime, service_name, plain):
 # Commands for group: org
 
 
+def set_org_name(required):
+    """Generate a callback that enforces the 'required' rule as required"""
+    # could be generalized to work for any mutex pair (or list) but no obvious need
+    def callback(ctx, param, value):
+        """Callback which enforces mutex and 'required' behaviour (if required)."""
+        prev_value = ctx.params.get("org_name")
+        if value and prev_value and prev_value != value:
+            raise click.UsageError(
+                f"Either ORGNAME or --org ORGNAME should be supplied, not both ({value}, {prev_value})"
+            )
+        ctx.params.setdefault("org_name", value)
+        if required and not ctx.params.get("org_name"):
+            raise click.UsageError("Missing argument 'ORGNAME'")
+
+    return callback
+
+
+def orgname_option_or_argument(*, required):
+    "Create decorator that allows org_name to be an option or an argument"
+
+    def decorator(func):
+        if required:
+            message = "One of ORGNAME (see above) or --org is required."
+        else:
+            message = "By default, runs against the current default org."
+
+        opt_version = click.option(
+            "--org",
+            callback=set_org_name(
+                False
+            ),  # never required because arg-version may be specified
+            expose_value=False,
+            help=f"Alternate way to specify the target org. {message}",
+        )
+        # "required" checking is handled in the callback because it has more context
+        # about whether its already seen it.
+        arg_version = click.argument(
+            "orgname",
+            required=False,
+            callback=set_org_name(required),
+            expose_value=False,
+        )
+        return arg_version(opt_version(func))
+
+    return decorator
+
+
 @org.command(
     name="browser",
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
 )
-@click.argument("org_name", required=False)
+@orgname_option_or_argument(required=False)
 @pass_runtime(require_project=False, require_keychain=True)
 def org_browser(runtime, org_name):
     org_name, org_config = runtime.get_org(org_name)
@@ -872,7 +919,7 @@ def org_browser(runtime, org_name):
 @org.command(
     name="connect", help="Connects a new org's credentials using OAuth Web Flow"
 )
-@click.argument("org_name")
+@orgname_option_or_argument(required=True)
 @click.option(
     "--sandbox", is_flag=True, help="If set, connects to a Salesforce sandbox org"
 )
@@ -932,7 +979,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
 
 
 @org.command(name="default", help="Sets an org as the default org for tasks and flows")
-@click.argument("org_name")
+@orgname_option_or_argument(required=False)
 @click.option(
     "--unset",
     is_flag=True,
@@ -942,15 +989,21 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
 def org_default(runtime, org_name, unset):
     if unset:
         runtime.keychain.unset_default_org()
-        click.echo(f"{org_name} is no longer the default org.  No default org set.")
-    else:
+        click.echo("Default org unset")
+    elif org_name:
         runtime.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
+    else:
+        orgname, org_config = runtime.keychain.get_default_org()
+        if orgname:
+            click.echo(f"{orgname} is the default org")
+        else:
+            click.echo("There is no default org")
 
 
 @org.command(name="import", help="Import a scratch org from Salesforce DX")
 @click.argument("username_or_alias")
-@click.argument("org_name")
+@orgname_option_or_argument(required=True)
 @pass_runtime(require_keychain=True)
 def org_import(runtime, username_or_alias, org_name):
     org_config = {"username": username_or_alias}
@@ -982,9 +1035,9 @@ def calculate_org_days(info):
 
 
 @org.command(name="info", help="Display information for a connected org")
-@click.argument("org_name", required=False)
+@orgname_option_or_argument(required=False)
 @click.option(
-    "print_json", "--json", is_flag=True, help="Print as JSON.  Includes access token"
+    "print_json", "--json", is_flag=True, help="Print as JSON.  Includes access token."
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def org_info(runtime, org_name, print_json):
@@ -1156,7 +1209,7 @@ def org_prune(runtime, include_active=False):
 
 
 @org.command(name="remove", help="Removes an org from the keychain")
-@click.argument("org_name")
+@orgname_option_or_argument(required=True)
 @click.option(
     "--global-org",
     is_flag=True,
@@ -1186,7 +1239,7 @@ def org_remove(runtime, org_name, global_org):
     name="scratch", help="Connects a Salesforce DX Scratch Org to the keychain"
 )
 @click.argument("config_name")
-@click.argument("org_name")
+@orgname_option_or_argument(required=True)
 @click.option(
     "--default",
     is_flag=True,
@@ -1233,7 +1286,7 @@ def org_scratch(runtime, config_name, org_name, default, devhub, days, no_passwo
     name="scratch_delete",
     help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration",
 )
-@click.argument("org_name")
+@orgname_option_or_argument(required=True)
 @pass_runtime(require_keychain=True)
 def org_scratch_delete(runtime, org_name):
     org_config = runtime.keychain.get_org(org_name)
@@ -1278,7 +1331,7 @@ class CCIHelp(type(help)):
     help="Drop into a Python shell with a simple_salesforce connection in `sf`, "
     "as well as the `org_config` and `project_config`.",
 )
-@click.argument("org_name", required=False)
+@orgname_option_or_argument(required=False)
 @click.option("--script", help="Path to a script to run", type=click.Path())
 @click.option("--python", help="Python code to run directly")
 @pass_runtime(require_keychain=True)
