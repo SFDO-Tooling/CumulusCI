@@ -868,6 +868,7 @@ def set_org_name(required):
                 f"Either ORGNAME or --org ORGNAME should be supplied, not both ({value}, {prev_value})"
             )
         ctx.params.setdefault("org_name", value)
+        ctx.params["org_name"] = value or prev_value
         if required and not ctx.params.get("org_name"):
             raise click.UsageError("Please specify ORGNAME or --org ORGNAME")
 
