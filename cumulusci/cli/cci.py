@@ -869,7 +869,7 @@ def set_org_name(required):
             )
         ctx.params.setdefault("org_name", value)
         if required and not ctx.params.get("org_name"):
-            raise click.UsageError("Missing argument 'ORGNAME'")
+            raise click.UsageError("Please specify ORGNAME or --org ORGNAME")
 
     return callback
 
