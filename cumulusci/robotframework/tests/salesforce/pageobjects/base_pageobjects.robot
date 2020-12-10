@@ -90,9 +90,11 @@ NewModal - click modal button
     Click modal button  Cancel
     Wait until modal is closed
 
-NewModal - Modal should contain errors
+NewModal - Modal errors
     [Documentation]
-    ...  Verify that we can use the NewModal 'modal should contain errors' keyword
+    ...  Verify that we can detect errors in the model
+    ...  with 'modal should contain errors' keyword (API < 51)
+    ...  or 'Modal should show edit error for fields' (API >= 51)
 
     [Setup]  Run keywords
     ...  Go to page  Home  Contact
@@ -101,4 +103,8 @@ NewModal - Modal should contain errors
 
     Click modal button  Save
     capture page screenshot
-    Modal should show edit error for fields  Name
+    ${api}=   Get latest API version
+    Run keyword if  int(float($api)) >= 51
+    ...  Modal should show edit error for fields   Name
+    ...  ELSE
+    ...  Modal should contain errors    These required fields must be completed: Last Name
