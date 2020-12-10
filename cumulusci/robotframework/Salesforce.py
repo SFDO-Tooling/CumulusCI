@@ -377,12 +377,32 @@ class Salesforce(object):
                 return oid_match.group(2)
         raise AssertionError("Could not parse record id from url: {}".format(url))
 
+    def field_value_should_be(self, label, expected_value):
+        """Verify that the form field for the given label is the expected value
+
+        Example:
+
+        | Field value should be    Account Name    ACME Labs
+        """
+        value = self.get_field_value(label)
+        self.builtin.should_be_equal(value, expected_value)
+
     def get_field_value(self, label):
         """Return the current value of a form field based on the field label"""
-        input_element_id = self.selenium.get_element_attribute(
-            "xpath://label[contains(., '{}')]".format(label), "for"
-        )
-        value = self.selenium.get_value(input_element_id)
+        api_version = int(float(self.get_latest_api_version()))
+
+        locator = self._get_input_field_locator(label)
+        if api_version >= 51:
+            # this works for both First Name (input) and Account Name (picklist)
+            value = self.selenium.get_value(locator)
+        else:
+            # older releases it's a bit more complex
+            element = self.selenium.get_webelement(locator)
+            if element.get_attribute("role") == "combobox":
+                value = self.selenium.get_text(f"sf:object.field_lookup_value:{label}")
+            else:
+                value = self.selenium.get_value(f"sf:object.field:{label}")
+
         return value
 
     def get_locator(self, path, *args, **kwargs):

@@ -295,9 +295,7 @@ Populate Lookup Field
 
     &{account} =           Create Account
     Populate Lookup Field  Account Name  ${account}[Name]
-    ${locator} =           Get Locator  object.field_lookup_value  Account Name
-    ${value} =             Get Text  ${locator}
-    Should Be Equal        ${value}  ${account}[Name]
+    Field value should be  Account Name  ${account}[Name]
 
 Populate Form
     [Setup]     Run keywords
@@ -311,12 +309,9 @@ Populate Form
     Populate Form
     ...  Ticker Symbol=CASH
     ...  Account Name=${account_name}
-    ${locator} =         Get Locator  object.field  Account Name
-    ${value} =           Get Value  ${locator}
-    Should Be Equal      ${value}  ${account_name}
-    ${locator}=          Get Locator  object.field  Ticker Symbol
-    ${value} =           Get Value  ${locator}
-    Should Be Equal      ${value}  CASH
+
+    Field value should be  Ticker Symbol  CASH
+    Field value should be  Account Name  ${account_name}
 
 Select Dropdown Value
     [Documentation]  Select Dropdown Value happy path tests
