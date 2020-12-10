@@ -73,7 +73,6 @@ class Salesforce(object):
         """
         try:
             version = int(float(self.get_latest_api_version()))
-            self.builtin.set_suite_metadata("Salesforce API Version", version)
         except RobotNotRunningError:
             # Likely this means we are running in the context of
             # documentation generation. Setting the version to
