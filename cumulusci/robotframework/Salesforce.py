@@ -528,6 +528,7 @@ class Salesforce(object):
         """
 
         self._jsclick("sf:app_launcher.button")
+        self.selenium.wait_until_element_is_visible("sf:app_launcher.view_all")
         self._jsclick("sf:app_launcher.view_all")
         self.wait_until_modal_is_open()
         try:
