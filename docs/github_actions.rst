@@ -237,8 +237,8 @@ app by setting the following environment variables:
 * ``CUMULUSCI_KEYCHAIN_CLASS`` - Set this equal to ``EnvironmentProjectKeychain``.
   This instructs CumulusCI to look for org configurations in environment variables instead of files.
 * ``CUMULUSCI_ORG_orgName`` - Set this equal to the following json string: ``{“username”: “USERNAME”, “instance_url”: “INSTANCE_URL”}``
-  (replacing USERNAME and INSTANCE_URL with actual values). Note that whatever name comes after
-  ``CUMULUSCI_ORG_`` is the name of the org that you will use for the ``--org`` option ``cci`` commands.
+  (replacing USERNAME and INSTANCE_URL with actual values). The instance_url should begin with the https:// schema. Note that the text which comes after
+  ``CUMULUSCI_ORG_`` is the name you will use for the ``--org`` option when executing ``cci`` commands in the workflow `yaml` file.
   In this case it would be ``--org orgName``. 
   
 .. note:: 
@@ -265,7 +265,7 @@ Below is an example of what this would look like:
 
    env:
      CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
-     CUMULUSCI_ORG_sandbox: {"username": "peter.gibbons@initech.co", "instance_url": "initech--sbxname.my.salesforce.com"}
+     CUMULUSCI_ORG_sandbox: {"username": "peter.gibbons@initech.co", "instance_url": "https://initech--sbxname.my.salesforce.com"}
      SFDX_CLIENT_ID: {{ $secrets.client_id }}
      SFDX_HUB_KEY: {{ $secrets.server_key }}
 
