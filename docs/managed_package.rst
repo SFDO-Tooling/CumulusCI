@@ -49,15 +49,15 @@ to execute when we release a new beta version of a project.
 
     $ cci flow run release_beta --org packaging
 
-The ``release_beta`` flow does the following: 
+It is typically run against the project's packaging org, and does the following: 
 
-* Upload a new beta version to the packaging org
-* Create a new GitHub release tag for the new beta version
-* `Generate Release Notes`_
-* Sync feature branches with the ``main/`` branch.
+* Uploads new beta version to the packaging org
+* Creates a new GitHub release tag for the new beta version
+* `Generates Release Notes`_
+* Syncs feature branches with the ``main/`` branch.
 
 If you just want to create a new beta version for your project,
-you can use the ``upload_beta`` task:
+without the bells and whistels, you can just use the ``upload_beta`` task:
 
 .. code-block:: console
 
@@ -84,17 +84,16 @@ The ``github_release_notes`` task fetches the text from pull requests that
 were merged between two given tags. The task then searches for specific titles
 (Critical Changes, Changes, Issues Closed, New Metadata, Installation Info) in
 the pull request bodies and aggregates the text together under those titles in
-a single pul 
+in the description of a GitHub tag.
 
-
-If you want to just view the output of what this would look like you can use:
+You can view what the release notes would look like without publishing them to GitHub:
 
 .. code-block::
 
     $ cci task run github_release_notes --tag release/1.2
 
 This would aggregate text from pull requests between releases 1.2 and next most recent release.
-You can also see where each line in the aggregated result came from by using the ``--link_pr True`` option.
+You can also see where each line in the release notes comes from from by using the ``--link_pr True`` option.
 
 If you want to publish these release notes to a release tag in GitHub use the ``--publish`` option:
 
@@ -116,13 +115,34 @@ putting the following under the ``project`` -> ``git`` section of your ``cumulus
 
     The new parser is listed with the number ``7`` because the first six are the
     `default parsers <https://github.com/SFDO-Tooling/CumulusCI/blob/671a0e88cef79e9aeefe1e2b835816cd8141bdbb/cumulusci/cumulusci.yml#L1154>`_ that come with CumulusCI.
-
         
 
 
 Upload and Test a Final Version
 -------------------------------
+When you're ready to upload a production release of your Managed Package project use the ``--production True`` option:
 
+.. code-block::
+
+    $ cci flow run release_production --org packaging 
+
+Similar to ``release_beta``, this task uploads a new production version of your package,
+creates a release tag in GitHub, and aggregates release notes for the new version.
+
+If you would just like to upload the new production version 
+without creating the GitHub tag and generating release notes, use:
+
+.. code-block::
+
+    $ cci task run upload_beta --name v1.2.1 --production True
+
+You can test the new package version with:
+
+.. code-block::
+
+    $ cci flow run ci_release
+
+This flow installs the latest production release version and runs the tests from the managed package in a scratch org.
 
 
 
