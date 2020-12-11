@@ -333,12 +333,12 @@ class InstallLinkParser(ChangeNotesLinesParser):
                 f"{PROD_LOGIN_URL}/packaging/installPackage.apexp?p0={version_id}",
             ]
 
-        if trial_info is True:
+        if trial_info:
             if (
                 version_id
                 or self.release_notes_generator.sandbox_date
                 or self.release_notes_generator.production_date
             ):
                 result.append("")
-            result += ["## Trialforce Template ID", "`TBD`"]
+            result += ["## Trialforce Template ID", f"{trial_info}"]
         return "\r\n".join(result)

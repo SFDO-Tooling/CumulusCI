@@ -7,12 +7,17 @@ METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
 _supported_events = ("start", "end", "start-ns", "end-ns", "comment")
 
 
-def serialize_xml_for_salesforce(xdoc, xml_declaration=True):
+def serialize_xml_for_salesforce(
+    xdoc, xml_declaration=True, include_parent_namespaces=False
+):
     r = xml_encoding if xml_declaration else ""
-
-    new_namespace_declarations = {}
-    all_namespaces = {}
-
+    if include_parent_namespaces:
+        new_namespace_declarations = {
+            prefix: url for prefix, url in xdoc.getroot().nsmap.items()
+        }
+    else:
+        new_namespace_declarations = {}
+    all_namespaces = {url: prefix for prefix, url in xdoc.getroot().nsmap.items()}
     for action, elem in etree.iterwalk(xdoc, events=_supported_events):
         if action == "start-ns":
             prefix, ns = elem

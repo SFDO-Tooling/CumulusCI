@@ -1,4 +1,5 @@
-from cumulusci.tasks.preflight.settings import CheckSettingsValue
+from unittest.mock import MagicMock
+from cumulusci.tasks.preflight.settings import CheckSettingsValue, CheckMyDomainActive
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 from simple_salesforce.exceptions import SalesforceMalformedRequest
@@ -110,3 +111,20 @@ def test_check_settings__exception():
         task()
 
     assert task.return_values is False
+
+
+@pytest.mark.parametrize(
+    "my_domain,outcome",
+    [
+        ("https://cumulusci.my.salesforce.com", True),
+        ("https://cumulusci.cloudforce.com", True),
+        ("https://na44.salesforce.com", False),
+    ],
+)
+def test_my_domain_check(my_domain, outcome):
+    org_config = MagicMock()
+    org_config.instance_url = my_domain
+    task = create_task(CheckMyDomainActive, {}, org_config=org_config)
+    task()
+
+    assert task.return_values is outcome

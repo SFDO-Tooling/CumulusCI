@@ -451,6 +451,20 @@ Options
 
 	 Seconds to wait before polling for batch or queueable job completion. Defaults to 10 seconds.
 
+**check_my_domain_active**
+==========================================
+
+**Description:** Runs as a preflight check to determine whether My Domain is active.
+
+**Class:** cumulusci.tasks.preflight.settings.CheckMyDomainActive
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run check_my_domain_active``
+
+
+
 **check_sobjects_available**
 ==========================================
 

@@ -54,6 +54,10 @@ tasks:
         description: Waits on a batch apex or queueable apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
+    check_my_domain_active:
+        description: Runs as a preflight check to determine whether My Domain is active.
+        class_path: cumulusci.tasks.preflight.settings.CheckMyDomainActive
+        group: Salesforce Preflight Checks
     check_sobjects_available:
         description: Runs as a preflight check to determine whether specific sObjects are available.
         class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
