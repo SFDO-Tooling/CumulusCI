@@ -5,6 +5,8 @@ import json
 import os
 import zipfile
 
+import pytest
+
 from cumulusci.tasks.salesforce.org_settings import DeployOrgSettings
 from cumulusci.utils import temporary_dir
 from .util import create_task
@@ -18,8 +20,13 @@ class TestDeployOrgSettings:
                     {
                         "settings": {
                             "orgPreferenceSettings": {"s1DesktopEnabled": True},
-                            "communitiesSettings": {"enableNetworksEnabled": True},
-                        }
+                            "otherSettings": {
+                                "nested": {
+                                    "boolValue": True,
+                                    "stringValue": "string",
+                                },
+                            },
+                        },
                     },
                     f,
                 )
@@ -53,11 +60,14 @@ class TestDeployOrgSettings:
 </OrgPreferenceSettings>"""
         )
         assert (
-            readtext(zf, "settings/Communities.settings")
+            readtext(zf, "settings/Other.settings")
             == """<?xml version="1.0" encoding="UTF-8"?>
-<CommunitiesSettings xmlns="http://soap.sforce.com/2006/04/metadata">
-    <enableNetworksEnabled>True</enableNetworksEnabled>
-</CommunitiesSettings>"""
+<OtherSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <nested>
+        <boolValue>true</boolValue>
+        <stringValue>string</stringValue>
+    </nested>
+</OtherSettings>"""
         )
 
     def test_run_task__no_settings(self):
@@ -70,6 +80,26 @@ class TestDeployOrgSettings:
             task.api_class = Mock()
             task()
             assert not task.api_class.called
+
+    def test_run_task_bad_settings_type(self):
+        with temporary_dir() as d:
+            with open("dev.json", "w") as f:
+                json.dump(
+                    {
+                        "settings": {
+                            "otherSettings": {
+                                "list": [],
+                            },
+                        },
+                    },
+                    f,
+                )
+            path = os.path.join(d, "dev.json")
+            task_options = {"definition_file": path, "api_version": "48.0"}
+            task = create_task(DeployOrgSettings, task_options)
+            task.api_class = Mock()
+            with pytest.raises(TypeError):
+                task()
 
 
 def readtext(zf, name):
