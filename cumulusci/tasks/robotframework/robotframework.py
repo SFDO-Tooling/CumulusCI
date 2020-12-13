@@ -15,9 +15,13 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
+from cumulusci.core.utils import process_list_of_pairs_dict_arg
 from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.robotframework.debugger import DebugListener
+
+
+# WIP: No tests for new code.
 
 
 class Robot(BaseSalesforceTask):
@@ -40,7 +44,14 @@ class Robot(BaseSalesforceTask):
             "required": False,
         },
         "options": {
-            "description": "A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml."
+            "description": "In simple cases this can be specified on the command line using "
+            "name:value,name:value syntax. More commplex cases can be specified "
+            "in cumuuluci.yml using YAML dictionary syntax.",
+            "required": False,
+        },
+        "outputdir": {
+            "description": "The directory in which to place HTML and XML output",
+            "required": False,
         },
         "name": {"description": "Sets the name of the top level test suite"},
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
@@ -64,8 +75,9 @@ class Robot(BaseSalesforceTask):
             self.options["vars"] = []
 
         # Initialize options as a dict
-        if "options" not in self.options:
-            self.options["options"] = {}
+        self.options["options"] = process_list_of_pairs_dict_arg(
+            self.options.get("options", {})
+        )
 
         # processes needs to be an integer.
         try:
@@ -98,15 +110,38 @@ class Robot(BaseSalesforceTask):
 
         self.options.setdefault("sources", [])
 
+    def determine_output_directory(self):
+
+        # This code is not clear to me so I'm a bit afraid to change it
+        def relativize_path(output_dir):
+            return os.path.relpath(
+                os.path.join(self.working_path, output_dir), os.getcwd()
+            )
+
+        output_dir = None
+
+        if os.environ.get("CUMULUSCI_ROBOT_OUTPUT_DIR"):
+            output_dir = relativize_path(os.environ.get("CUMULUSCI_ROBOT_OUTPUT_DIR"))
+
+        fallback_paths = [f"robot/{self.project_config.repo_name}/results", "."]
+
+        while not output_dir:
+            path = relativize_path(fallback_paths.pop(0))
+            if os.path.exists(path):
+                output_dir = path
+
+        return output_dir
+
     def _run_task(self):
         self.options["vars"].append("org:{}".format(self.org_config.name))
         options = self.options["options"].copy()
-        for option in ("test", "include", "exclude", "xunit", "name"):
+        for option in ("test", "include", "exclude", "xunit", "name", "outputdir"):
             if option in self.options:
                 options[option] = self.options[option]
         options["variable"] = self.options.get("vars") or []
-        options["outputdir"] = os.path.relpath(
-            os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
+
+        options["outputdir"] = (
+            options.get("outputdir") or self.determine_output_directory()
         )
 
         # get_namespace will potentially download sources that have
@@ -186,6 +221,7 @@ class Robot(BaseSalesforceTask):
                 pythonpathsetter.add_path(self.project_config.repo_root)
 
             try:
+                print("XXX", options)
                 num_failed = robot_run(*self.options["suites"], **options)
             finally:
                 sys.path = orig_sys_path
