@@ -46,7 +46,7 @@ class Robot(BaseSalesforceTask):
         "options": {
             "description": "In simple cases this can be specified on the command line using "
             "name:value,name:value syntax. More commplex cases can be specified "
-            "in cumuuluci.yml using YAML dictionary syntax.",
+            "in cumulusci.yml using YAML dictionary syntax.",
             "required": False,
         },
         "outputdir": {
