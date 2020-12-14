@@ -252,6 +252,7 @@ class TestRobot(unittest.TestCase):
         )
         self.assertNotIn("dummy1", sys.path)
         self.assertNotIn("dummy2", sys.path)
+        self.assertEquals(".", task.return_values["robot_outputdir"])
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch(
