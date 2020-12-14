@@ -2,6 +2,7 @@ import importlib
 import logging
 import re
 import time
+from dateutil.parser import parse as parse_date
 
 from pprint import pformat
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
@@ -964,6 +965,9 @@ class Salesforce(object):
         in a keyword argument named ``where``. If you supply
         both, they will be combined with a SOQL "AND".
 
+        ``order_by`` and ``limit`` keyword arguments are also
+        supported as shown below.
+
         Examples:
 
         The following example searches for all Contacts where the
@@ -976,29 +980,39 @@ class Salesforce(object):
         |     log  Name: ${record['Name']} Id: ${record['Id']}
         | END
 
-        Or with a WHERE-clause, we can look for every contact where
+        Or with a WHERE-clause, we can look for the first contact where
         the first name is NOT Eleanor.
 
         | @{records}=  Salesforce Query  Contact  select=Id,Name
-        | ...          where=FirstName!='Eleanor'
+        | ...          where=FirstName!='Eleanor' order_by=FirstName limit=1
         """
+        query = self._soql_query_builder(obj_name, **kwargs)
+        self.builtin.log("Running SOQL Query: {}".format(query))
+        return self.cumulusci.sf.query_all(query).get("records", [])
+
+    def _soql_query_builder(
+        self, obj_name, select=None, order_by=None, limit=None, where=None, **kwargs
+    ):
         query = "SELECT "
-        if "select" in kwargs:
-            query += kwargs["select"]
+        if select:
+            query += select
         else:
             query += "Id"
         query += " FROM {}".format(obj_name)
         where_clauses = []
-        if "where" in kwargs:
-            where_clauses = [kwargs["where"]]
+        if where:
+            where_clauses = [where]
         for key, value in kwargs.items():
-            if key == "select" or key == "where":
-                continue
             where_clauses.append("{} = '{}'".format(key, value))
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
-        self.builtin.log("Running SOQL Query: {}".format(query))
-        return self.cumulusci.sf.query_all(query).get("records", [])
+        if order_by:
+            query += " ORDER BY " + order_by
+        if limit:
+            assert int(limit), "Limit should be an integer"
+            query += f" LIMIT {limit}"
+
+        return query
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
         """Updates a Salesforce object by Id.
@@ -1220,3 +1234,22 @@ class Salesforce(object):
             self.selenium.go_to(login_url)
             return True
         return False
+
+    # TODO: Unify this with Salesforce_Query
+    def elapsed_time_for_last_record(self, obj_name, start_field, end_field, **kwargs):
+        query = self._soql_query_builder(
+            obj_name,
+            select=f"{start_field}, {end_field}",
+            order_by=kwargs.get("order_by", start_field),
+            limit=1,
+        )
+        results = self.salesforce_query(query)
+
+        if results:
+            record = results[0]
+            start_date = parse_date(record[start_field])
+            end_date = parse_date(record[end_field])
+            duration = end_date - start_date
+            return duration.seconds
+        else:
+            ...

@@ -66,9 +66,12 @@ Insert 200 Prospecting Opportunities
 *** Test Cases ***
 
 Perftest - Insert 200 Contacts
+    Start Perf Time 
     Insert 200 Contacts
+    End Perf Time
 
 Perftest - Insert 200 Contacts With Addresses
+    Start Perf Time
     @{objects}=  Generate Test Data  Contact  200  
         ...  FirstName={{fake.first_name}}
         ...  LastName={{fake.last_name}}
@@ -78,14 +81,18 @@ Perftest - Insert 200 Contacts With Addresses
         ...  MailingPostalCode=12345
         ...  Email={{fake.email(domain="salesforce.com")}}
     Salesforce Collection Insert  ${objects}
+    End Perf Time
 
 Perftest - Insert 200 Prospecting Opportunities
+    Start Perf Time
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
     Insert 200 Prospecting Opportunities
+    End Perf Time
 
 Perftest - Change 200 Opportunity States to Closed-Won
+    Start Perf Time
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
@@ -95,3 +102,26 @@ Perftest - Change 200 Opportunity States to Closed-Won
         Set To Dictionary   ${record}   StageName   Closed Won
     END
     Salesforce Collection Update    ${OPPORTUNITIES}
+    End Perf Time
+
+Perftest - Measure Bulk
+    ${Elapsed}=     Elapsed Time For Last Record
+    ...             AsyncApexJob where ApexClass.Name = 'RunThisBatch'     CreatedDate         CompletedDate
+    Set Test Elapsed Time        ${Elapsed}
+
+    # ${AnonApex}=   Set Variable
+    # ...             Id batchJobId = Database.executeBatch(new RunThisBatch(), 200);
+
+    # Run Task    execute_anon
+    # ...             apex=${AnonApex}
+    # ${result}=  SOQL Query
+    # ...         select CreatedDate, CompletedDate from AsyncApexJob where ApexClass.Name = 'RunThisBatch' order by CreatedDate desc limit 1
+    # Log         ${result}
+    # ${vals}=    set variable        ${result}[records][0]
+    # ${CreatedDate}=     Set Variable    ${vals}[CreatedDate]
+    # ${CompletedDate}=    Set Variable     ${vals}[CompletedDate]
+    # ${CreatedDate}=     Replace String    ${CreatedDate}       T      ${SPACE}     
+    # ${CompletedDate}=    Replace String    ${CompletedDate}       T      ${SPACE}
+    # ${CreatedDate}=         Convert Date	${CreatedDate}
+    # ${CompletedDate}=         Convert Date	${CompletedDate}
+    # ${time}=            Subtract Date From Date     ${CreatedDate}      ${CompletedDate}

@@ -1,6 +1,8 @@
 import logging
+from datetime import datetime
 
 from robot.api import logger
+import robot.utils as robot_utils
 from robot.libraries.BuiltIn import BuiltIn
 
 from cumulusci.cli.runtime import CliRuntime
@@ -241,3 +243,50 @@ class CumulusCI(object):
     def debug(self):
         """Pauses execution and enters the Python debugger."""
         set_pdb_trace()
+
+    def start_perf_timer(self):
+        """Start an elapsed time stopwatch for performance tests"""
+        BuiltIn().set_test_variable("${__start_time}", datetime.now())
+
+    def end_perf_timer(self):
+        """Record the results of a stopwatch for performance tests
+
+        This keyword uses Set Test Elapsed Time internally and therefore
+        outputs in all of the ways described there."""
+        builtins = BuiltIn()
+
+        start_time = builtins.get_variable_value("${__start_time}")
+        if start_time:
+            seconds = (datetime.now() - start_time).seconds
+            assert seconds is not None
+            self.set_test_elapsed_time(seconds)
+        else:
+            raise Exception(
+                "Elapsed time clock was not started. "
+                "Use the Start Elapsed Time keyword to do so."
+            )
+
+    def set_test_elapsed_time(self, elapsedtime=None):
+        """This keyword captures a computed rather than measured elapsed time for performance-tests.
+
+        For example, if you were performance testing a Salesforce batch process, you might want to store the Salesforce-measured elapsed time of the batch process instead of the time measured in the CCI client process.
+
+        The keyword takes a single optional argument which is either a number of seconds or a Robot time string
+        (https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats).
+
+        Using this keyword will automatically add the tag specified_elapsed_time to the test case.
+
+        Performance test times are output in the CCI logs and are captured in MetaCI instead of the
+        "total elapsed time" measured by Robot Framework."""
+
+        builtins = BuiltIn()
+
+        try:
+            seconds = float(elapsedtime)
+        except ValueError:
+            seconds = robot_utils.timestr_to_secs(elapsedtime)
+        assert seconds is not None
+
+        builtins.set_test_message(f"Elapsed time set by test : {seconds}")
+        builtins.set_tags("specified_elapsed_time")
+        builtins.set_test_variable("${specified_elapsed_time}", seconds)

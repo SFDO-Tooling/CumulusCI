@@ -7,6 +7,9 @@ import os.path
 import re
 import sys
 from xml.etree import ElementTree as ET
+from pathlib import Path
+
+import responses
 
 from cumulusci.core.config import TaskConfig, UniversalConfig, BaseProjectConfig
 from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
@@ -112,6 +115,8 @@ class TestRobot(unittest.TestCase):
             "org:test",
             "--outputdir",
             ".",
+            "--tagstatexclude",
+            "specified_elapsed_time",
             "tests",
         ]
         mock_robot_run.assert_not_called()
@@ -126,7 +131,11 @@ class TestRobot(unittest.TestCase):
         task()
         mock_subprocess_run.assert_not_called()
         mock_robot_run.assert_called_once_with(
-            "tests", listener=[], outputdir=".", variable=["org:test"]
+            "tests",
+            listener=[],
+            outputdir=".",
+            variable=["org:test"],
+            tagstatexclude=["specified_elapsed_time"],
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -136,7 +145,12 @@ class TestRobot(unittest.TestCase):
         task = create_task(Robot, {"suites": "tests,more_tests", "process": 0})
         task()
         mock_robot_run.assert_called_once_with(
-            "tests", "more_tests", listener=[], outputdir=".", variable=["org:test"]
+            "tests",
+            "more_tests",
+            listener=[],
+            outputdir=".",
+            variable=["org:test"],
+            tagstatexclude=["specified_elapsed_time"],
         )
 
     def test_default_listeners(self):
@@ -541,3 +555,26 @@ class TestLibdocPageObjects(unittest.TestCase):
         expected = '<div class="description" title="Description"><p>Description of SomethingListingPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
         assert actual == expected
+
+    @responses.activate
+    def test_elapsed_time_xml(self):
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
+
+        with temporary_dir() as d:
+            project_config.repo_info["root"] = d
+            print(project_config.repo_root)
+            suite = (
+                Path(self.datadir)
+                / "../../../robotframework/tests/cumulusci/base.robot"
+            )
+            print(suite)
+            task = create_task(
+                Robot,
+                {
+                    "test": "Test Set Elapsed Time*",
+                    "suites": str(suite),
+                },
+                project_config=project_config,
+            )
+            task()
