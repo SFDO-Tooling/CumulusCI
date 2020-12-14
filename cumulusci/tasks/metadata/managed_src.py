@@ -7,8 +7,13 @@ from cumulusci.utils import find_replace
 
 
 class CreateManagedSrc(BaseTask):
-    task_docs = """The //cumulusci-managed string is to guard the @deprecated
-annotation which is not legal to deploy in an unmanaged context."""
+    task_docs = """
+        Apex classes which use the @deprecated annotation can comment
+        it out using //cumulusci-managed so that it can be deployed as
+        part of unmanaged metadata, where this annotation is not allowed.
+        This task is for use when deploying to a packaging org to
+        remove the comment so that the annotation takes effect.
+    """
 
     task_options = {
         "path": {
@@ -91,5 +96,5 @@ class RevertManagedSrc(BaseTask):
         self.logger.info(f"{path} is now reverted")
 
         # Delete the revert_path
-        self.logger.info(f"Deleting {revert_path}")
+        self.logger.info(f"Deleting {str(revert_path)}")
         remove_tree(revert_path)
