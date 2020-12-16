@@ -624,6 +624,7 @@ flows:
                 task: run_tests
             5:
                 task: github_automerge_feature
+                when: project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
 
     ci_feature_beta_deps:
         group: Continuous Integration
@@ -647,6 +648,7 @@ flows:
                 task: run_tests
             5:
                 task: github_automerge_feature
+                when: project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
 
     ci_feature_2gp:
         group: Continuous Integration
