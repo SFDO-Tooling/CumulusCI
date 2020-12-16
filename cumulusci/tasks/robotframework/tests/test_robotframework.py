@@ -295,24 +295,7 @@ class TestRobot(unittest.TestCase):
 @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
 def test_outputdir_return_value(mock_run, tmpdir):
     """Ensure that the task properly sets the outputdir return value"""
-    universal_config = UniversalConfig()
-    project_config = BaseProjectConfig(
-        universal_config,
-        {
-            "sources": {
-                "test1": {"path": "dummy1"},
-                "test2": {"path": "dummy2"},
-            }
-        },
-    )
-    # get_namespace returns a config. The only part of the config
-    # that the code uses is the repo_root property, so we don't need
-    # a full blown config.
-    project_config.get_namespace = mock.Mock(
-        side_effect=lambda source: mock.Mock(
-            repo_root=project_config.sources[source]["path"]
-        )
-    )
+    project_config = BaseProjectConfig(UniversalConfig())
 
     test_dir = "test-dir"
     tmpdir.mkdir(test_dir)
@@ -320,7 +303,6 @@ def test_outputdir_return_value(mock_run, tmpdir):
         Robot,
         {
             "suites": "test",
-            "sources": ["test1", "test2"],
             "options": {"outputdir": test_dir},
         },
         project_config=project_config,
