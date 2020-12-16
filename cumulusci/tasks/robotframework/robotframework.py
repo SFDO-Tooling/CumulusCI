@@ -108,6 +108,9 @@ class Robot(BaseSalesforceTask):
         options["outputdir"] = os.path.relpath(
             os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
         )
+        # Set as a return value so other things that want to use
+        # this file (e.g. MetaCI) know where it is
+        self.return_values["robot_outputdir"] = options["outputdir"]
 
         # get_namespace will potentially download sources that have
         # yet to be downloaded. For these downloaded sources we'll add
