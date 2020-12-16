@@ -507,7 +507,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo
 
-    def find_matching_release(self, remote_repo, context_2gp):
+    def find_matching_2gp_release(self, remote_repo, context_2gp):
         # To allow us to locate release branches on the remote repo, we need to know its feature branch prefix.
         # We'll use the cumulusci.yml file from HEAD on the main branch to determine this.
 
@@ -527,6 +527,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             .get("git", {})
             .get("prefix_feature", "feature/")
         )
+
+        if not remote_branch_prefix:
+            return None
 
         remote_matching_branch = construct_release_branch(
             remote_branch_prefix, release_id
@@ -579,7 +582,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         self.repo_branch, self.project__git__prefix_feature
                     )
                 ):
-                    release, ref = self.find_matching_release(repo, context_2gp)
+                    release, ref = self.find_matching_2gp_release(repo, context_2gp)
 
                 if not release:
                     release = find_latest_release(repo, include_beta)
