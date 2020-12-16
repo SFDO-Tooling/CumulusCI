@@ -208,11 +208,9 @@ class MergeBranch(BaseGithubTask):
 
     def _is_release_branch(self, branch_name):
         """A release branch begins with the given prefix"""
-        prefix = self.options["branch_prefix"]
-        if not branch_name.startswith(prefix):
-            return False
-        parts = branch_name[len(prefix) :].split("__")
-        return len(parts) == 1 and parts[0].isdigit()
+        return self.project_config.is_release_branch(
+            branch_name, self.options["branch_prefix"]
+        )
 
     def _merge(self, branch_name, source, commit):
         """Attempt to merge a commit from source to branch with branch_name"""

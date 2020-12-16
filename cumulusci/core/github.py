@@ -1,6 +1,8 @@
 """Wraps the github3 library to configure request retries."""
 
 import os
+import re
+
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
@@ -10,7 +12,8 @@ from github3 import login
 from github3.pulls import ShortPullRequest
 from github3.session import GitHubSession
 
-from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import GithubException, DependencyLookupError
+
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
@@ -179,3 +182,19 @@ def create_gist(github, description, files):
     files - A dict of files in the form of {filename:{'content': content},...}
     """
     return github.create_gist(description, files, public=False)
+
+
+VERSION_ID_RE = re.compile(r"version_id: (\S+)")
+
+
+def get_version_id_from_commit(repo, commit_sha, context):
+    try:
+        commit = repo.commit(commit_sha)
+    except github3.exceptions.NotFoundError:
+        raise DependencyLookupError(f"Could not find commit {commit_sha} on GitHub")
+
+    for status in commit.status().statuses:
+        if status.state == "success" and status.context == context:
+            match = VERSION_ID_RE.search(status.description)
+            if match:
+                return match.group(1)
