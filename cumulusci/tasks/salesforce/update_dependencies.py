@@ -55,6 +55,10 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "or a child branch of a release branch, resolve GitHub managed package dependencies to 2GP builds present on "
             "a matching release branch on the dependency."
         },
+        "2gp_context": {
+            "description": "The commit status where CumulusCI should locate a 2GP version id when using prefer_2gp_from_release_branch. "
+            "This option is required when prefer_2gp_from_release_branch is True."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -83,6 +87,14 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self.options["prefer_2gp_from_release_branch"] = process_bool_arg(
             self.options.get("prefer_2gp_from_release_branch", False)
         )
+
+        if (
+            self.options["prefer_2gp_from_release_branch"]
+            and "2gp_context" not in self.options
+        ):
+            raise TaskOptionsError(
+                "Setting the prefer_2gp_from_release_branch option requires a 2gp_context."
+            )
 
         if "ignore_dependencies" in self.options:
             if any(
@@ -115,6 +127,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             include_beta=self.options["include_beta"],
             ignore_deps=self.options.get("ignore_dependencies"),
             match_release_branch=self.options["prefer_2gp_from_release_branch"],
+            context_2gp=self.options.get("2gp_context"),
         )
 
         self.installed = None

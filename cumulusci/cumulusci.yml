@@ -929,6 +929,7 @@ flows:
                     update_dependencies:
                         dependencies: ^^github_package_data.dependencies
                         prefer_2gp_from_release_branch: True
+                        2gp_context: "Build Feature Test Package"
             3:
                 task: install_managed
                 options:

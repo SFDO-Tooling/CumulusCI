@@ -507,7 +507,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo
 
-    def find_matching_release(self, remote_repo):
+    def find_matching_release(self, remote_repo, context_2gp):
         # To allow us to locate release branches on the remote repo, we need to know its feature branch prefix.
         # We'll use the cumulusci.yml file from HEAD on the main branch to determine this.
 
@@ -538,8 +538,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         release_branch = remote_repo.branch(remote_matching_branch)
 
         version_id = get_version_id_from_commit(
-            remote_repo, release_branch.commit.sha, "Build Feature Test Package"
-        )  # TODO: Parameterize status name
+            remote_repo, release_branch.commit.sha, context_2gp
+        )
         if version_id:
             self.logger.info(
                 "Located 2GP package version {version_id} for release {release_id} on {remote_repo.clone_url}"
@@ -552,7 +552,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return version_id, release_branch.commit.sha
 
     def get_ref_for_dependency(
-        self, repo, dependency, include_beta=None, match_release_branch=False
+        self,
+        repo,
+        dependency,
+        include_beta=None,
+        match_release_branch=None,
+        context_2gp=None,
     ):
         release = ref = None
         if "ref" in dependency:
@@ -567,10 +572,14 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         f"No release found for tag {dependency['tag']}"
                     )
             else:
-                if match_release_branch and is_release_branch_or_child(
-                    self.repo_branch, self.project__git__prefix_feature
+                if (
+                    match_release_branch
+                    and context_2gp
+                    and is_release_branch_or_child(
+                        self.repo_branch, self.project__git__prefix_feature
+                    )
                 ):
-                    release, ref = self.find_matching_release(repo)
+                    release, ref = self.find_matching_release(repo, context_2gp)
 
                 if not release:
                     release = find_latest_release(repo, include_beta)
@@ -593,7 +602,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         dependencies=None,
         include_beta=None,
         ignore_deps=None,
-        match_release_branch=False,
+        match_release_branch=None,
+        context_2gp=None,
     ):
         """Resolves the project -> dependencies section of cumulusci.yml
         to convert dynamic github dependencies into static dependencies
@@ -623,6 +633,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     include_beta=include_beta,
                     ignore_deps=ignore_deps,
                     match_release_branch=match_release_branch,
+                    context_2gp=context_2gp,
                 )
                 static_dependencies.extend(static)
         return static_dependencies
@@ -670,7 +681,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         indent=None,
         include_beta=None,
         ignore_deps=None,
-        match_release_branch=False,
+        match_release_branch=None,
+        context_2gp=None,
     ):
         if not indent:
             indent = ""
@@ -695,7 +707,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         # Determine the commit
         release, ref = self.get_ref_for_dependency(
-            repo, dependency, include_beta, match_release_branch=match_release_branch
+            repo,
+            dependency,
+            include_beta,
+            match_release_branch=match_release_branch,
+            context_2gp=context_2gp,
         )
 
         # Get the cumulusci.yml file
