@@ -1536,6 +1536,7 @@ class RunTaskCommand(click.MultiCommand):
     def get_command(self, ctx, task_name):
         if RUNTIME.project_config is None:
             raise RUNTIME.project_config_error
+        RUNTIME._load_keychain()
         task_config = RUNTIME.project_config.get_task(task_name)
 
         if "options" not in task_config.config:
