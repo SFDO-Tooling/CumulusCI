@@ -1,3 +1,4 @@
+import pathlib
 from typing import Optional
 
 from cumulusci.core.exceptions import TaskOptionsError
@@ -77,6 +78,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
     def _get_api(self, path=None):
         if not path:
             path = self.options.get("path")
+        if not pathlib.Path(path).exists():
+            self.logger.warning(f"{path} not found; skipping deployment.")
+            return
 
         package_zip = self._get_package_zip(path)
         if package_zip is not None:
