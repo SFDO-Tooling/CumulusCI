@@ -1534,11 +1534,9 @@ class RunTaskCommand(click.MultiCommand):
         return sorted([t["name"] for t in tasks])
 
     def get_command(self, ctx, task_name):
-        RUNTIME._load_keychain()
         if RUNTIME.project_config is None:
-            task_config = RUNTIME.universal_config.get_task(task_name)
-        else:
-            task_config = RUNTIME.project_config.get_task(task_name)
+            raise RUNTIME.project_config_error
+        task_config = RUNTIME.project_config.get_task(task_name)
 
         if "options" not in task_config.config:
             task_config.config["options"] = {}
