@@ -8,6 +8,7 @@ import re
 import sys
 from xml.etree import ElementTree as ET
 from pathlib import Path
+from contextlib import contextmanager
 
 import responses
 
@@ -21,6 +22,7 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.robotframework.debugger import DebugListener
 from cumulusci.tasks.robotframework.robotframework import KeywordLogger
 from cumulusci.utils import touch, temporary_dir
+from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
 from cumulusci.tasks.robotframework.libdoc import KeywordFile
@@ -556,11 +558,10 @@ class TestLibdocPageObjects(unittest.TestCase):
         actual = ET.tostring(description).decode("utf-8").strip()
         assert actual == expected
 
-    @responses.activate
-    def test_elapsed_time_xml(self):
+    @contextmanager
+    def _run_robot_and_parse_xml(self, test_pattern):
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
-
         with temporary_dir() as d:
             project_config.repo_info["root"] = d
             print(project_config.repo_root)
@@ -568,13 +569,38 @@ class TestLibdocPageObjects(unittest.TestCase):
                 Path(self.datadir)
                 / "../../../robotframework/tests/cumulusci/base.robot"
             )
-            print(suite)
             task = create_task(
                 Robot,
                 {
-                    "test": "Test Set Elapsed Time*",
+                    "test": test_pattern,
                     "suites": str(suite),
+                    "options": {"outputdir": d, "noncritical": "noncritical"},
                 },
                 project_config=project_config,
             )
             task()
+            logger_func = mock.Mock()
+            log_perf_summary_from_xml(Path(d) / "output.xml", logger_func)
+            yield logger_func.mock_calls
+
+    @responses.activate
+    def test_elapsed_time_xml(self):
+        pattern = "reported elapsed time: "
+
+        def extract_time(call):
+            first_arg = call[1][0]
+            if pattern in first_arg:
+                return first_arg.split(": ")[1].split(" seconds ")[0]
+
+        with self._run_robot_and_parse_xml("Test Perf*") as logger_calls:
+            elapsed_times = [extract_time(call) for call in logger_calls]
+            elapsed_times = sorted(filter(None, elapsed_times))
+
+            assert elapsed_times[1:] == ["11655.9", "18000.0"]
+            assert float(elapsed_times[0]) < 3
+
+    def test_mismatched_end_generates_error(self):
+        with pytest.raises(Exception) as e:
+            with self._run_robot_and_parse_xml("Test Should Generate An Error*"):
+                pass
+        assert "test failed" in str(e.value)

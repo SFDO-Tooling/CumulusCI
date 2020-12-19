@@ -39,16 +39,26 @@ Test Run Task Class
 Test Run Task Class With Options
     Run Task Class  cumulusci.tasks.salesforce.CreatePackage  package=Test Package
 
-Test Set Elapsed Time
+Test Perf Set Elapsed Time
     [Tags]  perf
     Set Test Elapsed Time       11655.9   #  3:14:15.9
 
-Test Set Elapsed Time String
+Test Perf Set Elapsed Time String
     [Tags]  perf
+    Log                 A
     Set Test Elapsed Time       5 hours   #  5:00:00
 
 Test Perf Measure Elapsed
+    Log                 B
     Start Perf Timer
     Sleep       1
     Log         Noop
+    End Perf Timer
+
+# Make sure parser doesn't choke on this.
+Test Perf - Parser does not choke with no keywords
+    [Tags]      noncritical
+
+
+Test Should Generate An Error - Mismatched End Perf Timer
     End Perf Timer

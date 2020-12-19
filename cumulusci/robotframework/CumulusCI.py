@@ -249,7 +249,7 @@ class CumulusCI(object):
         BuiltIn().set_test_variable("${__start_time}", datetime.now())
 
     def end_perf_timer(self):
-        """Record the results of a stopwatch for performance tests
+        """Record the results of a stopwatch. For perf testing.
 
         This keyword uses Set Test Elapsed Time internally and therefore
         outputs in all of the ways described there."""
