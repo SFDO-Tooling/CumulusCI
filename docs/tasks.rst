@@ -1091,6 +1091,12 @@ Options
 
 **Class:** cumulusci.tasks.metadata.managed_src.CreateManagedSrc
 
+Apex classes which use the @deprecated annotation can comment
+it out using //cumulusci-managed so that it can be deployed as
+part of unmanaged metadata, where this annotation is not allowed.
+This task is for use when deploying to a packaging org to
+remove the comment so that the annotation takes effect.
+
 Command Syntax
 ------------------------------------------
 

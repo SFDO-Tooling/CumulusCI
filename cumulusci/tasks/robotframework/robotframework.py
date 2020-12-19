@@ -113,11 +113,14 @@ class Robot(BaseSalesforceTask):
         options["outputdir"] = os.path.relpath(
             os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
         )
-        output_xml = Path(options["outputdir"]) / "output.xml"
+
         options["tagstatexclude"] = options.get(
             "tagstatexclude", []
         ) + self.options.get("tagstatexclude", [])
         options["tagstatexclude"].append("specified_elapsed_time")
+        # Set as a return value so other things that want to use
+        # this file (e.g. MetaCI) know where it is
+        self.return_values["robot_outputdir"] = options["outputdir"]
 
         # get_namespace will potentially download sources that have
         # yet to be downloaded. For these downloaded sources we'll add
@@ -200,6 +203,7 @@ class Robot(BaseSalesforceTask):
             finally:
                 sys.path = orig_sys_path
 
+        output_xml = Path(options["outputdir"]) / "output.xml"
         if output_xml.exists():
             log_perf_summary_from_xml(output_xml, self.logger.info)
 

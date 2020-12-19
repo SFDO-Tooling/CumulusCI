@@ -268,6 +268,7 @@ class TestRobot(unittest.TestCase):
         )
         self.assertNotIn("dummy1", sys.path)
         self.assertNotIn("dummy2", sys.path)
+        self.assertEquals(".", task.return_values["robot_outputdir"])
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch(
@@ -305,6 +306,26 @@ class TestRobot(unittest.TestCase):
         expected = "robot source 'bogus' could not be found"
         with pytest.raises(TaskOptionsError, match=expected):
             task()
+
+
+@mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+def test_outputdir_return_value(mock_run, tmpdir):
+    """Ensure that the task properly sets the outputdir return value"""
+    project_config = BaseProjectConfig(UniversalConfig())
+
+    test_dir = "test-dir"
+    tmpdir.mkdir(test_dir)
+    task = create_task(
+        Robot,
+        {
+            "suites": "test",
+            "options": {"outputdir": test_dir},
+        },
+        project_config=project_config,
+    )
+    mock_run.return_value = 0
+    task()
+    assert test_dir == task.return_values["robot_outputdir"]
 
 
 class TestRobotTestDoc(unittest.TestCase):
