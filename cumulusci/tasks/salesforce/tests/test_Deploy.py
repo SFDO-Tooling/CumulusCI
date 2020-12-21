@@ -114,6 +114,18 @@ class TestDeploy(unittest.TestCase):
                 self.assertIn("<name>StaticResource</name>", package_xml)
                 self.assertIn("<members>TestBundle</members>", package_xml)
 
+    def test_get_api__missing_path(self):
+        task = create_task(
+            Deploy,
+            {
+                "path": "BOGUS",
+                "unmanaged": True,
+            },
+        )
+
+        api = task._get_api()
+        assert api is None
+
     def test_get_api__empty_package_zip(self):
         with temporary_dir() as path:
             task = create_task(
