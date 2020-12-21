@@ -78,9 +78,6 @@ class Deploy(BaseSalesforceMetadataApiTask):
     def _get_api(self, path=None):
         if not path:
             path = self.options.get("path")
-        if not pathlib.Path(path).exists():
-            self.logger.warning(f"{path} not found; skipping deployment.")
-            return
 
         package_zip = self._get_package_zip(path)
         if package_zip is not None:
@@ -110,6 +107,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _get_package_zip(self, path):
         assert path, f"Path should be specified for {self.__class__.name}"
+        if not pathlib.Path(path).exists():
+            self.logger.warning(f"{path} not found.")
+            return
         namespace = self.options["namespace_inject"]
         options = {
             **self.options,
