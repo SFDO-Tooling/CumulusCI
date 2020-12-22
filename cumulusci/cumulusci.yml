@@ -1,6 +1,8 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
-
+project:
+    git:
+        2gp_context: "Build Feature Test Package"
 tasks:
     activate_flow:
         group: Metadata Transformations
@@ -922,14 +924,14 @@ flows:
             1:
                 task: github_package_data
                 options:
-                    context: "Build Feature Test Package"
+                    context: $project_config.project__git__2gp_context
             2:
                 flow: dependencies
                 options:
                     update_dependencies:
                         dependencies: ^^github_package_data.dependencies
                         prefer_2gp_from_release_branch: True
-                        2gp_context: "Build Feature Test Package"
+                        2gp_context: $project_config.project__git__2gp_context
             3:
                 task: install_managed
                 options:

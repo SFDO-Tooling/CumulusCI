@@ -515,7 +515,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.repo_branch, self.project__git__prefix_feature
         )
         remote_branch_prefix = None
-        contents = remote_repo.file_contents(
+        contents = remote_repo.file_contents(  # FIXME: Does this raise or return None?
             "cumulusci.yml",
             ref=remote_repo.branch(remote_repo.default_branch).commit.sha,
         )
@@ -535,24 +535,28 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             remote_branch_prefix, release_id
         )
 
-        # Check the most recent commit on this release branch looking for a 2GP package to use
-        # TODO: Should we attempt to scan backwards to address race conditions?
-        # Or look for a commit status for an in-progress package upload, and poll?
+        # Check the most recent five commits on this release branch looking for a 2GP package to use
         release_branch = remote_repo.branch(remote_matching_branch)
 
-        version_id = get_version_id_from_commit(
-            remote_repo, release_branch.commit.sha, context_2gp
-        )
-        if version_id:
-            self.logger.info(
-                "Located 2GP package version {version_id} for release {release_id} on {remote_repo.clone_url}"
-            )
-        else:
+        version_id = None
+        count = 0
+        commit = release_branch.commit.sha
+        while version_id is None and count < 5:
+            version_id = get_version_id_from_commit(remote_repo, commit, context_2gp)
+            if version_id:
+                self.logger.info(
+                    "Located 2GP package version {version_id} for release {release_id} on {remote_repo.clone_url} at commit {release_branch.commit.sha}"
+                )
+                break
+            count += 1
+            commit = remote_repo.commit(commit.parents[0]["sha"])
+
+        if version_id is None:
             self.logger.warn(
                 "No 2GP package version located for release {release_id} on {remote_repo.clone_url}. Falling back to 1GP."
             )
 
-        return version_id, release_branch.commit.sha
+        return version_id, commit
 
     def get_ref_for_dependency(
         self,

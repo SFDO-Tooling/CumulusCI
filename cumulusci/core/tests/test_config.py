@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from cumulusci.core.utils import process_list_arg
 from distutils.version import StrictVersion
 import json
 import os
@@ -165,6 +166,10 @@ class DummyRepository(object):
         ref = mock.Mock()
         ref.object.sha = "ref_sha"
         return ref
+
+    @property
+    def default_branch(self):
+        return "main"
 
 
 class DummyRelease(object):
@@ -935,6 +940,33 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "tag": "bogus",
                 }
             )
+
+    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
+    def test_find_matching_2gp_release(self, get_version_id):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        get_version_id.return_value = "04t000000000000"
+        with mock.patch(BaseProjectConfig, "repo_commit") as commit:
+            with mock.patch(BaseProjectConfig, "repo_branch") as branch:
+                assert (
+                    config.find_matching_2gp_release(
+                        github["CumulusCI-Test-Dep"], "Build Feature Test Package"
+                    )
+                    == "04t000000000000"
+                )
+
+    def test_find_matching_2gp_release__found_previous_commit(self):
+        raise NotImplementedError
+
+    def test_find_matching_2gp_release__not_found(self):
+        raise NotImplementedError
+
+    def test_find_matching_2gp_release__no_remote_branch_prefix(self):
+        raise NotImplementedError
 
     def test_get_task__included_source(self):
         universal_config = UniversalConfig()
