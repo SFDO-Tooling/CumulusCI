@@ -65,7 +65,7 @@ Each project can have one or more **datasets**: on-disk representations of recor
 
 Robot Framework provides browser automation for end-to-end testing. Each project contains a ``robot`` directory, which stores the project's Robot Framework test suites. New projects start with a simple Robot test case that creates a Contact record.
 
-While Robot Framework is used primarily for browser automation testing, it can also be harnessed to help configure orgs where other strategies and APIs are insufficient. [TODO LINK TO EXPLAIN THIS FURTHER?]
+While Robot Framework is used primarily for browser automation testing, it can also be harnessed to help configure orgs where other strategies and APIs are insufficient [TODO: link Robot Framework].
 
 ``unpackaged`` metadata
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -110,7 +110,7 @@ Popular task commands include:
 * ``cci task info <name>``: Learn more about a task and how to configure its options. ``<name>`` is the name of the task.
 * ``cci task run <name> --org <org>``: Run a task. ``<name>`` is the name of the task and ``<org>`` is the org you'd like to run it against.
 
-        Example: ``run_tests`` executes Apex unit tests. If you have an org called ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``
+        Example: ``run_tests`` executes Apex unit tests. If you have an org called ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``.
 
 Many operations in CumulusCI, including creating new orgs, use flows. Flows are ordered sequences of tasks (and even other flows!) that produce a cohesive outcome, such as an org that's configured to suit a workflow like development, QA, or product demonstration.
 
