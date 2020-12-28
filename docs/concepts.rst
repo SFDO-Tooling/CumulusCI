@@ -1,29 +1,30 @@
 Key Concepts
 ============
 
-Key concept. Developer jargon. 10-cent words that sound like a technical writer patting himself on the back. (Hi there!) We imagine your cursor subconsciously drifting its way to the hyperlink for the next chapter already. BUT in an effort to give you the tools to build and test customized features with CumulusCI, it's only right that we demystify the process by explaining the *how* and the *why* in order to help you achieve your goal of seamless automation.
-
-Don't worry, we'll make this as painless as possible.
+Let's review some important concepts when building and testing features using CumulusCI.
 
 Packages
 --------
 
-If you've come this far in your search of customization, we're guessing you're familiar with packages as well as their role in customizing a Salesforce org. However, because most everything that is built in CumulusCI is deployed via packages, it's essential to clarify once more:
+If you've come this far in your search for customization tools, we're guessing you're familiar with packages as well as their role in customizing a Salesforce org. However, because most everything that you build in CumulusCI is deployed via packages, it's essential to review the basics of packages.
 
-A **package** is a container for something as small as an individual component or as large as a set of related apps. After creating a package, you can distribute it to other Salesforce users and organizations, including those outside your company.
+A **package** is a container for something as small as an individual component or as large as a sophisticated application. After creating a package, you can distribute it to other Salesforce users and organizations, including those outside your company.
 
-**Unmanaged packages** are typically used to distribute open-source (non-proprietary) features or application templates to provide developers with the basic building blocks for an application. Once the components are installed from an unmanaged package into a specific org, it's what's known as an org implementation. These freshly installed components can be edited as seen fit by the owners of this implementation. The developer who created and uploaded the unmanaged package has no control over the installed components, and can't change or upgrade them.
+**Unmanaged packages** are typically used to distribute open-source (non-proprietary) features or application templates to provide developers with the basic building blocks for an application. After the components are installed from an unmanaged package in a specific org, it's what's known as an **org implementation**. These freshly installed components can be edited by the owners of the implementation. The developer who created and uploaded the unmanaged package has no control over the installed components, and can't change or upgrade them.
  
-**Managed packages** are typically used by Salesforce partners to distribute and sell applications to customers. They are proprietary code that can only be upgraded and deployed by the developer that built them. To ensure seamless upgrades, certain destructive changes, like removing objects or fields, cannot be performed.
+**Managed packages** are typically used by Salesforce partners to distribute and sell applications to customers. They are proprietary code that can be upgraded and deployed only by the developer that built them. To ensure seamless upgrades, we prevent certain destructive changes, such as deleting objects or fields.
 
-In CumulusCI, packages are also built, stored and deployed via **projects**.
+In CumulusCI, packages are built and deployed via **projects**.
 
 Projects
 --------
 
-When you work with CumulusCI, you do so inside a project. A project is an individual git repository (think GitHub) that contains Salesforce metadata as well as the CumulusCI automation (e.g., tasks and flows) that builds and releases the project. Most importantly, a project can build one - and only one(!) - package in its repository. This one-to-one relationship between project and package is what allows version control to track any changes your team made to the repository with minimal collision.
+When you work with CumulusCI, you do so inside a project. A project is an individual Git repository that contains both Salesforce metadata and CumulusCI automation (such as tasks and flows) that builds and releases the project. Most importantly, a project can build one--and only one(!)--package in its repository. This one-to-one relationship between project and package is what allows version control to track any changes your team makes to the repository.
 
-It's important to note that a project may not even contain a package; for example, it can be built to deliver functionality to records, or test data for QA. A project may constitute the entirety of a product made for release, or may be one of multiple projects banded together to make a product. Basically, whatever feature in your product that needs specialized Salesforce metadata and CumulusCI automation in order to be built and deployed, *especially* packages (we cannot stress this enough!), requires its own unique project. 
+It's important to note that a project doesn't have to contain a package. For example, a project can deliver unpackaged metadata, deliver automation but no metadata at all, or provide test data for QA. A project can constitute the entirety of a product offered to customers, or be just one of multiple projects that combine to form a complete product.
+
+To sum up, although a project doesn't require a package, a package requires a project to be built and deployed.
+
 
 Project Structure
 -----------------
@@ -31,45 +32,45 @@ Project Structure
 Project Directory
 ^^^^^^^^^^^^^^^^^
 
-The root directory of your CumulusCI project. Because each project is linked to a single GitHub repository, CumulusCI knows which project you are working on by the current working directory of your shell. 
+The project directory is the root of your CumulusCI project. Because each project is linked to a single GitHub repository, CumulusCI knows which project you are working on by the current working directory of your shell. 
 
-.. tip:: Avoid headaches by making sure you're in the correct repository for your project before running project-specific commands; otherwise, your project will produce an error. (This tends to be one of the biggest troubleshooting issues that developers run into with CumulusCI. Check for this first and you might save yourself an extra trip to this guide.).
+.. tip:: Avoid headaches by making sure you're in the correct repository for your project before running project-specific commands. Otherwise, your project produces an error. (**Check your repo first** when troubleshooting in CumulusCI and potentially save yourself an extra trip to this guide.)
 
-In order to be used as a CumulusCI project, a directory must both be a Git repository and contain a ``cumulusci.yml`` configuration file. We'll show you how to get set up with a new or existing CumulusCI project in the [TODO link Get Started section].
+In order to be used as a CumulusCI project, a directory must both be a Git repository and contain a ``cumulusci.yml`` configuration file. We cover how to get set up with a new or existing CumulusCI project in the [TODO link Get Started section].
 
-cumulusci.yml
-^^^^^^^^^^^^^
+``cumulusci.yml``
+^^^^^^^^^^^^^^^^^
 
-The ``cumulusci.yml`` file defines a project's automation in CumulusCI. It contains all the customizations and configurations that pertain to your project's lifecycle. It can encompass everything from customizing the shapes of scratch orgs to configuring tasks and flows.
+The ``cumulusci.yml`` file defines a project's automation. It contains all the customizations and configurations that pertain to your project's lifecycle. It can encompass everything from customizing the shapes of scratch orgs to configuring tasks and flows.
 
 Learn more about customizing CumulusCI automation in the [TODO: link Customization section].
 
-force-app (or src)
+``force-app`` (or ``src``)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The main body of the project's code and metadata lives in the default package directory, which is the ``force-app`` directory for Salesforce DX-format projects and the ``src`` directory for Metadata API-format projects. **force-app** defines what's included when you release a managed package from your CumulusCI project. (Or when you release an unlocked package, or if you're not releasing a package at all but running the ``deploy`` task to get the metadata into an org in unmanaged form.)
+
+``orgs`` directory
 ^^^^^^^^^^^^^^^^^^
-
-The main body of the project's code and metadata lives in the default package directory, commonly shown as the ``force-app`` folder for Salesforce DX-format projects and the ``src`` folder for Metadata API-format projects. **force-app** defines what will be included when you release a managed package from your CumulusCI project (or when you release an unlocked package, or if you're not releasing the package at all but running the ``deploy`` task to get the metadata into an org in unmanaged form).
-
-orgs directory
-^^^^^^^^^^^^^^
 
 The ``.json`` files found in the ``orgs`` directory define the Salesforce DX org configurations that are available to the project. We cover scratch org management in depth in [TODO: link Scratch Org Management].
 
-datasets
-^^^^^^^^
+``datasets``
+^^^^^^^^^^^^
 
-Each project may have one or more **datasets**: on-disk representations of record data that can be inserted into Salesforce orgs, and which can also be modified and re-captured during the evolution of the project. Datasets are stored in the ``datasets`` directory. Learn more about datasets in [TODO: link Automating Data Operations].
+Each project can have one or more **datasets**: on-disk representations of record data that can be inserted into Salesforce orgs, and that can also be modified and re-captured during the evolution of the project. Datasets are stored in the ``datasets`` directory. Learn more about datasets in [TODO: link Automating Data Operations].
 
-robot
-^^^^^
+``robot``
+^^^^^^^^^
 
-Robot Framework provides browser automation for end-to-end testing. Each project contains a ``robot`` directory, which stores the project's Robot Framework test suites. New CumulusCI projects start with a simple Robot test case that creates a Contact record.
+Robot Framework provides browser automation for end-to-end testing. Each project contains a ``robot`` directory, which stores the project's Robot Framework test suites. New projects start with a simple Robot test case that creates a Contact record.
 
 While Robot Framework is used primarily for browser automation testing, it can also be harnessed to help configure orgs where other strategies and APIs are insufficient. [TODO LINK TO EXPLAIN THIS FURTHER?]
 
-unpackaged metadata
-^^^^^^^^^^^^^^^^^^^
+``unpackaged`` metadata
+^^^^^^^^^^^^^^^^^^^^^^^
 
-A product doesn't just encompass the contents of a managed package or a single deployment. It also includes **unpackaged metadata**: extra bundles of Salesforce metadata that further tailor an org or complete the product.
+As we touched upon earlier, project doesn't just encompass the contents of a managed package or a single deployment. It also includes **unpackaged metadata**: extra bundles of Salesforce metadata that further tailor an org or complete the product.
 
 In a CumulusCI project, all unpackaged metadata is stored in subdirectories within the ``unpackaged`` directory. Unpackaged metadata plays multiple roles, including preparing an org for installing packages, adding more customization after the package or application is deployed, and customizing specific orgs that are used in the product's development process.
 
@@ -83,48 +84,48 @@ Orgs and services are external, authenticated resources that each project uses. 
 Orgs
 ^^^^
 
-Each project has its own set of orgs, including active scratch orgs, persistent orgs like a production or packaging org, and predefined scratch org configurations. CumulusCI securely stores org authentication information in its keychain (via a unique identifier of characters), making it easy to access connected orgs at any time. The ``cci org list`` command shows all of the orgs connected to a project. Orgs can also be shared across multiple projects.
+Each project has its own set of orgs, including active scratch orgs, persistent orgs like a production or packaging org, and predefined scratch org configurations. CumulusCI securely stores org authentication information in its keychain, making it easy to access connected orgs at any time. The ``cci org list`` command shows all of the orgs connected to a project. Orgs can also be shared across multiple projects.
 
-Configuring orgs in CumulusCI is powerful, but comes with some complexity. To review the details, read the sections [TODO: link Scratch org environments] and [TODO: link persistent org section].
+Configuring orgs in CumulusCI is powerful, but comes with some complexity. For details, see [TODO: link Scratch org environments] and [TODO: link persistent org section].
 
 Services
 ^^^^^^^^
 
 Services represent external resources used by CumulusCI automation, such as access to a GitHub account or a MetaDeploy instance. Services are usually, but not always, connected to CumulusCI across projects as part of the global keychain. The command ``cci service list`` shows you which services are connected in the context of the current project.
 
-Global services are easy to use and share and, therefore, we recommend you rely on them for the most part. However, services can also be connected at the project level, which means that they're scoped to a single project and cannot be shared.
+Global services are easy to use and share. We recommend that you use them as much as possible. However, services can also be connected at the project level, which means that they're scoped to a single project and cannot be shared.
 
-        Example: If you need to use a specific Dev Hub for one - and only one(!) - project, you can connect to that service with the command ``cci service connect devhub --project``.
+        Example: If you need to use a specific Dev Hub for one--and only one(!)--project, you can connect to that service with the command ``cci service connect devhub --project``.
 
 Tasks and Flows
 ---------------
 
 CumulusCI uses a framework of **tasks** and **flows** to organize the automation that is available to each project.
 
-Tasks are units of automation. A task could perform a deployment, load a dataset, retrieve material from an org, install a managed package, or undertake many other activities. CumulusCI ships with scores of tasks out of the box.
+Tasks are units of automation. A task can perform a deployment, load a dataset, retrieve data from an org, install a managed package, or do many other things. CumulusCI ships with scores of tasks out of the box.
 
-Popular tasks:
+Popular task commands include:
 
 * ``cci task list``: Review the tasks available in a project.
-* ``cci task info <name>``: Learn more about a task and how to configure its options; ``<name>`` is the name of the task.
-* ``cci task run <name> --org <org>``: Run a task; ``<name>`` is the name of the task and ``<org>`` is the org you'd like to run it against.
+* ``cci task info <name>``: Learn more about a task and how to configure its options. ``<name>`` is the name of the task.
+* ``cci task run <name> --org <org>``: Run a task. ``<name>`` is the name of the task and ``<org>`` is the org you'd like to run it against.
 
         Example: ``run_tests`` executes Apex unit tests. If you have an org called ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``
 
-Many operations that you'll undertake with CumulusCI, including creating new orgs, use flows. Flows are ordered sequences of tasks (and other flows!) that produce a cohesive outcome, such as an org that's configured to suit a specific workflow.
+Many operations in CumulusCI, including creating new orgs, use flows. Flows are ordered sequences of tasks (and even other flows!) that produce a cohesive outcome, such as an org that's configured to suit a workflow like development, QA, or product demonstration.
 
-Popular flows:
+Popular flow-related commands include:
 
 * ``cci flow list``: Review the flows available in a project.
-* ``cci flow info <name>``: Learn more about a flow and the tasks it contains; ``<name>`` is the name of the flow
-* ``cci flow run <name> --org <org>``: Run a flow; ``<name>`` is the name of the flow and ``<org>`` is the org you'd like to run it against.
+* ``cci flow info <name>``: Learn more about a flow and the tasks it contains. ``<name>`` is the name of the flow.
+* ``cci flow run <name> --org <org>``: Run a flow. ``<name>`` is the name of the flow and ``<org>`` is the org to run it against.
 
-Many of the most common flows you'll work with in CumulusCI are designed to build and configure specific orgs for you. Here's a few of the most common flows that build orgs:
+Many of the most common flows you'll work with in CumulusCI are designed to build and configure specific orgs for you. Here's a few of the most common flows that build orgs.
 
-* ``dev_org``: This is an unmanaged org that is designed for development use. This flow is typically used with an org whose configuration is ``dev`` or ``dev_namespaced``.
-* ``qa_org``: This is an unmanaged org that is designed for testing. This flow is typically used with an org whose configuration is ``qa``.
-* ``install_beta``: This is a managed org with the latest beta release installed, for projects that build managed packages. This flow is typically used with an org whose configuration is ``beta``.
-* ``install_prod``: This is a managed org with the latest release installed, for projects that build managed packages.
-* ``regression_org``: This is a managed org that starts with the latest release installed and is then upgraded to the latest beta to simulate a subscriber upgrade for projects that build managed packages. This flow is typically used with an org whose configuration is ``release``.
+* ``dev_org``: This flow builds an unmanaged org designed for development use. It's typically used with an org whose configuration is ``dev`` or ``dev_namespaced``.
+* ``qa_org``: This flow builds an unmanaged org designed for testing. It's typically used with an org whose configuration is ``qa``.
+* ``install_beta``: This flow builds a managed org with the latest beta release installed, for projects that build managed packages. It's typically used with an org whose configuration is ``beta``.
+* ``install_prod``: This flow builds a managed org with the latest release installed, for projects that build managed packages.
+* ``regression_org``: This flow builds a managed org that starts with the latest release installed and is then upgraded to the latest beta to simulate a subscriber upgrade for projects that build managed packages. It's typically used with an org whose configuration is ``release``.
 
-CumulusCI derives the library of tasks and flows available for any project by combining its internal standard library with your customizations in ``cumulusci.yml``. Customizations can add new tasks and flows, customize the way tasks behave, and extend, combine, and modify flows to suit the specific needs of the project. We cover customization in depth in [TODO: reference Customizing CumulusCI].
+CumulusCI derives the library of tasks and flows available for any project by combining its internal standard library with your customizations in ``cumulusci.yml``. Customizations can add new tasks and flows, customize the way tasks behave, and extend, combine, and modify flows to better suit the project's needs. We cover customization in depth in [TODO: reference Customizing CumulusCI].
