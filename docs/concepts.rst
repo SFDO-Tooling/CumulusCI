@@ -6,22 +6,22 @@ Let's review some important concepts when building and testing features using Cu
 Packages
 --------
 
-If you've come this far in your search for customization tools, we're guessing you're familiar with packages as well as their role in customizing a Salesforce org. However, because most everything that you build in CumulusCI is deployed via packages, it's essential to review the basics of packages.
+If you've come this far in your search for customization tools, we're guessing you're familiar with packages as well as their role in customizing a Salesforce org. However, because most everything that you build in CumulusCI is deployed via packages, it's essential to review the basics once more.
 
-A **package** is a container for something as small as an individual component or as large as a sophisticated application. After creating a package, you can distribute it to other Salesforce users and organizations, including those outside your company.
+A *package* is a container for something as small as an individual component or as large as a sophisticated application. After creating a package, you can distribute it to other Salesforce users and organizations, including those outside your company.
 
-**Unmanaged packages** are typically used to distribute open-source (non-proprietary) features or application templates to provide developers with the basic building blocks for an application. After the components are installed from an unmanaged package in a specific org, it's what's known as an **org implementation**. These freshly installed components can be edited by the owners of the implementation. The developer who created and uploaded the unmanaged package has no control over the installed components, and can't change or upgrade them.
+*Unmanaged packages* are typically used to distribute open-source (non-proprietary) features or application templates to provide developers with the basic building blocks for an application. After the components are installed from an unmanaged package in a specific org, it's what's known as an *org implementation*. These freshly installed components can be edited by the owners of the implementation. The developer who created and uploaded the unmanaged package has no control over the installed components, and can't change or upgrade them.
  
-**Managed packages** are typically used by Salesforce partners to distribute and sell applications to customers. They are proprietary code that can be upgraded and deployed only by the developer that built them. To ensure seamless upgrades, we prevent certain destructive changes, such as deleting objects or fields.
+*Managed packages* are typically used by Salesforce partners to distribute and sell applications to customers. They are proprietary code that can be upgraded and deployed only by the developer that built them. To ensure seamless upgrades, we prevent certain destructive changes, such as deleting objects or fields.
 
-In CumulusCI, packages are built and deployed via **projects**.
+In CumulusCI, packages are built and deployed via projects.
 
 Projects
 --------
 
-When you work with CumulusCI, you do so inside a project. A project is an individual Git repository that contains both Salesforce metadata and CumulusCI automation (such as tasks and flows) that builds and releases the project. Most importantly, a project can build one--and only one(!)--package in its repository. This one-to-one relationship between project and package is what allows version control to track any changes your team makes to the repository.
+When you work with CumulusCI, you do so inside a *project*. A project is an individual Git repository that contains both Salesforce metadata and CumulusCI automation (such as tasks and flows) that builds and releases the project. Most importantly, a project can build one--and only one(!)--package in its repository. This one-to-one relationship between project and package is what allows version control to track any changes your team makes to the repository.
 
-It's important to note that a project doesn't have to contain a package. For example, a project can deliver unpackaged metadata, deliver automation but no metadata at all, or provide test data for QA. A project can constitute the entirety of a product offered to customers, or be just one of multiple projects that combine to form a complete product.
+It's important to note that a project doesn't have to contain a package. For example, a project can deliver unpackaged metadata, deliver automation but no metadata at all, or provide test data for QA. A project can contain the entirety of a product offered to customers, or be just one of multiple projects that combine to form a complete product.
 
 To sum up, although a project doesn't require a package, a package requires a project to be built and deployed.
 
@@ -48,7 +48,7 @@ Learn more about customizing CumulusCI automation in the [TODO: link Customizati
 ``force-app`` (or ``src``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The main body of the project's code and metadata lives in the default package directory, which is the ``force-app`` directory for Salesforce DX-format projects and the ``src`` directory for Metadata API-format projects. **force-app** defines what's included when you release a managed package from your CumulusCI project. (Or when you release an unlocked package, or if you're not releasing a package at all but running the ``deploy`` task to get the metadata into an org in unmanaged form.)
+The main body of the project's code and metadata lives in the default package directory, which is the ``force-app`` directory for Salesforce DX-format projects and the ``src`` directory for Metadata API-format projects. ``force-app`` defines what's included when you release a managed package from your CumulusCI project. (Or when you release an unlocked package; or if you're not releasing a package at all but running the ``deploy`` task to get the metadata into an org in unmanaged form.)
 
 ``orgs`` directory
 ^^^^^^^^^^^^^^^^^^
@@ -58,7 +58,7 @@ The ``.json`` files found in the ``orgs`` directory define the Salesforce DX org
 ``datasets``
 ^^^^^^^^^^^^
 
-Each project can have one or more **datasets**: on-disk representations of record data that can be inserted into Salesforce orgs, and that can also be modified and re-captured during the evolution of the project. Datasets are stored in the ``datasets`` directory. Learn more about datasets in [TODO: link Automating Data Operations].
+Each project can have one or more ``datasets``: on-disk representations of record data that can be inserted into Salesforce orgs, and that can also be modified and re-captured during the evolution of the project. Datasets are stored in the ``datasets`` directory. Learn more about datasets in [TODO: link Automating Data Operations].
 
 ``robot``
 ^^^^^^^^^
@@ -70,7 +70,7 @@ While Robot Framework is used primarily for browser automation testing, it can a
 ``unpackaged`` metadata
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-As we touched upon earlier, project doesn't just encompass the contents of a managed package or a single deployment. It also includes **unpackaged metadata**: extra bundles of Salesforce metadata that further tailor an org or complete the product.
+As we touched upon earlier, project doesn't just encompass the contents of a managed package or a single deployment. It also includes *unpackaged metadata*: extra bundles of Salesforce metadata that further tailor an org or complete the product.
 
 In a CumulusCI project, all unpackaged metadata is stored in subdirectories within the ``unpackaged`` directory. Unpackaged metadata plays multiple roles, including preparing an org for installing packages, adding more customization after the package or application is deployed, and customizing specific orgs that are used in the product's development process.
 
@@ -100,7 +100,7 @@ Global services are easy to use and share. We recommend that you use them as muc
 Tasks and Flows
 ---------------
 
-CumulusCI uses a framework of **tasks** and **flows** to organize the automation that is available to each project.
+CumulusCI uses a framework of *tasks* and *flows* to organize the automation that is available to each project.
 
 Tasks are units of automation. A task can perform a deployment, load a dataset, retrieve data from an org, install a managed package, or do many other things. CumulusCI ships with scores of tasks out of the box.
 
