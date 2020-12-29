@@ -929,6 +929,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
+                        include_beta: True
                         dependencies: ^^github_package_data.dependencies
             3:
                 task: install_managed
