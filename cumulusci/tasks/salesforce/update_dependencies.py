@@ -287,7 +287,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 ) or namespace not in self.org_config.installed_packages
 
             package_zip = MetadataPackageZipBuilder.from_zipfile(
-                zip_src, options=dependency, logger=self.logger
+                zip_src, options=options, logger=self.logger
             ).as_base64()
         elif "namespace" in dependency:
             self.logger.info(
