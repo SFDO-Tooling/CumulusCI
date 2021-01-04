@@ -2,6 +2,7 @@ import os
 import shlex
 import sys
 import subprocess
+from pathlib import Path
 
 from robot import run as robot_run
 from robot import pythonpathsetter
@@ -18,6 +19,7 @@ from cumulusci.core.utils import process_list_arg
 from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.robotframework.debugger import DebugListener
+from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
 class Robot(BaseSalesforceTask):
@@ -40,7 +42,10 @@ class Robot(BaseSalesforceTask):
             "required": False,
         },
         "options": {
-            "description": "A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml."
+            "description": "A dictionary of options to robot.run method. "
+            "In simple cases this can be specified on the comand line using "
+            "name:value,name:value syntax. More commplex cases can be specified "
+            "in cumuuluci.yml using YAML dictionary syntax."
         },
         "name": {"description": "Sets the name of the top level test suite"},
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
@@ -108,6 +113,11 @@ class Robot(BaseSalesforceTask):
         options["outputdir"] = os.path.relpath(
             os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
         )
+
+        options["tagstatexclude"] = options.get(
+            "tagstatexclude", []
+        ) + self.options.get("tagstatexclude", [])
+        options["tagstatexclude"].append("cci_metric_elapsed_time")
         # Set as a return value so other things that want to use
         # this file (e.g. MetaCI) know where it is
         self.return_values["robot_outputdir"] = options["outputdir"]
@@ -192,6 +202,10 @@ class Robot(BaseSalesforceTask):
                 num_failed = robot_run(*self.options["suites"], **options)
             finally:
                 sys.path = orig_sys_path
+
+        output_xml = Path(options["outputdir"]) / "output.xml"
+        if output_xml.exists():
+            log_perf_summary_from_xml(output_xml, self.logger.info)
 
         # These numbers are from the robot framework user guide:
         # http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#return-codes

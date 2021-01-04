@@ -7,6 +7,10 @@ import os.path
 import re
 import sys
 from xml.etree import ElementTree as ET
+from pathlib import Path
+from contextlib import contextmanager
+
+import responses
 
 from cumulusci.core.config import TaskConfig, UniversalConfig, BaseProjectConfig
 from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
@@ -18,6 +22,7 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.robotframework.debugger import DebugListener
 from cumulusci.tasks.robotframework.robotframework import KeywordLogger
 from cumulusci.utils import touch, temporary_dir
+from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
 from cumulusci.tasks.robotframework.libdoc import KeywordFile
@@ -112,6 +117,8 @@ class TestRobot(unittest.TestCase):
             "org:test",
             "--outputdir",
             ".",
+            "--tagstatexclude",
+            "cci_metric_elapsed_time",
             "tests",
         ]
         mock_robot_run.assert_not_called()
@@ -126,7 +133,11 @@ class TestRobot(unittest.TestCase):
         task()
         mock_subprocess_run.assert_not_called()
         mock_robot_run.assert_called_once_with(
-            "tests", listener=[], outputdir=".", variable=["org:test"]
+            "tests",
+            listener=[],
+            outputdir=".",
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time"],
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -136,7 +147,12 @@ class TestRobot(unittest.TestCase):
         task = create_task(Robot, {"suites": "tests,more_tests", "process": 0})
         task()
         mock_robot_run.assert_called_once_with(
-            "tests", "more_tests", listener=[], outputdir=".", variable=["org:test"]
+            "tests",
+            "more_tests",
+            listener=[],
+            outputdir=".",
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time"],
         )
 
     def test_default_listeners(self):
@@ -562,3 +578,75 @@ class TestLibdocPageObjects(unittest.TestCase):
         expected = '<div class="description" title="Description"><p>Description of SomethingListingPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
         assert actual == expected
+
+
+class TestRobotPerformanceKeyywords:
+    def setup(self):
+        self.datadir = os.path.dirname(__file__)
+
+    @contextmanager
+    def _run_robot_and_parse_xml(self, test_pattern):
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
+        with temporary_dir() as d:
+            project_config.repo_info["root"] = d
+            print(project_config.repo_root)
+            suite = (
+                Path(self.datadir)
+                / "../../../robotframework/tests/cumulusci/base.robot"
+            )
+            task = create_task(
+                Robot,
+                {
+                    "test": test_pattern,
+                    "suites": str(suite),
+                    "options": {"outputdir": d, "noncritical": "noncritical"},
+                },
+                project_config=project_config,
+            )
+            task()
+            logger_func = mock.Mock()
+            log_perf_summary_from_xml(Path(d) / "output.xml", logger_func)
+            yield logger_func.mock_calls
+
+    def parse_metric(self, metric):
+        name, value = metric.split(": ")
+        value = value.strip("s ")  # strip seconds unit
+        try:
+            value = float(value)
+        except ValueError:
+            raise Exception(f"Cannot convert to float {value}")
+        return name, value
+
+    def extract_times(self, pattern, call):
+        first_arg = call[1][0]
+        if pattern in first_arg:
+            metrics = first_arg.split("-")[-1].split(",")
+            return dict(self.parse_metric(metric) for metric in metrics)
+
+    @responses.activate
+    def test_elapsed_time_xml(self):
+        pattern = "Elapsed Time: "
+
+        with self._run_robot_and_parse_xml("Test Perf*") as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            elapsed_times = [next(iter(x.values())) for x in elapsed_times if x]
+            elapsed_times.sort()
+
+            assert elapsed_times[1:] == [11655.9, 18000.0]
+            assert float(elapsed_times[0]) < 3
+
+    def test_metrics(self):
+        pattern = "Max_CPU_Percent: "
+        with self._run_robot_and_parse_xml(
+            "Test Perf Measure Other Metric"
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times)) == [{" Max_CPU_Percent": 30.0}]
+
+    def test_mismatched_end_generates_error(self, capfd):
+        with self._run_robot_and_parse_xml("Test Should Generate An Error*"):
+            captured = capfd.readouterr()
+            assert (
+                "Elapsed time clock was not started" in captured.out + captured.err
+            ), captured.err

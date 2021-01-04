@@ -38,3 +38,32 @@ Test Run Task Class
 
 Test Run Task Class With Options
     Run Task Class  cumulusci.tasks.salesforce.CreatePackage  package=Test Package
+
+Test Perf Set Elapsed Time
+    [Tags]  perf
+    Set Test Elapsed Time       11655.9   #  3:14:15.9
+
+Test Perf Set Elapsed Time String
+    [Tags]  perf
+    Log                 A
+    Set Test Elapsed Time       5 hours   #  5:00:00
+
+Test Perf Measure Elapsed
+    [Setup]       Log             Before
+    [Teardown]    Log             After
+    Log                 B
+    Start Perf Timer
+    Sleep       1
+    Log         Noop
+    End Perf Timer
+
+# Make sure parser doesn't choke on this.
+Test Perf - Parser does not choke with no keywords - Should Fail
+    [Tags]      noncritical
+
+Test Perf Measure Other Metric
+    Set Test Metric    Max_CPU_Percent    30
+
+Test Should Generate An Error - Mismatched End Perf Timer - Should Fail
+    [Tags]      noncritical
+    End Perf Timer

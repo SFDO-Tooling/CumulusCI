@@ -54,8 +54,8 @@ Insert 200 Prospecting Opportunities
         ...  CloseDate=${date}
     ${numobjects}=  Get Length     ${objects}
     FOR     ${index}   IN RANGE   ${numobjects}
-        ${object}=  Set Variable    @{objects}[${index}]
-        ${account}=     Set Variable    @{accounts}[${index}]
+        ${object}=  Set Variable    ${objects}[${index}]
+        ${account}=     Set Variable    ${accounts}[${index}]
         ${account_id}=  Set Variable    ${account}[Id]
         set to dictionary   ${object}   AccountId   ${account_id}
     END
@@ -66,9 +66,12 @@ Insert 200 Prospecting Opportunities
 *** Test Cases ***
 
 Perftest - Insert 200 Contacts
+    Start Perf Timer
     Insert 200 Contacts
+    End Perf Timer
 
 Perftest - Insert 200 Contacts With Addresses
+    Start Perf Timer
     @{objects}=  Generate Test Data  Contact  200  
         ...  FirstName={{fake.first_name}}
         ...  LastName={{fake.last_name}}
@@ -78,14 +81,18 @@ Perftest - Insert 200 Contacts With Addresses
         ...  MailingPostalCode=12345
         ...  Email={{fake.email(domain="salesforce.com")}}
     Salesforce Collection Insert  ${objects}
+    End Perf Timer
 
 Perftest - Insert 200 Prospecting Opportunities
+    Start Perf Timer
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
     Insert 200 Prospecting Opportunities
+    End Perf Timer
 
 Perftest - Change 200 Opportunity States to Closed-Won
+    Start Perf Timer
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
@@ -95,3 +102,23 @@ Perftest - Change 200 Opportunity States to Closed-Won
         Set To Dictionary   ${record}   StageName   Closed Won
     END
     Salesforce Collection Update    ${OPPORTUNITIES}
+    End Perf Timer
+
+Perftest - Measure Bulk
+    ${Elapsed}=     Elapsed Time For Last Record    
+    ...             obj_name=AsyncApexJob
+    ...             where=ApexClass.Name='RunThisBatch'
+    ...             start_field=CreatedDate
+    ...             end_field=CompletedDate
+    Set Test Elapsed Time        ${Elapsed}
+
+
+Perftest - Measure Bulk Failure
+    [noncritical]
+    ${Elapsed}=     Elapsed Time For Last Record    
+    ...             obj_name=AsyncApexJob
+    ...             where=ApexClass.Name='BlahBlah'
+    ...             start_field=CreatedDate
+    ...             end_field=CompletedDate
+    Set Test Elapsed Time        ${Elapsed}
+

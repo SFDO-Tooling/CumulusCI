@@ -9,6 +9,8 @@ tasks:
             suites: cumulusci/robotframework/tests
             options:
                 outputdir: robot/CumulusCI/results
+                noncritical: noncritical
+
     robot_testdoc:
         options:
             path: cumulusci/robotframework/tests

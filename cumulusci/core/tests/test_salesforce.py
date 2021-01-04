@@ -1,7 +1,11 @@
 import unittest
 from unittest import mock
-from cumulusci.robotframework.Salesforce import Salesforce
+
+import pytest
+import responses
 from SeleniumLibrary.errors import ElementNotFound
+
+from cumulusci.robotframework.Salesforce import Salesforce
 
 
 # _init_locators has a special code block
@@ -81,3 +85,26 @@ class TestKeyword_breakpoint(unittest.TestCase):
     def test_breakpoint(self, mock_robot_context):
         """Verify that the keyword doesn't raise an exception"""
         self.assertIsNone(self.sflib.breakpoint())
+
+
+@responses.activate
+class TestKeyword_elapsed_time_for_last_record:
+    def test_elapsed_time_for_last_record__query_fails(self):
+        sflib = Salesforce(locators={"body": "//whatever"})
+        sflib.salesforce_query = lambda: None
+        with pytest.raises(Exception):
+            sflib.elapsed_time_for_last_record("FOO", "Bar", "Baz")
+
+    def test_elapsed_time_for_last_record__query_empty(self):
+        sflib = Salesforce(locators={"body": "//whatever"})
+
+        with mock.patch.object(sflib.cumulusci.sf.query_all) as q_a:
+            q_a.return_value = {"records": []}
+            sflib.elapsed_time_for_last_record("FOO", "Bar", "Baz")
+
+    def test_elapsed_time_for_last_record__query_returns_result(self):
+        sflib = Salesforce(locators={"body": "//whatever"})
+
+        with mock.patch.object(sflib.cumulusci.sf.query_all) as q_a:
+            q_a.return_value = {"records": [{}]}
+            sflib.elapsed_time_for_last_record("FOO", "Bar", "Baz")
