@@ -167,9 +167,7 @@ class DummyRepository(object):
         ref.object.sha = "ref_sha"
         return ref
 
-    @property
-    def default_branch(self):
-        return "main"
+    default_branch = "main"
 
 
 class DummyRelease(object):
