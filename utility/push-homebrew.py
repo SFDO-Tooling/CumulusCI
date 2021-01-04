@@ -30,7 +30,7 @@ def get_repo():
 
 
 def create_branch(repo):
-    head_sha = repo.ref("heads/master").object.sha
+    head_sha = repo.ref("heads/{repo.default_branch}").object.sha
     branch_ref = f"refs/heads/{BRANCH_NAME}"
     print(f"Creating new branch from {head_sha[:8]} at {branch_ref}")
     repo.create_ref(branch_ref, head_sha)
@@ -48,7 +48,7 @@ def create_pull_request(repo):
         msg, read_formula(), branch=BRANCH_NAME
     )
     print(f"Updated {TARGET_FILE} to {new_commit['commit'].sha[:8]}")
-    pull_request = repo.create_pull(msg, "master", BRANCH_NAME)
+    pull_request = repo.create_pull(msg, repo.default_branch, BRANCH_NAME)
     print(f"Created pull request at {pull_request.html_url}")
 
 

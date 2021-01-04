@@ -1,3 +1,4 @@
+import pathlib
 from typing import Optional
 
 from cumulusci.core.exceptions import TaskOptionsError
@@ -106,6 +107,9 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _get_package_zip(self, path):
         assert path, f"Path should be specified for {self.__class__.name}"
+        if not pathlib.Path(path).exists():
+            self.logger.warning(f"{path} not found.")
+            return
         namespace = self.options["namespace_inject"]
         options = {
             **self.options,

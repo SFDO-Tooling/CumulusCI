@@ -4,7 +4,7 @@ on:
   push:
     branches:
     - feature/**
-    - master
+    - main
 
 env:
   CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'

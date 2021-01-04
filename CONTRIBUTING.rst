@@ -1,5 +1,3 @@
-.. highlight:: shell
-
 ============
 Contributing
 ============
@@ -74,7 +72,7 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
 
    $ make coverage
 
-7. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to master.
+7. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to main.
 
 Note that we enable typeguard with pytest so if you add type declarations to your 
 code, those declarations will be treated as runtime assertions in your python
@@ -111,11 +109,11 @@ After a couple minutes, check for the new release's appearance at https://pypi.o
 Next, head to the tag that was autocreated in the GitHub repository and edit it. Populate the version number and paste in the changelog notes from ``HISTORY.rst``. Note that some formatting, such as reStructuredText links, need to be converted to Markdown. Publish the release.
 
 .. note::
-If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to Github Flavored Markdown.
+    If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to Github Flavored Markdown.
 
 You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because PyPI is the source CumulusCI checks to see if a new version is available)::
 
-    $ git checkout master
+    $ git checkout main
     $ git pull
     $ make release-homebrew
 
