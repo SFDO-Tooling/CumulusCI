@@ -931,6 +931,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
+                        include_beta: True
                         dependencies: ^^github_package_data.dependencies
                         prefer_2gp_from_release_branch: True
                         2gp_context: $project_config.project__git__2gp_context

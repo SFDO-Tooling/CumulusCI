@@ -4,7 +4,7 @@ on:
   push:
     branches:
     - feature/**
-    - master
+    - main
 
 env:
   COVERALLS_PARALLEL: true
@@ -34,8 +34,8 @@ jobs:
         pip install pre-commit
     - name: Run pre-commit on changed files
       run: |
-        git fetch --depth=1 origin master
-        pre-commit run --files $(git diff --diff-filter=d --name-only origin/master...HEAD)
+        git fetch --depth=1 origin main
+        pre-commit run --files $(git diff --diff-filter=d --name-only origin/main...HEAD)
 
   unit_tests:
     name: "Unit tests: Python ${{ matrix.python-version }}"
