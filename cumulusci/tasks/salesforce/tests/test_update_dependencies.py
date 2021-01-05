@@ -279,17 +279,6 @@ class TestUpdateDependencies(unittest.TestCase):
                 mock.Mock(),
             )
 
-    def test_run_task__bad_2gp_options(self):
-        project_config = create_project_config()
-        project_config.config["project"]["dependencies"] = PROJECT_DEPENDENCIES
-        with self.assertRaises(TaskOptionsError):
-            create_task(
-                UpdateDependencies,
-                {"prefer_2gp_from_release_branch": True},
-                project_config,
-                mock.Mock(),
-            )
-
     def test_run_task__metadata_bundle(self):
         project_config = create_project_config()
         project_config.get_github_api = mock.Mock()
