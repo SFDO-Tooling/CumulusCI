@@ -10,11 +10,11 @@ jobs:
     name: Build Homebrew formula
     runs-on: macos-10.15
     steps:
-      - uses: actions/checkout@master
-      - name: Set up Python 3.7
+      - uses: actions/checkout@main
+      - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Build formula
         run: |
           utility/build-homebrew.sh cumulusci.rb

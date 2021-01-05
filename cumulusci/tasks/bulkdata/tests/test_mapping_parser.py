@@ -47,6 +47,17 @@ class TestMappingParser:
         parse_from_yaml(base_path)
         assert "record_type" in caplog.text
 
+    def test_deprecation_override(self, caplog):
+        base_path = Path(__file__).parent / "mapping_v2.yml"
+        caplog.set_level(logging.WARNING)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.mapping_parser.SHOULD_REPORT_RECORD_TYPE_DEPRECATION",
+            False,
+        ):
+            mapping = parse_from_yaml(base_path)
+            assert "record_type" not in caplog.text
+            assert mapping["Insert Households"]["record_type"] == "HH_Account"
+
     def test_bad_mapping_syntax(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
