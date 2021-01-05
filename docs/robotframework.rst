@@ -304,7 +304,7 @@ job:
     ...             where=ApexClass.Name='BlahBlah'
     ...             start_field=CreatedDate
     ...             end_field=CompletedDate
-
+    ...             order_by=CompletedDate
 
 Full Documentation
 ------------------
