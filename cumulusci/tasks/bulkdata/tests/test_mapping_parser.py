@@ -157,6 +157,28 @@ class TestMappingParser:
 
         assert mapping.get_relative_date_context(org_config) == ([0], [1], date.today())
 
+    def test_get_relative_date_e2e(self):
+        base_path = Path(__file__).parent / "mapping_v1.yml"
+        mapping = parse_from_yaml(base_path)
+        org_config = mock.Mock()
+        org_config.salesforce_client.Contact.describe.return_value = {
+            "fields": [
+                {"name": "Some_Date__c", "type": "date"},
+                {"name": "Some_Datetime__c", "type": "datetime"},
+                {"name": "Some_Bool__c", "type": "boolean"},
+            ]
+        }
+        contacts_mapping = mapping["Insert Contacts"]
+        print(contacts_mapping.fields)
+        contacts_mapping.fields.update(
+            {"Some_Date__c": "Some_Date__c", "Some_Datetime__c": "Some_Datetime__c"}
+        )
+        assert contacts_mapping.get_relative_date_context(org_config) == (
+            [3],
+            [4],
+            date.today(),
+        ), contacts_mapping.get_relative_date_context(org_config)
+
     # Start of FLS/Namespace Injection Unit Tests
 
     def test_is_injectable(self):

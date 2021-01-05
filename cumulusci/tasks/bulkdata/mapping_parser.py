@@ -84,7 +84,7 @@ class MappingStep(CCIDictModel):
     bulk_mode: Optional[
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
-    anchor_date: Optional[str] = None
+    anchor_date: Optional[Union[str, date]] = None
 
     def get_oid_as_pk(self):
         """Returns True if using Salesforce Ids as primary keys."""
