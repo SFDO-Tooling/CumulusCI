@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 from cumulusci.tasks.bulkdata.step import DataOperationType
 
@@ -82,6 +82,8 @@ def date_to_iso(d):
 
 def iso_to_date(s):
     """Convert ISO8601 string to date object"""
+    if isinstance(s, date):
+        return s
     return datetime.strptime(s, "%Y-%m-%d").date()
 
 
