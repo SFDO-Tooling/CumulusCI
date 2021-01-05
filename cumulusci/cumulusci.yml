@@ -1,8 +1,5 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
-project:
-    git:
-        2gp_context: "Build Feature Test Package"
 tasks:
     activate_flow:
         group: Metadata Transformations
@@ -1156,6 +1153,7 @@ project:
         prefix_release: release/
         push_prefix_sandbox: 'Sandbox orgs: '
         push_prefix_production: 'Production orgs: '
+        2gp_context: "Build Feature Test Package"
         release_notes:
             parsers:
                 1:
