@@ -180,7 +180,6 @@ class TestMappingParser:
             ]
         }
         contacts_mapping = mapping["Insert Contacts"]
-        print(contacts_mapping.fields)
         contacts_mapping.fields.update(
             {"Some_Date__c": "Some_Date__c", "Some_Datetime__c": "Some_Datetime__c"}
         )
