@@ -167,6 +167,21 @@ class TestCleanupCacheDir:
                     cleanup_org_cache_dirs(keychain, project_config)
                     assert not rmtree.mock_calls, rmtree.mock_calls
 
+    duration = (
+        (59, "59s"),
+        (70, "1m:10s"),
+        (119, "1m:59s"),
+        (65, "1m:5s"),
+        (4000, "1h:6m:40s"),
+        (4000, "1h:6m:40s"),
+        (7199, "1h:59m:59s"),
+    )
+
+    @pytest.mark.parametrize("val,expected", duration)
+    def test_time_delta(self, val, expected):
+        formatted = utils.format_duration(datetime.timedelta(seconds=val))
+        assert formatted == expected, (formatted, expected)
+
 
 def _touch_test_org_file(directory):
     org_dir = directory / "orginfo/something.something.saleforce.com"

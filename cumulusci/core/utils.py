@@ -4,7 +4,7 @@ import_global: task class defn import helper
 process_bool_arg: determine true/false for a commandline arg
 decode_to_unicode: get unicode string from sf api """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import copy
 import glob
 import pytz
@@ -220,3 +220,12 @@ def cleanup_org_cache_dirs(keychain, project_config):
     for directory in list(project_org_directories) + list(global_org_directories):
         if directory.name not in domains:
             rmtree(directory)
+
+
+def format_duration(duration: timedelta):
+    hours, remainder = divmod(duration.total_seconds(), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    hours = f"{int(hours)}h:" if hours > 0 else ""
+    minutes = f"{int(minutes)}m:" if (hours or minutes) else ""
+    seconds = f"{str(int(seconds))}s"
+    return hours + minutes + seconds
