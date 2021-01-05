@@ -1,0 +1,50 @@
+name: Build pyinstaller
+
+on: workflow_dispatch
+
+jobs:
+  build_binary:
+    name: Build Binary
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.8"
+      - name: Update Pip
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+      - name: Locate Pip Cache
+        id: pip-cache
+        run: |
+          echo "::set-output name=dir::$(pip cache dir)"
+      - uses: actions/cache@v1
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install
+        shell: bash
+        run: pip install requirements.txt
+      - name: Build Binary
+        shell: bash
+        run: pyinstaller cci.spec
+      - name: Test Binary
+        if: "!startsWith(matrix.os, 'windows')"
+        shell: bash
+        run: ./dist/cci version
+      - name: Test Binary (Windows)
+        if: "startsWith(matrix.os, 'windows')"
+        shell: bash
+        run: ./dist/cci.exe version
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${matrix.os} binary
+          path: dist/*
