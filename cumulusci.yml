@@ -9,7 +9,7 @@ tasks:
             suites: cumulusci/robotframework/tests
             options:
                 outputdir: robot/CumulusCI/results
-                noncritical: noncritical
+                noncritical: noncritical    # allows testing failure conditions
 
     robot_testdoc:
         options:

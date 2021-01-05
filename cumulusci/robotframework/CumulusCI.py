@@ -245,14 +245,29 @@ class CumulusCI(object):
         set_pdb_trace()
 
     def start_perf_timer(self):
-        """Start an elapsed time stopwatch for performance tests"""
+        """Start an elapsed time stopwatch for performance tests.
+
+        Example:
+
+            Start Perf Timer
+            Do Something
+            End Perf Timer
+        """
         BuiltIn().set_test_variable("${__start_time}", datetime.now())
 
     def end_perf_timer(self):
         """Record the results of a stopwatch. For perf testing.
 
         This keyword uses Set Test Elapsed Time internally and therefore
-        outputs in all of the ways described there."""
+        outputs in all of the ways described there.
+
+        Example:
+
+            Start Perf Timer
+            Do Something
+            End Perf Timer
+
+        """
         builtins = BuiltIn()
 
         start_time = builtins.get_variable_value("${__start_time}")
@@ -277,6 +292,10 @@ class CumulusCI(object):
         Using this keyword will automatically add the tag cci_metric_elapsed_time to the test case
         and ${cci_metric_elapsed_time} to the test's variables.
 
+        Example:
+
+            Set Test Elapsed Time       11655.9
+
         Performance test times are output in the CCI logs and are captured in MetaCI instead of the
         "total elapsed time" measured by Robot Framework."""
 
@@ -300,8 +319,12 @@ class CumulusCI(object):
         The keyword takes a metric name, which can be any string, and a value, which
         can be any number.
 
-        Using this keyword will automatically add the tag cci_metric_metric to the test case
+        Using this keyword will automatically add the tag cci_metric to the test case
         and ${cci_metric_<metric_name>} to the test's variables.
+
+        Example:
+
+            Set Test Metric    Max_CPU_Percent    30
 
         Performance test metrics are output in the CCI logs, log.html and output.xml."""
 
@@ -310,5 +333,5 @@ class CumulusCI(object):
         value = float(value)
 
         builtins.set_test_message(f"Metric time set by test : {metric} {value}")
-        builtins.set_tags("cci_metric_metric")
+        builtins.set_tags("cci_metric")
         builtins.set_test_variable("${cci_metric_%s}" % metric, value)
