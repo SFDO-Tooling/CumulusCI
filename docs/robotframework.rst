@@ -267,7 +267,7 @@ The **Run Task Class** keyword is for use cases where you want to use one of Cum
 
 Set Test Elapsed Time
 ---------------------
-This keyword captures a computed rather than measured elapsed time for performance-tests.
+This **Set Test Elapsed Time** keyword captures a computed rather than measured elapsed time for performance-tests.
 
 For example, if you were performance testing a Salesforce batch process, you might want to store the Salesforce-measured elapsed time of the batch process instead of the time measured in the CCI client process.
 
@@ -284,6 +284,27 @@ Start and End Perf Time
 As a convenience, there are keywords to handle the common case where you want to start
 a timer and then store the result with **Set Test Elapsed Time**. These are **Start Perf Time**
 and **End Perf Time**.
+
+Set Test Metric
+---------------
+This keyword captures any metric for performance monitoring.
+
+For example: number of queries, rows processed, CPU usage, etc.
+
+Elapsed Time For Last Record
+----------------------------
+The **Elapsed Time For Last Record** queries Salesforce for a value that
+is Salesforce's recorded log of a job. For example, to query an Apex bulk
+job:
+
+.. code-block:: robot
+
+    ${time_in_seconds} =    Elapsed Time For Last Record
+    ...             obj_name=AsyncApexJob
+    ...             where=ApexClass.Name='BlahBlah'
+    ...             start_field=CreatedDate
+    ...             end_field=CompletedDate
+
 
 Full Documentation
 ------------------

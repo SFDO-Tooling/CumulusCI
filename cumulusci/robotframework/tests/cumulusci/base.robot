@@ -64,6 +64,7 @@ Test Perf - Parser does not choke with no keywords - Should Fail
 Test Perf Measure Other Metric
     Set Test Metric    Max_CPU_Percent    30
 
-Test Should Generate An Error - Mismatched End Perf Timer - Should Fail
-    [Tags]      noncritical
-    End Perf Timer
+Mismatched End Perf Timer - Should Fail
+    Run Keyword and Expect Error
+    ...         *Elapsed time clock was not*
+    ...         End Perf Timer

@@ -763,7 +763,10 @@ Wait for modal to appear    New    Contact   expected_heading=New Contact
                   <i>**kwargs</i>
                   
                 </td>
-                <td class="kwdoc"></td>
+                <td class="kwdoc"><p>Compare a record's start-time to its end-time to see how long a process took.</p>
+<p>Arguments: obj_name:   SObject to look for last record start_field: Name of the datetime field that represents the process start end_field: Name of the datetime field that represents the process end where:  Where-clause to use for filtering</p>
+<p>The last matching record queried and summarized.</p>
+<p>Example: ${time_in_seconds} =    Elapsed Time For Last Record ...             obj_name=AsyncApexJob ...             where=ApexClass.Name='BlahBlah' ...             start_field=CreatedDate ...             end_field=CompletedDate</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Field Value Should Be">
@@ -2210,7 +2213,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Monday January 04, 05:36 PM - cumulusci v3.26.0.dev1
+      Generated on Tuesday January 05, 12:08 PM - cumulusci v3.26.0.dev1
     </div>
   </body>
 </html>

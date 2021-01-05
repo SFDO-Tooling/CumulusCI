@@ -643,10 +643,3 @@ class TestRobotPerformanceKeyywords:
         ) as logger_calls:
             elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
             assert list(filter(None, elapsed_times)) == [{" Max_CPU_Percent": 30.0}]
-
-    def test_mismatched_end_generates_error(self, capfd):
-        with self._run_robot_and_parse_xml("Test Should Generate An Error*"):
-            captured = capfd.readouterr()
-            assert (
-                "Elapsed time clock was not started" in captured.out + captured.err
-            ), captured.err

@@ -105,20 +105,24 @@ Perftest - Change 200 Opportunity States to Closed-Won
     End Perf Timer
 
 Perftest - Measure Bulk
+    [Teardown]      Delete Session Records
+    ${contact_id} =  Salesforce Insert  Contact  FirstName=Dummy1  LastName=Dummy2
+    sleep   1
+    Salesforce Update   Contact     ${contact_id}       LastName=Dummy3
     ${Elapsed}=     Elapsed Time For Last Record    
-    ...             obj_name=AsyncApexJob
-    ...             where=ApexClass.Name='RunThisBatch'
+    ...             obj_name=Contact
+    ...             where=Id='${contact_id}'
     ...             start_field=CreatedDate
-    ...             end_field=CompletedDate
+    ...             end_field=LastModifiedDate
+    Should Be True      ${Elapsed} > 0
     Set Test Elapsed Time        ${Elapsed}
 
 
 Perftest - Measure Bulk Failure
-    [noncritical]
-    ${Elapsed}=     Elapsed Time For Last Record    
+    Run Keyword and expect Error   *Matching record not found*   
+    ...     Elapsed Time For Last Record    
     ...             obj_name=AsyncApexJob
     ...             where=ApexClass.Name='BlahBlah'
     ...             start_field=CreatedDate
     ...             end_field=CompletedDate
-    Set Test Elapsed Time        ${Elapsed}
 

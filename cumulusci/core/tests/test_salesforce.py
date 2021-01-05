@@ -87,24 +87,32 @@ class TestKeyword_breakpoint(unittest.TestCase):
         self.assertIsNone(self.sflib.breakpoint())
 
 
-@responses.activate
-class TestKeyword_elapsed_time_for_last_record:
-    def test_elapsed_time_for_last_record__query_fails(self):
-        sflib = Salesforce(locators={"body": "//whatever"})
-        sflib.salesforce_query = lambda: None
-        with pytest.raises(Exception):
-            sflib.elapsed_time_for_last_record("FOO", "Bar", "Baz")
-
+class TestKeyword_elapsed_time_for_last_record(unittest.TestCase):
+    @responses.activate
     def test_elapsed_time_for_last_record__query_empty(self):
         sflib = Salesforce(locators={"body": "//whatever"})
 
-        with mock.patch.object(sflib.cumulusci.sf.query_all) as q_a:
+        with mock.patch.object(Salesforce, "cumulusci") as cumulusci:
+            q_a = cumulusci.sf.query_all
             q_a.return_value = {"records": []}
-            sflib.elapsed_time_for_last_record("FOO", "Bar", "Baz")
+            with pytest.raises(Exception) as e:
+                sflib.elapsed_time_for_last_record("FOO", "Bar", "Baz")
+            assert "Matching record not found" in str(e.value)
 
+    @responses.activate
     def test_elapsed_time_for_last_record__query_returns_result(self):
         sflib = Salesforce(locators={"body": "//whatever"})
 
-        with mock.patch.object(sflib.cumulusci.sf.query_all) as q_a:
-            q_a.return_value = {"records": [{}]}
-            sflib.elapsed_time_for_last_record("FOO", "Bar", "Baz")
+        with mock.patch.object(Salesforce, "cumulusci") as cumulusci:
+            cumulusci.sf.query_all.return_value = {
+                "records": [
+                    {
+                        "CreatedDate": "2020-12-29T10:00:01.000+0000",
+                        "CompletedDate": "2020-12-29T10:00:04.000+0000",
+                    }
+                ],
+            }
+            elapsed = sflib.elapsed_time_for_last_record(
+                "AsyncApexJob", "CreatedDate", "CompletedDate"
+            )
+            assert elapsed == 3

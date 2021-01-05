@@ -1236,6 +1236,23 @@ class Salesforce(object):
         return False
 
     def elapsed_time_for_last_record(self, obj_name, start_field, end_field, **kwargs):
+        """Compare a record's start-time to its end-time to see how long a process took.
+
+        Arguments:
+            obj_name:   SObject to look for last record
+            start_field: Name of the datetime field that represents the process start
+            end_field: Name of the datetime field that represents the process end
+            where:  Where-clause to use for filtering
+
+        The last matching record queried and summarized.
+
+        Example:
+            ${time_in_seconds} =    Elapsed Time For Last Record
+            ...             obj_name=AsyncApexJob
+            ...             where=ApexClass.Name='BlahBlah'
+            ...             start_field=CreatedDate
+            ...             end_field=CompletedDate
+        """
         query = self._soql_query_builder(
             obj_name,
             select=f"{start_field}, {end_field}",
