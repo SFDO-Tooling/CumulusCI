@@ -1,6 +1,7 @@
 from collections import defaultdict
 from urllib.parse import urlparse
 
+import _sitebuiltins
 import code
 import functools
 import json
@@ -1324,7 +1325,7 @@ The cumulusci shell gives you access to the following objects and functions:
 """
 
 
-class CCIHelp(type(help)):
+class CCIHelp(_sitebuiltins._Helper):
     def __repr__(self):
         return org_shell_cci_help_message
 
