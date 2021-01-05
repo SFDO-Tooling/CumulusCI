@@ -1,0 +1,1 @@
+Mock of a file to be inserted as a Content Document.

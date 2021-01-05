@@ -1,19 +1,19 @@
 import base64
 from pathlib import Path
-
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_list_arg
 from cumulusci.core.exceptions import CumulusCIException
 from simple_salesforce.exceptions import SalesforceMalformedRequest
+import json
 
 
-def to_cumulusci_exception(self, e: SalesforceMalformedRequest) -> CumulusCIException:
+def to_cumulusci_exception(e: SalesforceMalformedRequest) -> CumulusCIException:
     return CumulusCIException(
         "; ".join([error.get("message", "Unknown.") for error in e.content])
     )
 
 
-class InsertContentDocumentTask(BaseSalesforceApiTask):
+class InsertContentDocument(BaseSalesforceApiTask):
     task_docs = """
 Uploads a profile photo for a specified or default User.
 
@@ -47,7 +47,10 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
     """
 
     task_options = {
-        "path": {"description": "Path to the Content Document.", "required": True},
+        "path": {
+            "description": "Path to the file to upload as a Content Document.",
+            "required": True,
+        },
         "queries": {
             "description": "List of SOQL queries whose records will be linked to the inserted Content Document.",
             "required": False,
@@ -67,7 +70,7 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
 
         self.options["path"] = Path(self.options.get("path"))
 
-        if not self.options["path"].exists():
+        if not self.options["path"].exists() or not self.options["path"].is_file():
             raise CumulusCIException(
                 f'Invalid "path". No file found at {self.options["path"]}'
             )
@@ -85,6 +88,17 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
         path = self.options["path"]
 
         self.logger.info(f"Inserting ContentVersion from {path}")
+
+        self.logger.debug(
+            json.dumps(
+                {
+                    "PathOnClient": path.name,
+                    "Title": path.stem,
+                    "VersionData": base64.b64encode(path.read_bytes()).decode("utf-8"),
+                }
+            )
+        )
+
         result = self.sf.ContentVersion.create(
             {
                 "PathOnClient": path.name,
@@ -115,20 +129,16 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
             all_record_ids = set()
             for query in queries:
                 self.logger.info(f"    {query}")
-                try:
-                    record_ids = [
-                        record["Id"] for record in self.sf.query_all(query)["records"]
-                    ]
-                    if record_ids:
-                        self.logger.info(
-                            f"        ({len(record_ids)}) {', '.join(record_ids)}"
-                        )
-                        all_record_ids.update(record_ids)
-                    else:
-                        self.logger.info("        🚫 No records found.")
-                except SalesforceMalformedRequest as e:
-                    # Raise an easier to digest exception.
-                    self._raise_cumulusci_exception(e)
+                record_ids = [
+                    record["Id"] for record in self.sf.query_all(query)["records"]
+                ]
+                if record_ids:
+                    self.logger.info(
+                        f"        ({len(record_ids)}) {', '.join(record_ids)}"
+                    )
+                    all_record_ids.update(record_ids)
+                else:
+                    self.logger.info("        🚫 No records found.")
             return all_record_ids
         else:
             self.logger.info("    No queries specified.")
