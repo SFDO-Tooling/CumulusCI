@@ -19,7 +19,8 @@ class PerfSummary(NamedTuple):
     test: TestCase
 
 
-def _format_metric(metric_name: str, value: float):
+def _format_metric(metric_name: str, value: float) -> str:
+    "Format a metric value for output"
     extra_info = UNITS.get(metric_name)
     if extra_info:
         unit, name = extra_info
@@ -30,16 +31,14 @@ def _format_metric(metric_name: str, value: float):
 
 def _perf_formatter(perfsummary: PerfSummary) -> str:
     """Default formatter for perf summaries"""
-    metrics = perfsummary.metrics
-    elapsed_time = metrics.get("total_time")
-    assert elapsed_time  # TODO: Remove this
-    result = f"`{perfsummary.name}` - "
 
     other_metrics = [
         _format_metric(metric, value)
         for metric, value in perfsummary.metrics.items()
         if metric != "total_time"
     ]
+
+    result = f"`{perfsummary.name}` - "
 
     if other_metrics:
         other_metrics = ", ".join(other_metrics)
@@ -53,7 +52,7 @@ def log_perf_summary_from_xml(
 ):
     """Log Robot performance info to a callable which accepts a string.
 
-    Supply a formatter that takes 3 paramaters if the default isn't a good fit:
+    Supply a formatter that takes a PerfSummary triple if the default isn't a good fit:
 
         f(test_name: str, metrics: Dict[str, float], test: robot.result.model.TestCase)"""
     result = ExecutionResult(robot_xml)
@@ -65,9 +64,9 @@ def log_perf_summary_from_xml(
 
 def _perf_logger(logger_func: Callable, formatter_func: Callable):
     """Generator that connects visitor to logger"""
-    perfsummary = yield
     logger_func(" === Performance Results  === ")
 
+    perfsummary = yield
     while perfsummary:
         logger_func(formatter_func(perfsummary))
         perfsummary = yield
@@ -102,6 +101,7 @@ class PerfSummarizer(ResultVisitor):
             self.report_test_metrics(test, metrics)
 
     def report_test_metrics(self, test, metrics):
+        "Generate a perf summary and call formatter&logger to output it"
         setup_keyword = test.keywords.setup
         if setup_keyword:
             metrics["setup_time"] = setup_keyword.elapsedtime / 1000
