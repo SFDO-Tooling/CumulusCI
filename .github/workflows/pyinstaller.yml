@@ -31,7 +31,7 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Install
         shell: bash
-        run: pip install requirements.txt
+        run: pip install -r requirements.txt
       - name: Build Binary
         shell: bash
         run: pyinstaller cci.spec
