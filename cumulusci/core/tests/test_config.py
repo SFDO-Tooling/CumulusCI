@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from cumulusci.core.utils import process_list_arg
 from distutils.version import StrictVersion
 import json
 import os
@@ -948,23 +947,108 @@ class TestBaseProjectConfig(unittest.TestCase):
         config.get_github_api = mock.Mock(return_value=github)
         config.project__git__prefix_feature = "feature/"
         get_version_id.return_value = "04t000000000000"
-        with mock.patch(BaseProjectConfig, "repo_commit") as commit:
-            with mock.patch(BaseProjectConfig, "repo_branch") as branch:
-                assert (
-                    config.find_matching_2gp_release(
-                        github["CumulusCI-Test-Dep"], "Build Feature Test Package"
-                    )
-                    == "04t000000000000"
-                )
+        config.repo_info["branch"] = "feature/230"
 
-    def test_find_matching_2gp_release__found_previous_commit(self):
-        raise NotImplementedError
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
 
-    def test_find_matching_2gp_release__not_found(self):
-        raise NotImplementedError
+        assert (
+            config.find_matching_2gp_release(
+                repo,
+                "Build Feature Test Package",
+            )
+            == ("04t000000000000", "commit_sha")
+        )
 
-    def test_find_matching_2gp_release__no_remote_branch_prefix(self):
-        raise NotImplementedError
+    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
+    def test_find_matching_2gp_release__found_previous_commit(self, get_version_id):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        get_version_id.side_effect = [None, "04t000000000000"]
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+        repo.branch = mock.Mock()
+        repo.branch.return_value.commit.parents = [
+            {"sha": "000"},
+            {"sha": "001"},
+        ]
+        repo.commit = mock.Mock()
+
+        assert (
+            config.find_matching_2gp_release(
+                repo,
+                "Build Feature Test Package",
+            )
+            == ("04t000000000000", repo.commit.return_value.sha)
+        )
+
+        get_version_id.assert_has_calls(
+            [
+                mock.call(
+                    repo,
+                    repo.branch.return_value.commit.sha,
+                    "Build Feature Test Package",
+                ),
+                mock.call(
+                    repo, repo.commit.return_value.sha, "Build Feature Test Package"
+                ),
+            ]
+        )
+
+    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
+    def test_find_matching_2gp_release__not_found(self, get_version_id):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        get_version_id.return_value = None
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+        repo.branch = mock.Mock()
+        repo.branch.return_value.commit.parents = [
+            {"sha": "000"},
+            {"sha": "001"},
+        ]
+        repo.commit = mock.Mock()
+        repo.commit.return_value.parents = [
+            {"sha": "000"},
+            {"sha": "001"},
+        ]
+
+        assert (
+            config.find_matching_2gp_release(
+                repo,
+                "Build Feature Test Package",
+            )
+            == (None, None)
+        )
+
+    def test_find_matching_2gp_release__release_branch_not_found(self):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+        ex = NotFoundError(mock.Mock())
+        repo.branch = mock.Mock(side_effect=[mock.Mock(), ex])
+        assert (
+            config.find_matching_2gp_release(
+                repo,
+                "Build Feature Test Package",
+            )
+            == (None, None)
+        )
 
     def test_get_task__included_source(self):
         universal_config = UniversalConfig()

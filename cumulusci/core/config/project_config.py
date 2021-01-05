@@ -7,6 +7,8 @@ from pathlib import Path
 from configparser import ConfigParser
 from itertools import chain
 from contextlib import contextmanager
+from typing import Tuple, Union
+from unittest.mock import Mock
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -507,7 +509,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo
 
-    def find_matching_2gp_release(self, remote_repo, context_2gp):
+    def find_matching_2gp_release(
+        self, remote_repo: Union[BaseTaskFlowConfig, Mock], context_2gp: str
+    ) -> Tuple[str, str]:
         # To allow us to locate release branches on the remote repo, we need to know its feature branch prefix.
         # We'll use the cumulusci.yml file from HEAD on the main branch to determine this.
 
@@ -515,7 +519,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.repo_branch, self.project__git__prefix_feature
         )
         remote_branch_prefix = None
-        contents = remote_repo.file_contents(  # FIXME: Does this raise or return None?
+        contents = remote_repo.file_contents(
             "cumulusci.yml",
             ref=remote_repo.branch(remote_repo.default_branch).commit.sha,
         )
@@ -528,35 +532,44 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             .get("prefix_feature", "feature/")
         )
 
-        if not remote_branch_prefix:
-            return None
-
         remote_matching_branch = construct_release_branch(
             remote_branch_prefix, release_id
         )
 
         # Check the most recent five commits on this release branch looking for a 2GP package to use
-        release_branch = remote_repo.branch(remote_matching_branch)
+        try:
+            release_branch = remote_repo.branch(remote_matching_branch)
+        except NotFoundError:
+            self.logger.info(
+                "Release branch {remote_matching_branch} not found on {remote_repo.clone_url}. Falling back to 1GP."
+            )
+            return (None, None)
 
         version_id = None
         count = 0
-        commit = release_branch.commit.sha
+        commit = release_branch.commit
         while version_id is None and count < 5:
-            version_id = get_version_id_from_commit(remote_repo, commit, context_2gp)
+            version_id = get_version_id_from_commit(
+                remote_repo, commit.sha, context_2gp
+            )
             if version_id:
                 self.logger.info(
                     "Located 2GP package version {version_id} for release {release_id} on {remote_repo.clone_url} at commit {release_branch.commit.sha}"
                 )
                 break
             count += 1
-            commit = remote_repo.commit(commit.parents[0]["sha"])
+            if commit.parents:
+                commit = remote_repo.commit(commit.parents[0]["sha"])
+            else:
+                break
 
         if version_id is None:
             self.logger.warn(
                 "No 2GP package version located for release {release_id} on {remote_repo.clone_url}. Falling back to 1GP."
             )
+            return (None, None)
 
-        return version_id, commit
+        return version_id, commit.sha
 
     def get_ref_for_dependency(
         self,
