@@ -46,7 +46,14 @@ jobs:
         shell: bash
         run: ./dist/cci.exe version
       - name: Upload Artifact
+        if: "!startsWith(matrix.os, 'windows')"
         uses: actions/upload-artifact@v2
         with:
-          name: ${matrix.os} binary
-          path: dist/*
+          name: ${{matrix.os}}
+          path: dist/cci
+      - name: Upload Artifact (Windows)
+        if: "startsWith(matrix.os, 'windows')"
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows
+          path: dist/cci.exe
