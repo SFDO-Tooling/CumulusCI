@@ -541,7 +541,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             release_branch = remote_repo.branch(remote_matching_branch)
         except NotFoundError:
             self.logger.info(
-                "Release branch {remote_matching_branch} not found on {remote_repo.clone_url}. Falling back to 1GP."
+                f"Release branch {remote_matching_branch} not found on {remote_repo.clone_url}. Falling back to 1GP."
             )
             return (None, None)
 
@@ -554,7 +554,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
             if version_id:
                 self.logger.info(
-                    "Located 2GP package version {version_id} for release {release_id} on {remote_repo.clone_url} at commit {release_branch.commit.sha}"
+                    f"Located 2GP package version {version_id} for release {release_id} on {remote_repo.clone_url} at commit {release_branch.commit.sha}"
                 )
                 break
             count += 1
@@ -565,7 +565,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         if version_id is None:
             self.logger.warn(
-                "No 2GP package version located for release {release_id} on {remote_repo.clone_url}. Falling back to 1GP."
+                f"No 2GP package version located for release {release_id} on {remote_repo.clone_url}. Falling back to 1GP."
             )
             return (None, None)
 
