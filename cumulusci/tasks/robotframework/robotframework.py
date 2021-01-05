@@ -44,8 +44,8 @@ class Robot(BaseSalesforceTask):
         "options": {
             "description": "A dictionary of options to robot.run method. "
             "In simple cases this can be specified on the comand line using "
-            "name:value,name:value syntax. More commplex cases can be specified "
-            "in cumuuluci.yml using YAML dictionary syntax."
+            "name:value,name:value syntax. More complex cases can be specified "
+            "in cumuluci.yml using YAML dictionary syntax."
         },
         "name": {"description": "Sets the name of the top level test suite"},
         "pdb": {"description": "If true, run the Python debugger when tests fail."},

@@ -980,11 +980,13 @@ class Salesforce(object):
         |     log  Name: ${record['Name']} Id: ${record['Id']}
         | END
 
-        Or with a WHERE-clause, we can look for the first contact where
+        Or with a WHERE-clause, we can look for the last contact where
         the first name is NOT Eleanor.
 
         | @{records}=  Salesforce Query  Contact  select=Id,Name
-        | ...          where=FirstName!='Eleanor' order_by=FirstName limit=1
+        | ...          where=FirstName!='Eleanor'
+        | ...              order_by=LastName desc
+        | ...              limit=1
         """
         query = self._soql_query_builder(obj_name, **kwargs)
         self.builtin.log("Running SOQL Query: {}".format(query))
@@ -1235,14 +1237,18 @@ class Salesforce(object):
             return True
         return False
 
-    def elapsed_time_for_last_record(self, obj_name, start_field, end_field, **kwargs):
+    def elapsed_time_for_last_record(
+        self, obj_name, start_field, end_field, order_by, **kwargs
+    ):
         """Compare a record's start-time to its end-time to see how long a process took.
 
         Arguments:
             obj_name:   SObject to look for last record
             start_field: Name of the datetime field that represents the process start
             end_field: Name of the datetime field that represents the process end
-            where:  Where-clause to use for filtering
+            order_by: Field name to order by. Should be a datetime field, and usually is just the same as end_field.
+            where:  Optional Where-clause to use for filtering
+            Other keywords are used for filtering as in the Salesforce Query keywordf
 
         The last matching record queried and summarized.
 
@@ -1252,11 +1258,14 @@ class Salesforce(object):
             ...             where=ApexClass.Name='BlahBlah'
             ...             start_field=CreatedDate
             ...             end_field=CompletedDate
+            ...             order_by=CompletedDate
         """
+        if len(order_by.split()) != 1:
+            raise Exception("order_by should be a simple field name")
         query = self._soql_query_builder(
             obj_name,
             select=f"{start_field}, {end_field}",
-            order_by=kwargs.get("order_by", start_field),
+            order_by=order_by + " desc",
             limit=1,
             **kwargs,
         )

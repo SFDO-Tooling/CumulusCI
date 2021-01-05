@@ -284,7 +284,9 @@ class CumulusCI(object):
     def set_test_elapsed_time(self, elapsedtime):
         """This keyword captures a computed rather than measured elapsed time for performance tests.
 
-        For example, if you were performance testing a Salesforce batch process, you might want to store the Salesforce-measured elapsed time of the batch process instead of the time measured in the CCI client process.
+        For example, if you were performance testing a Salesforce batch process, you might want to
+        store the Salesforce-measured elapsed time of the batch process instead of the time measured
+        in the CCI client process.
 
         The keyword takes a single argument which is either a number of seconds or a Robot time string
         (https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats).
