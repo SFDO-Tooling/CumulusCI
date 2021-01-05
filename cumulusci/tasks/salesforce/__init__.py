@@ -22,6 +22,7 @@ ORIGINS = {
     "EnsureRecordTypes": "cumulusci.tasks.salesforce.EnsureRecordTypes",
     "GetInstalledPackages": "cumulusci.tasks.preflight.packages",
     "InstallPackageVersion": "cumulusci.tasks.salesforce.install_package_version",
+    "InsertContentDocument": "cumulusci.tasks.salesforce.content_documents",
     "ListCommunities": "cumulusci.tasks.salesforce.ListCommunities",
     "ListCommunityTemplates": "cumulusci.tasks.salesforce.ListCommunityTemplates",
     "LoadCustomSettings": "cumulusci.tasks.salesforce.custom_settings",
