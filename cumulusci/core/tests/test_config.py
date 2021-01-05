@@ -1064,6 +1064,19 @@ class TestBaseProjectConfig(unittest.TestCase):
         repo.branch = mock.Mock(side_effect=[mock.Mock(), ex])
         assert config.find_matching_2gp_release(repo) == (None, None)
 
+    def test_find_matching_2gp_release__feature_branch_prefix_not_found(self):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        config.repo_info["branch"] = "feature/230"
+        config.find_repo_feature_prefix = mock.Mock(return_value=None)
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+        assert config.find_matching_2gp_release(repo) == (None, None)
+
     @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
     def test_get_ref_for_dependency_uses_2gp(self, get_version_id):
         universal_config = UniversalConfig()

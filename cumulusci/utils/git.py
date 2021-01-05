@@ -39,5 +39,5 @@ def get_release_identifier(branch_name, prefix):
         return branch_name[len(prefix) :].split("__")[0]
 
 
-def construct_release_branch(prefix, release_identifier):
+def construct_release_branch_name(prefix, release_identifier):
     return f"{prefix}{release_identifier}"

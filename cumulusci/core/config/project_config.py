@@ -7,8 +7,6 @@ from pathlib import Path
 from configparser import ConfigParser
 from itertools import chain
 from contextlib import contextmanager
-from typing import Tuple, Union
-from unittest.mock import Mock
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
@@ -39,7 +37,7 @@ from cumulusci.utils.git import (
     current_branch,
     git_path,
     is_release_branch_or_child,
-    construct_release_branch,
+    construct_release_branch_name,
     get_release_identifier,
 )
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
@@ -509,30 +507,34 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo
 
-    def find_matching_2gp_release(
-        self, remote_repo: Union[BaseTaskFlowConfig, Mock]
-    ) -> Tuple[str, str]:
+    def find_repo_feature_prefix(self, remote_repo):
+        try:
+            contents = remote_repo.file_contents(
+                "cumulusci.yml",
+                ref=remote_repo.branch(remote_repo.default_branch).commit.sha,
+            )
+            head_cumulusci_yml = cci_safe_load(
+                io.StringIO(contents.decoded.decode("utf-8"))
+            )
+            return (
+                head_cumulusci_yml.get("project", {})
+                .get("git", {})
+                .get("prefix_feature", "feature/")
+            )
+        except:  # noqa: E722
+            return None
+
+    def find_matching_2gp_release(self, remote_repo):
         # To allow us to locate release branches on the remote repo, we need to know its feature branch prefix.
         # We'll use the cumulusci.yml file from HEAD on the main branch to determine this.
 
         release_id = get_release_identifier(
             self.repo_branch, self.project__git__prefix_feature
         )
-        remote_branch_prefix = None
-        contents = remote_repo.file_contents(
-            "cumulusci.yml",
-            ref=remote_repo.branch(remote_repo.default_branch).commit.sha,
-        )
-        head_cumulusci_yml = cci_safe_load(
-            io.StringIO(contents.decoded.decode("utf-8"))
-        )
-        remote_branch_prefix = (
-            head_cumulusci_yml.get("project", {})
-            .get("git", {})
-            .get("prefix_feature", "feature/")
-        )
-
-        remote_matching_branch = construct_release_branch(
+        remote_branch_prefix = self.find_repo_feature_prefix(remote_repo)
+        if not remote_branch_prefix:
+            return (None, None)
+        remote_matching_branch = construct_release_branch_name(
             remote_branch_prefix, release_id
         )
 
