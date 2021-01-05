@@ -117,6 +117,7 @@ class DummyRepository(object):
         self.owner = owner
         self.name = name
         self.html_url = f"https://github.com/{owner}/{name}"
+        self.clone_url = self.html_url
         self._contents = contents
         self._releases = releases or []
 
