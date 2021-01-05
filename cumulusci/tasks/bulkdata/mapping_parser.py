@@ -184,7 +184,7 @@ class MappingStep(CCIDictModel):
             logger.warning(
                 "record_type is deprecated. Just supply a RecordTypeId column declaration and it will be inferred"
             )
-        return v
+            return v
 
     @validator("oid_as_pk")
     @classmethod
