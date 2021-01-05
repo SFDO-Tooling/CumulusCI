@@ -3,6 +3,8 @@ Key Concepts
 
 Let's review some important concepts when building and testing features using CumulusCI.
 
+
+
 Packages
 --------
 
@@ -16,14 +18,54 @@ A *package* is a container for something as small as an individual component or 
 
 In CumulusCI, packages are built and deployed via projects.
 
+
+
 Projects
 --------
 
-When you work with CumulusCI, you do so inside a *project*. A project is an individual Git repository that contains both Salesforce metadata and CumulusCI automation (such as tasks and flows) that builds and releases the project. Most importantly, a project can build one--and only one(!)--package in its repository. This one-to-one relationship between project and package is what allows version control to track any changes your team makes to the repository.
+When you work with CumulusCI, you do so inside a *project*. A project is an individual Git repository that contains both Salesforce metadata and CumulusCI automation (such as tasks and flows) that builds and releases the project. If you are building multiple packages, we strongly recommend organizing each package as a separate project in its own repository.
+
+        .. Important:: CumulusCI's standard automation assumes that there is one package per repository, so it will work best if you follow this convention.
 
 It's important to note that a project doesn't have to contain a package. For example, a project can deliver unpackaged metadata, deliver automation but no metadata at all, or provide test data for QA. A project can contain the entirety of a product offered to customers, or be just one of multiple projects that combine to form a complete product.
 
 To sum up, although a project doesn't require a package, a package requires a project to be built and deployed.
+
+
+Tasks and Flows
+---------------
+
+CumulusCI uses a framework of *tasks* and *flows* to organize the automation that is available to each project.
+
+Tasks are units of automation. A task can perform a deployment, load a dataset, retrieve data from an org, install a managed package, or do many other things. CumulusCI ships with scores of tasks out of the box.
+
+Popular task commands include:
+
+* ``cci task list``: Review the tasks available in a project.
+* ``cci task info <name>``: Learn more about a task ``<name>`` and how to configure its options.
+* ``cci task run <name> --org <org>``: Run the task ``<name>`` against the org ``<org>``.
+
+        Example: The ``run_tests`` task executes Apex unit tests. If you have an org called ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``.
+
+Many operations in CumulusCI, including creating new orgs, use flows. Flows are ordered sequences of tasks (and even other flows!) that produce a cohesive outcome, such as an org that's configured to suit a workflow like development, QA, or product demonstration.
+
+Popular flow commands include:
+
+* ``cci flow list``: Review the flows available in a project.
+* ``cci flow info <name>``: Learn more about the flow ``<name>`` and the tasks it contains.
+* ``cci flow run <name> --org <org>``: Run the flow ``<name>`` against the org ``<org>``.
+
+        Example: The ``dev_org`` flow sets up an org for development purposes. If you have an org called ``dev``, you can run this flow against it with the command ``cci flow run dev_org --org dev``.
+
+Many of the most common flows you'll work with in CumulusCI are designed to build and configure specific orgs for you. Here's a few of the most common flows that build orgs.
+
+* ``dev_org``: This flow builds an unmanaged org designed for development use. It's typically used with an org whose configuration is ``dev`` or ``dev_namespaced``.
+* ``qa_org``: This flow builds an unmanaged org designed for testing. It's typically used with an org whose configuration is ``qa``.
+* ``install_beta``: This flow builds a managed org with the latest beta release installed, for projects that build managed packages. It's typically used with an org whose configuration is ``beta``.
+* ``install_prod``: This flow builds a managed org with the latest release installed, for projects that build managed packages.
+* ``regression_org``: This flow builds a managed org that starts with the latest release installed and is then upgraded to the latest beta to simulate a subscriber upgrade for projects that build managed packages. It's typically used with an org whose configuration is ``release``.
+
+CumulusCI derives the library of tasks and flows available for any project by combining its internal standard library with your customizations in ``cumulusci.yml``. Customizations can add new tasks and flows, customize the way tasks behave, and extend, combine, and modify flows to better suit the project's needs. We cover customization in depth in [TODO: reference Customizing CumulusCI].
 
 
 Project Structure
@@ -34,7 +76,7 @@ Project Directory
 
 The project directory is the root of your CumulusCI project. Because each project is linked to a single GitHub repository, CumulusCI knows which project you are working on by the current working directory of your shell. 
 
-.. tip:: Avoid headaches by making sure you're in the correct repository for your project before running project-specific commands. Otherwise, your project produces an error. (**Check your repo first** when troubleshooting in CumulusCI and potentially save yourself an extra trip to this guide.)
+        .. tip:: Avoid headaches by making sure you're in the correct repository for your project before running project-specific commands. Otherwise, your project produces an error. (**Check your repo first** when troubleshooting in CumulusCI and potentially save yourself an extra trip to this guide.)
 
 In order to be used as a CumulusCI project, a directory must both be a Git repository and contain a ``cumulusci.yml`` configuration file. We cover how to get set up with a new or existing CumulusCI project in the [TODO link Get Started section].
 
@@ -65,7 +107,7 @@ Each project can have one or more ``datasets``: on-disk representations of recor
 
 Robot Framework provides browser automation for end-to-end testing. Each project contains a ``robot`` directory, which stores the project's Robot Framework test suites. New projects start with a simple Robot test case that creates a Contact record.
 
-While Robot Framework is used primarily for browser automation testing, it can also be harnessed to help configure orgs where other strategies and APIs are insufficient [TODO: link Robot Framework].
+While Robot Framework is used primarily for automated browser testing, it can also be harnessed to help configure orgs where other strategies and APIs are insufficient [TODO: link Robot Framework].
 
 ``unpackaged`` metadata
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -95,37 +137,4 @@ Services represent external resources used by CumulusCI automation, such as acce
 
 Global services are easy to use and share. We recommend that you use them as much as possible. However, services can also be connected at the project level, which means that they're scoped to a single project and cannot be shared.
 
-        Example: If you need to use a specific Dev Hub for one--and only one(!)--project, you can connect to that service with the command ``cci service connect devhub --project``.
-
-Tasks and Flows
----------------
-
-CumulusCI uses a framework of *tasks* and *flows* to organize the automation that is available to each project.
-
-Tasks are units of automation. A task can perform a deployment, load a dataset, retrieve data from an org, install a managed package, or do many other things. CumulusCI ships with scores of tasks out of the box.
-
-Popular task commands include:
-
-* ``cci task list``: Review the tasks available in a project.
-* ``cci task info <name>``: Learn more about a task and how to configure its options. ``<name>`` is the name of the task.
-* ``cci task run <name> --org <org>``: Run a task. ``<name>`` is the name of the task and ``<org>`` is the org you'd like to run it against.
-
-        Example: ``run_tests`` executes Apex unit tests. If you have an org called ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``.
-
-Many operations in CumulusCI, including creating new orgs, use flows. Flows are ordered sequences of tasks (and even other flows!) that produce a cohesive outcome, such as an org that's configured to suit a workflow like development, QA, or product demonstration.
-
-Popular flow-related commands include:
-
-* ``cci flow list``: Review the flows available in a project.
-* ``cci flow info <name>``: Learn more about a flow and the tasks it contains. ``<name>`` is the name of the flow.
-* ``cci flow run <name> --org <org>``: Run a flow. ``<name>`` is the name of the flow and ``<org>`` is the org to run it against.
-
-Many of the most common flows you'll work with in CumulusCI are designed to build and configure specific orgs for you. Here's a few of the most common flows that build orgs.
-
-* ``dev_org``: This flow builds an unmanaged org designed for development use. It's typically used with an org whose configuration is ``dev`` or ``dev_namespaced``.
-* ``qa_org``: This flow builds an unmanaged org designed for testing. It's typically used with an org whose configuration is ``qa``.
-* ``install_beta``: This flow builds a managed org with the latest beta release installed, for projects that build managed packages. It's typically used with an org whose configuration is ``beta``.
-* ``install_prod``: This flow builds a managed org with the latest release installed, for projects that build managed packages.
-* ``regression_org``: This flow builds a managed org that starts with the latest release installed and is then upgraded to the latest beta to simulate a subscriber upgrade for projects that build managed packages. It's typically used with an org whose configuration is ``release``.
-
-CumulusCI derives the library of tasks and flows available for any project by combining its internal standard library with your customizations in ``cumulusci.yml``. Customizations can add new tasks and flows, customize the way tasks behave, and extend, combine, and modify flows to better suit the project's needs. We cover customization in depth in [TODO: reference Customizing CumulusCI].
+        Example: If you need to use a specific Dev Hub for a specific project, you can connect to that service with the command ``cci service connect devhub --project``.
