@@ -1,6 +1,8 @@
 import pytest  # noqa: F401
 from unittest import mock
 import responses
+import urllib.parse
+import json
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 from pathlib import Path
@@ -24,15 +26,15 @@ def test_to_cumulusci_exception():
             "status",
             "resource_name",
             [
-                {"message": "Error message 1.", "errorCode": "ERROR_1"},
-                {"errorCode": "ERROR_2"},
-                {"message": "Error message 3.", "errorCode": "ERROR_3"},
+                {"message": "Error message 0.", "errorCode": "ERROR_0"},
+                {"errorCode": "ERROR_1"},
+                {"message": "Error message 2.", "errorCode": "ERROR_2"},
             ],
         )
     )
 
     assert type(e) is CumulusCIException
-    assert "Error message 1.; Unknown.; Error message 3." == e.args[0]
+    assert "Error message 0.; Unknown.; Error message 2." == e.args[0]
 
 
 class TestInsertContentDocument:
@@ -64,136 +66,34 @@ class TestInsertContentDocument:
         ), f'file_path "{self.file_path}" should be a file.'
 
         # Resusable data
-        self.queries = ["query_1", "query_2", "query_3"]
-        self.content_version_id = "0681k000001YWQ5AAO"
-        self.content_document_id = "0691k000001LtfEAAS"
         self.e = SalesforceMalformedRequest(
             "url",
             "status",
             "resource_name",
             [
-                {"message": "Error message 1.", "errorCode": "ERROR_1"},
-                {"errorCode": "ERROR_2"},
-                {"message": "Error message 3.", "errorCode": "ERROR_3"},
+                {"message": "Error message 0.", "errorCode": "ERROR_0"},
+                {"errorCode": "ERROR_1"},
+                {"message": "Error message 2.", "errorCode": "ERROR_2"},
             ],
         )
-        self.expected_exception_message = "Error message 1.; Unknown.; Error message 3."
-        # TODO: change to record_ids
-        self.user_id = "0051k000003cEL3AAM"
+        self.expected_exception_message = "Error message 0.; Unknown.; Error message 2."
 
-        # Set up REST API configuration.
-
-        """
-        self.task = create_task(
-            InsertContentDocument,
-            {"path": self.file_path, "queries": self.queries},
-        )
-        self.task.logger = mock.Mock()
-        # self.task.sf = mock.Mock()
-        """
-
-    """
-    def test_get_user_id_by_query__valid_query__0_records(self):
-        # where is prefixed with "where " which will be stripped when injected into the query.
-        where = "where (FirstName = 'User' OR LastName = 'User') AND IsActive = true AND CreatedDate = TODAY"
-        expected_query = "SELECT Id FROM User WHERE (FirstName = 'User' OR LastName = 'User') AND IsActive = true AND CreatedDate = TODAY LIMIT 2"
-
-        self.task.sf.query_all.return_value = {"records": []}
-
-        self.task.logger.info._expected_calls = [
-            mock.call(f"Querying User: {expected_query}")
+        self.content_version_id = "0681k000001YWQ5AAO"
+        self.content_document_id = "0691k000001LtfEAAS"
+        self.queries = [
+            # Records 0 and 1
+            "SELECT Id FROM Account LIMIT 2",
+            # No records
+            "SELECT Id FROM Account WHERE Id = null",
+            # Records 1 and 2
+            "SELECT Id FROM Account LIMIT 2 OFFSET 1",
         ]
-
-        # Execute the test
-        with pytest.raises(CumulusCIException) as e:
-            self.task._get_user_id_by_query(where)
-
-        assert e.value.args[0] == "No Users found."
-
-        self.task.sf.query_all.assert_called_once_with(expected_query)
-        self.task.logger.info.assert_has_calls(self.task.logger.info._expected_calls)
-
-    def test_get_user_id_by_query__valid_query__1_record(self):
-        # where is prefixed with "where " which will be stripped when injected into the query.
-        where = "where (FirstName = 'User' OR LastName = 'User') AND IsActive = true AND CreatedDate = TODAY"
-        expected_query = "SELECT Id FROM User WHERE (FirstName = 'User' OR LastName = 'User') AND IsActive = true AND CreatedDate = TODAY LIMIT 2"
-
-        expected = self.user_id
-
-        self.task.sf.query_all.return_value = {"records": [{"Id": expected}]}
-
-        self.task.logger.info._expected_calls = [
-            mock.call(f"Querying User: {expected_query}"),
-            mock.call(f"Uploading profile photo for the User with ID {expected}"),
+        self.account_ids = [
+            "001000000000000AAA",
+            "001000000000001AAA",
+            "001000000000002AAA",
         ]
-
-        # Execute the test
-        actual = self.task._get_user_id_by_query(where)
-
-        assert expected == actual
-
-        self.task.sf.query_all.assert_called_once_with(expected_query)
-        self.task.logger.info.assert_has_calls(self.task.logger.info._expected_calls)
-
-    def test_get_user_id_by_query__valid_query__2_records(self):
-        # where is prefixed with "where " which will be stripped when injected into the query.
-        where = "where (FirstName = 'User' OR LastName = 'User') AND IsActive = true AND CreatedDate = TODAY"
-        expected_query = "SELECT Id FROM User WHERE (FirstName = 'User' OR LastName = 'User') AND IsActive = true AND CreatedDate = TODAY LIMIT 2"
-
-        id_0 = self.user_id
-        id_1 = "0051k000003cEL8AAM"
-
-        self.task.sf.query_all.return_value = {"records": [{"Id": id_0}, {"Id": id_1}]}
-
-        self.task.logger.info._expected_calls = [
-            mock.call(f"Querying User: {expected_query}")
-        ]
-
-        # Execute the test
-        with pytest.raises(CumulusCIException) as e:
-            self.task._get_user_id_by_query(where)
-
-        assert (
-            e.value.args[0] == f"More than one User found (at least 2): {id_0}, {id_1}"
-        )
-
-        self.task.sf.query_all.assert_called_once_with(expected_query)
-        self.task.logger.info.assert_has_calls(self.task.logger.info._expected_calls)
-
-    def test_get_user_id_by_query__invalid_query(self):
-        where = "(FirstName = 'User' OR LastName = 'User') AND IsActive = true AND CreatedDate = TODAY but the end of this query is invalid SOQL "
-        expected_query = "SELECT Id FROM User WHERE (FirstName = 'User' OR LastName = 'User') AND IsActive = true AND CreatedDate = TODAY but the end of this query is invalid SOQL  LIMIT 2"
-
-        self.task.sf.query_all.side_effect = self.e
-
-        self.task.logger.info._expected_calls = [
-            mock.call(f"Querying User: {expected_query}")
-        ]
-
-        # Execute the test
-        with pytest.raises(CumulusCIException) as e:
-            self.task._get_user_id_by_query(where)
-
-        assert e.value.args[0] == self.expected_exception_message
-
-        self.task.sf.query_all.assert_called_once_with(expected_query)
-        self.task.logger.info.assert_has_calls(self.task.logger.info._expected_calls)
-
-    def test_get_default_user_id(self):
-        expected = self.user_id
-
-        self.task.sf.restful.return_value = {
-            "identity": f"a bunch of other things{expected}"
-        }
-
-        actual = self.task._get_default_user_id()
-
-        assert expected == actual
-
-        self.task.logger.info.assert_called_once_with(
-            f"Uploading profile photo for the default User with ID {expected}"
-        )
-    """
+        self.content_document_link_id = "06A000000000000EAA"
 
     def test_init_options__path_does_not_exist(self):
         fake_path = "not a real/path/to/a/file"
@@ -269,52 +169,6 @@ class TestInsertContentDocument:
             task.options["visibility"] == visibility
         ), '"visibility" option should be overridden.'
 
-    """
-    @responses.activate
-    def test_insert_content_document__exception_creating_content_document(self):
-        errors = "the reason why inserting the ContentVersion failed"
-        self.task.sf.ContentVersion.create.return_value = {
-            "success": False,
-            "errors": errors,
-        }
-
-        with temporary_dir() as d:
-            # Copy photo to temporary direcory.
-            shutil.copy(str(self.file_path), d)
-            temp_photo_path = pathlib.Path(os.path.join(d, self.file)).resolve()
-            assert (
-                temp_photo_path.exists()
-            ), "photo mock was not copied to the temporary directory"
-            assert (
-                temp_photo_path.is_file()
-            ), "Path the the photo mock in the temporary directory should point to a file"
-
-            self.task.sf.ContentVersion.create._expected_calls = [
-                mock.call(
-                    {
-                        "PathOnClient": temp_photo_path.name,
-                        "Title": temp_photo_path.stem,
-                        "VersionData": base64.b64encode(
-                            temp_photo_path.read_bytes()
-                        ).decode("utf-8"),
-                    }
-                )
-            ]
-
-            with pytest.raises(CumulusCIException) as e:
-                self.task._insert_content_document(self.file)
-
-        assert e.value.args[0] == f"Failed to create photo ContentVersion: {errors}"
-
-        self.task.sf.ContentVersion.create.assert_has_calls(
-            self.task.sf.ContentVersion.create._expected_calls
-        )
-
-        self.task.logger.info.assert_called_once_with(
-            f"Setting user photo to {self.file}"
-        )
-    """
-
     @responses.activate
     def test_insert_content_document__success(self):
         task = create_task(
@@ -328,28 +182,33 @@ class TestInsertContentDocument:
 
         api_version = f"v{task.project_config.project__package__api_version}"
         token_url = f"{task.org_config.instance_url}/services/data"
-        rest_url = f"{token_url}/{api_version}"
 
+        """
         # Get access token call.
         responses.add(
             responses.GET,
             token_url,
             json=[{"version": task.project_config.project__package__api_version}],
         )
-
+        """
         # Insert ContentVersion call.
+        insert_content_version_url = (
+            f"{token_url}/{api_version}/sobjects/ContentVersion/"
+        )
         responses.add(
             responses.POST,
-            f"{rest_url}/sobjects/ContentVersion/",
+            insert_content_version_url,
             content_type="application/json",
             status=201,
             json={"id": self.content_version_id, "success": True, "errors": []},
         )
 
         # Query ContentVersion.ContentDocumentId call.
+        content_version_query = f"SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = '{self.content_version_id}'"
+        query_content_version_url = f"{token_url}/{api_version}/query/?q={urllib.parse.quote_plus(content_version_query)}"
         responses.add(
             responses.GET,
-            f"{rest_url}/query/?q=SELECT+Id%2C+ContentDocumentId+FROM+ContentVersion+WHERE+Id+%3D+%27{self.content_version_id}%27",
+            query_content_version_url,
             content_type="application/json",
             status=201,
             json={
@@ -376,96 +235,443 @@ class TestInsertContentDocument:
             self.content_document_id == task._insert_content_document()
         ), "_insert_content_document should execute successfully and return the inserted ContentVersion.ContentDocumentId."
 
-    """
+        assert (
+            len(responses.calls) == 2
+        ), f"2 calls should have been made yet {len(responses.calls)} calls were made.  Expecting calls: insert ContentVersion, query ContentVersion.ContentDocumentId."
+
+        """
+        assert (
+            responses.calls[0].request.url == token_url
+        ), "The first call should be to get an access token."
+        """
+
+        assert [call.request.url for call in responses.calls] == [
+            insert_content_version_url,
+            query_content_version_url,
+        ], "Expecting calls: insert the ContentVersion, query the ContentVersion.ContentDocumentId."
+
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(f'Inserting ContentVersion from {task.options["path"]}'),
+                mock.call(
+                    f'Success!  Inserted ContentDocument "{self.content_document_id}".'
+                ),
+            ]
+        )
+
+    @responses.activate
+    def test_insert_content_document__insert_failed(self):
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+                "queries": self.queries,
+            },
+        )
+        task.logger = mock.Mock()
+
+        api_version = f"v{task.project_config.project__package__api_version}"
+        token_url = f"{task.org_config.instance_url}/services/data"
+
+        # Insert ContentVersion call fails.
+        insert_content_version_url = (
+            f"{token_url}/{api_version}/sobjects/ContentVersion/"
+        )
+        responses.add(
+            responses.POST,
+            insert_content_version_url,
+            content_type="application/json",
+            status=400,
+            json=[
+                {
+                    "message": "Invalid Title",
+                    "errorCode": "FIELD_CUSTOM_VALIDATION_EXCEPTION",
+                    "fields": ["Title"],
+                }
+            ],
+        )
+
+        # Initialize REST API
+        task._init_task()
+
+        # Execute _insert_content_document.
+        with pytest.raises(SalesforceMalformedRequest):
+            task._insert_content_document()
+
+        assert (
+            len(responses.calls) == 1
+        ), f"Only 1 call should have been made yet {len(responses.calls)} calls were made.  Expecting calls: insert ContentVersion."
+
+        assert [call.request.url for call in responses.calls] == [
+            insert_content_version_url
+        ], "Expecting calls: insert the ContentVersion."
+
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(f'Inserting ContentVersion from {task.options["path"]}'),
+            ]
+        )
+
+    @responses.activate
     def test_delete_content_document(self):
-        self.task._delete_content_document(self.content_document_id)
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+                "queries": self.queries,
+            },
+        )
+        task.logger = mock.Mock()
 
-        self.task.sf.ContentDocument.delete.assert_called_once_with(
-            self.content_document_id
+        api_version = f"v{task.project_config.project__package__api_version}"
+        token_url = f"{task.org_config.instance_url}/services/data"
+
+        # Delete ContentVersion call.
+        delete_content_document_url = f"{token_url}/{api_version}/sobjects/ContentDocument/{self.content_document_id}"
+        responses.add(
+            responses.DELETE,
+            delete_content_document_url,
+            content_type="application/json",
+            status=204,
         )
 
-    def test_assign_user_profile_photo__exception(self):
-        self.task.sf.restful.side_effect = self.e
-        self.task.logger.error._expected_calls = [
-            mock.call(
-                "An error occured assigning the ContentDocument as the users's profile photo."
-            ),
-            mock.call(f"Deleting ContentDocument {self.content_document_id}"),
-        ]
-        self.task._delete_content_document = mock.Mock()
+        # Initialize REST API
+        task._init_task()
 
-        with pytest.raises(CumulusCIException) as e:
-            self.task._assign_user_profile_photo(self.user_id, self.content_document_id)
+        # Execute _delete_content_document.
+        task._delete_content_document(self.content_document_id)
 
-        assert e.value.args[0] == self.expected_exception_message
+        assert (
+            len(responses.calls) == 1
+        ), f"1 call should have been made yet {len(responses.calls)} calls were made.  Expecting calls: delete ContentDocument."
 
-        self.task._delete_content_document.assert_called_once_with(
-            self.content_document_id
+        assert [call.request.url for call in responses.calls] == [
+            delete_content_document_url
+        ], "Expecting calls: delete the ContentDocument"
+
+        task.logger.info.assert_not_called()
+
+    @responses.activate
+    def test_get_record_ids_to_link__with_queries(self):
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+                "queries": self.queries,
+            },
+        )
+        task.logger = mock.Mock()
+
+        api_version = f"v{task.project_config.project__package__api_version}"
+        token_url = f"{task.org_config.instance_url}/services/data"
+
+        # Record query 0: Returns account_ids 0 and 1.
+        query_0_url = f"{token_url}/{api_version}/query/?q={urllib.parse.quote_plus(self.queries[0])}"
+        responses.add(
+            responses.GET,
+            query_0_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 2,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[0]}",
+                        },
+                        "Id": self.account_ids[0],
+                    },
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[1]}",
+                        },
+                        "Id": self.account_ids[1],
+                    },
+                ],
+            },
         )
 
-        self.task.logger.error.assert_has_calls(self.task.logger.error._expected_calls)
-
-    def test_assign_user_profile_photo__success(self):
-        self.task._delete_content_document = mock.Mock()
-
-        self.task._assign_user_profile_photo(self.user_id, self.content_document_id)
-
-        self.task.sf.restful.assert_called_once_with(
-            f"connect/user-profiles/{self.user_id}/photo",
-            data=json.dumps({"fileId": self.content_document_id}),
-            method="POST",
+        # Record query 1: Returns no records.
+        query_1_url = f"{token_url}/{api_version}/query/?q={urllib.parse.quote_plus(self.queries[1])}"
+        responses.add(
+            responses.GET,
+            query_1_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 0,
+                "done": True,
+                "records": [],
+            },
         )
 
-        self.task._delete_content_document.assert_not_called()
-
-        self.task.logger.error.assert_not_called()
-
-    def test_run_task__default_user(self):
-        assert bool(self.task.options.get("where")) is False
-
-        self.task._get_default_user_id = mock.Mock()
-        self.task._get_user_id_by_query = mock.Mock()
-        self.task._insert_content_document = mock.Mock()
-        self.task._assign_user_profile_photo = mock.Mock()
-
-        self.task._run_task()
-
-        self.task._get_default_user_id.assert_called_once_with()
-
-        self.task._get_user_id_by_query.assert_not_called()
-
-        self.task._insert_content_document.assert_called_once_with(
-            self.task.options["photo"]
+        # Record query 2: Returns account_ids 1 and 2.
+        query_2_url = f"{token_url}/{api_version}/query/?q={urllib.parse.quote_plus(self.queries[2])}"
+        responses.add(
+            responses.GET,
+            query_2_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 2,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[1]}",
+                        },
+                        "Id": self.account_ids[1],
+                    },
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[2]}",
+                        },
+                        "Id": self.account_ids[2],
+                    },
+                ],
+            },
         )
 
-        self.task._assign_user_profile_photo.assert_called_once_with(
-            self.task._get_default_user_id.return_value,
-            self.task._insert_content_document.return_value,
+        # Initialize REST API
+        task._init_task()
+
+        # Execute _get_record_ids_to_link.
+        assert set(self.account_ids) == set(
+            task._get_record_ids_to_link()
+        ), "_get_record_ids_to_link should return all self.record_ids."
+
+        assert (
+            len(responses.calls) == 3
+        ), f"3 calls should have been made yet {len(responses.calls)} calls were made.  Expecting 3 calls to query records."
+
+        assert [call.request.url for call in responses.calls] == [
+            query_0_url,
+            query_1_url,
+            query_2_url,
+        ], "Expecting 3 calls to query records."
+
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(""),
+                mock.call("Querying records to link to the new ContentDocument."),
+                mock.call(f"    {self.queries[0]}"),
+                mock.call(f"        (2) {self.account_ids[0]}, {self.account_ids[1]}"),
+                mock.call(f"    {self.queries[1]}"),
+                mock.call("        🚫 No records found."),
+                mock.call(f"    {self.queries[2]}"),
+                mock.call(f"        (2) {self.account_ids[1]}, {self.account_ids[2]}"),
+            ]
         )
 
-    def test_run_task__queries_user(self):
-        self.task.options["where"] = mock.Mock()
-        assert bool(self.task.options.get("where")) is True
+    @responses.activate
+    def test_get_record_ids_to_link__no_queries(self):
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+            },
+        )
+        task.logger = mock.Mock()
 
-        self.task._get_default_user_id = mock.Mock()
-        self.task._get_user_id_by_query = mock.Mock()
-        self.task._insert_content_document = mock.Mock()
-        self.task._assign_user_profile_photo = mock.Mock()
+        # Execute _get_record_ids_to_link
+        record_ids_to_link = task._get_record_ids_to_link()
+        assert 0 == len(
+            record_ids_to_link
+        ), f"No record IDs to link should have been queried since there are no queries.  Actual: {', '.join(record_ids_to_link)}"
 
-        self.task._run_task()
+        assert 0 == len(
+            responses.calls
+        ), f"Expecting 0 calls yet {len(responses.calls)} calls were made."
 
-        self.task._get_default_user_id.assert_not_called()
-
-        self.task._get_user_id_by_query.assert_called_once_with(
-            self.task.options["where"]
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(""),
+                mock.call("Querying records to link to the new ContentDocument."),
+                mock.call("    No queries specified."),
+            ]
         )
 
-        self.task._insert_content_document.assert_called_once_with(
-            self.task.options["photo"]
+    @responses.activate
+    def test_link_records_to_content_document__many_records(self):
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+                "queries": self.queries,
+            },
+        )
+        task.logger = mock.Mock()
+
+        api_version = f"v{task.project_config.project__package__api_version}"
+        token_url = f"{task.org_config.instance_url}/services/data"
+
+        # Insert ContentVersion call.
+        insert_content_document_link_url = (
+            f"{token_url}/{api_version}/sobjects/ContentDocumentLink/"
+        )
+        responses.add(
+            responses.POST,
+            insert_content_document_link_url,
+            content_type="application/json",
+            status=201,
+            json={"id": self.content_document_link_id, "success": True, "errors": []},
         )
 
-        self.task._assign_user_profile_photo.assert_called_once_with(
-            self.task._get_user_id_by_query.return_value,
-            self.task._insert_content_document.return_value,
+        # Initialize REST API
+        task._init_task()
+
+        # Execute _link_records_to_content_document.
+        assert 1 < len(
+            self.account_ids
+        ), f"self.account_ids should have at least 2 members.  Actual: {len(self.account_ids)}"
+        task._link_records_to_content_document(
+            self.content_document_id, self.account_ids
         )
-    """
+
+        assert len(self.account_ids) == len(
+            responses.calls
+        ), f"{len(self.account_ids)} calls should have been made yet {len(responses.calls)} calls were made.  Expecting a call to insert a ContentDocumentLink for all account_ids."
+
+        share_type = task.options["share_type"]
+        visibility = task.options["visibility"]
+
+        for i, call in enumerate(responses.calls):
+            body = json.loads(call.request.body)
+
+            assert self.content_document_id == body.get(
+                "ContentDocumentId"
+            ), f'Invalid ContentDocumentId for call[{i}].request.body.  Expecting: {self.content_document_id}; Actual: {body.get("ContentDocumentId")}'
+
+            assert self.account_ids[i] == body.get(
+                "LinkedEntityId"
+            ), f'Invalid LinkedEntityId for call[{i}].request.body.  Expecting: {self.account_ids[i]}; Actual: {body.get("LinkedEntityId")}'
+
+            assert share_type == body.get(
+                "ShareType"
+            ), f'Invalid ShareType for call[{i}].request.body.  Expecting: {share_type}; Actual: {body.get("ShareType")}'
+
+            assert visibility == body.get(
+                "Visibility"
+            ), f'Invalid Visibility for call[{i}].request.body.  Expecting: {visibility}; Actual: {body.get("Visibility")}'
+
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(""),
+                mock.call(
+                    "Inserting ContentDocumentLink records to link the ContentDocument."
+                ),
+                mock.call(f'    ShareType: "{share_type}"'),
+                mock.call(f'    Visibility: "{visibility}"'),
+                mock.call(
+                    f'Successfully linked {len(self.account_ids)} records to Content Document "{self.content_document_id}"'
+                ),
+            ]
+        )
+
+    @responses.activate
+    def test_link_records_to_content_document__one_record(self):
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+                "queries": self.queries,
+            },
+        )
+        task.logger = mock.Mock()
+
+        api_version = f"v{task.project_config.project__package__api_version}"
+        token_url = f"{task.org_config.instance_url}/services/data"
+
+        # Insert ContentVersion call.
+        insert_content_document_link_url = (
+            f"{token_url}/{api_version}/sobjects/ContentDocumentLink/"
+        )
+        responses.add(
+            responses.POST,
+            insert_content_document_link_url,
+            content_type="application/json",
+            status=201,
+            json={"id": self.content_document_link_id, "success": True, "errors": []},
+        )
+
+        # Initialize REST API
+        task._init_task()
+
+        # Execute _link_records_to_content_document.
+        task._link_records_to_content_document(
+            self.content_document_id, [self.account_ids[0]]
+        )
+
+        assert 1 == len(
+            responses.calls
+        ), f"1 call should have been made yet {len(responses.calls)} calls were made.  Expecting a call to insert a ContentDocumentLink for account_ids[0]."
+
+        share_type = task.options["share_type"]
+        visibility = task.options["visibility"]
+
+        body = json.loads(responses.calls[0].request.body)
+
+        assert self.content_document_id == body.get(
+            "ContentDocumentId"
+        ), f'Invalid ContentDocumentId for call[0].request.body.  Expecting: {self.content_document_id}; Actual: {body.get("ContentDocumentId")}'
+
+        assert self.account_ids[0] == body.get(
+            "LinkedEntityId"
+        ), f'Invalid LinkedEntityId for call[0].request.body.  Expecting: {self.account_ids[0]}; Actual: {body.get("LinkedEntityId")}'
+
+        assert share_type == body.get(
+            "ShareType"
+        ), f'Invalid ShareType for call[0].request.body.  Expecting: {share_type}; Actual: {body.get("ShareType")}'
+
+        assert visibility == body.get(
+            "Visibility"
+        ), f'Invalid Visibility for call[0].request.body.  Expecting: {visibility}; Actual: {body.get("Visibility")}'
+
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(""),
+                mock.call(
+                    "Inserting ContentDocumentLink records to link the ContentDocument."
+                ),
+                mock.call(f'    ShareType: "{share_type}"'),
+                mock.call(f'    Visibility: "{visibility}"'),
+                mock.call(
+                    f'Successfully linked 1 record to Content Document "{self.content_document_id}"'
+                ),
+            ]
+        )
+
+    @responses.activate
+    def test_link_records_to_content_document__no_records(self):
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+                "queries": self.queries,
+            },
+        )
+        task.logger = mock.Mock()
+
+        # Initialize REST API
+        task._init_task()
+
+        # Execute _link_records_to_content_document.
+        task._link_records_to_content_document(self.content_document_id, [])
+
+        assert 0 == len(
+            responses.calls
+        ), f"No calls should have been made yet {len(responses.calls)} calls were made.  Expecting a call to insert a ContentDocumentLink for an empty list."
+
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(""),
+                mock.call(
+                    "😴 No records IDs queried. Skipping linking the Content Document to related records."
+                ),
+            ]
+        )

@@ -4,7 +4,6 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_list_arg
 from cumulusci.core.exceptions import CumulusCIException
 from simple_salesforce.exceptions import SalesforceMalformedRequest
-import json
 
 
 def to_cumulusci_exception(e: SalesforceMalformedRequest) -> CumulusCIException:
@@ -89,16 +88,7 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
 
         self.logger.info(f"Inserting ContentVersion from {path}")
 
-        self.logger.debug(
-            json.dumps(
-                {
-                    "PathOnClient": path.name,
-                    "Title": path.stem,
-                    "VersionData": base64.b64encode(path.read_bytes()).decode("utf-8"),
-                }
-            )
-        )
-
+        # Any failures raise a SalesforceMalformedRequest instead of returning success as False.
         result = self.sf.ContentVersion.create(
             {
                 "PathOnClient": path.name,
@@ -106,10 +96,6 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
                 "VersionData": base64.b64encode(path.read_bytes()).decode("utf-8"),
             }
         )
-        if not result["success"]:
-            raise CumulusCIException(
-                "Failed to insert ContentVersion: {}".format(result["errors"])
-            )
         content_version_id = result["id"]
 
         # Query the ContentDocumentId for our created record.
@@ -121,12 +107,15 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
 
         return content_document_id
 
-    def _get_record_ids_to_link(self) -> set[str]:
+    def _delete_content_document(self, content_document_id: str):
+        self.sf.ContentDocument.delete(content_document_id)
+
+    def _get_record_ids_to_link(self) -> list[str]:
         queries = self.options["queries"]
         self.logger.info("")
         self.logger.info("Querying records to link to the new ContentDocument.")
+        all_record_ids = set()
         if queries:
-            all_record_ids = set()
             for query in queries:
                 self.logger.info(f"    {query}")
                 record_ids = [
@@ -139,15 +128,12 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
                     all_record_ids.update(record_ids)
                 else:
                     self.logger.info("        🚫 No records found.")
-            return all_record_ids
         else:
             self.logger.info("    No queries specified.")
-
-    def _delete_content_document(self, content_document_id: str):
-        self.sf.ContentDocument.delete(content_document_id)
+        return list(all_record_ids)
 
     def _link_records_to_content_document(
-        self, content_document_id: str, record_ids: set[str]
+        self, content_document_id: str, record_ids: list[str]
     ):
         self.logger.info("")
         if record_ids:
