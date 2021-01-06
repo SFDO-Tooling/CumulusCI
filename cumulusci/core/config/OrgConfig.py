@@ -273,7 +273,10 @@ class OrgConfig(BaseConfig):
                         "tooling/query/?q=SELECT Id, MajorVersion, MinorVersion, PatchVersion, BuildNumber, "
                         f"IsBeta FROM SubscriberPackageVersion WHERE Id='{isp['SubscriberPackageVersionId']}'"
                     )
-                except SalesforceError:
+                except SalesforceError as err:
+                    self.logger.warning(
+                        f"Ignoring error while trying to check installed package {isp['SubscriberPackageVersionId']}: {err.content}"
+                    )
                     continue
                 if not spv_result["records"]:
                     # This _shouldn't_ happen, but it is possible in customer orgs.
