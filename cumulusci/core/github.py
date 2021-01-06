@@ -1,5 +1,4 @@
-"""Wraps the github3 library to configure request retries."""
-
+import io
 import os
 import re
 
@@ -10,11 +9,13 @@ import github3
 from github3 import GitHub
 from github3 import login
 from github3.pulls import ShortPullRequest
+from github3.repos.repo import Repository
 from github3.session import GitHubSession
 
 from cumulusci.core.exceptions import GithubException, DependencyLookupError
 
 from cumulusci.utils.http.requests_utils import safe_json_from_response
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
 # Prepare request retry policy to be attached to github sessions.
@@ -198,3 +199,16 @@ def get_version_id_from_commit(repo, commit_sha, context):
             match = VERSION_ID_RE.search(status.description)
             if match:
                 return match.group(1)
+
+
+def find_repo_feature_prefix(repo: Repository) -> str:
+    contents = repo.file_contents(
+        "cumulusci.yml",
+        ref=repo.branch(repo.default_branch).commit.sha,
+    )
+    head_cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
+    return (
+        head_cumulusci_yml.get("project", {})
+        .get("git", {})
+        .get("prefix_feature", "feature/")
+    )

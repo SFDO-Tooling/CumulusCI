@@ -6,7 +6,6 @@ import pathlib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from github3.repos import commit
 
 import pytest
 from unittest import mock
@@ -1069,10 +1068,11 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(universal_config)
         config.keychain = DummyKeychain()
         github = self._make_github()
+        # remove cumulusci.yml
+        github.repositories["CumulusCI-Test-Dep"]._contents = {}
         config.get_github_api = mock.Mock(return_value=github)
         config.project__git__prefix_feature = "feature/"
         config.repo_info["branch"] = "feature/230"
-        config.find_repo_feature_prefix = mock.Mock(return_value=None)
 
         repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
         assert config.find_matching_2gp_release(repo) == (None, None)
