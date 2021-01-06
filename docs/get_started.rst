@@ -14,13 +14,16 @@ Install CumulusCI
     If that's completely new to you, we recommend visiting the `CumulusCI Setup module <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup>`_ on Trailhead for a step by step walkthrough.
 
 
+
 On macOS
 ^^^^^^^^
+
 `Homebrew <https://brew.sh/>`_ is a prerequisite for installing CumulusCI on macOS. Start there.
 
 
 Install via ``pipx``
-******************************
+********************
+
 ``pipx`` ensures that CumulusCI and its dependencies are installed into their own Python environment separate from other Python software on your computer. **We cannot recommend it enough!**
 
 First, install ``pipx`` with the following commands::
@@ -35,11 +38,13 @@ After ``pipx`` installs, install CumulusCI::
 Once finished `verify your installation`_.
 
 
+
 On Linux
 ^^^^^^^^
 
 Install via ``pipx``
-******************************
+********************
+
 ``pipx`` ensures that CumulusCI and its dependencies are installed into their own Python environment separate from other Python software on your computer. **We cannot recommend it enough!**
 
 Installation instructions for ``pipx`` can be found `here <https://pipxproject.github.io/pipx/installation/>`_.
@@ -51,11 +56,13 @@ After ``pipx`` installs, install CumulusCI::
 Once finished `verify your installation`_.
 
 
+
 On Windows
 ^^^^^^^^^^
 
 Install Python 3
 ********************
+
 #. Go to the `Python downloads page <https://www.python.org/downloads/release/python-383/>`_.
 #. Download the latest Python 3 release. Most users should select the "Download Windows x86-64 executable installer" link for the most recent stable release, but it may depend on your particular computer setup.
 #. Use the installation wizard to install:
@@ -65,9 +72,9 @@ Install Python 3
 
 .. image:: images/windows_python.png
 
-
 Install via ``pipx``
 ********************
+
 ``pipx`` ensures that CumulusCI and its dependencies are installed into their own Python environment separate from other Python software on your computer. **We cannot recommend it enough!**
 
 Open your preferred terminal application (e.g. `CMD.exe <https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/cmd>`_ on Windows).
@@ -108,6 +115,7 @@ Inside your terminal application, enter the following command::
 Once finished `verify your installation`_.
 
 
+
 Verify Your Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -137,7 +145,7 @@ If you haven't set up Salesforce DX, follow these steps:
 1. `Install Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm>`_
 2. `Enable Dev Hub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.228.0.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_devhub.htm>`_
 3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_ 
-    .. important:: Be sure to use the ``--setdefaultdevhubusername`` option!
+        .. important:: Be sure to use the ``--setdefaultdevhubusername`` option!
 
 If you have the ``sfdx`` command installed, are connected to your devhub, and set the ``defaultdevhubusername`` config setting (use the ``sfdx force:config:list`` command to verify!), you're now ready to use ``cci`` with ``sfdx``.
 
@@ -149,6 +157,7 @@ Learn more about Salesforce DX at https://developer.salesforce.com/platform/dx.
 
 Connect to GitHub
 -----------------
+
 In order to allow CumlusCI to work with your CumulusCI projects in GitHub, connect GitHub as a service in ``cci``.
 
 First, `create a new personal access token <https://github.com/settings/tokens/new>`_ with both "repo" and "gist" scopes specified. (Scopes appear as checkboxes when creating the personal access token in GitHub.) Copy the access token to use as the password when configuring the GitHub service.
@@ -171,6 +180,7 @@ Services are stored in the global CumulusCI keychain by default.
 
 Work on an Existing CumulusCI Project
 -------------------------------------
+
 Follow this section if there's an existing CumulusCI project on GitHub that you'd like to work on.
 
 .. note:: CumulusCI does not support projects stored on other Git hosts such as BitBucket or GitLab at this time.
@@ -226,6 +236,7 @@ You can change directories into the project's root directory and begin executing
 
 Starting a New CumulusCI Project
 --------------------------------
+
 There are three preliminary steps for starting a brand new CumulusCI project. You need to:
 
 #. `Install CumulusCI`_
@@ -246,6 +257,7 @@ Next, initialize the project as a CumulusCI project.
 
 Project Initialization
 ^^^^^^^^^^^^^^^^^^^^^^
+
 Use the ``cci project init`` command within a Git repository to generate the initial version of a project's ``cumulusci.yml`` file. CumulusCI creates a customized ``cumulusci.yml`` file by first asking questions about your project.
 
 +------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -282,6 +294,7 @@ Use the ``cci project init`` command within a Git repository to generate the ini
 +------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
+
 Verify Project Initialization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -313,6 +326,7 @@ You can even add and commit it to your Git repository:
 
 Add Your Repo to GitHub
 ^^^^^^^^^^^^^^^^^^^^^^^
+
 With your ``cumulusci.yml`` file committed, create a repository on GitHub for your new project and push your changes there.
 There are multiple ways to do this:
 
@@ -320,29 +334,32 @@ There are multiple ways to do this:
 * If you prefer the command line, GitHub has excellent guides on both `git remote <https://github.com/git-guides/git-remote>`_ and `git push <https://github.com/git-guides/git-push>`_.
 
 
+
 Convert an Existing Salesforce Project
 --------------------------------------
+
 Converting an existing Salesforce project to use CumulusCI may follow a number of different paths, depending on whether you're practicing the Org Development Model or the Package Development Model; whether or not you're already developing in scratch orgs; and the complexity of your project's dependencies on the org environment.
 
-If you're developing in scratch orgs, then you likely only need to do `project setup`_ and `org shape setup`_.
-
-If you're developing in persistent orgs, then you likely want to go through **all** of the following sections. Your experience may vary. 
+If you're developing in persistent orgs and not already using source control, you'll also need to retrieve the existing metadata from the org. Note that adopting source control and moving from persistent orgs into scratch orgs are case-specific processes; your experience may vary and you may need to undertake additional work as part of those transitions.
 
 You're welcome to discuss project conversion in the `CumulusCI (CCI) Trailblazer group <https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z>`_.
 
 
+
 Project Setup
 ^^^^^^^^^^^^^
-Prior to capturing your project's Metadata you need to set up the project's root directory. These steps include:
+
+Prior to retrieving your project's metadata you need to set up the project's root directory. These steps include:
 
 * Creating a project directory and initializing it as a Git repository as outlined in `starting a new CumulusCI project`_.
 * Initializing the directory as a CumulusCI project as outlined in `project initialization`_.
 
 
 
-Metadata Capture
-^^^^^^^^^^^^^^^^
-The following assumes that your project currently lives in a persistent org, such as a Developer Edition org or a sandbox. We recommend a retrieve of MetaData via the Metadata API (via ``sfdx``), followed by converting the source format from "metadata" to "``sfdx``".
+Retrieving Metadata
+^^^^^^^^^^^^^^^^^^^
+
+The following assumes that your project currently lives in a persistent org, such as a Developer Edition org or a sandbox. We recommend retrieving metadata via the Metadata API (using the Salesforce CLI), followed by converting the source from Metadata API to SFDX format.
 
 #. If the metadata you want to retrieve isn't already in a package, `create one <https://help.salesforce.com/articleView?id=creating_packages.htm>`_.
     .. note:: If your project contains a managed package, ensure that the package namespace matches the namespace you entered when running ``cci project init``.
@@ -358,12 +375,14 @@ At this point you may want to `add your repo to GitHub`_, or perhaps begin `conf
 
 Org Shape Setup
 ^^^^^^^^^^^^^^^
+
 TODO: link to org section
 
 
 
 Other Conversion Considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 * If you or your team have been working with `scratch org definition files <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm>`_ for use with ``sfdx``, consult our documentation on `configuring orgs` <#TODO doc ref> to utilize them with CumulusCI.
 * If you have metadata that you would like deployed pre or post deployment, `#TODO <pre/post ref>`.
 * If you have data that you need to include for testing or production purposes, visit our section on `Automating Data Operations` <#TODO doc ref>.
