@@ -6,13 +6,14 @@ import pathlib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
-import pytest
 from unittest import mock
+
+from github3.exceptions import NotFoundError
+from simple_salesforce.exceptions import SalesforceError
+import pytest
 import responses
 import yaml
 
-from github3.exceptions import NotFoundError
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -1646,6 +1647,13 @@ class TestOrgConfig(unittest.TestCase):
                     },
                     "SubscriberPackageVersionId": "04t0000000BOGUSAAA",
                 },
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz8AAG",
+                        "NamespacePrefix": "error",
+                    },
+                    "SubscriberPackageVersionId": "04t0000000ERRORAAA",
+                },
             ],
         },
         {
@@ -1694,6 +1702,7 @@ class TestOrgConfig(unittest.TestCase):
             ],
         },
         {"size": 0, "totalSize": 0, "done": True, "records": []},
+        SalesforceError(None, None, None, None),
     ]
 
     @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
