@@ -155,7 +155,9 @@ class TestMappingParser:
             ]
         }
 
-        assert mapping.get_relative_date_context(org_config) == ([0], [1], date.today())
+        assert mapping.get_relative_date_context(
+            mapping.get_load_field_list(), org_config
+        ) == ([0], [1], date.today())
 
     # Start of FLS/Namespace Injection Unit Tests
 
