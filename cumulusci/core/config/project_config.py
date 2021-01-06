@@ -28,6 +28,7 @@ from cumulusci.core.github import (
     get_github_api_for_repo,
     find_latest_release,
     find_previous_release,
+    find_repo_feature_prefix,
     get_version_id_from_commit,
 )
 from cumulusci.core.source import GitHubSource
@@ -507,23 +508,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo
 
-    def find_repo_feature_prefix(self, remote_repo):
-        try:
-            contents = remote_repo.file_contents(
-                "cumulusci.yml",
-                ref=remote_repo.branch(remote_repo.default_branch).commit.sha,
-            )
-            head_cumulusci_yml = cci_safe_load(
-                io.StringIO(contents.decoded.decode("utf-8"))
-            )
-            return (
-                head_cumulusci_yml.get("project", {})
-                .get("git", {})
-                .get("prefix_feature", "feature/")
-            )
-        except:  # noqa: E722
-            return None
-
     def find_matching_2gp_release(self, remote_repo):
         # To allow us to locate release branches on the remote repo, we need to know its feature branch prefix.
         # We'll use the cumulusci.yml file from HEAD on the main branch to determine this.
@@ -531,8 +515,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         release_id = get_release_identifier(
             self.repo_branch, self.project__git__prefix_feature
         )
-        remote_branch_prefix = self.find_repo_feature_prefix(remote_repo)
-        if not remote_branch_prefix:
+        try:
+            remote_branch_prefix = find_repo_feature_prefix(remote_repo)
+        except Exception:
+            self.logger.info(
+                f"Could not find feature branch prefix for {remote_repo.clone_url}. Falling back to 1GP."
+            )
             return (None, None)
         remote_matching_branch = construct_release_branch_name(
             remote_branch_prefix, release_id
