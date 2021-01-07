@@ -42,7 +42,7 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        self.options["timeout"] = int(self.options.get("timeout", 60))
+        self.options["timeout"] = int(self.options.get("timeout", 90))
         self.blocklist_path = os_friendly_path(
             self.options.get("blocklist_path")
             if self.options.get("blocklist_path")
@@ -57,6 +57,9 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
         )
         with open(standard_object_allowlist_path, "r") as f:
             self.standard_object_allowlist = yaml.safe_load(f)
+            # TODO: check that admin has FLS for each field
+            # if they don't, log an error and remove it from the list
+            # getattr(self.sf, sobject_api_name).describe()["fields"]
 
         self._set_api_names()
 
@@ -111,7 +114,7 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
 
     def _is_in_blocklist(self, object_api_name, field_api_name):
         # blocklist is dict: object_api_name -> list of field_api_names
-        return self.blocklist.get(
+        return False if not self.blocklist else self.blocklist.get(
             object_api_name
         ) and field_api_name in self.blocklist.get(object_api_name)
 
@@ -122,6 +125,7 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
                 # all custom fields - on both standard objects and custom objects
                 field_api_name.endswith("__c")
                 and field.type.text in self.encryptable_field_types
+                and not field.find("formula")
             )
             or (
                 # standard fields on standard objects
@@ -141,19 +145,24 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
     def _transform_entity(self, custom_object: MetadataElement, object_api_name: str):
         dirty_object = False
 
-        # MD Api bug
+        # MD Api bug https://gus.lightning.force.com/lightning/r/ADM_Work__c/a07B0000008lxMBIAY/view
         existing_list_views = custom_object.findall("listViews")
         for lv in existing_list_views:
             custom_object.remove(lv)
-
+            
         # special handling required for custom object Name fields, as they don't live in a "fields" tag
         if object_api_name.endswith("__c") and not self._is_in_blocklist(
             object_api_name, "Name"
         ):
             name_field = custom_object.find("nameField")
-            self.encrypt_field(name_field)
-            self.fields_to_encrypt[object_api_name].append("Name")
-            dirty_object = True
+            if name_field.find("encryptionScheme"):
+                # print('BEFORE*****')
+                # print(name_field.tostring())
+                self.encrypt_field(name_field)
+                # print('AFTER******')
+                # print(name_field.tostring())
+                self.fields_to_encrypt[object_api_name].append("Name")
+                dirty_object = True
 
         for field in custom_object.findall("fields"):
             if self._is_encryptable(object_api_name, field):
@@ -185,16 +194,20 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
             )
 
         for sobject_api_name in self.fields_to_encrypt.keys():
-
             field_map = {
                 field["name"]: field
                 for field in getattr(self.sf, sobject_api_name).describe()["fields"]
                 if field["name"] in self.fields_to_encrypt[sobject_api_name]
             }
 
+            fields_to_remove = []
+
             for field_api_name in self.fields_to_encrypt[sobject_api_name]:
                 if not field_map[field_api_name]["filterable"]:
-                    self.fields_to_encrypt[sobject_api_name].remove(field_api_name)
+                    fields_to_remove.append(field_api_name)
+
+            for field_api_name in fields_to_remove:
+                self.fields_to_encrypt[sobject_api_name].remove(field_api_name)
 
         if not any(self.fields_to_encrypt.values()):
             self.logger.info(

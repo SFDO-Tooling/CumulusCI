@@ -175,10 +175,10 @@ class TestEncryptAllFields:
         task.sf = mock.Mock()
         task.sf.describe.return_value = {
             "sobjects": [
-                {"name": "Account", "customSetting": False},
-                {"name": "MyStandardObjectWithCustomFields", "customSetting": False},
-                {"name": "CustomObj__c", "customSetting": False},
-                {"name": "CustomSetting__c", "customSetting": True},
+                {"name": "Account", "customSetting": False, "queryable":True, "deprecatedAndHidden":False},
+                {"name": "MyStandardObjectWithCustomFields", "customSetting": False, "queryable":True, "deprecatedAndHidden":False},
+                {"name": "CustomObj__c", "customSetting": False, "queryable":True, "deprecatedAndHidden":False},
+                {"name": "CustomSetting__c", "customSetting": True, "queryable":True, "deprecatedAndHidden":False},
             ]
         }
         task.sf.Account.describe.return_value = {

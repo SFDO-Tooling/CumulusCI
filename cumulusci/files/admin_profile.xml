@@ -5,15 +5,9 @@
         <members>Campaign</members>
         <members>CampaignMember</members>
         <members>Contact</members>
-        <members>Contract</members>
         <members>Lead</members>
         <members>Opportunity</members>
         <name>CustomObject</name>
-    </types>
-    <types>
-        <members>*</members>
-        <members>Contract.ShippingAddress</members>
-        <name>CustomField</name>
     </types>
     <types>
         <name>Profile</name>
