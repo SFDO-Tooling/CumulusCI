@@ -166,7 +166,9 @@ class TestMappingParser:
             ]
         }
 
-        assert mapping.get_relative_date_context(org_config) == ([0], [1], date.today())
+        assert mapping.get_relative_date_context(
+            mapping.get_load_field_list(), org_config
+        ) == ([0], [1], date.today())
 
     def test_get_relative_date_e2e(self):
         base_path = Path(__file__).parent / "mapping_v1.yml"
@@ -183,11 +185,13 @@ class TestMappingParser:
         contacts_mapping.fields.update(
             {"Some_Date__c": "Some_Date__c", "Some_Datetime__c": "Some_Datetime__c"}
         )
-        assert contacts_mapping.get_relative_date_context(org_config) == (
+        assert contacts_mapping.get_relative_date_context(
+            contacts_mapping.get_load_field_list(), org_config
+        ) == (
             [3],
             [4],
             date.today(),
-        ), contacts_mapping.get_relative_date_context(org_config)
+        )
 
     # Start of FLS/Namespace Injection Unit Tests
 
