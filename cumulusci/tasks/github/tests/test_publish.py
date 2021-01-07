@@ -93,7 +93,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             task_config = TaskConfig(
                 {
                     "options": {
-                        "branch": "master",
+                        "branch": "main",
                         "version": "latest",
                         "create_release": True,
                         "repo_url": self.public_repo_url,
@@ -144,7 +144,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         task_config = TaskConfig(
             {
                 "options": {
-                    "branch": "master",
+                    "branch": "main",
                     "version": "latest_beta",
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
@@ -186,7 +186,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         task_config = TaskConfig(
             {
                 "options": {
-                    "branch": "master",
+                    "branch": "main",
                     "version": "latest",
                     "create_release": True,
                     "repo_url": self.public_repo_url,
@@ -242,7 +242,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         task_config = TaskConfig(
             {
                 "options": {
-                    "branch": "master",
+                    "branch": "main",
                     "version": "latest",
                     "create_release": True,
                     "repo_url": self.public_repo_url,
