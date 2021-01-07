@@ -1,18 +1,14 @@
 import re
-import base64
-import pathlib
 import json
-
+from pathlib import Path
+from cumulusci.tasks.salesforce import InsertContentDocument
+from cumulusci.tasks.salesforce.content_documents import to_cumulusci_exception
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import CumulusCIException
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 
-def join_errors(e: SalesforceMalformedRequest) -> str:
-    return "; ".join([error.get("message", "Unknown.") for error in e.content])
-
-
-class UploadProfilePhoto(BaseSalesforceApiTask):
+class UploadProfilePhoto(InsertContentDocument):
     task_docs = """
 Uploads a profile photo for a specified or default User.
 
@@ -61,8 +57,10 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
         },
     }
 
-    def _raise_cumulusci_exception(self, e: SalesforceMalformedRequest) -> None:
-        raise CumulusCIException(join_errors(e))
+    def _init_options(self, kwargs):
+        super(BaseSalesforceApiTask, self)._init_options(kwargs)
+
+        self.options["path"] = Path(self.options.get("photo"))
 
     def _get_user_id_by_query(self, where: str) -> str:
         # Query for the User removing a "WHERE " prefix from where if exists.
@@ -77,7 +75,7 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
                 user_ids.append(record["Id"])
         except SalesforceMalformedRequest as e:
             # Raise an easier to digest exception.
-            self._raise_cumulusci_exception(e)
+            raise to_cumulusci_exception(e)
 
         # Validate only 1 User found.
         if len(user_ids) < 1:
@@ -98,64 +96,25 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
         )
         return user_id
 
-    def _insert_content_document(self, photo_path) -> str:
-        path = pathlib.Path(photo_path)
-
-        if not path.exists():
-            raise CumulusCIException(f"No photo found at {path}")
-
-        self.logger.info(f"Setting user photo to {path}")
-        result = self.sf.ContentVersion.create(
-            {
-                "PathOnClient": path.name,
-                "Title": path.stem,
-                "VersionData": base64.b64encode(path.read_bytes()).decode("utf-8"),
-            }
+    def _get_record_ids_to_link(self) -> set[str]:
+        self.logger.info("")
+        record_ids = set()
+        record_ids.add(
+            self._get_user_id_by_query(self.options["where"])
+            if self.options.get("where")
+            else self._get_default_user_id()
         )
-        if not result["success"]:
-            raise CumulusCIException(
-                "Failed to create photo ContentVersion: {}".format(result["errors"])
-            )
-        content_version_id = result["id"]
+        return record_ids
 
-        # Query the ContentDocumentId for our created record.
-        content_document_id = self.sf.query(
-            f"SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = '{content_version_id}'"
-        )["records"][0]["ContentDocumentId"]
-
-        self.logger.info(
-            f"Uploaded profile photo ContentDocument {content_document_id}"
-        )
-
-        return content_document_id
-
-    def _delete_content_document(self, content_document_id: str):
-        self.sf.ContentDocument.delete(content_document_id)
-
-    def _assign_user_profile_photo(self, user_id: str, content_document_id: str):
+    def _link_records_to_content_document(
+        self, content_document_id: str, record_ids: set[str]
+    ):
         # Call the Connect API to set our user photo.
-        try:
+        self.logger.info("")
+        self.logger.info("Linking the Content Document as the User's Profile photo.")
+        for user_id in record_ids:
             self.sf.restful(
                 f"connect/user-profiles/{user_id}/photo",
                 data=json.dumps({"fileId": content_document_id}),
                 method="POST",
             )
-        except SalesforceMalformedRequest as e:
-            # Rollback ContentDocument, and raise an easier to digest exception.
-            self.logger.error(
-                "An error occured assigning the ContentDocument as the users's profile photo."
-            )
-            self.logger.error(f"Deleting ContentDocument {content_document_id}")
-            self._delete_content_document(content_document_id)
-            self._raise_cumulusci_exception(e)
-
-    def _run_task(self):
-        user_id = (
-            self._get_user_id_by_query(self.options["where"])
-            if self.options.get("where")
-            else self._get_default_user_id()
-        )
-
-        content_document_id = self._insert_content_document(self.options["photo"])
-
-        self._assign_user_profile_photo(user_id, content_document_id)
