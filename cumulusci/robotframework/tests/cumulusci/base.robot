@@ -43,6 +43,11 @@ Test Perf Set Elapsed Time
     [Tags]  perf
     Set Test Elapsed Time       11655.9   #  3:14:15.9
 
+Test Perf Set Elapsed Time Twice
+    [Tags]  perf
+    Set Test Elapsed Time       11655.9
+    Set Test Elapsed Time       53  
+
 Test Perf Set Elapsed Time String
     [Tags]  perf
     Log                 A
@@ -52,63 +57,22 @@ Test Perf Measure Elapsed
     [Setup]       Log             Before
     [Teardown]    Log             After
     Log                 B
-    Start Perf Timer
+    Start Performance Timer
     Sleep       1
     Log         Noop
-    End Perf Timer
+    Stop Performance Timer
 
-# Make sure parser doesn't choke on this.
-Test Perf - Parser does not choke with no keywords - Should Fail
-    [Tags]      noncritical
+Set Time and Also Metric
+    Start Performance Timer
+    Log         Noop
+    Stop Performance Timer
+    Set Test Metric   number of records  100 
 
 Test Perf Measure Other Metric
     Set Test Metric    Max_CPU_Percent    30
 
-Mismatched End Perf Timer - Should Fail
+Mismatched Stop Performance Timer - Should Fail
     Run Keyword and Expect Error
     ...         *Elapsed time clock was not*
-    ...         End Perf Timer
+    ...         Stop Performance Timer
 
-Test Elapsed Time For Last Record
-    # This test uses contacts as if they were "jobs" becaues they are
-    # easy to insert. I don't currently have a better alternative 
-    # for a job-like objects which is easy to create in a vanilla
-    # SF org
-    ${contact_id} =  Salesforce Insert  Contact  FirstName=Dummy1  LastName=Dummy2
-    sleep   1
-    Salesforce Update   Contact     ${contact_id}       LastName=Dummy3
-    ${Elapsed}=     Elapsed Time For Last Record    
-    ...             obj_name=Contact
-    ...             where=Id='${contact_id}'
-    ...             start_field=CreatedDate
-    ...             end_field=LastModifiedDate
-    ...             order_by=LastModifiedDate
-    Should Be True      ${Elapsed} > 0
-
-    ${contact2_id} =  Salesforce Insert  Contact  FirstName=Dummy1  LastName=Dummy2
-    Salesforce Update   Contact     ${contact_id}       LastName=Dummy3
-    ${Elapsed_2}=     Elapsed Time For Last Record    
-    ...             obj_name=Contact
-    ...             where=Id='${contact_id}'
-    ...             start_field=CreatedDate
-    ...             end_field=LastModifiedDate
-    ...             order_by=LastModifiedDate
-
-    ${Elapsed_latest}=     Elapsed Time For Last Record    
-    ...             obj_name=Contact
-    ...             start_field=CreatedDate
-    ...             end_field=LastModifiedDate
-    ...             order_by=LastModifiedDate
-
-    Should Be Equal         ${Elapsed_2}    ${Elapsed_latest}
-    Set Test Elapsed Time        ${Elapsed}
-
-
-Test Elapsed Time For Last Record - Failure
-    Run Keyword and expect Error   *Matching record not found*   
-    ...     Elapsed Time For Last Record    
-    ...             obj_name=AsyncApexJob
-    ...             where=ApexClass.Name='BlahBlah'
-    ...             start_field=CreatedDate
-    ...             end_field=CompletedDate
-    ...             order_by=CompletedDate

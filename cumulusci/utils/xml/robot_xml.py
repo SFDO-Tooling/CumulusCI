@@ -38,7 +38,7 @@ def _perf_formatter(perfsummary: PerfSummary) -> str:
         if metric != "total_time"
     ]
 
-    result = f"`{perfsummary.name}` - "
+    result = f"{perfsummary.name} - "
 
     if other_metrics:
         other_metrics = ", ".join(other_metrics)
@@ -64,9 +64,10 @@ def log_perf_summary_from_xml(
 
 def _perf_logger(logger_func: Callable, formatter_func: Callable):
     """Generator that connects visitor to logger"""
+    # ensure we have at least one result before printing header
+    perfsummary = yield
     logger_func(" === Performance Results  === ")
 
-    perfsummary = yield
     while perfsummary:
         logger_func(formatter_func(perfsummary))
         perfsummary = yield

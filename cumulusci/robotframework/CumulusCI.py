@@ -244,18 +244,21 @@ class CumulusCI(object):
         """Pauses execution and enters the Python debugger."""
         set_pdb_trace()
 
-    def start_perf_timer(self):
+    def start_performance_timer(self):
         """Start an elapsed time stopwatch for performance tests.
+
+        See the docummentation for **Stop Performance Timer** for more
+        information.
 
         Example:
 
-            Start Perf Timer
+            Start Performance Timer
             Do Something
-            End Perf Timer
+            Stop Performance Timer
         """
         BuiltIn().set_test_variable("${__start_time}", datetime.now())
 
-    def end_perf_timer(self):
+    def stop_performance_timer(self):
         """Record the results of a stopwatch. For perf testing.
 
         This keyword uses Set Test Elapsed Time internally and therefore
@@ -263,9 +266,9 @@ class CumulusCI(object):
 
         Example:
 
-            Start Perf Timer
+            Start Performance Timer
             Do Something
-            End Perf Timer
+            Stop Performance Timer
 
         """
         builtins = BuiltIn()
@@ -292,7 +295,8 @@ class CumulusCI(object):
         (https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats).
 
         Using this keyword will automatically add the tag cci_metric_elapsed_time to the test case
-        and ${cci_metric_elapsed_time} to the test's variables.
+        and ${cci_metric_elapsed_time} to the test's variables. cci_metric_elapsed_time is not
+        included in Robot's html statistical roll-ups.
 
         Example:
 
@@ -322,18 +326,22 @@ class CumulusCI(object):
         can be any number.
 
         Using this keyword will automatically add the tag cci_metric to the test case
-        and ${cci_metric_<metric_name>} to the test's variables.
+        and ${cci_metric_<metric_name>} to the test's variables. These permit downstream
+        processing in tools like CCI and MetaCI.
+
+        cci_metric is not included in Robot's html statistical roll-ups.
 
         Example:
 
             Set Test Metric    Max_CPU_Percent    30
 
-        Performance test metrics are output in the CCI logs, log.html and output.xml."""
+        Performance test metrics are output in the CCI logs, log.html and output.xml.
+        MetaCI captures them but does not currently have a user interface for displaying
+        them."""
 
         builtins = BuiltIn()
 
         value = float(value)
 
-        builtins.set_test_message(f"Metric time set by test : {metric} {value}")
         builtins.set_tags("cci_metric")
         builtins.set_test_variable("${cci_metric_%s}" % metric, value)

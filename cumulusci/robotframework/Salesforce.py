@@ -1240,7 +1240,7 @@ class Salesforce(object):
     def elapsed_time_for_last_record(
         self, obj_name, start_field, end_field, order_by, **kwargs
     ):
-        """Compare a record's start-time to its end-time to see how long a process took.
+        """For records representing jobs or processes, compare the record's start-time to its end-time to see how long a process took.
 
         Arguments:
             obj_name:   SObject to look for last record

@@ -119,6 +119,8 @@ class TestRobot(unittest.TestCase):
             ".",
             "--tagstatexclude",
             "cci_metric_elapsed_time",
+            "--tagstatexclude",
+            "cci_metric",
             "tests",
         ]
         mock_robot_run.assert_not_called()
@@ -137,7 +139,7 @@ class TestRobot(unittest.TestCase):
             listener=[],
             outputdir=".",
             variable=["org:test"],
-            tagstatexclude=["cci_metric_elapsed_time"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -152,7 +154,7 @@ class TestRobot(unittest.TestCase):
             listener=[],
             outputdir=".",
             variable=["org:test"],
-            tagstatexclude=["cci_metric_elapsed_time"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
         )
 
     def test_default_listeners(self):
@@ -585,16 +587,15 @@ class TestRobotPerformanceKeyywords:
         self.datadir = os.path.dirname(__file__)
 
     @contextmanager
-    def _run_robot_and_parse_xml(self, test_pattern):
+    def _run_robot_and_parse_xml(
+        self, test_pattern, suite_path="tests/cumulusci/base.robot"
+    ):
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
         with temporary_dir() as d:
             project_config.repo_info["root"] = d
             print(project_config.repo_root)
-            suite = (
-                Path(self.datadir)
-                / "../../../robotframework/tests/cumulusci/base.robot"
-            )
+            suite = Path(self.datadir) / f"../../../robotframework/{suite_path}"
             task = create_task(
                 Robot,
                 {
@@ -616,7 +617,7 @@ class TestRobotPerformanceKeyywords:
             value = float(value)
         except ValueError:
             raise Exception(f"Cannot convert to float {value}")
-        return name, value
+        return name.strip(), value
 
     def extract_times(self, pattern, call):
         first_arg = call[1][0]
@@ -633,7 +634,7 @@ class TestRobotPerformanceKeyywords:
             elapsed_times = [next(iter(x.values())) for x in elapsed_times if x]
             elapsed_times.sort()
 
-            assert elapsed_times[1:] == [11655.9, 18000.0]
+            assert elapsed_times[1:] == [53, 11655.9, 18000.0]
             assert float(elapsed_times[0]) < 3
 
     def test_metrics(self):
@@ -642,4 +643,22 @@ class TestRobotPerformanceKeyywords:
             "Test Perf Measure Other Metric"
         ) as logger_calls:
             elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
-            assert list(filter(None, elapsed_times)) == [{" Max_CPU_Percent": 30.0}]
+            assert list(filter(None, elapsed_times)) == [{"Max_CPU_Percent": 30.0}]
+
+    def test_empty_test(self):
+        pattern = "Max_CPU_Percent: "
+        with self._run_robot_and_parse_xml(
+            "Test Perf Measure Other Metric"
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times)) == [{"Max_CPU_Percent": 30.0}]
+
+    def test_explicit_failures(self):
+        pattern = "Elapsed Time: "
+        with self._run_robot_and_parse_xml(
+            "Test *", "explicit_failures/"
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times)) == [
+                {"Elapsed Time": 11655.9, "Donuts": 42.3}
+            ]

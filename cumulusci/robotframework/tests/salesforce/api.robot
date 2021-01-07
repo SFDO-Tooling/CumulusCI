@@ -163,3 +163,47 @@ Collection API Errors Test
 Get Version
     ${version} =   Get Latest Api Version
     Should Be True     ${version} > 46
+
+Test Elapsed Time For Last Record
+    # This test uses contacts as if they were "jobs" because they are
+    # easy to insert. I don't currently have a better alternative 
+    # for a job-like objects which is easy to create in a vanilla
+    # SF org
+    ${contact_id} =  Salesforce Insert  Contact  FirstName=Dummy1  LastName=Dummy2
+    Log     Noop
+    Salesforce Update   Contact     ${contact_id}       LastName=Dummy3
+    ${Elapsed}=     Elapsed Time For Last Record    
+    ...             obj_name=Contact
+    ...             where=Id='${contact_id}'
+    ...             start_field=CreatedDate
+    ...             end_field=LastModifiedDate
+    ...             order_by=LastModifiedDate
+    Should Be True      ${Elapsed} > 0
+
+    ${contact2_id} =  Salesforce Insert  Contact  FirstName=Dummy1  LastName=Dummy2
+    Salesforce Update   Contact     ${contact_id}       LastName=Dummy3
+    ${Elapsed_2}=     Elapsed Time For Last Record    
+    ...             obj_name=Contact
+    ...             where=Id='${contact_id}'
+    ...             start_field=CreatedDate
+    ...             end_field=LastModifiedDate
+    ...             order_by=LastModifiedDate
+
+    ${Elapsed_latest}=     Elapsed Time For Last Record    
+    ...             obj_name=Contact
+    ...             start_field=CreatedDate
+    ...             end_field=LastModifiedDate
+    ...             order_by=LastModifiedDate
+
+    Should Be Equal         ${Elapsed_2}    ${Elapsed_latest}
+    Set Test Elapsed Time        ${Elapsed}
+
+
+Test Elapsed Time For Last Record - Failure
+    Run Keyword and expect Error   *Matching record not found*   
+    ...     Elapsed Time For Last Record    
+    ...             obj_name=AsyncApexJob
+    ...             where=ApexClass.Name='BlahBlah'
+    ...             start_field=CreatedDate
+    ...             end_field=CompletedDate
+    ...             order_by=CompletedDate

@@ -282,8 +282,8 @@ Performance test times are output in the CCI logs and are captured in MetaCI ins
 Start and End Perf Time
 -----------------------
 As a convenience, there are keywords to handle the common case where you want to start
-a timer and then store the result with **Set Test Elapsed Time**. These are **Start Perf Time**
-and **End Perf Time**.
+a timer and then store the result with **Set Test Elapsed Time**. These are **Start Performance Timer**
+and **Stop Performance Timer**.
 
 Set Test Metric
 ---------------

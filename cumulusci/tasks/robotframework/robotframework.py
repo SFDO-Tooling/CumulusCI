@@ -45,7 +45,7 @@ class Robot(BaseSalesforceTask):
             "description": "A dictionary of options to robot.run method. "
             "In simple cases this can be specified on the comand line using "
             "name:value,name:value syntax. More complex cases can be specified "
-            "in cumuluci.yml using YAML dictionary syntax."
+            "in cumulusci.yml using YAML dictionary syntax."
         },
         "name": {"description": "Sets the name of the top level test suite"},
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
@@ -118,6 +118,7 @@ class Robot(BaseSalesforceTask):
             "tagstatexclude", []
         ) + self.options.get("tagstatexclude", [])
         options["tagstatexclude"].append("cci_metric_elapsed_time")
+        options["tagstatexclude"].append("cci_metric")
         # Set as a return value so other things that want to use
         # this file (e.g. MetaCI) know where it is
         self.return_values["robot_outputdir"] = options["outputdir"]
@@ -204,7 +205,7 @@ class Robot(BaseSalesforceTask):
                 sys.path = orig_sys_path
 
         output_xml = Path(options["outputdir"]) / "output.xml"
-        if output_xml.exists():
+        if num_failed <= 250 and output_xml.exists():
             log_perf_summary_from_xml(output_xml, self.logger.info)
 
         # These numbers are from the robot framework user guide:

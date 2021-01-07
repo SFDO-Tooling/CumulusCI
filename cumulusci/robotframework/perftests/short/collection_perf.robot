@@ -66,12 +66,12 @@ Insert 200 Prospecting Opportunities
 *** Test Cases ***
 
 Perftest - Insert 200 Contacts
-    Start Perf Timer
+    Start Performance Timer
     Insert 200 Contacts
-    End Perf Timer
+    Stop Performance Timer
 
 Perftest - Insert 200 Contacts With Addresses
-    Start Perf Timer
+    Start Performance Timer
     @{objects}=  Generate Test Data  Contact  200  
         ...  FirstName={{fake.first_name}}
         ...  LastName={{fake.last_name}}
@@ -81,18 +81,18 @@ Perftest - Insert 200 Contacts With Addresses
         ...  MailingPostalCode=12345
         ...  Email={{fake.email(domain="salesforce.com")}}
     Salesforce Collection Insert  ${objects}
-    End Perf Timer
+    Stop Performance Timer
 
 Perftest - Insert 200 Prospecting Opportunities
-    Start Perf Timer
+    Start Performance Timer
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
     Insert 200 Prospecting Opportunities
-    End Perf Timer
+    Stop Performance Timer
 
 Perftest - Change 200 Opportunity States to Closed-Won
-    Start Perf Timer
+    Start Performance Timer
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
@@ -102,4 +102,4 @@ Perftest - Change 200 Opportunity States to Closed-Won
         Set To Dictionary   ${record}   StageName   Closed Won
     END
     Salesforce Collection Update    ${OPPORTUNITIES}
-    End Perf Timer
+    Stop Performance Timer
