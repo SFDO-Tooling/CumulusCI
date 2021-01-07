@@ -178,7 +178,7 @@ Test Elapsed Time For Last Record
     ...             start_field=CreatedDate
     ...             end_field=LastModifiedDate
     ...             order_by=LastModifiedDate
-    Should Be True      ${Elapsed} > 0
+    Should Be True      ${Elapsed} >= 0
 
     ${contact2_id} =  Salesforce Insert  Contact  FirstName=Dummy1  LastName=Dummy2
     Salesforce Update   Contact     ${contact_id}       LastName=Dummy3
