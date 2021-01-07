@@ -15,26 +15,40 @@ from cumulusci.core.exceptions import CumulusCIException  # noqa: F401
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 
-def get_rest_api_base_url(task):
-    return f"{task.org_config.instance_url}/services/data/{task.project_config.project__package__api_version}"
+def assert_call_urls(expected_call_urls, responses_calls):
+    actual_call_urls = [call.request.url for call in responses_calls]
+    assert_message = """URLs of calls.
+Expected: {expected_call_urls_length} calls:
+    {expected_call_urls}
 
-
-def test_to_cumulusci_exception():
-    e = to_cumulusci_exception(
-        SalesforceMalformedRequest(
-            "url",
-            "status",
-            "resource_name",
-            [
-                {"message": "Error message 0.", "errorCode": "ERROR_0"},
-                {"errorCode": "ERROR_1"},
-                {"message": "Error message 2.", "errorCode": "ERROR_2"},
-            ],
-        )
+Actual: {actual_call_urls_length} calls
+    {actual_call_urls}
+""".format(
+        expected_call_urls_length=(len(expected_call_urls)),
+        expected_call_urls=("\n    ".join(expected_call_urls)),
+        actual_call_urls_length=(len(actual_call_urls)),
+        actual_call_urls=("\n    ".join(actual_call_urls)),
     )
+    assert expected_call_urls == actual_call_urls, assert_message
 
-    assert type(e) is CumulusCIException
-    assert "Error message 0.; Unknown.; Error message 2." == e.args[0]
+
+class TestToCumulusCIException:
+    def test_to_cumulusci_exception(self):
+        e = to_cumulusci_exception(
+            SalesforceMalformedRequest(
+                "url",
+                "status",
+                "resource_name",
+                [
+                    {"message": "Error message 0.", "errorCode": "ERROR_0"},
+                    {"errorCode": "ERROR_1"},
+                    {"message": "Error message 2.", "errorCode": "ERROR_2"},
+                ],
+            )
+        )
+
+        assert type(e) is CumulusCIException
+        assert "Error message 0.; Unknown.; Error message 2." == e.args[0]
 
 
 class TestInsertContentDocument:
@@ -66,18 +80,6 @@ class TestInsertContentDocument:
         ), f'file_path "{self.file_path}" should be a file.'
 
         # Resusable data
-        self.e = SalesforceMalformedRequest(
-            "url",
-            "status",
-            "resource_name",
-            [
-                {"message": "Error message 0.", "errorCode": "ERROR_0"},
-                {"errorCode": "ERROR_1"},
-                {"message": "Error message 2.", "errorCode": "ERROR_2"},
-            ],
-        )
-        self.expected_exception_message = "Error message 0.; Unknown.; Error message 2."
-
         self.content_version_id = "0681k000001YWQ5AAO"
         self.content_document_id = "0691k000001LtfEAAS"
         self.queries = [
@@ -181,20 +183,10 @@ class TestInsertContentDocument:
         task.logger = mock.Mock()
 
         api_version = f"v{task.project_config.project__package__api_version}"
-        token_url = f"{task.org_config.instance_url}/services/data"
+        data_url = f"{task.org_config.instance_url}/services/data/{api_version}"
 
-        """
-        # Get access token call.
-        responses.add(
-            responses.GET,
-            token_url,
-            json=[{"version": task.project_config.project__package__api_version}],
-        )
-        """
         # Insert ContentVersion call.
-        insert_content_version_url = (
-            f"{token_url}/{api_version}/sobjects/ContentVersion/"
-        )
+        insert_content_version_url = f"{data_url}/sobjects/ContentVersion/"
         responses.add(
             responses.POST,
             insert_content_version_url,
@@ -205,7 +197,9 @@ class TestInsertContentDocument:
 
         # Query ContentVersion.ContentDocumentId call.
         content_version_query = f"SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = '{self.content_version_id}'"
-        query_content_version_url = f"{token_url}/{api_version}/query/?q={urllib.parse.quote_plus(content_version_query)}"
+        query_content_version_url = (
+            f"{data_url}/query/?q={urllib.parse.quote_plus(content_version_query)}"
+        )
         responses.add(
             responses.GET,
             query_content_version_url,
@@ -235,20 +229,13 @@ class TestInsertContentDocument:
             self.content_document_id == task._insert_content_document()
         ), "_insert_content_document should execute successfully and return the inserted ContentVersion.ContentDocumentId."
 
-        assert (
-            len(responses.calls) == 2
-        ), f"2 calls should have been made yet {len(responses.calls)} calls were made.  Expecting calls: insert ContentVersion, query ContentVersion.ContentDocumentId."
-
-        """
-        assert (
-            responses.calls[0].request.url == token_url
-        ), "The first call should be to get an access token."
-        """
-
-        assert [call.request.url for call in responses.calls] == [
-            insert_content_version_url,
-            query_content_version_url,
-        ], "Expecting calls: insert the ContentVersion, query the ContentVersion.ContentDocumentId."
+        assert_call_urls(
+            [
+                insert_content_version_url,
+                query_content_version_url,
+            ],
+            responses.calls,
+        )
 
         task.logger.info.assert_has_calls(
             [
@@ -271,12 +258,10 @@ class TestInsertContentDocument:
         task.logger = mock.Mock()
 
         api_version = f"v{task.project_config.project__package__api_version}"
-        token_url = f"{task.org_config.instance_url}/services/data"
+        data_url = f"{task.org_config.instance_url}/services/data/{api_version}"
 
         # Insert ContentVersion call fails.
-        insert_content_version_url = (
-            f"{token_url}/{api_version}/sobjects/ContentVersion/"
-        )
+        insert_content_version_url = f"{data_url}/sobjects/ContentVersion/"
         responses.add(
             responses.POST,
             insert_content_version_url,
@@ -298,13 +283,12 @@ class TestInsertContentDocument:
         with pytest.raises(SalesforceMalformedRequest):
             task._insert_content_document()
 
-        assert (
-            len(responses.calls) == 1
-        ), f"Only 1 call should have been made yet {len(responses.calls)} calls were made.  Expecting calls: insert ContentVersion."
-
-        assert [call.request.url for call in responses.calls] == [
-            insert_content_version_url
-        ], "Expecting calls: insert the ContentVersion."
+        assert_call_urls(
+            [
+                insert_content_version_url,
+            ],
+            responses.calls,
+        )
 
         task.logger.info.assert_has_calls(
             [
@@ -324,10 +308,12 @@ class TestInsertContentDocument:
         task.logger = mock.Mock()
 
         api_version = f"v{task.project_config.project__package__api_version}"
-        token_url = f"{task.org_config.instance_url}/services/data"
+        data_url = f"{task.org_config.instance_url}/services/data/{api_version}"
 
         # Delete ContentVersion call.
-        delete_content_document_url = f"{token_url}/{api_version}/sobjects/ContentDocument/{self.content_document_id}"
+        delete_content_document_url = (
+            f"{data_url}/sobjects/ContentDocument/{self.content_document_id}"
+        )
         responses.add(
             responses.DELETE,
             delete_content_document_url,
@@ -341,13 +327,10 @@ class TestInsertContentDocument:
         # Execute _delete_content_document.
         task._delete_content_document(self.content_document_id)
 
-        assert (
-            len(responses.calls) == 1
-        ), f"1 call should have been made yet {len(responses.calls)} calls were made.  Expecting calls: delete ContentDocument."
-
-        assert [call.request.url for call in responses.calls] == [
-            delete_content_document_url
-        ], "Expecting calls: delete the ContentDocument"
+        assert_call_urls(
+            [delete_content_document_url],
+            responses.calls,
+        )
 
         task.logger.info.assert_not_called()
 
@@ -363,10 +346,10 @@ class TestInsertContentDocument:
         task.logger = mock.Mock()
 
         api_version = f"v{task.project_config.project__package__api_version}"
-        token_url = f"{task.org_config.instance_url}/services/data"
+        data_url = f"{task.org_config.instance_url}/services/data/{api_version}"
 
         # Record query 0: Returns account_ids 0 and 1.
-        query_0_url = f"{token_url}/{api_version}/query/?q={urllib.parse.quote_plus(self.queries[0])}"
+        query_0_url = f"{data_url}/query/?q={urllib.parse.quote_plus(self.queries[0])}"
         responses.add(
             responses.GET,
             query_0_url,
@@ -395,7 +378,7 @@ class TestInsertContentDocument:
         )
 
         # Record query 1: Returns no records.
-        query_1_url = f"{token_url}/{api_version}/query/?q={urllib.parse.quote_plus(self.queries[1])}"
+        query_1_url = f"{data_url}/query/?q={urllib.parse.quote_plus(self.queries[1])}"
         responses.add(
             responses.GET,
             query_1_url,
@@ -409,7 +392,7 @@ class TestInsertContentDocument:
         )
 
         # Record query 2: Returns account_ids 1 and 2.
-        query_2_url = f"{token_url}/{api_version}/query/?q={urllib.parse.quote_plus(self.queries[2])}"
+        query_2_url = f"{data_url}/query/?q={urllib.parse.quote_plus(self.queries[2])}"
         responses.add(
             responses.GET,
             query_2_url,
@@ -445,15 +428,14 @@ class TestInsertContentDocument:
             task._get_record_ids_to_link()
         ), "_get_record_ids_to_link should return all self.record_ids."
 
-        assert (
-            len(responses.calls) == 3
-        ), f"3 calls should have been made yet {len(responses.calls)} calls were made.  Expecting 3 calls to query records."
-
-        assert [call.request.url for call in responses.calls] == [
-            query_0_url,
-            query_1_url,
-            query_2_url,
-        ], "Expecting 3 calls to query records."
+        assert_call_urls(
+            [
+                query_0_url,
+                query_1_url,
+                query_2_url,
+            ],
+            responses.calls,
+        )
 
         task.logger.info.assert_has_calls(
             [
@@ -484,9 +466,10 @@ class TestInsertContentDocument:
             record_ids_to_link
         ), f"No record IDs to link should have been queried since there are no queries.  Actual: {', '.join(record_ids_to_link)}"
 
-        assert 0 == len(
-            responses.calls
-        ), f"Expecting 0 calls yet {len(responses.calls)} calls were made."
+        assert_call_urls(
+            [],
+            responses.calls,
+        )
 
         task.logger.info.assert_has_calls(
             [
@@ -508,12 +491,10 @@ class TestInsertContentDocument:
         task.logger = mock.Mock()
 
         api_version = f"v{task.project_config.project__package__api_version}"
-        token_url = f"{task.org_config.instance_url}/services/data"
+        data_url = f"{task.org_config.instance_url}/services/data/{api_version}"
 
         # Insert ContentVersion call.
-        insert_content_document_link_url = (
-            f"{token_url}/{api_version}/sobjects/ContentDocumentLink/"
-        )
+        insert_content_document_link_url = f"{data_url}/sobjects/ContentDocumentLink/"
         responses.add(
             responses.POST,
             insert_content_document_link_url,
@@ -526,16 +507,14 @@ class TestInsertContentDocument:
         task._init_task()
 
         # Execute _link_records_to_content_document.
-        assert 1 < len(
-            self.account_ids
-        ), f"self.account_ids should have at least 2 members.  Actual: {len(self.account_ids)}"
         task._link_records_to_content_document(
             self.content_document_id, self.account_ids
         )
 
-        assert len(self.account_ids) == len(
-            responses.calls
-        ), f"{len(self.account_ids)} calls should have been made yet {len(responses.calls)} calls were made.  Expecting a call to insert a ContentDocumentLink for all account_ids."
+        assert_call_urls(
+            [insert_content_document_link_url for _ in self.account_ids],
+            responses.calls,
+        )
 
         share_type = task.options["share_type"]
         visibility = task.options["visibility"]
@@ -585,12 +564,10 @@ class TestInsertContentDocument:
         task.logger = mock.Mock()
 
         api_version = f"v{task.project_config.project__package__api_version}"
-        token_url = f"{task.org_config.instance_url}/services/data"
+        data_url = f"{task.org_config.instance_url}/services/data/{api_version}"
 
         # Insert ContentVersion call.
-        insert_content_document_link_url = (
-            f"{token_url}/{api_version}/sobjects/ContentDocumentLink/"
-        )
+        insert_content_document_link_url = f"{data_url}/sobjects/ContentDocumentLink/"
         responses.add(
             responses.POST,
             insert_content_document_link_url,
@@ -607,9 +584,10 @@ class TestInsertContentDocument:
             self.content_document_id, [self.account_ids[0]]
         )
 
-        assert 1 == len(
-            responses.calls
-        ), f"1 call should have been made yet {len(responses.calls)} calls were made.  Expecting a call to insert a ContentDocumentLink for account_ids[0]."
+        assert_call_urls(
+            [insert_content_document_link_url],
+            responses.calls,
+        )
 
         share_type = task.options["share_type"]
         visibility = task.options["visibility"]
@@ -663,15 +641,600 @@ class TestInsertContentDocument:
         # Execute _link_records_to_content_document.
         task._link_records_to_content_document(self.content_document_id, [])
 
-        assert 0 == len(
-            responses.calls
-        ), f"No calls should have been made yet {len(responses.calls)} calls were made.  Expecting a call to insert a ContentDocumentLink for an empty list."
+        assert_call_urls(
+            [],
+            responses.calls,
+        )
 
         task.logger.info.assert_has_calls(
             [
                 mock.call(""),
                 mock.call(
                     "😴 No records IDs queried. Skipping linking the Content Document to related records."
+                ),
+            ]
+        )
+
+    @responses.activate
+    def test_task__success__linking_many_records(self):
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+                "queries": self.queries,
+            },
+        )
+        task.logger = mock.Mock()
+
+        api_version = f"v{task.project_config.project__package__api_version}"
+        data_url = f"{task.org_config.instance_url}/services/data/{api_version}"
+
+        # Insert ContentVersion call.
+        insert_content_version_url = f"{data_url}/sobjects/ContentVersion/"
+        responses.add(
+            responses.POST,
+            insert_content_version_url,
+            content_type="application/json",
+            status=201,
+            json={"id": self.content_version_id, "success": True, "errors": []},
+        )
+
+        # Query ContentVersion.ContentDocumentId call.
+        content_version_query = f"SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = '{self.content_version_id}'"
+        query_content_version_url = (
+            f"{data_url}/query/?q={urllib.parse.quote_plus(content_version_query)}"
+        )
+        responses.add(
+            responses.GET,
+            query_content_version_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 1,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "ContentVersion",
+                            "url": f"/services/data/{api_version}/sobjects/ContentVersion/{self.content_version_id}",
+                        },
+                        "Id": self.content_version_id,
+                        "ContentDocumentId": self.content_document_id,
+                    }
+                ],
+            },
+        )
+
+        # Record query 0: Returns account_ids 0 and 1.
+        query_0_url = f"{data_url}/query/?q={urllib.parse.quote_plus(self.queries[0])}"
+        responses.add(
+            responses.GET,
+            query_0_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 2,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[0]}",
+                        },
+                        "Id": self.account_ids[0],
+                    },
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[1]}",
+                        },
+                        "Id": self.account_ids[1],
+                    },
+                ],
+            },
+        )
+
+        # Record query 1: Returns no records.
+        query_1_url = f"{data_url}/query/?q={urllib.parse.quote_plus(self.queries[1])}"
+        responses.add(
+            responses.GET,
+            query_1_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 0,
+                "done": True,
+                "records": [],
+            },
+        )
+
+        # Record query 2: Returns account_ids 1 and 2.
+        query_2_url = f"{data_url}/query/?q={urllib.parse.quote_plus(self.queries[2])}"
+        responses.add(
+            responses.GET,
+            query_2_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 2,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[1]}",
+                        },
+                        "Id": self.account_ids[1],
+                    },
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[2]}",
+                        },
+                        "Id": self.account_ids[2],
+                    },
+                ],
+            },
+        )
+
+        # Insert ContentVersion call.
+        insert_content_document_link_url = f"{data_url}/sobjects/ContentDocumentLink/"
+        responses.add(
+            responses.POST,
+            insert_content_document_link_url,
+            content_type="application/json",
+            status=201,
+            json={"id": self.content_document_link_id, "success": True, "errors": []},
+        )
+
+        # Run task.
+        task()
+
+        # Assert calls.
+        assert_call_urls(
+            [
+                insert_content_version_url,
+                query_content_version_url,
+                query_0_url,
+                query_1_url,
+                query_2_url,
+                insert_content_document_link_url,  # account_ids[0]
+                insert_content_document_link_url,  # account_ids[1]
+                insert_content_document_link_url,  # account_ids[2]
+            ],
+            responses.calls,
+        )
+
+        # Assert log.
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(f'Inserting ContentVersion from {task.options["path"]}'),
+                mock.call(
+                    f'Success!  Inserted ContentDocument "{self.content_document_id}".'
+                ),
+                mock.call(""),
+                mock.call("Querying records to link to the new ContentDocument."),
+                mock.call(f"    {self.queries[0]}"),
+                mock.call(f"        (2) {self.account_ids[0]}, {self.account_ids[1]}"),
+                mock.call(f"    {self.queries[1]}"),
+                mock.call("        🚫 No records found."),
+                mock.call(f"    {self.queries[2]}"),
+                mock.call(f"        (2) {self.account_ids[1]}, {self.account_ids[2]}"),
+                mock.call(""),
+                mock.call(
+                    "Inserting ContentDocumentLink records to link the ContentDocument."
+                ),
+                mock.call('    ShareType: "{share_type}"'.format(**task.options)),
+                mock.call('    Visibility: "{visibility}"'.format(**task.options)),
+                mock.call(
+                    f'Successfully linked {len(self.account_ids)} records to Content Document "{self.content_document_id}"'
+                ),
+            ]
+        )
+
+    @responses.activate
+    def test_task__fails__get_record_ids_to_link(self):
+        queries = ["SELECT Id FROM Accountz LIMIT 2"]  # No Object called "Accountz"
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+                "queries": queries,
+            },
+        )
+        task.logger = mock.Mock()
+
+        api_version = f"v{task.project_config.project__package__api_version}"
+        data_url = f"{task.org_config.instance_url}/services/data/{api_version}"
+
+        # Insert ContentVersion call.
+        insert_content_version_url = f"{data_url}/sobjects/ContentVersion/"
+        responses.add(
+            responses.POST,
+            insert_content_version_url,
+            content_type="application/json",
+            status=201,
+            json={"id": self.content_version_id, "success": True, "errors": []},
+        )
+
+        # Query ContentVersion.ContentDocumentId call.
+        content_version_query = f"SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = '{self.content_version_id}'"
+        query_content_version_url = (
+            f"{data_url}/query/?q={urllib.parse.quote_plus(content_version_query)}"
+        )
+        responses.add(
+            responses.GET,
+            query_content_version_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 1,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "ContentVersion",
+                            "url": f"/services/data/{api_version}/sobjects/ContentVersion/{self.content_version_id}",
+                        },
+                        "Id": self.content_version_id,
+                        "ContentDocumentId": self.content_document_id,
+                    }
+                ],
+            },
+        )
+
+        # Record query 0: Returns account_ids 0 and 1.
+        query_0_url = f"{data_url}/query/?q={urllib.parse.quote_plus(queries[0])}"
+        responses.add(
+            responses.GET,
+            query_0_url,
+            content_type="application/json",
+            status=400,
+            json=[
+                {
+                    "message": "\nSELECT Id FROM Accountz LIMIT 2\n               ^\nERROR at Row:1:Column:16\nsObject type 'Accountz' is not supported. If you are attempting to use a custom object, be sure to append the '__c' after the entity name. Please reference your WSDL or the describe call for the appropriate names.",
+                    "errorCode": "INVALID_TYPE",
+                }
+            ],
+        )
+
+        # Delete ContentVersion call.
+        delete_content_document_url = (
+            f"{data_url}/sobjects/ContentDocument/{self.content_document_id}"
+        )
+        responses.add(
+            responses.DELETE,
+            delete_content_document_url,
+            content_type="application/json",
+            status=204,
+        )
+
+        # Run task.
+        with pytest.raises(CumulusCIException):
+            task()
+
+        # Assert calls.
+        assert_call_urls(
+            [
+                insert_content_version_url,
+                query_content_version_url,
+                query_0_url,  # Throws Exception
+                delete_content_document_url,  # Rollback transaction
+            ],
+            responses.calls,
+        )
+
+        # Assert log.
+        task.logger.info.assert_has_calls(
+            [
+                mock.call("Beginning task: InsertContentDocument"),
+                mock.call(f"As user: {task.org_config.username}"),
+                mock.call(f"In org: {task.org_config.org_id}"),
+                mock.call(""),
+                mock.call(f'Inserting ContentVersion from {task.options["path"]}'),
+                mock.call(
+                    f'Success!  Inserted ContentDocument "{self.content_document_id}".'
+                ),
+                mock.call(""),
+                mock.call("Querying records to link to the new ContentDocument."),
+                mock.call(f"    {queries[0]}"),
+            ]
+        )
+        task.logger.error.assert_has_calls(
+            [
+                mock.call(
+                    "An error occurred querying records to link to the ContentDocument."
+                ),
+                mock.call(
+                    f'Deleting ContentDocument "{self.content_document_id}" to roll back the transaction.'
+                ),
+            ]
+        )
+
+    @responses.activate
+    def test_task__fails__get_record_ids_to_link__generic_exception(
+        self,
+    ):
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+            },
+        )
+        task.logger = mock.Mock()
+        task._insert_content_document = mock.Mock(return_value=self.content_document_id)
+        task._get_record_ids_to_link = mock.Mock(side_effect=CumulusCIException)
+        task._delete_content_document = mock.Mock()
+
+        # Run task.
+        with pytest.raises(CumulusCIException):
+            task()
+
+        # Assert method calls.
+        task._insert_content_document.assert_called_once()
+
+        task._get_record_ids_to_link.assert_called_once()
+
+        # Assert calls.
+        task._delete_content_document.assert_called_once_with(self.content_document_id)
+
+        # Assert log.
+        task.logger.error.assert_has_calls(
+            [
+                mock.call(
+                    "An error occurred querying records to link to the ContentDocument."
+                ),
+                mock.call(
+                    f'Deleting ContentDocument "{self.content_document_id}" to roll back the transaction.'
+                ),
+            ]
+        )
+
+    @responses.activate
+    def test_task__fails___link_records_to_content_document(self):
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+                "queries": self.queries,
+            },
+        )
+        task.logger = mock.Mock()
+
+        api_version = f"v{task.project_config.project__package__api_version}"
+        data_url = f"{task.org_config.instance_url}/services/data/{api_version}"
+
+        # Insert ContentVersion call.
+        insert_content_version_url = f"{data_url}/sobjects/ContentVersion/"
+        responses.add(
+            responses.POST,
+            insert_content_version_url,
+            content_type="application/json",
+            status=201,
+            json={"id": self.content_version_id, "success": True, "errors": []},
+        )
+
+        # Query ContentVersion.ContentDocumentId call.
+        content_version_query = f"SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = '{self.content_version_id}'"
+        query_content_version_url = (
+            f"{data_url}/query/?q={urllib.parse.quote_plus(content_version_query)}"
+        )
+        responses.add(
+            responses.GET,
+            query_content_version_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 1,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "ContentVersion",
+                            "url": f"/services/data/{api_version}/sobjects/ContentVersion/{self.content_version_id}",
+                        },
+                        "Id": self.content_version_id,
+                        "ContentDocumentId": self.content_document_id,
+                    }
+                ],
+            },
+        )
+
+        # Record query 0: Returns account_ids 0 and 1.
+        query_0_url = f"{data_url}/query/?q={urllib.parse.quote_plus(self.queries[0])}"
+        responses.add(
+            responses.GET,
+            query_0_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 2,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[0]}",
+                        },
+                        "Id": self.account_ids[0],
+                    },
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[1]}",
+                        },
+                        "Id": self.account_ids[1],
+                    },
+                ],
+            },
+        )
+
+        # Record query 1: Returns no records.
+        query_1_url = f"{data_url}/query/?q={urllib.parse.quote_plus(self.queries[1])}"
+        responses.add(
+            responses.GET,
+            query_1_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 0,
+                "done": True,
+                "records": [],
+            },
+        )
+
+        # Record query 2: Returns account_ids 1 and 2.
+        query_2_url = f"{data_url}/query/?q={urllib.parse.quote_plus(self.queries[2])}"
+        responses.add(
+            responses.GET,
+            query_2_url,
+            content_type="application/json",
+            status=201,
+            json={
+                "totalSize": 2,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[1]}",
+                        },
+                        "Id": self.account_ids[1],
+                    },
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": f"/services/data/{api_version}/sobjects/Account/{self.account_ids[2]}",
+                        },
+                        "Id": self.account_ids[2],
+                    },
+                ],
+            },
+        )
+
+        # Insert ContentVersion call fails.
+        insert_content_document_link_url = f"{data_url}/sobjects/ContentDocumentLink/"
+        responses.add(
+            responses.POST,
+            insert_content_document_link_url,
+            content_type="application/json",
+            status=400,
+            json=[
+                {
+                    "message": "Required fields are missing: [ContentDocumentId]",
+                    "errorCode": "REQUIRED_FIELD_MISSING",
+                    "fields": ["ContentDocumentId"],
+                }
+            ],
+        )
+
+        # Delete ContentVersion call.
+        delete_content_document_url = (
+            f"{data_url}/sobjects/ContentDocument/{self.content_document_id}"
+        )
+        responses.add(
+            responses.DELETE,
+            delete_content_document_url,
+            content_type="application/json",
+            status=204,
+        )
+
+        # Run task.
+        with pytest.raises(CumulusCIException):
+            task()
+
+        # Assert calls.
+        assert_call_urls(
+            [
+                insert_content_version_url,
+                query_content_version_url,
+                query_0_url,
+                query_1_url,
+                query_2_url,
+                insert_content_document_link_url,  # Throws Exception
+                delete_content_document_url,  # Rollback transaction
+            ],
+            responses.calls,
+        )
+
+        # Assert log.
+        task.logger.info.assert_has_calls(
+            [
+                mock.call(f'Inserting ContentVersion from {task.options["path"]}'),
+                mock.call(
+                    f'Success!  Inserted ContentDocument "{self.content_document_id}".'
+                ),
+                mock.call(""),
+                mock.call("Querying records to link to the new ContentDocument."),
+                mock.call(f"    {self.queries[0]}"),
+                mock.call(f"        (2) {self.account_ids[0]}, {self.account_ids[1]}"),
+                mock.call(f"    {self.queries[1]}"),
+                mock.call("        🚫 No records found."),
+                mock.call(f"    {self.queries[2]}"),
+                mock.call(f"        (2) {self.account_ids[1]}, {self.account_ids[2]}"),
+                mock.call(""),
+                mock.call(
+                    "Inserting ContentDocumentLink records to link the ContentDocument."
+                ),
+                mock.call('    ShareType: "{share_type}"'.format(**task.options)),
+                mock.call('    Visibility: "{visibility}"'.format(**task.options)),
+            ]
+        )
+
+        task.logger.error.assert_has_calls(
+            [
+                mock.call(
+                    "An error occurred linking queried records to the ContentDocument."
+                ),
+                mock.call(
+                    f'Deleting ContentDocument "{self.content_document_id}" to roll back the transaction.'
+                ),
+            ]
+        )
+
+    @responses.activate
+    def test_task__fails___link_records_to_content_document__generic_exception(
+        self,
+    ):
+        task = create_task(
+            InsertContentDocument,
+            {
+                "path": self.file_path,
+            },
+        )
+        task.logger = mock.Mock()
+        task._insert_content_document = mock.Mock(return_value=self.content_document_id)
+        task._get_record_ids_to_link = mock.Mock()
+        task._link_records_to_content_document = mock.Mock(
+            side_effect=CumulusCIException
+        )
+        task._delete_content_document = mock.Mock()
+
+        # Run task.
+        with pytest.raises(CumulusCIException):
+            task()
+
+        # Assert method calls.
+        task._insert_content_document.assert_called_once()
+
+        task._get_record_ids_to_link.assert_called_once()
+
+        task._link_records_to_content_document.assert_called_once_with(
+            self.content_document_id,
+            task._get_record_ids_to_link.return_value,
+        )
+
+        # Assert calls.
+        task._delete_content_document.assert_called_once_with(self.content_document_id)
+
+        # Assert log.
+        task.logger.error.assert_has_calls(
+            [
+                mock.call(
+                    "An error occurred linking queried records to the ContentDocument."
+                ),
+                mock.call(
+                    f'Deleting ContentDocument "{self.content_document_id}" to roll back the transaction.'
                 ),
             ]
         )
