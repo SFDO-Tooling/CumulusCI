@@ -1,20 +1,10 @@
-import functools
 import json
+from cumulusci.utils.soql.soql_query_cache import SOQLQueryCache
 
 from simple_salesforce import SalesforceMalformedRequest
 
 
-def memoize(obj):
-    cache = obj.cache = {}
-
-    @functools.wraps(obj)
-    def memoizer(*args, **kwargs):
-        key = str(args) + str(kwargs)
-        if key not in cache:
-            cache[key] = obj(*args, **kwargs)
-        return cache[key]
-
-    return memoizer
+PUSH_CACHE = SOQLQueryCache()
 
 
 def batch_list(data, batch_size):
@@ -279,11 +269,7 @@ class SalesforcePushApi(object):
         self.batch_size = batch_size
 
     def return_query_records(self, query):
-        res = self.sf.query_all(query)
-        if res["totalSize"] > 0:
-            return res["records"]
-        else:
-            return []
+        return PUSH_CACHE.return_query_records(self.sf, query)
 
     def format_where_clause(self, where, obj=None):
         if obj and obj in self.default_where:
@@ -304,14 +290,12 @@ class SalesforcePushApi(object):
 
         return "%s LIMIT %s" % (query, limit)
 
-    @memoize
     def get_packages(self, where=None, limit=None):
         where = self.format_where_clause(where)
         query = f"SELECT id, name, namespaceprefix FROM MetadataPackage{where}"
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @memoize
     def get_package_objs(self, where=None, limit=None):
         package_objs = []
         for package in self.get_packages(where, limit):
@@ -325,14 +309,12 @@ class SalesforcePushApi(object):
             )
         return package_objs
 
-    @memoize
     def get_packages_by_id(self, where=None, limit=None):
         packages = {}
         for package in self.get_package_objs(where, limit):
             packages[package.sf_id] = package
         return packages
 
-    @memoize
     def get_package_versions(self, where=None, limit=None):
         where = self.format_where_clause(where)
         query = (
@@ -342,7 +324,6 @@ class SalesforcePushApi(object):
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @memoize
     def get_where_last_version(self, major=None, minor=None, beta=None):
         if beta:
             where = "ReleaseState = 'Beta'"
@@ -354,7 +335,6 @@ class SalesforcePushApi(object):
             where += " AND MinorVersion=%s" % int(minor)
         return where
 
-    @memoize
     def get_package_version_objs(self, where=None, limit=None):
         package_version_objs = []
         packages = self.get_packages_by_id()
@@ -374,14 +354,12 @@ class SalesforcePushApi(object):
             )
         return package_version_objs
 
-    @memoize
     def get_package_versions_by_id(self, where=None, limit=None):
         package_versions = {}
         for package_version in self.get_package_version_objs(where, limit):
             package_versions[package_version.sf_id] = package_version
         return package_versions
 
-    @memoize
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where_clause(where, obj="PackageSubscriber")
         query = (
@@ -391,7 +369,6 @@ class SalesforcePushApi(object):
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @memoize
     def get_subscriber_objs(self, where=None, limit=None):
         subscriber_objs = []
         package_versions = self.get_package_versions_by_id()
@@ -410,14 +387,12 @@ class SalesforcePushApi(object):
             )
         return subscriber_objs
 
-    @memoize
     def get_subscribers_by_org_key(self, where=None, limit=None):
         subscribers = {}
         for subscriber in self.get_subscriber_objs(where, limit):
             subscribers[subscriber.org_key] = subscriber
         return subscribers
 
-    @memoize
     def get_push_requests(self, where=None, limit=None):
         where = self.format_where_clause(where, obj="PackagePushRequest")
         query = (
@@ -427,7 +402,6 @@ class SalesforcePushApi(object):
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @memoize
     def get_push_request_objs(self, where=None, limit=None):
         push_request_objs = []
         package_versions = self.get_package_versions_by_id()
@@ -443,14 +417,12 @@ class SalesforcePushApi(object):
             )
         return push_request_objs
 
-    @memoize
     def get_push_requests_by_id(self, where=None, limit=None):
         push_requests = {}
         for push_request in self.get_push_request_objs(where, limit):
             push_requests[push_request.sf_id] = push_request
         return push_requests
 
-    @memoize
     def get_push_jobs(self, where=None, limit=None):
         where = self.format_where_clause(where)
         query = (
@@ -460,7 +432,6 @@ class SalesforcePushApi(object):
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @memoize
     def get_push_job_objs(self, where=None, limit=None):
         push_job_objs = []
         lazy = "subscribers" in self.lazy
@@ -492,14 +463,12 @@ class SalesforcePushApi(object):
             )
         return push_job_objs
 
-    @memoize
     def get_push_jobs_by_id(self, where=None, limit=None):
         push_jobs = {}
         for push_job in self.get_push_job_objs(where, limit):
             push_jobs[push_job.sf_id] = push_job
         return push_jobs
 
-    @memoize
     def get_push_errors(self, where=None, limit=None):
         where = self.format_where_clause(where)
         query = (
@@ -509,7 +478,6 @@ class SalesforcePushApi(object):
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @memoize
     def get_push_error_objs(self, where=None, limit=None):
         push_error_objs = []
         lazy = "jobs" in self.lazy
@@ -536,15 +504,13 @@ class SalesforcePushApi(object):
             )
         return push_error_objs
 
-    @memoize
     def get_push_errors_by_id(self, where=None, limit=None):
         push_errors = {}
         for push_error in self.get_push_error_objs(where, limit):
             push_errors[push_error.sf_id] = push_error
         return push_errors
 
-    def create_push_request(self, version, orgs, start):
-
+    def create_push_request(self, version, orgs, start) -> (str, int):
         # Create the request
         res = self.sf.PackagePushRequest.create(
             {"PackageVersionId": version.sf_id, "ScheduledStartTime": start.isoformat()}

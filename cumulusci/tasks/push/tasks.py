@@ -287,6 +287,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         self.request_id, num_scheduled_orgs = self.push.create_push_request(
             version, orgs, start_time
         )
+        assert not isinstance(self.request_id, dict)
 
         self.return_values["request_id"] = self.request_id
 

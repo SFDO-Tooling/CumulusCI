@@ -15,7 +15,7 @@ from cumulusci.tasks.push.push_api import (
     PackageSubscriber,
     SalesforcePushApi,
     batch_list,
-    memoize,
+    SOQLQueryCache,
 )
 
 NAME = "Chewbacca"
@@ -170,6 +170,7 @@ def test_sf_push_return_query_records(sf_push_api):
     returned = sf_push_api.return_query_records(query)
     assert len(records) == len(returned)
 
+    query = "SELECT Id FROM Contact"
     results["totalSize"] = 0
     sf_push_api.sf.query_all.return_value = results
     returned = sf_push_api.return_query_records(query)
@@ -516,21 +517,24 @@ def test_sf_push_add_push_batch_retry(sf_push_api, metadata_package_version):
     assert 4 == sf_push_api.sf._call_salesforce.call_count
 
 
-def test_push_memoize():
-    def test_func(number):
-        return number
+def test_push_query_cache():
+    PUSH_CACHE = SOQLQueryCache()
 
-    memoized_func = memoize(test_func)
-    memoized_func(10)
-    memoized_func(20)
-
-    expected_cache = {"(10,){}": 10, "(20,){}": 20}
-    assert expected_cache == memoized_func.cache
-
-    memoized_func(10)
-    memoized_func(20)
-    # No new items introduced, cache should be same
-    assert expected_cache == memoized_func.cache
+    sf = mock.Mock()
+    sf.sf_instance = "xyzzy.salesforce.com"
+    sf.query_all.return_value = {"totalSize": 1, "records": [{"foo": 3}]}
+    res = PUSH_CACHE.return_query_records(sf, "select foo from bar")
+    sf2 = mock.Mock()
+    sf2.sf_instance = "xyzzy.salesforce.com"
+    # should be ignored
+    sf2.query_all.return_value = {"totalSize": 1, "records": [{"bar": 37}]}
+    res2 = PUSH_CACHE.return_query_records(sf2, "select foo from bar")
+    assert not sf2.mock_calls
+    assert res == res2
+    # change the instance to refresh the cache
+    sf2.sf_instance = "abracadabra.salesforce.com"
+    res3 = PUSH_CACHE.return_query_records(sf2, "select foo from bar")
+    assert res3 == [{"bar": 37}]
 
 
 def test_push_batch_list():
