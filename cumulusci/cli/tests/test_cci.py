@@ -306,7 +306,8 @@ class TestCCI(unittest.TestCase):
             message = "An error occurred while parsing a yaml file (likely cumulusci.yml). Check around line 12345 for the issue."
             assert message in stderr.getvalue()
 
-        Path.unlink("tempfile.log")
+        tempfile = Path("tempfile.log")
+        tempfile.unlink()
 
     @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
