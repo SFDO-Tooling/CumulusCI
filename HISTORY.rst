@@ -16,7 +16,7 @@ Changes:
 
 - When the ``ci_feature_2gp`` and ``qa_org_2gp`` flows install dependencies, the latest beta version will be used when available.
 
-- CumulusCI can now resolve dependencies using second-generation packages (2GPs) for upstream projects. When a 2GP build runs on a release branch (starting with ``prefix/NNN``, where ``prefix`` is the feature branch prefix and ``NNN`` is an integer), CumulusCI will look for a matching release branch in each upstream dependency and use a 2GP package build on that release branch if present, falling back to a 1GP beta release if not present.
+- CumulusCI can now resolve dependencies using second-generation packages (2GPs) for upstream projects. When a `ci_feature_2gp` or `qa_org_2gp` flow runs on a release branch (starting with ``prefix/NNN``, where ``prefix`` is the feature branch prefix and ``NNN`` is an integer), CumulusCI will look for a matching release branch in each upstream dependency and use a 2GP package build on that release branch, if present, falling back to a 1GP beta release if not present.
 
 Issues Closed:
 
