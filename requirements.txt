@@ -25,7 +25,7 @@ raven==6.10.0
 requests==2.25.1
 robotframework==3.2.2
 robotframework-pabot==1.10.1
-robotframework-requests==0.7.2
+robotframework-requests==0.8.0
 robotframework-seleniumlibrary==4.5.0
 rst2ansi==0.1.5
 salesforce-bulk==2.2.0
