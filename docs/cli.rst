@@ -6,9 +6,11 @@ The ``cci`` Command Line
 Basic Operation
 ---------------
 
-Once CumulusCI is installed, use the ``cci`` command in your terminal or command prompt to interact with it. On a macOS, access the terminal via Terminal.app. On Windows, open cmd.exe.
+    .. note:: If you are new to working with command line interfaces, the `Install Visual Studio Code <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ module covers installing and opening a terminal window in Visual Studio Code.
 
-If you are new to working with command line interfaces, CumulusCI has a `trailhead module <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ that covers installing and opening a terminal window in Visual Studio Code.
+After installing CumulusCI, use the ``cci`` command in your terminal or command prompt to interact with it.
+
+On a macOS, access the terminal via Terminal.app. On Windows, open cmd.exe.
 
 To see all available commands, type ``cci`` in your terminal:
 
@@ -102,14 +104,14 @@ Listing Tasks and Flows
     $ cci task list
     $ cci flow list
 
-The tasks and flows listed are specific to the project you're currently in. If you have a custom flow defined in your ``cumulusci.yml`` file for Project A, it will only show if you run ``cci flow list`` in Project A's repository directory.
+The tasks and flows listed are specific to the project you're currently in. If you have a custom flow defined in your ``cumulusci.yml`` file for Project A, it only shows if you run ``cci flow list`` in Project A's repository directory.
 
-Tasks and flows are listed by their ``group`` attribute as specified in the ``cumulusci.yml`` file. This means it's easy to edit these groups as you see fit! Any changes made will be reflected in the commands.
+Tasks and flows are listed by their ``group`` attribute as specified in the ``cumulusci.yml`` file. This means it's easy to edit these groups as you see fit! Any changes made are reflected in the commands.
 
 
 Running Tasks and Flows
 ***********************
-Once you know the specific task or flow you want to run, execute it with the ``run`` command:
+When you know the specific task or flow you want to run, execute it with the ``run`` command.
 
 .. code-block:: console
 
@@ -126,11 +128,9 @@ Tasks usually require additional options to be passed when using the ``cci task 
 Task Info & Options
 *******************
 
-For additional information on tasks:
+For additional information on task ``<name>``:
 
     $ cci task info <name>
-
-where ``<name>`` is the name of a specific task.
 
 Information about specific tasks includes:
 
@@ -167,18 +167,16 @@ An example of a task's information and options:
         The number of seconds to sleep
         Default: 5
 
-For additional information on flows:
+For additional information on flow ``<name>``:
 
     $ cci flow info <name>
-
-where ``<name>`` is the name of a specific flow.
 
 Information about specific flows includes:
 
 * A description of the flow.
 * The ordered steps (and substeps) of a flow.
 
-Example output looks like this:
+An example of a flow's information and options:
 
 .. code-block:: console
 
@@ -215,49 +213,50 @@ Errors happen! That's why our team strives to provide our users with options for
 Reporting Error Logs 
 ^^^^^^^^^^^^^^^^^^^^
 
-Use the ``cci error gist`` command to send the most recent log file to a `GitHub gist <https://docs.github.com/en/github/writing-on-github/creating-gists>`_ so you can quickly and easily share logs with others. For this feature to work you will need to ensure that your `github service is set up with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
+The ``cci error gist`` command sends the most recent log file to a `GitHub gist <https://docs.github.com/en/github/writing-on-github/creating-gists>`_ so you can quickly and easily share logs with others. For this feature to work you need to ensure that your `github service is set up with the proper scopes <https://cumulusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
 
-The following information is included in the gist:
-    * The current version of ``cci``
-    * The current Python version
-    * The path to the Python executable
-    * The ``sysname`` of the host (e.g., Darwin)
-    * The machine name of the host (e.g., x86_64)
-    * The most recent log file (cci.log) that CumulusCI has created.
+Information included in the gist:
 
-The URL for the gist is displayed on the user terminal as output, and a web browser will automatically open a tab to the gist.
+* The current version of ``cci``
+* The current Python version
+* The path to the Python executable
+* The ``sysname`` of the host (such as Darwin)
+* The machine name of the host (such as x86_64)
+* The most recent log file (cci.log) that CumulusCI has created.
+
+The URL for the gist is displayed on the user terminal as output, and a web browser automatically opens a tab to the gist.
 
 
 The ``--debug`` Option
 ^^^^^^^^^^^^^^^^^^^^^^
 
-All CumulusCI commands can be passed the ``--debug`` option. When this is used, the following occurs:
+All CumulusCI commands can be passed the ``--debug`` option. When the option is used:
 
 * Any calls to CumulusCI's logger at the debug level are shown.
 * Outgoing HTTP requests are logged.
 * If an error is present, the corresponding stacktrace is shown, and the user is dropped into a `post-mortem debugging <https://docs.python.org/3/library/pdb.html#pdb.post_mortem>`_ session.
-    * To exit a debugging session type the command ``quit`` or ``exit``.
+
+.. note:: To exit a debugging session type the command ``quit`` or ``exit``.
 
 
 Log Files
 ^^^^^^^^^
 
-CumulusCI creates a log file every time a cci command runs. There are six rotating log files (``cci.log, cci.log1...5``) with ``cci.log`` being the most recent. Log files are stored under ``~/.cumulusci/logs``. By default, log files document the following:
-    * The last command that was entered by the user.
-    * All output from the command (including debug information).
-    * If a Python-level exception occurs, the corresponding stacktrace is included.
+CumulusCI creates a log file every time a cci command runs. There are six rotating log files (``cci.log, cci.log1...5``) with ``cci.log`` being the most recent. Log files are stored under ``~/.cumulusci/logs``.
 
-    .. note:: If you want debug information regarding the ``requests`` module to be documented in a log file, you must explicitly run the command with the ``--debug`` option.
+By default, log files document:
+
+* The last command that was entered by the user.
+* All output from the command (including debug information).
+* If a Python-level exception occurs, the corresponding stacktrace is included.
+
+.. note:: If you want debug information regarding the ``requests`` module to be documented in a log file, you must explicitly run the command with the ``--debug`` option.
 
 
 Viewing Stacktraces
 ^^^^^^^^^^^^^^^^^^^
 
-If you encounter an error and want more information on what caused it, use ``cci error info`` to display the last ``n`` lines of the stacktrace (if present) from the last command executed in CumulusCI. (Note that this a Python stacktrace showing where CumulusCI encountered an error.)
-
-.. code-block:: console 
-
-    $ cci error info
+If you encounter an error and want more information on what caused it, the ``cci error info`` command displays the last ``n`` lines of the stacktrace (if present) from the last command executed in CumulusCI. (Note that this a Python stacktrace showing where CumulusCI encountered an error.)
 
 Additionally, there is a ``--max-lines`` option to limit the number of lines of stacktrace shown.
 
@@ -265,7 +264,8 @@ Additionally, there is a ``--max-lines`` option to limit the number of lines of 
 Seeing Stacktraces Automatically
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you would like to investigate bugs in CumulusCI when you find them, you can set the config option ``show_stacktraces`` to ``True`` in the ``cli`` section of ``~/.cumulusci/cumulusci.yml``, and stacktraces will no longer be suppressed when they are thrown within CumulusCI.
-Usage Errors (wrong command line arguments, missing files, etc.) will not show exception tracebacks because they are seldom helpful in that case.
+If you would like to investigate bugs in CumulusCI when you find them, set the config option ``show_stacktraces`` to ``True`` in the ``cli`` section of ``~/.cumulusci/cumulusci.yml``. Afterward, stacktraces are no longer suppressed when they are thrown within CumulusCI.
+
+Usage Errors (wrong command line arguments, missing files, and so on) don't show exception tracebacks because they are seldom helpful in that case.
 
 If you need further assistance troubleshooting errors or stacktraces, reach out to our team on the `CumulusCI Trailblazer Community Group <https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z>`_.
