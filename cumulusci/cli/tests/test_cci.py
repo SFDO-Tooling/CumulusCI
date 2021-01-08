@@ -20,6 +20,7 @@ import requests
 import responses
 import github3
 from requests.exceptions import ConnectionError
+from yaml.scanner import ScannerError
 
 import cumulusci
 from cumulusci.core.config import OrgConfig
@@ -288,6 +289,24 @@ class TestCCI(unittest.TestCase):
         tee.assert_called_once()
 
         os.remove("tempfile.log")
+
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_main__yaml_parse_error(self, CliRuntime, get_tempfile_logger, tee):
+        problem_mark = mock.Mock(line=12345)
+        CliRuntime.side_effect = ScannerError(problem_mark=problem_mark)
+
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
+
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            with pytest.raises(SystemExit):
+                cci.main(["cci", "org", "info"])
+
+            message = "An error occurred while parsing a yaml file (likely cumulusci.yml). Check around line 12345 for the issue."
+            assert message in stderr.getvalue()
+
+        Path.unlink("tempfile.log")
 
     @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
