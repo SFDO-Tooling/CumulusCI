@@ -1,15 +1,9 @@
 import base64
 from pathlib import Path
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import process_list_arg
-from cumulusci.core.exceptions import CumulusCIException
-from simple_salesforce.exceptions import SalesforceMalformedRequest
-
-
-def to_cumulusci_exception(e: SalesforceMalformedRequest) -> CumulusCIException:
-    return CumulusCIException(
-        "; ".join([error.get("message", "Unknown.") for error in e.content])
-    )
+from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.utils import inject_namespace
 
 
 class InsertContentDocument(BaseSalesforceApiTask):
@@ -62,29 +56,65 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
             "description": 'ContentDocumentLink.Visibility for all Content Document Links related to the new ContentDocument. Default: "AllUsers"',
             "required": False,
         },
+        "managed": {
+            "description": "If False, changes namespace_inject to replace tokens with a blank string",
+            "required": False,
+        },
+        "namespaced_org": {
+            "description": "If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.",
+            "required": False,
+        },
+        "namespace_inject": {
+            "description": "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        self.options["path"] = Path(self.options.get("path"))
+        path = Path(self.options.get("path"))
 
-        if not self.options["path"].exists() or not self.options["path"].is_file():
-            raise CumulusCIException(
+        if not path.exists() or not path.is_file():
+            raise TaskOptionsError(
                 f'Invalid "path". No file found at {self.options["path"]}'
             )
 
-        self.options["queries"] = process_list_arg(self.options.get("queries"))
+        # Process queries into a list + inject namespaces into queries.
+        namespace = (
+            self.options.get("namespace_inject")
+            or self.project_config.project__package__namespace
+        )
+        if "managed" in self.options:
+            managed = process_bool_arg(self.options["managed"])
+        else:
+            managed = (
+                bool(namespace) and namespace in self.org_config.installed_packages
+            )
+        if "namespaced_org" in self.options:
+            namespaced_org = process_bool_arg(self.options["namespaced_org"])
+        else:
+            namespaced_org = bool(namespace) and namespace == self.org_config.namespace
+
+        queries = process_list_arg(self.options.get("queries") or [])
+        for i, query in enumerate(queries):
+            _, namespaced_query = inject_namespace(
+                "",
+                query,
+                namespace=namespace,
+                managed=managed,
+                namespaced_org=namespaced_org,
+            )
+            queries[i] = namespaced_query
+        self.options["queries"] = queries
 
         # Set defaults.
-        if not self.options.get("share_type"):
-            self.options["share_type"] = "I"
+        self.options["share_type"] = self.options.get("share_type") or "I"
 
-        if not self.options.get("visibility"):
-            self.options["visibility"] = "AllUsers"
+        self.options["visibility"] = self.options.get("visibility") or "AllUsers"
 
     def _insert_content_document(self) -> str:
-        path = self.options["path"]
+        path = Path(self.options["path"])
 
         self.logger.info(f"Inserting ContentVersion from {path}")
 
@@ -106,9 +136,6 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
         self.logger.info(f'Success!  Inserted ContentDocument "{content_document_id}".')
 
         return content_document_id
-
-    def _delete_content_document(self, content_document_id: str):
-        self.sf.ContentDocument.delete(content_document_id)
 
     def _get_record_ids_to_link(self) -> list[str]:
         queries = self.options["queries"]
@@ -166,44 +193,7 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
         content_document_id = self._insert_content_document()
 
         # Query records to link to the new ContentDocument.
-        # "Rolls back" the ContentDocument insert if an Exception is raised.
-        record_ids = None
-        get_record_ids_to_link_exception = None
-        try:
-            record_ids = self._get_record_ids_to_link()
-        except SalesforceMalformedRequest as e:
-            get_record_ids_to_link_exception = to_cumulusci_exception(e)
-        except Exception as e:
-            get_record_ids_to_link_exception = e
-        finally:
-            if get_record_ids_to_link_exception:
-                self.logger.error(
-                    "An error occurred querying records to link to the ContentDocument."
-                )
-                self.logger.error(
-                    f'Deleting ContentDocument "{content_document_id}" to roll back the transaction.'
-                )
-                self._delete_content_document(content_document_id)
-                # Reraise the Exception
-                raise get_record_ids_to_link_exception
+        record_ids = self._get_record_ids_to_link()
 
         # Links queried records to link to the new ContentDocument.
-        # "Rolls back" the ContentDocument insert if an Exception is raised.
-        link_records_to_content_document_exception = None
-        try:
-            self._link_records_to_content_document(content_document_id, record_ids)
-        except SalesforceMalformedRequest as e:
-            link_records_to_content_document_exception = to_cumulusci_exception(e)
-        except Exception as e:
-            link_records_to_content_document_exception = e
-        finally:
-            if link_records_to_content_document_exception:
-                self.logger.error(
-                    "An error occurred linking queried records to the ContentDocument."
-                )
-                self.logger.error(
-                    f'Deleting ContentDocument "{content_document_id}" to roll back the transaction.'
-                )
-                self._delete_content_document(content_document_id)
-                # Reraise the Exception
-                raise link_records_to_content_document_exception
+        self._link_records_to_content_document(content_document_id, record_ids)

@@ -286,6 +286,12 @@ tasks:
         description: Parses GitHub release notes to report various info
         class_path: cumulusci.tasks.github.ReleaseReport
         group: GitHub
+    insert_content_document:
+        description: Inserts a Content Document and links records that are returned by queries.   Queries are namespace injected before execution.
+        class_path: cumulusci.tasks.salesforce.content_documents.InsertContentDocument
+        group: Salesforce
+        options:
+            namespace_inject: $project_config.project__package__namespace
     install_managed:
         description: Install the latest managed production release
         class_path: cumulusci.tasks.salesforce.InstallPackageVersion

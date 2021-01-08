@@ -9,7 +9,6 @@ from pathlib import Path
 import os
 from cumulusci.tasks.salesforce.content_documents import (
     InsertContentDocument,
-    to_cumulusci_exception,
 )
 from cumulusci.core.exceptions import CumulusCIException  # noqa: F401
 from simple_salesforce.exceptions import SalesforceMalformedRequest
@@ -30,25 +29,6 @@ Actual: {actual_call_urls_length} calls
         actual_call_urls=("\n    ".join(actual_call_urls)),
     )
     assert expected_call_urls == actual_call_urls, assert_message
-
-
-class TestToCumulusCIException:
-    def test_to_cumulusci_exception(self):
-        e = to_cumulusci_exception(
-            SalesforceMalformedRequest(
-                "url",
-                "status",
-                "resource_name",
-                [
-                    {"message": "Error message 0.", "errorCode": "ERROR_0"},
-                    {"errorCode": "ERROR_1"},
-                    {"message": "Error message 2.", "errorCode": "ERROR_2"},
-                ],
-            )
-        )
-
-        assert type(e) is CumulusCIException
-        assert "Error message 0.; Unknown.; Error message 2." == e.args[0]
 
 
 class TestInsertContentDocument:
@@ -129,8 +109,8 @@ class TestInsertContentDocument:
         ), '"path" option should be a Path instance pointint to self.file_path.'
 
         assert (
-            task.options["queries"] is None
-        ), 'The default "queries" option should be None.'
+            task.options["queries"] == []
+        ), 'The default "queries" option should be an empty list.'
 
         assert (
             task.options["share_type"] == "I"
@@ -295,44 +275,6 @@ class TestInsertContentDocument:
                 mock.call(f'Inserting ContentVersion from {task.options["path"]}'),
             ]
         )
-
-    @responses.activate
-    def test_delete_content_document(self):
-        task = create_task(
-            InsertContentDocument,
-            {
-                "path": self.file_path,
-                "queries": self.queries,
-            },
-        )
-        task.logger = mock.Mock()
-
-        api_version = f"v{task.project_config.project__package__api_version}"
-        data_url = f"{task.org_config.instance_url}/services/data/{api_version}"
-
-        # Delete ContentVersion call.
-        delete_content_document_url = (
-            f"{data_url}/sobjects/ContentDocument/{self.content_document_id}"
-        )
-        responses.add(
-            responses.DELETE,
-            delete_content_document_url,
-            content_type="application/json",
-            status=204,
-        )
-
-        # Initialize REST API
-        task._init_task()
-
-        # Execute _delete_content_document.
-        task._delete_content_document(self.content_document_id)
-
-        assert_call_urls(
-            [delete_content_document_url],
-            responses.calls,
-        )
-
-        task.logger.info.assert_not_called()
 
     @responses.activate
     def test_get_record_ids_to_link__with_queries(self):
@@ -898,19 +840,8 @@ class TestInsertContentDocument:
             ],
         )
 
-        # Delete ContentVersion call.
-        delete_content_document_url = (
-            f"{data_url}/sobjects/ContentDocument/{self.content_document_id}"
-        )
-        responses.add(
-            responses.DELETE,
-            delete_content_document_url,
-            content_type="application/json",
-            status=204,
-        )
-
         # Run task.
-        with pytest.raises(CumulusCIException):
+        with pytest.raises(SalesforceMalformedRequest):
             task()
 
         # Assert calls.
@@ -919,7 +850,6 @@ class TestInsertContentDocument:
                 insert_content_version_url,
                 query_content_version_url,
                 query_0_url,  # Throws Exception
-                delete_content_document_url,  # Rollback transaction
             ],
             responses.calls,
         )
@@ -940,16 +870,6 @@ class TestInsertContentDocument:
                 mock.call(f"    {queries[0]}"),
             ]
         )
-        task.logger.error.assert_has_calls(
-            [
-                mock.call(
-                    "An error occurred querying records to link to the ContentDocument."
-                ),
-                mock.call(
-                    f'Deleting ContentDocument "{self.content_document_id}" to roll back the transaction.'
-                ),
-            ]
-        )
 
     @responses.activate
     def test_task__fails__get_record_ids_to_link__generic_exception(
@@ -964,7 +884,6 @@ class TestInsertContentDocument:
         task.logger = mock.Mock()
         task._insert_content_document = mock.Mock(return_value=self.content_document_id)
         task._get_record_ids_to_link = mock.Mock(side_effect=CumulusCIException)
-        task._delete_content_document = mock.Mock()
 
         # Run task.
         with pytest.raises(CumulusCIException):
@@ -974,21 +893,6 @@ class TestInsertContentDocument:
         task._insert_content_document.assert_called_once()
 
         task._get_record_ids_to_link.assert_called_once()
-
-        # Assert calls.
-        task._delete_content_document.assert_called_once_with(self.content_document_id)
-
-        # Assert log.
-        task.logger.error.assert_has_calls(
-            [
-                mock.call(
-                    "An error occurred querying records to link to the ContentDocument."
-                ),
-                mock.call(
-                    f'Deleting ContentDocument "{self.content_document_id}" to roll back the transaction.'
-                ),
-            ]
-        )
 
     @responses.activate
     def test_task__fails___link_records_to_content_document(self):
@@ -1128,19 +1032,8 @@ class TestInsertContentDocument:
             ],
         )
 
-        # Delete ContentVersion call.
-        delete_content_document_url = (
-            f"{data_url}/sobjects/ContentDocument/{self.content_document_id}"
-        )
-        responses.add(
-            responses.DELETE,
-            delete_content_document_url,
-            content_type="application/json",
-            status=204,
-        )
-
         # Run task.
-        with pytest.raises(CumulusCIException):
+        with pytest.raises(SalesforceMalformedRequest):
             task()
 
         # Assert calls.
@@ -1152,7 +1045,6 @@ class TestInsertContentDocument:
                 query_1_url,
                 query_2_url,
                 insert_content_document_link_url,  # Throws Exception
-                delete_content_document_url,  # Rollback transaction
             ],
             responses.calls,
         )
@@ -1181,17 +1073,6 @@ class TestInsertContentDocument:
             ]
         )
 
-        task.logger.error.assert_has_calls(
-            [
-                mock.call(
-                    "An error occurred linking queried records to the ContentDocument."
-                ),
-                mock.call(
-                    f'Deleting ContentDocument "{self.content_document_id}" to roll back the transaction.'
-                ),
-            ]
-        )
-
     @responses.activate
     def test_task__fails___link_records_to_content_document__generic_exception(
         self,
@@ -1208,7 +1089,6 @@ class TestInsertContentDocument:
         task._link_records_to_content_document = mock.Mock(
             side_effect=CumulusCIException
         )
-        task._delete_content_document = mock.Mock()
 
         # Run task.
         with pytest.raises(CumulusCIException):
@@ -1222,19 +1102,4 @@ class TestInsertContentDocument:
         task._link_records_to_content_document.assert_called_once_with(
             self.content_document_id,
             task._get_record_ids_to_link.return_value,
-        )
-
-        # Assert calls.
-        task._delete_content_document.assert_called_once_with(self.content_document_id)
-
-        # Assert log.
-        task.logger.error.assert_has_calls(
-            [
-                mock.call(
-                    "An error occurred linking queried records to the ContentDocument."
-                ),
-                mock.call(
-                    f'Deleting ContentDocument "{self.content_document_id}" to roll back the transaction.'
-                ),
-            ]
         )
