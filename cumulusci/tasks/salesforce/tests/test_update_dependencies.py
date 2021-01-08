@@ -384,6 +384,7 @@ class TestUpdateDependencies(unittest.TestCase):
         )
         step = StepSpec(1, "test_task", task.task_config, None, task.project_config)
         steps = task.freeze(step)
+        self.maxDiff = None
         self.assertEqual(
             [
                 {
@@ -398,6 +399,7 @@ class TestUpdateDependencies(unittest.TestCase):
                         "options": {
                             "dependencies": [{"namespace": "ns", "version": "1.0"}],
                             "include_beta": False,
+                            "prefer_2gp_from_release_branch": False,
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,
@@ -425,6 +427,7 @@ class TestUpdateDependencies(unittest.TestCase):
                                 }
                             ],
                             "include_beta": False,
+                            "prefer_2gp_from_release_branch": False,
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,

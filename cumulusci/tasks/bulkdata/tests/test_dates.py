@@ -37,7 +37,7 @@ class TestRelativeDates:
         assert (
             adjust_relative_dates(
                 mapping,
-                ([0], [], date.today()),
+                ([1], [], date.today()),
                 ["001000000000000", input_date],
                 DataOperationType.QUERY,
             )
@@ -47,7 +47,7 @@ class TestRelativeDates:
         assert (
             adjust_relative_dates(
                 mapping,
-                ([0], [], date.today()),
+                ([1], [], date.today()),
                 ["001000000000000", date.today().isoformat()],
                 DataOperationType.QUERY,
             )
@@ -57,7 +57,7 @@ class TestRelativeDates:
         assert (
             adjust_relative_dates(
                 mapping,
-                ([0], [], date.today()),
+                ([1], [], date.today()),
                 ["001000000000000", ""],
                 DataOperationType.QUERY,
             )
@@ -108,7 +108,7 @@ class TestRelativeDates:
         assert (
             adjust_relative_dates(
                 mapping,
-                ([], [0], date.today()),
+                ([], [1], date.today()),
                 ["001000000000000", salesforce_from_datetime(input_dt)],
                 DataOperationType.QUERY,
             )

@@ -43,7 +43,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
-from cumulusci.core.utils import import_global
+from cumulusci.core.utils import import_global, format_duration
 from cumulusci.cli.utils import group_items
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
@@ -1765,7 +1765,11 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Create the flow and handle initialization exceptions
     try:
         coordinator = runtime.get_flow(flow_name, options=options)
+        start_time = datetime.now()
         coordinator.run(org_config)
+        duration = datetime.now() - start_time
+        click.echo(f"Ran {flow_name} in {format_duration(duration)}")
+
     finally:
         runtime.alert(f"Flow Complete: {flow_name}")
 

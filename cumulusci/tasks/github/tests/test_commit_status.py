@@ -111,7 +111,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         task = GetPackageDataFromCommitStatus(project_config, task_config, org_config)
         task._init_task()
         with pytest.raises(
-            DependencyLookupError, match="Could not find commit abcdef on github"
+            DependencyLookupError, match="Could not find commit abcdef on GitHub"
         ):
             task._run_task()
 
