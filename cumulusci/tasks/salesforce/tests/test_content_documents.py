@@ -9,8 +9,9 @@ from pathlib import Path
 import os
 from cumulusci.tasks.salesforce.content_documents import (
     InsertContentDocument,
+    to_cumulusci_exception,
 )
-from cumulusci.core.exceptions import CumulusCIException  # noqa: F401
+from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 
@@ -29,6 +30,25 @@ Actual: {actual_call_urls_length} calls
         actual_call_urls=("\n    ".join(actual_call_urls)),
     )
     assert expected_call_urls == actual_call_urls, assert_message
+
+
+class TestToCumulusCIException:
+    def test_to_cumulusci_exception(self):
+        e = to_cumulusci_exception(
+            SalesforceMalformedRequest(
+                "url",
+                "status",
+                "resource_name",
+                [
+                    {"message": "Error message 0.", "errorCode": "ERROR_0"},
+                    {"errorCode": "ERROR_1"},
+                    {"message": "Error message 2.", "errorCode": "ERROR_2"},
+                ],
+            )
+        )
+
+        assert type(e) is CumulusCIException
+        assert "Error message 0.; Unknown.; Error message 2." == e.args[0]
 
 
 class TestInsertContentDocument:
@@ -79,7 +99,7 @@ class TestInsertContentDocument:
 
     def test_init_options__path_does_not_exist(self):
         fake_path = "not a real/path/to/a/file"
-        with pytest.raises(CumulusCIException) as e:
+        with pytest.raises(TaskOptionsError) as e:
             create_task(
                 InsertContentDocument,
                 {"path": fake_path},
@@ -88,7 +108,7 @@ class TestInsertContentDocument:
         assert e.value.args[0] == f'Invalid "path". No file found at {fake_path}'
 
     def test_init_options__path_points_to_directory(self):
-        with pytest.raises(CumulusCIException) as e:
+        with pytest.raises(TaskOptionsError) as e:
             create_task(
                 InsertContentDocument,
                 {"path": self.directory_path},
@@ -841,7 +861,7 @@ class TestInsertContentDocument:
         )
 
         # Run task.
-        with pytest.raises(SalesforceMalformedRequest):
+        with pytest.raises(CumulusCIException):
             task()
 
         # Assert calls.
@@ -870,6 +890,13 @@ class TestInsertContentDocument:
                 mock.call(f"    {queries[0]}"),
             ]
         )
+        task.logger.error.assert_has_calls(
+            [
+                mock.call(
+                    "An error occurred querying records to link to the ContentDocument."
+                ),
+            ]
+        )
 
     @responses.activate
     def test_task__fails__get_record_ids_to_link__generic_exception(
@@ -893,6 +920,15 @@ class TestInsertContentDocument:
         task._insert_content_document.assert_called_once()
 
         task._get_record_ids_to_link.assert_called_once()
+
+        # Assert log.
+        task.logger.error.assert_has_calls(
+            [
+                mock.call(
+                    "An error occurred querying records to link to the ContentDocument."
+                ),
+            ]
+        )
 
     @responses.activate
     def test_task__fails___link_records_to_content_document(self):
@@ -1033,7 +1069,7 @@ class TestInsertContentDocument:
         )
 
         # Run task.
-        with pytest.raises(SalesforceMalformedRequest):
+        with pytest.raises(CumulusCIException):
             task()
 
         # Assert calls.
@@ -1073,6 +1109,14 @@ class TestInsertContentDocument:
             ]
         )
 
+        task.logger.error.assert_has_calls(
+            [
+                mock.call(
+                    "An error occurred linking queried records to the ContentDocument."
+                ),
+            ]
+        )
+
     @responses.activate
     def test_task__fails___link_records_to_content_document__generic_exception(
         self,
@@ -1102,4 +1146,13 @@ class TestInsertContentDocument:
         task._link_records_to_content_document.assert_called_once_with(
             self.content_document_id,
             task._get_record_ids_to_link.return_value,
+        )
+
+        # Assert log.
+        task.logger.error.assert_has_calls(
+            [
+                mock.call(
+                    "An error occurred linking queried records to the ContentDocument."
+                ),
+            ]
         )

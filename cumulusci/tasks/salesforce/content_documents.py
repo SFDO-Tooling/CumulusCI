@@ -2,8 +2,15 @@ import base64
 from pathlib import Path
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.utils import process_bool_arg, process_list_arg
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
+from simple_salesforce.exceptions import SalesforceMalformedRequest
 from cumulusci.utils import inject_namespace
+
+
+def to_cumulusci_exception(e: SalesforceMalformedRequest) -> CumulusCIException:
+    return CumulusCIException(
+        "; ".join([error.get("message", "Unknown.") for error in e.content])
+    )
 
 
 class InsertContentDocument(BaseSalesforceApiTask):
@@ -193,7 +200,38 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
         content_document_id = self._insert_content_document()
 
         # Query records to link to the new ContentDocument.
-        record_ids = self._get_record_ids_to_link()
+        # "Rolls back" the ContentDocument insert if an Exception is raised.
+        record_ids = None
+        get_record_ids_to_link_exception = None
+        try:
+            record_ids = self._get_record_ids_to_link()
+        except SalesforceMalformedRequest as e:
+            # Convert SalesforceMalformedRequest into something easier to read
+            get_record_ids_to_link_exception = to_cumulusci_exception(e)
+        except Exception as e:
+            get_record_ids_to_link_exception = e
+        finally:
+            if get_record_ids_to_link_exception:
+                self.logger.error(
+                    "An error occurred querying records to link to the ContentDocument."
+                )
+                # Reraise the Exception
+                raise get_record_ids_to_link_exception
 
         # Links queried records to link to the new ContentDocument.
-        self._link_records_to_content_document(content_document_id, record_ids)
+        # "Rolls back" the ContentDocument insert if an Exception is raised.
+        link_records_to_content_document_exception = None
+        try:
+            self._link_records_to_content_document(content_document_id, record_ids)
+        except SalesforceMalformedRequest as e:
+            # Convert SalesforceMalformedRequest into something easier to read
+            link_records_to_content_document_exception = to_cumulusci_exception(e)
+        except Exception as e:
+            link_records_to_content_document_exception = e
+        finally:
+            if link_records_to_content_document_exception:
+                self.logger.error(
+                    "An error occurred linking queried records to the ContentDocument."
+                )
+                # Reraise the Exception
+                raise link_records_to_content_document_exception
