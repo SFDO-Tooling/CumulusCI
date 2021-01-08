@@ -5,9 +5,6 @@ History
 3.26.0 (2021-01-08)
 -------------------
 
-Critical Changes:
-
-- CumulusCI can now resolve dependencies using second-generation packages (2GPs) for upstream projects. When a 2GP build runs on a release branch (starting with ``prefix/NNN``, where ``prefix`` is the feature branch prefix and ``NNN`` is an integer), CumulusCI will look for a matching release branch in each upstream dependency and use a 2GP package build on that release branch if present, falling back to a 1GP beta release if not present.
 
 Changes:
 
@@ -17,7 +14,9 @@ Changes:
 
 - Running the ``deploy`` task with the ``path`` option set to a path that doesn't exist will log a warning instead of raising an error.
 
-- CumulusCI now installs beta dependencies when building 2GP feature test and QA orgs.
+- When the ``ci_feature_2gp`` and ``qa_org_2gp`` flows install dependencies, the latest beta version will be used when available.
+
+- CumulusCI can now resolve dependencies using second-generation packages (2GPs) for upstream projects. When a 2GP build runs on a release branch (starting with ``prefix/NNN``, where ``prefix`` is the feature branch prefix and ``NNN`` is an integer), CumulusCI will look for a matching release branch in each upstream dependency and use a 2GP package build on that release branch if present, falling back to a 1GP beta release if not present.
 
 Issues Closed:
 
@@ -34,6 +33,8 @@ Issues Closed:
 - CumulusCI now handles an error that can occur while collecting info about installed packages
 
 - Fixed an issue causing the ``extract_dataset`` task to fail in some circumstances when both an anchor date and Record Types were used.
+
+- Fixed an issue where the deprecated syntax for record types was not working.
 
 
 3.25.0 (2020-12-10)
