@@ -25,6 +25,7 @@ import requests
 from rst2ansi import rst2ansi
 from jinja2 import Environment
 from jinja2 import PackageLoader
+from yaml.scanner import ScannerError
 
 import cumulusci
 from cumulusci.core.config import OrgConfig
@@ -204,24 +205,28 @@ def main(args=None):
         if "--json" not in args and not is_version_command:
             check_latest_version()
 
-        # Load CCI config
-        global RUNTIME
-        RUNTIME = CliRuntime(load_keychain=False)
-        RUNTIME.check_cumulusci_version()
-
-        # Configure logging
-        debug = "--debug" in args
-        if debug:
-            args.remove("--debug")
-        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
-
-        # Only create logfiles for commands
-        # that are not `cci error`
+        # Only create logfiles for commands that are not `cci error`
         is_error_command = len(args) > 2 and args[1] == "error"
         tempfile_path = None
         if not is_error_command:
             logger, tempfile_path = get_tempfile_logger()
             stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
+
+        debug = "--debug" in args
+        if debug:
+            args.remove("--debug")
+
+        # Load CCI config
+        global RUNTIME
+        try:
+            RUNTIME = CliRuntime(load_keychain=False)
+        except Exception as e:
+            handle_exception(e, is_error_command, tempfile_path, debug)
+            sys.exit(1)
+
+        RUNTIME.check_cumulusci_version()
+
+        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
 
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
@@ -248,6 +253,8 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=
         connection_error_message()
     elif isinstance(error, click.ClickException):
         click.echo(click.style(f"Error: {error.format_message()}", fg="red"), err=True)
+    elif isinstance(error, ScannerError):
+        yaml_parse_error_message(error)
     else:
         click.echo(click.style(f"Error: {error}", fg="red"), err=True)
     # Only suggest gist command if it wasn't run
@@ -270,6 +277,17 @@ def connection_error_message():
         "Please check your connection and try the last cci command again."
     )
     click.echo(click.style(message, fg="red"), err=True)
+
+
+def yaml_parse_error_message(error):
+    message = f"An error occurred while parsing a yaml file (likely cumulusci.yml). Check around line {error.problem_mark.line} for the issue."
+    click.echo(
+        click.style(
+            message,
+            fg="red",
+        ),
+        err=True,
+    )
 
 
 def show_debug_info():
