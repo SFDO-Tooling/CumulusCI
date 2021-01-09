@@ -40,7 +40,7 @@ If your contribution is a new or changed task or flow, you should run "make docs
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
-The best way to send feedback is to file an issue at https://github.com/SFDO-Tooling/CumulusCI/issues.
+The best way to send feedback is to file an `issue <https://github.com/SFDO-Tooling/CumulusCI/issues>`_.
 
 If you are proposing a feature:
 
@@ -104,7 +104,7 @@ Make the necessary changes to prepare the new release:
 Commit the changes, open a Pull Request on GitHub and request approval from another committer.
 Once your PR has been merged, a GitHub action will automatically create the release tag and push the artifacts to PyPI.
 
-After a couple minutes, check for the new release's appearance at https://pypi.org/project/cumulusci/
+After a couple minutes, check for the new release's appearance at `PyPI <https://pypi.org/project/cumulusci/>`_.
 
 Next, head to the tag that was autocreated in the GitHub repository and edit it. Populate the version number and paste in the changelog notes from ``HISTORY.rst``. Note that some formatting, such as reStructuredText links, need to be converted to Markdown. Publish the release.
 
@@ -124,11 +124,11 @@ That will create a new pull request in the ``SFDO-Tooling/homebrew-sfdo`` reposi
 
 Finally, post the release notes to our usual channels:
 
-- CumulusCI Release Announcements group in the Power of Us Hub (add the "CumulusCI Release Announcements: https://powerofus.force.com/s/group/0F91E000000DHjTSAW/cumulusci-release-announcements
+- `CumulusCI Release Announcements <https://powerofus.force.com/s/group/0F91E000000DHjTSAW/cumulusci-release-announcements>`_ group in the Power of Us Hub.
 
     - After posting add topics: CCI Releases & CumulusCI
     
-- CumulusCI group in the Trailblazer community https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU
+- `CumulusCI group <https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU>`_ in the Trailblazer community. 
 
 
 .. _Homebrew Tap: https://github.com/SFDO-Tooling/homebrew-sfdo
