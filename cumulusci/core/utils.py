@@ -217,9 +217,9 @@ def cleanup_org_cache_dirs(keychain, project_config):
     project_org_directories = (project_config.cache_dir / "orginfo").glob("*")
     global_org_directories = (keychain.global_config_dir / "orginfo").glob("*")
 
-    for directory in list(project_org_directories) + list(global_org_directories):
-        if directory.name not in domains:
-            rmtree(directory)
+    for path in list(project_org_directories) + list(global_org_directories):
+        if path.is_dir() and path.name not in domains:
+            rmtree(path)
 
 
 def format_duration(duration: timedelta):
