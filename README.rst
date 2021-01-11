@@ -26,7 +26,7 @@ CumulusCI helps build great applications on the Salesforce platform by automatin
 * Apply transformations to existing metadata to tailor orgs to your specific requirements.
 * Run builds in continuous integration systems.
 * Create end-to-end browser tests and setup automation using `Robot Framework <https://cumulusci.readthedocs.io/en/latest/robotframework.html>`_.
-* Generate synthetic data on any scale, from a single record to a million, using `Snowfakery <https://cumulusci.readthedocs.io/en/latest/cookbook.html#large-volume-data-synthesis-with-snowfakery>`
+* Generate synthetic data on any scale, from a single record to a million, using `Snowfakery <https://cumulusci.readthedocs.io/en/latest/cookbook.html#large-volume-data-synthesis-with-snowfakery>`_.
 
 **Build anywhere.** Automation defined using CumulusCI is portable. It is stored in a source repository and can be run from your local command line, from a continuous integration system, or from a customer-facing MetaDeploy installer. CumulusCI can run automation on scratch orgs created using the Salesforce CLI, or on persistent orgs like sandboxes, production orgs, and Developer Edition orgs.
 
