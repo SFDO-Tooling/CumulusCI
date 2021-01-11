@@ -1,10 +1,13 @@
 import base64
 from pathlib import Path
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.tasks.salesforce.namespaces import (
+    NamespaceInjectionMixin,
+    namespace_injection_options,
+)
+from cumulusci.core.utils import process_list_arg
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 from simple_salesforce.exceptions import SalesforceMalformedRequest
-from cumulusci.utils import inject_namespace
 
 
 def to_cumulusci_exception(e: SalesforceMalformedRequest) -> CumulusCIException:
@@ -13,7 +16,7 @@ def to_cumulusci_exception(e: SalesforceMalformedRequest) -> CumulusCIException:
     )
 
 
-class InsertContentDocument(BaseSalesforceApiTask):
+class InsertContentDocument(BaseSalesforceApiTask, NamespaceInjectionMixin):
     task_docs = """
 Uploads a profile photo for a specified or default User.
 
@@ -63,18 +66,7 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
             "description": 'ContentDocumentLink.Visibility for all Content Document Links related to the new ContentDocument. Default: "AllUsers"',
             "required": False,
         },
-        "managed": {
-            "description": "If False, changes namespace_inject to replace tokens with a blank string",
-            "required": False,
-        },
-        "namespaced_org": {
-            "description": "If True, the tokens %%%NAMESPACED_ORG%%% and ___NAMESPACED_ORG___ will get replaced with the namespace.  The default is false causing those tokens to get stripped and replaced with an empty string.  Set this if deploying to a namespaced scratch org or packaging org.",
-            "required": False,
-        },
-        "namespace_inject": {
-            "description": "If set, the namespace tokens in files and filenames are replaced with the namespace's prefix",
-            "required": False,
-        },
+        **namespace_injection_options,
     }
 
     def _init_options(self, kwargs):
@@ -88,30 +80,9 @@ Upload a profile photo for a user whose Alias equals ``grace`` or ``walker``, is
             )
 
         # Process queries into a list + inject namespaces into queries.
-        namespace = (
-            self.options.get("namespace_inject")
-            or self.project_config.project__package__namespace
-        )
-        if "managed" in self.options:
-            managed = process_bool_arg(self.options["managed"])
-        else:
-            managed = (
-                bool(namespace) and namespace in self.org_config.installed_packages
-            )
-        if "namespaced_org" in self.options:
-            namespaced_org = process_bool_arg(self.options["namespaced_org"])
-        else:
-            namespaced_org = bool(namespace) and namespace == self.org_config.namespace
-
         queries = process_list_arg(self.options.get("queries") or [])
         for i, query in enumerate(queries):
-            _, namespaced_query = inject_namespace(
-                "",
-                query,
-                namespace=namespace,
-                managed=managed,
-                namespaced_org=namespaced_org,
-            )
+            _, namespaced_query = self._inject_namespace("", query)
             queries[i] = namespaced_query
         self.options["queries"] = queries
 
