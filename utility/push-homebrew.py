@@ -30,7 +30,7 @@ def get_repo():
 
 
 def create_branch(repo):
-    head_sha = repo.ref("heads/{repo.default_branch}").object.sha
+    head_sha = repo.ref(f"heads/{repo.default_branch}").object.sha
     branch_ref = f"refs/heads/{BRANCH_NAME}"
     print(f"Creating new branch from {head_sha[:8]} at {branch_ref}")
     repo.create_ref(branch_ref, head_sha)
