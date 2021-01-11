@@ -291,14 +291,14 @@ class SalesforcePushApi(object):
 
         return "%s LIMIT %s" % (query, limit)
 
-    @lru_cache
+    @lru_cache(32)
     def get_packages(self, where=None, limit=None):
         where = self.format_where_clause(where)
         query = f"SELECT id, name, namespaceprefix FROM MetadataPackage{where}"
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @lru_cache
+    @lru_cache(32)
     def get_package_objs(self, where=None, limit=None):
         package_objs = []
         for package in self.get_packages(where, limit):
@@ -312,14 +312,14 @@ class SalesforcePushApi(object):
             )
         return package_objs
 
-    @lru_cache
+    @lru_cache(32)
     def get_packages_by_id(self, where=None, limit=None):
         packages = {}
         for package in self.get_package_objs(where, limit):
             packages[package.sf_id] = package
         return packages
 
-    @lru_cache
+    @lru_cache(32)
     def get_package_versions(self, where=None, limit=None):
         where = self.format_where_clause(where)
         query = (
@@ -329,7 +329,7 @@ class SalesforcePushApi(object):
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @lru_cache
+    @lru_cache(32)
     def get_package_version_objs(self, where=None, limit=None):
         package_version_objs = []
         packages = self.get_packages_by_id()
@@ -349,14 +349,14 @@ class SalesforcePushApi(object):
             )
         return package_version_objs
 
-    @lru_cache
+    @lru_cache(32)
     def get_package_versions_by_id(self, where=None, limit=None):
         package_versions = {}
         for package_version in self.get_package_version_objs(where, limit):
             package_versions[package_version.sf_id] = package_version
         return package_versions
 
-    @lru_cache
+    @lru_cache(32)
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where_clause(where, obj="PackageSubscriber")
         query = (
@@ -366,7 +366,7 @@ class SalesforcePushApi(object):
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @lru_cache
+    @lru_cache(32)
     def get_subscriber_objs(self, where=None, limit=None):
         subscriber_objs = []
         package_versions = self.get_package_versions_by_id()
@@ -385,14 +385,14 @@ class SalesforcePushApi(object):
             )
         return subscriber_objs
 
-    @lru_cache
+    @lru_cache(32)
     def get_subscribers_by_org_key(self, where=None, limit=None):
         subscribers = {}
         for subscriber in self.get_subscriber_objs(where, limit):
             subscribers[subscriber.org_key] = subscriber
         return subscribers
 
-    @lru_cache
+    @lru_cache(32)
     def get_push_requests(self, where=None, limit=None):
         where = self.format_where_clause(where, obj="PackagePushRequest")
         query = (
@@ -402,7 +402,7 @@ class SalesforcePushApi(object):
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @lru_cache
+    @lru_cache(32)
     def get_push_request_objs(self, where=None, limit=None):
         push_request_objs = []
         package_versions = self.get_package_versions_by_id()
@@ -418,14 +418,14 @@ class SalesforcePushApi(object):
             )
         return push_request_objs
 
-    @lru_cache
+    @lru_cache(32)
     def get_push_requests_by_id(self, where=None, limit=None):
         push_requests = {}
         for push_request in self.get_push_request_objs(where, limit):
             push_requests[push_request.sf_id] = push_request
         return push_requests
 
-    @lru_cache
+    @lru_cache(32)
     def get_push_jobs(self, where=None, limit=None):
         where = self.format_where_clause(where)
         query = (
@@ -435,7 +435,7 @@ class SalesforcePushApi(object):
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @lru_cache
+    @lru_cache(32)
     def get_push_job_objs(self, where=None, limit=None):
         push_job_objs = []
         lazy = "subscribers" in self.lazy
@@ -467,14 +467,14 @@ class SalesforcePushApi(object):
             )
         return push_job_objs
 
-    @lru_cache
+    @lru_cache(32)
     def get_push_jobs_by_id(self, where=None, limit=None):
         push_jobs = {}
         for push_job in self.get_push_job_objs(where, limit):
             push_jobs[push_job.sf_id] = push_job
         return push_jobs
 
-    @lru_cache
+    @lru_cache(32)
     def get_push_errors(self, where=None, limit=None):
         where = self.format_where_clause(where)
         query = (
@@ -484,7 +484,7 @@ class SalesforcePushApi(object):
         query = self.add_query_limit(query, limit)
         return self.return_query_records(query)
 
-    @lru_cache
+    @lru_cache(32)
     def get_push_error_objs(self, where=None, limit=None):
         push_error_objs = []
         lazy = "jobs" in self.lazy
@@ -511,7 +511,7 @@ class SalesforcePushApi(object):
             )
         return push_error_objs
 
-    @lru_cache
+    @lru_cache(32)
     def get_push_errors_by_id(self, where=None, limit=None):
         push_errors = {}
         for push_error in self.get_push_error_objs(where, limit):
