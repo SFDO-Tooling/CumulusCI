@@ -4,7 +4,7 @@ import yaml
 from io import StringIO
 from logging import getLogger
 from typing import IO, Text
-from yaml.scanner import ScannerError
+from yaml.error import MarkedYAMLError
 
 from cumulusci.core.exceptions import CumulusCIException
 
@@ -45,7 +45,7 @@ def cci_safe_load(f_config: IO[Text]):
     data = _replace_nbsp(f_config.read())
     try:
         rc = yaml.safe_load(StringIO(data))
-    except ScannerError as e:
+    except MarkedYAMLError as e:
         line_num = e.problem_mark.line
         column_num = e.problem_mark.column
         message = f"An error occurred parsing {f_config.name} at line {line_num}, column {column_num}.\nError message: {e.problem}"
