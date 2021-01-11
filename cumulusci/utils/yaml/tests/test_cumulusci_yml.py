@@ -1,10 +1,11 @@
-from cumulusci.core.exceptions import CumulusCIException
 import pytest
 
 from io import StringIO
-from unittest.mock import Mock, PropertyMock, patch
-from yaml.scanner import ScannerError
+from pathlib import Path
+from unittest.mock import patch
 
+from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.utils import temporary_dir
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load, _replace_nbsp
 
 
@@ -43,38 +44,58 @@ class TestCumulusciYml:
         rc = _replace_nbsp(inp)
         assert rc == inp
 
-    @patch("cumulusci.utils.yaml.cumulusci_yml.yaml.safe_load")
-    def test_scanner_error(self, safe_load):
-        problem_mark = Mock(line=12345, column=54321)
-        safe_load.side_effect = ScannerError(problem_mark=problem_mark)
+    def test_invalid_cumulusci_yml_file(self):
+        with temporary_dir() as temp_dir:
+            cumulusci_yml_filepath = Path(temp_dir) / "cumulusci.yml"
 
-        f_config = Mock()
-        f_config.read.return_value = "xyz: abc \n >+>:>%*"  # return invalid yaml
-        # mock f_config.name
-        type(f_config).name = PropertyMock(return_value="cumulusci.yml")
+            with open(cumulusci_yml_filepath, "w+") as cumulusci_yml:
+                invalid_yml = """xyz: abc   \n>>>\nefg: lmn\n"""
+                cumulusci_yml.write(invalid_yml)
+                cumulusci_yml.seek(0)
 
-        with pytest.raises(CumulusCIException) as error:
-            cci_safe_load(f_config)
+                with pytest.raises(CumulusCIException) as error:
+                    cci_safe_load(cumulusci_yml)
 
         assert error.typename == "CumulusCIException"
         assert (
-            "An error occurred parsing cumulusci.yml at line 12345, column 54321.\nError message: None"
-            == error.value.args[0]
+            "cumulusci.yml at line 1, column 1.\nError message: expected chomping or indentation indicators, but found '>'"
+            in error.value.args[0]
         )
 
-    @patch("cumulusci.utils.yaml.cumulusci_yml.yaml.safe_load")
-    def test_generic_exception(self, safe_load):
-        f_config = Mock()
-        f_config.read.return_value = "xyz: abc \n >+>:>%*"  # return invalid yaml
-        # Mock objects already have a `name` attribute so we need to mock it specially
-        type(f_config).name = PropertyMock(return_value="cumulusci.yml")
+    def test_invalid_string_io(self):
+        invalid_yml_string = """xyz: abc   \n>>>\nefg: lmn\n"""
+        with pytest.raises(CumulusCIException) as error:
+            cci_safe_load(StringIO(invalid_yml_string))
 
+        assert error.typename == "CumulusCIException"
+        assert "Error message: " in error.value.args[0]
+
+    @patch("cumulusci.utils.yaml.cumulusci_yml.yaml.safe_load")
+    def test_generic_exception__with_name_attr(self, safe_load):
+        with temporary_dir() as temp_dir:
+            cumulusci_yml_filepath = Path(temp_dir) / "cumulusci.yml"
+
+            with open(cumulusci_yml_filepath, "w+") as cumulusci_yml:
+                invalid_yml = """xyz: abc   \n>>>\nefg: lmn\n"""
+                cumulusci_yml.write(invalid_yml)
+                cumulusci_yml.seek(0)
+
+                safe_load.side_effect = Exception("generic")
+                with pytest.raises(CumulusCIException) as error:
+                    cci_safe_load(cumulusci_yml)
+
+        assert error.typename == "CumulusCIException"
+        assert "cumulusci.yml.\nError message: generic" in error.value.args[0]
+
+    @patch("cumulusci.utils.yaml.cumulusci_yml.yaml.safe_load")
+    def test_generic_exception__without_name_attr(self, safe_load):
+        invalid_yaml = """xyz: abc   \n>>>\nefg: lmn\n"""
         safe_load.side_effect = Exception("generic")
         with pytest.raises(CumulusCIException) as error:
-            cci_safe_load(f_config)
+            cci_safe_load(StringIO(invalid_yaml))
 
         assert error.typename == "CumulusCIException"
         assert (
-            "An error occurred parsing cumulusci.yml.\nError message: generic"
+            "An error occurred parsing a yaml file. Error message: generic"
             == error.value.args[0]
         )

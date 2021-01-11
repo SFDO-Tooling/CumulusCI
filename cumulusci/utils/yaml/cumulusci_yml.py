@@ -38,6 +38,9 @@ def _replace_nbsp(origdata):
     return data
 
 
+GENERIC_ERR_MSG = "An error occurred parsing a yaml file. Error message: {}"
+
+
 def cci_safe_load(f_config: IO[Text]):
     """Load a file, convert NBSP->space and parse it in YAML.
     Raises CumulusCIException if an error occurs while parsing.
@@ -46,11 +49,18 @@ def cci_safe_load(f_config: IO[Text]):
     try:
         rc = yaml.safe_load(StringIO(data))
     except MarkedYAMLError as e:
-        line_num = e.problem_mark.line
-        column_num = e.problem_mark.column
-        message = f"An error occurred parsing {f_config.name} at line {line_num}, column {column_num}.\nError message: {e.problem}"
+        if hasattr(f_config, "name"):
+            line_num = e.problem_mark.line
+            column_num = e.problem_mark.column
+            message = f"An error occurred parsing {f_config.name} at line {line_num}, column {column_num}.\nError message: {e.problem}"
+        else:
+            message = GENERIC_ERR_MSG.format(e)
         raise CumulusCIException(message)
     except Exception as e:
-        message = f"An error occurred parsing {f_config.name}.\nError message: {e}"
+        if hasattr(f_config, "name"):
+            message = f"An error occurred parsing {f_config.name}.\nError message: {e}"
+        else:
+            message = GENERIC_ERR_MSG.format(e)
         raise CumulusCIException(message)
+
     return rc
