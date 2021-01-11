@@ -1,9 +1,13 @@
-from typing import IO, Text
 import re
-from logging import getLogger
-from io import StringIO
-
 import yaml
+
+from io import StringIO
+from logging import getLogger
+from typing import IO, Text
+from yaml.scanner import ScannerError
+
+from cumulusci.core.exceptions import CumulusCIException
+
 
 NBSP = "\u00A0"
 
@@ -35,7 +39,18 @@ def _replace_nbsp(origdata):
 
 
 def cci_safe_load(f_config: IO[Text]):
-    "Load a file, convert NBSP->space and parse it in YAML."
+    """Load a file, convert NBSP->space and parse it in YAML.
+    Raises CumulusCIException if an error occurs while parsing.
+    """
     data = _replace_nbsp(f_config.read())
-    rc = yaml.safe_load(StringIO(data))
+    try:
+        rc = yaml.safe_load(StringIO(data))
+    except ScannerError as e:
+        line_num = e.problem_mark.line
+        column_num = e.problem_mark.column
+        message = f"An error occurred parsing {f_config.name} at line {line_num}, column {column_num}.\nError message: {e.problem}"
+        raise CumulusCIException(message)
+    except Exception as e:
+        message = f"An error occurred parsing {f_config.name}.\nError message: {e}"
+        raise CumulusCIException(message)
     return rc
