@@ -59,3 +59,35 @@ class NamespaceInjectionMixin:
             namespaced_org=_namespaced_org,
             logger=self.logger,
         )
+
+    def _get_namespaced_filename(
+        self,
+        filename,
+        namespace: Optional[str] = None,
+        managed: Optional[bool] = None,
+        namespaced_org: Optional[bool] = None,
+    ):
+        filename, _ = self._inject_namespace(
+            filename,
+            "",
+            namespace=namespace,
+            managed=managed,
+            namespaced_org=namespaced_org,
+        )
+        return filename
+
+    def _get_namespaced_content(
+        self,
+        content,
+        namespace: Optional[str] = None,
+        managed: Optional[bool] = None,
+        namespaced_org: Optional[bool] = None,
+    ):
+        _, content = self._inject_namespace(
+            "",
+            content,
+            namespace=namespace,
+            managed=managed,
+            namespaced_org=namespaced_org,
+        )
+        return content

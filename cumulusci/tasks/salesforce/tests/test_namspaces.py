@@ -371,3 +371,67 @@ class TestNamespaceInjectionMixin:
         )
 
         assert f"{self.namespace}-lwc" == content
+
+    def test_get_namespaced_filename(self):
+        task = self._create_task_in_non_namespaced_org_context(
+            {}, project_namespace=self.namespace
+        )
+        namespace = mock.Mock()
+        managed = mock.Mock()
+        namespaced_org = mock.Mock()
+
+        expected_filename = mock.Mock()
+        expected_content = mock.Mock()
+
+        task._inject_namespace = mock.Mock(
+            return_value=(expected_filename, expected_content)
+        )
+
+        filename = task._get_namespaced_filename(
+            "filename",
+            namespace=namespace,
+            managed=managed,
+            namespaced_org=namespaced_org,
+        )
+
+        assert expected_filename == filename
+
+        task._inject_namespace.assert_called_once_with(
+            "filename",
+            "",
+            namespace=namespace,
+            managed=managed,
+            namespaced_org=namespaced_org,
+        )
+
+    def test_get_namespaced_content(self):
+        task = self._create_task_in_non_namespaced_org_context(
+            {}, project_namespace=self.namespace
+        )
+        namespace = mock.Mock()
+        managed = mock.Mock()
+        namespaced_org = mock.Mock()
+
+        expected_filename = mock.Mock()
+        expected_content = mock.Mock()
+
+        task._inject_namespace = mock.Mock(
+            return_value=(expected_filename, expected_content)
+        )
+
+        filename = task._get_namespaced_content(
+            "content",
+            namespace=namespace,
+            managed=managed,
+            namespaced_org=namespaced_org,
+        )
+
+        assert expected_content == filename
+
+        task._inject_namespace.assert_called_once_with(
+            "",
+            "content",
+            namespace=namespace,
+            managed=managed,
+            namespaced_org=namespaced_org,
+        )
