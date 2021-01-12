@@ -1265,7 +1265,7 @@ class Salesforce(object):
         query = self._soql_query_builder(
             obj_name,
             select=f"{start_field}, {end_field}",
-            order_by=order_by + " desc",
+            order_by=order_by + " DESC NULLS FIRST",
             limit=1,
             **kwargs,
         )
