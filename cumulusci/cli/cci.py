@@ -204,24 +204,28 @@ def main(args=None):
         if "--json" not in args and not is_version_command:
             check_latest_version()
 
-        # Load CCI config
-        global RUNTIME
-        RUNTIME = CliRuntime(load_keychain=False)
-        RUNTIME.check_cumulusci_version()
-
-        # Configure logging
-        debug = "--debug" in args
-        if debug:
-            args.remove("--debug")
-        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
-
-        # Only create logfiles for commands
-        # that are not `cci error`
+        # Only create logfiles for commands that are not `cci error`
         is_error_command = len(args) > 2 and args[1] == "error"
         tempfile_path = None
         if not is_error_command:
             logger, tempfile_path = get_tempfile_logger()
             stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
+
+        debug = "--debug" in args
+        if debug:
+            args.remove("--debug")
+
+        # Load CCI config
+        global RUNTIME
+        try:
+            RUNTIME = CliRuntime(load_keychain=False)
+        except Exception as e:
+            handle_exception(e, is_error_command, tempfile_path, debug)
+            sys.exit(1)
+
+        RUNTIME.check_cumulusci_version()
+
+        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
 
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
@@ -249,13 +253,12 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=
     elif isinstance(error, click.ClickException):
         click.echo(click.style(f"Error: {error.format_message()}", fg="red"), err=True)
     else:
-        click.echo(click.style(f"Error: {error}", fg="red"), err=True)
+        click.echo(click.style(f"{error}", fg="red"), err=True)
     # Only suggest gist command if it wasn't run
     if not is_error_cmd:
         click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"), err=True)
 
-    # This is None if we're handling an exception for a
-    # `cci error` command.
+    # This is None if we're handling an exception for a `cci error` command.
     if logfile_path:
         with open(logfile_path, "a") as log_file:
             traceback.print_exc(file=log_file)  # log stacktrace silently
