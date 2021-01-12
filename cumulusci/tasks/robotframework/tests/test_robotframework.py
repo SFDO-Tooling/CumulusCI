@@ -594,8 +594,7 @@ class TestRobotPerformanceKeyywords:
         project_config = BaseProjectConfig(universal_config)
         with temporary_dir() as d:
             project_config.repo_info["root"] = d
-            print(project_config.repo_root)
-            suite = Path(self.datadir) / f"../../../robotframework/{suite_path}"
+            suite = Path(self.datadir) / "../../../robotframework/" / suite_path
             task = create_task(
                 Robot,
                 {
@@ -655,8 +654,9 @@ class TestRobotPerformanceKeyywords:
 
     def test_explicit_failures(self):
         pattern = "Elapsed Time: "
+        suite_path = Path(self.datadir) / "failing_tests.robot"
         with self._run_robot_and_parse_xml(
-            "Test *", "explicit_failures/"
+            "Test *", suite_path=suite_path
         ) as logger_calls:
             elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
             assert list(filter(None, elapsed_times)) == [

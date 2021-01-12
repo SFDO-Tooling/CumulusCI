@@ -71,7 +71,7 @@ Set Time and Also Metric
 Test Perf Measure Other Metric
     Set Test Metric    Max_CPU_Percent    30
 
-Mismatched Stop Performance Timer - Should Fail
+Mismatched Stop Performance Timer
     Run Keyword and Expect Error
     ...         *Elapsed time clock was not*
     ...         Stop Performance Timer
