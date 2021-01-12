@@ -43,7 +43,7 @@ def test_converter():
     inp = """xyz:
         \u00A0 y: abc"""
     outp = """xyz:
-            y: abc"""
+          y: abc"""
 
     rc = _replace_nbsp(inp)
     assert rc == outp
