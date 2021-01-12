@@ -2,7 +2,7 @@ import importlib
 import logging
 import re
 import time
-from dateutil.parser import parse as parse_date
+from dateutil.parser import parse as parse_date, ParserError
 
 from pprint import pformat
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
@@ -1274,9 +1274,16 @@ class Salesforce(object):
 
         if results:
             record = results[0]
-            start_date = parse_date(record[start_field])
-            end_date = parse_date(record[end_field])
-            duration = end_date - start_date
-            return duration.total_seconds()
+            return _duration(record[start_field], record[end_field], record)
         else:
             raise Exception(f"Matching record not found: {query}")
+
+
+def _duration(start_date: str, end_date: str, record: dict):
+    try:
+        start_date = parse_date(start_date)
+        end_date = parse_date(end_date)
+    except (ParserError, TypeError) as e:
+        raise Exception(f"Date parse error: {e} in record {record}")
+    duration = end_date - start_date
+    return duration.total_seconds()

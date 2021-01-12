@@ -303,7 +303,7 @@ class CumulusCI(object):
             Set Test Elapsed Time       11655.9
 
         Performance test times are output in the CCI logs and are captured in MetaCI instead of the
-        "total elapsed time" measured by Robot Framework."""
+        "total elapsed time" measured by Robot Framework. The Robot "test message" is also updated."""
 
         builtins = BuiltIn()
 

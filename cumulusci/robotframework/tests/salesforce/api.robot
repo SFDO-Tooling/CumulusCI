@@ -175,8 +175,7 @@ Test Elapsed Time For Last Record
     ...         FirstName=Dummy1
     ...         LastName=Dummy2
     ...         EmailBouncedDate=2030-01-01T00:00:00
-    No Operation
-    Salesforce Update   Contact     ${contact_id}       LastName=Dummy3
+
     ${Elapsed}=     Elapsed Time For Last Record    
     ...             obj_name=Contact
     ...             where=Id='${contact_id}'
@@ -202,7 +201,7 @@ Test Elapsed Time For Last Record
     Set Test Elapsed Time        ${Elapsed}
 
 
-Test Elapsed Time For Last Record - Failure
+Test Elapsed Time For Last Record - Failure No Record
     Run Keyword and expect Error   *Matching record not found*   
     ...     Elapsed Time For Last Record    
     ...             obj_name=AsyncApexJob
@@ -210,3 +209,21 @@ Test Elapsed Time For Last Record - Failure
     ...             start_field=CreatedDate
     ...             end_field=CompletedDate
     ...             order_by=CompletedDate
+
+Test Elapsed Time For Last Record - Failure Bad Fields
+    ${contact_id} =  Salesforce Insert  Contact
+    ...         LastName=Dummy2
+    ...         EmailBouncedDate=2030-01-01T00:00:00
+    Run Keyword and Expect Error   *Date parse error*   
+    ...     Elapsed Time For Last Record    
+    ...             obj_name=Contact
+    ...             start_field=EmailBouncedDate
+    ...             end_field=LastName
+    ...             order_by=LastName
+
+    Run Keyword and Expect Error   *Date parse error*   
+    ...     Elapsed Time For Last Record    
+    ...             obj_name=Contact
+    ...             start_field=EmailBouncedDate
+    ...             end_field=FirstName     # None/NULL
+    ...             order_by=FirstName      # None/NULL
