@@ -1277,6 +1277,6 @@ class Salesforce(object):
             start_date = parse_date(record[start_field])
             end_date = parse_date(record[end_field])
             duration = end_date - start_date
-            return duration.seconds
+            return duration.total_seconds()
         else:
             raise Exception(f"Matching record not found: {query}")

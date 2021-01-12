@@ -168,34 +168,37 @@ Test Elapsed Time For Last Record
     # This test uses contacts as if they were "jobs" because they are
     # easy to insert. I don't currently have a better alternative 
     # for a job-like objects which is easy to create in a vanilla
-    # SF org
-    ${contact_id} =  Salesforce Insert  Contact  FirstName=Dummy1  LastName=Dummy2
-    Log     Noop
+    # SF org. The underlying keyword only cares that it has two
+    # datetime fields.
+
+    ${contact_id} =  Salesforce Insert  Contact
+    ...         FirstName=Dummy1
+    ...         LastName=Dummy2
+    ...         EmailBouncedDate=2030-01-01T00:00:00
+    No Operation
     Salesforce Update   Contact     ${contact_id}       LastName=Dummy3
     ${Elapsed}=     Elapsed Time For Last Record    
     ...             obj_name=Contact
     ...             where=Id='${contact_id}'
     ...             start_field=CreatedDate
-    ...             end_field=LastModifiedDate
-    ...             order_by=LastModifiedDate
-    Should Be True      ${Elapsed} >= 0
+    ...             end_field=EmailBouncedDate
+    ...             order_by=EmailBouncedDate
+    Should Be True      ${Elapsed} >= 100_000
 
-    ${contact2_id} =  Salesforce Insert  Contact  FirstName=Dummy1  LastName=Dummy2
-    Salesforce Update   Contact     ${contact_id}       LastName=Dummy3
-    ${Elapsed_2}=     Elapsed Time For Last Record    
-    ...             obj_name=Contact
-    ...             where=Id='${contact_id}'
-    ...             start_field=CreatedDate
-    ...             end_field=LastModifiedDate
-    ...             order_by=LastModifiedDate
+    # This is an "earlier" record than the other
+    ${contact2_id} =  Salesforce Insert  Contact
+    ...         FirstName=Dummy1
+    ...         LastName=Dummy2
+    ...         EmailBouncedDate=2029-01-01T00:00:00
 
     ${Elapsed_latest}=     Elapsed Time For Last Record    
     ...             obj_name=Contact
     ...             start_field=CreatedDate
-    ...             end_field=LastModifiedDate
-    ...             order_by=LastModifiedDate
+    ...             end_field=EmailBouncedDate
+    ...             order_by=EmailBouncedDate
 
-    Should Be Equal         ${Elapsed_2}    ${Elapsed_latest}
+    # The "latest" record should be the original
+    Should Be Equal         ${Elapsed}    ${Elapsed_latest}
     Set Test Elapsed Time        ${Elapsed}
 
 
