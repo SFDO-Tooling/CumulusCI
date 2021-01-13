@@ -594,7 +594,7 @@ class TestRobotPerformanceKeywords:
         project_config = BaseProjectConfig(universal_config)
         with temporary_dir() as d, mock.patch(
             "cumulusci.robotframework.Salesforce.Salesforce._init_locators"
-        ):
+        ), responses.RequestsMock():
             project_config.repo_info["root"] = d
             suite = Path(self.datadir) / "../../../robotframework/" / suite_path
             task = create_task(
@@ -626,7 +626,6 @@ class TestRobotPerformanceKeywords:
             metrics = first_arg.split("-")[-1].split(",")
             return dict(self.parse_metric(metric) for metric in metrics)
 
-    @responses.activate
     def test_elapsed_time_xml(self):
         pattern = "Elapsed Time: "
 
