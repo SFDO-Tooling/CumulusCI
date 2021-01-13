@@ -38,4 +38,3 @@ Test Run Task Class
 
 Test Run Task Class With Options
     Run Task Class  cumulusci.tasks.salesforce.CreatePackage  package=Test Package
-

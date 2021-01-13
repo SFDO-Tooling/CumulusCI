@@ -353,71 +353,6 @@ ${login url}=  Login URL  alias=dadvisor
                 <td class="kwdoc"></td>
               </tr>
               
-              <tr class="kwrow" id="CumulusCI.Set Test Elapsed Time">
-                <td class="kwname">
-                  Set Test Elapsed Time
-                </td>
-                <td class="kwargs">
-                  
-                  <i>elapsedtime</i>
-                  
-                </td>
-                <td class="kwdoc"><p>This keyword captures a computed rather than measured elapsed time for performance tests.</p>
-<p>For example, if you were performance testing a Salesforce batch process, you might want to store the Salesforce-measured elapsed time of the batch process instead of the time measured in the CCI client process.</p>
-<p>The keyword takes a single argument which is either a number of seconds or a Robot time string (<a href="https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats">https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats</a>).</p>
-<p>Using this keyword will automatically add the tag cci_metric_elapsed_time to the test case and ${cci_metric_elapsed_time} to the test's variables. cci_metric_elapsed_time is not included in Robot's html statistical roll-ups.</p>
-<p>Example:</p>
-<p>Set Test Elapsed Time       11655.9</p>
-<p>Performance test times are output in the CCI logs and are captured in MetaCI instead of the "total elapsed time" measured by Robot Framework.</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="CumulusCI.Set Test Metric">
-                <td class="kwname">
-                  Set Test Metric
-                </td>
-                <td class="kwargs">
-                  
-                  <i>metric: str</i>, 
-                  
-                  <i>value=None</i>
-                  
-                </td>
-                <td class="kwdoc"><p>This keyword captures any metric for performance monitoring.</p>
-<p>For example: number of queries, rows processed, CPU usage, etc.</p>
-<p>The keyword takes a metric name, which can be any string, and a value, which can be any number.</p>
-<p>Using this keyword will automatically add the tag cci_metric to the test case and ${cci_metric_&lt;metric_name&gt;} to the test's variables. These permit downstream processing in tools like CCI and MetaCI.</p>
-<p>cci_metric is not included in Robot's html statistical roll-ups.</p>
-<p>Example:</p>
-<p>Set Test Metric    Max_CPU_Percent    30</p>
-<p>Performance test metrics are output in the CCI logs, log.html and output.xml. MetaCI captures them but does not currently have a user interface for displaying them.</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="CumulusCI.Start Performance Timer">
-                <td class="kwname">
-                  Start Performance Timer
-                </td>
-                <td class="kwargs">
-                  
-                </td>
-                <td class="kwdoc"><p>Start an elapsed time stopwatch for performance tests.</p>
-<p>See the docummentation for <b>*Stop Performance Timer*</b> for more information.</p>
-<p>Example:</p>
-<p>Start Performance Timer Do Something Stop Performance Timer</p></td>
-              </tr>
-              
-              <tr class="kwrow" id="CumulusCI.Stop Performance Timer">
-                <td class="kwname">
-                  Stop Performance Timer
-                </td>
-                <td class="kwargs">
-                  
-                </td>
-                <td class="kwdoc"><p>Record the results of a stopwatch. For perf testing.</p>
-<p>This keyword uses Set Test Elapsed Time internally and therefore outputs in all of the ways described there.</p>
-<p>Example:</p>
-<p>Start Performance Timer Do Something Stop Performance Timer</p></td>
-              </tr>
-              
             </tbody>
           </table>
         </div> 
@@ -1439,6 +1374,45 @@ ${french_address}=  Faker  address
 </pre></td>
               </tr>
               
+              <tr class="kwrow" id="Salesforce.Set Test Elapsed Time">
+                <td class="kwname">
+                  Set Test Elapsed Time
+                </td>
+                <td class="kwargs">
+                  
+                  <i>elapsedtime</i>
+                  
+                </td>
+                <td class="kwdoc"><p>This keyword captures a computed rather than measured elapsed time for performance tests.</p>
+<p>For example, if you were performance testing a Salesforce batch process, you might want to store the Salesforce-measured elapsed time of the batch process instead of the time measured in the CCI client process.</p>
+<p>The keyword takes a single argument which is either a number of seconds or a Robot time string (<a href="https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats">https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats</a>).</p>
+<p>Using this keyword will automatically add the tag cci_metric_elapsed_time to the test case and ${cci_metric_elapsed_time} to the test's variables. cci_metric_elapsed_time is not included in Robot's html statistical roll-ups.</p>
+<p>Example:</p>
+<p>Set Test Elapsed Time       11655.9</p>
+<p>Performance test times are output in the CCI logs and are captured in MetaCI instead of the "total elapsed time" measured by Robot Framework. The Robot "test message" is also updated.</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Set Test Metric">
+                <td class="kwname">
+                  Set Test Metric
+                </td>
+                <td class="kwargs">
+                  
+                  <i>metric: str</i>, 
+                  
+                  <i>value=None</i>
+                  
+                </td>
+                <td class="kwdoc"><p>This keyword captures any metric for performance monitoring.</p>
+<p>For example: number of queries, rows processed, CPU usage, etc.</p>
+<p>The keyword takes a metric name, which can be any string, and a value, which can be any number.</p>
+<p>Using this keyword will automatically add the tag cci_metric to the test case and ${cci_metric_&lt;metric_name&gt;} to the test's variables. These permit downstream processing in tools like CCI and MetaCI.</p>
+<p>cci_metric is not included in Robot's html statistical roll-ups.</p>
+<p>Example:</p>
+<p>Set Test Metric    Max_CPU_Percent    30</p>
+<p>Performance test metrics are output in the CCI logs, log.html and output.xml. MetaCI captures them but does not currently have a user interface for displaying them.</p></td>
+              </tr>
+              
               <tr class="kwrow" id="Salesforce.Soql Query">
                 <td class="kwname">
                   Soql Query
@@ -1460,6 +1434,32 @@ Run keyword if  len($result['records']) == 0  Fail  No records found
 ${contact}=  Get from list  ${result['records']}  0
 Should be equal  ${contact['Name']}  Eleanor Rigby
 </pre></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Start Performance Timer">
+                <td class="kwname">
+                  Start Performance Timer
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Start an elapsed time stopwatch for performance tests.</p>
+<p>See the docummentation for <b>*Stop Performance Timer*</b> for more information.</p>
+<p>Example:</p>
+<p>Start Performance Timer Do Something Stop Performance Timer</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Stop Performance Timer">
+                <td class="kwname">
+                  Stop Performance Timer
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Record the results of a stopwatch. For perf testing.</p>
+<p>This keyword uses Set Test Elapsed Time internally and therefore outputs in all of the ways described there.</p>
+<p>Example:</p>
+<p>Start Performance Timer Do Something Stop Performance Timer</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Store Session Record">
@@ -2219,7 +2219,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Thursday January 07, 09:45 AM - cumulusci v3.26.0.dev1
+      Generated on Tuesday January 12, 04:27 PM - cumulusci v3.26.0
     </div>
   </body>
 </html>
