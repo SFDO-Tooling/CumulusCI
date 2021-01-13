@@ -643,9 +643,7 @@ class TestRobotPerformanceKeywords:
             "Test Perf Measure Other Metric"
         ) as logger_calls:
             elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
-            assert list(filter(None, elapsed_times)) == [
-                {"Max_CPU_Percent": 30.0, "Teardown Time": 0.0}
-            ]
+            assert list(filter(None, elapsed_times))[0]["Max_CPU_Percent"] == 30.0
 
     def test_empty_test(self):
         pattern = "Max_CPU_Percent: "
@@ -653,9 +651,7 @@ class TestRobotPerformanceKeywords:
             "Test Perf Measure Other Metric"
         ) as logger_calls:
             elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
-            assert list(filter(None, elapsed_times)) == [
-                {"Max_CPU_Percent": 30.0, "Teardown Time": 0.0}
-            ]
+            assert list(filter(None, elapsed_times))[0]["Max_CPU_Percent"] == 30.0
 
     def test_explicit_failures(self):
         pattern = "Elapsed Time: "
