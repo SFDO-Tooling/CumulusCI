@@ -70,5 +70,3 @@ There are two methods available for installing a package in an org:
 
 * `Install via the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_cli.htm>`_
 * `Install via an installation URL <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_ui.htm>`_
-
-.. note:: Packages can only be installed in Scratch orgs, Sandbox orgs, DE orgs, and Production orgs.
