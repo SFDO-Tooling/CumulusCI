@@ -2,6 +2,7 @@ import importlib
 import logging
 import re
 import time
+from datetime import datetime
 from dateutil.parser import parse as parse_date, ParserError
 
 from pprint import pformat
@@ -1277,6 +1278,108 @@ class Salesforce(object):
             return _duration(record[start_field], record[end_field], record)
         else:
             raise Exception(f"Matching record not found: {query}")
+
+    def start_performance_timer(self):
+        """Start an elapsed time stopwatch for performance tests.
+
+        See the docummentation for **Stop Performance Timer** for more
+        information.
+
+        Example:
+
+            Start Performance Timer
+            Do Something
+            Stop Performance Timer
+        """
+        BuiltIn().set_test_variable("${__start_time}", datetime.now())
+
+    def stop_performance_timer(self):
+        """Record the results of a stopwatch. For perf testing.
+
+        This keyword uses Set Test Elapsed Time internally and therefore
+        outputs in all of the ways described there.
+
+        Example:
+
+            Start Performance Timer
+            Do Something
+            Stop Performance Timer
+
+        """
+        builtins = BuiltIn()
+
+        start_time = builtins.get_variable_value("${__start_time}")
+        if start_time:
+            seconds = (datetime.now() - start_time).seconds
+            assert seconds is not None
+            self.set_test_elapsed_time(seconds)
+        else:
+            raise Exception(
+                "Elapsed time clock was not started. "
+                "Use the Start Elapsed Time keyword to do so."
+            )
+
+    def set_test_elapsed_time(self, elapsedtime):
+        """This keyword captures a computed rather than measured elapsed time for performance tests.
+
+        For example, if you were performance testing a Salesforce batch process, you might want to
+        store the Salesforce-measured elapsed time of the batch process instead of the time measured
+        in the CCI client process.
+
+        The keyword takes a single argument which is either a number of seconds or a Robot time string
+        (https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats).
+
+        Using this keyword will automatically add the tag cci_metric_elapsed_time to the test case
+        and ${cci_metric_elapsed_time} to the test's variables. cci_metric_elapsed_time is not
+        included in Robot's html statistical roll-ups.
+
+        Example:
+
+            Set Test Elapsed Time       11655.9
+
+        Performance test times are output in the CCI logs and are captured in MetaCI instead of the
+        "total elapsed time" measured by Robot Framework. The Robot "test message" is also updated."""
+
+        builtins = BuiltIn()
+
+        try:
+            seconds = float(elapsedtime)
+        except ValueError:
+            seconds = timestr_to_secs(elapsedtime)
+        assert seconds is not None
+
+        builtins.set_test_message(f"Elapsed time set by test : {seconds}")
+        builtins.set_tags("cci_metric_elapsed_time")
+        builtins.set_test_variable("${cci_metric_elapsed_time}", seconds)
+
+    def set_test_metric(self, metric: str, value=None):
+        """This keyword captures any metric for performance monitoring.
+
+        For example: number of queries, rows processed, CPU usage, etc.
+
+        The keyword takes a metric name, which can be any string, and a value, which
+        can be any number.
+
+        Using this keyword will automatically add the tag cci_metric to the test case
+        and ${cci_metric_<metric_name>} to the test's variables. These permit downstream
+        processing in tools like CCI and MetaCI.
+
+        cci_metric is not included in Robot's html statistical roll-ups.
+
+        Example:
+
+            Set Test Metric    Max_CPU_Percent    30
+
+        Performance test metrics are output in the CCI logs, log.html and output.xml.
+        MetaCI captures them but does not currently have a user interface for displaying
+        them."""
+
+        builtins = BuiltIn()
+
+        value = float(value)
+
+        builtins.set_tags("cci_metric")
+        builtins.set_test_variable("${cci_metric_%s}" % metric, value)
 
 
 def _duration(start_date: str, end_date: str, record: dict):

@@ -582,17 +582,19 @@ class TestLibdocPageObjects(unittest.TestCase):
         assert actual == expected
 
 
-class TestRobotPerformanceKeyywords:
+class TestRobotPerformanceKeywords:
     def setup(self):
         self.datadir = os.path.dirname(__file__)
 
     @contextmanager
     def _run_robot_and_parse_xml(
-        self, test_pattern, suite_path="tests/cumulusci/base.robot"
+        self, test_pattern, suite_path="tests/salesforce/performance.robot"
     ):
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
-        with temporary_dir() as d:
+        with temporary_dir() as d, mock.patch(
+            "cumulusci.robotframework.Salesforce.Salesforce._init_locators"
+        ):
             project_config.repo_info["root"] = d
             suite = Path(self.datadir) / "../../../robotframework/" / suite_path
             task = create_task(
@@ -642,7 +644,9 @@ class TestRobotPerformanceKeyywords:
             "Test Perf Measure Other Metric"
         ) as logger_calls:
             elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
-            assert list(filter(None, elapsed_times)) == [{"Max_CPU_Percent": 30.0}]
+            assert list(filter(None, elapsed_times)) == [
+                {"Max_CPU_Percent": 30.0, "Teardown Time": 0.0}
+            ]
 
     def test_empty_test(self):
         pattern = "Max_CPU_Percent: "
@@ -650,7 +654,9 @@ class TestRobotPerformanceKeyywords:
             "Test Perf Measure Other Metric"
         ) as logger_calls:
             elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
-            assert list(filter(None, elapsed_times)) == [{"Max_CPU_Percent": 30.0}]
+            assert list(filter(None, elapsed_times)) == [
+                {"Max_CPU_Percent": 30.0, "Teardown Time": 0.0}
+            ]
 
     def test_explicit_failures(self):
         pattern = "Elapsed Time: "
