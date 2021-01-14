@@ -219,7 +219,7 @@ tasks:
         group: Salesforce DX
     encrypt_all_fields:
         group: Metadata Transformations
-        description: "Applies probabilistic encryption to all fields in the org."
+        description: "Applies Probabilistic Encryption to all fields in the org that are available to be encrypted."
         class_path: cumulusci.tasks.metadata_etl.encrypt_all_fields.EncryptAllFields
     ensure_record_types:
         description: Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.

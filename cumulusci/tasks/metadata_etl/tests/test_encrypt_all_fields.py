@@ -83,7 +83,7 @@ class TestEncryptAllFields:
             {},
         )
         assert task.blocklist_path == "unencryptable.yml"
-        assert task.options["timeout"] == 60
+        assert task.options["timeout"] == 90
 
     def test_standard_allowlist(self, create_task_fixture):
         task = create_task_fixture(

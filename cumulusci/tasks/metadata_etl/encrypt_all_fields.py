@@ -3,13 +3,10 @@ from datetime import datetime
 
 import os
 import yaml
-import pytest
 
 from cumulusci.tasks.metadata_etl.base import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 from cumulusci.utils import os_friendly_path
-from cumulusci.utils.xml import metadata_tree
-from cumulusci.tasks.bulkdata.generate_mapping import GenerateMapping
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 
 
@@ -31,7 +28,7 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
 
     task_options = {
         "blocklist_path": {
-            "description": "The path to a YAML settings file of Object.Field entities known to be unencrpytable. "
+            "description": "The path to a YAML settings file of Object.Field entities known to be unencryptable. "
             "Defaults to unencryptable.yml. Custom entities must be namespace tokenized."
         },
         "timeout": {
@@ -114,9 +111,12 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
 
     def _is_in_blocklist(self, object_api_name, field_api_name):
         # blocklist is dict: object_api_name -> list of field_api_names
-        return False if not self.blocklist else self.blocklist.get(
-            object_api_name
-        ) and field_api_name in self.blocklist.get(object_api_name)
+        return (
+            False
+            if not self.blocklist
+            else self.blocklist.get(object_api_name)
+            and field_api_name in self.blocklist.get(object_api_name)
+        )
 
     def _is_encryptable(self, object_api_name, field):
         field_api_name = field.fullName.text
@@ -149,18 +149,14 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
         existing_list_views = custom_object.findall("listViews")
         for lv in existing_list_views:
             custom_object.remove(lv)
-            
+
         # special handling required for custom object Name fields, as they don't live in a "fields" tag
         if object_api_name.endswith("__c") and not self._is_in_blocklist(
             object_api_name, "Name"
         ):
             name_field = custom_object.find("nameField")
             if name_field.find("encryptionScheme"):
-                # print('BEFORE*****')
-                # print(name_field.tostring())
                 self.encrypt_field(name_field)
-                # print('AFTER******')
-                # print(name_field.tostring())
                 self.fields_to_encrypt[object_api_name].append("Name")
                 dirty_object = True
 
@@ -203,7 +199,8 @@ class EncryptAllFields(MetadataSingleEntityTransformTask):
             fields_to_remove = []
 
             for field_api_name in self.fields_to_encrypt[sobject_api_name]:
-                if not field_map[field_api_name]["filterable"]:
+                if field_map[field_api_name]["encrypted"]:
+                    print("encrypted! ^^")
                     fields_to_remove.append(field_api_name)
 
             for field_api_name in fields_to_remove:
