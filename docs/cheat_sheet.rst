@@ -1,18 +1,18 @@
-Cheat sheet
+Cheat Sheet
 ===========
 CumulusCI offers a great deal of functionality out of the box.
-This cheatsheet is intended to provide a very brief summary of the most
+This cheat sheet is intended to provide a very brief summary of the most
 important commands to start working in scratch orgs using CumulusCI,
 using the basic flows and tasks supplied with the tool. 
 
 Naming and Manipulating Orgs
 ----------------------------
 CumulusCI supplies a collection of named org configurations by default.
-To see what org configurations are available, run cci org list.
+To see what org configurations are available, run ``cci org list``.
 You can provide those names to any of the commands in this guide.
-Common examples include dev, qa, beta, and release. 
+Common examples include ``dev``, ``qa``, ``beta``, and ``release``. 
 Org names are associated with a scratch org definition file stored in
-the project's orgs directory, which determines how the scratch org is set up. 
+the project's ``orgs`` directory. The definition file determines how the scratch org is set up. 
 
 It's not necessary to name your own orgs, but you may choose to do so if,
 for example, you'd like to maintain multiple orgs of the same type.
@@ -84,18 +84,19 @@ Remove an org name
     $ cci org remove <org_name>
 
 Note that you will not be able to remove built-in org names, 
-but you can remove names you created with cci org scratch.
+but you can remove names you created with ``cci org scratch``.
 
 
 
-Connect to a persistent org (sandbox, developer edition)
+Connect to a persistent org (sandbox, Developer Edition)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
     $ cci org connect <org_name> 
         
-Use the ``--sandbox`` if this is a sandbox.
+Use the ``--sandbox`` option if this is a sandbox, or any org that uses the
+``test.salesforce.com`` login endpoint.
 
 
 
@@ -108,7 +109,7 @@ Below are a collection of the standard org building flows that you should expect
 
 .. note::
 
-    This section relies on concepts introduced in :ref:`key concepts` section of the documentation.
+    This section relies on concepts introduced in the :ref:`key concepts` section of the documentation.
 
 
 .. note::
@@ -123,30 +124,30 @@ Flows for Building Orgs
 
 ``qa_org``
 ********** 
-This builds an unmanaged org that is designed for QA use. Should be used with an org whose configuration is ``qa``.
+This flow builds an unmanaged org that is designed for QA use. Should be used with an org whose configuration is ``qa``.
 
 ``dev_org``
 *********** 
-This builds an unmanaged org that is designed for development use. Should be used with an org whose configuration is ``dev`` or ``dev_namespaced``
+This flow builds an unmanaged org that is designed for development use. Should be used with an org whose configuration is ``dev`` or ``dev_namespaced``
 
 ``install_beta``
 ****************
-This builds a managed org with the latest beta release installed. Should be used with an org whose configuration is ``beta``
+This flow builds a managed org with the latest beta release installed. Should be used with an org whose configuration is ``beta``
 
 ``install_prod``
 ****************
-This builds a managed org with the latest release installed. Should be used with an org whose configuration is ``release``
+This flow builds a managed org with the latest release installed. Should be used with an org whose configuration is ``release``
 
 ``regression_org``
 ******************
-This builds a managed org that starts with the latest release installed and is then upgraded to the latest beta to simulate a subscriber upgrade. Should be used with an org whose configuration is ``release``
+This flow builds a managed org that starts with the latest release installed and is then upgraded to the latest beta to simulate a subscriber upgrade. Should be used with an org whose configuration is ``release``
 
 Your project may provide additional org building flows.
 Consult the project's automation documentation for more details.
 
 .. caution::
 
-    We do not recommend running an org-building-flow against the same scratch org multiple times.
+    We do not recommend running an org-building flow against the same scratch org multiple times.
     While this may work in some situations, in many cases it will fail and/or leave the org in an inconsistent state.
     If you need to rebuild an org, delete it first. If you need to redeploy updated code into an org, see below.
 
@@ -185,9 +186,6 @@ Execute Apex unit tests in an org
 
     $ cci task run run_tests
 
-Use ``--managed True`` if the org is managed.
-
-
 
 Execute Robot browser tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -213,9 +211,3 @@ Retrieve changes to local repository
 .. code-block::
 
     $ cci task run retrieve_changes
-
-
-More Resources
---------------
-Get started with CumulusCI by completing the `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ trail.
-Review the CumulusCI documentation for details on CumulusCI functionality, including a comprehensive :ref:`task reference`. 
