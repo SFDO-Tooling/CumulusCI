@@ -1,6 +1,5 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
-
 tasks:
     activate_flow:
         group: Metadata Transformations
@@ -54,6 +53,10 @@ tasks:
         description: Waits on a batch apex or queueable apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
+    check_my_domain_active:
+        description: Runs as a preflight check to determine whether My Domain is active.
+        class_path: cumulusci.tasks.preflight.settings.CheckMyDomainActive
+        group: Salesforce Preflight Checks
     check_sobjects_available:
         description: Runs as a preflight check to determine whether specific sObjects are available.
         class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
@@ -85,6 +88,14 @@ tasks:
         options:
             settings_type: ChatterSettings
             settings_field: IsChatterEnabled
+            value: True
+    check_enhanced_notes_enabled:
+        description: Preflight check to validate that Enhanced Notes are enabled.
+        group: Salesforce Preflight Checks
+        class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
+        options:
+            settings_type: EnhancedNotesSettings
+            settings_field: IsEnhancedNotesEnabled
             value: True
     custom_settings_value_wait:
         description: Waits for a specific field value on the specified custom settings object and field
@@ -631,6 +642,7 @@ flows:
                 task: run_tests
             5:
                 task: github_automerge_feature
+                when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
 
     ci_feature_beta_deps:
         group: Continuous Integration
@@ -654,6 +666,7 @@ flows:
                 task: run_tests
             5:
                 task: github_automerge_feature
+                when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
 
     ci_feature_2gp:
         group: Continuous Integration
@@ -939,12 +952,14 @@ flows:
             1:
                 task: github_package_data
                 options:
-                    context: "Build Feature Test Package"
+                    context: $project_config.project__git__2gp_context
             2:
                 flow: dependencies
                 options:
                     update_dependencies:
+                        include_beta: True
                         dependencies: ^^github_package_data.dependencies
+                        prefer_2gp_from_release_branch: True
             3:
                 task: install_managed
                 options:
@@ -1167,6 +1182,7 @@ project:
         prefix_release: release/
         push_prefix_sandbox: 'Sandbox orgs: '
         push_prefix_production: 'Production orgs: '
+        2gp_context: "Build Feature Test Package"
         release_notes:
             parsers:
                 1:

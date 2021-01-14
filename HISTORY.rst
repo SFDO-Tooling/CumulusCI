@@ -2,6 +2,91 @@
 History
 =======
 
+3.26.0 (2021-01-08)
+-------------------
+
+
+Changes:
+
+- CumulusCI now reports how long it took for flows to run.
+
+- Flows ``ci_feature`` and ``ci_feature_beta_deps`` now only run the ``github_automerge_feature`` task if the branch begins with the configured feature branch prefix.
+
+- Running the ``deploy`` task with the ``path`` option set to a path that doesn't exist will log a warning instead of raising an error.
+
+- When the ``ci_feature_2gp`` and ``qa_org_2gp`` flows install dependencies, the latest beta version will be used when available.
+
+- CumulusCI can now resolve dependencies using second-generation packages (2GPs) for upstream projects. When a `ci_feature_2gp` or `qa_org_2gp` flow runs on a release branch (starting with ``prefix/NNN``, where ``prefix`` is the feature branch prefix and ``NNN`` is an integer), CumulusCI will look for a matching release branch in each upstream dependency and use a 2GP package build on that release branch, if present, falling back to a 1GP beta release if not present.
+
+Issues Closed:
+
+- Fixed the ``org_settings`` task to handle nested structures in org settings.
+
+- Fixed a bug where cci task run could fail without a helpful error if run outside of a cci project folder.
+
+- Fixed an issue that caused CumulusCI to generate invalid ``package.xml`` entries for Metadata API-format projects that include ``__mocks__`` or ``__tests__`` LWC directories.
+
+- Fixed the ``update_dependencies`` task to handle automatic injection of namespace prefixes when deploying an unpackaged dependency. The fix for the same issue in CumulusCI 3.25.0 was incomplete.
+
+- Fixed an issue where an unquoted ``anchor_date`` in bulk data mapping failed validation.
+
+- CumulusCI now handles an error that can occur while collecting info about installed packages
+
+- Fixed an issue causing the ``extract_dataset`` task to fail in some circumstances when both an anchor date and Record Types were used.
+
+- Fixed an issue where the deprecated syntax for record types was not working.
+
+
+3.25.0 (2020-12-10)
+-------------------
+
+Changes:
+
+- New tasks:
+
+  - ``assign_permission_set_groups`` assigns Permission Set Groups to a user if not already assigned.
+  - ``assign_permission_set_licenses`` assigns Permission Set Licenses to a user if not already assigned.
+
+- New preflight checks for use with MetaDeploy install plans:
+
+  - ``check_enhanced_notes_enabled`` checks if Enhanced Notes are enabled
+
+  - ``check_my_domain_active`` checks if My Domain is active
+
+- The ``github_copy_subtree`` task has a new option, ``renames``, which allows mapping between local and target path names when publishing to support renaming a file or directory from the source repository in the target repository.
+
+- The ``ensure_record_types`` task has a new option, ``record_type_description``, which can be used to set the description of the new record type if it is created.
+
+- Robot Framework:
+
+  - New keyword ``Field value should be``
+  - New keyword ``Modal should show edit error for fields`` to check form field error notifications in Spring '21
+  - Adjusted ``Get field value`` and ``Select dropdown value`` fields to work in Spring '21
+
+- Command line improvements:
+
+  - The various ``cci org`` commands now accept an org name with the ``--org`` option, for better consistency with other commands. Specifying an org name without ``--org`` also still works.
+
+  - Running ``cci org default`` without specifying an org name will now display the current default org.
+
+- Org configs now have properties ``org_config.is_multiple_currencies_enabled`` and ``org_config.is_advanced_currency_management_enabled`` which can be used to check if these features are enabled.
+
+- The ``MergeBranchOld`` task, which was previously deprecated, has now been removed.
+
+Issues closed:
+
+- Fixed the ``update_dependencies`` task to handle automatic injection of namespace prefixes when deploying an unpackaged dependency.
+
+- Fixed the ``query`` task, which was completely broken.
+
+- Fixed the ``connected_app`` task to pass the correct username to sfdx. Thanks @atrancadoris
+
+- Fixed the display of task options with an underscore in ``cci task info`` output.
+
+- Fixed a confusing warning when creating record types using Snowfakery. (#2093)
+
+- Improved handling of errors while deleting a scratch org.
+
 3.24.1 (2020-12-01)
 -------------------
 

@@ -22,7 +22,6 @@ import click
 import github3
 import pkg_resources
 import requests
-from requests import exceptions
 from rst2ansi import rst2ansi
 from jinja2 import Environment
 from jinja2 import PackageLoader
@@ -44,7 +43,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
-from cumulusci.core.utils import import_global
+from cumulusci.core.utils import import_global, format_duration
 from cumulusci.cli.utils import group_items
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
@@ -205,29 +204,33 @@ def main(args=None):
         if "--json" not in args and not is_version_command:
             check_latest_version()
 
-        # Load CCI config
-        global RUNTIME
-        RUNTIME = CliRuntime(load_keychain=False)
-        RUNTIME.check_cumulusci_version()
-
-        # Configure logging
-        debug = "--debug" in args
-        if debug:
-            args.remove("--debug")
-        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
-
-        # Only create logfiles for commands
-        # that are not `cci error`
+        # Only create logfiles for commands that are not `cci error`
         is_error_command = len(args) > 2 and args[1] == "error"
         tempfile_path = None
         if not is_error_command:
             logger, tempfile_path = get_tempfile_logger()
             stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
 
+        debug = "--debug" in args
+        if debug:
+            args.remove("--debug")
+
+        # Load CCI config
+        global RUNTIME
+        try:
+            RUNTIME = CliRuntime(load_keychain=False)
+        except Exception as e:
+            handle_exception(e, is_error_command, tempfile_path, debug)
+            sys.exit(1)
+
+        RUNTIME.check_cumulusci_version()
+
+        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
+
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
         try:
-            cli(standalone_mode=False)
+            cli(args[1:], standalone_mode=False)
         except click.Abort:  # Keyboard interrupt
             show_debug_info() if debug else click.echo("\nAborted!", err=True)
             sys.exit(1)
@@ -245,18 +248,17 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
-    if isinstance(error, exceptions.ConnectionError):
+    if isinstance(error, requests.exceptions.ConnectionError):
         connection_error_message()
     elif isinstance(error, click.ClickException):
         click.echo(click.style(f"Error: {error.format_message()}", fg="red"), err=True)
     else:
-        click.echo(click.style(f"Error: {error}", fg="red"), err=True)
+        click.echo(click.style(f"{error}", fg="red"), err=True)
     # Only suggest gist command if it wasn't run
     if not is_error_cmd:
         click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"), err=True)
 
-    # This is None if we're handling an exception for a
-    # `cci error` command.
+    # This is None if we're handling an exception for a `cci error` command.
     if logfile_path:
         with open(logfile_path, "a") as log_file:
             traceback.print_exc(file=log_file)  # log stacktrace silently
@@ -855,11 +857,61 @@ def service_info(runtime, service_name, plain):
 # Commands for group: org
 
 
+def set_org_name(required):
+    """Generate a callback for processing the `org_name` option or argument
+
+    `required` is a boolean for whether org_name is required
+    """
+    # could be generalized to work for any mutex pair (or list) but no obvious need
+    def callback(ctx, param, value):
+        """Callback which enforces mutex and 'required' behaviour (if required)."""
+        prev_value = ctx.params.get("org_name")
+        if value and prev_value and prev_value != value:
+            raise click.UsageError(
+                f"Either ORGNAME or --org ORGNAME should be supplied, not both ({value}, {prev_value})"
+            )
+        ctx.params["org_name"] = value or prev_value
+        if required and not ctx.params.get("org_name"):
+            raise click.UsageError("Please specify ORGNAME or --org ORGNAME")
+
+    return callback
+
+
+def orgname_option_or_argument(*, required):
+    """Create decorator that allows org_name to be an option or an argument"""
+
+    def decorator(func):
+        if required:
+            message = "One of ORGNAME (see above) or --org is required."
+        else:
+            message = "By default, runs against the current default org."
+
+        opt_version = click.option(
+            "--org",
+            callback=set_org_name(
+                False
+            ),  # never required because arg-version may be specified
+            expose_value=False,
+            help=f"Alternate way to specify the target org. {message}",
+        )
+        # "required" checking is handled in the callback because it has more context
+        # about whether its already seen it.
+        arg_version = click.argument(
+            "orgname",
+            required=False,
+            callback=set_org_name(required),
+            expose_value=False,
+        )
+        return arg_version(opt_version(func))
+
+    return decorator
+
+
 @org.command(
     name="browser",
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
 )
-@click.argument("org_name", required=False)
+@orgname_option_or_argument(required=False)
 @pass_runtime(require_project=False, require_keychain=True)
 def org_browser(runtime, org_name):
     org_name, org_config = runtime.get_org(org_name)
@@ -873,7 +925,7 @@ def org_browser(runtime, org_name):
 @org.command(
     name="connect", help="Connects a new org's credentials using OAuth Web Flow"
 )
-@click.argument("org_name")
+@orgname_option_or_argument(required=True)
 @click.option(
     "--sandbox", is_flag=True, help="If set, connects to a Salesforce sandbox org"
 )
@@ -933,7 +985,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
 
 
 @org.command(name="default", help="Sets an org as the default org for tasks and flows")
-@click.argument("org_name")
+@orgname_option_or_argument(required=False)
 @click.option(
     "--unset",
     is_flag=True,
@@ -943,15 +995,21 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
 def org_default(runtime, org_name, unset):
     if unset:
         runtime.keychain.unset_default_org()
-        click.echo(f"{org_name} is no longer the default org.  No default org set.")
-    else:
+        click.echo("Default org unset")
+    elif org_name:
         runtime.keychain.set_default_org(org_name)
         click.echo(f"{org_name} is now the default org")
+    else:
+        orgname, org_config = runtime.keychain.get_default_org()
+        if orgname:
+            click.echo(f"{orgname} is the default org")
+        else:
+            click.echo("There is no default org")
 
 
 @org.command(name="import", help="Import a scratch org from Salesforce DX")
 @click.argument("username_or_alias")
-@click.argument("org_name")
+@orgname_option_or_argument(required=True)
 @pass_runtime(require_keychain=True)
 def org_import(runtime, username_or_alias, org_name):
     org_config = {"username": username_or_alias}
@@ -983,9 +1041,9 @@ def calculate_org_days(info):
 
 
 @org.command(name="info", help="Display information for a connected org")
-@click.argument("org_name", required=False)
+@orgname_option_or_argument(required=False)
 @click.option(
-    "print_json", "--json", is_flag=True, help="Print as JSON.  Includes access token"
+    "print_json", "--json", is_flag=True, help="Print as JSON.  Includes access token."
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def org_info(runtime, org_name, print_json):
@@ -1157,7 +1215,7 @@ def org_prune(runtime, include_active=False):
 
 
 @org.command(name="remove", help="Removes an org from the keychain")
-@click.argument("org_name")
+@orgname_option_or_argument(required=True)
 @click.option(
     "--global-org",
     is_flag=True,
@@ -1175,8 +1233,9 @@ def org_remove(runtime, org_name, global_org):
         try:
             org_config.delete_org()
         except Exception as e:
-            click.echo("Deleting scratch org failed with error:")
             click.echo(e)
+            click.echo("Perhaps it was already deleted?")
+            click.echo("Removing org regardless.")
 
     global_org = global_org or runtime.project_config is None
     runtime.keychain.remove_org(org_name, global_org)
@@ -1186,7 +1245,7 @@ def org_remove(runtime, org_name, global_org):
     name="scratch", help="Connects a Salesforce DX Scratch Org to the keychain"
 )
 @click.argument("config_name")
-@click.argument("org_name")
+@orgname_option_or_argument(required=True)
 @click.option(
     "--default",
     is_flag=True,
@@ -1233,14 +1292,19 @@ def org_scratch(runtime, config_name, org_name, default, devhub, days, no_passwo
     name="scratch_delete",
     help="Deletes a Salesforce DX Scratch Org leaving the config in the keychain for regeneration",
 )
-@click.argument("org_name")
+@orgname_option_or_argument(required=True)
 @pass_runtime(require_keychain=True)
 def org_scratch_delete(runtime, org_name):
     org_config = runtime.keychain.get_org(org_name)
     if not org_config.scratch:
         raise click.UsageError(f"Org {org_name} is not a scratch org")
 
-    org_config.delete_org()
+    try:
+        org_config.delete_org()
+    except Exception as e:
+        click.echo(e)
+        click.echo(f"Use `cci org remove {org_name}` to remove it from your keychain.")
+        return
 
     org_config.save()
 
@@ -1273,7 +1337,7 @@ class CCIHelp(type(help)):
     help="Drop into a Python shell with a simple_salesforce connection in `sf`, "
     "as well as the `org_config` and `project_config`.",
 )
-@click.argument("org_name", required=False)
+@orgname_option_or_argument(required=False)
 @click.option("--script", help="Path to a script to run", type=click.Path())
 @click.option("--python", help="Python code to run directly")
 @pass_runtime(require_keychain=True)
@@ -1473,11 +1537,10 @@ class RunTaskCommand(click.MultiCommand):
         return sorted([t["name"] for t in tasks])
 
     def get_command(self, ctx, task_name):
-        RUNTIME._load_keychain()
         if RUNTIME.project_config is None:
-            task_config = RUNTIME.universal_config.get_task(task_name)
-        else:
-            task_config = RUNTIME.project_config.get_task(task_name)
+            raise RUNTIME.project_config_error
+        RUNTIME._load_keychain()
+        task_config = RUNTIME.project_config.get_task(task_name)
 
         if "options" not in task_config.config:
             task_config.config["options"] = {}
@@ -1705,7 +1768,11 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Create the flow and handle initialization exceptions
     try:
         coordinator = runtime.get_flow(flow_name, options=options)
+        start_time = datetime.now()
         coordinator.run(org_config)
+        duration = datetime.now() - start_time
+        click.echo(f"Ran {flow_name} in {format_duration(duration)}")
+
     finally:
         runtime.alert(f"Flow Complete: {flow_name}")
 

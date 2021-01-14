@@ -25,6 +25,7 @@ SOBJECT_METADATA = """<?xml version="1.0" encoding="utf-8"?>
         <active>true</active>
         {business_process_link}
         <label>{record_type_label}</label>
+        <description>{record_type_description}</description>
     </recordTypes>
 </CustomObject>
 """
@@ -56,6 +57,10 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
             "description": "The Label of the Record Type.",
             "required": True,
         },
+        "record_type_description": {
+            "description": "The Description of the Record Type.  Only uses the first 255 characters.",
+            "required": False,
+        },
         "sobject": {
             "description": "The sObject on which to deploy the Record Type and optional Business Process.",
             "required": True,
@@ -73,6 +78,11 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
             raise TaskOptionsError(
                 "Record Type Developer Name value must contain only alphanumeric or underscore characters"
             )
+
+        # Validate Description has 255 characters
+        self.options["record_type_description"] = (
+            str(self.options.get("record_type_description") or "")
+        )[:255]
 
         # We don't currently support standard objects
         if self.options["sobject"].endswith("__c"):
@@ -152,6 +162,7 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
                         "record_type_developer_name"
                     ],
                     record_type_label=self.options["record_type_label"],
+                    record_type_description=self.options["record_type_description"],
                     business_process_metadata=business_process_metadata,
                     business_process_link=business_process_link,
                 )

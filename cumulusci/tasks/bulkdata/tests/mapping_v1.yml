@@ -24,3 +24,4 @@ Insert Contacts:
             table: households
             join_field: household_id
             value_field: sf_id
+    anchor_date: 1990-07-01

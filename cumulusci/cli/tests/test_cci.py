@@ -11,6 +11,7 @@ import time
 import pytest
 import unittest
 from pathlib import Path
+import contextlib
 
 import click
 from unittest import mock
@@ -287,6 +288,76 @@ class TestCCI(unittest.TestCase):
         tee.assert_called_once()
 
         os.remove("tempfile.log")
+
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_main__CliRuntime_error(self, CliRuntime, get_tempfile_logger, tee):
+        CliRuntime.side_effect = CumulusCIException("something happened")
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
+
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            with pytest.raises(SystemExit):
+                cci.main(["cci", "org", "info"])
+
+        assert "something happened" in stderr.getvalue()
+
+        tempfile = Path("tempfile.log")
+        tempfile.unlink()
+
+    @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("sys.exit")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_handle_org_name(
+        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+    ):
+
+        # get_tempfile_logger doesn't clean up after itself which breaks other tests
+        get_tempfile_logger.return_value = mock.Mock(), ""
+
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default", "xyzzy"])
+        assert "xyzzy is now the default org" in stdout.getvalue(), stdout.getvalue()
+
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default", "--org", "xyzzy2"])
+        assert "xyzzy2 is now the default org" in stdout.getvalue(), stdout.getvalue()
+
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            cci.main(["cci", "org", "default", "xyzzy1", "--org", "xyzzy2"])
+        assert "not both" in stderr.getvalue(), stderr.getvalue()
+
+        CliRuntime().keychain.get_default_org.return_value = ("xyzzy3", None)
+
+        # cci org remove should really need an attached org
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            cci.main(["cci", "org", "remove"])
+        assert (
+            "Please specify ORGNAME or --org ORGNAME" in stderr.getvalue()
+        ), stderr.getvalue()
+
+    @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("sys.exit")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_cci_org_default__no_orgname(
+        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+    ):
+        # get_tempfile_logger doesn't clean up after itself which breaks other tests
+        get_tempfile_logger.return_value = mock.Mock(), ""
+
+        CliRuntime().keychain.get_default_org.return_value = ("xyzzy4", None)
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default"])
+        assert "xyzzy4 is the default org" in stdout.getvalue(), stdout.getvalue()
+
+        CliRuntime().keychain.get_default_org.return_value = (None, None)
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default"])
+        assert "There is no default org" in stdout.getvalue(), stdout.getvalue()
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
@@ -1567,7 +1638,7 @@ Environment Info: Rossian / x68_46
             cci.org_remove, runtime=runtime, org_name="test", global_org=False
         )
 
-        echo.assert_any_call("Deleting scratch org failed with error:")
+        echo.assert_any_call("Removing org regardless.")
 
     def test_org_remove_not_found(self):
         runtime = mock.Mock()
@@ -1671,14 +1742,14 @@ Environment Info: Rossian / x68_46
         with self.assertRaises(click.UsageError):
             run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
 
-    def test_org_scratch_delete_error(self):
+    @mock.patch("click.echo")
+    def test_org_scratch_delete_error(self, echo):
         org_config = mock.Mock()
         org_config.delete_org.side_effect = ScratchOrgException
         runtime = mock.Mock()
         runtime.keychain.get_org.return_value = org_config
-
-        with self.assertRaises(ScratchOrgException):
-            run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
+        run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
+        assert "org remove" in str(echo.mock_calls)
 
     @mock.patch("cumulusci.cli.cci.get_simple_salesforce_connection")
     @mock.patch("code.interact")
