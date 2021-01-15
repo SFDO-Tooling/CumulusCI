@@ -6,7 +6,10 @@ The ``cci`` Command Line
 Basic Operation
 ---------------
 
-    .. note:: If you are new to working with command line interfaces, the `Install Visual Studio Code <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ module covers installing and opening a terminal window in Visual Studio Code.
+.. tip:: 
+    
+    If you are new to working with command line interfaces, the `Install Visual Studio Code <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ 
+    module covers installing and opening a terminal window in Visual Studio Code.
 
 After installing CumulusCI, use the ``cci`` command in your terminal or command prompt to interact with it.
 
@@ -32,9 +35,12 @@ To see all available commands, type ``cci`` in your terminal:
     task     Commands for finding and running tasks for a project
     version  Print the current version of CumulusCI
 
-To get information on a specific command listed above, type ``cci <command>``. 
+Each of the commands listed in the output have even more (sub) commands that exist underneath them.
+This can seem overwhelming at first, but exploring the commands that are available is quite easy.
 
-    For example, if you would like more information on the ``task`` command, type ``cci task``:
+To get information on a specific command listed above, type ``cci <command_name>``. 
+
+For example, if you want to know more about the ``task`` command, type ``cci task``.
 
 .. code-block:: console
 
@@ -52,85 +58,85 @@ To get information on a specific command listed above, type ``cci <command>``.
     list  List available tasks for the current context
     run   Runs a task
 
-There are even more subcommands available under ``cci task``.
-
+This tells us that under the ``cci task`` command there are four more commands available: ``doc``, ``info``, ``list``, and ``run``.
+If we want additional information 
 
 
 Getting ``--help``
 ------------------
 
-If you want help running a task, type ``cci task run --help``. If you're not certain about what a specific command does, use the ``--help`` option to get more information. 
+When working with the ``cci`` CLI you can pass the ``--help`` flag to *any* cci command to get additional info about that command.
+
+For top-level commands (those commands that don't do anything on their own but
+have additional sub-commands underneath them) this output will be the same with or without the ``--help`` flag.
+
+For example, the following commands will produce the same output.
+
+.. code-block::
+
+    $ cci task
+    
+    $ cci task --help
+
+This will output any sub-commands available under this particular top-level command
 
 .. code-block:: console
 
-    $ cci task run --help
-    Usage: cci task run [OPTIONS] TASK_NAME
+    $ cci task --help
+    Usage: cci task [OPTIONS] COMMAND [ARGS]...
 
-    Runs a task
+    Commands for finding and running tasks for a project
 
     Options:
-    --org TEXT      Specify the target org.  By default, runs against the
-                    current default org
+    --help  Show this message and exit.
 
-    -o TEXT...      Pass task specific options for the task as '-o option
-                    value'.  You can specify more than one option by using -o
-                    more than once.
+    Commands:
+    doc   Exports RST format documentation for all tasks
+    info  Displays information for a task
+    list  List available tasks for the current context
+    run   Runs a task
 
-    --debug         Drops into pdb, the Python debugger, on an exception
-    --debug-before  Drops into the Python debugger right before task start.
-    --debug-after   Drops into the Python debugger at task completion.
-    --no-prompt     Disables all prompts.  Set for non-interactive mode use such
-                    as calling from scripts or CI systems
 
-    --help          Show this message and exit.    
 
-This gives us a clear usage statement, description, and a list of all options available for use with the command.
+When the ``--help`` flag is specified for a fully realized command (one that is executable) (TODO: what is correct word here?)
+the output will display:
+
+#. A usage statement for the syntax with which the command can be executed
+#. The list of available options for use with the command 
+
 
 
 
 Working with Tasks and Flows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you're just getting started with CumulusCI, don't worry if you aren't sure which of the many tasks and flows to use. We'll show you specific tasks and flows in later sections of the documentation. 
+CumulusCI comes with *many* standard tasks and flows. If you're just starting out with CumulusCI, and feeling overwhelmed, don't worry.
+We have a `cheat sheet <TODO>`_ for examples of the most commonly used commands as well as reference sections for both `tasks <TODO>`_ and `flows <TODO>`_.
 
 
 Listing Tasks and Flows
 ***********************
 
-``cci`` ships with many standard tasks and flows. There are two commmands for listing them:
+Use the ``cci task list`` and ``cci flow list`` commands to see a list of available tasks and flows respectively.
+
+The tasks and flows listed are specific to the project directory that you're currently in.
+For example, if you have a custom flow defined in your ``cumulusci.yml`` file for Project A, it will only show if you run ``cci flow list`` in Project A's root directory.
+
+Tasks and flows are listed by their ``group`` attribute as specified in the ``cumulusci.yml`` file.
+You can edit the ``group`` attribute of tasks and flows as you see fit!
+Any changes made to ``groups`` are reflected in the output of the ``list`` commands.
+
+Task and Flow Options  
+*********************
+Many tasks (and some flows) have options that need to be specified when executed.
+To see a list of available task options use either of the following commands:
+
+TODO: make ``cci task run --help`` mirror output from ``cci task info``
 
 .. code-block:: console
 
-    $ cci task list
-    $ cci flow list
-
-The tasks and flows listed are specific to the project you're currently in. If you have a custom flow defined in your ``cumulusci.yml`` file for Project A, it only shows if you run ``cci flow list`` in Project A's repository directory.
-
-Tasks and flows are listed by their ``group`` attribute as specified in the ``cumulusci.yml`` file. This means it's easy to edit these groups as you see fit! Any changes made are reflected in the commands.
-
-
-Running Tasks and Flows
-***********************
-When you know the specific task or flow you want to run, execute it with the ``run`` command.
-
-.. code-block:: console
-
-    $ cci task run <name> --org <org> [options]
-    $ cci flow run <name> --org <org> 
-
-This runs the respective task or flow ``<name>`` against the org ``<org>``. (You can see a list of available orgs by running ``cci org list``.)
-
-    Example: The ``run_tests`` task executes Apex unit tests. If you have an org called ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``.
-
-Tasks usually require additional options to be passed when using the ``cci task run`` command.
-
-
-Task Info & Options
-*******************
-
-For additional information on task ``<name>``:
-
-    $ cci task info <name>
+    $ cci task info <task_name>
+    $ cci task run <task_name> --help
 
 Information about specific tasks includes:
 
@@ -139,13 +145,13 @@ Information about specific tasks includes:
 * The syntax for running the command.
 * Any options for the task.
 
-Information about specific task options includes:
+For each option available for a given task we also list:
 
-* The syntax for the option (``-o <name> value``).
+* The syntax for the option (``--name value``).
 * If the option is required or optional.
 * A description of what the option does.
 
-An example of a task's information and options:
+Here's an example where we get information on the ``util_sleep`` method:
 
 .. code-block:: console
 
@@ -167,9 +173,14 @@ An example of a task's information and options:
         The number of seconds to sleep
         Default: 5
 
-For additional information on flow ``<name>``:
+You can use either of the following commands for more informaiton on a specific flow:
 
-    $ cci flow info <name>
+TODO: Make sure these outputs are the same
+
+.. code-block:: console
+
+    $ cci flow info <flow_name>
+    $ cci flow run --help
 
 Information about specific flows includes:
 
@@ -201,6 +212,23 @@ An example of a flow's information and options:
         1) task: deploy_post
         2) task: update_admin_profile
     4) task: snapshot_changes
+
+
+
+Running Tasks and Flows
+***********************
+When you know the specific task or flow you want to run, execute it with the ``run`` command.
+
+.. code-block:: console
+
+    $ cci task run <name> --org <org> [options]
+    $ cci flow run <name> --org <org> [options]
+
+This runs the respective task or flow ``<name>`` against the org ``<org>``. (You can see a list of available orgs by running ``cci org list``.)
+
+Example: The ``run_tests`` task executes Apex unit tests. Assuming there exists an org named ``dev``,
+you can run this task against it with the command ``cci task run run_tests --org dev``.
+
 
 
 
