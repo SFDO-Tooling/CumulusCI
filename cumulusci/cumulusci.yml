@@ -23,6 +23,12 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.picklists.AddPicklistEntries
         options:
             namespace_inject: $project_config.project__package__namespace
+    add_fields_to_field_set:
+        group: Metadata Transformations
+        description: Adds specified fields to a given field set.
+        class_path: cumulusci.tasks.metadata_etl.field_sets.AddFieldsToFieldSet
+        options:
+            namespace_inject: $project_config.project__package__namespace
     add_permission_set_perms:
         group: Metadata Transformations
         description: Adds specified Apex class access and Field-Level Security to a Permission Set.
