@@ -1,6 +1,7 @@
 import os
 import re
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask, Deploy
 from cumulusci.utils import temporary_dir
 
@@ -65,6 +66,10 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
             "description": "The sObject on which to deploy the Record Type and optional Business Process.",
             "required": True,
         },
+        "force_create": {
+            "description": "If true, the Record Type will be created even if a default Record Type already exists on this sObject. Defaults to False.",
+            "required": False,
+        }
     }
     _deploy = Deploy
 
@@ -88,6 +93,8 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
         if self.options["sobject"].endswith("__c"):
             raise TaskOptionsError("EnsureRecordTypes does not support custom objects")
 
+        self.options["force_create"] = process_bool_arg(self.options.get("force_create") or False)
+
     def _infer_requirements(self):
         # If our sObject is Lead, Opportunity, Case, or Solution,
         # we need to generate businessProcess metadata to make the record type deployable.
@@ -103,7 +110,7 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
             rt for rt in describe_results["recordTypeInfos"] if not rt["master"]
         ]
 
-        self.options["generate_record_type"] = len(record_types) == 0
+        self.options["generate_record_type"] = len(record_types) == 0 or self.options["force_create"]
 
         if self.options["generate_record_type"] and sobject in SOBJECT_MAP:
             self.options["generate_business_process"] = True

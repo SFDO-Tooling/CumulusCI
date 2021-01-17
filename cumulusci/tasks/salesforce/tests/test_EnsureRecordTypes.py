@@ -253,6 +253,33 @@ class TestEnsureRecordTypes(unittest.TestCase):
         self.assertFalse(task.options["generate_business_process"])
         self.assertFalse(task.options["generate_record_type"])
 
+    def test_second_rt_if_force_create(self):
+        # Asserts a second Record Type is added even when RTs already exist when force_create is True
+        task = create_task(
+            EnsureRecordTypes,
+            {
+                "record_type_developer_name": "NPSP_Default",
+                "record_type_label": "NPSP Default",
+                "record_type_description": "Default Account Record Type created by NPSP.",
+                "sobject": "Account",
+                "force_create": True,
+            },
+        )
+
+        task.sf = mock.Mock()
+        task.sf.Account = mock.Mock()
+        task.sf.Account.describe = mock.Mock(return_value=OPPORTUNITY_DESCRIBE_WITH_RTS)
+        task._infer_requirements()
+
+        with temporary_dir():
+            task._build_package()
+            with open(os.path.join("objects", "Account.object"), "r") as f:
+                opp_contents = f.read()
+                self.assertMultiLineEqual(ACCOUNT_METADATA, opp_contents)
+            with open(os.path.join("package.xml"), "r") as f:
+                pkg_contents = f.read()
+                self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
+
     def test_executes_deployment(self):
         task = create_task(
             EnsureRecordTypes,
