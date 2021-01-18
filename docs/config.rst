@@ -304,7 +304,7 @@ To skip a flow step, set the desired step number to a task or flow with the valu
                 task: None
 
 .. note::
-    The value of ``task`` must be used when skipping a flow step that is a task. The value of ``flow`` must be used when skipping a flow step that corresponds to a flow.
+    The key of ``task`` must be used when skipping a flow step that is a task. The key of ``flow`` must be used when skipping a flow step that corresponds to a flow.
 
 When CumulusCI detects a task with a value of ``None``, the task is skipped.
 
