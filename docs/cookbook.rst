@@ -561,7 +561,7 @@ more data, you do so like this:
 datasets/some_snowfakery_recipe.yml -o num_records 1000 -o num_records_tablename
 Account —-org dev``
 
-``generator_yaml`` is a reference to your Snowkfakery recipe.
+``generator_yaml`` is a reference to your Snowfakery recipe.
 
 ``num_records_tablename`` says what record type will control how
 many records are created.
