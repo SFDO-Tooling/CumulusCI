@@ -265,6 +265,47 @@ The **Run Task Class** keyword is for use cases where you want to use one of Cum
 
 **Run Task Class** accepts a single argument, the **class_path** like would be entered into cumulusci.yml such as **cumulusci.tasks.salesforce.Deploy**.  Like **Run Task**, you can also optionally pass task options in the format **option_name=value**.
 
+Set Test Elapsed Time
+---------------------
+This **Set Test Elapsed Time** keyword captures a computed rather than measured elapsed time for performance-tests.
+
+For example, if you were performance testing a Salesforce batch process, you might want to store the Salesforce-measured elapsed time of the batch process instead of the time measured in the CCI client process.
+
+The keyword takes a single optional argument which is either a number of seconds or a Robot time string
+(https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats).
+
+Using this keyword will automatically add the tag cci_metric_elapsed_time to the test case.
+
+Performance test times are output in the CCI logs and are captured in MetaCI instead of the
+"total elapsed time" measured by Robot Framework.
+
+Start and End Perf Time
+-----------------------
+As a convenience, there are keywords to handle the common case where you want to start
+a timer and then store the result with **Set Test Elapsed Time**. These are **Start Performance Timer**
+and **Stop Performance Timer**.
+
+Set Test Metric
+---------------
+This keyword captures any metric for performance monitoring.
+
+For example: number of queries, rows processed, CPU usage, etc.
+
+Elapsed Time For Last Record
+----------------------------
+The **Elapsed Time For Last Record** queries Salesforce for a value that
+is Salesforce's recorded log of a job. For example, to query an Apex bulk
+job:
+
+.. code-block:: robot
+
+    ${time_in_seconds} =    Elapsed Time For Last Record
+    ...             obj_name=AsyncApexJob
+    ...             where=ApexClass.Name='BlahBlah'
+    ...             start_field=CreatedDate
+    ...             end_field=CompletedDate
+    ...             order_by=CompletedDate
+
 Full Documentation
 ------------------
 

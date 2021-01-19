@@ -54,8 +54,8 @@ Insert 200 Prospecting Opportunities
         ...  CloseDate=${date}
     ${numobjects}=  Get Length     ${objects}
     FOR     ${index}   IN RANGE   ${numobjects}
-        ${object}=  Set Variable    @{objects}[${index}]
-        ${account}=     Set Variable    @{accounts}[${index}]
+        ${object}=  Set Variable    ${objects}[${index}]
+        ${account}=     Set Variable    ${accounts}[${index}]
         ${account_id}=  Set Variable    ${account}[Id]
         set to dictionary   ${object}   AccountId   ${account_id}
     END
@@ -66,9 +66,12 @@ Insert 200 Prospecting Opportunities
 *** Test Cases ***
 
 Perftest - Insert 200 Contacts
+    Start Performance Timer
     Insert 200 Contacts
+    Stop Performance Timer
 
 Perftest - Insert 200 Contacts With Addresses
+    Start Performance Timer
     @{objects}=  Generate Test Data  Contact  200  
         ...  FirstName={{fake.first_name}}
         ...  LastName={{fake.last_name}}
@@ -78,14 +81,18 @@ Perftest - Insert 200 Contacts With Addresses
         ...  MailingPostalCode=12345
         ...  Email={{fake.email(domain="salesforce.com")}}
     Salesforce Collection Insert  ${objects}
+    Stop Performance Timer
 
 Perftest - Insert 200 Prospecting Opportunities
+    Start Performance Timer
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
     Insert 200 Prospecting Opportunities
+    Stop Performance Timer
 
 Perftest - Change 200 Opportunity States to Closed-Won
+    Start Performance Timer
     [Setup]   Run Keywords
     ...             Insert 200 Contacts
     ...     AND     Create Accounts If Necessary
@@ -95,3 +102,4 @@ Perftest - Change 200 Opportunity States to Closed-Won
         Set To Dictionary   ${record}   StageName   Closed Won
     END
     Salesforce Collection Update    ${OPPORTUNITIES}
+    Stop Performance Timer
