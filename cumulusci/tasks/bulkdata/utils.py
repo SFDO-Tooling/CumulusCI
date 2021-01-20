@@ -140,12 +140,15 @@ def generate_batches(num_records, batch_size):
 
     Given a number of records to split up, and a batch size, generate a
     stream of batchsize, index pairs"""
-    num_batches = (num_records // batch_size) + 1
+    num_batches, left_over = divmod(num_records, batch_size)
+    if left_over:
+        num_batches += 1  # need an extra batch for the clean-up
     for i in range(0, num_batches):
-        if i == num_batches - 1:  # last batch
-            batch_size = num_records - (batch_size * i)  # leftovers
+        is_last_batch = i == num_batches - 1
+        if is_last_batch and left_over:
+            batch_size = left_over
         if batch_size > 0:
-            yield batch_size, i
+            yield batch_size, i, num_batches
 
 
 class RowErrorChecker:

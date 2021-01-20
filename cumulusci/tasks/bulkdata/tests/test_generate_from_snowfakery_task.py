@@ -135,14 +135,31 @@ class TestGenerateFromDataTask(unittest.TestCase):
                 {
                     "options": {
                         "generator_yaml": simple_yaml,
-                        "num_records": 11,
                         "database_url": database_url,
-                        "num_records_tablename": "Account",
                     }
                 },
             )
             task()
-            assert len(self.assertRowsCreated(database_url)) == 11
+            assert len(self.assertRowsCreated(database_url)) == 1, len(
+                self.assertRowsCreated(database_url)
+            )
+
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
+    )
+    def test_simple_generate_and_load_with_numrecords(self, _dataload):
+        task = _make_task(
+            GenerateAndLoadDataFromYaml,
+            {
+                "options": {
+                    "generator_yaml": simple_yaml,
+                    "num_records": 11,
+                    "num_records_tablename": "Account",
+                }
+            },
+        )
+        task()
+        assert len(_dataload.mock_calls) == 1
 
     @mock.patch(
         "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
