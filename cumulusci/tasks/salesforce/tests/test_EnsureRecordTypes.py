@@ -268,14 +268,15 @@ class TestEnsureRecordTypes(unittest.TestCase):
 
         task.sf = mock.Mock()
         task.sf.Account = mock.Mock()
+        # no impact from using opp describe; it's simply representing Record Types as present
         task.sf.Account.describe = mock.Mock(return_value=OPPORTUNITY_DESCRIBE_WITH_RTS)
         task._infer_requirements()
 
         with temporary_dir():
             task._build_package()
             with open(os.path.join("objects", "Account.object"), "r") as f:
-                opp_contents = f.read()
-                self.assertMultiLineEqual(ACCOUNT_METADATA, opp_contents)
+                obj_contents = f.read()
+                self.assertMultiLineEqual(ACCOUNT_METADATA, obj_contents)
             with open(os.path.join("package.xml"), "r") as f:
                 pkg_contents = f.read()
                 self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
