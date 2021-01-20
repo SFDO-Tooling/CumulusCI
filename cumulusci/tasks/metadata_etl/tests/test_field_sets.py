@@ -85,21 +85,19 @@ class TestAddFieldsToFieldSet:
         # Validate that the fields have been added as displayedFields
         tree = metadata_tree.fromstring(OBJECT_XML)
         result = task._transform_entity(tree, "Case")
-        print(result.tostring())
         fields = result.find("fieldSets", fullName="IncidentDetail").findall(
             "displayedFields"
         )
-        print(len(fields))
 
-        test_elem = next(f for f in fields if f.field.text == "IncidentDateTime__c")
-        assert test_elem is not None
-        assert test_elem.isFieldManaged.text == "false"
-        assert test_elem.isRequired.text == "false"
+        test_elems = [f for f in fields if f.field.text == "LocationNotes__c"]
+        assert len(test_elems) == 1
+        assert test_elems[0].isFieldManaged.text == "false"
+        assert test_elems[0].isRequired.text == "false"
 
-        test_elem = next(f for f in fields if f.field.text == "LocationNotes__c")
-        assert test_elem is not None
-        assert test_elem.isFieldManaged.text == "false"
-        assert test_elem.isRequired.text == "false"
+        test_elems = [f for f in fields if f.field.text == "LocationNotes__c"]
+        assert len(test_elems) == 1
+        assert test_elems[0].isFieldManaged.text == "false"
+        assert test_elems[0].isRequired.text == "false"
 
         # Validate that the fields were removed from availableFields
         fields = result.find("fieldSets", fullName="IncidentDetail").findall(
@@ -120,7 +118,7 @@ class TestAddFieldsToFieldSet:
             },
         )
 
-        caplog.set_level(logging.WARNING)
+        caplog.set_level(logging.INFO)
 
         # Validate that the duplicate entry is not added
         tree = metadata_tree.fromstring(OBJECT_XML)
@@ -129,10 +127,10 @@ class TestAddFieldsToFieldSet:
             "displayedFields"
         )
 
-        test_elem = list(f for f in fields if f.field.text == "ContactId")
-        assert len(test_elem) == 1
+        test_elems = [f for f in fields if f.field.text == "ContactId"]
+        assert len(test_elems) == 1
 
-        # Validate that a warning was logged
+        # Validate that info was logged
         assert "ContactId" in caplog.text
 
     def test_init_options__no_fields(self):

@@ -3,9 +3,6 @@ from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 
-from logging import getLogger
-
-logger = getLogger(__name__)
 
 class AddFieldsToFieldSet(MetadataSingleEntityTransformTask):
     entity = "CustomObject"
@@ -51,7 +48,6 @@ class AddFieldsToFieldSet(MetadataSingleEntityTransformTask):
         for field_name in self.fields:
             self._add_field(field_set, field_name)
 
-        print(metadata.tostring)
         return metadata
 
     def _add_field(self, field_set: MetadataElement, field_name: str):
@@ -64,7 +60,7 @@ class AddFieldsToFieldSet(MetadataSingleEntityTransformTask):
         # check if it's already in displayedFields
         displayed_field = field_set.find("displayedFields", field=field_name)
         if displayed_field:
-            logger.warning(
+            self.logger.info(
                 f"The field {field_name} is already in field set {self.field_set_name}."
             )
         else:
