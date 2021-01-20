@@ -30,6 +30,7 @@ class DeployOrgSettings(Deploy):
 
     task_options = {
         "definition_file": {"description": "sfdx scratch org definition file"},
+        "settings": {"description": "A dict of settings to apply"},
         "api_version": {"description": "API version used to deploy the settings"},
     }
 
@@ -42,10 +43,16 @@ class DeployOrgSettings(Deploy):
         self.options["namespaced_org"] = False
 
     def _run_task(self):
-        with open(self.options["definition_file"], "r") as f:
-            scratch_org_definition = json.load(f)
+        settings = {}
 
-        settings = scratch_org_definition.get("settings", {})
+        if self.options.get("definition_file"):
+            with open(self.options["definition_file"], "r") as f:
+                scratch_org_definition = json.load(f)
+                settings.update(scratch_org_definition.get("settings", {}))
+
+        if self.options.get("settings"):
+            settings.update(self.options["settings"])
+
         if not settings:
             return
 

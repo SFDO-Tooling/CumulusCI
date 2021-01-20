@@ -325,7 +325,7 @@ tasks:
         class_path: cumulusci.tasks.metadeploy.Publish
         group: Release Operations
     org_settings:
-        description: Apply org settings from a scratch org definition file
+        description: Apply org settings from a scratch org definition file or dict
         class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
         group: Salesforce DX
     publish_community:

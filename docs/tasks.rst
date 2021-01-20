@@ -1880,12 +1880,12 @@ Options
 ``--num_records NUMRECORDS``
 	 *Optional*
 
-	 How many records to generate: total number of opportunities.
+	 Target number of records. You will get at least this many records, but may get more. The recipe will always execute to completion, so if it creates 3 records per execution and you ask for 5, you will get 6.
 
 ``--num_records_tablename NUMRECORDSTABLENAME``
 	 *Optional*
 
-	 A string representing which table to count records in.
+	 A string representing which table determines when the recipe execution is done.
 
 ``--batch_size BATCHSIZE``
 	 *Optional*
@@ -2704,7 +2704,7 @@ Options
 **org_settings**
 ==========================================
 
-**Description:** Apply org settings from a scratch org definition file
+**Description:** Apply org settings from a scratch org definition file or dict
 
 **Class:** cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
 
@@ -2722,6 +2722,11 @@ Options
 	 *Optional*
 
 	 sfdx scratch org definition file
+
+``--settings SETTINGS``
+	 *Optional*
+
+	 A dict of settings to apply
 
 ``--api_version APIVERSION``
 	 *Optional*
@@ -3541,7 +3546,7 @@ Options
 ``--options OPTIONS``
 	 *Optional*
 
-	 A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml.
+	 A dictionary of options to robot.run method. In simple cases this can be specified on the comand line using name:value,name:value syntax. More complex cases can be specified in cumulusci.yml using YAML dictionary syntax.
 
 ``--name NAME``
 	 *Optional*
