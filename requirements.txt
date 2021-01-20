@@ -20,7 +20,7 @@ pydantic==1.7.3
 PyJWT==2.0.0
 python-dateutil==2.8.1
 pytz==2020.5
-PyYAML==5.3.1
+PyYAML==5.4
 raven==6.10.0
 requests==2.25.1
 robotframework==3.2.2
