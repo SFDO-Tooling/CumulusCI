@@ -3,6 +3,9 @@ from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 class AddFieldsToFieldSet(MetadataSingleEntityTransformTask):
     entity = "CustomObject"
@@ -61,12 +64,11 @@ class AddFieldsToFieldSet(MetadataSingleEntityTransformTask):
         # check if it's already in displayedFields
         displayed_field = field_set.find("displayedFields", field=field_name)
         if displayed_field:
-            raise TaskOptionsError(
+            logger.warning(
                 f"The field {field_name} is already in field set {self.field_set_name}."
             )
-
-        print(field_set.find("label"))
-        new_field = field_set.append("displayedFields")
-        new_field.append("field", text=field_name)
-        new_field.append("isFieldManaged", text="false")
-        new_field.append("isRequired", text="false")
+        else:
+            new_field = field_set.append("displayedFields")
+            new_field.append("field", text=field_name)
+            new_field.append("isFieldManaged", text="false")
+            new_field.append("isRequired", text="false")
