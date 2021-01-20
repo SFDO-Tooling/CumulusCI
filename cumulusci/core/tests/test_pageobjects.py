@@ -87,8 +87,15 @@ class TestPageObjects(unittest.TestCase):
     def test_PageObject(self, get_context_mock, get_library_instance_mock):
         """Smoke test to make sure the default registry is set up and keywords exist"""
         po = PageObjects()
-        self.assertEqual(po.get_keyword_names(), CORE_KEYWORDS)
-        self.assertEqual(po.registry, BASE_REGISTRY)
+        assert po.get_keyword_names() == CORE_KEYWORDS, (
+            po.get_keyword_names(),
+            CORE_KEYWORDS,
+        )
+        assert len(po.registry) == len(BASE_REGISTRY), (
+            len(po.registry),
+            len(BASE_REGISTRY),
+        )
+        assert po.registry == BASE_REGISTRY, (po.registry, BASE_REGISTRY)
 
     def test_file_in_pythonpath(self, get_context_mock, get_library_instance_mock):
         """Verify we can find a page object via PYTHONPATH"""
