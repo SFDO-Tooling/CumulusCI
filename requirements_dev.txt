@@ -9,7 +9,7 @@ pytest==6.2.1
 pytest-vcr==1.0.2
 responses==0.12.1
 Sphinx==3.4.1
-testfixtures==6.17.0
+testfixtures==6.17.1
 tox==3.20.1
 twine==3.3.0
 typeguard==2.10.0
