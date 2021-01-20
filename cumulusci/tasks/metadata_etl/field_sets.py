@@ -15,7 +15,7 @@ class AddFieldsToFieldSet(MetadataSingleEntityTransformTask):
             "required": True,
         },
         "fields": {
-            "description": "Array of field api names to add to the field set. "
+            "description": "Array of field API names to add to the field set. "
             "Can include related fields using AccountId.Name or Lookup__r.CustomField__c style syntax.",
             "required": True,
         },
