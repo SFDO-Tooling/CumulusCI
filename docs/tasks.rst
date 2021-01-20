@@ -1729,6 +1729,11 @@ Options
 
 	 The Description of the Record Type.  Only uses the first 255 characters.
 
+``--force_create FORCECREATE``
+	 *Optional*
+
+	 If true, the Record Type will be created even if a default Record Type already exists on this sObject. Defaults to False.
+
 **execute_anon**
 ==========================================
 
@@ -4335,6 +4340,11 @@ Options
 	 *Optional*
 
 	 Which users to install packages for (FULL = all users, NONE = admins only)
+
+``--prefer_2gp_from_release_branch PREFER2GPFROMRELEASEBRANCH``
+	 *Optional*
+
+	 If True and this build is on a release branch (feature/NNN, where NNN is an integer), or a child branch of a release branch, resolve GitHub managed package dependencies to 2GP builds present on a matching release branch on the dependency.
 
 **update_metadata_first_child_text**
 ==========================================
