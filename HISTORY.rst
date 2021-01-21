@@ -29,9 +29,9 @@ Changes:
 
 Issues Closed:
 
- - Fixed an error that could occur while cleaning cache directories.
+- Fixed an error that could occur while cleaning cache directories.
 
- - Fixed potential bugs in the Push Upgrade tasks.
+- Fixed potential bugs in the Push Upgrade tasks.
 
 - CumulusCI displays more user friendly error message when encountering parsing errors in cumulusci.yml. #2311
 
