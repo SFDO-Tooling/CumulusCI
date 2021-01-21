@@ -41,7 +41,7 @@ Issues Closed:
 
  - Fixed an error that could occur while cleaning cache directories.
 
- - Potential bugs in the Push API support have been fixed.
+ - Fixed potential bugs in the Push Upgrade tasks.
 
 
 3.26.0 (2021-01-08)
