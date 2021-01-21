@@ -2,9 +2,50 @@
 History
 =======
 
-3.26.0 (2021-01-08)
+3.27.0 (2021-01-21)
 -------------------
 
+Changes:
+
+- Upgrades including Snowfakery 1.4 with 
+  min, max, round functions. PR #2335
+
+- The ensure_record_types task has a new option, force_create,
+  which will create the Record Type even if other Record Types
+  already exist on the object. PR #2323
+
+- Allow num_records and num_records_tablename
+  to be omitted when using the task 
+  generate_and_load_from_yaml. PR #2322
+
+- CumulusCI displays more user friendly error message 
+  when encountering parsing errors in cumulusci.yml. #2311
+
+- New Robot Keywords for Performance Testing: #2291
+
+    * Set Test Elapsed Time: This keyword captures a computed rather than measured elapsed time for performance-tests.
+
+    * Start Perf Time, End Perf Time: start a timer and then store the result.
+
+    * Set Test Metric: store any test metric, not just elapsed time.
+
+  - CumulusCI now reports how long it took for flows to run. #2249
+
+  - Handle a possible gack while collecting info about installed packages #2299
+
+  - We fixed an issue causing the extract_dataset task to fail in some 
+    circumstances when both an anchor date and Record Types were used. #2300
+
+
+Issues Closed:
+
+ - Fixed an error that could occur while cleaning cache directories.
+
+ - Potential bugs in the Push API support have been fixed.
+
+
+3.26.0 (2021-01-08)
+-------------------
 
 Changes:
 
