@@ -181,6 +181,55 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+**add_fields_to_field_set**
+==========================================
+
+**Description:** Adds specified fields to a given field set.
+
+**Class:** cumulusci.tasks.metadata_etl.field_sets.AddFieldsToFieldSet
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run add_fields_to_field_set``
+
+
+Options
+------------------------------------------
+
+
+``--field_set FIELDSET``
+	 *Required*
+
+	 Name of field set to affect, in Object__c.FieldSetName form.
+
+``--fields FIELDS``
+	 *Required*
+
+	 Array of field API names to add to the field set. Can include related fields using AccountId.Name or Lookup__r.CustomField__c style syntax.
+
+``--api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``--managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``--namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+	 Default: $project_config.project__package__namespace
+
+``--api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **add_permission_set_perms**
 ==========================================
 
