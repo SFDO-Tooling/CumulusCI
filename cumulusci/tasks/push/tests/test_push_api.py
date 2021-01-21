@@ -269,15 +269,37 @@ def test_sf_push_get_package_version_by_id(sf_push_api, metadata_package_version
 def test_sf_push_get_subscribers(sf_push_api):
     query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
+    field_names = [
+        "Id",
+        "MetadataPackageVersionId",
+        "InstalledStatus",
+        "OrgName",
+        "OrgKey",
+        "OrgStatus",
+        "OrgType",
+    ]
     sf_push_api.get_subscribers("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+    sf_push_api.return_query_records.assert_called_with(
+        query, field_names=field_names, sObject="PackageSubscriber"
+    )
 
 
 def test_sf_push_get_subscriber_objs(sf_push_api):
     query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
     sf_push_api.get_subscriber_objs("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+    field_names = [
+        "Id",
+        "MetadataPackageVersionId",
+        "InstalledStatus",
+        "OrgName",
+        "OrgKey",
+        "OrgStatus",
+        "OrgType",
+    ]
+    sf_push_api.return_query_records.assert_called_with(
+        query, field_names=field_names, sObject="PackageSubscriber"
+    )
 
 
 def test_sf_push_get_subscribers_by_org_key(sf_push_api, package_subscriber):
@@ -293,14 +315,20 @@ def test_sf_push_get_push_requests(sf_push_api):
     query = "SELECT Id, PackageVersionId, ScheduledStartTime, Status FROM PackagePushRequest WHERE Name='foo' ORDER BY ScheduledStartTime DESC"
     sf_push_api.return_query_records = mock.MagicMock()
     sf_push_api.get_push_requests("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+    field_names = ["Id", "PackageVersionId", "ScheduledStartTime", "Status"]
+    sf_push_api.return_query_records.assert_called_with(
+        query, field_names=field_names, sObject="PackagePushRequest"
+    )
 
 
 def test_sf_push_get_push_request_objs(sf_push_api):
     query = "SELECT Id, PackageVersionId, ScheduledStartTime, Status FROM PackagePushRequest WHERE Name='foo' ORDER BY ScheduledStartTime DESC"
     sf_push_api.return_query_records = mock.MagicMock()
     sf_push_api.get_push_request_objs("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+    field_names = ["Id", "PackageVersionId", "ScheduledStartTime", "Status"]
+    sf_push_api.return_query_records.assert_called_with(
+        query, field_names=field_names, sObject="PackagePushRequest"
+    )
 
 
 def test_sf_push_get_push_requests_by_id(sf_push_api, package_push_request):
@@ -316,14 +344,22 @@ def test_sf_push_get_push_jobs(sf_push_api):
     query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
     sf_push_api.get_push_jobs("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+    sObject = "PackagePushJob"
+    field_names = ["Id", "PackagePushRequestId", "SubscriberOrganizationKey", "Status"]
+    sf_push_api.return_query_records.assert_called_with(
+        query, field_names=field_names, sObject=sObject
+    )
 
 
 def test_sf_push_get_push_job_objs(sf_push_api):
-    query = "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob WHERE Name='foo'"
+    sObject = "PackagePushJob"
+    field_names = ["Id", "PackagePushRequestId", "SubscriberOrganizationKey", "Status"]
+    query = f"SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM {sObject} WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
     sf_push_api.get_push_job_objs("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+    sf_push_api.return_query_records.assert_called_with(
+        query, field_names=field_names, sObject=sObject
+    )
 
 
 def test_sf_push_get_push_jobs_by_id(sf_push_api, package_push_job):
@@ -339,7 +375,19 @@ def test_sf_push_get_push_errors(sf_push_api):
     query = "SELECT Id, PackagePushJobId, ErrorSeverity, ErrorType, ErrorTitle, ErrorMessage, ErrorDetails FROM PackagePushError WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
     sf_push_api.get_push_errors("Name='foo'", None)
-    sf_push_api.return_query_records.assert_called_with(query)
+    field_names = [
+        "Id",
+        "PackagePushJobId",
+        "ErrorSeverity",
+        "ErrorType",
+        "ErrorTitle",
+        "ErrorMessage",
+        "ErrorDetails",
+    ]
+    sObject = "PackagePushError"
+    sf_push_api.return_query_records.assert_called_with(
+        query, field_names=field_names, sObject=sObject
+    )
 
 
 def test_sf_push_get_push_error_objs(sf_push_api, package_push_job, package_push_error):
