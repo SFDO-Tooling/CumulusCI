@@ -1929,12 +1929,12 @@ Options
 ``--num_records NUMRECORDS``
 	 *Optional*
 
-	 How many records to generate: total number of opportunities.
+	 Target number of records. You will get at least this many records, but may get more. The recipe will always execute to completion, so if it creates 3 records per execution and you ask for 5, you will get 6.
 
 ``--num_records_tablename NUMRECORDSTABLENAME``
 	 *Optional*
 
-	 A string representing which table to count records in.
+	 A string representing which table determines when the recipe execution is done.
 
 ``--batch_size BATCHSIZE``
 	 *Optional*
@@ -2753,7 +2753,7 @@ Options
 **org_settings**
 ==========================================
 
-**Description:** Apply org settings from a scratch org definition file
+**Description:** Apply org settings from a scratch org definition file or dict
 
 **Class:** cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
 
@@ -2771,6 +2771,11 @@ Options
 	 *Optional*
 
 	 sfdx scratch org definition file
+
+``--settings SETTINGS``
+	 *Optional*
+
+	 A dict of settings to apply
 
 ``--api_version APIVERSION``
 	 *Optional*
