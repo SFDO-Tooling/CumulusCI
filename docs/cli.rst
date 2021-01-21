@@ -100,20 +100,19 @@ If you're just getting started with CumulusCI, don't worry if you aren't sure wh
 List Tasks and Flows
 ********************
 
-Execute a specific task or flow with the ``run`` command.
+``cci`` ships with many standard tasks and flows.
+``cci`` has two commands for listing available tasks and flows:
 
 .. code-block:: console
 
-    $ cci task run <name> --org <org> [options]
-    $ cci flow run <name> --org <org> 
+    $ cci task list
+    $ cci flow list
 
-This command runs the respective task or flow with the given ``<name>`` against the org ``<org>``. 
-
-.. You can see a list of available orgs by running ``cci org list``.)
-
-The tasks and flows listed are specific to the project directory that you're currently in. For example, if you have a custom flow defined in your ``cumulusci.yml`` file for Project A, it will only show if you run ``cci flow list`` in Project A's root directory.
-
-Tasks usually require additional options to be passed when using the ``cci task run`` command. Learn about how to find information about task options in `Task Info and Options`_.
+The tasks and flows listed are specific to the project where you run the command.
+If you have a custom flow defined in your ``cumulusci.yml`` file for ProjectA, it will only show if you run ``cci flow list`` in ProjectA's repository directory.
+Tasks and Flows are listed grouped by their ``group`` attribute as specified in the ``cumulusci.yml`` file.
+This means it's easy to edit these groups as you see fit!
+Any changes made will be reflected in these commands.
 
 
 
