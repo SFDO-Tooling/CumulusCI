@@ -7,19 +7,15 @@ History
 
 Changes:
 
-- Upgrades including Snowfakery 1.4 with 
-  min, max, round functions. PR #2335
+- Snowfakery 1.4 which includes min, max, round functions. PR #2335
 
-- The ``ensure_record_types`` task has a new option, ``force_create``,
-  which will create the Record Type even if other Record Types
-  already exist on the object. PR #2323
+- The ``ensure_record_types`` task has a new option, ``force_create``, which will create the Record Type even if other Record Types already exist on the object. (Thanks to @bethbrains) PR #2323
 
-- Allow num_records and num_records_tablename
-  to be omitted when using the task 
-  generate_and_load_from_yaml. PR #2322
+- Allow num_records and num_records_tablename to be omitted when using the task generate_and_load_from_yaml. PR #2322
 
-- CumulusCI displays more user friendly error message 
-  when encountering parsing errors in cumulusci.yml. #2311
+- Added a new Metadata ETL task, add_fields_to_field_set which allows adding fields to existing field sets. (Thanks to @bethbrains) PR #2334
+
+- org_settings now accepts a dict option called settings in addition to (or instead of) the existing definition_file option. (Thanks to @bethbrains) PR #2337
 
 - New Robot Keywords for Performance Testing: #2291
 
@@ -29,19 +25,19 @@ Changes:
 
     * Set Test Metric: store any test metric, not just elapsed time.
 
-  - CumulusCI now reports how long it took for flows to run. #2249
-
-  - Handle a possible gack while collecting info about installed packages #2299
-
-  - We fixed an issue causing the extract_dataset task to fail in some 
-    circumstances when both an anchor date and Record Types were used. #2300
-
+- CumulusCI now reports how long it took for flows to run. #2249
 
 Issues Closed:
 
  - Fixed an error that could occur while cleaning cache directories.
 
  - Fixed potential bugs in the Push Upgrade tasks.
+
+- CumulusCI displays more user friendly error message when encountering parsing errors in cumulusci.yml. #2311
+
+- We fixed an issue causing the extract_dataset task to fail in some circumstances when both an anchor date and Record Types were used. #2300
+
+- Handle a possible gack while collecting info about installed packages #2299
 
 
 3.26.0 (2021-01-08)
