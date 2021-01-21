@@ -5,6 +5,7 @@ import textwrap
 
 from cumulusci.tasks.salesforce import Deploy
 from cumulusci.utils import temporary_dir
+from cumulusci.core.utils import dictmerge
 
 
 SETTINGS_XML = """<?xml version="1.0" encoding="UTF-8"?>
@@ -44,16 +45,15 @@ class DeployOrgSettings(Deploy):
 
     def _run_task(self):
         settings = {}
-
         if self.options.get("definition_file"):
             with open(self.options["definition_file"], "r") as f:
                 scratch_org_definition = json.load(f)
-                settings.update(scratch_org_definition.get("settings", {}))
+                settings = scratch_org_definition.get("settings", {})
 
-        if self.options.get("settings"):
-            settings.update(self.options["settings"])
+        dictmerge(settings, self.options.get("settings", {}))
 
         if not settings:
+            self.logger.info(f"No settings provided to deploy.")
             return
 
         api_version = (
