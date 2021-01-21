@@ -1,6 +1,7 @@
 import os
 from tempfile import TemporaryDirectory
 from pathlib import Path
+from typing import Optional, Union
 
 from sqlalchemy import MetaData, create_engine
 
@@ -94,14 +95,17 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
 
         self.database_url = self.options.get("database_url")
         num_records = self.options.get("num_records")
-        if not num_records:
-            raise TaskOptionsError(
-                "Please specify the number of records to generate with num_records"
-            )
-        self.num_records = int(num_records)
-        self.batch_size = int(self.options.get("batch_size", self.num_records))
-        if self.batch_size <= 0:
-            raise TaskOptionsError("Batch size should be greater than zero")
+
+        self.num_records = int(num_records) if num_records is not None else None
+
+        batch_size = self.options.get("batch_size", self.num_records)
+        if batch_size is not None:
+            self.batch_size = int(batch_size)
+
+            if self.batch_size <= 0:
+                raise TaskOptionsError("Batch size should be greater than zero")
+        else:
+            self.batch_size = None
         class_path = self.options.get("data_generation_task")
         if class_path:
             self.data_generation_task = import_global(class_path)
@@ -128,19 +132,23 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             if working_directory:
                 tempdir = Path(working_directory)
                 tempdir.mkdir(exist_ok=True)
-            for current_batch_size, index in generate_batches(
-                self.num_records, self.batch_size
-            ):
-                self.logger.info(
-                    f"Generating a data batch, batch_size={current_batch_size} "
-                    f"index={index} total_records={self.num_records}"
-                )
+            if self.batch_size:
+                batches = generate_batches(self.num_records, self.batch_size)
+            else:
+                batches = [(None, 0, 1)]
+            for current_batch_size, index, total_batches in batches:
+                if total_batches > 1:
+                    self.logger.info(
+                        f"Generating a data batch, batch_size={current_batch_size} "
+                        f"index={index} total_records={self.num_records}"
+                    )
                 self._generate_batch(
-                    self.database_url,
-                    self.working_directory or tempdir,
-                    self.mapping_file,
-                    current_batch_size,
-                    index,
+                    database_url=self.database_url,
+                    tempdir=self.working_directory or tempdir,
+                    mapping_file=self.mapping_file,
+                    batch_size=current_batch_size,
+                    index=index,
+                    total_batches=total_batches,
                 )
 
     def _datagen(self, subtask_options):
@@ -162,7 +170,16 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         )
         subtask()
 
-    def _generate_batch(self, database_url, tempdir, mapping_file, batch_size, index):
+    def _generate_batch(
+        self,
+        *,
+        database_url: Optional[str],
+        tempdir: Union[Path, str, None],
+        mapping_file: Union[Path, str, None],
+        batch_size: Optional[int],
+        index: int,
+        total_batches: int,
+    ):
         """Generate a batch in database_url or a tempfile if it isn't specified."""
         if not database_url:
             sqlite_path = Path(tempdir) / "generated_data.db"
