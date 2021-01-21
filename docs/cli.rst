@@ -70,7 +70,7 @@ For top-level commands (that don't do anything on their own but have additional 
     $ cci task info <name> --help
      Usage: cci task run [OPTIONS] TASK_NAME
 
-When the ``--help`` flag is specified for a fully realized command (one that is executable) (TODO: what is correct word here?), the output will display:
+When the ``--help`` flag is specified for a command, the output will include:
 
 * A usage statement featuring the syntax that executes the command.
 * A description of the command.
