@@ -6,7 +6,9 @@ The ``cci`` Command Line
 Basic Operation
 ---------------
 
-.. tip:: If you're new to working with command line interfaces, the `Install Visual Studio Code <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ module covers installing and opening a terminal window in Visual Studio Code.
+.. tip:: 
+
+    If you're new to working with command line interfaces, the `Install Visual Studio Code <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ trailhead module covers installing and opening a terminal window in Visual Studio Code.
 
 After installing CumulusCI, use the ``cci`` command in your terminal or command prompt to interact with it.
 
@@ -105,7 +107,9 @@ Execute a specific task or flow with the ``run`` command.
     $ cci task run <name> --org <org> [options]
     $ cci flow run <name> --org <org> 
 
-This command runs the respective task or flow ``<name>`` against the org ``<org>``. (You can see a list of available orgs by running ``cci org list``.)
+This command runs the respective task or flow with the given ``<name>`` against the org ``<org>``. 
+
+.. You can see a list of available orgs by running ``cci org list``.)
 
 The tasks and flows listed are specific to the project directory that you're currently in. For example, if you have a custom flow defined in your ``cumulusci.yml`` file for Project A, it will only show if you run ``cci flow list`` in Project A's root directory.
 
@@ -132,7 +136,7 @@ Information about specific tasks includes:
 
 Each option available for a given task also lists:
 
-* The syntax for the option (``-o <name> value`` or ``--<name> value``).
+* The syntax for the option (``--<name> value``).
 * Whether the option is required or optional.
 * A description of the option.
 
@@ -215,7 +219,12 @@ Execute a specific task or flow with the ``run`` command.
     $ cci task run <name> --org <org> [options]
     $ cci flow run <name> --org <org> [options]
 
-This command runs the respective task or flow ``<name>`` against the org ``<org>``. (You can see a list of available orgs by running ``cci org list``.)
+This command runs the respective task or flow ``<name>`` against the org ``<org>``. 
+
+.. note::
+
+    You can see a list of available orgs by running ``cci org list``.
+..
 
     Example: The ``run_tests`` task executes Apex unit tests. Assuming there exists an org named ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``.
 
