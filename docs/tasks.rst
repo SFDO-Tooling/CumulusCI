@@ -905,6 +905,43 @@ Options
 
 	 If True, the command will use stderr, stdout, and stdin of the main process.Defaults to False.
 
+**composite_request**
+==========================================
+
+**Description:** Execute a series of REST API requests in a single call
+
+**Class:** cumulusci.tasks.salesforce.composite.CompositeApi
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run composite_request``
+
+
+Options
+------------------------------------------
+
+
+``--data_files DATAFILES``
+	 *Required*
+
+	 A list of paths to the json files to POST.
+
+``--managed MANAGED``
+	 *Optional*
+
+	 If True, replaces namespace tokens with the namespace prefix.
+
+``--namespaced NAMESPACED``
+	 *Optional*
+
+	 If True, replaces namespace tokens with the namespace prefix.
+
+``--randomize_username RANDOMIZEUSERNAME``
+	 *Optional*
+
+	 If True, randomize the TLD for any 'Username' fields.
+
 **connected_app**
 ==========================================
 

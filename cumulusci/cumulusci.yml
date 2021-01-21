@@ -109,6 +109,10 @@ tasks:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
         group: Utilities
+    composite_request:
+        description: Execute a series of REST API requests in a single call
+        class_path: cumulusci.tasks.salesforce.composite.CompositeApi
+        group: Salesforce
     connected_app:
         description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
         class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
