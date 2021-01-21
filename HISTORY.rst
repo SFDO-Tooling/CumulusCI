@@ -23,7 +23,7 @@ Changes:
 
 - New Robot Keywords for Performance Testing: #2291
 
-    * Set Test Elapsed Time: This keyword captures a computed rather than measured elapsed time for performance-tests.
+    * Set Test Elapsed Time: This keyword captures a computed rather than measured elapsed time for performance tests.
 
     * Start Perf Time, End Perf Time: start a timer and then store the result.
 
