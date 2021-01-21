@@ -10,7 +10,7 @@ Changes:
 - Upgrades including Snowfakery 1.4 with 
   min, max, round functions. PR #2335
 
-- The ensure_record_types task has a new option, force_create,
+- The ``ensure_record_types`` task has a new option, ``force_create``,
   which will create the Record Type even if other Record Types
   already exist on the object. PR #2323
 
