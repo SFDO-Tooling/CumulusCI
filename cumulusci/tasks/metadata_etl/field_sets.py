@@ -26,7 +26,7 @@ class AddFieldsToFieldSet(MetadataSingleEntityTransformTask):
             [self._inject_namespace(self.options["field_set"].split(".")[0])]
         )
 
-        if "fields" not in self.options:
+        if not self.options.get("fields"):
             raise TaskOptionsError("The 'fields' option is required.")
 
         self.fields = []
