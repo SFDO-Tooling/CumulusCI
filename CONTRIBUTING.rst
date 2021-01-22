@@ -55,28 +55,33 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
 
 1. Fork the CumulusCI repo on GitHub.
 2. Clone your fork to your local workspace.
-3. Create a fresh virtual environment using virtualenv and install development requirements::
+3. Create a fresh Python virtual environment and activate it (to keep this isolated from other Python software on your machine). Here is one way::
+
+    $ python -m venv cci_venv
+    $ source cci_venv/bin/activate
+
+4. Create a fresh virtual environment using virtualenv and install development requirements::
 
     $ pip install -r requirements_dev.txt
 
-4. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
+5. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
 
     $ pre-commit install --install-hooks
 
-5. After making changes, run the tests and make sure they all pass::
+6. After making changes, run the tests and make sure they all pass::
 
     $ pytest
 
-6. Your new code should also have meaningful tests. One way to double check that
+7. Your new code should also have meaningful tests. One way to double check that
    your tests cover everything is to ensure that your new code has test code coverage:
 
    $ make coverage
 
-7. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to main.
+8. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to main.
 
 Note that we enable typeguard with pytest so if you add type declarations to your 
 code, those declarations will be treated as runtime assertions in your python
-tests. MyPy validation is also on our roadmap.
+tests.
 
 Pull Request Guidelines
 -----------------------
