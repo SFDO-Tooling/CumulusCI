@@ -8,11 +8,11 @@ Basic Operation
 
 .. tip:: 
 
-    If you're new to working with command line interfaces, the `Install Visual Studio Code <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ trailhead module covers installing and opening a terminal window in Visual Studio Code.
+    If you're new to working with command line interfaces, the `Install Visual Studio Code <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ Trailhead module covers installing and opening a terminal window in Visual Studio Code.
 
 After installing CumulusCI, use the ``cci`` command in your terminal or command prompt to interact with it.
 
-On macOS, access the terminal via ``Terminal.app``. On Windows, open ``cmd.exe``. On Linux, use your preferred terminal application.
+On any platform, you can use the integrated terminal in Visual Studio Code. Alternately, on macOS, access the terminal via ``Terminal.app``; on Windows, open ``cmd.exe``; or on Linux, use your preferred terminal application.
 
 To see all available commands, type ``cci`` in your terminal.
 
@@ -57,25 +57,54 @@ To retrieve information on a specific command, type ``cci <command>``.
 The ``cci task`` command also has many useful subcommands, such as ``cci task info <name>``.
 
 
+Get Help Running Tasks
+**********************
+If you're not certain about what a specific command does, use the ``--help`` flag to get more information. 
+
+    Example: ``cci task run --help``
+
+.. code-block::
+
+    $ cci task info <name> --help
+     Usage: cci task run [OPTIONS] TASK_NAME
+
+When the ``--help`` flag is specified for a command, the output includes:
+
+* A usage statement featuring the syntax that executes the command.
+* A description of the command.
+* The list of available options for use with the command.
+
+.. code-block:: console
+
+    $ cci task --help
+    Usage: cci task [OPTIONS] COMMAND [ARGS]...
+
+    Options:
+    --help  Show this message and exit.
+
+    Commands:
+    doc   Exports RST format documentation for all tasks
+    info  Displays information for a task
+    list  List available tasks for the current context
+    run   Runs a task
+
+If you're just getting started with CumulusCI and aren't sure which of the many tasks and flows to use, don't worry. We show you specific tasks and flows in later sections of the documentation. 
 
 
 
 List Tasks and Flows
 --------------------
 
-CumulusCI ships with many standard tasks and flows.
-The following two commands will listing the available tasks and flows:
+CumulusCI ships with many standard tasks and flows. The following commands list all available tasks and flows for a project:
 
 .. code-block:: console
 
     $ cci task list
     $ cci flow list
 
-The tasks and flows listed are specific to the project where you run the command.
-If you have a custom flow defined in your ``cumulusci.yml`` file for Project A, it will only show if you run ``cci flow list`` in Project A's root directory.
-Tasks and Flows are listed grouped by their ``group`` attribute as specified in the ``cumulusci.yml`` file.
-This means it's easy to edit these groups as you see fit!
-Any changes made will be reflected in these commands.
+The tasks and flows listed are specific to the project directory that you're currently in. For example, if you have a custom flow defined in your ``cumulusci.yml`` file for Project A, it only shows if you run ``cci flow list`` in Project A's root directory.
+
+Tasks and flows are listed by their ``group`` attribute as specified in the ``cumulusci.yml`` file. It's easy to edit these groups as you see fit! Any changes are reflected in the ``list`` command.
 
 
 
@@ -125,6 +154,8 @@ Each option available for a given task also lists:
         Required
         The number of seconds to sleep
         Default: 5
+
+
 
 Flow Info and Options
 ---------------------
@@ -181,7 +212,7 @@ Execute a specific task or flow with the ``run`` command.
     $ cci task run <name> --org <org> [options]
     $ cci flow run <name> --org <org> [options]
 
-This command runs the respective task or flow ``<name>`` against the org ``<org>``. 
+This command runs the task or flow ``<name>`` against the org ``<org>``. 
 
 .. note::
 
@@ -192,50 +223,10 @@ This command runs the respective task or flow ``<name>`` against the org ``<org>
 
 
 
-Get Help Running Tasks
-**********************
-
-If you're not certain about what a specific command does, use the ``--help`` flag to get more information. 
-
-    Example: ``cci task run --help``
-
-For top-level commands (that don't do anything on their own but have additional subcommands underneath them), this output will be the same with or without the ``--help`` flag.
-
-.. code-block::
-
-    $ cci task info <name> --help
-     Usage: cci task run [OPTIONS] TASK_NAME
-
-When the ``--help`` flag is specified for a command, the output will include:
-
-* A usage statement featuring the syntax that executes the command.
-* A description of the command.
-* The list of available options for use with the command.
-
-.. code-block:: console
-
-    $ cci task --help
-    Usage: cci task [OPTIONS] COMMAND [ARGS]...
-
-    Options:
-    --help  Show this message and exit.
-
-    Commands:
-    doc   Exports RST format documentation for all tasks
-    info  Displays information for a task
-    list  List available tasks for the current context
-    run   Runs a task
-
-
-If you're just getting started with CumulusCI, don't worry if you aren't sure which of the many tasks and flows to use. We show you specific tasks and flows in later sections of the documentation. 
-
-
-
 Troubleshoot Errors
 -------------------
 
 Errors happen! That's why ``cci`` provides tools to extract error details so that they can be reported and triaged.
-
 
 
 Report Error Logs
@@ -243,41 +234,20 @@ Report Error Logs
 
 The ``cci error gist`` command sends the most recent log file to a `GitHub gist <https://docs.github.com/en/github/writing-on-github/creating-gists>`_ so you can quickly and easily share logs with others. For this feature to work you need to make sure that your `GitHub  service is set up with the proper scopes <https://cumu:lusci.readthedocs.io/en/latest/tutorial.html#github-service>`_.
 
-The gist includes the:
+The gist includes:
 
-* Current version of ``cci``
-* Current Python version
-* Path to the Python executable
+* The current version of ``cci``
+* The current Python version
+* The path to the Python executable
 * ``sysname`` of the host (such as Darwin)
-* Machine name of the host (such as x86_64)
-* Most recent log file (cci.log) that CumulusCI has created.
+* The machine name of the host (such as x86_64)
+* The most recent log file (cci.log) that CumulusCI has created.
 
 The URL for the gist is displayed in the terminal as output, and a web browser automatically opens a tab to the gist.
 
 
-
-View Stack Traces
-*****************
-
-If you encounter an error and want more information on what caused it, the ``cci error info`` command displays the  stack trace (if present) from the last command executed in CumulusCI. 
-
-.. note:: The stack trace displayed is a *Python* stacktrace. This is helpful for locating where CumulusCI encountered an error in the source code.
-
-
-
-See Stack Traces Automatically
-******************************
-
-If you'd like to investigate bugs in CumulusCI, set the config option ``show_stacktraces`` to ``True`` under the ``cli`` section of ``~/.cumulusci/cumulusci.yml``. It turns off suppression of stack traces.
-
-Usage errors (such as incorrect command line arguments, missing files, and so on) don't show exception tracebacks because they are seldom helpful in that case.
-
-For help with troubleshooting errors or stack traces, reach out to the CumulusCI team on the `CumulusCI Trailblazer Community Group <https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z>`_.
-
-
-
 The ``--debug`` Flag
-**********************
+********************
 
 All CumulusCI commands can be passed the ``--debug`` flag, so that:
 
@@ -288,11 +258,10 @@ All CumulusCI commands can be passed the ``--debug`` flag, so that:
 .. note:: To exit a debugging session, type the command ``quit`` or ``exit``.
 
 
-
 Log Files
 *********
 
-CumulusCI creates a log file every time a cci command runs. There are six rotating log files (``cci.log, cci.log1...5``) with ``cci.log`` being the most recent. Log files are stored under ``~/.cumulusci/logs`` for Mac and Linux users, and ``C:\Users\yourusername\.cumulusci\logs`` for Windows users.
+CumulusCI creates a log file every time a cci command runs. There are six rotating log files (``cci.log, cci.log1...5``) with ``cci.log`` being the most recent. Log files are stored under ``~/.cumulusci/logs`` for Mac and Linux users, and ``C:\Users\<Your User>\.cumulusci\logs`` for Windows users.
 
 By default, log files document:
 
@@ -307,3 +276,20 @@ If you want debug information regarding HTTP calls made during execution, you mu
     $ cci task run <name> --org <org> --debug
     $ cci flow run <name> --org <org> --debug
 
+
+View Stack Traces
+*****************
+
+If you encounter an error and want more information on what caused it, the ``cci error info`` command displays the  stack trace (if present) from the last command executed in CumulusCI. 
+
+.. note:: The stack trace displayed is a *Python* stacktrace. This is helpful for locating where CumulusCI encountered an error in the source code.
+
+
+See Stack Traces Automatically
+******************************
+
+If you'd like to investigate bugs in CumulusCI, set the config option ``show_stacktraces`` to ``True`` under the ``cli`` section of ``~/.cumulusci/cumulusci.yml``. It turns off suppression of stack traces.
+
+Usage errors (such as incorrect command line arguments, missing files, and so on) don't show exception tracebacks because they are seldom helpful in that case.
+
+For help with troubleshooting errors or stack traces, reach out to the CumulusCI team on the `CumulusCI Trailblazer Community Group <https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z>`_.
