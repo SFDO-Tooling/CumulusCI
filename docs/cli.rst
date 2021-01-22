@@ -59,6 +59,7 @@ The ``cci task`` command also has many useful subcommands, such as ``cci task in
 
 Get Help Running Tasks
 **********************
+
 If you're not certain about what a specific command does, use the ``--help`` flag to get more information. 
 
     Example: ``cci task run --help``
