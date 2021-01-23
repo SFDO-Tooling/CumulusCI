@@ -55,9 +55,9 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
 
 1. Fork the CumulusCI repo on GitHub.
 2. Clone your fork to your local workspace.
-3. Create a fresh Python virtual environment and activate it (to keep this isolated from other Python software on your machine). Here is one way::
+3. Create a fresh Python 3 virtual environment and activate it (to keep this isolated from other Python software on your machine). Here is one way::
 
-    $ python -m venv cci_venv
+    $ python3 -m venv cci_venv
     $ source cci_venv/bin/activate
 
 4. Create a fresh virtual environment using virtualenv and install development requirements::
