@@ -45,7 +45,7 @@ Example Task Definition
 
     task_options = {
         "data_files": {
-            "description": "A list of paths to the json files to POST.",
+            "description": "A list of paths, where each path is a JSON file containing a composite request body.",
             "required": True,
         },
         "managed": {

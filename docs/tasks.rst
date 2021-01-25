@@ -951,7 +951,7 @@ Options
 ``--data_files DATAFILES``
 	 *Required*
 
-	 A list of paths to the json files to POST.
+	 A list of paths, where each path is a JSON file containing a composite request body.
 
 ``--managed MANAGED``
 	 *Optional*
