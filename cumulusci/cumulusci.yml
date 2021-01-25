@@ -112,7 +112,7 @@ tasks:
     composite_request:
         description: Execute a series of REST API requests in a single call
         class_path: cumulusci.tasks.salesforce.composite.CompositeApi
-        group: Salesforce
+        group: Data Operations
     connected_app:
         description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
         class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
@@ -128,7 +128,7 @@ tasks:
     insert_record:
         description: Inserts a record of any sObject using the REST API
         class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
-        group: Salesforce
+        group: Data Operations
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
