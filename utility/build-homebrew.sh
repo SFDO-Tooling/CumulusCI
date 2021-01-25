@@ -1,5 +1,5 @@
 #!/bin/sh
-
+set -e
 OUT_FILE="$1" || exit 1
 
 ENV_DIR="$(mktemp -d)" || exit 1
