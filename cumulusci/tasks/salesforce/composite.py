@@ -69,7 +69,7 @@ Example Task Definition
 
     def _composite_request(self, data_file_path):
         request_body = self._process_json(Path(data_file_path).read_text())
-        self.is_all_or_none = json.loads(request_body)["allOrNone"]
+        self.is_all_or_none = json.loads(request_body).get("allOrNone", False)
         client = self._init_api()
         result = client.restful("composite", method="POST", data=request_body)
         self._process_response(result)
