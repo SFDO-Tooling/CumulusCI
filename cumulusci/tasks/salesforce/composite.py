@@ -114,15 +114,15 @@ Example Task Definition
 
         all_success = all([self._http_ok(code) for code in status_codes])
         if self.is_all_or_none and not all_success:
-            self._format_exception_message(subrequests)
+            self._log_exception_message(subrequests)
             raise SalesforceException(json.dumps(subrequests, indent=2))
         else:
-            self._format_success_message(subrequests)
+            self._log_success_message(subrequests)
 
     def _http_ok(self, status_code):
         return status_code >= 200 and status_code < 300
 
-    def _format_exception_message(self, subrequests):
+    def _log_exception_message(self, subrequests):
         table_data = [["ReferenceId", "Message"]]
         table_data.extend(
             [sub["referenceId"], body["message"]]
@@ -132,13 +132,13 @@ Example Task Definition
         )
         table = CliTable(table_data, wrap_cols=["Message"])
         self.logger.error("The request failed with the following message(s):\n\n")
-        table.echo()
+        self.logger.error("\n" + str(table))
 
-    def _format_success_message(self, subrequests):
+    def _log_success_message(self, subrequests):
         table_data = [["ReferenceId", "Success"]]
         table_data.extend(
             [sub["referenceId"], self._http_ok(sub["httpStatusCode"])]
             for sub in subrequests
         )
         table = CliTable(table_data, bool_cols=["Success"], title="Subrequest Results")
-        table.echo()
+        self.logger.info("\n" + str(table))
