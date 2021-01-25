@@ -8,7 +8,6 @@ Contents
    concepts
    get_started
    cli
-   config
    scratch_orgs
    connected_orgs
    dev
@@ -19,7 +18,7 @@ Contents
    unlocked_package
    unpackaged
    implementation
-   customize
+   config
    internals
    cookbook
    reference
