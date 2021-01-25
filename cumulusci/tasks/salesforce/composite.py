@@ -6,7 +6,7 @@ from pathlib import Path
 
 from cumulusci.cli.ui import CliTable
 from cumulusci.core.exceptions import SalesforceException
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import inject_namespace
 
@@ -62,8 +62,12 @@ Example Task Definition
         },
     }
 
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.data_files = process_list_arg(self.options["data_files"])
+
     def _run_task(self):
-        for data_file_path in self.options["data_files"]:
+        for data_file_path in self.data_files:
             self.logger.info(f"Processing {data_file_path}")
             self._composite_request(data_file_path)
 
