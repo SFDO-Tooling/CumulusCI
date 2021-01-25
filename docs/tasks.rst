@@ -912,6 +912,32 @@ Options
 
 **Class:** cumulusci.tasks.salesforce.composite.CompositeApi
 
+This task is a wrapper for Composite REST API calls. Given a list of JSON files
+(one request body per file), POST each and process the returned composite
+result. Files are processed in the order given by the ``data_files`` option.
+
+In addition, this task will process the request body and replace namespace
+(``%%%NAMESPACE%%%``) and user ID (``%%%USERID%%%``) tokens. To avoid username
+collisions, use the ``randomize_username`` option to replace the top-level
+domains in any ``Username`` field with a random string.
+
+When the top-level ``allOrNone`` property for the request is set to true a
+SalesforceException is raised if an error is returned for any subrequest,
+otherwise partial successes will not raise an exception.
+
+Example Task Definition
+-----------------------
+
+.. code-block::  yaml
+
+  tasks:
+      example_composite_request:
+          class_path: cumulusci.tasks.salesforce.composite.CompositeApi
+          options:
+             data_files:
+                 - "datasets/composite/users.json"
+                 - "datasets/composite/setup_objects.json"
+
 Command Syntax
 ------------------------------------------
 
