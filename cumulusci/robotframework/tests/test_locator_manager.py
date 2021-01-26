@@ -84,7 +84,7 @@ class TestTranslateLocator(unittest.TestCase):
         the first part of the locator key that wasn't found.
         """
         expected_error = "locator test:foo.not not found"
-        with pytest.raises(KeyError, match=expected_error):
+        with pytest.raises(Exception, match=expected_error):
             translate_locator("test", "foo.not.valid")
 
 
