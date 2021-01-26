@@ -94,13 +94,18 @@ def locate_element(prefix, parent, locator, tag, constraints):
     # practice it probably won't matter <shrug>.
     selenium = BuiltIn().get_library_instance("SeleniumLibrary")
     loc = translate_locator(prefix, locator)
-    BuiltIn().log(f"locate_element: '{prefix}:{locator}' => {loc}", "DEBUG")
+    BuiltIn().log(f"locator: '{prefix}:{locator}' => '{loc}'")
+
     try:
         element = selenium.get_webelement(loc)
-    except Exception:
-        raise Exception(
-            f"Element with locator '{prefix}:{locator}' not found\ntranslated: '{loc}'"
-        )
+    except Exception as e:
+        # the SeleniumLibrary documentation doesn't say, but I'm
+        # pretty sure we should return None rather than throwing an error
+        # in this case. If we throw an error, that prevents the custom
+        # locators from being used negatively (eg: Page should not
+        # contain element  custom:whatever).
+        BuiltIn().log(f"caught exception in locate_element: {e}", "DEBUG")
+        return None
     return element
 
 

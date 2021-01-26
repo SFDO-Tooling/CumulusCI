@@ -1,6 +1,7 @@
 *** Settings ***
 
 Resource        cumulusci/robotframework/Salesforce.robot
+Library         cumulusci/robotframework/tests/salesforce/TestListener.py
 Library         TestLibraryA.py
 Library         TestLibraryB.py
 Library         Dialogs
@@ -44,16 +45,25 @@ Keyword library locators
     Wait until page contains element  A:breadcrumb: Home
     Wait until page contains element  B:appname:Setup
 
-Show translated locator on error
+Show translated locator in the log
     [Documentation]
-    ...  Verify the translated locator appears in the error message
+    ...  Verify the translated locator appears in the log
 
-    [Setup]     Register keyword to run on failure  NONE
-    [Teardown]  Register keyword to run on failure  Capture page screenshot
+    Page should not contain element  A:something
+    assert robot log                 locator: 'A:something' => '//whatever'
 
-    ${expected error}=  Catenate  SEPARATOR=${\n}
-    ...  Element with locator 'B:appname:Sorry Charlie' not found
-    ...  translated: '//div[contains(@class, 'appName') and .='Sorry Charlie']'
+Page should not contain custom locator
+    [Documentation]
+    ...  Verify that a custom locator can be used in a context where
+    ...  the locator doesn't exist.
+    ...
+    ...  It used to be that the locator manager would itself throw
+    ...  an error if it couldn't find a locator. Now, it returns None
+    ...  so that the keyword can be responsible for deciding if an
+    ...  error should be thrown or not
 
-    Run keyword and expect error  EQUALS:${expected error}
-    ...  Page should contain element  B:appname:Sorry Charlie
+    # we know this locator doesn't exist, but the keyword should
+    # pass. Prior to the fix when this test was introduced, this would
+    # give an error
+
+    Page should not contain element  B:appname:Sorry Charlie
