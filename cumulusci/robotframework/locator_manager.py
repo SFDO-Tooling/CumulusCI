@@ -1,6 +1,7 @@
 from robot.libraries.BuiltIn import BuiltIn
 import functools
 from cumulusci.core.utils import dictmerge
+from robot.api import logger
 
 """
 This module supports managing multiple location strategies. It
@@ -48,10 +49,10 @@ def register_locators(prefix, locators):
     If the prefix is already known, merge in the new locators.
     """
     if prefix in LOCATORS:
-        BuiltIn().log(f"merging keywords for prefix {prefix}", "DEBUG")
+        logger.debug(f"merging keywords for prefix {prefix}")
         dictmerge(LOCATORS[prefix], locators)
     else:
-        BuiltIn().log(f"registering keywords for prefix {prefix}", "DEBUG")
+        logger.debug(f"registering keywords for prefix {prefix}")
         LOCATORS[prefix] = locators
 
 
@@ -64,7 +65,7 @@ def add_location_strategies():
     selenium = BuiltIn().get_library_instance("SeleniumLibrary")
     for (prefix, strategy) in LOCATORS.items():
         try:
-            BuiltIn().log(f"adding location strategy for '{prefix}'", "DEBUG")
+            logger.debug(f"adding location strategy for '{prefix}'")
             if isinstance(strategy, dict):
                 selenium.add_location_strategy(
                     prefix, functools.partial(locate_element, prefix)
@@ -74,7 +75,7 @@ def add_location_strategies():
                 # so that this function can register normal keywords
                 selenium.add_location_strategy(prefix, strategy)
         except Exception as e:
-            BuiltIn().log(f"unable to register locators: {e}", "DEBUG")
+            logger.debug(f"unable to register locators: {e}")
 
 
 def locate_element(prefix, parent, locator, tag, constraints):
@@ -94,7 +95,7 @@ def locate_element(prefix, parent, locator, tag, constraints):
     # practice it probably won't matter <shrug>.
     selenium = BuiltIn().get_library_instance("SeleniumLibrary")
     loc = translate_locator(prefix, locator)
-    BuiltIn().log(f"locator: '{prefix}:{locator}' => '{loc}'")
+    logger.info(f"locator: '{prefix}:{locator}' => '{loc}'")
 
     try:
         element = selenium.get_webelement(loc)
@@ -104,7 +105,7 @@ def locate_element(prefix, parent, locator, tag, constraints):
         # in this case. If we throw an error, that prevents the custom
         # locators from being used negatively (eg: Page should not
         # contain element  custom:whatever).
-        BuiltIn().log(f"caught exception in locate_element: {e}", "DEBUG")
+        logger.debug(f"caught exception in locate_element: {e}")
         return None
     return element
 
