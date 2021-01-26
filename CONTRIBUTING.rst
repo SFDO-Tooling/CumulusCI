@@ -60,7 +60,7 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
     $ python3 -m venv cci_venv
     $ source cci_venv/bin/activate
 
-4. Create a fresh virtual environment using virtualenv and install development requirements::
+4. Install the development requirements::
 
     $ pip install -r requirements_dev.txt
 
