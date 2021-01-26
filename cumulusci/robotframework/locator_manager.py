@@ -130,11 +130,18 @@ def translate_locator(prefix, locator):
     try:
         for key in path.split("."):
             breadcrumbs.append(key)
+            # this assumes that loc is a dictionary rather than a
+            # string. If we've hit the leaf node of the locator and
+            # there are still more keys, this will fail with a TypeError
             loc = loc[key.strip()]
 
-    except KeyError:
+    except (KeyError, TypeError):
+        # TypeError: if the user passes in foo.bar.baz, but foo or foo.bar
+        # resolves to a string rather than a nested dict.
+        # KeyError if user passes in foo.bar and either 'foo' or 'bar' isn't
+        # a valid key for a nested dictionary
         breadcrumb_path = ".".join(breadcrumbs)
-        raise KeyError(f"locator {prefix}:{breadcrumb_path} not found")
+        raise Exception(f"locator {prefix}:{breadcrumb_path} not found")
 
     if not isinstance(loc, str):
         raise TypeError(f"Expected locator to be of type string, but was {type(loc)}")

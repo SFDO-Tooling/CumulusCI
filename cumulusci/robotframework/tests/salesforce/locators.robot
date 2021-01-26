@@ -45,6 +45,28 @@ Keyword library locators
     Wait until page contains element  A:breadcrumb: Home
     Wait until page contains element  B:appname:Setup
 
+Invalid locator
+    [Documentation]
+    ...  Verify we give a reasonable error message if the locator
+    ...  isn't found
+
+    # Note: a:breadcrumb is valid, but it doesn't have a child
+    # locator named 'bogus'
+    Run keyword and expect error
+    ...  locator A:breadcrumb.bogus not found
+    ...  Page should not contain element  a:breadcrumb.bogus
+
+Not enough arguments in locator
+    [Documentation]
+    ...  Verify that we give a reasonable error message if a locator
+    ...  requires more arguments than it gets
+
+    # Note: a:breadcrumb requires an argument
+    Run keyword and expect error
+    ...  Not enough arguments were supplied
+    ...  Page should not contain element  a:breadcrumb
+
+
 Show translated locator in the log
     [Documentation]
     ...  Verify the translated locator appears in the log
