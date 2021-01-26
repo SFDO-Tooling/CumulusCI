@@ -64,7 +64,7 @@ Example Task Definition
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.data_files = process_list_arg(self.options["data_files"])
+        self.data_files = process_list_arg(self.options.get("data_files") or [])
 
     def _run_task(self):
         for data_file_path in self.data_files:
