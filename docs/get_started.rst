@@ -1,10 +1,6 @@
 Get Started
 ===========
 
-.. contents::
-    :depth: 2
-    :local:
-
 
 
 Install CumulusCI
