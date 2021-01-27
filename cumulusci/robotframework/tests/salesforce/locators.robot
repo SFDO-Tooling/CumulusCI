@@ -1,6 +1,7 @@
 *** Settings ***
 
 Resource        cumulusci/robotframework/Salesforce.robot
+Library         cumulusci/robotframework/tests/salesforce/TestListener.py
 Library         TestLibraryA.py
 Library         TestLibraryB.py
 Library         Dialogs
@@ -44,16 +45,47 @@ Keyword library locators
     Wait until page contains element  A:breadcrumb: Home
     Wait until page contains element  B:appname:Setup
 
-Show translated locator on error
+Invalid locator
     [Documentation]
-    ...  Verify the translated locator appears in the error message
+    ...  Verify we give a reasonable error message if the locator
+    ...  isn't found
 
-    [Setup]     Register keyword to run on failure  NONE
-    [Teardown]  Register keyword to run on failure  Capture page screenshot
+    # Note: a:breadcrumb is valid, but it doesn't have a child
+    # locator named 'bogus'
+    Run keyword and expect error
+    ...  locator A:breadcrumb.bogus not found
+    ...  Page should not contain element  a:breadcrumb.bogus
 
-    ${expected error}=  Catenate  SEPARATOR=${\n}
-    ...  Element with locator 'B:appname:Sorry Charlie' not found
-    ...  translated: '//div[contains(@class, 'appName') and .='Sorry Charlie']'
+Not enough arguments in locator
+    [Documentation]
+    ...  Verify that we give a reasonable error message if a locator
+    ...  requires more arguments than it gets
 
-    Run keyword and expect error  EQUALS:${expected error}
-    ...  Page should contain element  B:appname:Sorry Charlie
+    # Note: a:breadcrumb requires an argument
+    Run keyword and expect error
+    ...  Not enough arguments were supplied
+    ...  Page should not contain element  a:breadcrumb
+
+
+Show translated locator in the log
+    [Documentation]
+    ...  Verify the translated locator appears in the log
+
+    Page should not contain element  A:something
+    assert robot log                 locator: 'A:something' => '//whatever'
+
+Page should not contain custom locator
+    [Documentation]
+    ...  Verify that a custom locator can be used in a context where
+    ...  the locator doesn't exist.
+    ...
+    ...  It used to be that the locator manager would itself throw
+    ...  an error if it couldn't find a locator. Now, it returns None
+    ...  so that the keyword can be responsible for deciding if an
+    ...  error should be thrown or not
+
+    # we know this locator doesn't exist, but the keyword should
+    # pass. Prior to the fix when this test was introduced, this would
+    # give an error
+
+    Page should not contain element  B:appname:Sorry Charlie
