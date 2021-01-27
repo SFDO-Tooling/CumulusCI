@@ -104,9 +104,12 @@ the Value, enter the following JSON:
 
    {"username": "USERNAME", "password": "TOKEN", "email": "EMAIL"}
 
-But replace ``USERNAME`` with your github username, ``TOKEN`` with the Personal
-Access Token you just created, and ``EMAIL`` with your email address.
-Finally, click the "Add secret" button to save the secret.
+Click the "Add secret" button to save the secret.
+
+.. info::
+
+    Replace ``USERNAME`` with your GitHub username, ``TOKEN`` with the Personal
+    Access Token you just created, and ``EMAIL`` with your email address.
 
 
 
