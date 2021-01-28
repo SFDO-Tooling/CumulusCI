@@ -37,7 +37,7 @@ To set up Salesforce DX:
 
 .. important :: Be sure to use the ``--setdefaultdevhubusername`` option!
 
-If you have the ``sfdx`` command installed, are connected to your devhub, and set the ``defaultdevhubusername`` config setting (use the ``sfdx force:config:list`` command to verify!), you're now ready to use ``cci`` with ``sfdx``.
+If you have the ``sfdx`` command installed, are connected to your DevHub, and set the ``defaultdevhubusername`` config setting (use the ``sfdx force:config:list`` command to verify!), you're now ready to use ``cci`` with ``sfdx``.
 
 .. note:: SFDX supports multiple DevHubs, so CumulusCI uses the one set as ``defaultdevhubusername`` when creating scratch orgs.
 
@@ -205,9 +205,9 @@ Configure Predefined Orgs
 
 Projects can customize the set of configurations available out of the box, and add further predefined orgs to meet project-specific needs. 
 
-An org configuration has a name, such as ``dev`` or ``qa``, and is defined by options set in ``cumulusci.yml`` as well as the contents of a specific ``.json`` scratch org definition file in the ``orgs`` directory. For orgs like ``dev`` and ``qa`` that are predefined for all projects, the configuration is located in the CumulusCI standard library, but can be customized by projects in ``cumulusci.yml``.
+An org configuration has a name, such as ``dev`` or ``qa``, and is defined by options set in the ``cumulusci.yml`` file as well as the contents of a specific ``.json`` scratch org definition file in the ``orgs`` directory. For orgs like ``dev`` and ``qa`` that are predefined for all projects, the configuration is located in the CumulusCI standard library, but can be customized by projects in the ``cumulusci.yml`` file.
 
-Many projects that build managed packages offer a ``dev_namespaced`` org, a developer org that has a namespace. This org is defined under the  ``orgs`` section in ``cumulusci.yml``.
+Many projects that build managed packages offer a ``dev_namespaced`` org, a developer org that has a namespace. This org is defined under the  ``orgs`` section in the ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
@@ -218,7 +218,7 @@ Many projects that build managed packages offer a ``dev_namespaced`` org, a deve
                 days: 7
                 namespaced: True
 
-This org uses the same Salesforce DX configuration file as the ``dev`` org, but has different configuration in ``cumulusci.yml``, resulting in a different org shape and a different use case. The key facets of the org shape that are defined in ``cumulusci.yml`` are whether or not the org has a namespace and the length of the org's lifespan. 
+This org uses the same Salesforce DX configuration file as the ``dev`` org, but has different configuration in the ``cumulusci.yml`` file, resulting in a different org shape and a different use case. The key facets of the org shape that are defined in the ``cumulusci.yml`` file are whether or not the org has a namespace, and the length of the org's lifespan. 
 
 Org definition files stored in the ``orgs`` directory are configured as specified in the `Salesforce DX Developer Guide <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm>`_.
 
