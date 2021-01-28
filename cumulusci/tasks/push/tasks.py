@@ -237,12 +237,12 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
     def _init_options(self, kwargs):
         super(SchedulePushOrgList, self)._init_options(kwargs)
 
-        # neither_file_option = "orgs" not in self.options and "csv" not in self.options
-        # both_file_options = "orgs" in self.options and "csv" in self.options
-        # if neither_file_option or both_file_options:
-        #     raise TaskOptionsError(
-        #         "Please call this task with either the `orgs` or `csv` option."
-        #     )
+        neither_file_option = "orgs" not in self.options and "csv" not in self.options
+        both_file_options = "orgs" in self.options and "csv" in self.options
+        if neither_file_option or both_file_options:
+            raise TaskOptionsError(
+                "Please call this task with either the `orgs` or `csv` option."
+            )
         # Set the namespace option to the value from cumulusci.yml if not
         # already set
         if "namespace" not in self.options:
@@ -350,6 +350,15 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             )
         },
     }
+
+    def _init_options(self, kwargs):
+        super(SchedulePushOrgList, self)._init_options(kwargs)
+        # Set the namespace option to the value from cumulusci.yml if not
+        # already set
+        if "namespace" not in self.options:
+            self.options["namespace"] = self.project_config.project__package__namespace
+        if "batch_size" not in self.options:
+            self.options["batch_size"] = 200
 
     def _get_orgs(self):
         subscriber_where = self.options.get("subscriber_where")

@@ -321,22 +321,22 @@ def test_schedule_push_org_list__get_orgs__non_default_csv_field(tmp_path):
     assert task._get_orgs() == ["00D5w000004zXXX", "00D5w000005VXXX"]
 
 
-# def test_schedule_push_org_list_get_orgs_and_csv(tmp_path):
-#     orgs = tmp_path / ORG_FILE
-#     orgs.write_text(CSV_FILE_TEXT)
-#     with pytest.raises(TaskOptionsError):
-#         create_task(
-#             SchedulePushOrgList,
-#             options={
-#                 "orgs": orgs,
-#                 "version": VERSION,
-#                 "namespace": NAMESPACE,
-#                 "start_time": datetime.datetime.now(),
-#                 "batch_size": 10,
-#                 "csv_field_name": "OrganizationId",
-#                 "csv": orgs,
-#             },
-#         )
+def test_schedule_push_org_list_get_orgs_and_csv(tmp_path):
+    orgs = tmp_path / ORG_FILE
+    orgs.write_text(CSV_FILE_TEXT)
+    with pytest.raises(TaskOptionsError):
+        create_task(
+            SchedulePushOrgList,
+            options={
+                "orgs": orgs,
+                "version": VERSION,
+                "namespace": NAMESPACE,
+                "start_time": datetime.datetime.now(),
+                "batch_size": 10,
+                "csv_field_name": "OrganizationId",
+                "csv": orgs,
+            },
+        )
 
 
 def test_schedule_push_org_list_init_options(org_file):
@@ -478,10 +478,11 @@ def test_schedule_push_org_query_get_org():
 
     task.push = mock.MagicMock()
     task.push_api = mock.MagicMock()
-    task.bulk = mock.MagicMock()
+    task.bulk = None
     task.sf = mock.Mock()
-    task.push_api.return_query_records = mock.MagicMock()
-    task.push_api.return_query_records.return_value = PACKAGE_OBJ_SUBSCRIBER["records"]
+    task.sf.query_all = mock.MagicMock()
+    task.sf.query_all.return_value = PACKAGE_OBJ_SUBSCRIBER
+    # task.push_api.return_query_records.return_value = {"totalSize": "1"}
     assert task._get_orgs() == ["bar"]
 
 
