@@ -16,13 +16,14 @@ from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
 CURRENT_TASK = threading.local()
-CURRENT_TASK.stack = []
 
 PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
 
 
 @contextlib.contextmanager
 def stacked_task(task):
+    if not hasattr(CURRENT_TASK, "stack"):
+        CURRENT_TASK.stack = []
     CURRENT_TASK.stack.append(task)
     try:
         yield
