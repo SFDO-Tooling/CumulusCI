@@ -17,11 +17,12 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import SfdxOrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.exceptions import DependencyLookupError
+from cumulusci.core.exceptions import DependencyLookupError, GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.tasks.package_2gp import CreatePackageVersion
+from cumulusci.tasks.package_2gp import PackageVersionNumber
 from cumulusci.tasks.package_2gp import VersionTypeEnum
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
@@ -138,6 +139,29 @@ def mock_download_extract_github():
         yield download_extract_github
 
 
+class TestPackageVersionNumber:
+    def test_parse_format(self):
+        assert PackageVersionNumber.parse("1.2.3.4").format() == "1.2.3.4"
+
+    def test_parse__invalid(self):
+        with pytest.raises(ValueError):
+            PackageVersionNumber.parse("asdf")
+
+    def test_increment(self):
+        assert (
+            PackageVersionNumber.parse("1.0").increment(VersionTypeEnum.major).format()
+            == "2.0.0.NEXT"
+        )
+        assert (
+            PackageVersionNumber.parse("1.0").increment(VersionTypeEnum.minor).format()
+            == "1.1.0.NEXT"
+        )
+        assert (
+            PackageVersionNumber.parse("1.0").increment(VersionTypeEnum.patch).format()
+            == "1.0.1.NEXT"
+        )
+
+
 class TestCreatePackageVersion:
     devhub_base_url = "https://devhub.my.salesforce.com/services/data/v50.0"
     scratch_base_url = "https://scratch.my.salesforce.com/services/data/v50.0"
@@ -156,15 +180,27 @@ class TestCreatePackageVersion:
             f"{self.devhub_base_url}/tooling/sobjects/Package2/",
             json={"id": "0Ho6g000000fy4ZCAQ"},
         )
-        responses.add(  # query to find existing package version
+        responses.add(  # query to find existing Package2VersionCreateRequest
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
             json={"size": 0, "records": []},
         )
-        responses.add(  # query to find highest existing version
+        responses.add(  # query to find base version
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
-            json={"size": 0, "records": []},
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "Id": "04t000000000002AAA",
+                        "MajorVersion": 1,
+                        "MinorVersion": 0,
+                        "PatchVersion": 0,
+                        "BuildNumber": 1,
+                        "IsReleased": False,
+                    }
+                ],
+            },
         )
         responses.add(  # get dependency org API version
             "GET",
@@ -464,59 +500,6 @@ class TestCreatePackageVersion:
         )
         assert result == "08c000000000001AAA"
 
-    @responses.activate
-    def test_get_highest_version_parts(self, task):
-        responses.add(
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={"size": 1, "records": [{"MajorVersion": 1}]},
-        )
-
-        result = task._get_highest_version_parts("0Ho6g000000fy4ZCAQ")
-        assert result == {"MajorVersion": 1}
-
-    @responses.activate
-    def test_get_next_version_number__major(self, task):
-        result = task._get_next_version_number(
-            {
-                "MajorVersion": 0,
-                "MinorVersion": 0,
-                "PatchVersion": 0,
-                "BuildNumber": 0,
-                "IsReleased": True,
-            },
-            VersionTypeEnum.major,
-        )
-        assert result == "1.0.0.NEXT"
-
-    @responses.activate
-    def test_get_next_version_number__minor(self, task):
-        result = task._get_next_version_number(
-            {
-                "MajorVersion": 0,
-                "MinorVersion": 0,
-                "PatchVersion": 0,
-                "BuildNumber": 0,
-                "IsReleased": True,
-            },
-            VersionTypeEnum.minor,
-        )
-        assert result == "0.1.0.NEXT"
-
-    @responses.activate
-    def test_get_next_version_number__patch(self, task):
-        result = task._get_next_version_number(
-            {
-                "MajorVersion": 1,
-                "MinorVersion": 0,
-                "PatchVersion": 0,
-                "BuildNumber": 0,
-                "IsReleased": True,
-            },
-            VersionTypeEnum.patch,
-        )
-        assert result == "1.0.1.NEXT"
-
     def test_has_1gp_namespace_dependencies__no(self, task):
         assert not task._has_1gp_namespace_dependency([])
 
@@ -608,3 +591,37 @@ class TestCreatePackageVersion:
         )
         devhub_config = task._init_devhub()
         assert devhub_config.username == "devhub@example.com"
+
+    @responses.activate
+    def test_get_base_version_number__fallback(self, task):
+        responses.add(
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 0, "records": []},
+        )
+
+        version = task._get_base_version_number(None, "0Ho6g000000fy4ZCAQ")
+        assert version.format() == "0.0.0.0"
+
+    @responses.activate
+    def test_get_base_version_number__from_github(self, task):
+        task.project_config.get_latest_version = mock.Mock(return_value="1.0")
+
+        version = task._get_base_version_number(
+            "latest_github_release", "0Ho6g000000fy4ZCAQ"
+        )
+        assert version.format() == "1.0.0.0"
+
+    @responses.activate
+    def test_get_base_version_number__from_github__no_release(self, task):
+        task.project_config.get_latest_version = mock.Mock(side_effect=GithubException)
+
+        version = task._get_base_version_number(
+            "latest_github_release", "0Ho6g000000fy4ZCAQ"
+        )
+        assert version.format() == "0.0.0.0"
+
+    @responses.activate
+    def test_get_base_version_number__explicit(self, task):
+        version = task._get_base_version_number("1.0", "0Ho6g000000fy4ZCAQ")
+        assert version.format() == "1.0.0.0"
