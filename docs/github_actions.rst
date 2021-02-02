@@ -245,6 +245,7 @@ app by setting the following environment variables:
   In this case it would be ``--org orgName``. 
   
 .. note:: 
+
   If the target org's instance URL is instanceless (i.e. does not contain a segment like 
   cs46 identifying the instance), then for sandboxes it is also necessary to set 
   ``SFDX_AUDIENCE_URL`` to ``https://test.salesforce.com". This instructs CumulusCI to set
@@ -255,7 +256,7 @@ app by setting the following environment variables:
   (this is the contents of your ``server.key`` file). This instructs CumulusCI to
   authenticate to the org using jwt instead of the web auth flow.
 
-.. note::
+.. info::
 
   Setting the above environment variables negates the need to use the ``cci org connect`` command.
   You can simply run a ``cci`` command and pass the ``--org orgName`` option, where ``orgName``
