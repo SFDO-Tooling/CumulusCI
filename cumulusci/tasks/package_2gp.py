@@ -1,5 +1,5 @@
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
-from typing import Literal, Optional, Union
+from typing import Optional, Union
 import base64
 import enum
 import io
@@ -51,7 +51,7 @@ class PackageVersionNumber(BaseModel):
     MajorVersion: int = 0
     MinorVersion: int = 0
     PatchVersion: int = 0
-    BuildNumber: Union[int, Literal["NEXT"]] = 0
+    BuildNumber: Union[int, str] = 0
     IsReleased: bool = False
 
     def format(self):
