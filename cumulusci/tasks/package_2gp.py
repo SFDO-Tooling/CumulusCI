@@ -1,16 +1,18 @@
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
-from typing import Optional
+from typing import Optional, Union
 import base64
 import enum
 import io
 import json
 import pathlib
+import re
 import zipfile
 
 from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.exceptions import DependencyLookupError, ServiceNotConfigured
+from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
@@ -22,6 +24,14 @@ from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTa
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils import download_extract_github
 
+VERSION_RE = re.compile(
+    r"^(?P<MajorVersion>\d+)"
+    r".(?P<MinorVersion>\d+)"
+    r"(\.(?P<PatchVersion>\d+))?"
+    r"(\.(?P<BuildNumber>\d+))?"
+    r"( \(Beta (?P<BetaNumber>\d+)\))?$"
+)
+
 
 class PackageTypeEnum(str, enum.Enum):
     managed = "Managed"
@@ -32,6 +42,58 @@ class VersionTypeEnum(str, enum.Enum):
     major = "major"
     minor = "minor"
     patch = "patch"
+    build = "build"
+
+
+class PackageVersionNumber(BaseModel):
+    """A Salesforce package version parsed into components."""
+
+    MajorVersion: int = 0
+    MinorVersion: int = 0
+    PatchVersion: int = 0
+    BuildNumber: Union[int, str] = 0
+    IsReleased: bool = False
+
+    def format(self):
+        """Format version number as a string"""
+        return f"{self.MajorVersion}.{self.MinorVersion}.{self.PatchVersion}.{self.BuildNumber}"
+
+    @classmethod
+    def parse(cls, s: str):
+        """Parse a version number from a string"""
+        match = VERSION_RE.match(s)
+        if not match:
+            raise ValueError(f"Could not parse version number: {s}")
+        return PackageVersionNumber(
+            MajorVersion=int(match.group("MajorVersion")),
+            MinorVersion=int(match.group("MinorVersion")),
+            PatchVersion=int(match.group("PatchVersion") or 0),
+            BuildNumber=int(
+                match.group("BuildNumber") or match.group("BetaNumber") or 0
+            ),
+            IsReleased=not bool(match.group("BetaNumber")),
+        )
+
+    def increment(self, version_type: VersionTypeEnum = VersionTypeEnum.build):
+        """Construct a new PackageVersionNumber by incrementing the specified component."""
+        parts = {
+            "MajorVersion": self.MajorVersion,
+            "MinorVersion": self.MinorVersion,
+            "PatchVersion": self.PatchVersion,
+            "BuildNumber": "NEXT",
+            "IsReleased": False,
+        }
+        if self.IsReleased:
+            if version_type == VersionTypeEnum.major:
+                parts["MajorVersion"] += 1
+                parts["MinorVersion"] = 0
+                parts["PatchVersion"] = 0
+            if version_type == VersionTypeEnum.minor:
+                parts["MinorVersion"] += 1
+                parts["PatchVersion"] = 0
+            elif version_type == VersionTypeEnum.patch:
+                parts["PatchVersion"] += 1
+        return PackageVersionNumber(**parts)
 
 
 class PackageConfig(BaseModel):
@@ -41,6 +103,7 @@ class PackageConfig(BaseModel):
     org_dependent: bool = False
     namespace: Optional[str]
     version_name: str
+    version_base: Optional[str]
     version_type: VersionTypeEnum = VersionTypeEnum.minor
 
     @validator("org_dependent")
@@ -66,9 +129,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         },
         "namespace": {"description": "Package namespace"},
         "version_name": {"description": "Version name"},
+        "version_base": {
+            "description": "The version number to use as a base before incrementing. "
+            "Optional; defaults to the highest existing version number of this package. "
+            "Can be set to ``latest_github_release`` to use the version of the most recent release published to GitHub."
+        },
         "version_type": {
             "description": "The part of the version number to increment. "
-            "Options are major, minor, patch.  Defaults to minor"
+            "Options are major, minor, patch, build.  Defaults to build"
         },
         "skip_validation": {
             "description": "If true, skip validation of the package version. Default: false. "
@@ -97,6 +165,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             namespace=self.options.get("namespace")
             or self.project_config.project__package__namespace,
             version_name=self.options.get("version_name") or "Release",
+            version_base=self.options.get("version_base"),
             version_type=self.options.get("version_type") or "minor",
         )
         self.options["skip_validation"] = process_bool_arg(
@@ -174,9 +243,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self.return_values["subscriber_package_version_id"] = package2_version[
             "SubscriberPackageVersionId"
         ]
-        self.return_values["version_number"] = self._get_version_number(
-            package2_version
-        )
+        self.return_values["version_number"] = PackageVersionNumber(
+            **package2_version
+        ).format()
 
         # get the new version's dependencies from SubscriberPackageVersion
         res = self.tooling.query(
@@ -286,17 +355,15 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     return res["records"][0]["Id"]
 
             # Create the package descriptor
-            # @@@ we should support releasing a successor to an older version by specifying a base version
-            last_version_parts = self._get_highest_version_parts(package_id)
-            version_number = self._get_next_version_number(
-                last_version_parts, package_config.version_type
-            )
+            version_number = self._get_base_version_number(
+                package_config.version_base, package_id
+            ).increment(package_config.version_type)
             package_descriptor = {
                 "ancestorId": "",  # @@@ need to add this for Managed 2gp
                 "id": package_id,
                 "path": "",
                 "versionName": package_config.version_name,
-                "versionNumber": version_number,
+                "versionNumber": version_number.format(),
             }
 
             # Add org shape
@@ -350,7 +417,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "VersionInfo": version_info,
         }
         self.logger.info(
-            f"Requesting creation of package version {version_number} "
+            f"Requesting creation of package version {version_number.format()} "
             f"for package {package_config.package_name} ({package_id})"
         )
         response = Package2CreateVersionRequest.create(request)
@@ -359,54 +426,33 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         return response["id"]
 
-    def _get_highest_version_parts(self, package_id):
-        """Get the version parts for the highest existing version of the specified package."""
-        res = self.tooling.query(
-            "SELECT MajorVersion, MinorVersion, PatchVersion, BuildNumber, IsReleased "
-            "FROM Package2Version "
-            f"WHERE Package2Id='{package_id}' "
-            "ORDER BY MajorVersion DESC, MinorVersion DESC, PatchVersion DESC, BuildNumber DESC "
-            "LIMIT 1"
-        )
-        if res["size"]:
-            return res["records"][0]
-        return {
-            "MajorVersion": 0,
-            "MinorVersion": 0,
-            "PatchVersion": 0,
-            "BuildNumber": 0,
-            "IsReleased": False,
-        }
-
-    def _get_next_version_number(self, version_parts, version_type: VersionTypeEnum):
-        """Predict the next package version.
-
-        Given existing version parts (major/minor/patch) and a version type,
-        determine the number to request for the next version.
-        """
-        new_version_parts = {
-            "MajorVersion": version_parts["MajorVersion"],
-            "MinorVersion": version_parts["MinorVersion"],
-            "PatchVersion": version_parts["PatchVersion"],
-            "BuildNumber": "NEXT",
-        }
-        if version_parts["IsReleased"]:
-            if version_type == VersionTypeEnum.major:
-                new_version_parts["MajorVersion"] += 1
-                new_version_parts["MinorVersion"] = 0
-                new_version_parts["PatchVersion"] = 0
-            if version_type == VersionTypeEnum.minor:
-                new_version_parts["MinorVersion"] += 1
-                new_version_parts["PatchVersion"] = 0
-            elif version_type == VersionTypeEnum.patch:
-                new_version_parts["PatchVersion"] += 1
-        return self._get_version_number(new_version_parts)
-
-    def _get_version_number(self, version):
-        """Format version fields from Package2Version as a version number."""
-        return "{MajorVersion}.{MinorVersion}.{PatchVersion}.{BuildNumber}".format(
-            **version
-        )
+    def _get_base_version_number(
+        self, version_base: Optional[str], package_id: str
+    ) -> PackageVersionNumber:
+        """Determine the "base version" of the package (existing version to be incremented)"""
+        if version_base is None:
+            # Default: Get the highest existing version of the package
+            res = self.tooling.query(
+                "SELECT MajorVersion, MinorVersion, PatchVersion, BuildNumber, IsReleased "
+                "FROM Package2Version "
+                f"WHERE Package2Id='{package_id}' "
+                "ORDER BY MajorVersion DESC, MinorVersion DESC, PatchVersion DESC, BuildNumber DESC "
+                "LIMIT 1"
+            )
+            if res["size"]:
+                return PackageVersionNumber(**res["records"][0])
+        elif version_base == "latest_github_release":
+            # Get the version of the latest github release
+            try:
+                return PackageVersionNumber.parse(
+                    str(self.project_config.get_latest_version())
+                )
+            except GithubException:
+                # handle case where there isn't a release yet
+                pass
+        else:
+            return PackageVersionNumber.parse(version_base)
+        return PackageVersionNumber()
 
     def _get_dependencies(self):
         """Resolve dependencies into SubscriberPackageVersionIds (04t prefix)"""
