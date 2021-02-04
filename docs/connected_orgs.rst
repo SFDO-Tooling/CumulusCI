@@ -1,7 +1,7 @@
 Connect Persistent Orgs
 =======================
 
-In addition to creating `scratch orgs<TODO>`_, you can connect persistent orgs to your CumulusCI project to run tasks and flows on them. This feature supports use cases such as deploying to a Developer Edition org to release a package version, or installing to a sandbox for user acceptance testing.
+In addition to creating `scratch orgs<TODO>`_ in CumulusCI, you can connect persistent orgs to your project to run tasks and flows on them. This feature supports use cases such as deploying to a Developer Edition org to release a package version, or installing to a sandbox for user acceptance testing.
 
 .. note:: A different setup is required to connect to orgs in the context of an automated build. See `continuous integration<TODO>`_ for more information.
 
@@ -78,10 +78,10 @@ Run ``cci org list`` to see your org listed under the "Connected Org" table.
     ┌Connected Orgs────┬──────────────────────────────┬────────────┐
     │ Name   │ Default │ Username                     │ Expires    │
     ├────────┼─────────┼──────────────────────────────┼────────────┤
-    │ devhub │         │ peter.gibbons@initech.devhub │ Persistent │
+    │ devhub │         │ p.gibbons@inicorp.devhub     │ Persistent │
     └────────┴─────────┴──────────────────────────────┴────────────┘
 
-Make sure that CumulusCI can login to the connected org.
+Verify a successful connection to the org by logging in.
 
 .. code-block:: console
 
@@ -92,7 +92,7 @@ Make sure that CumulusCI can login to the connected org.
 Global Orgs
 -----------
 
-By default, ``cci org connect`` stores the OAuth credentials for connected orgs in a *project specific* keychain. These credentials ensure that an org connected in Project A's directory isn't accessible when you're working in Project B's directory.
+By default, ``cci org connect`` stores the OAuth credentials for connected orgs in a *project-specific* keychain. Using a project-specific keychain means that an org connected in Project A's directory isn't available when you're working in Project B's directory.
 
 Connect an org and make it available to *all* CumulusCI projects on your computer by passing the ``--global-org`` flag.
 
@@ -107,15 +107,17 @@ Use a Custom Connected App
 
 CumulusCI uses a preconfigured Connected App to authenticate to Salesforce orgs that use OAuth2. In most cases this works fine. To control the Connected App for specific security or compliance requirements, create your own Connected App and configure CumulusCI to use it when connecting to orgs.
 
-To create a custom Connected App, run the ``connected_app`` task to create the Connected App, and then manually edit its configuration to suit your requirements.
+To create a custom Connected App, run the ``connected_app`` task, and then manually edit its configuration to suit your requirements.
 
-.. important :: Make sure to create the Connected App in a persistent org other than a sandbox!
+.. important :: Make sure to create the Connected App in a production org!
+
+..
 
     Example: Create a Connected App in the DevHub org connected to ``SFDX`` with the label ``cumulusci`` and set it as the ``connected_app`` service in CumulusCI.
 
 .. code-block:: console
 
-    $ cci task run connected_app -o label cumulusci -o connect true
+    $ cci task run connected_app --label cumulusci --connect true
 
 After the Connected App has been created, verify that it's connected to CumulusCI.
 
