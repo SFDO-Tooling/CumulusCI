@@ -239,7 +239,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
         o = data_generator_runtime.ObjectRow(
             "Account", {"Name": "Johnston incorporated", "id": 5}
         )
-        g.register_object(o, "The Company")
+        g.register_object(o, "The Company", False)
         for i in range(0, 5):
             # burn through 5 imaginary accounts
             g.id_manager.generate_id("Account")
