@@ -16,7 +16,7 @@ This section focuses on managing scratch orgs in a CumulusCI project. To learn a
 What Is an Org in CumulusCI?
 ----------------------------
 
-An org in CumulusCI's keychain starts out as a named configuration, tailored for a specific purpose within the lifecycle of the project (such as development, feature, beta, and so on). CumulusCI creates and uses scratch orgs that are portable and repeatable. In fact, a scratch org is only generated the first time you use the scratch org. When it's expired or been deleted, a new one can easily be created again with the same configuration.
+An org in CumulusCI's keychain starts out as a named configuration, tailored for a specific purpose within the lifecycle of the project (such as development, feature, beta, and so on). CumulusCI creates and uses scratch orgs that are portable and repeatable. In fact, a scratch org is only generated the first time you use the scratch org. When it's expired or been deleted, a new one can be created again with the same configuration.
 
 CumulusCI offers tools that make it easy to discover predefined org configurations, create scratch orgs based on those configurations, and define new orgs and new configurations.
 
@@ -27,7 +27,7 @@ Set Up the Salesforce CLI
 
 Scratch orgs in CumulusCI allow teams to be confident that the orgs they develop and test in are as close to their production environments as possible. We recommend working with scratch orgs created by Salesforce DX.
 
-.. tip:: For a detailed introduction on how to set up Salesforce CLI and Visual Studio Code to work with CumulusCI, we recommend completing the `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ module on Trailhead.
+.. tip:: For a detailed introduction on how to set up Salesforce CLI and Visual Studio Code to work with CumulusCI, review the `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ module on Trailhead.
 
 To set up Salesforce DX:
 
@@ -48,10 +48,10 @@ The Salesforce Developers site has comprehensive documentation on `Salesforce DX
 Predefined Orgs
 ---------------
 
-CumulusCI comes with predefined org configurations. Every org's keychain starts with these configurations ready and available to be turned into a live scratch org.
+CumulusCI comes with predefined org configurations. Every project's keychain starts with these configurations ready and available to be turned into a live scratch org.
 
 +-------------+--------------------------+-----------------------+----------+
-|   Org       | Role                     | Configuration File    | Lifespan |
+|   Org       | Role                     | Definition File       | Lifespan |
 +=============+==========================+=======================+==========+
 | ``dev``     | Development workflows    | ``orgs/dev.json``     | 7 days   |
 +-------------+--------------------------+-----------------------+----------+
@@ -102,7 +102,7 @@ It's possible to create new orgs in the keychain that inherit their configuratio
 
 ..
 
-    Verify that there is now an org with the name of ``<org_name>`` that is associated with the ``orgs/dev.json`` configuration file by running ``cci org list``.     
+    Verify that there is now an org with the name of ``<org_name>`` that is associated with the ``orgs/dev.json`` definition file by running ``cci org list``.     
 
 You can have as many named orgs as you wish, or none at all. Many CumulusCI users work only with built-in orgs.
 
@@ -205,7 +205,7 @@ Projects can customize the set of configurations available out of the box, and a
 
 An org configuration has a name, such as ``dev`` or ``qa``, and is defined by options set in the ``cumulusci.yml`` file as well as in the contents of a specific ``.json`` scratch org definition file in the ``orgs`` directory. For orgs like ``dev`` and ``qa`` that are predefined for all projects, the configuration is located in the CumulusCI standard library, but can be customized by projects in the ``cumulusci.yml`` file.
 
-When developing a managed package project, it is often useful to test inside of a namespaced scratch org. Many projects configure an org called ``dev_namespaced``, a developer org that has a namespace. This org is defined under the  ``orgs`` section in the ``cumulusci.yml`` file.
+When developing a managed package project, it is often useful to test inside of a namespaced scratch org. Many projects configure an org called ``dev_namespaced``, a developer org that has a namespace. This org is defined under the  ``orgs__scratch`` section in the ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
@@ -216,7 +216,7 @@ When developing a managed package project, it is often useful to test inside of 
                 days: 7
                 namespaced: True
 
-This org uses the same Salesforce DX configuration file as the ``dev`` org, but has a different configuration in the ``cumulusci.yml`` file, resulting in a different org shape and a different use case. The key facets of the org shape that are defined in the ``cumulusci.yml`` file are whether or not the org has a namespace, and the length of the org's lifespan. 
+This org uses the same scratch org definition file as the ``dev`` org, but has a different configuration in the ``cumulusci.yml`` file, resulting in a different org shape and a different use case. The key facets of the org shape that are defined in the ``cumulusci.yml`` file are whether or not the org has a namespace, and the length of the org's lifespan.
 
 Org definition files stored in the ``orgs`` directory are configured as specified in the `Salesforce DX Developer Guide <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm>`_.
 
