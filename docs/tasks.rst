@@ -223,8 +223,6 @@ Options
 
 	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
 
-	 Default: $project_config.project__package__namespace
-
 ``--api_version APIVERSION``
 	 *Optional*
 
@@ -1171,10 +1169,15 @@ Options
 
 	 Version name
 
+``--version_base VERSIONBASE``
+	 *Optional*
+
+	 The version number to use as a base before incrementing. Optional; defaults to the highest existing version number of this package. Can be set to ``latest_github_release`` to use the version of the most recent release published to GitHub.
+
 ``--version_type VERSIONTYPE``
 	 *Optional*
 
-	 The part of the version number to increment. Options are major, minor, patch.  Defaults to minor
+	 The part of the version number to increment. Options are major, minor, patch, build.  Defaults to build
 
 ``--skip_validation SKIPVALIDATION``
 	 *Optional*
@@ -1185,6 +1188,16 @@ Options
 	 *Optional*
 
 	 If true, create an org-dependent unlocked package. Default: false.
+
+``--post_install_script POSTINSTALLSCRIPT``
+	 *Optional*
+
+	 Post-install script (for managed packages)
+
+``--uninstall_script UNINSTALLSCRIPT``
+	 *Optional*
+
+	 Uninstall script (for managed packages)
 
 ``--force_upload FORCEUPLOAD``
 	 *Optional*
