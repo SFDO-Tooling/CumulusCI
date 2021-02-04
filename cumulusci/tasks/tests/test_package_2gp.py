@@ -6,6 +6,7 @@ import pathlib
 import shutil
 import zipfile
 
+from pydantic import ValidationError
 import pytest
 import responses
 import yaml
@@ -21,9 +22,13 @@ from cumulusci.core.exceptions import DependencyLookupError, GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.tasks.package_2gp import CreatePackageVersion
-from cumulusci.tasks.package_2gp import PackageVersionNumber
-from cumulusci.tasks.package_2gp import VersionTypeEnum
+from cumulusci.tasks.package_2gp import (
+    CreatePackageVersion,
+    PackageConfig,
+    PackageTypeEnum,
+    PackageVersionNumber,
+    VersionTypeEnum,
+)
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
 
@@ -67,9 +72,11 @@ def repo_root():
 @pytest.fixture
 def project_config(repo_root):
     project_config = BaseProjectConfig(
-        UniversalConfig(), repo_info={"root": repo_root, "branch": "main"}
+        UniversalConfig(),
+        repo_info={"root": repo_root, "branch": "main"},
     )
-
+    project_config.config["project"]["package"]["install_class"] = "Install"
+    project_config.config["project"]["package"]["uninstall_class"] = "Uninstall"
     project_config.keychain = BaseProjectKeychain(project_config, key=None)
     pathlib.Path(repo_root, "orgs").mkdir()
     pathlib.Path(repo_root, "orgs", "scratch_def.json").write_text(
@@ -117,7 +124,7 @@ def task(project_config, devhub_config, org_config):
         TaskConfig(
             {
                 "options": {
-                    "package_type": "Unlocked",
+                    "package_type": "Managed",
                     "org_dependent": False,
                     "package_name": "Test Package",
                     "static_resource_path": "static-resources",
@@ -160,6 +167,24 @@ class TestPackageVersionNumber:
             PackageVersionNumber.parse("1.0").increment(VersionTypeEnum.patch).format()
             == "1.0.1.NEXT"
         )
+
+
+class TestPackageConfig:
+    def test_validate_org_dependent(self):
+        with pytest.raises(ValidationError, match="Only unlocked packages"):
+            PackageConfig(package_type=PackageTypeEnum.managed, org_dependent=True)
+
+    def test_validate_post_install_script(self):
+        with pytest.raises(ValidationError, match="Only managed packages"):
+            PackageConfig(
+                package_type=PackageTypeEnum.unlocked, post_install_script="Install"
+            )
+
+    def test_validate_uninstall_script(self):
+        with pytest.raises(ValidationError, match="Only managed packages"):
+            PackageConfig(
+                package_type=PackageTypeEnum.unlocked, uninstall_script="Uninstall"
+            )
 
 
 class TestCreatePackageVersion:
@@ -407,7 +432,7 @@ class TestCreatePackageVersion:
             json={
                 "size": 1,
                 "records": [
-                    {"Id": "0Ho6g000000fy4ZCAQ", "ContainerOptions": "Unlocked"}
+                    {"Id": "0Ho6g000000fy4ZCAQ", "ContainerOptions": "Managed"}
                 ],
             },
         )
@@ -417,7 +442,7 @@ class TestCreatePackageVersion:
             TaskConfig(
                 {
                     "options": {
-                        "package_type": "Unlocked",
+                        "package_type": "Managed",
                         "package_name": "Test Package",
                         "namespace": "ns",
                     }
@@ -440,7 +465,7 @@ class TestCreatePackageVersion:
             json={
                 "size": 1,
                 "records": [
-                    {"Id": "0Ho6g000000fy4ZCAQ", "ContainerOptions": "Managed"}
+                    {"Id": "0Ho6g000000fy4ZCAQ", "ContainerOptions": "Unlocked"}
                 ],
             },
         )
@@ -450,7 +475,7 @@ class TestCreatePackageVersion:
             TaskConfig(
                 {
                     "options": {
-                        "package_type": "Unlocked",
+                        "package_type": "Managed",
                         "package_name": "Test Package",
                         "namespace": "ns",
                     }
@@ -558,7 +583,7 @@ class TestCreatePackageVersion:
             TaskConfig(
                 {
                     "options": {
-                        "package_type": "Unlocked",
+                        "package_type": "Managed",
                         "package_name": "Test Package",
                     }
                 }
@@ -582,7 +607,7 @@ class TestCreatePackageVersion:
             TaskConfig(
                 {
                     "options": {
-                        "package_type": "Unlocked",
+                        "package_type": "Managed",
                         "package_name": "Test Package",
                     }
                 }

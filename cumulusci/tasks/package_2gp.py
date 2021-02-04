@@ -101,6 +101,8 @@ class PackageConfig(BaseModel):
     description: str = ""
     package_type: PackageTypeEnum
     org_dependent: bool = False
+    post_install_script: Optional[str]
+    uninstall_script: Optional[str]
     namespace: Optional[str]
     version_name: str
     version_base: Optional[str]
@@ -110,6 +112,18 @@ class PackageConfig(BaseModel):
     def org_dependent_must_be_unlocked(cls, v, values):
         if v and values["package_type"] != PackageTypeEnum.unlocked:
             raise ValueError("Only unlocked packages can be org-dependent.")
+        return v
+
+    @validator("post_install_script")
+    def post_install_script_must_be_managed(cls, v, values):
+        if v and values["package_type"] != PackageTypeEnum.managed:
+            raise ValueError("Only managed packages can have a post-install script.")
+        return v
+
+    @validator("uninstall_script")
+    def uninstall_script_must_be_managed(cls, v, values):
+        if v and values["package_type"] != PackageTypeEnum.managed:
+            raise ValueError("Only managed packages can have an uninstall script.")
         return v
 
 
@@ -145,6 +159,12 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         "org_dependent": {
             "description": "If true, create an org-dependent unlocked package. Default: false."
         },
+        "post_install_script": {
+            "description": "Post-install script (for managed packages)",
+        },
+        "uninstall_script": {
+            "description": "Uninstall script (for managed packages)",
+        },
         "force_upload": {
             "description": "If true, force creating a new package version even if one with the same contents already exists"
         },
@@ -162,6 +182,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             package_type=self.options.get("package_type")
             or self.project_config.project__package__type,
             org_dependent=self.options.get("org_dependent", False),
+            post_install_script=self.options.get("post_install_script")
+            or self.project_config.project__package__install_class,
+            uninstall_script=self.options.get("uninstall_script")
+            or self.project_config.project__package__uninstall_class,
             namespace=self.options.get("namespace")
             or self.project_config.project__package__namespace,
             version_name=self.options.get("version_name") or "Release",
@@ -365,6 +389,12 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 "versionName": package_config.version_name,
                 "versionNumber": version_number.format(),
             }
+            if package_config.post_install_script:
+                package_descriptor[
+                    "postInstallScript"
+                ] = package_config.post_install_script
+            if package_config.uninstall_script:
+                package_descriptor["uninstallScript"] = package_config.uninstall_script
 
             # Add org shape
             with open(self.org_config.config_file, "r") as f:
