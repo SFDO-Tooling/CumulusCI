@@ -2,6 +2,35 @@
 History
 =======
 
+3.28.0 (2021-02-04)
+-------------------
+
+Changes:
+
+- Added a new task, ``composite_request``, for calling the Composite REST Resource. #2341
+
+- The ``create_package_version`` task has a new option, ``version_base``, which can be used to increment the package version from a different base version instead of from the highest existing version of the 2gp package. The ``build_feature_test_package`` flow now uses this option to create a package version with the minor version incremented from the most recent 1gp release published to github. #2357
+
+- The ``create_package_version`` task now supports setting a post-install script and uninstall script when creating a managed package version, by setting the ``post_install_script`` and ``uninstall_script`` options. By default, these options will use the values of ``install_class`` and ``uninstall_class`` from the ``package`` section of ``cumulusci.yml``. #2366
+
+- Updated to `Snowfakery 1.5 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.5>`__.
+
+- Robot Framework:
+
+  - The ``Click related list button`` keyword has been modified to be more liberal in the types of DOM elements it will click on. Prior to this change it only clicked on anchor elements, but now also works for related list buttons that use an actual button element. #2356
+
+  - The ``Click modal button`` keyword now attempts to find the given button anywhere on the modal rather than only inside a ``force-form-footer`` element. #2356
+
+Issues closed:
+
+- Robot Framework:
+
+  - Custom locators can now be used with keywords that expect no element to be found (such as ``Page should not contain``). This previously resulted in an error. #2346
+
+  - Fixed an error when setting the ``tagstatexclude`` option for the ``robot`` task. #2365
+
+- Fixed a possible error when running CumulusCI flows embedded in a multi-threaded context. #2347
+
 3.27.0 (2021-01-21)
 -------------------
 
