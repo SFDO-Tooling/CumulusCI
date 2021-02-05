@@ -84,7 +84,7 @@ class MappingStep(CCIDictModel):
     bulk_mode: Optional[
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
-    anchor_date: Optional[str] = None
+    anchor_date: Optional[Union[str, date]] = None
 
     def get_oid_as_pk(self):
         """Returns True if using Salesforce Ids as primary keys."""
@@ -128,7 +128,7 @@ class MappingStep(CCIDictModel):
 
         return [f for f in describe if describe[f]["type"] == field_type]
 
-    def get_field_list(self):
+    def get_load_field_list(self):
         """Build a flat list of columns for the given mapping,
         including fields, lookups, and statics."""
         lookups = self.lookups
@@ -152,9 +152,7 @@ class MappingStep(CCIDictModel):
 
         return columns
 
-    def get_relative_date_context(self, org_config: OrgConfig):
-        fields = self.get_field_list()
-
+    def get_relative_date_context(self, fields: List[str], org_config: OrgConfig):
         date_fields = [
             fields.index(f)
             for f in self.get_fields_by_type("date", org_config)
@@ -186,7 +184,7 @@ class MappingStep(CCIDictModel):
             logger.warning(
                 "record_type is deprecated. Just supply a RecordTypeId column declaration and it will be inferred"
             )
-            return v
+        return v
 
     @validator("oid_as_pk")
     @classmethod

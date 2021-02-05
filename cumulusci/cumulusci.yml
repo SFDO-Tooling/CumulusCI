@@ -1,6 +1,5 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
-
 tasks:
     activate_flow:
         group: Metadata Transformations
@@ -24,6 +23,10 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.picklists.AddPicklistEntries
         options:
             namespace_inject: $project_config.project__package__namespace
+    add_fields_to_field_set:
+        group: Metadata Transformations
+        description: Adds specified fields to a given field set.
+        class_path: cumulusci.tasks.metadata_etl.field_sets.AddFieldsToFieldSet
     add_permission_set_perms:
         group: Metadata Transformations
         description: Adds specified Apex class access and Field-Level Security to a Permission Set.
@@ -106,6 +109,10 @@ tasks:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
         group: Utilities
+    composite_request:
+        description: Execute a series of REST API requests in a single call
+        class_path: cumulusci.tasks.salesforce.composite.CompositeApi
+        group: Data Operations
     connected_app:
         description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
         class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
@@ -121,7 +128,7 @@ tasks:
     insert_record:
         description: Inserts a record of any sObject using the REST API
         class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
-        group: Salesforce
+        group: Data Operations
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
@@ -326,7 +333,7 @@ tasks:
         class_path: cumulusci.tasks.metadeploy.Publish
         group: Release Operations
     org_settings:
-        description: Apply org settings from a scratch org definition file
+        description: Apply org settings from a scratch org definition file or dict
         class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
         group: Salesforce DX
     publish_community:
@@ -924,13 +931,14 @@ flows:
             1:
                 task: github_package_data
                 options:
-                    context: "Build Feature Test Package"
+                    context: $project_config.project__git__2gp_context
             2:
                 flow: dependencies
                 options:
                     update_dependencies:
                         include_beta: True
                         dependencies: ^^github_package_data.dependencies
+                        prefer_2gp_from_release_branch: True
             3:
                 task: install_managed
                 options:
@@ -1048,6 +1056,8 @@ flows:
                 options:
                     package_type: Managed
                     package_name: $project_config.project__package__name Managed Feature Test
+                    version_base: latest_github_release
+                    version_type: minor
                     skip_validation: True
 
     unmanaged_ee:
@@ -1153,6 +1163,7 @@ project:
         prefix_release: release/
         push_prefix_sandbox: 'Sandbox orgs: '
         push_prefix_production: 'Production orgs: '
+        2gp_context: "Build Feature Test Package"
         release_notes:
             parsers:
                 1:

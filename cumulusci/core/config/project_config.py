@@ -24,13 +24,23 @@ from cumulusci.core.exceptions import (
     NotInProject,
     ProjectConfigNotFound,
 )
-from cumulusci.core.github import get_github_api_for_repo
-from cumulusci.core.github import find_latest_release
-from cumulusci.core.github import find_previous_release
+from cumulusci.core.github import (
+    get_github_api_for_repo,
+    find_latest_release,
+    find_previous_release,
+    find_repo_feature_prefix,
+    get_version_id_from_commit,
+)
 from cumulusci.core.source import GitHubSource
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
-from cumulusci.utils.git import current_branch, git_path
+from cumulusci.utils.git import (
+    current_branch,
+    git_path,
+    is_release_branch_or_child,
+    construct_release_branch_name,
+    get_release_identifier,
+)
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.utils.fileutils import open_fs_resource
 
@@ -498,8 +508,67 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo
 
-    def get_ref_for_dependency(self, repo, dependency, include_beta=None):
-        release = None
+    def find_matching_2gp_release(self, remote_repo):
+        # To allow us to locate release branches on the remote repo, we need to know its feature branch prefix.
+        # We'll use the cumulusci.yml file from HEAD on the main branch to determine this.
+
+        release_id = get_release_identifier(
+            self.repo_branch, self.project__git__prefix_feature
+        )
+        try:
+            remote_branch_prefix = find_repo_feature_prefix(remote_repo)
+        except Exception:
+            self.logger.info(
+                f"Could not find feature branch prefix for {remote_repo.clone_url}. Falling back to 1GP."
+            )
+            return (None, None)
+        remote_matching_branch = construct_release_branch_name(
+            remote_branch_prefix, release_id
+        )
+
+        # Check the most recent five commits on this release branch looking for a 2GP package to use
+        try:
+            release_branch = remote_repo.branch(remote_matching_branch)
+        except NotFoundError:
+            self.logger.info(
+                f"Release branch {remote_matching_branch} not found on {remote_repo.clone_url}. Falling back to 1GP."
+            )
+            return (None, None)
+
+        version_id = None
+        count = 0
+        commit = release_branch.commit
+        while version_id is None and count < 5:
+            version_id = get_version_id_from_commit(
+                remote_repo, commit.sha, self.project__git__2gp_context
+            )
+            if version_id:
+                self.logger.info(
+                    f"Located 2GP package version {version_id} for release {release_id} on {remote_repo.clone_url} at commit {release_branch.commit.sha}"
+                )
+                break
+            count += 1
+            if commit.parents:
+                commit = remote_repo.commit(commit.parents[0]["sha"])
+            else:
+                break
+
+        if version_id is None:
+            self.logger.warn(
+                f"No 2GP package version located for release {release_id} on {remote_repo.clone_url}. Falling back to 1GP."
+            )
+            return (None, None)
+
+        return version_id, commit.sha
+
+    def get_ref_for_dependency(
+        self,
+        repo,
+        dependency,
+        include_beta=None,
+        match_release_branch=None,
+    ):
+        release = ref = None
         if "ref" in dependency:
             ref = dependency["ref"]
         else:
@@ -512,12 +581,20 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                         f"No release found for tag {dependency['tag']}"
                     )
             else:
-                release = find_latest_release(repo, include_beta)
-            if release:
+                if match_release_branch and is_release_branch_or_child(
+                    self.repo_branch, self.project__git__prefix_feature
+                ):
+                    release, ref = self.find_matching_2gp_release(repo)
+
+                if not release:
+                    release = find_latest_release(repo, include_beta)
+
+            if release and not ref:
                 ref = repo.tag(
                     repo.ref("tags/" + release.tag_name).object.sha
                 ).object.sha
-            else:
+
+            if not release:
                 self.logger.info(
                     f"No release found; using the latest commit from the {repo.default_branch} branch."
                 )
@@ -526,7 +603,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return (release, ref)
 
     def get_static_dependencies(
-        self, dependencies=None, include_beta=None, ignore_deps=None
+        self,
+        dependencies=None,
+        include_beta=None,
+        ignore_deps=None,
+        match_release_branch=None,
     ):
         """Resolves the project -> dependencies section of cumulusci.yml
         to convert dynamic github dependencies into static dependencies
@@ -552,7 +633,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 static_dependencies.append(dependency)
             else:
                 static = self.process_github_dependency(
-                    dependency, include_beta=include_beta, ignore_deps=ignore_deps
+                    dependency,
+                    include_beta=include_beta,
+                    ignore_deps=ignore_deps,
+                    match_release_branch=match_release_branch,
                 )
                 static_dependencies.extend(static)
         return static_dependencies
@@ -595,7 +679,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return pretty
 
     def process_github_dependency(  # noqa: C901
-        self, dependency, indent=None, include_beta=None, ignore_deps=None
+        self,
+        dependency,
+        indent=None,
+        include_beta=None,
+        ignore_deps=None,
+        match_release_branch=None,
     ):
         if not indent:
             indent = ""
@@ -619,7 +708,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         repo_name = repo.name
 
         # Determine the commit
-        release, ref = self.get_ref_for_dependency(repo, dependency, include_beta)
+        release, ref = self.get_ref_for_dependency(
+            repo,
+            dependency,
+            include_beta,
+            match_release_branch=match_release_branch,
+        )
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=ref)
@@ -735,14 +829,21 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 raise DependencyResolutionError(
                     f"{indent}Could not find latest release for {namespace}"
                 )
-            version = release.name
+            if type(release) is str:
+                # 04t 2GP version id
+                dependency = {
+                    "name": f"Install {package_name or namespace} {release}",
+                    "version_id": release,
+                }
+            else:
+                dependency = {
+                    "name": f"Install {package_name or namespace} {release.name}",
+                    "namespace": namespace,
+                    "version": release.name,
+                }
+
             # If a latest prod version was found, make the dependencies a
             # child of that install
-            dependency = {
-                "name": f"Install {package_name or namespace} {version}",
-                "namespace": namespace,
-                "version": version,
-            }
             if dependencies:
                 dependency["dependencies"] = dependencies
             repo_dependencies.append(dependency)

@@ -2,6 +2,107 @@
 History
 =======
 
+3.28.0 (2021-02-04)
+-------------------
+
+Changes:
+
+- Added a new task, ``composite_request``, for calling the Composite REST Resource. #2341
+
+- The ``create_package_version`` task has a new option, ``version_base``, which can be used to increment the package version from a different base version instead of from the highest existing version of the 2gp package. The ``build_feature_test_package`` flow now uses this option to create a package version with the minor version incremented from the most recent 1gp release published to github. #2357
+
+- The ``create_package_version`` task now supports setting a post-install script and uninstall script when creating a managed package version, by setting the ``post_install_script`` and ``uninstall_script`` options. By default, these options will use the values of ``install_class`` and ``uninstall_class`` from the ``package`` section of ``cumulusci.yml``. #2366
+
+- Updated to `Snowfakery 1.5 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.5>`__.
+
+- Robot Framework:
+
+  - The ``Click related list button`` keyword has been modified to be more liberal in the types of DOM elements it will click on. Prior to this change it only clicked on anchor elements, but now also works for related list buttons that use an actual button element. #2356
+
+  - The ``Click modal button`` keyword now attempts to find the given button anywhere on the modal rather than only inside a ``force-form-footer`` element. #2356
+
+Issues closed:
+
+- Robot Framework:
+
+  - Custom locators can now be used with keywords that expect no element to be found (such as ``Page should not contain``). This previously resulted in an error. #2346
+
+  - Fixed an error when setting the ``tagstatexclude`` option for the ``robot`` task. #2365
+
+- Fixed a possible error when running CumulusCI flows embedded in a multi-threaded context. #2347
+
+3.27.0 (2021-01-21)
+-------------------
+
+Changes:
+
+- Snowfakery 1.4 which includes min, max, round functions. PR #2335
+
+- The ``ensure_record_types`` task has a new option, ``force_create``, which will create the Record Type even if other Record Types already exist on the object. (Thanks to @bethbrains) PR #2323
+
+- Allow num_records and num_records_tablename to be omitted when using the task generate_and_load_from_yaml. PR #2322
+
+- Added a new Metadata ETL task, add_fields_to_field_set which allows adding fields to existing field sets. (Thanks to @bethbrains) PR #2334
+
+- org_settings now accepts a dict option called settings in addition to (or instead of) the existing definition_file option. (Thanks to @bethbrains) PR #2337
+
+- New Robot Keywords for Performance Testing: #2291
+
+    * Set Test Elapsed Time: This keyword captures a computed rather than measured elapsed time for performance tests.
+
+    * Start Perf Time, End Perf Time: start a timer and then store the result.
+
+    * Set Test Metric: store any test metric, not just elapsed time.
+
+- CumulusCI now reports how long it took for flows to run. #2249
+
+Issues Closed:
+
+- Fixed an error that could occur while cleaning cache directories.
+
+- Fixed potential bugs in the Push Upgrade tasks.
+
+- CumulusCI displays more user friendly error message when encountering parsing errors in cumulusci.yml. #2311
+
+- We fixed an issue causing the extract_dataset task to fail in some circumstances when both an anchor date and Record Types were used. #2300
+
+- Handle a possible gack while collecting info about installed packages #2299
+
+
+3.26.0 (2021-01-08)
+-------------------
+
+Changes:
+
+- CumulusCI now reports how long it took for flows to run.
+
+- Flows ``ci_feature`` and ``ci_feature_beta_deps`` now only run the ``github_automerge_feature`` task if the branch begins with the configured feature branch prefix.
+
+- Running the ``deploy`` task with the ``path`` option set to a path that doesn't exist will log a warning instead of raising an error.
+
+- When the ``ci_feature_2gp`` and ``qa_org_2gp`` flows install dependencies, the latest beta version will be used when available.
+
+- CumulusCI can now resolve dependencies using second-generation packages (2GPs) for upstream projects. When a `ci_feature_2gp` or `qa_org_2gp` flow runs on a release branch (starting with ``prefix/NNN``, where ``prefix`` is the feature branch prefix and ``NNN`` is an integer), CumulusCI will look for a matching release branch in each upstream dependency and use a 2GP package build on that release branch, if present, falling back to a 1GP beta release if not present.
+
+Issues Closed:
+
+- Fixed the ``org_settings`` task to handle nested structures in org settings.
+
+- Fixed a bug where cci task run could fail without a helpful error if run outside of a cci project folder.
+
+- Fixed an issue that caused CumulusCI to generate invalid ``package.xml`` entries for Metadata API-format projects that include ``__mocks__`` or ``__tests__`` LWC directories.
+
+- Fixed the ``update_dependencies`` task to handle automatic injection of namespace prefixes when deploying an unpackaged dependency. The fix for the same issue in CumulusCI 3.25.0 was incomplete.
+
+- Fixed an issue where an unquoted ``anchor_date`` in bulk data mapping failed validation.
+
+- CumulusCI now handles an error that can occur while collecting info about installed packages
+
+- Fixed an issue causing the ``extract_dataset`` task to fail in some circumstances when both an anchor date and Record Types were used.
+
+- Fixed an issue where the deprecated syntax for record types was not working.
+
+
 3.25.0 (2020-12-10)
 -------------------
 

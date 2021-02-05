@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 from cumulusci.tasks.bulkdata.step import DataOperationType
 
@@ -29,16 +29,12 @@ def adjust_relative_dates(
     r = record.copy()
 
     for index in date_fields:
-        if operation is DataOperationType.QUERY:
-            index += 1  # For the Id field.
         if r[index]:
             r[index] = date_to_iso(
                 _offset_date(target_anchor, current_anchor, iso_to_date(r[index]))
             )
 
     for index in date_time_fields:
-        if operation is DataOperationType.QUERY:
-            index += 1  # For the Id field.
         if r[index]:
             r[index] = salesforce_from_datetime(
                 _offset_datetime(
@@ -82,6 +78,8 @@ def date_to_iso(d):
 
 def iso_to_date(s):
     """Convert ISO8601 string to date object"""
+    if isinstance(s, date):
+        return s
     return datetime.strptime(s, "%Y-%m-%d").date()
 
 

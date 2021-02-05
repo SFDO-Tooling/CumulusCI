@@ -551,12 +551,17 @@ writing them in the `Snowfakery docs
 
 Once you have it, you can fill an org with data like this:
 
+``$ cci task run generate_and_load_from_yaml -o generator_yaml
+datasets/some_snowfakery_recipe.yml``
+
+If you would like to execute the recipe multiple times to generate
+more data, you do so like this:
 
 ``$ cci task run generate_and_load_from_yaml -o generator_yaml
-datasets/some_snowfakery_yaml -o num_records 1000 -o num_records_tablename
-Account —org dev``
+datasets/some_snowfakery_recipe.yml -o num_records 1000 -o num_records_tablename
+Account —-org dev``
 
-``generator_yaml`` is a reference to your Snowkfakery recipe.
+``generator_yaml`` is a reference to your Snowfakery recipe.
 
 ``num_records_tablename`` says what record type will control how
 many records are created.
