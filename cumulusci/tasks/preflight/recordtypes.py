@@ -1,6 +1,6 @@
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
-class GetRecordTypesForSobject(BaseSalesforceApiTask):
+class GetHasRecordTypesForSobject(BaseSalesforceApiTask):
     task_options = {
         "sobject": {
             "description": "The sObject for which we want check if any recordtypes exist",
