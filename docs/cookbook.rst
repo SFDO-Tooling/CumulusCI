@@ -351,7 +351,7 @@ Tests workflow, use your editor to create a file named
            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
            ./sfdx/install
            echo ${{ secrets.SFDX_AUTH_URL }} > sfdx_auth
-           sfdx force:auth:sfdxurl:store -f sfdx_auth -d
+           sfdx auth:sfdxurl:store -f sfdx_auth -d
        - name: Set up Python
          uses: actions/setup-python@v1
          with:
@@ -509,7 +509,7 @@ Here is a complete workflow to run Robot Framework tests for any commit:
            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
            ./sfdx/install
            echo ${{ secrets.SFDX_AUTH_URL }} > sfdx_auth
-           sfdx force:auth:sfdxurl:store -f sfdx_auth -d
+           sfdx auth:sfdxurl:store -f sfdx_auth -d
        - name: Set up Python
          uses: actions/setup-python@v1
          with:
