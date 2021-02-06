@@ -221,6 +221,7 @@ class CaptureSalesforceOAuth(object):
 
         try:
             # for some reason this is required for Safari (checked Feb 2021)
+            # https://github.com/SFDO-Tooling/CumulusCI/pull/2373
             old_timeout = socket.getdefaulttimeout()
             socket.setdefaulttimeout(3)
             self.httpd.serve_forever()
