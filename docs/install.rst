@@ -15,7 +15,7 @@ To install homebrew:
 
 2. Enter::
 
-       /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 
 3. If you are prompted for a password, this is your computer's password.
    Enter it to allow your computer to install Homebrew.

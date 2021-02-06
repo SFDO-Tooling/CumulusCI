@@ -146,7 +146,7 @@ Release to (Future) Release Merges
 ----------------------------------
 Because release branches are so long-lived, and so much work goes into them, their diffs can get quite large.
 This means headaches are inevitable the day after a major release, and you need to pull down all of the changes from the new release into the next release branch (which has likely been in development for months already).
-To alleviate this pain point, CumulusCI can ensure that all release branches propagate commits they receive to other existing release branches that correspond to future releases.
+To alleviate this pain point, CumulusCI can ensure that all commits made to the *lowest numbered* release branch are propagated to all other existing release branches.
 
 Consider the following branches in a GitHub repository:
 

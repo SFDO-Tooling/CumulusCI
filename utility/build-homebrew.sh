@@ -1,34 +1,33 @@
 #!/bin/sh
 
-OUT_FILE="$1" || exit 1
+# https://wizardzines.com/comics/bash-errors/
+set -euo pipefail
+OUT_FILE="$1"
 
-ENV_DIR="$(mktemp -d)" || exit 1
-RES_FILE="$(mktemp)" || exit 1
-PYPI_JSON="$(mktemp)" || exit 1
+ENV_DIR="$(mktemp -d)"
+RES_FILE="$(mktemp)" 
+PYPI_JSON="$(mktemp)" 
 
 echo " "
 echo "=> Collecting package info from PyPI..."
 echo " "
-curl -L "https://pypi.io/pypi/cumulusci/json" > "$PYPI_JSON" || exit 1
-PACKAGE_URL="$(cat "$PYPI_JSON" | jq '.urls[1].url')" || exit 1
-PACKAGE_SHA="$(cat "$PYPI_JSON" | jq '.urls[1].digests.sha256')" || exit 1
+curl -L "https://pypi.io/pypi/cumulusci/json" > "$PYPI_JSON" 
+PACKAGE_URL="$(cat "$PYPI_JSON" | jq '.urls[1].url')" 
+PACKAGE_SHA="$(cat "$PYPI_JSON" | jq '.urls[1].digests.sha256')" 
 PACKAGE_VERSION="$(cat cumulusci/version.txt)"
 
 echo " "
 echo "=> Creating a temporary virtualenv and installing CumulusCI..."
 echo " "
-python3.8 -m venv "$ENV_DIR" || exit 1
-source "$ENV_DIR/bin/activate" || exit 1
+python3.8 -m venv "$ENV_DIR" 
+source "$ENV_DIR/bin/activate" 
 pip install -U pip
-pip install --no-cache-dir cumulusci==$PACKAGE_VERSION homebrew-pypi-poet || exit 1
+pip install --no-cache-dir cumulusci==$PACKAGE_VERSION homebrew-pypi-poet 
 
 echo " "
 echo "=> Collecting dependencies and generating resource stanzas..."
 echo " "
 poet cumulusci | awk '/resource "cumulusci"/{c=5} !(c&&c--)' > "$RES_FILE"
-if [ $? -ne 0 ]; then
-   exit 1
-fi
 
 echo " "
 echo "=> Writing Homebrew Formula to ${OUT_FILE}..."

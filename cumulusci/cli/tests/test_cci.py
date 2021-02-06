@@ -289,6 +289,22 @@ class TestCCI(unittest.TestCase):
 
         os.remove("tempfile.log")
 
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_main__CliRuntime_error(self, CliRuntime, get_tempfile_logger, tee):
+        CliRuntime.side_effect = CumulusCIException("something happened")
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
+
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            with pytest.raises(SystemExit):
+                cci.main(["cci", "org", "info"])
+
+        assert "something happened" in stderr.getvalue()
+
+        tempfile = Path("tempfile.log")
+        tempfile.unlink()
+
     @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")

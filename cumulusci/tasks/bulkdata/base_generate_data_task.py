@@ -46,7 +46,8 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
             self.logger.info("No database URL: creating sqlite file %s" % sqlite_path)
             self.database_url = "sqlite:///" + sqlite_path
 
-        self.num_records = int(self.options.get("num_records", 1))
+        num_records = self.options.get("num_records")
+        self.num_records = int(num_records) if num_records is not None else None
 
     def _run_task(self):
         self._generate_data(

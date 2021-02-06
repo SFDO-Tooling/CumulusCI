@@ -181,6 +181,53 @@ Options
 
 	 Metadata API version to use, if not project__package__api_version.
 
+**add_fields_to_field_set**
+==========================================
+
+**Description:** Adds specified fields to a given field set.
+
+**Class:** cumulusci.tasks.metadata_etl.field_sets.AddFieldsToFieldSet
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run add_fields_to_field_set``
+
+
+Options
+------------------------------------------
+
+
+``--field_set FIELDSET``
+	 *Required*
+
+	 Name of field set to affect, in Object__c.FieldSetName form.
+
+``--fields FIELDS``
+	 *Required*
+
+	 Array of field API names to add to the field set. Can include related fields using AccountId.Name or Lookup__r.CustomField__c style syntax.
+
+``--api_names APINAMES``
+	 *Optional*
+
+	 List of API names of entities to affect
+
+``--managed MANAGED``
+	 *Optional*
+
+	 If False, changes namespace_inject to replace tokens with a blank string
+
+``--namespace_inject NAMESPACEINJECT``
+	 *Optional*
+
+	 If set, the namespace tokens in files and filenames are replaced with the namespace's prefix
+
+``--api_version APIVERSION``
+	 *Optional*
+
+	 Metadata API version to use, if not project__package__api_version.
+
 **add_permission_set_perms**
 ==========================================
 
@@ -856,6 +903,69 @@ Options
 
 	 If True, the command will use stderr, stdout, and stdin of the main process.Defaults to False.
 
+**composite_request**
+==========================================
+
+**Description:** Execute a series of REST API requests in a single call
+
+**Class:** cumulusci.tasks.salesforce.composite.CompositeApi
+
+This task is a wrapper for Composite REST API calls. Given a list of JSON files
+(one request body per file), POST each and process the returned composite
+result. Files are processed in the order given by the ``data_files`` option.
+
+In addition, this task will process the request body and replace namespace
+(``%%%NAMESPACE%%%``) and user ID (``%%%USERID%%%``) tokens. To avoid username
+collisions, use the ``randomize_username`` option to replace the top-level
+domains in any ``Username`` field with a random string.
+
+When the top-level ``allOrNone`` property for the request is set to true a
+SalesforceException is raised if an error is returned for any subrequest,
+otherwise partial successes will not raise an exception.
+
+Example Task Definition
+-----------------------
+
+.. code-block::  yaml
+
+  tasks:
+      example_composite_request:
+          class_path: cumulusci.tasks.salesforce.composite.CompositeApi
+          options:
+             data_files:
+                 - "datasets/composite/users.json"
+                 - "datasets/composite/setup_objects.json"
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run composite_request``
+
+
+Options
+------------------------------------------
+
+
+``--data_files DATAFILES``
+	 *Required*
+
+	 A list of paths, where each path is a JSON file containing a composite request body.
+
+``--managed MANAGED``
+	 *Optional*
+
+	 If True, replaces namespace tokens with the namespace prefix.
+
+``--namespaced NAMESPACED``
+	 *Optional*
+
+	 If True, replaces namespace tokens with the namespace prefix.
+
+``--randomize_username RANDOMIZEUSERNAME``
+	 *Optional*
+
+	 If True, randomize the TLD for any 'Username' fields.
+
 **connected_app**
 ==========================================
 
@@ -1059,10 +1169,15 @@ Options
 
 	 Version name
 
+``--version_base VERSIONBASE``
+	 *Optional*
+
+	 The version number to use as a base before incrementing. Optional; defaults to the highest existing version number of this package. Can be set to ``latest_github_release`` to use the version of the most recent release published to GitHub.
+
 ``--version_type VERSIONTYPE``
 	 *Optional*
 
-	 The part of the version number to increment. Options are major, minor, patch.  Defaults to minor
+	 The part of the version number to increment. Options are major, minor, patch, build.  Defaults to build
 
 ``--skip_validation SKIPVALIDATION``
 	 *Optional*
@@ -1073,6 +1188,16 @@ Options
 	 *Optional*
 
 	 If true, create an org-dependent unlocked package. Default: false.
+
+``--post_install_script POSTINSTALLSCRIPT``
+	 *Optional*
+
+	 Post-install script (for managed packages)
+
+``--uninstall_script UNINSTALLSCRIPT``
+	 *Optional*
+
+	 Uninstall script (for managed packages)
 
 ``--force_upload FORCEUPLOAD``
 	 *Optional*
@@ -1729,6 +1854,11 @@ Options
 
 	 The Description of the Record Type.  Only uses the first 255 characters.
 
+``--force_create FORCECREATE``
+	 *Optional*
+
+	 If true, the Record Type will be created even if a default Record Type already exists on this sObject. Defaults to False.
+
 **execute_anon**
 ==========================================
 
@@ -1875,12 +2005,12 @@ Options
 ``--num_records NUMRECORDS``
 	 *Optional*
 
-	 How many records to generate: total number of opportunities.
+	 Target number of records. You will get at least this many records, but may get more. The recipe will always execute to completion, so if it creates 3 records per execution and you ask for 5, you will get 6.
 
 ``--num_records_tablename NUMRECORDSTABLENAME``
 	 *Optional*
 
-	 A string representing which table to count records in.
+	 A string representing which table determines when the recipe execution is done.
 
 ``--batch_size BATCHSIZE``
 	 *Optional*
@@ -2699,7 +2829,7 @@ Options
 **org_settings**
 ==========================================
 
-**Description:** Apply org settings from a scratch org definition file
+**Description:** Apply org settings from a scratch org definition file or dict
 
 **Class:** cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
 
@@ -2717,6 +2847,11 @@ Options
 	 *Optional*
 
 	 sfdx scratch org definition file
+
+``--settings SETTINGS``
+	 *Optional*
+
+	 A dict of settings to apply
 
 ``--api_version APIVERSION``
 	 *Optional*
@@ -3536,7 +3671,7 @@ Options
 ``--options OPTIONS``
 	 *Optional*
 
-	 A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml.
+	 A dictionary of options to robot.run method. In simple cases this can be specified on the comand line using name:value,name:value syntax. More complex cases can be specified in cumulusci.yml using YAML dictionary syntax.
 
 ``--name NAME``
 	 *Optional*
@@ -4335,6 +4470,11 @@ Options
 	 *Optional*
 
 	 Which users to install packages for (FULL = all users, NONE = admins only)
+
+``--prefer_2gp_from_release_branch PREFER2GPFROMRELEASEBRANCH``
+	 *Optional*
+
+	 If True and this build is on a release branch (feature/NNN, where NNN is an integer), or a child branch of a release branch, resolve GitHub managed package dependencies to 2GP builds present on a matching release branch on the dependency.
 
 **update_metadata_first_child_text**
 ==========================================

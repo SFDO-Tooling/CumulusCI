@@ -5,6 +5,7 @@ import textwrap
 
 from cumulusci.tasks.salesforce import Deploy
 from cumulusci.utils import temporary_dir
+from cumulusci.core.utils import dictmerge
 
 
 SETTINGS_XML = """<?xml version="1.0" encoding="UTF-8"?>
@@ -30,6 +31,7 @@ class DeployOrgSettings(Deploy):
 
     task_options = {
         "definition_file": {"description": "sfdx scratch org definition file"},
+        "settings": {"description": "A dict of settings to apply"},
         "api_version": {"description": "API version used to deploy the settings"},
     }
 
@@ -42,11 +44,16 @@ class DeployOrgSettings(Deploy):
         self.options["namespaced_org"] = False
 
     def _run_task(self):
-        with open(self.options["definition_file"], "r") as f:
-            scratch_org_definition = json.load(f)
+        settings = {}
+        if self.options.get("definition_file"):
+            with open(self.options["definition_file"], "r") as f:
+                scratch_org_definition = json.load(f)
+                settings = scratch_org_definition.get("settings", {})
 
-        settings = scratch_org_definition.get("settings", {})
+        dictmerge(settings, self.options.get("settings", {}))
+
         if not settings:
+            self.logger.info("No settings provided to deploy.")
             return
 
         api_version = (
@@ -88,7 +95,6 @@ def build_settings_package(settings: dict, api_version: str):
             )
             with open(settings_file, "w") as f:
                 f.write(SETTINGS_XML.format(settingsName=settings_name, values=values))
-            print(SETTINGS_XML.format(settingsName=settings_name, values=values))
         with open("package.xml", "w") as f:
             f.write(PACKAGE_XML.format(api_version=api_version))
 

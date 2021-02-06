@@ -150,7 +150,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             operation=mapping.action,
             api_options={"batch_size": mapping.batch_size, "bulk_mode": bulk_mode},
             context=self,
-            fields=mapping.get_field_list(),
+            fields=mapping.get_load_field_list(),
             api=mapping.api,
             volume=query.count(),
         )
@@ -173,7 +173,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         total_rows = 0
 
         if mapping.anchor_date:
-            date_context = mapping.get_relative_date_context(self.org_config)
+            date_context = mapping.get_relative_date_context(
+                mapping.get_load_field_list(), self.org_config
+            )
 
         for row in query.yield_per(10000):
             total_rows += 1
