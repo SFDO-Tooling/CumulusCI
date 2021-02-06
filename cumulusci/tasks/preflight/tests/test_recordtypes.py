@@ -29,10 +29,3 @@ class TestRecordTypePreflights(unittest.TestCase):
             "Account": ["Business_Account", "PersonAccount"],
             "ActionPlanTemplate": ["Default"],
         }
-        # testing preflight check 'when' logic
-        assert bool("Account" in task.return_values)
-        assert not bool("Case" in task.return_values)
-        assert bool(
-            "ActionPlanTemplate" in task.return_values
-            and "Default" in task.return_values["ActionPlanTemplate"]
-        )
