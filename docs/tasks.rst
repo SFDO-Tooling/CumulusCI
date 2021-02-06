@@ -2139,6 +2139,20 @@ Command Syntax
 
 
 
+**get_existing_recordtypes**
+==========================================
+
+**Description:** Retrieves a list of all RecordTypes that exist in the format SobjectType: [DeveloperName, DeveloperName2]
+
+**Class:** cumulusci.tasks.preflight.recordtypes.CheckSObjectRecordTypes
+
+Command Syntax
+------------------------------------------
+
+``$ cci task run get_existing_recordtypes``
+
+
+
 **github_parent_pr_notes**
 ==========================================
 
