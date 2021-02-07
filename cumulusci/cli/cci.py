@@ -1418,7 +1418,7 @@ def task_list(runtime, plain, print_json):
     is_flag=True,
     help="If true, write output to a file (./docs/project_tasks.rst or ./docs/cumulusci_tasks.rst)",
 )
-@pass_runtime(require_project=False,)
+@pass_runtime(require_project=False)
 def task_doc(runtime, project=False, write=False):
     if project and runtime.project_config is None:
         raise click.UsageError(
