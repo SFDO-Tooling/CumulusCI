@@ -278,3 +278,21 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 # texinfo_no_detailmenu = False
+
+
+def generate_task_and_flow_docs(_):
+    """Run cci commands to generate tasks.rst and flows.rst"""
+    import subprocess
+    from sphinx.util.logging import getLogger
+
+    logger = getLogger("cci")
+    logger.info("Generating docs/tasks.rst from cci tasks")
+    with open("tasks.rst", "w") as task_docs:
+        subprocess.run(["cci", "task", "doc"], stdout=task_docs)
+    logger.info("Generating docs/flows.rst from cci flows")
+    with open("flows.rst", "w") as flow_docs:
+        subprocess.run(["cci", "flow", "doc"], stdout=flow_docs)
+
+
+def setup(app):
+    app.connect("builder-inited", generate_task_and_flow_docs)
