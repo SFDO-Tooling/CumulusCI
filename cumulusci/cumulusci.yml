@@ -240,6 +240,9 @@ tasks:
     generate_and_load_from_yaml:
         class_path: cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml
         group: Data Operations
+    parallel_generate_and_load_from_recipe:
+        class_path: cumulusci.tasks.bulkdata.parallel_generate_and_load_from_recipe.ParallelGenerateAndLoadFromRecipe
+        group: Data Operations
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.preflight.packages.GetInstalledPackages
