@@ -288,10 +288,10 @@ def generate_task_and_flow_docs(_):
     logger = getLogger("cci")
     logger.info("Generating docs/tasks.rst from cci tasks")
     with open("tasks.rst", "w") as task_docs:
-        subprocess.run(["cci", "task", "doc"], stdout=task_docs)
+        subprocess.run(["cci", "task", "doc"], stdout=task_docs, check=True)
     logger.info("Generating docs/flows.rst from cci flows")
     with open("flows.rst", "w") as flow_docs:
-        subprocess.run(["cci", "flow", "doc"], stdout=flow_docs)
+        subprocess.run(["cci", "flow", "doc"], stdout=flow_docs, check=True)
 
 
 def setup(app):
