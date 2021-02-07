@@ -41,7 +41,7 @@ import cumulusci
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode"]
+extensions = []
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -57,7 +57,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"CumulusCI"
-copyright = u"2020, Salesforce.org"
+copyright = u"2021, Salesforce.org"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -278,29 +278,3 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 # texinfo_no_detailmenu = False
-
-
-# Run sphinx api-doc
-def run_apidoc(_):
-    from sphinx.ext.apidoc import main
-    import os
-    import sys
-
-    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    module = os.path.join(cur_dir, "..", "cumulusci")
-    main(
-        [
-            "-T",
-            "-M",
-            "-o",
-            os.path.join(cur_dir, "api"),
-            module,
-            os.path.join(cur_dir, "..", "**", "tests", "*"),
-            "--force",
-        ]
-    )
-
-
-def setup(app):
-    app.connect("builder-inited", run_apidoc)
