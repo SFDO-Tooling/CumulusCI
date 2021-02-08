@@ -78,7 +78,7 @@ Run ``cci org list`` to see your org listed under the "Connected Org" table.
     ┌Connected Orgs────┬──────────────────────────────┬────────────┐
     │ Name   │ Default │ Username                     │ Expires    │
     ├────────┼─────────┼──────────────────────────────┼────────────┤
-    │ devhub │         │ p.gibbons@inicorp.devhub     │ Persistent │
+    │ devhub │         │ j.holt@mydomain.devhub       │ Persistent │
     └────────┴─────────┴──────────────────────────────┴────────────┘
 
 Verify a successful connection to the org by logging in.
@@ -105,7 +105,7 @@ Connect an org and make it available to *all* CumulusCI projects on your compute
 Use a Custom Connected App
 ----------------------------
 
-CumulusCI uses a preconfigured Connected App to authenticate to Salesforce orgs that use OAuth2. In most cases this works fine. To control the Connected App for specific security or compliance requirements, create your own Connected App and configure CumulusCI to use it when connecting to orgs.
+CumulusCI uses a preconfigured Connected App to authenticate to Salesforce orgs that use OAuth2. In most use cases this is all you need to authenticate your org, but to control the Connected App for specific security or compliance requirements (such as adding a private key to sign a certificate connected with the configuration, or enforcing restrictions on user activity), create your own Connected App and configure CumulusCI to use it when connecting to orgs.
 
 To create a custom Connected App, run the ``connected_app`` task, and then manually edit its configuration to suit your requirements.
 
@@ -113,7 +113,7 @@ To create a custom Connected App, run the ``connected_app`` task, and then manua
 
 ..
 
-    Example: Create a Connected App in the DevHub org connected to ``SFDX`` with the label ``cumulusci`` and set it as the ``connected_app`` service in CumulusCI.
+    Example: Create a Connected App in the DevHub org connected to SFDX with the label ``cumulusci`` and set it as the ``connected_app`` service in CumulusCI.
 
 .. code-block:: console
 
@@ -132,4 +132,4 @@ To edit the Connected App's OAuth scopes:
 #. Click "Edit."
 #. Add or remove OAuth scopes as desired.
 
-For a full list of options see the `connected_app<TODO>`_ task reference documentation.
+For a full list of options, see the `connected_app<TODO>`_ task reference documentation.
