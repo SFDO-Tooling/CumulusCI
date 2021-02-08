@@ -28,7 +28,6 @@ Contents:
    history
    authors
    contributing
-   api_reference
 
 Indices and tables
 ==================

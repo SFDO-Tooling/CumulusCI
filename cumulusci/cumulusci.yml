@@ -1056,6 +1056,8 @@ flows:
                 options:
                     package_type: Managed
                     package_name: $project_config.project__package__name Managed Feature Test
+                    version_base: latest_github_release
+                    version_type: minor
                     skip_validation: True
 
     unmanaged_ee:
