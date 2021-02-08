@@ -1,11 +1,11 @@
 Manage Scratch Orgs
 ===================
 
-Scratch orgs are temporary Salesforce orgs that can be quickly set up "from scratch," and which last for no more than 30 days. There are several reasons why scratch orgs are encouraged for development and testing over sandboxes or Developer Edition orgs.
+Scratch orgs are temporary Salesforce orgs that can be quickly set up "from scratch," and which last for no more than 30 days. There are several reasons why scratch orgs are encouraged for development and testing over sandboxes or Developer Edition orgs. To start, scratch orgs:
 
-* Scratch orgs provide a repeatable starting point without the challenge of managing persistent orgs' state over time.
-* Scratch orgs are scalable and ensure that individual, customized environments are available to everyone in the development lifecycle.
-* Scratch orgs facilitate a fully source-driven development process built around best practices.
+* Provide a repeatable starting point without the challenge of managing persistent orgs' state over time
+* Are scalable and ensure that individual, customized environments are available to everyone in the development lifecycle
+* Facilitate a fully source-driven development process built around best practices
 
 CumulusCI offers tools for working with all types of Salesforce orgs, but provides the most value when working with scratch orgs. CumulusCI automation helps realize the promise of scratch orgs as low cost, repeatable, source-driven environments for every phase of the product lifecycle.
 
