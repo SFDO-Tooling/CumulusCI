@@ -6,7 +6,7 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 
 
 class TestRecordTypePreflights(unittest.TestCase):
-    def test_recordType_preflight(self):
+    def test_record_type_preflight(self):
         task = create_task(CheckSObjectRecordTypes, {})
         task.tooling = Mock()
         task.tooling.query.return_value = {
@@ -23,7 +23,7 @@ class TestRecordTypePreflights(unittest.TestCase):
         task._run_task()
 
         task.tooling.query.assert_called_once_with(
-            "Select SObjectType,FullName FROM RecordType"
+            "Select SobjectType, FullName FROM RecordType"
         )
         assert task.return_values == {
             "Account": ["Business_Account", "PersonAccount"],

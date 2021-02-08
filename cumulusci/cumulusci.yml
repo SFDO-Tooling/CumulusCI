@@ -252,8 +252,8 @@ tasks:
         description: Retrieves a list of the currently available Permission Set License definition keys
         class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
         group: Salesforce Preflight Checks
-    get_existing_recordtypes:
-        description: "Retrieves a list of all RecordTypes that exist in the format SobjectType: [DeveloperName, DeveloperName2]"
+    get_existing_record_types:
+        description: "Retrieves all Record Types in the org as a dict, with sObject names as keys and lists of Developer Names as values."
         class_path: cumulusci.tasks.preflight.recordtypes.CheckSObjectRecordTypes
         group: Salesforce Preflight Checks
     github_parent_pr_notes:
