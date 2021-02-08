@@ -1418,9 +1418,7 @@ def task_list(runtime, plain, print_json):
     is_flag=True,
     help="If true, write output to a file (./docs/project_tasks.rst or ./docs/cumulusci_tasks.rst)",
 )
-@pass_runtime(
-    require_project=False,
-)
+@pass_runtime(require_project=False)
 def task_doc(runtime, project=False, write=False):
     if project and runtime.project_config is None:
         raise click.UsageError(
@@ -1456,7 +1454,8 @@ def task_doc(runtime, project=False, write=False):
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
 @pass_runtime(require_project=False)
 def flow_doc(runtime):
-    with open("docs/flows.yml", "r", encoding="utf-8") as f:
+    flow_info_path = Path(__file__, "..", "..", "..", "docs", "flows.yml").resolve()
+    with open(flow_info_path, "r", encoding="utf-8") as f:
         flow_info = cci_safe_load(f)
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
     flow_info_groups = list(flow_info["groups"].keys())

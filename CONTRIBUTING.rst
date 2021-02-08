@@ -35,8 +35,6 @@ Write Documentation
 
 CumulusCI could always use more documentation, whether as part of the official CumulusCI docs, in docstrings, or even on the web in blog posts, articles, and such.
 
-If your contribution is a new or changed task or flow, you should run "make docs" to regenerate `docs/tasks.rst` and `docs/flows.rst`. Do not edit them in a text editor and please double check that only the changes you intended were captured.
-
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
