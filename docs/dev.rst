@@ -18,7 +18,7 @@ To run the ``dev_org`` flow against the project's `default org<TODO>`_:
 
     $ cci flow run dev_org
 
-You can also use the ``--org`` option to explicitly list the org.
+To explictly list the org ``<org_name>`` against the dev_org flow, use the ``--org`` option.
 
     Example: Run the ``dev_org`` flow against the org currently defined as ``dev`` in CumulusCI.
 
@@ -55,13 +55,20 @@ To make changes to capture in an org, use the ``snapshot_changes`` task to creat
     
     These flows all run ``snapshot_changes`` as their last step.
 
-The ``list_changes`` and ``retrieve_changes`` tasks detect new metadata but ignore any prior changes.
+The ``list_changes`` and ``retrieve_changes`` tasks detect new or modified metadata in an org, but ignore any changes to metadata made prior to the last snapshot.
 
-To check that the snapshot was created successfully:
+A snapshot is created successfully when the final line of output for ``list_changes`` and ``retrieve_changes`` reads "Found no changes."
 
 .. code-block:: console
 
     $ cci task run list_changes --org dev
+
+    YYYY-MM-DD HH:MM:SS: Getting org info from Salesforce CLI for <username>
+    YYYY-MM-DD HH:MM:SS: Beginning task: ListChanges
+    YYYY-MM-DD HH:MM:SS: As user: <username>
+    YYYY-MM-DD HH:MM:SS: In org: <org_name>
+    YYYY-MM-DD HH:MM:SS:
+    YYYY-MM-DD HH:MM:SS: Found no changes.
 
 
 
@@ -99,6 +106,8 @@ Retrieve Changes
 
 The ``retrieve_changes`` task supports both ``sfdx`` and ``mdapi`` formatted source code. It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_ sObject to detect what has changed in an org, but also lets you be more selective regarding which components to retrieve when compared to the ``dx_pull`` task.
 
+.. note:: The ``dx_pull`` task is a wrapper for the ``sfdx force:source:pull`` command. This command pulls all changed source from the scratch org into your project's repository.
+
 Manual tracking of component versions also offers the possibility of retrieving some changes into one directory, and then running the task again to retrieve other changes into a different directory.
  
 To capture changes in an org:
@@ -111,7 +120,7 @@ The task accepts ``include``, ``exclude``, and ``types`` options for filtering t
 
 After the metadata is retrieved, the org snapshot updates so that the retrieved components are no longer included in ``list_changes``. 
 
-.. tip:: Avoid this by setting the ``snapshot`` option to False.
+.. tip:: If you do not want a new snapshot to be created after running the ``retrieve_changes`` task, configure the ``snapshot`` option to ``False`` in the ``cumulusci.yml`` file.
 
 By default, changes are retrieved into the ``src`` directory when using metadata source format, or the default ``sfdx`` package directory (``force-app``) when using ``sfdx`` source format.
 
@@ -128,7 +137,7 @@ CumulusCI has multiple tasks for retrieving metadata from an org environment. Se
 Push Changes
 ------------
 
-Developers rarely edit code directly in an org environment, but instead use an editor or IDE like VSCode or IntelliJ. After code (or other metadata) in an editor, push these changes from your project's local repository to the target org.
+Developers rarely edit code directly in an org environment, but instead use an editor or IDE like VSCode or IntelliJ. After modifying code (or other metadata) in an editor, push these changes from your project's local repository to the target org.
 
 If your project uses the ``sfdx`` source format, use the ``dx_push`` task.
 
@@ -490,8 +499,7 @@ If the repository you are referring to has dependency metadata under unpackaged/
 Automatic Cleaning of ``meta.xml`` Files on Deploy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To let CumulusCI fully manage the project's dependencies, the ``deploy`` task (and other tasks based on ``cumulusci.tasks.salesforce.Deploy``, or subclasses of it) automatically removes the ``<packageVersion>`` element 
-and its children from all ``meta.xml`` files in the deployed metadata. Removing these elements does not affect the files on the filesystem.
+To let CumulusCI fully manage the project's dependencies, the ``deploy`` task (and other tasks based on ``cumulusci.tasks.salesforce.Deploy``, or subclasses of it) automatically removes the ``<packageVersion>`` and its children from all ``meta.xml`` files in the deployed metadata. Removing these elements does not affect the files on the filesystem.
 
 The reason for stripping ``<packageVersion>`` elements on deploy is that the target Salesforce org automatically adds them back with the installed version of the referenced namespace. This feature lets CumulusCI fully manage dependencies, and avoids rushing a new commit of ``meta.xml`` files when a new underlying package version is available.
 
