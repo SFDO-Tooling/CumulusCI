@@ -76,52 +76,94 @@ To see what components have changed in a target org:
 
 .. note::
     
-    This functionality relies on Salesforce's source tracking feature, so it's only available in scratch orgs.
+    This functionality relies on Salesforce's source tracking feature, which is currently only available in Scratch Orgs, Developer Sandboxes, and Developer Pro Sandboxes.
 
-To include/exclude components from the list using the ``--include`` or ``--exclude`` option:
-
-.. code-block:: console
-
-    $ cci task run list_changes --org dev --include "test.*,another_regex" --exclude "something_to_exclude"
-
-The ``include`` and ``exclude`` patterns are matched against both the metadata type and name of the component.
-
-To include all changed components of specific types:
-
-.. code-block:: console
-
-    $ cci task run list_changes --org dev --types "CustomObject,CustomField"
-
-
+For more control over the changes you want listed see the `List & Retrieve Options`_ section.
 
 Retrieve Changes
 ----------------
 
-The ``retrieve_changes`` task supports both ``sfdx`` and ``mdapi`` formatted source code. It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_ sObject to detect what has changed in an org, but also lets you be more selective regarding which components to retrieve when compared to the ``dx_pull`` task.
+The ``retrieve_changes`` task supports both ``sfdx`` and ``mdapi`` formatted source code.
+It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_
+sObject to detect what has changed in an org, but also lets you be more selective regarding which components to retrieve when compared to the ``dx_pull`` task.
 
-Manual tracking of component versions also offers the possibility of retrieving some changes into one directory, and then running the task again to retrieve other changes into a different directory.
+Manual tracking of component versions also offers the possibility of retrieving
+some changes into one directory, and then running the task again to retrieve other changes into a different directory.
  
-To capture changes in an org:
+To capture all changes in an org:
 
 .. code-block:: console
 
     $ cci task run retrieve_changes --org dev
 
-The task accepts ``include``, ``exclude``, and ``types`` options for filtering the list of changed components, and for scenarios where you don't want to retrieve all changed components.
+For more control over the changes you want to retrieve see the `List & Retrieve Options`_ section.
 
-After the metadata is retrieved, the org snapshot updates so that the retrieved components are no longer included in ``list_changes``. 
 
-.. tip:: Avoid this by setting the ``snapshot`` option to False.
 
-By default, changes are retrieved into the ``src`` directory when using metadata source format, or the default ``sfdx`` package directory (``force-app``) when using ``sfdx`` source format.
+List & Retrieve Options 
+-----------------------
+When developing in an org, it is often the case that there are more than one
+piece of metadata that you have modified and would potentially want to retrieve
+back into your project's local repository on your machine. 
 
-To retrieve into a different location using the ``--path`` option:
+If is a general practice to use the ``list_changes`` command to narrow down exactly the elements
+you want to retrieve (making use of the following options), then running ``retrieve_changes`` task
+once the correct set of metadata is listed.
+
+CumulusCI offers several options for narrowing down the metadata you want to list/retrieve with surgical precision.
+
+
+
+``--include`` & ``--exclude``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When retrieving metadata from an org, CumulusCI processes the metadata in strings with the following format: ``MemberType: MemberName``
+
+The ``--include`` and ``--exclude`` options allow you to pass multiple `regular expressions <https://en.wikipedia.org/wiki/Regular_expression>`_
+to match against the incoming changed metadata. This metadata is either included or excluded depending on which option the
+regular expression(s) is passed to. Multiple regular expressions can be passed in a comma-separated list.
+
+For example, the following will list all modified metadata that ends in "Test" and "Data" in the default org.
+
+.. code-block:: console
+
+    $ cci task run list_changes --include "Test$,Data$"
+
+Since the metadata string that CumulusCI processes also includes the ``MemberType`` we can do something like:
+
+.. code-block:: console
+
+    $ cci task run list_changes --exclude "^Profile: "
+
+This will list all metadata changes in an org *except* for changes to Profiles.
+
+
+
+``--types``
+^^^^^^^^^^^
+If you want to list or retrieve changed metadata of the same type you can use the ``--types`` option along with the
+type(s) (`SourceMember.MemberType <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_)
+of the metadata types you would like to retrieve.
+
+The following retrieves all changed ``ApexClasses`` and ``ApexComponents`` in the default org.
+
+.. code-block:: console
+
+    $ cci task run list_changes --types ApexClass,ApexComponent
+
+
+
+``--path``
+^^^^^^^^^^
+.. important:: This option only works with the ``retrieve_changes`` task.
+
+By default, changes are retrieved into the ``src`` directory when using metadata source format, 
+or the default ``sfdx`` package directory (``force-app``) when using ``sfdx`` source format.
+
+To retrieve metadata into a different location using the ``--path`` option:
 
 .. code-block:: console
 
     $ cci task run retrieve_changes --org dev --path your/unique/path
-
-CumulusCI has multiple tasks for retrieving metadata from an org environment. See the comprehensive list of `retrieve changes`_ tasks in the cheat sheet.
 
 
 
