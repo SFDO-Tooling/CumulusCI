@@ -9,7 +9,7 @@ class TestRecordTypePreflights(unittest.TestCase):
     def test_record_type_preflight(self):
         task = create_task(CheckSObjectRecordTypes, {})
         task.tooling = Mock()
-        task.tooling.query.return_value = {
+        task.tooling.query_all.return_value = {
             "totalSize": 3,
             "records": [
                 {"SobjectType": "Account", "FullName": "Account.Business_Account"},
@@ -22,7 +22,7 @@ class TestRecordTypePreflights(unittest.TestCase):
         }
         task._run_task()
 
-        task.tooling.query.assert_called_once_with(
+        task.tooling.query_all.assert_called_once_with(
             "Select SobjectType, FullName FROM RecordType"
         )
         assert task.return_values == {
