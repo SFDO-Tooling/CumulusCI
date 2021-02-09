@@ -18,7 +18,7 @@ To run the ``dev_org`` flow against the project's `default org<TODO>`_:
 
     $ cci flow run dev_org
 
-You can also use the ``--org`` option to explicitly list the org.
+To explictly list the org ``<org_name>`` against the dev_org flow, use the ``--org`` option.
 
     Example: Run the ``dev_org`` flow against the org currently defined as ``dev`` in CumulusCI.
 
@@ -55,13 +55,20 @@ To make changes to capture in an org, use the ``snapshot_changes`` task to creat
     
     These flows all run ``snapshot_changes`` as their last step.
 
-The ``list_changes`` and ``retrieve_changes`` tasks detect new metadata but ignore any prior changes.
+The ``list_changes`` and ``retrieve_changes`` tasks detect new or modified metadata in an org, but ignore any changes to metadata made prior to the last snapshot.
 
-To check that the snapshot was created successfully:
+A snapshot is created successfully when the final line of output for ``list_changes`` and ``retrieve_changes`` reads "Found no changes."
 
 .. code-block:: console
 
     $ cci task run list_changes --org dev
+
+    YYYY-MM-DD HH:MM:SS: Getting org info from Salesforce CLI for <username>
+    YYYY-MM-DD HH:MM:SS: Beginning task: ListChanges
+    YYYY-MM-DD HH:MM:SS: As user: <username>
+    YYYY-MM-DD HH:MM:SS: In org: <org_name>
+    YYYY-MM-DD HH:MM:SS:
+    YYYY-MM-DD HH:MM:SS: Found no changes.
 
 
 
@@ -170,7 +177,7 @@ To retrieve metadata into a different location using the ``--path`` option:
 Push Changes
 ------------
 
-Developers rarely edit code directly in an org environment, but instead use an editor or IDE like VSCode or IntelliJ. After code (or other metadata) in an editor, push these changes from your project's local repository to the target org.
+Developers rarely edit code directly in an org environment, but instead use an editor or IDE like VSCode or IntelliJ. After modifying code (or other metadata) in an editor, push these changes from your project's local repository to the target org.
 
 If your project uses the ``sfdx`` source format, use the ``dx_push`` task.
 
@@ -532,8 +539,7 @@ If the repository you are referring to has dependency metadata under unpackaged/
 Automatic Cleaning of ``meta.xml`` Files on Deploy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To let CumulusCI fully manage the project's dependencies, the ``deploy`` task (and other tasks based on ``cumulusci.tasks.salesforce.Deploy``, or subclasses of it) automatically removes the ``<packageVersion>`` element 
-and its children from all ``meta.xml`` files in the deployed metadata. Removing these elements does not affect the files on the filesystem.
+To let CumulusCI fully manage the project's dependencies, the ``deploy`` task (and other tasks based on ``cumulusci.tasks.salesforce.Deploy``, or subclasses of it) automatically removes the ``<packageVersion>`` and its children from all ``meta.xml`` files in the deployed metadata. Removing these elements does not affect the files on the filesystem.
 
 The reason for stripping ``<packageVersion>`` elements on deploy is that the target Salesforce org automatically adds them back with the installed version of the referenced namespace. This feature lets CumulusCI fully manage dependencies, and avoids rushing a new commit of ``meta.xml`` files when a new underlying package version is available.
 
