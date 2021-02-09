@@ -210,7 +210,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
     def _setup_engine(self, database_url):
         """Set up the database engine"""
         engine = create_engine(database_url)
-
+        print("ZZZ", database_url)
         metadata = MetaData(engine)
         metadata.reflect()
         return engine, metadata
