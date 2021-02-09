@@ -15,6 +15,7 @@ import webbrowser
 import threading
 import random
 import time
+import socket
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
 from cumulusci.core.exceptions import CumulusCIUsageError
@@ -217,7 +218,15 @@ class CaptureSalesforceOAuth(object):
         # There are two ways it can be shutdown.
         # 1. Get a callback from Salesforce.
         # 2. Timeout
-        self.httpd.serve_forever()
+
+        try:
+            # for some reason this is required for Safari (checked Feb 2021)
+            # https://github.com/SFDO-Tooling/CumulusCI/pull/2373
+            old_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(3)
+            self.httpd.serve_forever()
+        finally:
+            socket.setdefaulttimeout(old_timeout)
 
         # timeout thread can stop polling and just finish
         timeout_thread.quit()
