@@ -52,11 +52,11 @@ class TestSalesforceEncoding:
                 orig = etree.canonicalize(orig)
                 out = etree.canonicalize(out)
                 c19n_succeeded = True
-            except Exception:
+            except Exception:  # pragma: no cover
                 c19n_succeeded = False
             try:
                 assert orig == out, file
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 details = self._save_exception_for_inspection(
                     file, temp_directory, orig, out, c19n_succeeded, e
                 )
@@ -67,7 +67,7 @@ class TestSalesforceEncoding:
 
     def _save_exception_for_inspection(
         self, file, temp_directory, orig, out, c19n_succeeded, exception
-    ):
+    ):  # pragma: no cover
         filename = Path(file).name
         infile_copy = str(Path(temp_directory) / filename)
         with open(infile_copy, "w") as f:
