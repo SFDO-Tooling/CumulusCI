@@ -18,7 +18,7 @@ import time
 import socket
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
-from cumulusci.core.exceptions import CumulusCIUsageError
+from cumulusci.core.exceptions import CumulusCIException, CumulusCIUsageError
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -29,6 +29,10 @@ SANDBOX_LOGIN_URL = (
     os.environ.get("SF_SANDBOX_LOGIN_URL") or "https://test.salesforce.com"
 )
 PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
+
+ERROR_MESSAGE_400 = (
+    "Error: 400 status code received attempting to obtain access token: {}"
+)
 
 
 def jwt_session(client_id, private_key, username, url=None, auth_url=None):
@@ -74,6 +78,9 @@ def jwt_session(client_id, private_key, username, url=None, auth_url=None):
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     token_url = urljoin(url, "services/oauth2/token")
     response = requests.post(url=token_url, data=data, headers=headers)
+    if response.status_code == 400:
+        raise CumulusCIException(ERROR_MESSAGE_400.format(response.text))
+
     return safe_json_from_response(response)
 
 

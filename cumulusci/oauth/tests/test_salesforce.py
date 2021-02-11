@@ -1,4 +1,6 @@
 import http.client
+import pytest
+import responses
 import threading
 import time
 import unittest
@@ -7,10 +9,29 @@ import urllib.parse
 import urllib.request
 
 from unittest import mock
-import responses
 
-from cumulusci.oauth.salesforce import SalesforceOAuth2
-from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.oauth.salesforce import (
+    CaptureSalesforceOAuth,
+    SalesforceOAuth2,
+    jwt_session,
+    ERROR_MESSAGE_400,
+)
+
+
+@responses.activate
+@mock.patch("cumulusci.oauth.salesforce.jwt.encode")
+def test_jwt_session(encode):
+    # mock this as to not need to commit a sample server.key
+    encode.return_value = {"some": "stuff"}
+    responses.add(
+        responses.POST,
+        "https://login.salesforce.com/services/oauth2/token",
+        body=b"Yeti",
+        status=400,
+    )
+    with pytest.raises(CumulusCIException, match=ERROR_MESSAGE_400.format("Yeti")):
+        jwt_session("client_id", "server_key", "username")
 
 
 class TestSalesforceOAuth(unittest.TestCase):
