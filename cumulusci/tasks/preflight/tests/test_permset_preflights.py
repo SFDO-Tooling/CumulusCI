@@ -9,7 +9,7 @@ class TestPermsetPreflights(unittest.TestCase):
     def test_assigned_permset_preflight(self):
         task = create_task(GetPermissionSetAssignments, {})
         task._init_api = Mock()
-        task._init_api.return_value.query.return_value = {
+        task._init_api.return_value.query_all.return_value = {
             "totalSize": 2,
             "done": True,
             "records": [
