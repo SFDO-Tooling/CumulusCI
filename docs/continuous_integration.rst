@@ -19,16 +19,16 @@ CumulusCI in GitHub Actions
 
 GitHub Actions specify custom workflows that run directly in your GitHub repository. These workflows perform a variety of tasks, like running test suites, performing linting checks on your code, and creating code coverage reports. CumulusCI makes GitHub Actions even more powerful by letting you leverage the custom automation defined in the ``cumulusci.yml`` file, and execute it from within your custom workflows. This feature gives you the discretion to spin up a scratch org, load in your project's metadata, and execute Apex or Robot tests against the org.
 
-To learn more about sample workflows, the secrets that require configuration, and more, see `GitHub Actions<TODO>`_ .
+To learn more about sample workflows, the secrets that require configuration, caching dependencies, and more, see `GitHub Actions<TODO>`_ .
 
 
 
 MetaCI
 ------
 
-The Salesforce.org release engineering team that built CumulusCI also maintains a CI system called *MetaCI*. MetaCI is an open source app built to run on Heroku, and is designed specifically to work with CumulusCI and Salesforce. Setting up MetaCI is an involved process that requires experience working with apps on Heroku and CumulusCI.
+The Salesforce.org release engineering team that built CumulusCI also maintains *MetaCI*, a specialized lightweight CI server for building Salesforce projects from GitHub repositories using CumulusCI flows. MetaCI is an open source app built to run on Heroku, and is designed specifically to work with CumulusCI and Salesforce.
 
-To learn more about MetaCI, see `MetaCI <https://github.com/SFDO-Tooling/MetaCI>`_.
+Setting up MetaCI is an involved process that requires experience working with apps on Heroku and CumulusCI. To learn more about MetaCI and how to run it with a project, see `MetaCI <https://github.com/SFDO-Tooling/MetaCI>`_.
  
 
 
