@@ -22,15 +22,16 @@ from cumulusci.oauth.salesforce import (
 @responses.activate
 @mock.patch("cumulusci.oauth.salesforce.jwt.encode")
 def test_jwt_session(encode):
-    # mock this as to not need to commit a sample server.key
-    encode.return_value = {"some": "stuff"}
+    # Mock the call to encode so we don't need
+    # to generate a private key that would be committed
+    error = "Yeti"
     responses.add(
         responses.POST,
         "https://login.salesforce.com/services/oauth2/token",
-        body=b"Yeti",
+        body=error,
         status=400,
     )
-    with pytest.raises(CumulusCIException, match=ERROR_MESSAGE_400.format("Yeti")):
+    with pytest.raises(CumulusCIException, match=ERROR_MESSAGE_400.format(error)):
         jwt_session("client_id", "server_key", "username")
 
 
