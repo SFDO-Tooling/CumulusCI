@@ -29,7 +29,7 @@ class TestPermsetPreflights(unittest.TestCase):
         }
         task()
 
-        task._init_api.return_value.query.assert_called_once_with(
+        task._init_api.return_value.query_all.assert_called_once_with(
             "SELECT PermissionSet.Name FROM PermissionSetAssignment WHERE AssigneeId = 'USER_ID'"
         )
         assert task.return_values == [
