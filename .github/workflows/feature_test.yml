@@ -163,8 +163,8 @@ jobs:
         run: |
           mkdir sfdx
           wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
-          sfdx plugins --core
           ./sfdx/install
+          sfdx plugins --core
           echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
           sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
         env:
@@ -215,8 +215,8 @@ jobs:
         run: |
           mkdir sfdx
           wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
-          sfdx plugins --core
           ./sfdx/install
+          sfdx plugins --core
           echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
           sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
         env:
@@ -267,8 +267,8 @@ jobs:
         run: |
           mkdir sfdx
           wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
-          sfdx plugins --core
           ./sfdx/install
+          sfdx plugins --core
           echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
           sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
         env:
