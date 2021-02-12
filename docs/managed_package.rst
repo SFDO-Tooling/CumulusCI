@@ -98,14 +98,14 @@ To see where each line in the release notes comes from, use the ``--link_pr True
 
     $ cci task run github_release_notes --tag release/1.2 --link_pr True
 
-To publish the release notes to a release tag in GitHub, use the ``--publish`` option:
+To publish the release notes to a release tag in GitHub, use the ``--publish True`` option:
 
 .. code-block::
 
     $ cci task run github_release_notes --tag release/1.2 --publish True
 
 
-If your team wants to use additional headings, add new ones (as parsers) under the ``project__git__release_notes__parsers`` section of the ``cumulusci.yml`` file.
+To use additional headings, add new ones (as parsers) under the ``project__git__release_notes__parsers`` section of the ``cumulusci.yml`` file.
 
 .. code-block::
 
