@@ -499,19 +499,19 @@ def test_schedule_push_org_bulk_query_get_org(push_api):
             "subscriber_where": "OrgType = 'Sandbox'",
         },
     )
-
     task.push = mock.MagicMock()
-    task.push_api = push_api
-    task.bulk = True
-    task.sf = mock.Mock()
-    # task.push_api.bulk = mock.MagicMock()
-    # task.push_api.return_query_records = mock.MagicMock()
-    # task.push_api.return_query_records.field_names = True
-    # task.push_api.return_query_records.sobject = "PackageSubscriber"
-    # task.push_api.return_query.bulk = True
-    # # task.push_api.bulk.create_query_job = mock.MagicMock()
-    # # task.push_api.return_query_records.step.query = mock.MagicMock()
-    # task.push_api.return_query_records.step.query.return_value = PACKAGE_OBJ_SUBSCRIBER
+    task.bulk = {"endpoint": "http://hello.com"}
+    task.sf = mock.MagicMock()
+    push_api.return_query_records.bulk = True
+    push_api.return_query_records.field_names = True
+    push_api.return_query_records.sobject = True
+    push_api.return_query_records.query.return_value = True
+
+    push_api.bulk.endpoint = "https://test"
+    push_api.bulk.create_query_job.return_value = "JOB"
+    return_mock = mock.MagicMock(bulk=mock.MagicMock())
+    return_mock.get_subscribers.return_value = PACKAGE_OBJ_SUBSCRIBER["records"]
+    push_api.return_value = return_mock
     assert task._get_orgs() == ["bar"]
 
 
