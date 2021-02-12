@@ -18,7 +18,10 @@ import time
 import socket
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
-from cumulusci.core.exceptions import CumulusCIUsageError
+from cumulusci.core.exceptions import (
+    CumulusCIUsageError,
+    SalesforceCredentialsException,
+)
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -74,6 +77,11 @@ def jwt_session(client_id, private_key, username, url=None, auth_url=None):
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     token_url = urljoin(url, "services/oauth2/token")
     response = requests.post(url=token_url, data=data, headers=headers)
+    if response.status_code != 200:
+        raise SalesforceCredentialsException(
+            f"Error retrieving access token: {response.text}"
+        )
+
     return safe_json_from_response(response)
 
 
