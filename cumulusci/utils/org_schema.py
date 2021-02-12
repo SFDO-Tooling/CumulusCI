@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -21,7 +23,7 @@ def zip_database(tempfile, schema_path):
     """Compress tempfile.db to schema_path.db.gz"""
     with tempfile.open("rb") as db:
         with schema_path.open("wb") as fileobj:
-            with gzip.GzipFile(fileobj=fileobj) as gzipped:
+            with gzip.GzipFile(fileobj=fileobj, mode="w") as gzipped:
                 gzipped.write(db.read())
 
 
@@ -103,22 +105,27 @@ def create_row(buffered_session: "BufferedSession", model, valuesdict: dict):
 
 
 def populate_cache(schema, sf, last_modified_date, logger=None):
-    engine = schema.engine
-    metadata = Base.metadata
 
     sobjs = sf.describe()["sobjects"]
     sobj_names = [obj["name"] for obj in sobjs]
 
     full_sobjs = deep_describe(sf, last_modified_date, sobj_names)
     full_sobjs = list(full_sobjs)
+    _populate_cache_from_describe(schema, full_sobjs, last_modified_date)
 
+
+def _populate_cache_from_describe(
+    schema, describe_objs: List[Tuple[dict, str]], last_modified_date
+):
+    engine = schema.engine
+    metadata = Base.metadata
     metadata.bind = engine
     metadata.reflect()
 
     with BufferedSession(engine, metadata) as sess:
 
         max_last_modified = (parsedate(last_modified_date), last_modified_date)
-        for (sobj_data, last_modified) in full_sobjs:
+        for (sobj_data, last_modified) in describe_objs:
             fields = sobj_data.pop("fields")
             sobj_data["actionOverrides"] = []
             create_row(sess, SObject, sobj_data)

@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from pytest import fixture
 from cumulusci.core.github import get_github_api
 from cumulusci.tests.pytest_plugins.pytest_sf_vcr import vcr_config, salesforce_vcr
-from cumulusci.tests.util import DummyOrgConfig
+from cumulusci.tests.util import DummyOrgConfig, mock_homedir
 from cumulusci.tasks.salesforce.tests.util import create_task_fixture
 
 
@@ -79,12 +79,7 @@ create_task_fixture = fixture(create_task_fixture, scope="function")
 @pytest.fixture(autouse=True, scope="session")
 def patch_home_and_env(request):
     "Patch the default home directory and $HOME environment for all tests at once."
-    with TemporaryDirectory(prefix="fake_home_") as home, mock.patch(
-        "pathlib.Path.home", lambda: Path(home)
-    ), mock.patch.dict(
-        os.environ,
-        {"HOME": home, "USERPROFILE": home, "CUMULUSCI_KEY": "0123456789ABCDEF"},
-    ):
+    with TemporaryDirectory(prefix="fake_home_") as home, mock_homedir(home):
         Path(home, ".cumulusci").mkdir()
         Path(home, ".cumulusci/cumulusci.yml").touch()
         yield

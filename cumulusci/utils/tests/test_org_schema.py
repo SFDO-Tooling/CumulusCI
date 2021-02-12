@@ -16,7 +16,9 @@ from cumulusci.utils.org_schema import get_org_schema, BufferedSession, zip_data
 from cumulusci.utils.org_schema_models import Base
 
 
-class MockSF:
+class FakeSF:
+    """A pretend version of Salesforce for composite testing"""
+
     base_url = "https://innovation-page-2420-dev-ed.cs50.my.salesforce.com/"
     headers = {}
 
@@ -31,8 +33,8 @@ class MockSF:
         }
 
 
-def makeMockCompositeParallelSalesforce(responses):
-    class MockCompositeParallelSalesforce:
+def makeFakeCompositeParallelSalesforce(responses):
+    class FakeCompositeParallelSalesforce:
         def __init__(self, sf, *args, **kwargs):
             self.sf = sf
 
@@ -45,10 +47,12 @@ def makeMockCompositeParallelSalesforce(responses):
         def do_composite_requests(self, requests):
             return responses()
 
-    return MockCompositeParallelSalesforce
+    return FakeCompositeParallelSalesforce
 
 
 def uncached_responses(responses):
+    """Pretend to load uncached responses from a VCR cassette"""
+
     def parse_composite_response(interaction: dict):
         response_body = interaction["response"]["body"]["string"]
         struct = json.loads(response_body)
@@ -67,19 +71,19 @@ cached_responses = [{"body": None, "httpHeaders": {}, "httpStatusCode": 304}] * 
 def mock_return_uncached_responses(cassette_data):
     return patch(
         "cumulusci.utils.org_schema.CompositeParallelSalesforce",
-        makeMockCompositeParallelSalesforce(lambda: uncached_responses(cassette_data)),
+        makeFakeCompositeParallelSalesforce(lambda: uncached_responses(cassette_data)),
     )
 
 
 def mock_return_cached_responses():
     return patch(
         "cumulusci.utils.org_schema.CompositeParallelSalesforce",
-        makeMockCompositeParallelSalesforce(lambda: cached_responses.copy()),
+        makeFakeCompositeParallelSalesforce(lambda: cached_responses.copy()),
     )
 
 
 class TestDescribeOrg:
-    def setup(self):
+    def setup_class(self):
         cassette = (
             Path(__file__).parent
             / "cassettes/TestDescribeOrg.test_describe_to_sql.yaml"
@@ -93,7 +97,6 @@ class TestDescribeOrg:
         assert schema["Account"].fields["Id"].aggregatable is True
         assert schema["Account"].labelPlural == "Accounts"
         account_desc = schema["Account"]
-        # breakpoint()
         for name, value in account_data.items():
             if name != "fields":
                 assert account_desc[name] == value, (
@@ -121,7 +124,7 @@ class TestDescribeOrg:
         with self.tempdir_orgconfig() as org_config:
             # Step 1: Pretend to download data from server
             with mock_return_uncached_responses(self.cassette_data):
-                with get_org_schema(MockSF(), org_config) as schema:
+                with get_org_schema(FakeSF(), org_config) as schema:
                     self.validate_schema_data(schema)
 
             # Step 2: Call the server again.
@@ -130,7 +133,7 @@ class TestDescribeOrg:
             # LastModifiedDate.
             with mock_return_cached_responses(), patch(
                 "cumulusci.utils.org_schema.create_row"
-            ) as create_row, get_org_schema(MockSF(), org_config) as schema:
+            ) as create_row, get_org_schema(FakeSF(), org_config) as schema:
                 self.validate_schema_data(schema)
                 for call in create_row.mock_calls:
                     assert call[1][1].__name__ == "FileMetadata"
@@ -138,7 +141,7 @@ class TestDescribeOrg:
     def test_errors(self):
         with self.tempdir_orgconfig() as org_config, mock_return_uncached_responses(
             self.cassette_data
-        ), get_org_schema(MockSF(), org_config) as schema:
+        ), get_org_schema(FakeSF(), org_config) as schema:
             with pytest.raises(KeyError):
                 schema["Foo"]
 
@@ -146,21 +149,21 @@ class TestDescribeOrg:
         with self.tempdir_orgconfig() as org_config, mock_return_uncached_responses(
             self.cassette_data
         ):
-            with get_org_schema(MockSF(), org_config) as schema:
+            with get_org_schema(FakeSF(), org_config) as schema:
                 schema.session.execute("insert into sobjects (name) values ('Foo')")
                 assert "Foo" in schema
                 schema.session._real_commit__()
                 dbpath = schema.engine.url.translate_connect_args()["database"]
                 zip_database(Path(dbpath), schema.path)
-            with get_org_schema(MockSF(), org_config) as schema:
+            with get_org_schema(FakeSF(), org_config) as schema:
                 assert "Foo" in schema
-            with get_org_schema(MockSF(), org_config, force_recache=True) as schema:
+            with get_org_schema(FakeSF(), org_config, force_recache=True) as schema:
                 assert "Foo" not in schema
 
     def test_dict_like(self):
         with self.tempdir_orgconfig() as org_config:
             with mock_return_uncached_responses(self.cassette_data):
-                with get_org_schema(MockSF(), org_config) as schema:
+                with get_org_schema(FakeSF(), org_config) as schema:
                     assert schema["Account"]
                     assert "Account" in schema
                     assert sorted(schema.keys())[0] == "Account"
@@ -174,9 +177,10 @@ class TestDescribeOrg:
                     assert "<Schema" in repr(schema)
 
     def test_misuse(self):
+        """What if the user keeps a reference to the schema"""
         with self.tempdir_orgconfig() as org_config:
             with mock_return_uncached_responses(self.cassette_data):
-                with get_org_schema(MockSF(), org_config) as schema:
+                with get_org_schema(FakeSF(), org_config) as schema:
                     pass
         with pytest.raises(IOError):
             schema.session.commit()
@@ -185,14 +189,14 @@ class TestDescribeOrg:
         "What if the schema GZip is corrupted?"
         with self.tempdir_orgconfig() as org_config:
             with mock_return_uncached_responses(self.cassette_data):
-                with get_org_schema(MockSF(), org_config) as schema:
+                with get_org_schema(FakeSF(), org_config) as schema:
                     assert "Account" in schema
                     path = schema.path
                 assert not caplog.text
                 with open(path, "w") as p:
                     p.write("xxx")
 
-                with get_org_schema(MockSF(), org_config) as schema:
+                with get_org_schema(FakeSF(), org_config) as schema:
                     assert "Account" in schema
                 assert caplog.text
 
@@ -200,7 +204,7 @@ class TestDescribeOrg:
         "What if the schema inside the gzip is corrupted"
         with self.tempdir_orgconfig() as org_config:
             with mock_return_uncached_responses(self.cassette_data):
-                with get_org_schema(MockSF(), org_config) as schema:
+                with get_org_schema(FakeSF(), org_config) as schema:
                     assert "Account" in schema
                     path = schema.path
                 assert not caplog.text
@@ -208,7 +212,7 @@ class TestDescribeOrg:
                     with gzip.GzipFile(fileobj=p) as gzipped:
                         gzipped.write(b"xxx")
 
-                with get_org_schema(MockSF(), org_config) as schema:
+                with get_org_schema(FakeSF(), org_config) as schema:
                     assert "Account" in schema
                 assert caplog.text
 

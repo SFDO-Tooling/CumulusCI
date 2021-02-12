@@ -4,6 +4,7 @@ import os.path
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.config import TaskConfig
+from cumulusci.tests.util import unmock_homedir
 
 
 def pytest_addoption(parser, pluginmanager):
@@ -33,7 +34,7 @@ def project_config(runtime):
 
 
 @pytest.fixture(scope="session")
-def org_config(request, runtime, fallback_orgconfig):
+def org_config(request, fallback_orgconfig):
     """Get an org config with an active access token.
 
     Specify the org name using the --org option when running pytest.
@@ -41,9 +42,16 @@ def org_config(request, runtime, fallback_orgconfig):
     """
     org_name = sf_pytest_orgname(request)
     if org_name:
-        org_name, org_config = runtime.get_org(org_name)
-        assert org_config.scratch, "You should only run tests against scratch orgs."
-        org_config.refresh_oauth_token(runtime.keychain)
+        with unmock_homedir():  # restore real homedir
+            runtime = CliRuntime()
+            from pathlib import Path
+
+            print("ZZZZA", Path.home(), os.environ.get("CUMULUSCI_KEY"))
+            del os.environ["CUMULUSCI_KEY"]
+            runtime.keychain._load_orgs()
+            org_name, org_config = runtime.get_org(org_name)
+            assert org_config.scratch, "You should only run tests against scratch orgs."
+            org_config.refresh_oauth_token(runtime.keychain)
     else:
         # fallback_orgconfig can be defined in "conftest" based
         # on the needs of the test suite. For example, for

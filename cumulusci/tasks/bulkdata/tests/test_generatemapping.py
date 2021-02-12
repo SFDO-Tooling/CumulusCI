@@ -7,6 +7,7 @@ from pathlib import Path
 from contextlib import contextmanager
 
 import pytest
+from sqlalchemy import create_engine
 
 from cumulusci.tasks.bulkdata import GenerateMapping
 from cumulusci.core.exceptions import TaskOptionsError
@@ -14,55 +15,22 @@ from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
 from cumulusci.utils.org_schema_models import SObject as SQLSObject, Field as SQLField
+from cumulusci.utils.org_schema import Schema, _populate_cache_from_describe, Base
 
 
-class FakeSchema:
-    def __init__(self, models=None, describe_data=None):
-        if isinstance(models, list):
-            models = {model["name"] for model in models}
-            print("List")
-        elif models is None:
-            assert describe_data is not None
-            models = describe_data_2_fake_models(describe_data)
-            print("desribe_data")
-        self.models = models
-        self.keys = self.models.keys
-        self.items = self.models.items
-
-    def __getitem__(self, name):
-        return self.models[name]
-
-    def __enter__(self, *args, **kwargs):
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        pass
-
-
-class FakeModelObject:
-    def __init__(self, dct=None, **kwargs):
-        self.__dict__.update(dct or kwargs)
-
-    def __getitem__(self, name):
-        return self.__dict__[name]
-
-    def __iter__(self):
-        return iter(self.__dict__.keys())
-
-    # def _new_state_if_none(self, *args, **kwargs):
-    #     return None
-
-    def __setattr__(self, name, value):
-        self.__dict__[name] = value
-
-
-# class _SObject(FakeModelObject):
-#     def __init__(self, name, fields, **kwargs):
-#         if isinstance(fields, list):
-#             fields = {field["name"]: field for field in fields}
-#         FakeModelObject.__init__(
-#             self, name=name, fields=fields, customSetting=False, **kwargs
-#         )
+@contextmanager
+def _temp_schema_for_tests(describe_data: list):
+    with TemporaryDirectory() as tempdir:
+        tempfile = str(Path(tempdir) / "tempdb.db")
+        engine = create_engine(f"sqlite:///{tempfile}")
+        Base.metadata.bind = engine
+        Base.metadata.create_all()
+        schema = Schema(engine, f"{tempfile}.gz")
+        date = "Thu, 09 Feb 2021 21:35:07 GMT"
+        print("XXX", describe_data)
+        describe_data_with_dates = [(dct, date) for dct in describe_data]
+        _populate_cache_from_describe(schema, describe_data_with_dates, date)
+        yield schema
 
 
 def _SObject(name, fields, **kwargs):
@@ -72,26 +40,10 @@ def _SObject(name, fields, **kwargs):
     return SQLSObject(name=name, fields=fields, **kwargs)
 
 
-# class _Field(FakeModelObject):
-#     def __init__(self, name: str, **kwargs):
-#         FakeModelObject.__init__(self, name=name, **kwargs)
-
-
 def _Field(name: str, dct=None, **kwargs):
     dct = dct or {}
     kwargs.update(kwargs)
     return SQLField(name=name, **kwargs)
-
-
-def describe_data_2_fake_models(describe_data):
-    def fields_2_fake_model(fields):
-        return {field.name: field for field in fields}
-
-    models = {
-        name: _SObject(name, **{**m, "fields": fields_2_fake_model(m["fields"])})
-        for name, m in describe_data.items()
-    }
-    return models
 
 
 class TestMappingGenerator(unittest.TestCase):
@@ -293,10 +245,9 @@ class TestMappingGenerator(unittest.TestCase):
     def _prepare_describe_mock(self, task, describe_data):
         with mock.patch(
             "cumulusci.tasks.bulkdata.generate_mapping.get_org_schema",
-            lambda *args, **kwargs: fake_schema,
+            lambda *args, **kwargs: _temp_schema_for_tests(describe_data),
         ):
-            fake_schema = FakeSchema(describe_data=describe_data)
-            yield fake_schema
+            yield
 
     def _mock_field(self, name, field_type="string", **kwargs):
         field_data = {
@@ -305,19 +256,21 @@ class TestMappingGenerator(unittest.TestCase):
             "createable": True,
             "nillable": True,
             "label": name,
+            **kwargs,
         }
-        field_data.update(kwargs)
-        return _Field(**field_data)
+        return field_data
 
     @responses.activate
     def test_run_task(self):
         t = _make_task(GenerateMapping, {"options": {"path": "mapping.yaml"}})
         t.project_config.project__package__api_version = "45.0"
-        describe_data = {
-            "Parent": {
-                "fields": [self._mock_field("Id"), self._mock_field("Custom__c")]
+        describe_data = [
+            {
+                "name": "Parent",
+                "fields": [self._mock_field("Id"), self._mock_field("Custom__c")],
             },
-            "Child__c": {
+            {
+                "name": "Child__c",
                 "fields": [
                     self._mock_field("Id"),
                     self._mock_field(
@@ -326,9 +279,9 @@ class TestMappingGenerator(unittest.TestCase):
                         referenceTo=["Parent"],
                         relationshipOrder=None,
                     ),
-                ]
+                ],
             },
-        }
+        ]
 
         with temporary_dir(), self._prepare_describe_mock(t, describe_data):
             t()
@@ -354,18 +307,20 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
         t.project_config.project__package__api_version = "45.0"
 
-        describe_data = {
-            "Account": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+        describe_data = [
+            {
+                "name": "Account",
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")],
             },
-            "Contact": {"fields": [self._mock_field("Name")]},
-            "Custom__c": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            {"name": "Contact", "fields": [self._mock_field("Name")]},
+            {
+                "name": "Custom__c",
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")],
             },
-            "User": {"fields": [self._mock_field("Name")]},
-        }
+            {"name": "User", "fields": [self._mock_field("Name")]},
+        ]
 
-        with self._prepare_describe_mock(t, describe_data) as schema:
+        with _temp_schema_for_tests(describe_data) as schema:
             t._init_task()
             t._collect_objects(schema)
 
@@ -378,18 +333,20 @@ class TestMappingGenerator(unittest.TestCase):
         )
         t.project_config.project__package__api_version = "45.0"
 
-        describe_data = {
-            "Account": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+        describe_data = [
+            {
+                "name": "Account",
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")],
             },
-            "Contact": {"fields": [self._mock_field("Name")]},
-            "Custom__c": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            {"name": "Contact", "fields": [self._mock_field("Name")]},
+            {
+                "name": "Custom__c",
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")],
             },
-            "User": {"fields": [self._mock_field("Name")]},
-        }
+            {"name": "User", "fields": [self._mock_field("Name")]},
+        ]
 
-        with self._prepare_describe_mock(t, describe_data) as schema:
+        with _temp_schema_for_tests(describe_data) as schema:
             t._init_task()
             t._collect_objects(schema)
 
@@ -405,18 +362,20 @@ class TestMappingGenerator(unittest.TestCase):
         )
         t.project_config.project__package__api_version = "45.0"
 
-        describe_data = {
-            "Account": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+        describe_data = [
+            {
+                "name": "Account",
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")],
             },
-            "Contact": {"fields": [self._mock_field("Name")]},
-            "Custom__c": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+            {"name": "Contact", "fields": [self._mock_field("Name")]},
+            {
+                "name": "Custom__c",
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")],
             },
-            "User": {"fields": [self._mock_field("Name")]},
-        }
+            {"name": "User", "fields": [self._mock_field("Name")]},
+        ]
 
-        with self._prepare_describe_mock(t, describe_data) as schema:
+        with _temp_schema_for_tests(describe_data) as schema:
             t._init_task()
             t._collect_objects(schema)
         assert len(t.mapping_objects) == 3
@@ -430,12 +389,14 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
         t.project_config.project__package__api_version = "45.0"
 
-        describe_data = {
-            "Account": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+        describe_data = [
+            {
+                "name": "Account",
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")],
             },
-            "Contact": {"fields": [self._mock_field("Name")]},
-            "Custom__c": {
+            {"name": "Contact", "fields": [self._mock_field("Name")]},
+            {
+                "name": "Custom__c",
                 "fields": [
                     self._mock_field("Name"),
                     self._mock_field("Custom__c"),
@@ -445,11 +406,11 @@ class TestMappingGenerator(unittest.TestCase):
                         relationshipOrder=None,
                         referenceTo=["Contact"],
                     ),
-                ]
+                ],
             },
-        }
+        ]
 
-        with self._prepare_describe_mock(t, describe_data) as schema:
+        with _temp_schema_for_tests(describe_data) as schema:
             t._init_task()
             t._collect_objects(schema)
 
@@ -462,12 +423,14 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
         t.project_config.project__package__api_version = "45.0"
 
-        describe_data = {
-            "Account": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+        describe_data = [
+            {
+                "name": "Account",
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")],
             },
-            "Opportunity": {"fields": [self._mock_field("Name")]},
-            "OpportunityLineItem": {
+            {"name": "Opportunity", "fields": [self._mock_field("Name")]},
+            {
+                "name": "OpportunityLineItem",
                 "fields": [
                     self._mock_field("Name"),
                     self._mock_field("Custom__c"),
@@ -477,11 +440,11 @@ class TestMappingGenerator(unittest.TestCase):
                         relationshipOrder=1,
                         referenceTo=["Opportunity"],
                     ),
-                ]
+                ],
             },
-        }
+        ]
 
-        with self._prepare_describe_mock(t, describe_data) as schema:
+        with _temp_schema_for_tests(describe_data) as schema:
             t._init_task()
             t._collect_objects(schema)
 
@@ -495,12 +458,14 @@ class TestMappingGenerator(unittest.TestCase):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
         t.project_config.project__package__api_version = "45.0"
 
-        describe_data = {
-            "Account": {
-                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")]
+        describe_data = [
+            {
+                "name": "Account",
+                "fields": [self._mock_field("Name"), self._mock_field("Custom__c")],
             },
-            "Opportunity": {"fields": [self._mock_field("Name")]},
-            "OpportunityLineItem": {
+            {"name": "Opportunity", "fields": [self._mock_field("Name")]},
+            {
+                "name": "OpportunityLineItem",
                 "fields": [
                     self._mock_field("Name"),
                     self._mock_field("Custom__c"),
@@ -516,11 +481,11 @@ class TestMappingGenerator(unittest.TestCase):
                         relationshipOrder=None,
                         referenceTo=["Opportunity"],
                     ),
-                ]
+                ],
             },
-        }
+        ]
 
-        with self._prepare_describe_mock(t, describe_data) as schema:
+        with _temp_schema_for_tests(describe_data) as schema:
             t._init_task()
             t._collect_objects(schema)
 
@@ -535,35 +500,34 @@ class TestMappingGenerator(unittest.TestCase):
         t.mapping_objects = ["Account", "Opportunity", "Child__c"]
         stage_name = self._mock_field("StageName", nillable=False)
 
-        describe_data = {
-            "Account": {
-                "fields": [self._mock_field("Name"), self._mock_field("Industry")]
+        describe_data = [
+            {
+                "name": "Account",
+                "fields": [self._mock_field("Name"), self._mock_field("Industry")],
             },
-            "Opportunity": {"fields": [self._mock_field("Name"), stage_name]},
-            "Child__c": {
+            {"name": "Opportunity", "fields": [self._mock_field("Name"), stage_name]},
+            {
+                "name": "Child__c",
                 "fields": [
                     self._mock_field("Name"),
                     self._mock_field("Test__c"),
                     self._mock_field("Attachment__c", field_type="base64"),
-                ]
+                ],
             },
-        }
-        with self._prepare_describe_mock(t, describe_data) as org_schema:
+        ]
+        with _temp_schema_for_tests(describe_data) as org_schema:
             t._simplify_schema(org_schema)
-        self.assertEqual(
-            {
-                "Account": {"Name": self._mock_field("Name")},
-                "Opportunity": {
-                    "Name": self._mock_field("Name"),
-                    "StageName": stage_name,
-                },
-                "Child__c": {
-                    "Name": self._mock_field("Name"),
-                    "Test__c": self._mock_field("Test__c"),
-                },
-            },
-            t.simple_schema,
-        )
+
+        assert set(t.simple_schema.keys()) == {"Account", "Opportunity", "Child__c"}
+        assert set(t.simple_schema["Account"].keys()) == {"Name"}
+        assert t.simple_schema["Account"]["Name"].name == "Name"
+        assert set(t.simple_schema["Opportunity"].keys()) == {"Name", "StageName"}
+        assert t.simple_schema["Opportunity"]["Name"].name == "Name"
+        assert t.simple_schema["Opportunity"]["StageName"].name == "StageName"
+        assert t.simple_schema["Opportunity"]["StageName"].nillable is False
+        assert set(t.simple_schema["Child__c"].keys()) == {"Name", "Test__c"}
+        assert t.simple_schema["Child__c"]["Name"].name == "Name"
+        assert t.simple_schema["Child__c"]["Test__c"].name == "Test__c"
 
     def test_simplify_schema__tracks_references(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
@@ -575,25 +539,29 @@ class TestMappingGenerator(unittest.TestCase):
             referenceTo=["Account"],
             relationshipOrder=1,
         )
-        describe_data = {
-            "Account": {"fields": [self._mock_field("Name")]},
-            "Opportunity": {"fields": [self._mock_field("Name"), account_id]},
-        }
-        with self._prepare_describe_mock(t, describe_data) as org_schema:
+        describe_data = [
+            {"name": "Account", "fields": [self._mock_field("Name")]},
+            {"name": "Opportunity", "fields": [self._mock_field("Name"), account_id]},
+        ]
+        with _temp_schema_for_tests(describe_data) as org_schema:
             t._simplify_schema(org_schema)
 
-        self.assertEqual(
-            {"Opportunity": {"Account": {"AccountId": account_id}}},
-            dict(t.refs),
-        )
+        assert list(t.refs.keys()) == ["Opportunity"]
+        referents = list(t.refs.values())[0]
+        assert list(referents.keys()) == ["Account"]
+        account_sobj = list(referents.values())[0]
+        assert list(account_sobj.keys()) == ["AccountId"]
+        account_id_field = list(account_sobj.values())[0]
+        assert account_id_field.name == "AccountId"
 
     def test_simplify_schema__includes_recordtypeid(self):
         t = _make_task(GenerateMapping, {"options": {"path": "t"}})
 
         t.mapping_objects = ["Account", "Opportunity"]
-        describe_data = {
-            "Account": {"fields": [self._mock_field("Name")]},
-            "Opportunity": {
+        describe_data = [
+            {"name": "Account", "fields": [self._mock_field("Name")]},
+            {
+                "name": "Opportunity",
                 "fields": [
                     self._mock_field("Name"),
                     self._mock_field(
@@ -606,8 +574,8 @@ class TestMappingGenerator(unittest.TestCase):
                 ],
                 "recordTypeInfos": [{"Name": "Master"}, {"Name": "Donation"}],
             },
-        }
-        with self._prepare_describe_mock(t, describe_data) as org_schema:
+        ]
+        with _temp_schema_for_tests(describe_data) as org_schema:
             t._simplify_schema(org_schema)
         self.assertIn("RecordTypeId", t.simple_schema["Opportunity"])
         self.assertNotIn("RecordTypeId", t.simple_schema["Account"])
@@ -1105,17 +1073,19 @@ class TestIntegrationGenerateMapping:
             task()
             assert Path(tempfile).exists()
 
-    @pytest.mark.vcr()
-    def test_big_generate(self, create_task, sf):
-        "Generate a large mapping that includes every reachable object"
-        with TemporaryDirectory() as t:
-            tempfile = Path(t) / "tempfile.mapping.yml"
+    #  May be useful for experimenting with future versions
+    # @pytest.mark.vcr()
+    # def test_big_generate(self, create_task, sf):
+    #     "Generate a large mapping that includes every reachable object"
+    #     with TemporaryDirectory() as t:
+    #         tempfile = Path(t) / "tempfile.mapping.yml"
 
-            every_obj = [obj["name"] for obj in sf.describe()["sobjects"]]
+    #         # every_obj = [obj["name"] for obj in sf.describe()["sobjects"]]
+    #         every_obj = ["Account", ]
 
-            task = create_task(
-                GenerateMapping, {"path": tempfile, "include": every_obj}
-            )
-            assert not Path(tempfile).exists()
-            task()
-            assert Path(tempfile).exists()
+    #         task = create_task(
+    #             GenerateMapping, {"path": tempfile, "include": every_obj}
+    #         )
+    #         assert not Path(tempfile).exists()
+    #         task()
+    #         assert Path(tempfile).exists()

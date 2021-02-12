@@ -7,6 +7,7 @@ import sys
 from contextlib import contextmanager
 import json
 from unittest import mock
+import os
 
 import responses
 
@@ -117,14 +118,6 @@ class DummyKeychain(object):
 
     def get_service(self, name):
         return DummyService(name)
-
-    @property
-    def global_config_dir(self):
-        return Path.home() / "cumulusci"
-
-    @property
-    def cache_dir(self):
-        return Path.home() / "project/.cci"
 
 
 @contextmanager
@@ -237,3 +230,24 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
         lambda: is_person_accounts_enabled,
     ), mock.patch.object(task, "_init_task", _init_task):
         yield
+
+
+@contextmanager
+def mock_homedir(home, cumulusci_key="0123456789ABCDEF"):
+    with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
+        os.environ,
+        {
+            "HOME": home,
+            "USERPROFILE": home,
+            "CUMULUSCI_KEY": cumulusci_key,
+            "REAL_HOME": os.environ["HOME"],
+            "REAL_CUMULUSCI_KEY": os.environ.get("CUMULUSCI_KEY", ""),
+        },
+    ):
+        yield
+
+
+def unmock_homedir():
+    cci_key = os.environ["REAL_CUMULUSCI_KEY"]
+    homedir = os.environ["REAL_HOME"]
+    return mock_homedir(homedir, cci_key)

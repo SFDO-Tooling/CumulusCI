@@ -36,15 +36,15 @@ class TestCompositeParallelSalesforce:
             results = cpsf.do_composite_requests([])
             assert list(results) == []
 
-    @pytest.mark.vcr(record_mode="once")
+    # don't re-record this one because you'll need to fiddle
+    # with the date
+    @pytest.mark.vcr(record_mode="none")
     def test_http_headers(self, sf):
-        # from email.utils import formatdate
-        # now = formatdate(timeval=None, localtime=False, usegmt=True)
         requests = [
             {
                 "method": "GET",
                 "url": "/services/data/v49.0/sobjects",
-                "httpHeaders": {"If-Modified-Since": "Thu, 03 Sep 2020 21:35:07 GMT"},
+                "httpHeaders": {"If-Modified-Since": "Thu, 09 Feb 2021 21:35:07 GMT"},
             },
         ] * 3
         with CompositeParallelSalesforce(sf, 4, max_workers=1) as cpsf:
