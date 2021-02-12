@@ -519,16 +519,12 @@ Here is a complete workflow to run Robot Framework tests for any commit:
            python -m pip install -U pip
            pip install cumulusci
        - run: |
-           cci task run robot --org dev -o vars BROWSER:headlesschrome
+           cci task run robot --org dev -o vars BROWSER:headlesschrome --delete-org
        - name: Store robot results
          uses: actions/upload-artifact@v1
          with:
            name: robot
            path: robot/CumulusCI-Test/results
-       - name: Delete scratch org
-         if: always()
-         run: |
-           cci org scratch_delete dev
 
 References
 ~~~~~~~~~~
