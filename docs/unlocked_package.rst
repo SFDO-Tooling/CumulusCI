@@ -26,18 +26,18 @@ To create a new unlocked package version, run the ``create_package_version`` tas
 
     $ cci task run create_package_version --org <org_name> --package_type Unlocked
 
-This task looks in your default DevHub org (as configured in ``sfdx``) for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of the ``cumulusci.yml`` file). If a matching package doesn't exist, the task then submits a request to create the package version. When completed (which can take some time), the task outputs a ``SubscriberPackageVersion Id``, which can be used to install the package in another org.
+This task looks in your default DevHub org (as configured in ``sfdx``) for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of the ``cumulusci.yml`` file). If a matching package doesn't exist, the task then submits a request to create the package version. When completed (which can take some time), the task outputs a ``SubscriberPackageVersion`` id, which can be used to install the package in another org.
 
-If a package version already exists with the exact same contents, its ``SubscriberPackageVersion Id`` is returned.
+If a package version already exists with the exact same contents, its ``SubscriberPackageVersion`` id is returned.
 
 
 
 Handle Dependencies
 ---------------------
 
-CumulusCI tries to convert dependencies configured under the ``project`` section of the ``cumulusci.yml`` file into a ``Subscriber Package Version Id`` (``04t`` key prefix). This format is required for dependencies in the API to create a package version.
+CumulusCI tries to convert dependencies configured under the ``project`` section of the ``cumulusci.yml`` file into a ``SubscriberPackageVersion`` id (``04t`` key prefix). This format is required for dependencies in the API to create a package version.
 
-For dependencies that are specified as a managed package namespace and version, or dependencies specified as a GitHub repository with releases that can be resolved to a namespace and version, CumulusCI needs a scratch org with the dependencies installed to execute this conversion in ``create_package_version`` task.
+For dependencies that are specified as a managed package namespace and version, or dependencies specified as a GitHub repository with releases that can be resolved to a namespace and version, CumulusCI needs a scratch org with the dependencies installed to execute this conversion in the ``create_package_version`` task.
 
 .. important:: Install the dependencies in this scratch org *before* running the ``create_package_version`` task! 
 
