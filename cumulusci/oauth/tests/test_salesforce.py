@@ -10,12 +10,11 @@ import urllib.request
 
 from unittest import mock
 
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import (
     CaptureSalesforceOAuth,
     SalesforceOAuth2,
     jwt_session,
-    ERROR_MESSAGE_400,
 )
 
 
@@ -31,7 +30,9 @@ def test_jwt_session(encode):
         body=error,
         status=400,
     )
-    with pytest.raises(CumulusCIException, match=ERROR_MESSAGE_400.format(error)):
+    with pytest.raises(
+        SalesforceCredentialsException, match=f"Error retrieving access token: {error}"
+    ):
         jwt_session("client_id", "server_key", "username")
 
 
@@ -97,15 +98,15 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
 
         # mock response for SalesforceOAuth2.get_token()
         expected_response = {
-            u"access_token": u"abc123",
-            u"id_token": u"abc123",
-            u"token_type": u"Bearer",
-            u"signature": u"abc123",
-            u"issued_at": u"12345",
-            u"scope": u"{}".format(self.scope),
-            u"instance_url": u"https://na15.salesforce.com",
-            u"id": u"https://login.salesforce.com/id/abc/xyz",
-            u"refresh_token": u"abc123",
+            "access_token": "abc123",
+            "id_token": "abc123",
+            "token_type": "Bearer",
+            "signature": "abc123",
+            "issued_at": "12345",
+            "scope": "{}".format(self.scope),
+            "instance_url": "https://na15.salesforce.com",
+            "id": "https://login.salesforce.com/id/abc/xyz",
+            "refresh_token": "abc123",
         }
         responses.add(
             responses.POST,
@@ -149,15 +150,15 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
 
         # mock response for SalesforceOAuth2.get_token()
         expected_response = {
-            u"access_token": u"abc123",
-            u"id_token": u"abc123",
-            u"token_type": u"Bearer",
-            u"signature": u"abc123",
-            u"issued_at": u"12345",
-            u"scope": u"{}".format(self.scope),
-            u"instance_url": u"https://na15.salesforce.com",
-            u"id": u"https://login.salesforce.com/id/abc/xyz",
-            u"refresh_token": u"abc123",
+            "access_token": "abc123",
+            "id_token": "abc123",
+            "token_type": "Bearer",
+            "signature": "abc123",
+            "issued_at": "12345",
+            "scope": "{}".format(self.scope),
+            "instance_url": "https://na15.salesforce.com",
+            "id": "https://login.salesforce.com/id/abc/xyz",
+            "refresh_token": "abc123",
         }
         responses.add(
             responses.POST,
