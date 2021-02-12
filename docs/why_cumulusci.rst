@@ -163,7 +163,7 @@ MetaCI is our custom CI app run on Heroku to automate the execution of builds us
 
 MetaDeploy
 ----------
-MetaDeploy is our custom installer app run on Heroku to automate complex installations of managed package projects. It help us to provide our customers with a seemless install experience.
+MetaDeploy is our custom installer app run on Heroku to automate complex installations of managed package projects. It help us to provide our customers with a seamless install experience.
 
 Next Steps
 ==========
