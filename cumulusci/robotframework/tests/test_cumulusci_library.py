@@ -65,11 +65,13 @@ class TestCumulusCILibrary(MockLoggerMixin, unittest.TestCase):
 
             with mock.patch.object(self.cumulusci, "_run_task"):
                 self.cumulusci.run_task("example:whatever")
-                task = self.cumulusci._run_task.mock_calls[0].args[0]
+
+                args, kwargs = self.cumulusci._run_task.call_args
+                self.assertEqual(len(args), 1)
 
                 # make sure it's not using the current project config
                 # for the task, and that the config it _is_ using is
                 # rooted in the directory we created
+                task = args[0]
                 self.assertNotEqual(task.project_config, self.cumulusci.project_config)
                 self.assertEqual(tmpdir, Path(task.project_config.repo_root))
-                print("bruh")
