@@ -63,10 +63,29 @@ def vcr_config(request):
     }
 
 
+_version_string = re.compile(r"/v\d\d.0/")
+
+
+def _noversion(s):
+    s = str(s, "utf-8") if isinstance(s, bytes) else s
+    return _version_string.sub(r"/vxx.0/", s) if s is not None else s
+
+
+def explain_mismatch(r1, r2):
+    if r1.method != r2.method:
+        print("MISMATCH", r1.method, "\n!=", r2.method)
+    if _noversion(r1.uri) != _noversion(r2.uri):
+        print("MISMATCH", _noversion(r1.uri), "\n!=", _noversion(r2.uri))
+    if _noversion(r1.body) != _noversion(r2.body):
+        print("MISMATCH", _noversion(r1.body), "\n!=", _noversion(r2.body))
+    print("DONE")
+    return False
+
+
 def salesforce_matcher(r1, r2):
-    summary1 = (r1.method, r1.uri, r1.body)
-    summary2 = (r2.method, r2.uri, r2.body)
-    assert summary1 == summary2
+    summary1 = (r1.method, _noversion(r1.uri), _noversion(r1.body))
+    summary2 = (r2.method, _noversion(r2.uri), _noversion(r2.body))
+    assert (summary1 == summary2) or explain_mismatch(r1, r2)
 
 
 def salesforce_vcr(vcr):

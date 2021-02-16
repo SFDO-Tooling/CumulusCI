@@ -44,9 +44,6 @@ def org_config(request, fallback_orgconfig):
     if org_name:
         with unmock_homedir():  # restore real homedir
             runtime = CliRuntime()
-            from pathlib import Path
-
-            print("ZZZZA", Path.home(), os.environ.get("CUMULUSCI_KEY"))
             del os.environ["CUMULUSCI_KEY"]
             runtime.keychain._load_orgs()
             org_name, org_config = runtime.get_org(org_name)
@@ -103,6 +100,11 @@ def pytest_runtest_setup(item):
             "--accelerate-integration-tests"
         ) and not item.config.getoption("--org"):
             pytest.skip("test requires --org or --accelerate-integration-tests")
+        no_vcr = any(item.iter_markers(name="no_vcr"))
+        if no_vcr and item.config.getoption("--accelerate-integration-tests"):
+            pytest.skip(
+                "test cannot be accelerated. " "It is not commpatible with VCR."
+            )
 
 
 @pytest.fixture(scope="module")

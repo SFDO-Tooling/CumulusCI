@@ -1038,9 +1038,9 @@ class TestMappingGenerator(unittest.TestCase):
             )
 
 
+@pytest.mark.no_vcr()  # too hard to make these VCR-compatible
 @pytest.mark.integration_test()
 class TestIntegrationGenerateMapping:
-    @pytest.mark.vcr()
     def test_simple_generate(self, create_task):
         "Generate a mapping against a provided org."
         with TemporaryDirectory() as t:

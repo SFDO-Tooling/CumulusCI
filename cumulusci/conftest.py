@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from pytest import fixture
 from cumulusci.core.github import get_github_api
 from cumulusci.tests.pytest_plugins.pytest_sf_vcr import vcr_config, salesforce_vcr
-from cumulusci.tests.util import DummyOrgConfig, mock_homedir
+from cumulusci.tests.util import DummyOrgConfig, mock_homedir, DummyKeychain
 from cumulusci.tasks.salesforce.tests.util import create_task_fixture
 
 
@@ -62,7 +62,9 @@ def mock_http_response():
 @fixture(scope="session")
 def fallback_orgconfig():
     def fallback_orgconfig():
-        return DummyOrgConfig(name="pytest_sf_orgconnect_dummy_orgconfig")
+        return DummyOrgConfig(
+            name="pytest_sf_orgconnect_dummy_orgconfig", keychain=DummyKeychain()
+        )
 
     return fallback_orgconfig
 
