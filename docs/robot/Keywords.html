@@ -279,6 +279,7 @@ ${login url}=  Login URL  alias=dadvisor
                   
                 </td>
                 <td class="kwdoc"><p>Runs a named CumulusCI task for the current project with optional support for overriding task options via kwargs.</p>
+<p>Note: task_name can be prefixed with the name of another project, just the same as when running the task from the command line. The other project needs to have been defined in the 'sources' section of cumulusci.yml.</p>
 <p>Examples:</p>
 <table border="1">
 <tr>
@@ -298,6 +299,12 @@ ${login url}=  Login URL  alias=dadvisor
 <td>deploy</td>
 <td>path=path/to/some/metadata</td>
 <td>Run deploy with custom path</td>
+</tr>
+<tr>
+<td>Run task</td>
+<td>npsp:deploy_rd2_config</td>
+<td></td>
+<td>Run the deploy_rd2_config task from the NPSP project</td>
 </tr>
 </table></td>
               </tr>
@@ -2219,7 +2226,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Tuesday January 12, 04:27 PM - cumulusci v3.26.0
+      Generated on Monday February 15, 05:53 PM - cumulusci v3.28.0
     </div>
   </body>
 </html>
