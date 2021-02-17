@@ -34,9 +34,14 @@ def is_release_branch_or_child(branch_name, prefix):
     return len(parts) >= 1 and parts[0].isdigit()
 
 
+def get_feature_branch_name(branch_name, prefix):
+    if branch_name.startswith(prefix):
+        return branch_name[len(prefix) :]
+
+
 def get_release_identifier(branch_name, prefix):
     if is_release_branch_or_child(branch_name, prefix):
-        return branch_name[len(prefix) :].split("__")[0]
+        return get_feature_branch_name(branch_name, prefix).split("__")[0]
 
 
 def construct_release_branch_name(prefix, release_identifier):

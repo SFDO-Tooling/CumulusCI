@@ -36,10 +36,12 @@ from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
 from cumulusci.utils.git import (
     current_branch,
+    get_feature_branch_name,
     git_path,
     is_release_branch_or_child,
     construct_release_branch_name,
     get_release_identifier,
+    get_feature_branch_name,
 )
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.utils.fileutils import open_fs_resource
@@ -508,33 +510,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         return repo
 
-    def find_matching_2gp_release(self, remote_repo):
-        # To allow us to locate release branches on the remote repo, we need to know its feature branch prefix.
-        # We'll use the cumulusci.yml file from HEAD on the main branch to determine this.
-
-        release_id = get_release_identifier(
-            self.repo_branch, self.project__git__prefix_feature
-        )
-        try:
-            remote_branch_prefix = find_repo_feature_prefix(remote_repo)
-        except Exception:
-            self.logger.info(
-                f"Could not find feature branch prefix for {remote_repo.clone_url}. Falling back to 1GP."
-            )
-            return (None, None)
-        remote_matching_branch = construct_release_branch_name(
-            remote_branch_prefix, release_id
-        )
-
-        # Check the most recent five commits on this release branch looking for a 2GP package to use
-        try:
-            release_branch = remote_repo.branch(remote_matching_branch)
-        except NotFoundError:
-            self.logger.info(
-                f"Release branch {remote_matching_branch} not found on {remote_repo.clone_url}. Falling back to 1GP."
-            )
-            return (None, None)
-
+    def _locate_2gp_package_id(self, remote_repo, release_branch):
         version_id = None
         count = 0
         commit = release_branch.commit
@@ -543,9 +519,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 remote_repo, commit.sha, self.project__git__2gp_context
             )
             if version_id:
-                self.logger.info(
-                    f"Located 2GP package version {version_id} for release {release_id} on {remote_repo.clone_url} at commit {release_branch.commit.sha}"
-                )
                 break
             count += 1
             if commit.parents:
@@ -553,13 +526,66 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             else:
                 break
 
-        if version_id is None:
-            self.logger.warn(
-                f"No 2GP package version located for release {release_id} on {remote_repo.clone_url}. Falling back to 1GP."
+        return version_id, commit
+
+    def find_matching_2gp_release(
+        self, remote_repo, exact_branch_match=False, match_release_upwards=False
+    ):
+        # To allow us to locate release branches on the remote repo, we need to know its feature branch prefix.
+        # We'll use the cumulusci.yml file from HEAD on the main branch to determine this.
+
+        # If we've been called, we know we have an integer release id.
+        release_id = int(
+            get_release_identifier(self.repo_branch, self.project__git__prefix_feature)
+        )
+        try:
+            remote_branch_prefix = find_repo_feature_prefix(remote_repo)
+        except Exception:
+            self.logger.info(
+                f"Could not find feature branch prefix for {remote_repo.clone_url}. Falling back to 1GP."
             )
             return (None, None)
 
-        return version_id, commit.sha
+        # Attempt exact match
+        if exact_branch_match:
+            try:
+                release_branch = remote_repo.branch(
+                    f"{remote_branch_prefix}{get_feature_branch_name(self.repo_branch, self.project__git__prefix_feature)}"
+                )
+            except Exception:
+                self.logger.info(
+                    f"Exact-match branch not found for {remote_repo.clone_url}. Trying release branch."
+                )
+
+        # We will check at least the release branch corresponding to our release id.
+        # If match_release_upwards is specified, we'll also check the previous two release identifiers.
+        release_branch = None
+        for i in range(0, 1 if not match_release_upwards else 3):
+            try:
+                remote_matching_branch = construct_release_branch_name(
+                    remote_branch_prefix, release_id - i
+                )
+
+                release_branch = remote_repo.branch(remote_matching_branch)
+            except NotFoundError:
+                pass
+
+        if release_branch:
+            version_id, commit = self._locate_2gp_package_id(
+                remote_repo, release_branch
+            )
+
+            if version_id:
+                self.logger.info(
+                    f"Located 2GP package version {version_id} for release {release_id} on {remote_repo.clone_url} at commit {release_branch.commit.sha}"
+                )
+
+                return version_id, commit.sha
+
+        self.logger.warn(
+            f"No 2GP package version located for release {release_id} on {remote_repo.clone_url}. Falling back to 1GP."
+        )
+        return (None, None)
 
     def get_ref_for_dependency(
         self,
