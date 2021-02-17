@@ -271,18 +271,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             if mapping["table"] == table:
                 return mapping
 
-    def _split_batch_csv(self, records, f_values, f_ids):
-        """Split the record generator and return two files,
-        one containing Ids only and the other record data."""
-        writer_values = csv.writer(f_values)
-        writer_ids = csv.writer(f_ids)
-        for row in records:
-            writer_values.writerow(row[1:])
-            writer_ids.writerow(row[:1])
-        f_values.seek(0)
-        f_ids.seek(0)
-        return f_values, f_ids
-
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
         for lookup_key in lookup_keys:
