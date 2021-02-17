@@ -1038,7 +1038,7 @@ class TestMappingGenerator(unittest.TestCase):
             )
 
 
-@pytest.mark.no_vcr()  # too hard to make these VCR-compatible
+@pytest.mark.no_vcr()  # too hard to make these VCR-compatible due to data volume
 @pytest.mark.integration_test()
 class TestIntegrationGenerateMapping:
     def test_simple_generate(self, create_task):
@@ -1051,7 +1051,6 @@ class TestIntegrationGenerateMapping:
             task()
             assert Path(tempfile).exists()
 
-    @pytest.mark.vcr()
     def test_generate_with_cycles(self, create_task):
         "Generate a mapping that necessarily includes some reference cycles"
         with TemporaryDirectory() as t:

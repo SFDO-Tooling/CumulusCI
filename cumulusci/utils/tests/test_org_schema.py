@@ -1,9 +1,7 @@
 import json
-from tempfile import TemporaryDirectory
 from unittest.mock import patch
 from pathlib import Path
 from itertools import chain
-from contextlib import contextmanager
 import gzip
 
 import pytest
@@ -11,7 +9,6 @@ import yaml
 
 from sqlalchemy import create_engine
 
-from cumulusci.tests.util import DummyOrgConfig, DummyKeychain
 from cumulusci.utils.org_schema import get_org_schema, BufferedSession, zip_database
 from cumulusci.utils.org_schema_models import Base
 
@@ -65,7 +62,9 @@ def uncached_responses(responses):
     )
 
 
-cached_responses = [{"body": None, "httpHeaders": {}, "httpStatusCode": 304}] * 4
+cached_responses = [
+    {"body": None, "httpHeaders": {}, "httpStatusCode": 304, "referenceId": "noId"}
+] * 4
 
 
 def mock_return_uncached_responses(cassette_data):
@@ -113,42 +112,33 @@ class TestDescribeOrg:
                     db_field[name],
                 )
 
-    @contextmanager
-    def tempdir_orgconfig(self):
-        with TemporaryDirectory() as t:
-            keychain = DummyKeychain(cache_dir=Path(t))
-            org_config = DummyOrgConfig(keychain=keychain)
-            yield org_config
-
-    def test_describe_to_sql(self):
-        with self.tempdir_orgconfig() as org_config:
-            # Step 1: Pretend to download data from server
-            with mock_return_uncached_responses(self.cassette_data):
-                with get_org_schema(FakeSF(), org_config) as schema:
-                    self.validate_schema_data(schema)
-
-            # Step 2: Call the server again.
-            #         This time it has nothing new to tell us so nothing
-            # should be written to the local database except an updated
-            # LastModifiedDate.
-            with mock_return_cached_responses(), patch(
-                "cumulusci.utils.org_schema.create_row"
-            ) as create_row, get_org_schema(FakeSF(), org_config) as schema:
+    def test_describe_to_sql(self, fallback_org_config):
+        # Step 1: Pretend to download data from server
+        org_config = fallback_org_config()
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(FakeSF(), org_config) as schema:
                 self.validate_schema_data(schema)
-                for call in create_row.mock_calls:
-                    assert call[1][1].__name__ == "FileMetadata"
 
-    def test_errors(self):
-        with self.tempdir_orgconfig() as org_config, mock_return_uncached_responses(
-            self.cassette_data
-        ), get_org_schema(FakeSF(), org_config) as schema:
+        # Step 2: Call the server again.
+        #         This time it has nothing new to tell us so nothing
+        # should be written to the local database except an updated
+        # LastModifiedDate.
+        with mock_return_cached_responses(), patch(
+            "cumulusci.utils.org_schema.create_row"
+        ) as create_row, get_org_schema(FakeSF(), org_config) as schema:
+            self.validate_schema_data(schema)
+            for call in create_row.mock_calls:
+                assert call[1][1].__name__ == "FileMetadata"
+
+    def test_errors(self, org_config):
+        with mock_return_uncached_responses(self.cassette_data), get_org_schema(
+            FakeSF(), org_config
+        ) as schema:
             with pytest.raises(KeyError):
                 schema["Foo"]
 
-    def test_forced_recache(self):
-        with self.tempdir_orgconfig() as org_config, mock_return_uncached_responses(
-            self.cassette_data
-        ):
+    def test_forced_recache(self, org_config):
+        with mock_return_uncached_responses(self.cassette_data):
             with get_org_schema(FakeSF(), org_config) as schema:
                 schema.session.execute("insert into sobjects (name) values ('Foo')")
                 assert "Foo" in schema
@@ -160,61 +150,78 @@ class TestDescribeOrg:
             with get_org_schema(FakeSF(), org_config, force_recache=True) as schema:
                 assert "Foo" not in schema
 
-    def test_dict_like(self):
-        with self.tempdir_orgconfig() as org_config:
-            with mock_return_uncached_responses(self.cassette_data):
-                with get_org_schema(FakeSF(), org_config) as schema:
-                    assert schema["Account"]
-                    assert "Account" in schema
-                    assert sorted(schema.keys())[0] == "Account"
-                    assert (
-                        sorted(schema.values(), key=lambda x: x.name)[0].name
-                        == "Account"
-                    )
-                    a, b = sorted(schema.items())[0]
-                    assert a == "Account"
-                    assert "Account" in schema.keys()
-                    assert "<Schema" in repr(schema)
+    def test_dict_like(self, org_config):
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(FakeSF(), org_config) as schema:
+                assert schema["Account"]
+                assert "Account" in schema
+                assert sorted(schema.keys())[0] == "Account"
+                assert (
+                    sorted(schema.values(), key=lambda x: x.name)[0].name == "Account"
+                )
+                a, b = sorted(schema.items())[0]
+                assert a == "Account"
+                assert "Account" in schema.keys()
+                assert "<Schema" in repr(schema)
 
-    def test_misuse(self):
+    def test_misuse(self, org_config):
         """What if the user keeps a reference to the schema"""
-        with self.tempdir_orgconfig() as org_config:
-            with mock_return_uncached_responses(self.cassette_data):
-                with get_org_schema(FakeSF(), org_config) as schema:
-                    pass
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(FakeSF(), org_config) as schema:
+                pass
         with pytest.raises(IOError):
             schema.session.commit()
 
-    def test_corrupted_schema(self, caplog):
+    def test_corrupted_schema(self, caplog, org_config):
         "What if the schema GZip is corrupted?"
-        with self.tempdir_orgconfig() as org_config:
-            with mock_return_uncached_responses(self.cassette_data):
-                with get_org_schema(FakeSF(), org_config) as schema:
-                    assert "Account" in schema
-                    path = schema.path
-                assert not caplog.text
-                with open(path, "w") as p:
-                    p.write("xxx")
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(FakeSF(), org_config) as schema:
+                assert "Account" in schema
+                path = schema.path
+            assert not caplog.text
+            with open(path, "w") as p:
+                p.write("xxx")
 
-                with get_org_schema(FakeSF(), org_config) as schema:
-                    assert "Account" in schema
-                assert caplog.text
+            with get_org_schema(FakeSF(), org_config) as schema:
+                assert "Account" in schema
+            assert caplog.text
 
-    def test_corrupted_schema__sqlite(self, caplog):
+    def test_corrupted_schema__sqlite(self, caplog, org_config):
         "What if the schema inside the gzip is corrupted"
-        with self.tempdir_orgconfig() as org_config:
-            with mock_return_uncached_responses(self.cassette_data):
-                with get_org_schema(FakeSF(), org_config) as schema:
-                    assert "Account" in schema
-                    path = schema.path
-                assert not caplog.text
-                with open(path, "wb") as p:
-                    with gzip.GzipFile(fileobj=p) as gzipped:
-                        gzipped.write(b"xxx")
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(FakeSF(), org_config) as schema:
+                assert "Account" in schema
+                path = schema.path
+            assert not caplog.text
+            with open(path, "wb") as p:
+                with gzip.GzipFile(fileobj=p) as gzipped:
+                    gzipped.write(b"xxx")
 
-                with get_org_schema(FakeSF(), org_config) as schema:
-                    assert "Account" in schema
-                assert caplog.text
+            with get_org_schema(FakeSF(), org_config) as schema:
+                assert "Account" in schema
+            assert caplog.text
+
+
+@pytest.mark.no_vcr()  # too hard to make these VCR-compatible due to data volume
+@pytest.mark.integration_test()
+class TestOrgSchemaIntegration:
+    def validate_real_schema_data(self, schema):
+        assert len(list(schema.sobjects)) > 800
+        assert schema["Account"].createable is True
+        assert schema["Account"].fields["Id"].aggregatable is True
+        assert schema["Account"].labelPlural == "Accounts"
+        account_desc = schema["Account"]
+        assert account_desc.deletable is True
+        assert account_desc.undeletable is True
+        assert account_desc.keyPrefix == "001"
+
+    def test_cache_schema(self, sf, org_config):
+        with get_org_schema(sf, org_config, force_recache=True) as schema:
+            self.validate_real_schema_data(schema)
+            assert not schema.from_cache
+        with get_org_schema(sf, org_config) as schema:
+            self.validate_real_schema_data(schema)
+            assert schema.from_cache
 
 
 class TestBufferedSession:

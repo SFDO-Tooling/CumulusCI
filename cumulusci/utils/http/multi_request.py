@@ -4,6 +4,8 @@ from typing import Iterable, Dict
 
 from requests_futures.sessions import FuturesSession
 
+from cumulusci.utils.iterators import iterate_in_chunks
+
 
 class ParallelHTTP:
     """A parallelized HTTP client as a context manager"""
@@ -58,7 +60,7 @@ def create_composite_requests(requests, chunk_size):
 
     return (
         {"path": "composite", "method": "POST", "json": {"compositeRequest": chunk}}
-        for chunk in chunks(requests, chunk_size)
+        for chunk in iterate_in_chunks(chunk_size, requests)
     )
 
 
@@ -108,10 +110,3 @@ class CompositeParallelSalesforce:
         composite_results = self.psf.do_requests(composite_requests)
         individual_results = parse_composite_results(composite_results)
         return list(individual_results)
-
-
-# TODO: Unify with get_batch_iterator when its merged elsewhere
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i : i + n]

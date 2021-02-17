@@ -169,9 +169,6 @@ class GenerateMapping(BaseSalesforceApiTask):
                                 if target != obj:
                                     self.refs[obj][target][field["name"]] = field
 
-                if field["name"] == "RecordTypeId":
-                    if org_schema[obj].recordTypeInfos:
-                        print(len(org_schema[obj].recordTypeInfos) > 1)
                 if (
                     field["name"] == "RecordTypeId"
                     and org_schema[obj].recordTypeInfos

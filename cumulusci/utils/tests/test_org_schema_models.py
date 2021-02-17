@@ -66,7 +66,7 @@ class TestOrgSchemaModels:
                     session.execute("select urls from sobjects").first()["urls"] is None
                 )
 
-    def test_roundtrip_seqeunces(self):
+    def test_roundtrip_sequences(self):
         with self.temp_db() as open_db:
             with open_db() as (connection, metadata, session):
                 session.add(
@@ -78,7 +78,7 @@ class TestOrgSchemaModels:
                 assert foo["name"] == "Foo"
                 assert foo["childRelationships"] == (("a", "b"), ("c", "d"))
 
-    def test_roundtrip_seqeunces__empty(self):
+    def test_roundtrip_sequences__empty(self):
         with self.temp_db() as open_db:
             with open_db() as (connection, metadata, session):
                 session.add(SObject(name="Foo", childRelationships=[]))

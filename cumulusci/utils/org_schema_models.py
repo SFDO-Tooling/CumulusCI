@@ -11,6 +11,11 @@ Base = declarative_base()
 
 
 class SpecializedType(types.TypeDecorator):
+    """A baseclass for custom datatypes. E.g. sequences and mappings
+
+    Custom types are types that are not directly supported by SQL Alchemy
+    """
+
     impl = types.PickleType
 
     def process_bind_param(self, value, dialect):
@@ -53,7 +58,6 @@ class OrgSchemaModelMixin:
         fields = self.__dict__.copy()
         name = fields.pop("name", "<UNNAMED>")
         fields.pop("_sa_instance_state")
-        # fields.pop(_sa_)
         return f"<{self.__class__.__name__} {name} {fields}>"
 
     def __eq__(self, other):
@@ -67,7 +71,6 @@ class OrgSchemaModelMixin:
 
 class SObject(OrgSchemaModelMixin, Base):
     __tablename__ = "sobjects"
-    # id = Column(Integer, primary_key=True)
     name = Column(String, primary_key=True, sqlite_on_conflict_primary_key="REPLACE")
     activateable = Column(Boolean)
     childRelationships = Column(SequenceType)
@@ -132,7 +135,6 @@ class Field(OrgSchemaModelMixin, Base):
         ),
     )
 
-    # id = Column(Integer, primary_key=True)
     sobject = Column(String, ForeignKey("sobjects.name"), nullable=False)
     parent = relationship("SObject")
     name = Column(String, nullable=False)

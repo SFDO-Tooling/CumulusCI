@@ -60,13 +60,13 @@ def mock_http_response():
 
 
 @fixture(scope="session")
-def fallback_orgconfig():
-    def fallback_orgconfig():
+def fallback_org_config():
+    def fallback_org_config():
         return DummyOrgConfig(
-            name="pytest_sf_orgconnect_dummy_orgconfig", keychain=DummyKeychain()
+            name="pytest_sf_orgconnect_dummy_org_config", keychain=DummyKeychain()
         )
 
-    return fallback_orgconfig
+    return fallback_org_config
 
 
 vcr_config = fixture(vcr_config, scope="module")

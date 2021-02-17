@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, NamedTuple
 
 from logging import getLogger
 from pathlib import Path
@@ -36,7 +36,7 @@ def unzip_database(gzipfile, outfile):
 
 
 class Schema:
-    """Represents an org's schema, cached from descibe() calls"""
+    """Represents an org's schema, cached from describe() calls"""
 
     _last_modified_date = None
 
@@ -105,18 +105,27 @@ def create_row(buffered_session: "BufferedSession", model, valuesdict: dict):
 
 
 def populate_cache(schema, sf, last_modified_date, logger=None):
+    """Populate a schema cache from the API, using last_modified_date
+    to pull down only new schema"""
 
     sobjs = sf.describe()["sobjects"]
     sobj_names = [obj["name"] for obj in sobjs]
 
-    full_sobjs = deep_describe(sf, last_modified_date, sobj_names)
-    full_sobjs = list(full_sobjs)
-    _populate_cache_from_describe(schema, full_sobjs, last_modified_date)
+    responses = list(deep_describe(sf, last_modified_date, sobj_names))
+    changes = [
+        (resp.body, resp.last_modified_date) for resp in responses if resp.status == 200
+    ]
+    unexpected = [resp for resp in responses if resp.status not in (200, 304)]
+    for unknown in unexpected:
+        logger.warn(f"Unexpected describe reply. An SObject may be missing: {unknown}")
+    _populate_cache_from_describe(schema, changes, last_modified_date)
 
 
 def _populate_cache_from_describe(
     schema, describe_objs: List[Tuple[dict, str]], last_modified_date
 ):
+    """Populate a schema cache from a list of describe objects."""
+
     engine = schema.engine
     metadata = Base.metadata
     metadata.bind = engine
@@ -244,7 +253,7 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                     for cleanup_action in reversed(cleanups_on_failure):
                         cleanup_action()
 
-            if not schema:
+            if schema is None:
                 engine = create_engine(f"sqlite:///{str(tempfile)}")
                 Base.metadata.bind = engine
                 Base.metadata.create_all()
@@ -264,6 +273,13 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
             yield schema
 
 
+class DescribeResponse(NamedTuple):
+    status: int
+    body: dict
+    last_modified_date: str = None
+    refId: str = None
+
+
 def deep_describe(sf, last_modified_date, objs):
     last_modified_date = last_modified_date or y2k
     with CompositeParallelSalesforce(sf, max_workers=8) as cpsf:
@@ -271,7 +287,7 @@ def deep_describe(sf, last_modified_date, objs):
             (
                 {
                     "method": "GET",
-                    "url": f"/services/data/v48.0/sobjects/{obj}/describe",
+                    "url": f"/services/data/v{sf.sf_version}/sobjects/{obj}/describe",
                     "referenceId": f"ref{obj}",
                     "httpHeaders": {"If-Modified-Since": last_modified_date},
                 }
@@ -279,12 +295,16 @@ def deep_describe(sf, last_modified_date, objs):
             )
         )
 
-        changes = (
-            (response["body"], response["httpHeaders"]["Last-Modified"])
+        responses = (
+            DescribeResponse(
+                response["httpStatusCode"],
+                response["body"],
+                response["httpHeaders"].get("Last-Modified"),
+                response["referenceId"],
+            )
             for response in responses
-            if response["httpStatusCode"] == 200
         )
-        yield from changes
+        yield from responses
 
 
 if __name__ == "__main__":  # pragma: no cover

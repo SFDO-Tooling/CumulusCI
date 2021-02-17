@@ -78,14 +78,13 @@ def explain_mismatch(r1, r2):
         print("MISMATCH", _noversion(r1.uri), "\n!=", _noversion(r2.uri))
     if _noversion(r1.body) != _noversion(r2.body):
         print("MISMATCH", _noversion(r1.body), "\n!=", _noversion(r2.body))
-    print("DONE")
     return False
 
 
 def salesforce_matcher(r1, r2):
     summary1 = (r1.method, _noversion(r1.uri), _noversion(r1.body))
     summary2 = (r2.method, _noversion(r2.uri), _noversion(r2.body))
-    assert (summary1 == summary2) or explain_mismatch(r1, r2)
+    assert summary1 == summary2  # or explain_mismatch(r1, r2)
 
 
 def salesforce_vcr(vcr):
