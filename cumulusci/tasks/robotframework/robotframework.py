@@ -81,10 +81,10 @@ class Robot(BaseSalesforceTask):
             )
 
         # There are potentially many robot options that are or could
-        # be lists, but the only one we currently care about is the
-        # listener option since we may need to append additional values
-        # onto it.
-        for option in ("listener",):
+        # be lists. The only ones we currently care about are the
+        # listener and tagstatexlude options since we may need to
+        # append additional values onto it.
+        for option in ("listener", "tagstatexclude"):
             if option in self.options["options"]:
                 self.options["options"][option] = process_list_arg(
                     self.options["options"][option]

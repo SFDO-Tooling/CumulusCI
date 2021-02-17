@@ -41,7 +41,7 @@ import cumulusci
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode"]
+extensions = []
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -57,7 +57,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"CumulusCI"
-copyright = u"2020, Salesforce.org"
+copyright = u"2021, Salesforce.org"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -280,27 +280,19 @@ texinfo_documents = [
 # texinfo_no_detailmenu = False
 
 
-# Run sphinx api-doc
-def run_apidoc(_):
-    from sphinx.ext.apidoc import main
-    import os
-    import sys
+def generate_task_and_flow_docs(_):
+    """Run cci commands to generate tasks.rst and flows.rst"""
+    import subprocess
+    from sphinx.util.logging import getLogger
 
-    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    module = os.path.join(cur_dir, "..", "cumulusci")
-    main(
-        [
-            "-T",
-            "-M",
-            "-o",
-            os.path.join(cur_dir, "api"),
-            module,
-            os.path.join(cur_dir, "..", "**", "tests", "*"),
-            "--force",
-        ]
-    )
+    logger = getLogger("cci")
+    logger.info("Generating docs/tasks.rst from cci tasks")
+    with open("tasks.rst", "w") as task_docs:
+        subprocess.run(["cci", "task", "doc"], stdout=task_docs, check=True)
+    logger.info("Generating docs/flows.rst from cci flows")
+    with open("flows.rst", "w") as flow_docs:
+        subprocess.run(["cci", "flow", "doc"], stdout=flow_docs, check=True)
 
 
 def setup(app):
-    app.connect("builder-inited", run_apidoc)
+    app.connect("builder-inited", generate_task_and_flow_docs)

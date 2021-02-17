@@ -53,7 +53,7 @@ class DeployOrgSettings(Deploy):
         dictmerge(settings, self.options.get("settings", {}))
 
         if not settings:
-            self.logger.info(f"No settings provided to deploy.")
+            self.logger.info("No settings provided to deploy.")
             return
 
         api_version = (
@@ -95,7 +95,6 @@ def build_settings_package(settings: dict, api_version: str):
             )
             with open(settings_file, "w") as f:
                 f.write(SETTINGS_XML.format(settingsName=settings_name, values=values))
-            print(SETTINGS_XML.format(settingsName=settings_name, values=values))
         with open("package.xml", "w") as f:
             f.write(PACKAGE_XML.format(api_version=api_version))
 

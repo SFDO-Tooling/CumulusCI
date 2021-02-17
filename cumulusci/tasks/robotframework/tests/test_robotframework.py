@@ -157,6 +157,29 @@ class TestRobot(unittest.TestCase):
             tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
         )
 
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    def test_tagstatexclude(self, mock_robot_run):
+        """Verify tagstatexclude is treated as a list"""
+        mock_robot_run.return_value = 0
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "options": {
+                    "tagstatexclude": "this,that",
+                },
+            },
+        )
+        assert type(task.options["options"]["tagstatexclude"]) == list
+        task()
+        mock_robot_run.assert_called_once_with(
+            "test",
+            listener=[],
+            outputdir=".",
+            variable=["org:test"],
+            tagstatexclude=["this", "that", "cci_metric_elapsed_time", "cci_metric"],
+        )
+
     def test_default_listeners(self):
         # first, verify that not specifying any listener options
         # results in no listeners...
