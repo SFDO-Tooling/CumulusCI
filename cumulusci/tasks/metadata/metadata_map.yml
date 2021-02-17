@@ -271,7 +271,7 @@ liveChatDeployments:
 
 lwc:
     - type: LightningComponentBundle
-      class: BundleParser
+      class: LWCBundleParser
 matchingRules:
     - type: MatchingRule
       class: MetadataXmlElementParser
@@ -290,6 +290,10 @@ MobileApplicationDetails:
     - type: MobileApplicationDetail
       class: MetadataFilenameParser
       extension: MobileApplicationDetail
+mutingpermissionsets:
+    - type: MutingPermissionSet
+      class: MetadataFilenameParser
+      extension: mutingpermissionset
 navigationMenus:
     - type: NavigationMenu
       class: MetadataFilenameParser

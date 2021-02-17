@@ -43,7 +43,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
-from cumulusci.core.utils import import_global
+from cumulusci.core.utils import import_global, format_duration
 from cumulusci.cli.utils import group_items
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
@@ -204,24 +204,28 @@ def main(args=None):
         if "--json" not in args and not is_version_command:
             check_latest_version()
 
-        # Load CCI config
-        global RUNTIME
-        RUNTIME = CliRuntime(load_keychain=False)
-        RUNTIME.check_cumulusci_version()
-
-        # Configure logging
-        debug = "--debug" in args
-        if debug:
-            args.remove("--debug")
-        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
-
-        # Only create logfiles for commands
-        # that are not `cci error`
+        # Only create logfiles for commands that are not `cci error`
         is_error_command = len(args) > 2 and args[1] == "error"
         tempfile_path = None
         if not is_error_command:
             logger, tempfile_path = get_tempfile_logger()
             stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
+
+        debug = "--debug" in args
+        if debug:
+            args.remove("--debug")
+
+        # Load CCI config
+        global RUNTIME
+        try:
+            RUNTIME = CliRuntime(load_keychain=False)
+        except Exception as e:
+            handle_exception(e, is_error_command, tempfile_path, debug)
+            sys.exit(1)
+
+        RUNTIME.check_cumulusci_version()
+
+        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
 
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
@@ -249,13 +253,12 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=
     elif isinstance(error, click.ClickException):
         click.echo(click.style(f"Error: {error.format_message()}", fg="red"), err=True)
     else:
-        click.echo(click.style(f"Error: {error}", fg="red"), err=True)
+        click.echo(click.style(f"{error}", fg="red"), err=True)
     # Only suggest gist command if it wasn't run
     if not is_error_cmd:
         click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"), err=True)
 
-    # This is None if we're handling an exception for a
-    # `cci error` command.
+    # This is None if we're handling an exception for a `cci error` command.
     if logfile_path:
         with open(logfile_path, "a") as log_file:
             traceback.print_exc(file=log_file)  # log stacktrace silently
@@ -1415,9 +1418,7 @@ def task_list(runtime, plain, print_json):
     is_flag=True,
     help="If true, write output to a file (./docs/project_tasks.rst or ./docs/cumulusci_tasks.rst)",
 )
-@pass_runtime(
-    require_project=False,
-)
+@pass_runtime(require_project=False)
 def task_doc(runtime, project=False, write=False):
     if project and runtime.project_config is None:
         raise click.UsageError(
@@ -1453,7 +1454,8 @@ def task_doc(runtime, project=False, write=False):
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
 @pass_runtime(require_project=False)
 def flow_doc(runtime):
-    with open("docs/flows.yml", "r", encoding="utf-8") as f:
+    flow_info_path = Path(__file__, "..", "..", "..", "docs", "flows.yml").resolve()
+    with open(flow_info_path, "r", encoding="utf-8") as f:
         flow_info = cci_safe_load(f)
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
     flow_info_groups = list(flow_info["groups"].keys())
@@ -1534,11 +1536,10 @@ class RunTaskCommand(click.MultiCommand):
         return sorted([t["name"] for t in tasks])
 
     def get_command(self, ctx, task_name):
-        RUNTIME._load_keychain()
         if RUNTIME.project_config is None:
-            task_config = RUNTIME.universal_config.get_task(task_name)
-        else:
-            task_config = RUNTIME.project_config.get_task(task_name)
+            raise RUNTIME.project_config_error
+        RUNTIME._load_keychain()
+        task_config = RUNTIME.project_config.get_task(task_name)
 
         if "options" not in task_config.config:
             task_config.config["options"] = {}
@@ -1766,7 +1767,11 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Create the flow and handle initialization exceptions
     try:
         coordinator = runtime.get_flow(flow_name, options=options)
+        start_time = datetime.now()
         coordinator.run(org_config)
+        duration = datetime.now() - start_time
+        click.echo(f"Ran {flow_name} in {format_duration(duration)}")
+
     finally:
         runtime.alert(f"Flow Complete: {flow_name}")
 

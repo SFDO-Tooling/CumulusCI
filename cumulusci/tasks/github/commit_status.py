@@ -1,12 +1,7 @@
 from cumulusci.core.exceptions import DependencyLookupError
-import re
-
-import github3
-
+from cumulusci.core.github import get_version_id_from_commit
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
-
-VERSION_ID_RE = re.compile(r"version_id: (\S+)")
 
 
 class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
@@ -29,17 +24,7 @@ class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
         dependencies = []
         version_id = self.options.get("version_id")
         if version_id is None:
-            try:
-                commit = repo.commit(commit_sha)
-            except github3.exceptions.NotFoundError:
-                raise DependencyLookupError(
-                    f"Could not find commit {commit_sha} on github"
-                )
-            for status in commit.status().statuses:
-                if status.state == "success" and status.context == context:
-                    match = VERSION_ID_RE.search(status.description)
-                    if match:
-                        version_id = match.group(1)
+            version_id = get_version_id_from_commit(repo, commit_sha, context)
 
         if version_id:
             dependencies = self._get_dependencies(version_id)

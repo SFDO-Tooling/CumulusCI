@@ -13,7 +13,7 @@ from robot.libraries.BuiltIn import BuiltIn
 import robot.api as robot_api
 
 
-def set_pdb_trace(pm=False):
+def set_pdb_trace(pm=False):  # pragma: no cover
     """Start the Python debugger when robotframework is running.
 
     This makes sure that pdb can use stdin/stdout even though

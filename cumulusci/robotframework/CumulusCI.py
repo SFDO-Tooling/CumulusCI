@@ -49,7 +49,9 @@ class CumulusCI(object):
     @property
     def project_config(self):
         if self._project_config is None:
-            if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
+            if getattr(CURRENT_TASK, "stack", None) and isinstance(
+                CURRENT_TASK.stack[0], Robot
+            ):
                 # If CumulusCI is running a task, use that task's config
                 return CURRENT_TASK.stack[0].project_config
             else:
@@ -68,7 +70,9 @@ class CumulusCI(object):
     @property
     def org(self):
         if self._org is None:
-            if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
+            if getattr(CURRENT_TASK, "stack", None) and isinstance(
+                CURRENT_TASK.stack[0], Robot
+            ):
                 # If CumulusCI is running a task, use that task's org
                 return CURRENT_TASK.stack[0].org_config
             else:

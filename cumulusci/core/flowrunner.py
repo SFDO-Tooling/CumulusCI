@@ -415,7 +415,7 @@ class FlowCoordinator(object):
             for step in self.steps:
                 self._run_step(step)
             flow_name = f"'{self.name}' " if self.name else ""
-            self.logger.info(f"Completed flow {flow_name}successfully!")
+            self.logger.info(f"Completed flow {flow_name}on org {org_config.name} successfully!")
         finally:
             self.callbacks.post_flow(self)
 

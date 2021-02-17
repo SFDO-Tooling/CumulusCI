@@ -3,11 +3,11 @@ name: Release Test
 on:
   push:
     branches:
-    - feature/**
-    - master
+      - feature/**
+      - main
 
 env:
-  CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'
+  CUMULUSCI_ORG_scratch: '{"config_file": "orgs/prerelease.json", "scratch": true}'
   CUMULUSCI_ORG_packaging: ${{ secrets.CUMULUSCI_ORG_packaging }}
   CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
   SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
@@ -22,46 +22,47 @@ jobs:
     env:
       CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.8
-    - name: pip cache
-      uses: actions/cache@v1
-      with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Install Python dependencies
-      run: |
-        python -m pip install -U pip
-        pip install -r requirements_dev.txt
-    - name: Install sfdx
-      run: |
-        mkdir sfdx
-        wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
-        ./sfdx/install
-        echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-        sfdx force:auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile $(realpath sfdx.key) --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-    - name: Check out CumulusCI-Test
-      run: |
-        git clone https://github.com/SFDO-Tooling/CumulusCI-Test
-    - name: Run ci_feature flow
-      run: |
-        cd CumulusCI-Test
-        coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_feature --org scratch --delete-org
-    - name: Run ci_beta flow
-      run: |
-        cd CumulusCI-Test
-        coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_beta --org scratch --delete-org
-    - name: Run ci_master flow
-      run: |
-        cd CumulusCI-Test
-        coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_master --org scratch --delete-org
-    - name: Run release_beta flow
-      run: |
-        export SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
-        cd CumulusCI-Test
-        coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run release_beta --org packaging
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: pip cache
+        uses: actions/cache@v1
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install Python dependencies
+        run: |
+          python -m pip install -U pip
+          pip install -r requirements_dev.txt
+      - name: Install sfdx
+        run: |
+          mkdir sfdx
+          wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+          ./sfdx/install
+          sfdx plugins --core
+          echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
+          sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile $(realpath sfdx.key) --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+      - name: Check out CumulusCI-Test
+        run: |
+          git clone https://github.com/SFDO-Tooling/CumulusCI-Test
+      - name: Run ci_feature flow
+        run: |
+          cd CumulusCI-Test
+          coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_feature --org scratch --delete-org
+      - name: Run ci_beta flow
+        run: |
+          cd CumulusCI-Test
+          coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_beta --org scratch --delete-org
+      - name: Run ci_master flow
+        run: |
+          cd CumulusCI-Test
+          coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_master --org scratch --delete-org
+      - name: Run release_beta flow
+        run: |
+          export SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
+          cd CumulusCI-Test
+          coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run release_beta --org packaging

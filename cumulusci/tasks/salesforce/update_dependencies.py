@@ -50,6 +50,11 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         "security_type": {
             "description": "Which users to install packages for (FULL = all users, NONE = admins only)"
         },
+        "prefer_2gp_from_release_branch": {
+            "description": "If True and this build is on a release branch (feature/NNN, where NNN is an integer), "
+            "or a child branch of a release branch, resolve GitHub managed package dependencies to 2GP builds present on "
+            "a matching release branch on the dependency."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -75,6 +80,9 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             raise TaskOptionsError(
                 f"Unsupported value for security_type: {self.options['security_type']}"
             )
+        self.options["prefer_2gp_from_release_branch"] = process_bool_arg(
+            self.options.get("prefer_2gp_from_release_branch", False)
+        )
 
         if "ignore_dependencies" in self.options:
             if any(
@@ -106,6 +114,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             self.options["dependencies"],
             include_beta=self.options["include_beta"],
             ignore_deps=self.options.get("ignore_dependencies"),
+            match_release_branch=self.options["prefer_2gp_from_release_branch"],
         )
 
         self.installed = None
@@ -287,7 +296,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                 ) or namespace not in self.org_config.installed_packages
 
             package_zip = MetadataPackageZipBuilder.from_zipfile(
-                zip_src, options=dependency, logger=self.logger
+                zip_src, options=options, logger=self.logger
             ).as_base64()
         elif "namespace" in dependency:
             self.logger.info(

@@ -15,9 +15,13 @@ import webbrowser
 import threading
 import random
 import time
+import socket
 
 from cumulusci.oauth.exceptions import SalesforceOAuthError
-from cumulusci.core.exceptions import CumulusCIUsageError
+from cumulusci.core.exceptions import (
+    CumulusCIUsageError,
+    SalesforceCredentialsException,
+)
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -73,6 +77,11 @@ def jwt_session(client_id, private_key, username, url=None, auth_url=None):
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     token_url = urljoin(url, "services/oauth2/token")
     response = requests.post(url=token_url, data=data, headers=headers)
+    if response.status_code != 200:
+        raise SalesforceCredentialsException(
+            f"Error retrieving access token: {response.text}"
+        )
+
     return safe_json_from_response(response)
 
 
@@ -217,7 +226,15 @@ class CaptureSalesforceOAuth(object):
         # There are two ways it can be shutdown.
         # 1. Get a callback from Salesforce.
         # 2. Timeout
-        self.httpd.serve_forever()
+
+        try:
+            # for some reason this is required for Safari (checked Feb 2021)
+            # https://github.com/SFDO-Tooling/CumulusCI/pull/2373
+            old_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(3)
+            self.httpd.serve_forever()
+        finally:
+            socket.setdefaulttimeout(old_timeout)
 
         # timeout thread can stop polling and just finish
         timeout_thread.quit()

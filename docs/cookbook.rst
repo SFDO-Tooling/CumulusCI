@@ -351,7 +351,7 @@ Tests workflow, use your editor to create a file named
            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
            ./sfdx/install
            echo ${{ secrets.SFDX_AUTH_URL }} > sfdx_auth
-           sfdx force:auth:sfdxurl:store -f sfdx_auth -d
+           sfdx auth:sfdxurl:store -f sfdx_auth -d
        - name: Set up Python
          uses: actions/setup-python@v1
          with:
@@ -509,7 +509,7 @@ Here is a complete workflow to run Robot Framework tests for any commit:
            wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
            ./sfdx/install
            echo ${{ secrets.SFDX_AUTH_URL }} > sfdx_auth
-           sfdx force:auth:sfdxurl:store -f sfdx_auth -d
+           sfdx auth:sfdxurl:store -f sfdx_auth -d
        - name: Set up Python
          uses: actions/setup-python@v1
          with:
@@ -519,16 +519,12 @@ Here is a complete workflow to run Robot Framework tests for any commit:
            python -m pip install -U pip
            pip install cumulusci
        - run: |
-           cci task run robot --org dev -o vars BROWSER:headlesschrome
+           cci task run robot --org dev -o vars BROWSER:headlesschrome --delete-org
        - name: Store robot results
          uses: actions/upload-artifact@v1
          with:
            name: robot
            path: robot/CumulusCI-Test/results
-       - name: Delete scratch org
-         if: always()
-         run: |
-           cci org scratch_delete dev
 
 References
 ~~~~~~~~~~
@@ -551,12 +547,17 @@ writing them in the `Snowfakery docs
 
 Once you have it, you can fill an org with data like this:
 
+``$ cci task run generate_and_load_from_yaml -o generator_yaml
+datasets/some_snowfakery_recipe.yml``
+
+If you would like to execute the recipe multiple times to generate
+more data, you do so like this:
 
 ``$ cci task run generate_and_load_from_yaml -o generator_yaml
-datasets/some_snowfakery_yaml -o num_records 1000 -o num_records_tablename
-Account —org dev``
+datasets/some_snowfakery_recipe.yml -o num_records 1000 -o num_records_tablename
+Account —-org dev``
 
-``generator_yaml`` is a reference to your Snowkfakery recipe.
+``generator_yaml`` is a reference to your Snowfakery recipe.
 
 ``num_records_tablename`` says what record type will control how
 many records are created.

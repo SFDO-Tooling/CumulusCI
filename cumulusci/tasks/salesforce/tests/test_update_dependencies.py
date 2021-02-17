@@ -315,6 +315,40 @@ class TestUpdateDependencies(unittest.TestCase):
         )
         api.assert_called_once()
 
+    @mock.patch(
+        "cumulusci.tasks.salesforce.update_dependencies.MetadataPackageZipBuilder"
+    )
+    def test_install_dependency__autoinject(self, MetadataPackageZipBuilder):
+        project_config = create_project_config(namespace="ns")
+        project_config.get_github_api = mock.Mock()
+        task = create_task(
+            UpdateDependencies,
+            {},
+            project_config=project_config,
+        )
+        task.org_config._installed_packages = {"ns": "1.0"}
+        task._download_extract_github = make_fake_zipfile
+        api = mock.Mock()
+        task.api_class = mock.Mock(return_value=api)
+        task._install_dependency(
+            {
+                "repo_owner": "SFDO-Tooling",
+                "repo_name": "CumulusCI-Test",
+                "ref": "abcdef",
+                "subfolder": "src",
+                "namespace_inject": "ns",
+            }
+        )
+        assert MetadataPackageZipBuilder.from_zipfile.call_args[1]["options"] == {
+            "repo_owner": "SFDO-Tooling",
+            "repo_name": "CumulusCI-Test",
+            "ref": "abcdef",
+            "subfolder": "src",
+            "namespace_inject": "ns",
+            "unmanaged": False,
+        }
+        api.assert_called_once()
+
     def test_run_task__version_id(self):
         project_config = create_project_config()
         project_config.get_github_api = mock.Mock()
@@ -350,6 +384,7 @@ class TestUpdateDependencies(unittest.TestCase):
         )
         step = StepSpec(1, "test_task", task.task_config, None, task.project_config)
         steps = task.freeze(step)
+        self.maxDiff = None
         self.assertEqual(
             [
                 {
@@ -364,6 +399,7 @@ class TestUpdateDependencies(unittest.TestCase):
                         "options": {
                             "dependencies": [{"namespace": "ns", "version": "1.0"}],
                             "include_beta": False,
+                            "prefer_2gp_from_release_branch": False,
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,
@@ -391,6 +427,7 @@ class TestUpdateDependencies(unittest.TestCase):
                                 }
                             ],
                             "include_beta": False,
+                            "prefer_2gp_from_release_branch": False,
                             "purge_on_delete": True,
                             "allow_newer": True,
                             "allow_uninstalls": False,
