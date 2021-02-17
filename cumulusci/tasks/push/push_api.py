@@ -273,13 +273,12 @@ class SalesforcePushApi(object):
     def return_query_records(self, query, field_names=None, sobject=None):
         res = []
         if self.bulk and field_names and sobject:
-            breakpoint()
             step = BulkApiQueryOperation(
                 sobject=sobject, api_options={}, context=self, query=query
             )
             step.query()
             for query_result in list(step.get_results()):
-                res += [dict(zip(field_names, query_result))]
+                res += [dict(zip(query_result.keys(), query_result.values()))]
             return res
         else:
             res = self.sf.query_all(query)

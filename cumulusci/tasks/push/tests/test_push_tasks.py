@@ -14,6 +14,7 @@ from cumulusci.tasks.push.push_api import (
     MetadataPackageVersion,
     PackagePushRequest,
     PackagePushJob,
+    SalesforcePushApi,
 )
 from cumulusci.tasks.push.tasks import (
     BaseSalesforcePushTask,
@@ -486,33 +487,48 @@ def test_schedule_push_org_query_get_org():
     assert task._get_orgs() == ["bar"]
 
 
-@mock.patch("cumulusci.tasks.push.tasks.SalesforcePushApi")
-def test_schedule_push_org_bulk_query_get_org(push_api):
-    task = create_task(
-        SchedulePushOrgQuery,
-        options={
-            "orgs": ORG,
-            "version": VERSION,
-            "namespace": NAMESPACE,
-            "start_time": None,
-            "batch_size": "200",
-            "subscriber_where": "OrgType = 'Sandbox'",
-        },
+@mock.patch("cumulusci.tasks.push.push_api.BulkApiQueryOperation")
+def test_schedule_push_org_bulk_query_get_org(BulkAPI):  # push_api):
+    push_api = SalesforcePushApi(
+        mock.MagicMock(), mock.MagicMock(), None, None, None, mock.MagicMock()
     )
-    task.push = mock.MagicMock()
-    task.bulk = {"endpoint": "http://hello.com"}
-    task.sf = mock.MagicMock()
-    push_api.return_query_records.bulk = True
-    push_api.return_query_records.field_names = True
-    push_api.return_query_records.sobject = True
-    push_api.return_query_records.query.return_value = True
-
-    push_api.bulk.endpoint = "https://test"
-    push_api.bulk.create_query_job.return_value = "JOB"
-    return_mock = mock.MagicMock(bulk=mock.MagicMock())
-    return_mock.get_subscribers.return_value = PACKAGE_OBJ_SUBSCRIBER["records"]
-    push_api.return_value = return_mock
-    assert task._get_orgs() == ["bar"]
+    bulk_api = mock.MagicMock(get_results=mock.MagicMock())
+    bulk_api.get_results.return_value = PACKAGE_OBJ_SUBSCRIBER["records"]
+    BulkAPI.return_value = bulk_api
+    result = push_api.return_query_records(
+        "SELECT * FROM CONTACTS",
+        [
+            "attributes",
+            "Id",
+            "NamespacePrefix",
+            "Name",
+            "MetadataPackageId",
+            "PackageVersionId",
+            "ReleaseState",
+            "ScheduledStartTime",
+            "MajorVersion",
+            "MinorVersion",
+            "PatchVersion",
+            "BuildNumber",
+            "Status",
+            "SubscriberOrganizationKey",
+            "MetadataPackageVersionId",
+            "InstalledStatus",
+            "PackagePushRequestId",
+            "OrgName",
+            "OrgKey",
+            "OrgStatus",
+            "OrgType",
+            "PackagePushJobId",
+            "ErrorSeverity",
+            "ErrorType",
+            "ErrorTitle",
+            "ErrorMessage",
+            "ErrorDetails",
+        ],
+        "foo",
+    )
+    assert result == PACKAGE_OBJ_SUBSCRIBER["records"]
 
 
 def test_schedule_push_org_list_run_task_with_time_assertion(org_file):
