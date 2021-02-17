@@ -4,7 +4,7 @@ cffi==1.14.5
 chardet==4.0.0
 click==7.1.2
 coloredlogs==15.0
-cryptography==3.4.6
+cryptography==3.3.1
 docutils==0.16
 Faker==6.1.1
 fs==2.4.12
