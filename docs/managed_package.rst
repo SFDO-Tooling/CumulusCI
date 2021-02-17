@@ -65,6 +65,10 @@ The ``ci_master`` flow executes these tasks in the target org.
 * Deploys destructive changes to remove metadata in the target org that is no longer in the local workspace
 * Runs the ``config_packaging`` flow, which by default, is just the `update_admin_profile task <TODO>`_.
 
+.. tip::
+
+    To list each step in the ``ci_master`` flow, you can run ``cci flow info ci_master``
+
 CumulusCI separates uploading metadata to your packaging org and releasing a beta version
 of your package into two flows: ``ci_master`` and ``release_beta`` respectively.
 This allows for an opportunity to run checks against the org, if necessary, between deploy and release steps.
