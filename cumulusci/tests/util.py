@@ -230,13 +230,14 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
 
 @contextmanager
 def mock_homedir(home, cumulusci_key="0123456789ABCDEF"):
+    real_homedir = str(Path.home())
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
         os.environ,
         {
             "HOME": home,
             "USERPROFILE": home,
             "CUMULUSCI_KEY": cumulusci_key,
-            "REAL_HOME": os.environ["HOME"],
+            "REAL_HOME": real_homedir,
             "REAL_CUMULUSCI_KEY": os.environ.get("CUMULUSCI_KEY", ""),
         },
     ):
