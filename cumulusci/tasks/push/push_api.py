@@ -277,8 +277,9 @@ class SalesforcePushApi(object):
                 sobject=sobject, api_options={}, context=self, query=query
             )
             step.query()
-            for query_result in list(step.get_results()):
-                res += [dict(zip(query_result.keys(), query_result.values()))]
+            if len(list(step.get_results())) > 0:
+                for query_result in list(step.get_results()):
+                    res += [dict(zip(query_result.keys(), query_result.values()))]
             return res
         else:
             res = self.sf.query_all(query)
