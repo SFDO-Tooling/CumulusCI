@@ -91,6 +91,10 @@ class TestPageObjects(unittest.TestCase):
             po.get_keyword_names(),
             CORE_KEYWORDS,
         )
+        from pprint import pprint
+
+        pprint(po.registry)
+        pprint(BASE_REGISTRY)
         assert len(po.registry) == len(BASE_REGISTRY), (
             len(po.registry),
             len(BASE_REGISTRY),
@@ -141,7 +145,10 @@ class TestPageObjects(unittest.TestCase):
         expected_registry.update(
             {("Test", "Foo__c"): FooTestPage, ("Test", "Bar__c"): BarTestPage}
         )
+        from pprint import pprint
 
+        pprint(po.registry)
+        pprint(expected_registry)
         self.assertEqual(po.registry, expected_registry)
 
     def test_namespaced_object_name(self, get_context_mock, get_library_instance_mock):

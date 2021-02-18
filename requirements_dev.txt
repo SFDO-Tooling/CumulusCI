@@ -16,3 +16,4 @@ typeguard==2.10.0
 vcrpy==4.1.1
 wheel==0.36.2
 factory-boy==3.2.0
+pytest-random-order==1.0.4

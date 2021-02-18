@@ -114,6 +114,10 @@ class TestCompositeApi:
 
         assert len(responses.calls) == 1
         request_body = json.loads(responses.calls[0].request.body)
+        from pprint import pprint
+
+        pprint(request_body)
+        pprint(COMPOSITE_REQUEST)
         assert request_body == COMPOSITE_REQUEST
 
     @responses.activate
