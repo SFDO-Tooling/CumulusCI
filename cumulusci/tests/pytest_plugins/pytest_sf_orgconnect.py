@@ -106,9 +106,7 @@ def pytest_runtest_setup(item):
             pytest.skip("test requires --org or --accelerate-integration-tests")
         no_vcr = any(item.iter_markers(name="no_vcr"))
         if no_vcr and item.config.getoption("--accelerate-integration-tests"):
-            pytest.skip(
-                "test cannot be accelerated. " "It is not commpatible with VCR."
-            )
+            pytest.skip("test cannot be accelerated. " "It is not compatible with VCR.")
 
 
 @pytest.fixture(scope="module")
