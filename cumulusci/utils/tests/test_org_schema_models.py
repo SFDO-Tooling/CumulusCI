@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import pytest
 
-from cumulusci.utils.org_schema_models import Base, SObject
+from cumulusci.salesforce_api.org_schema_models import Base, SObject
 
 
 class TestOrgSchemaModels:

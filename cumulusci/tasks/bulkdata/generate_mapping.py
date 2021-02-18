@@ -7,7 +7,7 @@ import yaml
 from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.utils.org_schema import get_org_schema, Field
+from cumulusci.salesforce_api.org_schema import get_org_schema, Field
 
 
 class GenerateMapping(BaseSalesforceApiTask):

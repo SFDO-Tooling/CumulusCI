@@ -9,8 +9,12 @@ import yaml
 
 from sqlalchemy import create_engine
 
-from cumulusci.utils.org_schema import get_org_schema, BufferedSession, zip_database
-from cumulusci.utils.org_schema_models import Base
+from cumulusci.salesforce_api.org_schema import (
+    get_org_schema,
+    BufferedSession,
+    zip_database,
+)
+from cumulusci.salesforce_api.org_schema_models import Base
 
 
 class FakeSF:
@@ -69,14 +73,14 @@ cached_responses = [
 
 def mock_return_uncached_responses(cassette_data):
     return patch(
-        "cumulusci.utils.org_schema.CompositeParallelSalesforce",
+        "cumulusci.salesforce_api.org_schema.CompositeParallelSalesforce",
         makeFakeCompositeParallelSalesforce(lambda: uncached_responses(cassette_data)),
     )
 
 
 def mock_return_cached_responses():
     return patch(
-        "cumulusci.utils.org_schema.CompositeParallelSalesforce",
+        "cumulusci.salesforce_api.org_schema.CompositeParallelSalesforce",
         makeFakeCompositeParallelSalesforce(lambda: cached_responses.copy()),
     )
 
@@ -124,7 +128,7 @@ class TestDescribeOrg:
         # should be written to the local database except an updated
         # LastModifiedDate.
         with mock_return_cached_responses(), patch(
-            "cumulusci.utils.org_schema.create_row"
+            "cumulusci.salesforce_api.org_schema.create_row"
         ) as create_row, get_org_schema(FakeSF(), org_config) as schema:
             self.validate_schema_data(schema)
             for call in create_row.mock_calls:

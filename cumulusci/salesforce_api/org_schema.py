@@ -13,7 +13,12 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import create_session
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, exc
-from cumulusci.utils.org_schema_models import Base, SObject, Field, FileMetadata
+from cumulusci.salesforce_api.org_schema_models import (
+    Base,
+    SObject,
+    Field,
+    FileMetadata,
+)
 from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
 
 y2k = "Sat, 1 Jan 2000 00:00:01 GMT"
@@ -99,62 +104,65 @@ class Schema:
     def __repr__(self):
         return f"<Schema {self.path} : {self.engine}>"
 
+    def populate_cache(self, sf, last_modified_date, logger=None):
+        """Populate a schema cache from the API, using last_modified_date
+        to pull down only new schema"""
+
+        sobjs = sf.describe()["sobjects"]
+        sobj_names = [obj["name"] for obj in sobjs]
+
+        responses = list(deep_describe(sf, last_modified_date, sobj_names))
+        changes = [
+            (resp.body, resp.last_modified_date)
+            for resp in responses
+            if resp.status == 200
+        ]
+        unexpected = [resp for resp in responses if resp.status not in (200, 304)]
+        for unknown in unexpected:
+            logger.warn(
+                f"Unexpected describe reply. An SObject may be missing: {unknown}"
+            )
+        self._populate_cache_from_describe(changes, last_modified_date)
+
+    def _populate_cache_from_describe(
+        self, describe_objs: List[Tuple[dict, str]], last_modified_date
+    ):
+        """Populate a schema cache from a list of describe objects."""
+        engine = self.engine
+        metadata = Base.metadata
+        metadata.bind = engine
+        metadata.reflect()
+
+        with BufferedSession(engine, metadata) as sess:
+
+            max_last_modified = (parsedate(last_modified_date), last_modified_date)
+            for (sobj_data, last_modified) in describe_objs:
+                fields = sobj_data.pop("fields")
+                create_row(sess, SObject, sobj_data)
+                for field in fields:
+                    field["sobject"] = sobj_data["name"]
+                    create_row(sess, Field, field)
+                    sortable = parsedate(last_modified), last_modified
+                    if sortable > max_last_modified:
+                        max_last_modified = sortable
+
+            create_row(
+                sess,
+                FileMetadata,
+                {"name": "Last-Modified", "value": max_last_modified[1]},
+            )
+            create_row(sess, FileMetadata, {"name": "FormatVersion", "value": 1})
+
+        engine.execute("vacuum")
+
 
 def create_row(buffered_session: "BufferedSession", model, valuesdict: dict):
     buffered_session.write_single_row(model.__tablename__, valuesdict)
 
 
-def populate_cache(schema, sf, last_modified_date, logger=None):
-    """Populate a schema cache from the API, using last_modified_date
-    to pull down only new schema"""
-
-    sobjs = sf.describe()["sobjects"]
-    sobj_names = [obj["name"] for obj in sobjs]
-
-    responses = list(deep_describe(sf, last_modified_date, sobj_names))
-    changes = [
-        (resp.body, resp.last_modified_date) for resp in responses if resp.status == 200
-    ]
-    unexpected = [resp for resp in responses if resp.status not in (200, 304)]
-    for unknown in unexpected:
-        logger.warn(f"Unexpected describe reply. An SObject may be missing: {unknown}")
-    _populate_cache_from_describe(schema, changes, last_modified_date)
-
-
-def _populate_cache_from_describe(
-    schema, describe_objs: List[Tuple[dict, str]], last_modified_date
-):
-    """Populate a schema cache from a list of describe objects."""
-
-    engine = schema.engine
-    metadata = Base.metadata
-    metadata.bind = engine
-    metadata.reflect()
-
-    with BufferedSession(engine, metadata) as sess:
-
-        max_last_modified = (parsedate(last_modified_date), last_modified_date)
-        for (sobj_data, last_modified) in describe_objs:
-            fields = sobj_data.pop("fields")
-            sobj_data["actionOverrides"] = []
-            create_row(sess, SObject, sobj_data)
-            for field in fields:
-                field["sobject"] = sobj_data["name"]
-                create_row(sess, Field, field)
-                sortable = parsedate(last_modified), last_modified
-                if sortable > max_last_modified:
-                    max_last_modified = sortable
-
-        create_row(
-            sess, FileMetadata, {"name": "Last-Modified", "value": max_last_modified[1]}
-        )
-        create_row(sess, FileMetadata, {"name": "FormatVersion", "value": 1})
-
-    engine.execute("vacuum")
-    return
-
-
 class BufferedSession:
+    """Buffer writes to a SQL DB for faster performmance"""
+
     def __init__(self, engine: Engine, metadata: MetaData, max_buffer_size: int = 1000):
         self.buffered_rows = defaultdict(list)
         self.columns = {}
@@ -215,10 +223,8 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
 
     org_config - an OrgConfig for the relevant org
     force_recache: True - replace cache. False (default) - use/update cache is available.
-    logger - replace the standard logger "cumulusci.utils.org_schema"
+    logger - replace the standard logger "cumulusci.salesforce_api.org_schema"
     """
-    assert org_config.get_orginfo_cache_dir
-
     with org_config.get_orginfo_cache_dir(Schema.__module__) as directory:
         directory.mkdir(exist_ok=True, parents=True)
         schema_path = directory / "org_schema.db.gz"
@@ -241,7 +247,7 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                     engine = create_engine(f"sqlite:///{str(tempfile)}")
 
                     schema = Schema(engine, schema_path)
-                    cleanups_on_failure.extend([schema.close])
+                    cleanups_on_failure.append(schema.close)
                     closer.callback(schema.close)
                     assert schema.sobjects.first().name
                     schema.from_cache = True
@@ -261,8 +267,7 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                 closer.callback(schema.close)
                 schema.from_cache = False
 
-            populate_cache(
-                schema,
+            schema.populate_cache(
                 sf,
                 schema.last_modified_date or y2k,
                 logger,
@@ -305,23 +310,3 @@ def deep_describe(sf, last_modified_date, objs):
             for response in responses
         )
         yield from responses
-
-
-if __name__ == "__main__":  # pragma: no cover
-    # Run this to do a smoke test of the basic functionality of saving a schema
-    # from your org named "qa"
-
-    def init_cci():
-        from cumulusci.cli.runtime import CliRuntime
-
-        from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-
-        runtime = CliRuntime(load_keychain=True)
-        name, org_config = runtime.get_org("qa")
-        sf = get_simple_salesforce_connection(runtime.project_config, org_config)
-        return sf, org_config, runtime
-
-    sf, org_config, runtime = init_cci()
-
-    with get_org_schema(sf, org_config, force_recache=True) as schema:
-        print(str([obj for obj in schema.keys()])[0:100], "...")

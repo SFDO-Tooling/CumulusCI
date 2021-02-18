@@ -14,8 +14,11 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
-from cumulusci.utils.org_schema_models import SObject as SQLSObject, Field as SQLField
-from cumulusci.utils.org_schema import Schema, _populate_cache_from_describe, Base
+from cumulusci.salesforce_api.org_schema_models import (
+    SObject as SQLSObject,
+    Field as SQLField,
+)
+from cumulusci.salesforce_api.org_schema import Schema, Base
 
 
 @contextmanager
@@ -29,7 +32,7 @@ def _temp_schema_for_tests(describe_data: list):
         try:
             date = "Thu, 09 Feb 2021 21:35:07 GMT"
             describe_data_with_dates = [(dct, date) for dct in describe_data]
-            _populate_cache_from_describe(schema, describe_data_with_dates, date)
+            schema._populate_cache_from_describe(describe_data_with_dates, date)
             yield schema
         finally:
             schema.close()
