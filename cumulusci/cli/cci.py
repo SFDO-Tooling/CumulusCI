@@ -600,8 +600,20 @@ def project_init(runtime):
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
         template = env.get_template(name)
-        with open(name, "w") as f:
-            f.write(template.render(**context))
+        if not os.path.isfile(name):
+            with open(name, "w") as f:
+                f.write(template.render(**context))
+        else:
+            click.echo(
+                click.style(
+                    name
+                    + " file already exists. Please manually edit "
+                    + name
+                    + " to include:",
+                    fg="red",
+                )
+            )
+            click.echo(click.style(template.render(**context) + "\n", fg="yellow"))
 
     # Create source directory
     source_path = "force-app" if context["source_format"] == "sfdx" else "src"
