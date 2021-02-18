@@ -243,6 +243,19 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     @capture_screenshot_on_error
+    def scroll_element_into_view(self, locator):
+        """Scroll the element identified by 'locator'
+
+        This is a replacement for the keyword of the same name in
+        SeleniumLibrary. With firefox, that uses a low level function
+        which prevents it from working reliably.
+
+        For more info see https://stackoverflow.com/a/52045231/7432
+        """
+        element = self.selenium.get_webelement(locator)
+        self.selenium.driver.execute_script("arguments[0].scrollIntoView()", element)
+
+    @capture_screenshot_on_error
     def load_related_list(self, heading, tries=10):
         """Scrolls down until the specified related list loads.
 
