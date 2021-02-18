@@ -207,7 +207,8 @@ class TestCompositeApi:
         table.assert_called_once_with((expected_table_data), wrap_cols=["Message"])
 
     def test_json_processing(self):
-        COMPOSITE_REQUEST["compositeRequest"].append(
+        request = COMPOSITE_REQUEST["compositeRequest"].copy()
+        request.append(
             {
                 "method": "PATCH",
                 "url": "/services/data/v46.0/sobjects/User",
@@ -218,7 +219,7 @@ class TestCompositeApi:
                 },
             }
         )
-        body = json.dumps(COMPOSITE_REQUEST)
+        body = json.dumps(request)
         task = create_task(
             CompositeApi,
             {
