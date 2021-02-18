@@ -2,6 +2,38 @@
 History
 =======
 
+3.29.0 (2021-02-18)
+-------------------
+
+Changes:
+
+- The message shown at the end of running a flow now includes the org name. #2390, thanks @Julian88Tex
+
+- Added new preflight check tasks:
+
+  - ``get_existing_record_types`` checks for existing Record Types. #2371, thanks @ClayTomerlin
+  - ``get_assigned_permission_sets`` checks the current user's Permission Set Assignments. #2386
+
+- The ``generate_package_xml`` task now supports the Muting Permission Set metadata type. #2382
+
+- The ``uninstall_packaged_incremental`` and ``uninstall_packaged`` tasks now support a ``dry_run`` option, which outputs the destructiveChanges package manifest to the log instead of executing it. #2393
+
+- Robot Framework:
+
+  - The ``Run Task`` keyword now uses the correct project config when running a task from a different source project. #2391
+  - The SalesforceLibrary has a new keyword, ``Scroll Element Into View``, which is more reliable on Firefox than the keyword of the same name in SeleniumLibrary. #2391
+
+Issues closed:
+
+- Fixed very slow ``cci org connect`` on Safari. #2373
+
+- Added a workaround for decode errors that sometimes happen while processing cci logs on Windows. #2392
+
+- If there's an error while doing JWT authentication to an org, we now log the full response from the server. #2384
+
+- Robot Framework: Improved stability of the ``ObjectManagerPageObject``. #2391
+
+
 3.28.0 (2021-02-04)
 -------------------
 

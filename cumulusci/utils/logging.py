@@ -41,7 +41,7 @@ def tee_stdout_stderr(args, logger, tempfile):
         logger.handlers[0].close()
 
         # log contents of tempfile to rotating log files
-        with open(tempfile, "r", encoding="utf-8") as f:
+        with open(tempfile, "r", encoding="utf-8", errors="backslashreplace") as f:
             contents = f.read()
 
         logger = get_gist_logger()
