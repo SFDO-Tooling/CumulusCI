@@ -26,11 +26,13 @@ def _temp_schema_for_tests(describe_data: list):
         Base.metadata.bind = engine
         Base.metadata.create_all()
         schema = Schema(engine, f"{tempfile}.gz")
-        date = "Thu, 09 Feb 2021 21:35:07 GMT"
-        print("XXX", describe_data)
-        describe_data_with_dates = [(dct, date) for dct in describe_data]
-        _populate_cache_from_describe(schema, describe_data_with_dates, date)
-        yield schema
+        try:
+            date = "Thu, 09 Feb 2021 21:35:07 GMT"
+            describe_data_with_dates = [(dct, date) for dct in describe_data]
+            _populate_cache_from_describe(schema, describe_data_with_dates, date)
+            yield schema
+        finally:
+            schema.close()
 
 
 def _SObject(name, fields, **kwargs):
