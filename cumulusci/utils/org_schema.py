@@ -151,7 +151,6 @@ def _populate_cache_from_describe(
         create_row(sess, FileMetadata, {"name": "FormatVersion", "value": 1})
 
     engine.execute("vacuum")
-    return
 
 
 class BufferedSession:
