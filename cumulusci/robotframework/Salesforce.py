@@ -247,8 +247,9 @@ class Salesforce(object):
         """Scroll the element identified by 'locator'
 
         This is a replacement for the keyword of the same name in
-        SeleniumLibrary. With firefox, that uses a low level function
-        which prevents it from working reliably.
+        SeleniumLibrary. The SeleniumLibrary implementation uses
+        an unreliable method on Firefox. This keyword uses
+        a more reliable technique.
 
         For more info see https://stackoverflow.com/a/52045231/7432
         """
