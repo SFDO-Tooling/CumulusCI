@@ -335,7 +335,7 @@ When the ``update_dependencies`` task runs, it retrieves a list of all managed p
 Hierarchical Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Managed package dependencies can handle a hierarchy of dependencies between packages. An example use case is Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages, one of which (npo02) is an extension of another (npe01).
+Managed package dependencies can handle a hierarchy of dependencies between packages. An example use case is Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages, one of which (Households) is an extension of another (Contacts & Organizations).
 
 These dependences are listed under the ``project`` section of the ``cumulusci.yml`` file.
 
