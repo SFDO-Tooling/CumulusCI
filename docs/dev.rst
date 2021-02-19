@@ -18,7 +18,7 @@ To run the ``dev_org`` flow against the project's `default org<TODO>`_:
 
     $ cci flow run dev_org
 
-To explictly list the org ``<org_name>`` against the dev_org flow, use the ``--org`` option.
+To run the ``dev_org`` flow against a specific org, use the ``--org`` option:
 
     Example: Run the ``dev_org`` flow against the org currently defined as ``dev`` in CumulusCI.
 
@@ -35,16 +35,16 @@ To explictly list the org ``<org_name>`` against the dev_org flow, use the ``--o
     $ cci org browser dev
 
 
-Set the Capture State
-^^^^^^^^^^^^^^^^^^^^^
+Set the Retrieve State
+^^^^^^^^^^^^^^^^^^^^^^
 
-To make changes to capture in an org, use the ``snapshot_changes`` task to create a snapshot. A snapshot tells the Salesforce CLI source tracking to set the org's current state as a baseline for changes to be made against.
+To make changes to retrieve in an org, use the ``snapshot_changes`` task to create a snapshot. A snapshot tells the Salesforce CLI source tracking to set the org's current state as a baseline for changes to be made against.
 
 .. code-block:: console
 
     $ cci task run snapshot_changes --org dev
 
-.. note:: There's no need to run ``snapshot_changes`` if you've set up a scratch org with any of these flows:
+.. note:: There's no need to run ``snapshot_changes`` if you've set up a scratch org with any of these flows.
 
     * ``dev_org``
     * ``dev_org_namespaced``
@@ -83,88 +83,83 @@ To see what components have changed in a target org:
 
 .. note::
     
-    This functionality relies on Salesforce's source tracking feature, which is currently only available in Scratch Orgs, Developer Sandboxes, and Developer Pro Sandboxes.
+    This functionality relies on Salesforce's source tracking feature, which is currently available only in Scratch Orgs, Developer Sandboxes, and Developer Pro Sandboxes.
 
-For more control over the changes you want listed see the `List & Retrieve Options`_ section.
+For more information, see `List and Retrieve Options`_.
 
 Retrieve Changes
 ----------------
 
-The ``retrieve_changes`` task supports both ``sfdx`` and ``mdapi`` formatted source code.
-It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_
-sObject to detect what has changed in an org, but also lets you be more selective regarding which components to retrieve when compared to the ``dx_pull`` task.
+The ``retrieve_changes`` task supports both Salesforce DX- and Metadata API-format source code. It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_
+``sObject`` to detect what has changed in an org, and also gives you discretion regarding which components are retrieved when compared to the ``dx_pull`` task.
 
-Manual tracking of component versions also offers the possibility of retrieving
-some changes into one directory, and then running the task again to retrieve other changes into a different directory.
+Manual tracking of component versions also offers the possibility of retrieving changes into one directory, and then running the task again to retrieve other changes into a different directory.
  
-To capture all changes in an org:
+To retrieve all changes in an org:
 
 .. code-block:: console
 
     $ cci task run retrieve_changes --org dev
 
-For more control over the changes you want to retrieve see the `List & Retrieve Options`_ section.
+For more information, see `List and Retrieve Options`_.
 
 
 
-List & Retrieve Options 
------------------------
-When developing in an org, it is often the case that there are more than one
-piece of metadata that you have modified and would potentially want to retrieve
-back into your project's local repository on your machine. 
+List and Retrieve Options 
+-------------------------
 
-If is a general practice to use the ``list_changes`` command to narrow down exactly the elements
-you want to retrieve (making use of the following options), then running ``retrieve_changes`` task
-once the correct set of metadata is listed.
+When developing in an org, the changes you're most interested in are sometimes mixed with other changes that aren't relevant to what you're doing.
 
-CumulusCI offers several options for narrowing down the metadata you want to list/retrieve with surgical precision.
+    Example: Changing schema like ``Custom Objects`` and ``Custom Fields`` often results in changes to ``Page Layouts`` and ``Profiles`` that you don't wish to review or retrieve.
+
+It's a common workflow in CumulusCI to use the ``list_changes`` task, combined with the options featured in this subsection, to narrow the scope of changes in the org to the exact elements you desire to retrieve in your project. When the correct set of metadata is listed, run the ``retrieve_changes`` task to bring those changes into the repository.
 
 
 
 ``--include`` & ``--exclude``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-When retrieving metadata from an org, CumulusCI processes the metadata in strings with the following format: ``MemberType: MemberName``
 
-The ``--include`` and ``--exclude`` options allow you to pass multiple `regular expressions <https://en.wikipedia.org/wiki/Regular_expression>`_
-to match against the incoming changed metadata. This metadata is either included or excluded depending on which option the
-regular expression(s) is passed to. Multiple regular expressions can be passed in a comma-separated list.
+When retrieving metadata from an org, CumulusCI represents each component name as the combination of its type (such as a ``Profile``, ``CustomObject``, or ``ApexClass``) and its API name: ``MemberType: MemberName``. 
 
-For example, the following will list all modified metadata that ends in "Test" and "Data" in the default org.
+    Example: An ``ApexClass`` named ``MyTestClass`` would be represented as ``ApexClass: MyTestClass``.
+
+The ``--include`` and ``--exclude`` options lets you pass multiple `regular expressions <https://en.wikipedia.org/wiki/Regular_expression>`_ to match against the names of changed components. This metadata is either included or excluded depending on which option the regular expression is passed. Multiple regular expressions can be passed in a comma-separated list.
+
+    Example: List all modified metadata that ends in "Test" and "Data" in the default org.
 
 .. code-block:: console
 
     $ cci task run list_changes --include "Test$,Data$"
 
-Since the metadata string that CumulusCI processes also includes the ``MemberType`` we can do something like:
+..
+
+    Since the metadata string that CumulusCI processes also includes the ``MemberType``, use exclusions and inclusions that filter whole types of metadata.
+    
+        Example: Exclude ``Profile`` type.
 
 .. code-block:: console
 
     $ cci task run list_changes --exclude "^Profile: "
 
-This will list all metadata changes in an org *except* for changes to Profiles.
-
-
 
 ``--types``
 ^^^^^^^^^^^
-If you want to list or retrieve changed metadata of the same type you can use the ``--types`` option along with the
-type(s) (`SourceMember.MemberType <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_)
-of the metadata types you would like to retrieve.
 
-The following retrieves all changed ``ApexClasses`` and ``ApexComponents`` in the default org.
+To list or retrieve changed metadata of the same type, use the ``--types`` option along with the `SourceMember.MemberType <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_ metadata to retrieve.
+
+    Example: Retrieve all changed ``ApexClasses`` and ``ApexComponents`` in the default org.
 
 .. code-block:: console
 
-    $ cci task run list_changes --types ApexClass,ApexComponent
-
+    $ cci task run retrieve_changes --types ApexClass,ApexComponent
 
 
 ``--path``
 ^^^^^^^^^^
+
 .. important:: This option only works with the ``retrieve_changes`` task.
 
-By default, changes are retrieved into the ``src`` directory when using metadata source format, 
-or the default ``sfdx`` package directory (``force-app``) when using ``sfdx`` source format.
+By default, changes are retrieved into the ``src`` directory when using Metadata API source format, or the default  package directory (``force-app``) when using Salesforce DX source format.
 
 To retrieve metadata into a different location using the ``--path`` option:
 
@@ -177,43 +172,43 @@ To retrieve metadata into a different location using the ``--path`` option:
 Push Changes
 ------------
 
-Developers rarely edit code directly in an org environment, but instead use an editor or IDE like VSCode or IntelliJ. After modifying code (or other metadata) in an editor, push these changes from your project's local repository to the target org.
+Developers often use an editor or IDE like Visual Studio Code to modify code and metadata stored in the repository. After making changes in an editor, push these changes from your project's local repository to the target org.
 
-If your project uses the ``sfdx`` source format, use the ``dx_push`` task.
+If your project uses the Salesforce DX source format, use the ``dx_push`` task.
 
 .. code-block:: console
 
     $ cci task run dx_push
 
-If your project uses the metadata source format, use the ``deploy`` task:
+If your project uses the Metadata API source format, use the ``deploy`` task:
 
 .. code-block:: console
 
     $ cci task run deploy 
 
-The ``deploy`` task has *many* options for handling a number of different scenarios. See the comprehensive list of options in the reference documentation for `deploy tasks <TODO>`_.
+The ``deploy`` task has *many* options for handling a number of different scenarios. For a comprehensive list of options, see `deploy tasks <TODO>`_.
 
 
 
 Run Apex Tests
 --------------
 
-CumulusCI easily executes Apex tests in an org.
+CumulusCI executes Apex tests in an org and can optionally report on test outcomes and code coverage. CumulusCI can also retry failed tests automatically.
 
 .. code-block:: console
 
     $ cci task run run_tests --org <org_name>
 
-The ``run_tests`` task has *many* options for running tests. See the comprehensive list of options and examples in the reference documentation for `run_tests <TODO>`_.
+The ``run_tests`` task has *many* options for running tests. For a comprehensive list of options and examples, see `run_tests <TODO>`_.
 
 
 
 Set Up a QA Org
 ---------------
 
-The ``qa_org`` flow sets up org environments where quality engineers can test features quickly and easily. ``qa_org`` runs the specialized ``config_qa`` task after deploying the project's (unmanaged) metadata to the org.
+The ``qa_org`` flow sets up org environments where quality engineers test features quickly and easily. ``qa_org`` runs the specialized ``config_qa`` flow after deploying the project's (unmanaged) metadata to the org.
 
-To run the ``qa_org`` flow against the ``qa`` org:
+    Example: Run the ``qa_org`` flow against the ``qa`` org.
 
 .. code-block:: console
 
@@ -223,9 +218,9 @@ To run the ``qa_org`` flow against the ``qa`` org:
 Create QA Configurations
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Out-of-the-box, the ``config_dev`` and ``config_qa`` flows are the same. Many teams have a requirement for additional configurations to be deployed when performing QA, but not when developing a new feature.
+For the most part ``config_dev`` and ``config_qa`` flows are the same. Many teams have a requirement for additional configurations to be deployed when performing QA, but not when developing a new feature.
 
-    Example: Salesforce.org teams often modify the ``config_qa`` flow to deploy configurations that pertain to large optional features in a package. These configurations are subsequently tested by the product's robot test suites.
+    Example: Salesforce.org teams often modify the ``config_qa`` flow to deploy configurations that pertain to large optional features in a package. These configurations are subsequently tested by the product's Robot Framework test suites.
 
 To capture your own QA configurations, spin up a new org...
 
@@ -279,11 +274,11 @@ So now ``qa_config`` (which is included in the ``qa_org`` flow) executes the ``d
 Manage Dependencies
 -------------------
 
-CumulusCI is built to automate the complexities of dependency management for extension package projects. CumulusCI currently handles these main types of dependencies for projects:
+CumulusCI is built to automate the complexities of dependency management for projects that extend and implement managed packages. CumulusCI currently handles these main types of dependencies for projects.
 
 * **Managed Packages**: Require a certain version of a managed package
 * **Unmanaged Metadata**: Require the deployment of unmanaged metadata
-* **GitHub Repository**: Dynamically include the dependencies of another CumulusCI configured project
+* **GitHub Repository**: Dynamically resolve a product release, and its own dependencies, from a CumulusCI project on GitHub
 
 The ``update_dependencies`` task handles deploying dependencies to a target org, and is included in all flows designed to deploy or install to an org. 
 
@@ -298,6 +293,8 @@ Managed Package Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Managed package dependencies are rather simple. Under the ``project__dependencies`` section of the ``cumulusci.yml`` file, specify the namespace of the target package, and the required version number.
+
+    Example: ``npe01 version 3.6``
 
 .. code-block:: yaml
 
@@ -324,20 +321,22 @@ When the ``update_dependencies`` task runs, it retrieves a list of all managed p
     
 ..    
     
-    Depending on whether the package with namespace ``npe01`` is currently installed, the ``update_dependencies`` task runs these steps. 
+    Depending on whether or not the package with namespace ``npe01`` is installed, the ``update_dependencies`` task runs these steps. 
 
-    * If ``npe01`` is not installed, ``npe01`` version 3.6 is installed.
-    * If the org already has ``npe01`` version 3.6 installed, no changes.
-    * If the org has an older version installed, it's upgraded to version 3.6.
-    * If the org has a newer version or a beta version installed, it's uninstalled and version 3.6 is installed.
+    * If ``npe01`` is not installed, ``npe01 version 3.6`` is installed.
+    * If the org already has ``npe01 version 3.6`` installed, no changes take place.
+    * If the org has an older version installed, it's upgraded to ``version 3.6``.
+    * If the org has a newer version or a beta version installed, it's uninstalled and ``version 3.6`` is installed.
 
 
 Hierarchical Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Managed package dependencies can handle a hierarchy of dependencies between packages. An example use case is Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages, one of which (npo02) is an extension of another (npe01).
+Managed package dependencies can handle a hierarchy of dependencies between packages.
 
-These dependences are listed under the ``project`` section of the ``cumulusci.yml`` file.
+    Example: Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages, one of which (npo02) is an extension of another (npe01).
+
+    These dependencies are listed under the ``project`` section of the ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
@@ -355,9 +354,11 @@ These dependences are listed under the ``project`` section of the ``cumulusci.ym
             - namespace: npe5
               version: 3.5
 
-The project requires npo02 version 3.8, which itself requires npe01 version 3.6. By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently.
+..
 
-    Example: If the target org currently has npe01 version 3.7, npe01 needs to be uninstalled to downgrade to 3.6. However, npo02 requires npe01, so uninstalling npe01 also requires uninstalling npo02. (In this scenario npe03, npe04, and npe05 do not have to be uninstalled to uninstall npe01.)
+    The project requires ``npo02 version 3.8``, which itself requires ``npe01 version 3.6``. By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently.
+
+    So if the target org currently has ``npe01 version 3.7``, ``npe01`` needs to be uninstalled to downgrade to ``3.6``. However, ``npo02`` requires ``npe01``, so uninstalling ``npe01`` also requires uninstalling ``npo02``. (In this scenario ``npe03``, ``npe04``, and ``npe05`` do not have to be uninstalled to uninstall ``npe01``.)
 
 
 Unmanaged Metadata Dependencies
@@ -371,17 +372,18 @@ Specify unmanaged metadata to be deployed by specifying a ``zip_url`` and, optio
         dependencies:
             - zip_url: https://SOME_HOST/metadata.zip
 
-When ``update_dependencies`` runs, it downloads the zip file and deploys it via the Metadata API's deploy method.
-The zip file must contain valid metadata for use with a deploy, including a ``package.xml`` file in the root.
+When the ``update_dependencies`` task runs, it downloads the zip file and deploys it via the Metadata API's ``deploy`` method. The zip file must contain valid metadata for use with a deploy, including a ``package.xml`` file in the root.
 
 
 
 Specify a Subfolder of the Zip File
-******************************************
+***********************************
 
 Use the ``subfolder`` option to specify a subfolder of the zip file to use for the deployment. 
 
 .. note:: This option is handy when referring to metadata stored in a GitHub repository.
+
+    Example: ``subfolder: CumulusReports-master/record_types``
 
 .. code-block:: yaml
 
@@ -428,6 +430,7 @@ To deploy tokenized metadata without any namespace references, specify both ``na
               namespace_inject: hed
               unmanaged: True
 
+
 ..
 
     The namespace tokens are replaced with an empty string instead of the namespace, effectively stripping the tokens from the files and filenames.
@@ -445,8 +448,8 @@ If the metadata in the zip to be deployed has references to a namespace prefix, 
 
     project:
         dependencies:
-            - zip_url: https://github.com/SalesforceFoundation/CumulusReports/archive/master.zip
-              subfolder: CumulusReports-master/src
+            - zip_url: https://github.com/SalesforceFoundation/CumulusReports/archive/main.zip
+              subfolder: CumulusReports-main/src
               namespace_strip: npsp
 
 ..
@@ -459,7 +462,7 @@ If the metadata in the zip to be deployed has references to a namespace prefix, 
 GitHub Repository Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-GitHub repository dependencies create a dynamic dependency between the current project and another project on GitHub that uses CumulusCI to manage its dependencies.
+GitHub repository dependencies create a dynamic dependency between the current project and another CumulusCI project on GitHub.
 
     Example: Salesforce EDA
 
@@ -472,12 +475,13 @@ GitHub repository dependencies create a dynamic dependency between the current p
 When ``update_dependencies`` runs, these steps are taken against the referenced repository.
 
 * Look for the ``cumulusci.yml`` file and parse if found.
-* Determine if the project has subfolders under unpackaged/pre.  If found, deploys them first.
-* Determine if the project specifies any dependencies in the ``cumulusci.yml`` file.  If found, deploys them next in the queue.
-* Determine if the project has a namespace configured in the ``cumulusci.yml`` file. If found, treats the project as a managed package unless the unmanaged option is also ``True``.
-* If the project has a namespace and is not set for unmanaged, use the GitHub API to get the latest release and install it.
+* Determine if the project has subfolders under ``unpackaged/pre``.  If found, deploy them first.
+* Determine if the project specifies any dependencies in the ``cumulusci.yml`` file.  If found, recursively resolve those dependencies and any dependencies belonging to them.
+* Determine whether to install the project as as a managed package or unmanaged metadata:
+    * If the project has a namespace configured in the ``cumulusci.yml`` file, treat the project as a managed package unless the unmanaged option is ``True``.
+    * If the project has a namespace and is *not* configured as unmanaged, use the GitHub API to locate the latest managed release of the project and install it.
 * If the project is an unmanaged dependency, the ``src`` or ``force-app`` directory is deployed.
-* Determine if the project has subfolders under unpackaged/post. If found, deploys them next. Namespace tokens are replaced with ``namespace__`` or an empty string, depending on if the dependency is considered managed or unmanaged.
+* Determine if the project has subfolders under ``unpackaged/post``. If found, deploy them next. Namespace tokens are replaced with ``namespace__`` if the project is being installed as a managed package, or an empty string otherwise.
 
 
 
@@ -504,7 +508,7 @@ If the referenced repository does not have a namespace configured, or if the dep
 Reference a Specific Tag
 ************************
 
-To reference a version other than HEAD and the latest production release, use the ``tag`` option to specify a tag from the target repository. This option is most useful for testing against beta versions of underlying packages, or recreating specific org environments for debugging.
+To reference a specific version of the product other than the most recent commit on the main branch (for unmanaged projects) or the most recent production release (for managed packages), use the ``tag`` option to specify a tag from the target repository. This option is most useful for testing against beta versions of underlying packages, or recreating specific org environments for debugging.
 
     Example: Salesforce EDA
 
@@ -524,7 +528,7 @@ To reference a version other than HEAD and the latest production release, use th
 Skip ``unpackaged/*`` in Reference Repositories
 ***********************************************
 
-If the repository you are referring to has dependency metadata under unpackaged/pre or unpackaged/post, use the ``skip`` option to skip deploying that metadata with the dependency.
+If the referenced repository has dependency metadata under ``unpackaged/pre`` or ``unpackaged/post``, use the ``skip`` option to skip deploying that metadata with the dependency.
 
     Example: Salesforce EDA
 
@@ -539,13 +543,13 @@ If the repository you are referring to has dependency metadata under unpackaged/
 Automatic Cleaning of ``meta.xml`` Files on Deploy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To let CumulusCI fully manage the project's dependencies, the ``deploy`` task (and other tasks based on ``cumulusci.tasks.salesforce.Deploy``, or subclasses of it) automatically removes the ``<packageVersion>`` and its children from all ``meta.xml`` files in the deployed metadata. Removing these elements does not affect the files on the filesystem.
+To let CumulusCI fully manage the project's dependencies, the ``deploy`` task (and other tasks based on ``cumulusci.tasks.salesforce.Deploy``, or subclasses of it) automatically removes the ``<packageVersion>`` element and its children from all ``meta.xml`` files in the deployed metadata. Removing these elements does not affect the files on the filesystem.
 
-The reason for stripping ``<packageVersion>`` elements on deploy is that the target Salesforce org automatically adds them back with the installed version of the referenced namespace. This feature lets CumulusCI fully manage dependencies, and avoids rushing a new commit of ``meta.xml`` files when a new underlying package version is available.
+This feature supports CumulusCI's automatic dependency resolution by avoiding a need for projects to manually update XML files to reflect current dependency package versions.
 
 .. note:: If the metadata being deployed references namespaced metadata that does not exist in the currently installed package, the deployment throws an error as expected.
 
-The automatic cleaning of ``meta.xml`` files can be disabled by setting the ``clean_meta_xml`` task option to ``False``. Prior to the addition of this functionality, there were unnecessary delays in the CumulusCI release cycle due to the need to create a new commit on ``main`` (and thus a feature branch, PR, code review, and so on) just to update the ``meta.xml`` files. CumulusCI's GitHub dependency functionality already handles requiring a new production release, so the only reason to do this commit was for the ``meta.xml`` files. Automatically cleaning the meta.xml files on deploy eliminates the need for this commit.
+The automatic cleaning of ``meta.xml`` files can be disabled by setting the ``clean_meta_xml`` option to ``False``. Prior to the addition of this functionality, there were unnecessary delays in the CumulusCI release cycle due to the need to create a new commit on ``main`` (and thus a feature branch, PR, code review, and so on) just to update the ``meta.xml`` files. CumulusCI's GitHub dependency functionality already handles requiring a new production release, so the only reason to do this commit was for the ``meta.xml`` files. Automatically cleaning the meta.xml files on deploy eliminates the need for this commit.
 
 One drawback of this approach is that developers need to handle the diffs in the ``meta.xml`` files by either ignoring them, or committing them as part of their work in a feature branch. 
 
@@ -562,9 +566,9 @@ Use Tasks and Flows from a Different Project
 
 Dependency handling is used in a very specific context: to install dependency packages or metadata bundles in a ``dependencies`` flow that is a component of some other flows.
 
-Common use cases for using tasks and flows from another CumulusCI project:
+CumulusCI also makes it possible to use automation (tasks and flows) from another CumulusCI project. This feature supports many use cases, including:
 
-* Setting up a dependency to include configuration, rather than just installing the package.
-* Running robot tests that are defined in a dependency.
+* Applying configuration from a dependency project, rather than just installing the package.
+* Running Robot Framework tests that are defined in a dependency.
 
-See `configure cross-project tasks and flows<TODO>`_ for more information.
+For more information, see `configure cross-project tasks and flows<TODO>`_.
