@@ -1,7 +1,7 @@
 Continuous Integration
 ======================
 
-The "CI" in CumulusCI stands for "continuous integration." Continuous integration is the practice of automatically running a project's tests for any change before that change is merged to the ``main`` branch in the repository. Continuous integration also configures the repository so that changes are merged only if the tests have passed. This practice keeps the ``main`` branch in an error-free state where it can be released any time.
+The "CI" in CumulusCI stands for "continuous integration." Continuous integration is the practice of automatically running a project's tests for any change before merging that change to the ``main`` branch in the repository. Continuous integration also configures the repository so that changes are merged only if the tests have passed. This practice keeps the ``main`` branch in an error-free state where it can be released any time.
 
 Teams can put in significant effort to create bespoke automation for CumulusCI tailored to their project's needs. When created, the automation is available to all project participants, from developers and quality engineers, to documentation writers and product managers. CumulusCI takes this reuse of automation one step further by letting it run in the context of CI systems like GitHub Actions, CircleCI, or Azure Pipelines. This consistent reuse of automation from local environments to cloud-based CI systems gives teams the ability to develop, test, and deploy their projects with confidence.
 
@@ -12,16 +12,16 @@ CumulusCI Flow
 
 CumulusCI Flow is the process by which Salesforce metadata is developed, tested, and deployed to our customers. It is similar to GitHub Flow with a few tweaks and additions.
 
-To learn more about which CumulusCI flows are best designed for creating scratch orgs, running CI builds, managing the development process, and more, see `CumulusCI Flow<TODO>`_.
+To learn which CumulusCI flows are best designed for creating scratch orgs, running CI builds, managing the development process, and more, see `CumulusCI Flow<TODO>`_.
 
 
 
 CumulusCI in GitHub Actions
 ---------------------------
 
-GitHub Actions specify custom workflows that run directly in your GitHub repository. These workflows perform a variety of tasks, like running test suites, performing linting checks on your code, and creating code coverage reports. CumulusCI can execute flows in GitHub Actions, making it possible to run scratch org builds and execute Apex and Robot Framework test passes leveraging the custom automation defined in ``cumulusci.yml``.
+GitHub Actions specify custom workflows that run directly in your GitHub repository. These workflows perform a variety of tasks, such as running test suites, performing linting checks on code, and creating code coverage reports. CumulusCI can also execute flows in GitHub Actions, making it possible to run scratch org builds and execute Apex and Robot Framework test passes leveraging the custom automation defined in the ``cumulusci.yml`` file.
 
-To learn more about sample workflows, the secrets that require configuration, caching dependencies, and more, see `GitHub Actions<TODO>`_ .
+To learn more about these custom workflows, see `GitHub Actions<TODO>`_ .
 
 
 
@@ -29,6 +29,7 @@ MetaCI
 ------
 
 Salesforce.org Release Engineering also maintains a continuous integration system called *MetaCI*. MetaCI is an open source app built to run on Heroku, and is designed specifically to work with CumulusCI and Salesforce. MetaCI's advantages for CumulusCI-based development processes include:
+
 * Easily configuring CumulusCI flows as CI builds
 * Scaling efficiently up to 100 parallel builds without reserving permanent capacity
 * Exposing CumulusCI flows through a web UI for users to create scratch orgs
