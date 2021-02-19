@@ -23,5 +23,12 @@ Developers Emeritus
 * Chris Polcyn
 * Christian Carter
 
+Contributors
+------------
+
 Thanks to the many community and Salesforce.org staff
 contributors!
+
+For example: 
+
+(add your name here, when you contribute through a Pull Request!)
