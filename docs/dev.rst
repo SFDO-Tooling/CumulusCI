@@ -222,7 +222,7 @@ For the most part ``config_dev`` and ``config_qa`` flows are the same. Many team
 
     Example: Salesforce.org teams often modify the ``config_qa`` flow to deploy configurations that pertain to large optional features in a package. These configurations are subsequently tested by the product's Robot Framework test suites.
 
-To capture your own QA configurations, spin up a new org...
+To retrieve your own QA configurations, spin up a new org...
 
 .. code-block::
 
@@ -234,7 +234,7 @@ Make the necessary changes, and run:
 
     $ cci task run retrieve_qa_config
 
-This task defaults to capturing this metadata under ``unpackaged/config/qa``.
+This task defaults to retrieving this metadata under ``unpackaged/config/qa``.
 
 .. note:: The configuration metadata can also be stored in a different location by using the ``--path`` option.
 
@@ -252,7 +252,7 @@ Then re-create it...
 
     $ cci flow run qa_org --org qa
 
-Then run the ``deploy_qa_config`` to deploy the previously captured configurations to the org.
+Then run the ``deploy_qa_config`` to deploy the previously retrieved configurations to the org.
 
 .. code-block:: console
 
