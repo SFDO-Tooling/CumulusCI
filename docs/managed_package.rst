@@ -1,7 +1,7 @@
 Release a Managed Package
 =========================
 
-This section outlines how to release a first generation (1GP) Salesforce Managed Package project. Salesforce.org's Release Engineering team practices `CumulusCI Flow<TODO link>`_, which incorporates all of these steps.
+This section outlines how to release a first generation (1GP) Salesforce managed package project. Salesforce.org's Release Engineering team practices `CumulusCI Flow<TODO link>`_, which incorporates all of these steps.
 
 
 
@@ -10,48 +10,43 @@ Prerequisites
 
 This section assumes:
 
-* `CumulusCI is installed <TODO: link to install>`_ on your computer.
-* A Salesforce Managed Package `project has been configured <TODO: setup a project>`_ for use with CumulusCI.
-* A packaging org `is connected <TODO: link to connect at persistent org>`_ to CumulusCI under the name of ``packaging``.
+* `CumulusCI is installed<TODO: link to install>`_ on your computer.
+* A Salesforce managed package `project has been configured<TODO: setup a project>`_ for use with CumulusCI.
+* A packaging org `is connected<TODO: link to connect at persistent org>`_ to CumulusCI under the name of ``packaging``.
 
-To verify that these things are setup you can run:
+To verify this setup and display information about the connected packaging org:
 
-.. code-block::console
+.. code-block:: console
 
     $ cci org info packaging
-
-Which should display information about your connected packaging org.
-
+    
 .. note:: 
 
-    Your packaging org may be under a different alias.
-    For a list of orgs connected to CumulusCI run ``cci org list``.
+    The packaging org can be listed under an alias. For a complete list of orgs connected to CumulusCI, run ``cci org list``.
 
-If your project has been configured for use with CumulusCI the ``cci project info`` command
-should list the project's namespace under ``package__namespace`` in the output.
+If your project has been configured for use with CumulusCI, ``cci org info`` lists the project's namespace under ``package__namespace`` in the output.
 
 
-I Don't Have a Manged Package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you have not yet created a managed package project, you will need to perform the following steps:
+Create a Managed Package Project
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. Create a Developer Edition Org (`sign up for one here <https://developer.salesforce.com/signup>`_)
-#. `Create a managed package <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/packaging_uploading.htm>`_
-#. `Assign a namespace <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/isv2_3_quickstart.htm>`_
-#. Configure the namespace in CumulusCI 
+If you haven't created a managed package project, follow these steps:
 
+* Create a Developer Edition Org. (`Sign up for one here. <https://developer.salesforce.com/signup>`_)
+* `Create a managed package <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/packaging_uploading.htm>`_.
+* `Assign a namespace <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/isv2_3_quickstart.htm>`_.
+* Configure the namespace in CumulusCI.
 
 
 
 Deploy to a Packaging Org
 -------------------------
 
-CumulusCI enables you to deploy to your ``packaging`` org with the ``ci_master`` flow.
+CumulusCI deploys to a ``packaging`` org with the ``ci_master`` flow.
 
 .. warning::
 
-    The ``ci_master`` flow runs the `uninstall_packaged_incremental<TODO>`_ task.
-    This task deletes any metadata from the package in the target org not in the repository.
+    The ``ci_master`` flow runs the `uninstall_packaged_incremental<TODO>`_ task, which deletes any metadata from the package in the target org that's not in the repository.
 
 .. code-block:: console
 
@@ -61,17 +56,15 @@ The ``ci_master`` flow executes these tasks in the target org.
 
 * Updates any project dependencies
 * Deploys any unpackaged metadata located in the ``pre`` directory
-* Deploys package metadata
-* Deploys destructive changes to remove metadata in the target org that is no longer in the local workspace
-* Runs the ``config_packaging`` flow, which by default, is just the `update_admin_profile task <TODO>`_.
+* Deploys packaged metadata
+* Deploys destructive changes to remove metadata in the target org that is no longer in the local repository
+* Runs the ``config_packaging`` flow, which by default consists only of the `update_admin_profile<TODO>`_ task.
 
 .. tip::
 
-    To list each step in the ``ci_master`` flow, you can run ``cci flow info ci_master``
+    To list each step in the ``ci_master`` flow, run ``cci flow info ci_master``.
 
-CumulusCI separates uploading metadata to your packaging org and releasing a beta version
-of your package into two flows: ``ci_master`` and ``release_beta`` respectively.
-This allows for an opportunity to run checks against the org, if necessary, between deploy and release steps.
+CumulusCI separates uploading metadata to the packaging org and releasing a beta version of the package into the ``ci_master`` and ``release_beta`` flows, respectively. This separation offers discretion to run additional checks against the org, if necessary, between deploy and release steps.
 
 
 
@@ -84,17 +77,17 @@ The ``release_beta`` flow groups the common tasks that must be executed for the 
 
     $ cci flow run release_beta --org packaging
 
-This flow is *always* run against the project's ``packaging`` org where it:
+This flow *always* runs against the project's ``packaging`` org where it:
 
 * Uploads a new beta version from the ``packaging`` org
-* Creates a new GitHub release tag for the new beta version. This is needed if you want extension packages that also use CumulusCI to be able to find the latest version when this repository is listed as a dependency.
+* Creates a new GitHub release tag for the new beta version. Extension packages that also use CumulusCI require this release tag to find the latest version when this repository is listed as a dependency.
 * `Generates Release Notes <TODO#anchor>`_
-* Syncs feature branches with the ``main`` branch. This is so that feature branches have the latest changes from the default branch integrated into them. For more on on auto-merging funcitonality see `some link <TODO: link>`_
+* Syncs feature branches with the ``main`` branch, which automatically integrates the latest changes from ``main``.
+    .. note:: For more information on auto-merging funcitonality, see `some link<TODO: link>`_.
 
 .. important::
     
-    This flow assumes the package contents were already deployed using the ``ci_master`` flow.
-    It *does not* include a step to deploy them.
+    This flow assumes that the package contents were already deployed using the ``ci_master`` flow. It does *not* include a step to deploy them.
 
 To create a new beta version for your project without the bells and whistles, use the ``upload_beta`` task:
 
@@ -128,7 +121,7 @@ To see what the release notes look like without publishing them to GitHub:
 
     $ cci task run github_release_notes --tag release/1.2
 
-The ``--tag`` option aggregates text from pull requests between releases 1.2 and the next most recent release.
+.. note:: The ``--tag`` option indicates which release's change notes are aggregated. The previous command aggregates all change notes between the `1.2` release and the `1.1` release.
 
 To see where each line in the release notes comes from, use the ``--link_pr True`` option.
 
@@ -142,8 +135,7 @@ To publish the release notes to a release tag in GitHub, use the ``--publish Tru
 
     $ cci task run github_release_notes --tag release/1.2 --publish True
 
-
-To use additional headings, add new ones (as parsers) under the ``project__git__release_notes__parsers`` section of the ``cumulusci.yml`` file.
+To use additional headings, add new ones (as parsers) under the ``project__git__release_notes`` section of the ``cumulusci.yml`` file.
 
 .. code-block::
 
@@ -158,7 +150,7 @@ To use additional headings, add new ones (as parsers) under the ``project__git__
 Upload and Test a Final Version
 -------------------------------
 
-To upload a production release of your Managed Package project, use:
+To upload a production release of your managed package project:
 
 .. code-block::
 
@@ -168,7 +160,7 @@ Similar to ``release_beta``, this task uploads a new production version of your 
 
 .. important::
 
-    This flow assumes that the package contents have *already been deployed* using the ``ci_master`` flow.
+    This flow assumes that the package contents have previously been deployed using the ``ci_master`` flow.
 
 To upload the new production version without creating the GitHub tag and generating release notes:
 
@@ -189,75 +181,71 @@ The ``ci_release`` flow installs the latest production release version, and runs
 Publish an Install Plan to MetaDeploy
 -------------------------------------
 
-If are running your own instance of `MetaDeploy <https://github.com/SFDO-Tooling/MetaDeploy>`_ you can
+If you are running your own instance of `MetaDeploy <https://github.com/SFDO-Tooling/MetaDeploy>`_, you can
 publish a new install plan directly from CumulusCI.
 
-You first need to setup MetaDeploy as a service:
+To set up MetaDeploy as a service:
 
-.. code-block::console
+.. code-block:: console
 
-    $ cci service connect metadeploy --url <metadeploy_url> --token <token>
+    $ cci service connect metadeploy --url <metadeploy_url> --token <token_name>
 
-You would replace ``<metadeploy_url>`` with the main url to your instance of MetaDeploy,
-and ``<token>`` with a MetaDeploy API token generated from ``<metadeploy_url/admin/authtoken/token``.
+..
 
-You can confirm that metadeploy has been setup by running ``cci service list`` and ensuring
-that the line for ``metadeploy`` has a checkmark in the "Configured" column.
+    Replace ``<metadeploy_url>`` with the main url to your instance of MetaDeploy, and ``<token_name>`` with a MetaDeploy API token generated from ``<metadeploy_url/admin/authtoken/token>``.
+
+Confirm that metadeploy is set up by running ``cci service list``, and that the line for ``metadeploy`` has a checkmark in the ``Configured`` column.
 
 .. image:: images/cci_service_list.png
 
-You can now publish an install plan to MetaDeploy with the ``metadeploy_publish`` task.
+To publish an install plan to MetaDeploy, use the ``metadeploy_publish`` task.
 
-.. code-block::console
+.. code-block:: console
 
     $ cci task run metadeploy_publish
 
-
-.. tip:: 
-    
-    To just view the steps that this task performs 
-    without publishing, use ``--dry_run True``.
-
 .. note::
 
-    By default, the ``--publish`` option defaults to false. This means that the plan
-    needs to has the ``is_listed`` checkbox manually enabled on the plan version before
-    it will be visible external users.
+    By default, the ``--publish`` option is set to false. The ``is_listed`` checkbox must be manually enabled on the plan version to make it visible to external users.
+
+To view the steps that this task performs without publishing, use the ``--dry_run True`` option.
+
+.. code-block:: console
+
+    $ cci task run metadeploy_publish --dry_run True
 
 
-To publish the install plan to MetaDeploy
 
 Manage Push Upgrades
 --------------------
 
-CumulusCI can also handle scheduling push upgrades for you with
-the ``push_all`` task. 
+CumulusCI can also schedule push upgrades with the ``push_all`` task. 
 
 .. warning::
 
-    The following command will schedule push upgrades to customer's production orgs.
-    Please ensure you really want to do this before executing.
+    ``push_all`` schedules push upgrades to *all* customers' production orgs. Please confirm that this action is essential before executing the task.
 
-.. code-block::console
+.. code-block:: console
 
     $ cci task run push_all --version <version> 
 
-Replace ``<version>`` with the version of the managed package you want to push.
+..
+
+    Replace ``<version>`` with the version of the managed package to be pushed.
+
 By default, push upgrades are scheduled to run immediately.
-Use the ``--start_time`` option along with a time value in UTC if you want
-to schedule the upgrades to occur at a specific time. Time values are
-given in the following format: ``YYYY-MM-DDTHH:MM``.
 
-.. code-block::console
+To schedule the push upgrades to occur at a specific time, use the ``--start_time`` option with a time value in UTC. (Time values are
+given in the following format: ``YYYY-MM-DDTHH:MM``.)
 
-    $ cci task run push_all --version <version> --start_time 2016-10-19T10:00
+.. code-block:: console
 
+    $ cci task run push_all --version <version> --start_time 2020-10-19T10:00
 
-There are several other tasks related to push upgrades that are in the CumulusCI standard library.
-These include:
+There are additional tasks related to push upgrades in the CumulusCI standard library.
 
-* ``push_failure_report`` - Produce a CSV report of the failed and otherwise anomalous push jobs
-* ``push_list`` - Schedules a push upgrade of a package versio nto all orgs listed in a specified file
-* ``push_qa`` - Schedules a push upgrade of a package version to all orgs listed in ``push/orgs_qa.txt``
-* ``push_sandbox`` - Schedules a push upgrade of a package version to all subscriber's sandboxes
-* ``push_trial`` - Schedules a push upgrade of a package version to Trialforce Template orgs listed in ``push/orgs_trial.txt``
+* ``push_failure_report``: Produces a ``csv`` report of the failed and otherwise anomalous push jobs
+* ``push_list``: Schedules a push upgrade of a package version to all orgs listed in a specified file
+* ``push_qa``: Schedules a push upgrade of a package version to all orgs listed in ``push/orgs_qa.txt``
+* ``push_sandbox``: Schedules a push upgrade of a package version to all subscribers' sandboxes
+* ``push_trial``: Schedules a push upgrade of a package version to Trialforce Template orgs listed in ``push/orgs_trial.txt``
