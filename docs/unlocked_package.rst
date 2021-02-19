@@ -59,7 +59,40 @@ CumulusCI does not yet provide tools to help promote an unlocked package version
 Install the Unlocked Package
 ----------------------------
 
-These are the available methods for installing a package in an org. 
+There are two methods that can be used to install an unlocked package with CumulusCI.
+You can configure the ``update_dependencies`` and ``install_managed`` tasks to use a specific unlocked package by providing the 04t Id of the desired package.
+
+For the ``update_dependencies`` task this would be:
+
+.. code-block::console
+
+    $ cci run task update_dependencies --dependencies [{'version_id': '04t000000000'}]
+
+Or configured in ``cumulusci.yml`` like:
+
+.. code-block::yaml
+
+    task: update_dependencies
+    options:
+        dependencies:
+            - version_id: 04t000000000
+
+For the ``install_managed`` task this would be:
+
+.. code-block::console
+
+    $ cci task run intsall_managed --version 04t000000000
+
+Or configured in ``cumulusci.yml``:
+
+.. code-block::yaml
+
+    task: install_managed
+    options:
+        version: 04t000000000
+
+These are the other methods available for installing unlocked packages in an org that do not use CumulusCI: 
 
 * `Install via the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_cli.htm>`_
 * `Install via an Installation URL <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_ui.htm>`_
+
