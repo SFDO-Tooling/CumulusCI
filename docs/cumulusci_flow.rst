@@ -52,7 +52,7 @@ notes drawn from the content of the Pull Requests merged since the last producti
 
 CumulusCI and Main Builds
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-There are four main flows that facilitate main builds:
+There are three main flows that facilitate main builds:
 
 * ``ci_master``: Deploys the main branch and all dependencies into the packaging org including
   incrementally deleting any metadata removed since the previous deployment. 
