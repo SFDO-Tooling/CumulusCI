@@ -189,9 +189,75 @@ The ``ci_release`` flow installs the latest production release version, and runs
 Publish an Install Plan to MetaDeploy
 -------------------------------------
 
-<TODO>
+If are running your own instance of `MetaDeploy <https://github.com/SFDO-Tooling/MetaDeploy>`_ you can
+publish a new install plan directly from CumulusCI.
+
+You first need to setup MetaDeploy as a service:
+
+.. code-block::console
+
+    $ cci service connect metadeploy --url <metadeploy_url> --token <token>
+
+You would replace ``<metadeploy_url>`` with the main url to your instance of MetaDeploy,
+and ``<token>`` with a MetaDeploy API token generated from ``<metadeploy_url/admin/authtoken/token``.
+
+You can confirm that metadeploy has been setup by running ``cci service list`` and ensuring
+that the line for ``metadeploy`` has a checkmark in the "Configured" column.
+
+.. image:: images/cci_service_list.png
+
+You can now publish an install plan to MetaDeploy with the ``metadeploy_publish`` task.
+
+.. code-block::console
+
+    $ cci task run metadeploy_publish
+
+
+.. tip:: 
+    
+    To just view the steps that this task performs 
+    without publishing, use ``--dry_run True``.
+
+.. note::
+
+    By default, the ``--publish`` option defaults to false. This means that the plan
+    needs to has the ``is_listed`` checkbox manually enabled on the plan version before
+    it will be visible external users.
+
+
+To publish the install plan to MetaDeploy
 
 Manage Push Upgrades
 --------------------
 
-<TODO>
+CumulusCI can also handle scheduling push upgrades for you with
+the ``push_all`` task. 
+
+.. warning::
+
+    The following command will schedule push upgrades to customer's production orgs.
+    Please ensure you really want to do this before executing.
+
+.. code-block::console
+
+    $ cci task run push_all --version <version> 
+
+Replace ``<version>`` with the version of the managed package you want to push.
+By default, push upgrades are scheduled to run immediately.
+Use the ``--start_time`` option along with a time value in UTC if you want
+to schedule the upgrades to occur at a specific time. Time values are
+given in the following format: ``YYYY-MM-DDTHH:MM``.
+
+.. code-block::console
+
+    $ cci task run push_all --version <version> --start_time 2016-10-19T10:00
+
+
+There are several other tasks related to push upgrades that are in the CumulusCI standard library.
+These include:
+
+* ``push_failure_report`` - Produce a CSV report of the failed and otherwise anomalous push jobs
+* ``push_list`` - Schedules a push upgrade of a package versio nto all orgs listed in a specified file
+* ``push_qa`` - Schedules a push upgrade of a package version to all orgs listed in ``push/orgs_qa.txt``
+* ``push_sandbox`` - Schedules a push upgrade of a package version to all subscriber's sandboxes
+* ``push_trial`` - Schedules a push upgrade of a package version to Trialforce Template orgs listed in ``push/orgs_trial.txt``
