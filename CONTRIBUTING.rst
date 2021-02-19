@@ -3,6 +3,7 @@ Contributing
 ============
 
 Contributions are welcome, and they are greatly appreciated! Every little bit helps, and credit will always be given.
+If you are a new contributor, don't forget to add yourself to the `AUTHORS.rst` file in your pull request (either GitHub username, or first/last name). 
 
 You can contribute in many ways:
 
