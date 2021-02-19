@@ -59,6 +59,7 @@ CumulusCI includes several out-of-the-box Metadata ETL tasks:
 
  - ``activate_flow`` activates Flows (or Processes).
  - ``add_page_layout_related_lists`` adds Related Lists, with given fields, to Page Layouts.
+ - ``add_page_layout_fields`` adds or moves fields to a given Page Layout section.
  - ``add_permission_set_perms`` adds FLS and Apex class access entries to Permission Sets.
  - ``add_picklist_entries`` adds picklist entries to a custom picklist field.
  - ``add_standard_value_set_entries`` adds entries to a Standard Value Set.
