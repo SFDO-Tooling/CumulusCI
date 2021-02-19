@@ -11,6 +11,7 @@ import time
 import pytest
 import unittest
 from pathlib import Path
+import contextlib
 
 import click
 from unittest import mock
@@ -21,12 +22,10 @@ import github3
 from requests.exceptions import ConnectionError
 
 import cumulusci
-from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.tasks import BaseTask
+from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import NotInProject
@@ -37,26 +36,7 @@ from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.cli import cci
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.utils import temporary_dir
-
-
-def run_click_command(cmd, *args, **kw):
-    """Run a click command with a mock context and injected CCI runtime object."""
-    runtime = kw.pop("runtime", mock.Mock())
-    with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
-        with click.Context(command=mock.Mock()):
-            return cmd.callback(*args, **kw)
-
-
-def recursive_list_files(d="."):
-    result = []
-    for d, subdirs, files in os.walk(d):
-        d = d.replace(os.path.sep, "/")
-        if d != ".":
-            result.append("/".join([d, ""])[2:])
-        for f in files:
-            result.append("/".join([d, f])[2:])
-    result.sort()
-    return result
+from cumulusci.cli.tests.utils import run_click_command, recursive_list_files, DummyTask
 
 
 class TestCCI(unittest.TestCase):
@@ -67,7 +47,6 @@ class TestCCI(unittest.TestCase):
         cls.environ_mock = mock.patch.dict(
             os.environ, {"HOME": tempfile.mkdtemp(), "CUMULUSCI_KEY": ""}
         )
-        assert cls.global_tempdir not in os.environ.get("HOME", "")
         cls.environ_mock.start()
         assert cls.global_tempdir in os.environ["HOME"]
 
@@ -76,7 +55,6 @@ class TestCCI(unittest.TestCase):
         assert cls.global_tempdir in os.environ["HOME"]
         cls.environ_mock.stop()
         shutil.rmtree(cls.tempdir)
-        assert cls.global_tempdir not in os.environ.get("HOME", "")
 
     def setUp(self):
         self.cleanup_org_cache_dirs = mock.Mock(name="cleanup_org_cache_dirs")
@@ -131,7 +109,7 @@ class TestCCI(unittest.TestCase):
 
         cci.check_latest_version()
 
-        self.assertEqual(2, click.echo.call_count)
+        click.echo.assert_called_once()
 
     @mock.patch("cumulusci.cli.cci.get_latest_final_version")
     @mock.patch("cumulusci.cli.cci.click")
@@ -142,7 +120,7 @@ class TestCCI(unittest.TestCase):
 
         cci.check_latest_version()
 
-        click.echo.assert_any_call("Error checking cci version:")
+        click.echo.assert_any_call("Error checking cci version:", err=True)
 
     def test_render_recursive(self):
         out = []
@@ -311,6 +289,76 @@ class TestCCI(unittest.TestCase):
 
         os.remove("tempfile.log")
 
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_main__CliRuntime_error(self, CliRuntime, get_tempfile_logger, tee):
+        CliRuntime.side_effect = CumulusCIException("something happened")
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
+
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            with pytest.raises(SystemExit):
+                cci.main(["cci", "org", "info"])
+
+        assert "something happened" in stderr.getvalue()
+
+        tempfile = Path("tempfile.log")
+        tempfile.unlink()
+
+    @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("sys.exit")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_handle_org_name(
+        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+    ):
+
+        # get_tempfile_logger doesn't clean up after itself which breaks other tests
+        get_tempfile_logger.return_value = mock.Mock(), ""
+
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default", "xyzzy"])
+        assert "xyzzy is now the default org" in stdout.getvalue(), stdout.getvalue()
+
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default", "--org", "xyzzy2"])
+        assert "xyzzy2 is now the default org" in stdout.getvalue(), stdout.getvalue()
+
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            cci.main(["cci", "org", "default", "xyzzy1", "--org", "xyzzy2"])
+        assert "not both" in stderr.getvalue(), stderr.getvalue()
+
+        CliRuntime().keychain.get_default_org.return_value = ("xyzzy3", None)
+
+        # cci org remove should really need an attached org
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            cci.main(["cci", "org", "remove"])
+        assert (
+            "Please specify ORGNAME or --org ORGNAME" in stderr.getvalue()
+        ), stderr.getvalue()
+
+    @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("sys.exit")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_cci_org_default__no_orgname(
+        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+    ):
+        # get_tempfile_logger doesn't clean up after itself which breaks other tests
+        get_tempfile_logger.return_value = mock.Mock(), ""
+
+        CliRuntime().keychain.get_default_org.return_value = ("xyzzy4", None)
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default"])
+        assert "xyzzy4 is the default org" in stdout.getvalue(), stdout.getvalue()
+
+        CliRuntime().keychain.get_default_org.return_value = (None, None)
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            cci.main(["cci", "org", "default"])
+        assert "There is no default org" in stdout.getvalue(), stdout.getvalue()
+
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
@@ -403,7 +451,7 @@ class TestCCI(unittest.TestCase):
         runtime.project_config.repo_root = None
         runtime.keychain.get_service.return_value.config = {
             "username": "usrnm",
-            "password": "pwd",
+            "token": "token",
         }
 
         run_click_command(cci.gist, runtime=runtime)
@@ -453,7 +501,7 @@ Environment Info: Rossian / x68_46
         runtime.project_config.repo_root = None
         runtime.keychain.get_service.return_value.config = {
             "username": "usrnm",
-            "password": "pwd",
+            "token": "token",
         }
 
         with self.assertRaises(CumulusCIException) as context:
@@ -908,6 +956,7 @@ Environment Info: Rossian / x68_46
                 "OrganizationType": "Developer Edition",
                 "IsSandbox": False,
                 "InstanceName": "CS420",
+                "NamespacePrefix": None,
             },
             status=200,
         )
@@ -953,6 +1002,7 @@ Environment Info: Rossian / x68_46
                 "OrganizationType": "Developer Edition",
                 "IsSandbox": True,
                 "InstanceName": "CS420",
+                "NamespacePrefix": None,
             },
             status=200,
         )
@@ -1588,7 +1638,7 @@ Environment Info: Rossian / x68_46
             cci.org_remove, runtime=runtime, org_name="test", global_org=False
         )
 
-        echo.assert_any_call("Deleting scratch org failed with error:")
+        echo.assert_any_call("Removing org regardless.")
 
     def test_org_remove_not_found(self):
         runtime = mock.Mock()
@@ -1692,14 +1742,14 @@ Environment Info: Rossian / x68_46
         with self.assertRaises(click.UsageError):
             run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
 
-    def test_org_scratch_delete_error(self):
+    @mock.patch("click.echo")
+    def test_org_scratch_delete_error(self, echo):
         org_config = mock.Mock()
         org_config.delete_org.side_effect = ScratchOrgException
         runtime = mock.Mock()
         runtime.keychain.get_org.return_value = org_config
-
-        with self.assertRaises(ScratchOrgException):
-            run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
+        run_click_command(cci.org_scratch_delete, runtime=runtime, org_name="test")
+        assert "org remove" in str(echo.mock_calls)
 
     @mock.patch("cumulusci.cli.cci.get_simple_salesforce_connection")
     @mock.patch("code.interact")
@@ -1769,7 +1819,7 @@ Environment Info: Rossian / x68_46
     def test_task_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.universal_config.cli__plain_output = None
-        runtime.project_config.list_tasks.return_value = [
+        runtime.get_available_tasks.return_value = [
             {"name": "test_task", "description": "Test Task", "group": "Test Group"}
         ]
 
@@ -1790,144 +1840,81 @@ Environment Info: Rossian / x68_46
         }
         runtime = mock.Mock()
         runtime.universal_config.cli__plain_output = None
-        runtime.project_config.list_tasks.return_value = [task_dicts]
+        runtime.get_available_tasks.return_value = [task_dicts]
 
         run_click_command(cci.task_list, runtime=runtime, plain=False, print_json=True)
 
         json_.assert_called_with([task_dicts])
 
-    @mock.patch("cumulusci.cli.cci.doc_task")
+    @mock.patch("cumulusci.cli.cci.doc_task", return_value="docs")
     def test_task_doc(self, doc_task):
         runtime = mock.Mock()
         runtime.universal_config.tasks = {"test": {}}
-
-        run_click_command(cci.task_doc, runtime=runtime)
+        run_click_command(cci.task_doc, runtime=runtime, project=False)
         doc_task.assert_called()
+
+    def test_task_doc__project__outside_project(self):
+        runtime = mock.Mock()
+        runtime.project_config = None
+        with pytest.raises(click.UsageError):
+            run_click_command(cci.task_doc, runtime=runtime, project=True)
+
+    @mock.patch("click.echo")
+    @mock.patch("cumulusci.cli.cci.doc_task", return_value="docs")
+    def test_task_doc_project(self, doc_task, echo):
+        runtime = mock.Mock()
+        runtime.universal_config = {"tasks": {}}
+        runtime.project_config = BaseProjectConfig(
+            runtime.universal_config,
+            {
+                "project": {"name": "Test"},
+                "tasks": {"task1": {"a": "b"}, "task2": {}},
+            },
+        )
+        runtime.project_config.config_project = {"tasks": {"task1": {"a": "b"}}}
+        run_click_command(cci.task_doc, runtime=runtime, project=True)
+        doc_task.assert_called()
+        echo.assert_called()
+
+    @mock.patch("cumulusci.cli.cci.Path")
+    @mock.patch("click.echo")
+    @mock.patch("cumulusci.cli.cci.doc_task", return_value="docs")
+    def test_task_doc_project_write(self, doc_task, echo, Path):
+        runtime = mock.Mock()
+        runtime.universal_config.tasks = {"test": {}}
+        runtime.project_config = BaseProjectConfig(
+            runtime.universal_config,
+            {
+                "project": {"name": "Test"},
+                "tasks": {"option": {"a": "b"}},
+            },
+        )
+        runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
+        run_click_command(cci.task_doc, runtime=runtime, project=True, write=True)
+        doc_task.assert_called()
+        echo.assert_not_called()
 
     @mock.patch("cumulusci.cli.cci.rst2ansi")
     @mock.patch("cumulusci.cli.cci.doc_task")
     def test_task_info(self, doc_task, rst2ansi):
         runtime = mock.Mock()
         runtime.project_config.tasks__test = {"options": {}}
-
         run_click_command(cci.task_info, runtime=runtime, task_name="test")
-
         doc_task.assert_called_once()
         rst2ansi.assert_called_once()
-
-    def test_task_run(self):
-        runtime = mock.Mock()
-        runtime.get_org.return_value = (None, None)
-        runtime.project_config = BaseProjectConfig(
-            None,
-            config={
-                "tasks": {
-                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-                }
-            },
-        )
-        DummyTask._run_task = mock.Mock()
-
-        run_click_command(
-            cci.task_run,
-            runtime=runtime,
-            task_name="test",
-            org=None,
-            o=[("color", "blue")],
-            debug=False,
-            debug_before=False,
-            debug_after=False,
-            no_prompt=True,
-        )
-
-        DummyTask._run_task.assert_called_once()
-
-    def test_task_run_invalid_option(self):
-        runtime = mock.Mock()
-        runtime.get_org.return_value = (None, None)
-        runtime.project_config.get_task.return_value = TaskConfig(
-            {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-        )
-
-        with self.assertRaises(click.UsageError):
-            run_click_command(
-                cci.task_run,
-                runtime=runtime,
-                task_name="test",
-                org=None,
-                o=[("bogus", "blue")],
-                debug=False,
-                debug_before=False,
-                debug_after=False,
-                no_prompt=True,
-            )
-
-    @mock.patch("pdb.set_trace")
-    def test_task_run_debug_before(self, set_trace):
-        runtime = mock.Mock()
-        runtime.get_org.return_value = (None, None)
-        runtime.project_config = BaseProjectConfig(
-            None,
-            config={
-                "tasks": {
-                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-                }
-            },
-        )
-        set_trace.side_effect = SetTrace
-
-        with self.assertRaises(SetTrace):
-            run_click_command(
-                cci.task_run,
-                runtime=runtime,
-                task_name="test",
-                org=None,
-                o=[("color", "blue")],
-                debug=False,
-                debug_before=True,
-                debug_after=False,
-                no_prompt=True,
-            )
-
-    @mock.patch("pdb.set_trace")
-    def test_task_run_debug_after(self, set_trace):
-        runtime = mock.Mock()
-        runtime.get_org.return_value = (None, None)
-        runtime.project_config = BaseProjectConfig(
-            None,
-            config={
-                "tasks": {
-                    "test": {"class_path": "cumulusci.cli.tests.test_cci.DummyTask"}
-                }
-            },
-        )
-        set_trace.side_effect = SetTrace
-
-        with self.assertRaises(SetTrace):
-            run_click_command(
-                cci.task_run,
-                runtime=runtime,
-                task_name="test",
-                org=None,
-                o=[("color", "blue")],
-                debug=False,
-                debug_before=False,
-                debug_after=True,
-                no_prompt=True,
-            )
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_flow_list(self, cli_tbl):
         runtime = mock.Mock()
-        runtime.project_config.list_flows.return_value = [
-            {"name": "test_flow", "description": "Test Flow"}
+        runtime.get_available_flows.return_value = [
+            {"name": "test_flow", "description": "Test Flow", "group": "Testing"}
         ]
         runtime.universal_config.cli__plain_output = None
         run_click_command(cci.flow_list, runtime=runtime, plain=False, print_json=False)
 
         cli_tbl.assert_called_with(
-            [["Name", "Description"], ["test_flow", "Test Flow"]],
-            title="Flows",
+            [["Flow", "Description"], ["test_flow", "Test Flow"]],
+            "Testing",
             wrap_cols=["Description"],
         )
 
@@ -1935,7 +1922,7 @@ Environment Info: Rossian / x68_46
     def test_flow_list_json(self, json_):
         flows = [{"name": "test_flow", "description": "Test Flow"}]
         runtime = mock.Mock()
-        runtime.project_config.list_flows.return_value = flows
+        runtime.get_available_flows.return_value = flows
         runtime.universal_config.cli__plain_output = None
 
         run_click_command(cci.flow_list, runtime=runtime, plain=False, print_json=True)
@@ -1957,6 +1944,58 @@ Environment Info: Rossian / x68_46
         runtime.get_flow.side_effect = FlowNotFoundError
         with self.assertRaises(click.UsageError):
             run_click_command(cci.flow_info, runtime=runtime, flow_name="test")
+
+    @mock.patch("cumulusci.cli.cci.group_items")
+    @mock.patch("cumulusci.cli.cci.document_flow")
+    def test_flow_doc__no_flows_rst_file(self, doc_flow, group_items):
+        runtime = mock.Mock()
+        runtime.universal_config.flows = {"test": {}}
+        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+        runtime.get_flow.return_value = FlowCoordinator(None, flow_config)
+
+        group_items.return_value = {"Group One": [["test flow", "description"]]}
+
+        run_click_command(cci.flow_doc, runtime=runtime)
+        group_items.assert_called_once()
+        doc_flow.assert_called()
+
+    @mock.patch("cumulusci.cli.cci.click.echo")
+    @mock.patch("cumulusci.cli.cci.cci_safe_load")
+    def test_flow_doc__with_flows_rst_file(self, safe_load, echo):
+        runtime = CliRuntime(
+            config={
+                "flows": {
+                    "Flow1": {
+                        "steps": {},
+                        "description": "Description of Flow1",
+                        "group": "Group1",
+                    }
+                }
+            },
+            load_keychain=False,
+        )
+
+        safe_load.return_value = {
+            "intro_blurb": "opening blurb for flow reference doc",
+            "groups": {
+                "Group1": {"description": "This is a description of group1."},
+            },
+            "flows": {"Flow1": {"rst_text": "Some ``extra`` **pizzaz**!"}},
+        }
+
+        run_click_command(cci.flow_doc, runtime=runtime)
+
+        assert 1 == safe_load.call_count
+
+        expected_call_args = [
+            "Flow Reference\n==========================================\n\nopening blurb for flow reference doc\n.. contents::\n    :depth: 2\n    :local:\n\n",
+            "Group1\n------",
+            "This is a description of group1.",
+            "Flow1\n^^^^^\n\n**Description:** Description of Flow1\n\nSome ``extra`` **pizzaz**!\n**Flow Steps**\n\n.. code-block:: console\n",
+            "",
+        ]
+        expected_call_args = [mock.call(s) for s in expected_call_args]
+        assert echo.call_args_list == expected_call_args
 
     def test_flow_run(self):
         org_config = mock.Mock(scratch=True, config={})
@@ -2011,9 +2050,7 @@ Environment Info: Rossian / x68_46
             )
         assert "-o" in str(e.value)
 
-    def test_flow_run_delete_non_scratch(
-        self,
-    ):
+    def test_flow_run_delete_non_scratch(self):
         org_config = mock.Mock(scratch=False)
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)
@@ -2052,17 +2089,18 @@ Environment Info: Rossian / x68_46
         runtime.get_org = mock.Mock(return_value=("test", org_config))
         DummyTask._run_task = mock.Mock()
 
-        run_click_command(
-            cci.flow_run,
-            runtime=runtime,
-            flow_name="test",
-            org="test",
-            delete_org=True,
-            debug=False,
-            o=None,
-            skip=(),
-            no_prompt=True,
-        )
+        kwargs = {
+            "runtime": runtime,
+            "flow_name": "test",
+            "org": "test",
+            "delete_org": True,
+            "debug": False,
+            "no_prompt": True,
+            "o": (("test_task__color", "blue"),),
+            "skip": (),
+        }
+
+        run_click_command(cci.flow_run, **kwargs)
 
         echo.assert_any_call(
             "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
@@ -2112,13 +2150,9 @@ Environment Info: Rossian / x68_46
         assert output == traceback
 
 
-class SetTrace(Exception):
-    pass
-
-
-class DummyTask(BaseTask):
-    task_options = {"color": {}}
-
-
 def validate_service(options):
     raise Exception("Validation failed")
+
+
+class SetTrace(Exception):
+    pass

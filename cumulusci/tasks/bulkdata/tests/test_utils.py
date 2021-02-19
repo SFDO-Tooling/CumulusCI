@@ -1,16 +1,18 @@
-from datetime import datetime
-import os
 import json
+import os
 import unittest
 from unittest import mock
 
 import responses
-from sqlalchemy import create_engine, MetaData, Integer, types, Unicode, Column, Table
+from sqlalchemy import create_engine, MetaData, Integer, Unicode, Column, Table
 from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.tasks.bulkdata.utils import (
+    create_table,
+    generate_batches,
+)
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 
@@ -68,30 +70,6 @@ def mock_describe_calls():
         "Case",
     ]:
         mock_sobject_describe(sobject)
-
-
-class TestEpochType(unittest.TestCase):
-    def test_process_bind_param(self):
-        obj = bulkdata.utils.EpochType()
-        dt = datetime(1970, 1, 1, 0, 0, 1)
-        result = obj.process_bind_param(dt, None)
-        self.assertEqual(1000, result)
-
-    def test_process_result_value(self):
-        obj = bulkdata.utils.EpochType()
-
-        # Non-None value
-        result = obj.process_result_value(1000, None)
-        self.assertEqual(datetime(1970, 1, 1, 0, 0, 1), result)
-
-        # None value
-        result = obj.process_result_value(None, None)
-        self.assertEqual(None, result)
-
-    def test_setup_epoch(self):
-        column_info = {"type": types.DateTime()}
-        bulkdata.utils.setup_epoch(mock.Mock(), mock.Mock(), column_info)
-        self.assertIsInstance(column_info["type"], bulkdata.utils.EpochType)
 
 
 class TestSqlAlchemyMixin(unittest.TestCase):
@@ -195,17 +173,17 @@ class TestCreateTable(unittest.TestCase):
 class TestBatching(unittest.TestCase):
     def test_batching_no_remainder(self):
         batches = list(generate_batches(num_records=20, batch_size=10))
-        assert batches == [(10, 0), (10, 1)]
+        assert batches == [(10, 0, 2), (10, 1, 2)], batches
 
         batches = list(generate_batches(num_records=20, batch_size=5))
-        assert batches == [(5, 0), (5, 1), (5, 2), (5, 3)]
+        assert batches == [(5, 0, 4), (5, 1, 4), (5, 2, 4), (5, 3, 4)], batches
 
         batches = list(generate_batches(num_records=3, batch_size=1))
-        assert batches == [(1, 0), (1, 1), (1, 2)]
+        assert batches == [(1, 0, 3), (1, 1, 3), (1, 2, 3)], batches
 
         batches = list(generate_batches(num_records=3, batch_size=3))
-        assert batches == [(3, 0)]
+        assert batches == [(3, 0, 1)], batches
 
     def test_batching_with_remainder(self):
         batches = list(generate_batches(num_records=20, batch_size=7))
-        assert batches == [(7, 0), (7, 1), (6, 2)]
+        assert batches == [(7, 0, 3), (7, 1, 3), (6, 2, 3)], batches

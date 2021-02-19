@@ -4,8 +4,9 @@ import time
 import glob
 from xml.dom.minidom import parse
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_list_arg
+from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
 
 
@@ -129,6 +130,10 @@ class FindReplace(BaseTask):
             "description": "The string to replace matches with. Defaults to an empty string",
             "required": True,
         },
+        "env_replace": {
+            "description": "If True, treat the value of the replace option as the name of an environment variable, and use the value of that variable as the replacement string. Defaults to False",
+            "required": False,
+        },
         "path": {"description": "The path to recursively search", "required": True},
         "file_pattern": {
             "description": "A UNIX like filename pattern used for matching filenames, or a list of them. See python fnmatch docs for syntax. If passed via command line, use a comma separated string. Defaults to *"
@@ -140,16 +145,28 @@ class FindReplace(BaseTask):
 
     def _init_options(self, kwargs):
         super(FindReplace, self)._init_options(kwargs)
+
         if "replace" not in self.options:
             self.options["replace"] = ""
         self.options["file_pattern"] = process_list_arg(
             self.options.get("file_pattern") or "*"
+        )
+        self.options["env_replace"] = process_bool_arg(
+            self.options.get("env_replace") or False
         )
 
     def _run_task(self):
         kwargs = {}
         if "max" in self.options:
             kwargs["max"] = self.options["max"]
+
+        if self.options["env_replace"]:
+            if self.options["replace"] in os.environ.keys():
+                self.options["replace"] = os.environ[self.options["replace"]]
+            else:
+                raise TaskOptionsError(
+                    f"The environment variable {self.options['replace']} was not found. Ensure that this value is populated or set env_replace to False."
+                )
 
         for file_pattern in self.options["file_pattern"]:
             find_replace(
@@ -158,7 +175,7 @@ class FindReplace(BaseTask):
                 directory=self.options["path"],
                 filePattern=file_pattern,
                 logger=self.logger,
-                **kwargs
+                **kwargs,
             )
 
 

@@ -49,7 +49,9 @@ class CumulusCI(object):
     @property
     def project_config(self):
         if self._project_config is None:
-            if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
+            if getattr(CURRENT_TASK, "stack", None) and isinstance(
+                CURRENT_TASK.stack[0], Robot
+            ):
                 # If CumulusCI is running a task, use that task's config
                 return CURRENT_TASK.stack[0].project_config
             else:
@@ -68,7 +70,9 @@ class CumulusCI(object):
     @property
     def org(self):
         if self._org is None:
-            if CURRENT_TASK.stack and isinstance(CURRENT_TASK.stack[0], Robot):
+            if getattr(CURRENT_TASK, "stack", None) and isinstance(
+                CURRENT_TASK.stack[0], Robot
+            ):
                 # If CumulusCI is running a task, use that task's org
                 return CURRENT_TASK.stack[0].org_config
             else:
@@ -97,17 +101,28 @@ class CumulusCI(object):
         """
         return self.org.config
 
-    def login_url(self, org=None):
+    def login_url(self, org=None, **userfields):
         """Returns the login url which will automatically log into the target
         Salesforce org.  By default, the org_name passed to the library
         constructor is used but this can be overridden with the org option
         to log into a different org.
+
+        If userfields are provided, the username and access token
+        for the given user will be used. If not provided, the access token
+        for the org's default user will be used.
+
+        Example:
+
+        | ${login url}=  Login URL  alias=dadvisor
+
         """
-        if org is None:
-            org = self.org
+        org = self.org if org is None else self.keychain.get_org(org)
+        if userfields:
+            access_token = org.get_access_token(**userfields)
+            login_url = f"{org.instance_url}/secur/frontdoor.jsp?sid={access_token}"
+            return login_url
         else:
-            org = self.keychain.get_org(org)
-        return org.start_url
+            return org.start_url
 
     def get_community_info(self, community_name, key=None, force_refresh=False):
         """This keyword uses the Salesforce API to get information about a community.
@@ -163,16 +178,20 @@ class CumulusCI(object):
         """Runs a named CumulusCI task for the current project with optional
         support for overriding task options via kwargs.
 
+        Note: task_name can be prefixed with the name of another project,
+        just the same as when running the task from the command line. The other
+        project needs to have been defined in the 'sources' section of cumulusci.yml.
+
         Examples:
         | =Keyword= | =task_name= | =task_options=             | =comment=                        |
         | Run Task  | deploy      |                            | Run deploy with standard options |
         | Run Task  | deploy      | path=path/to/some/metadata | Run deploy with custom path      |
+        | Run task  | npsp:deploy_rd2_config  |                | Run the deploy_rd2_config task from the NPSP project |
         """
         task_config = self.project_config.get_task(task_name)
         class_path = task_config.class_path
-        logger.console("\n")
-        task_class, task_config = self._init_task(class_path, options, task_config)
-        return self._run_task(task_class, task_config)
+        task = self._init_task(class_path, options, task_config)
+        return self._run_task(task)
 
     def run_task_class(self, class_path, **options):
         """Runs a CumulusCI task class with task options via kwargs.
@@ -187,9 +206,8 @@ class CumulusCI(object):
         | =Keyword=      | =task_class=                     | =task_options=                            |
         | Run Task Class | cumulusci.task.utils.DownloadZip | url=http://test.com/test.zip dir=test_zip |
         """
-        logger.console("\n")
-        task_class, task_config = self._init_task(class_path, options, TaskConfig())
-        return self._run_task(task_class, task_config)
+        task = self._init_task(class_path, options, TaskConfig())
+        return self._run_task(task)
 
     def _init_api(self, base_url=None):
         client = get_simple_salesforce_connection(self.project_config, self.org)
@@ -200,7 +218,13 @@ class CumulusCI(object):
     def _init_task(self, class_path, options, task_config):
         task_class = import_global(class_path)
         task_config = self._parse_task_options(options, task_class, task_config)
-        return task_class, task_config
+        task = task_class(
+            task_config.project_config or self.project_config,
+            task_config,
+            org_config=self.org,
+        )
+
+        return task
 
     def _parse_task_options(self, options, task_class, task_config):
         if "options" not in task_config.config:
@@ -221,9 +245,10 @@ class CumulusCI(object):
 
         return task_config
 
-    def _run_task(self, task_class, task_config):
-        task = task_class(self.project_config, task_config, org_config=self.org)
-
+    def _run_task(self, task):
+        # add newline so first line of task output is not appended
+        # to the current line
+        logger.console("\n")
         task()
         return task.return_values
 

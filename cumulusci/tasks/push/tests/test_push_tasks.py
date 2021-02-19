@@ -349,7 +349,7 @@ def test_schedule_push_org_list_init_options(org_file):
         },
     )
     task._init_task()
-    assert task.options["namespace"] is None
+    assert task.options["namespace"] == task.project_config.project__package__namespace
     assert task.options["batch_size"] == 200
     assert task.options["orgs"] == ORG_FILE
     assert task.options["version"] == VERSION
@@ -496,7 +496,7 @@ def test_schedule_push_org_list_run_task_with_time_assertion(org_file):
     task.push = mock.MagicMock()
     task.sf = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJS
-    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 2)
+    task.push.create_push_request.return_value = ("0DV000000000001", 2)
     task._run_task()
     task.push.create_push_request.assert_called_once_with(
         mock.ANY,
@@ -513,7 +513,7 @@ def test_schedule_push_org_list_run_task_without_time(org_file):
     task.push = mock.MagicMock()
     task.sf = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJS
-    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 2)
+    task.push.create_push_request.return_value = ("0DV000000000001", 2)
     task._run_task()
     task.push.create_push_request.assert_called_once()
 
@@ -534,7 +534,7 @@ def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
     task.push_request = mock.MagicMock()
     task.sf = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJS
-    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 0)
+    task.push.create_push_request.return_value = ("0DV000000000001", 0)
     task._run_task()
     task.push.create_push_request.assert_called_once_with(
         mock.ANY, [], datetime.datetime(2021, 8, 19, 23, 18)
@@ -556,7 +556,7 @@ def test_schedule_push_org_list_run_task_many_orgs(org_file):
     task.push = mock.MagicMock()
     task.sf = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJS
-    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1001)
+    task.push.create_push_request.return_value = ("0DV000000000001", 1001)
     task._run_task()
     task.push.create_push_request.assert_called_once_with(
         mock.ANY,
@@ -579,6 +579,6 @@ def test_schedule_push_org_list_run_task_many_orgs_now(org_file):
     task.push = mock.MagicMock()
     task.sf = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJS
-    task.push.create_push_request.return_value = (task.sf.query_all.return_value, 1001)
+    task.push.create_push_request.return_value = ("0DV000000000001", 1001)
     task._run_task()
     task.sf.query_all.assert_called_with(query)

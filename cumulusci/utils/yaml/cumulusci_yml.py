@@ -5,12 +5,19 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, Sequence
 
 from typing_extensions import Literal, TypedDict
+from pydantic import Field
 from yaml import safe_load
 
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 
 default_logger = getLogger(__name__)
+
+
+NBSP = "\u00A0"
+
+pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
+
 
 #  type aliases
 PythonClassPath = str
@@ -80,6 +87,7 @@ class Git(CCIDictModel):
     push_prefix_sandbox: str = None
     push_prefix_production: str = None
     release_notes: ReleaseNotes = None
+    two_gp_context: str = Field(None, alias="2gp_context")
 
 
 class ApexDoc(CCIDictModel):
@@ -168,7 +176,9 @@ def parse_from_yaml(source):
 
 
 def validate_data(
-    data: Union[dict, list], context: str = None, on_error: callable = None,
+    data: Union[dict, list],
+    context: str = None,
+    on_error: callable = None,
 ):
     """Validate data which has already been loaded into a dictionary or list.
 
@@ -178,47 +188,6 @@ def validate_data(
     https://pydantic-docs.helpmanual.io/usage/models/#error-handling
     """
     return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
-
-
-def cci_safe_load(
-    source: DataInput, context: str = None, on_error: callable = None, logger=None
-):
-    """Load a CumulusCI.yml file and issue warnings for unknown structures."""
-    assert not (
-        on_error and logger
-    ), "Please specify either on_error or logger but not both"
-
-    logger = logger or default_logger
-
-    with load_from_source(source) as (filename, data_stream):
-        # this is inelegant but the _replace_nbsp code is a lot easier
-        # to write with regexps and Python regexps don't work with streams
-        cleaned_up_data = _replace_nbsp(data_stream.read(), data_stream, logger)
-        data = safe_load(StringIO(cleaned_up_data))
-        context = context or filename
-
-        on_error = on_error or (lambda error: _log_yaml_error(logger, error))
-
-        try:
-            validate_data(data, context=context, on_error=on_error)
-        except Exception as e:
-            # should never be executed
-            print(f"Error validating cumulusci.yml {e}")
-            if on_error:
-                on_error(
-                    {
-                        "loc": (context,),
-                        "msg": f"Error validating cumulusci.yml {e}",
-                        "type": "exception",
-                    }
-                )
-            pass
-        return data
-
-
-NBSP = "\u00A0"
-
-pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
 
 
 def _replace_nbsp(origdata, filename, logger=default_logger):
@@ -256,3 +225,40 @@ def _log_yaml_error(logger, error: ErrorDict):
     logger.warning("CumulusCI Parsing Error:")
     loc = " -> ".join((repr(x) for x in error["loc"]))
     logger.warning("%s : %s", loc, error["msg"])
+
+
+def cci_safe_load(
+    source: DataInput, context: str = None, on_error: callable = None, logger=None
+):
+    """Load a CumulusCI.yml file and issue warnings for unknown structures."""
+
+    assert not (
+        on_error and logger
+    ), "Please specify either on_error or logger but not both"
+
+    logger = logger or default_logger
+
+    with load_from_source(source) as (filename, data_stream):
+        # this is inelegant but the _replace_nbsp code is a lot easier
+        # to write with regexps and Python regexps don't work with streams
+        cleaned_up_data = _replace_nbsp(data_stream.read(), data_stream, logger)
+        data = safe_load(StringIO(cleaned_up_data))
+        context = context or filename
+
+        on_error = on_error or (lambda error: _log_yaml_error(logger, error))
+
+        try:
+            validate_data(data, context=context, on_error=on_error)
+        except Exception as e:
+            # should never be executed
+            print(f"Error validating cumulusci.yml {e}")
+            if on_error:
+                on_error(
+                    {
+                        "loc": (context,),
+                        "msg": f"Error validating cumulusci.yml {e}",
+                        "type": "exception",
+                    }
+                )
+            pass
+        return data

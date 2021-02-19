@@ -170,10 +170,17 @@ EmbeddedServiceFlowConfig:
     - type: EmbeddedServiceFlowConfig
       class: MetadataFilenameParser
       extension: EmbeddedServiceFlowConfig
+EmbeddedServiceLiveAgent:
+    - type: EmbeddedServiceLiveAgent
+      class: MetadataFilenameParser
+      extension: EmbeddedServiceLiveAgent
 escalationRules:
     - type: EscalationRules
       class: MetadataFilenameParser
       extension: escalationRules
+experiences:
+    - type: ExperienceBundle
+      class: BundleParser
 externalServiceRegistrations:
     - type: ExternalServiceRegistration
       class: MetadataFilenameParser
@@ -253,9 +260,18 @@ lightningExperienceThemes:
     - type: LightningExperienceTheme
       class: MetadataFilenameParser
       extension: lightningExperienceTheme
+liveChatButtons:
+    - type: LiveChatButton
+      class: MetadataFilenameParser
+      extension: liveChatButton
+liveChatDeployments:
+    - type: LiveChatDeployment
+      class: MetadataFilenameParser
+      extension: liveChatDeployment
+
 lwc:
     - type: LightningComponentBundle
-      class: BundleParser
+      class: LWCBundleParser
 matchingRules:
     - type: MatchingRule
       class: MetadataXmlElementParser
@@ -266,10 +282,18 @@ messageChannels:
     - type: LightningMessageChannel
       class: MetadataFilenameParser
       extension: messageChannel
+mlDomains:
+    - type: MlDomain
+      class: MetadataFilenameParser
+      extension: mlDomain
 MobileApplicationDetails:
     - type: MobileApplicationDetail
       class: MetadataFilenameParser
       extension: MobileApplicationDetail
+mutingpermissionsets:
+    - type: MutingPermissionSet
+      class: MetadataFilenameParser
+      extension: mutingpermissionset
 navigationMenus:
     - type: NavigationMenu
       class: MetadataFilenameParser
@@ -417,6 +441,10 @@ quickActions:
     - type: QuickAction
       class: MetadataFilenameParser
       extension: quickAction
+queueRoutingConfigs:
+    - type: QueueRoutingConfig
+      class: MetadataFilenameParser
+      extension: queueRoutingConfig
 recommendationStrategies:
     - type: RecommendationStrategy
       class: MetadataFilenameParser
@@ -485,6 +513,10 @@ sites:
     - type: CustomSite 
       class: MetadataFilenameParser
       extension: site
+skills:
+    - type: Skill
+      class: MetadataFilenameParser
+      extension: skill
 standardValueSets:
     - type: StandardValueSet
       class: MetadataFilenameParser

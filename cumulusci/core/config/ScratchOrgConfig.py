@@ -5,136 +5,25 @@ import re
 
 import sarge
 
-from cumulusci.utils import get_git_config
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
-from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import SfdxOrgConfig
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 
 nl = "\n"  # fstrings can't contain backslashes
 
 
-class ScratchOrgConfig(OrgConfig):
+class ScratchOrgConfig(SfdxOrgConfig):
     """ Salesforce DX Scratch org configuration """
 
     @property
     def scratch_info(self):
-        if hasattr(self, "_scratch_info"):
-            return self._scratch_info
+        """Deprecated alias for sfdx_info.
 
-        # Create the org if it hasn't already been created
-        if not self.created:
-            self.create_org()
-
-        self.logger.info("Getting scratch org info from Salesforce DX")
-
-        username = self.config.get("username")
-        if not username:
-            raise ScratchOrgException(
-                "SFDX claimed to be successful but there was no username "
-                "in the output...maybe there was a gack?"
-            )
-
-        # Call force:org:display and parse output to get instance_url and
-        # access_token
-        p = sfdx("force:org:display --json", self.username)
-
-        org_info = None
-        stderr_list = [line.strip() for line in p.stderr_text]
-        stdout_list = [line.strip() for line in p.stdout_text]
-
-        if p.returncode:
-            self.logger.error(f"Return code: {p.returncode}")
-            for line in stderr_list:
-                self.logger.error(line)
-            for line in stdout_list:
-                self.logger.error(line)
-            message = f"\nstderr:\n{nl.join(stderr_list)}"
-            message += f"\nstdout:\n{nl.join(stdout_list)}"
-            raise ScratchOrgException(message)
-
-        else:
-            try:
-                org_info = json.loads("".join(stdout_list))
-            except Exception as e:
-                raise ScratchOrgException(
-                    "Failed to parse json from output. This can happen if "
-                    "your scratch org gets deleted.\n  "
-                    f"Exception: {e.__class__.__name__}\n  Output: {''.join(stdout_list)}"
-                )
-            org_id = org_info["result"]["accessToken"].split("!")[0]
-
-        if "password" in org_info["result"] and org_info["result"]["password"]:
-            password = org_info["result"]["password"]
-        else:
-            password = self.config.get("password")
-
-        self._scratch_info = {
-            "instance_url": org_info["result"]["instanceUrl"],
-            "access_token": org_info["result"]["accessToken"],
-            "org_id": org_id,
-            "username": org_info["result"]["username"],
-            "password": password,
-        }
-        self.config.update(self._scratch_info)
-        self._scratch_info.update(
-            {
-                "created_date": org_info["result"].get("createdDate"),
-                "expiration_date": org_info["result"].get("expirationDate"),
-            }
-        )
-
-        self._scratch_info_date = datetime.datetime.utcnow()
-
-        return self._scratch_info
-
-    @property
-    def access_token(self):
-        return self.scratch_info["access_token"]
-
-    @property
-    def instance_url(self):
-        return self.config.get("instance_url") or self.scratch_info["instance_url"]
-
-    @property
-    def org_id(self):
-        org_id = self.config.get("org_id")
-        if not org_id:
-            org_id = self.scratch_info["org_id"]
-        return org_id
-
-    @property
-    def user_id(self):
-        if not self.config.get("user_id"):
-            result = self.salesforce_client.query_all(
-                f"SELECT Id FROM User WHERE UserName='{self.username}'"
-            )
-            self.config["user_id"] = result["records"][0]["Id"]
-        return self.config["user_id"]
-
-    @property
-    def username(self):
-        username = self.config.get("username")
-        if not username:
-            username = self.scratch_info["username"]
-        return username
-
-    @property
-    def password(self):
-        password = self.config.get("password")
-        if not password:
-            password = self.scratch_info["password"]
-        return password
-
-    @property
-    def email_address(self):
-        email_address = self.config.get("email_address")
-        if not email_address:
-            email_address = get_git_config("user.email")
-            self.config["email_address"] = email_address
-
-        return email_address
+        Will create the scratch org if necessary.
+        """
+        return self.sfdx_info
 
     @property
     def days(self):
@@ -164,8 +53,9 @@ class ScratchOrgConfig(OrgConfig):
     def create_org(self):
         """ Uses sfdx force:org:create to create the org """
         if not self.config_file:
-            # FIXME: raise exception
-            return
+            raise ScratchOrgException(
+                f"Scratch org config {self.name} is missing a config_file"
+            )
         if not self.scratch_org_type:
             self.config["scratch_org_type"] = "workspace"
 
@@ -211,14 +101,21 @@ class ScratchOrgConfig(OrgConfig):
             raise ScratchOrgException(message)
 
         re_obj = re.compile("Successfully created scratch org: (.+), username: (.+)")
+        username = None
         for line in stdout:
             match = re_obj.search(line)
             if match:
                 self.config["org_id"] = match.group(1)
-                self.config["username"] = match.group(2)
+                self.config["username"] = username = match.group(2)
             self.logger.info(line)
         for line in stderr:
             self.logger.error(line)
+
+        if username is None:
+            raise ScratchOrgException(
+                "SFDX claimed to be successful but there was no username "
+                "in the output...maybe there was a gack?"
+            )
 
         self.config["date_created"] = datetime.datetime.utcnow()
 
@@ -290,16 +187,16 @@ class ScratchOrgConfig(OrgConfig):
 
         p = sfdx("force:org:delete -p", self.username, "Deleting scratch org")
 
-        stdout = []
-        for line in p.stdout_text:
-            stdout.append(line)
-            if line.startswith("An error occurred deleting this org"):
+        output = []
+        for line in list(p.stdout_text) + list(p.stderr_text):
+            output.append(line)
+            if "error" in line.lower():
                 self.logger.error(line)
             else:
                 self.logger.info(line)
 
         if p.returncode:
-            message = f"Failed to delete scratch org: \n{''.join(stdout)}"
+            message = "Failed to delete scratch org"
             raise ScratchOrgException(message)
 
         # Flag that this org has been deleted
@@ -307,35 +204,3 @@ class ScratchOrgConfig(OrgConfig):
         self.config["username"] = None
         self.config["date_created"] = None
         self.config["instance_url"] = None
-
-    def force_refresh_oauth_token(self):
-        # Call force:org:display and parse output to get instance_url and
-        # access_token
-        p = sfdx("force:org:open -r", self.username, log_note="Refreshing OAuth token")
-
-        stdout_list = [line.strip() for line in p.stdout_text]
-
-        if p.returncode:
-            self.logger.error(f"Return code: {p.returncode}")
-            for line in stdout_list:
-                self.logger.error(line)
-            message = f"Message: {nl.join(stdout_list)}"
-            raise ScratchOrgException(message)
-
-    def refresh_oauth_token(self, keychain):
-        """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
-        self._client = None
-        if hasattr(self, "_scratch_info"):
-            # Cache the scratch_info for 1 hour to avoid unnecessary calls out
-            # to sfdx CLI
-            delta = datetime.datetime.utcnow() - self._scratch_info_date
-            if delta.total_seconds() > 3600:
-                del self._scratch_info
-
-                # Force a token refresh
-                self.force_refresh_oauth_token()
-
-        # Get org info via sfdx force:org:display
-        self.scratch_info
-        # Get additional org info by querying API
-        self._load_orginfo()

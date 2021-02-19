@@ -8,14 +8,14 @@ object_manager = {
     "input": "//input[@id='{}']",
     "select_related": "//select[@id = '{}']",
     "select_related_option": "//select[@id = 'DomainEnumOrId']/option[@value='{}']",
-    "search_result": "//tbody/tr/td/a/span[contains(text(),'{}')]",
+    "search_result": "//section[@class='related-list-card']//a[.=\"{}\"]",
     "formula_txtarea": "//textarea[@id = '{}']",
     "object_result": "//th/a[text()='{}']",
     "link-text": "//a[contains(text(),'{}')]",
     "button-with-text": "//button[contains(text(),'{}')]",
     "frame_new": "//iframe[contains(@name, '{}') or contains(@title, '{}')]",
-    "action_menu": "//a[contains(@class,'rowActionsPlaceHolder')]",
-    "action_menu_item": "//span[text() = '{}']",
+    "action_menu": "//tr[.//a[.='{}']]//div[contains(@class, 'objectManagerVirtualActionMenu')]//a",
+    "action_menu_item": "//div[@class='actionMenu']//a[@role='menuitem' and .='{}']",
     "delete_confirm_btn": "//button[contains(@class,'forceActionButton')]",
 }
 # All common elements
@@ -48,11 +48,10 @@ class ObjectManagerPage(BasePage):
         object_name = self.object_name
         self.salesforce.wait_until_loading_is_complete()
         self.selenium.wait_until_page_contains_element(search_button)
-        self.selenium.get_webelement(search_button).send_keys(object_name)
-        self.selenium.get_webelement(search_button).send_keys(Keys.ENTER)
-        object = object_manager["object_result"].format(object_name)
-        self.selenium.wait_until_page_contains_element(object)
-        self.selenium.click_element(object)
+        self.selenium.press_keys(search_button, object_name, "RETURN")
+        object_locator = object_manager["object_result"].format(object_name)
+        self.selenium.wait_until_element_is_visible(object_locator)
+        self.salesforce._jsclick(object_locator)
         self.selenium.wait_until_location_contains("Details/view", timeout=90)
 
     def _is_current_page(self):
@@ -145,7 +144,7 @@ class ObjectManagerPage(BasePage):
         self.selenium.wait_until_page_contains_element(next_button, 60)
         self.selenium.click_element(next_button)
         self.selenium.wait_until_page_contains_element(related, 60)
-        self.selenium.scroll_element_into_view(related)
+        self.salesforce.scroll_element_into_view(related)
         self.selenium.get_webelement(related).click()
         self.selenium.click_element(option)
         self.selenium.wait_until_page_contains_element(next_button, 60)
@@ -167,29 +166,48 @@ class ObjectManagerPage(BasePage):
     @capture_screenshot_on_error
     def is_field_present(self, field_name):
         """Searches for the field name (field_name) and asserts the field got created """
-        self.selenium.wait_until_page_contains_element(search_button, 60)
-        self.selenium.get_webelement(search_button).clear()
-        self.selenium.get_webelement(search_button).send_keys(field_name)
-        self.selenium.get_webelement(search_button).send_keys(Keys.ENTER)
-        self.salesforce.wait_until_loading_is_complete()
+        self.selenium.wait_until_page_contains_element(search_button)
+        self.selenium.clear_element_text(search_button)
+        self.selenium.press_keys(search_button, field_name, "ENTER")
+        self.selenium.wait_until_element_is_not_visible("sf:spinner")
         search_results = object_manager["search_result"].format(field_name)
-        assert (
-            len(self.selenium.get_webelements(search_results)) == 1
-        ), "Expected result count to be 1 but found {}".format(
-            len(self.selenium.get_webelements(search_results))
-        )
+        self.selenium.wait_until_page_contains_element(search_results)
 
     @capture_screenshot_on_error
     def delete_custom_field(self, field_name):
         """Searches for the custom field and performs the delete action from the actions menu next to the field"""
+        action_menu_button = actions_menu.format(field_name)
         self.is_field_present(field_name)
-        self.selenium.wait_until_page_contains_element(actions_menu, 60)
-        self.selenium.click_element(actions_menu)
-        self.selenium.wait_until_page_contains_element(action_item_delete, 60)
-        self.selenium.click_element(action_item_delete)
-        self.selenium.wait_until_page_contains_element(confirm_delete, 60)
-        self.selenium.click_element(confirm_delete)
-        self.selenium.wait_until_location_contains("/view", timeout=90)
+
+        self.selenium.wait_until_page_contains_element(action_menu_button)
+        self.salesforce.scroll_element_into_view(action_menu_button)
+
+        # I don't know why, but sometimes clicking the action menu just
+        # doesn't work. The menu doesn't appear, or clicking the item on
+        # the menu does nothing. So, we'll try and handful of times.
+        # Yes, this feels icky.
+        for tries in range(5):
+            try:
+                self.selenium.wait_until_element_is_visible(action_menu_button)
+                self.selenium.click_element(action_menu_button)
+                self.selenium.wait_until_element_is_visible(
+                    action_item_delete, timeout="5 seconds"
+                )
+                self.selenium.click_element(action_item_delete, action_chain=True)
+                self.selenium.wait_until_element_is_visible(
+                    confirm_delete, timeout="5 seconds"
+                )
+                self.selenium.click_element(confirm_delete, action_chain=True)
+                self.selenium.wait_until_location_contains("/view", timeout=90)
+                return
+
+            except Exception as e:
+                self.builtin.log(
+                    f"on try #{tries+1} we caught this error: {e}", "DEBUG"
+                )
+                self.builtin.sleep("1 second")
+                last_error = e
+        raise (last_error)
 
     @capture_screenshot_on_error
     def create_custom_field(self, **kwargs):

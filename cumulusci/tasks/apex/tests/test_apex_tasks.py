@@ -607,7 +607,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
 
     @responses.activate
     def test_run_task__code_coverage_managed(self):
-        self._mock_apex_class_query()
+        self._mock_apex_class_query(namespace="TEST")
         self._mock_run_tests()
         self._mock_get_failed_test_classes()
         self._mock_tests_complete()
@@ -779,7 +779,6 @@ class TestAnonymousApexTask(unittest.TestCase):
         self.task_config.config["options"] = {
             "path": apex_path,
             "apex": 'system.debug("Hello World!")',
-            "namespaced": True,
             "param1": "StringValue",
         }
         self.project_config = BaseProjectConfig(
@@ -797,9 +796,11 @@ class TestAnonymousApexTask(unittest.TestCase):
                 "id": "foo/1",
                 "instance_url": "https://example.com",
                 "access_token": "abc123",
+                "namespace": "abc",
             },
             "test",
         )
+        self.org_config._installed_packages = {}
         self.base_tooling_url = "{}/services/data/v{}/tooling/".format(
             self.org_config.instance_url, self.api_version
         )
@@ -830,9 +831,17 @@ class TestAnonymousApexTask(unittest.TestCase):
             task()
 
     def test_prepare_apex(self):
+        self.task_config.config["options"]["namespaced"] = True
+
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
-        before = "String %%%NAMESPACE%%%str = 'foo';"
-        expected = "String abc__str = 'foo';"
+        before = "String %%%NAMESPACED_ORG%%%str = '%%%NAMESPACED_RT%%%';"
+        expected = "String abc__str = 'abc.';"
+        self.assertEqual(expected, task._prepare_apex(before))
+
+    def test_prepare_apex__detect_namespace(self):
+        task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
+        before = "String %%%NAMESPACED_ORG%%%str = '%%%NAMESPACED_RT%%%';"
+        expected = "String abc__str = 'abc.';"
         self.assertEqual(expected, task._prepare_apex(before))
 
     def test_optional_parameter_1_replacement(self):
@@ -1014,7 +1023,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         task = BatchApexWait(self.project_config, self.task_config, self.org_config)
         url = (
             self.base_tooling_url
-            + "query/?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++++ORDER+BY+CreatedDate+DESC++LIMIT+1+"
+            + "query/?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType+IN+%28%27BatchApex%27%2C%27Queueable%27%29+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++++ORDER+BY+CreatedDate+DESC++LIMIT+1+"
         )
         return task, url
 
@@ -1057,6 +1066,20 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         self.assertEqual(task.elapsed_time(task.subjobs), 61)
 
     @responses.activate
+    def test_run_batch_apex_queueable_status_failed(self):
+        task, url = self._get_url_and_task()
+        response = self._get_query_resp()
+        response["records"][0]["JobType"] = "Queueable"
+        response["records"][0]["Status"] = "Failed"
+        response["records"][0]["JobItemsProcessed"] = 0
+        response["records"][0]["TotalJobItems"] = 0
+        response["records"][0]["ExtendedStatus"] = "Error Details"
+        responses.add(responses.GET, url, json=response)
+        with self.assertRaises(SalesforceException) as e:
+            task()
+        assert "failure" in str(e.exception)
+
+    @responses.activate
     def test_run_batch_apex_status_aborted(self):
         task, url = self._get_url_and_task()
         response = self._get_query_resp()
@@ -1087,7 +1110,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         task, url = self._get_url_and_task()
         url2 = (
             url.split("?")[0]
-            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
+            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType+IN+%28%27BatchApex%27%2C%27Queueable%27%29+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
         )
 
         # batch 1
@@ -1148,7 +1171,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         task, url = self._get_url_and_task()
         url2 = (
             url.split("?")[0]
-            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
+            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType+IN+%28%27BatchApex%27%2C%27Queueable%27%29+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
         )
 
         # batch 1
@@ -1197,7 +1220,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         task, url = self._get_url_and_task()
         url2 = (
             url.split("?")[0]
-            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType%3D%27BatchApex%27+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
+            + "?q=SELECT+Id%2C+ApexClass.Name%2C+Status%2C+ExtendedStatus%2C+TotalJobItems%2C+JobItemsProcessed%2C+NumberOfErrors%2C+CreatedDate%2C+CompletedDate+FROM+AsyncApexJob+WHERE+JobType+IN+%28%27BatchApex%27%2C%27Queueable%27%29+AND+ApexClass.Name%3D%27ADDR_Seasonal_BATCH%27++AND+CreatedDate+%3E%3D+2018-08-07T16%3A00%3A00Z++ORDER+BY+CreatedDate+DESC++"
         )
 
         # batch 1

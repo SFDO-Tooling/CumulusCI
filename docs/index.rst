@@ -24,10 +24,10 @@ Contents:
    :maxdepth: 1
 
    tasks
+   flows
    history
    authors
    contributing
-   api_reference
 
 Indices and tables
 ==================

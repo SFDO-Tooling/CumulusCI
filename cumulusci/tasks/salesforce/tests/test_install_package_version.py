@@ -75,3 +75,15 @@ class TestInstallPackageVersion(unittest.TestCase):
                 {"version": "latest", "security_type": "BOGUS"},
                 project_config,
             )
+
+    def test_run_task__2gp(self):
+        # 2gp installation should delegate to cumulusci.salesforce_api.package_install
+        project_config = create_project_config()
+        project_config.get_latest_version = mock.Mock(return_value="1.0")
+        project_config.config["project"]["package"]["namespace"] = "ns"
+        task = create_task(InstallPackageVersion, {"version": "04t"}, project_config)
+        with mock.patch(
+            "cumulusci.tasks.salesforce.install_package_version.install_package_version"
+        ) as mocked:
+            task()
+        mocked.assert_called_once()

@@ -17,12 +17,12 @@ from cumulusci.core.exceptions import OrgNotFound
 class TestCliRuntime(unittest.TestCase):
     key = "1234567890abcdef"
 
-    def setup_method(self, method):
+    def setUp(self):
         os.chdir(os.path.dirname(cumulusci.__file__))
         self.environ_mock = mock.patch.dict(os.environ, {"CUMULUSCI_KEY": self.key})
         self.environ_mock.start()
 
-    def teardown_method(self, method):
+    def tearDown(self):
         self.environ_mock.stop()
 
     def test_init(self):
@@ -63,22 +63,24 @@ class TestCliRuntime(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__generates_key(self, keyring):
-        del os.environ["CUMULUSCI_KEY"]
-        if os.environ.get("CUMULUSCI_KEYCHAIN_CLASS"):
-            del os.environ["CUMULUSCI_KEYCHAIN_CLASS"]
-        keyring.get_password.return_value = None
+        with mock.patch.dict(os.environ):
+            del os.environ["CUMULUSCI_KEY"]
+            if os.environ.get("CUMULUSCI_KEYCHAIN_CLASS"):
+                del os.environ["CUMULUSCI_KEYCHAIN_CLASS"]
+            keyring.get_password.return_value = None
 
-        config = CliRuntime()
+            config = CliRuntime()
         self.assertNotEqual(self.key, config.keychain.key)
         self.assertEqual(16, len(config.keychain.key))
 
     @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__warns_if_generated_key_cannot_be_stored(self, keyring):
-        del os.environ["CUMULUSCI_KEY"]
-        keyring.get_password.side_effect = Exception
+        with mock.patch.dict(os.environ):
+            del os.environ["CUMULUSCI_KEY"]
+            keyring.get_password.side_effect = Exception
 
-        with self.assertRaises(click.UsageError):
-            CliRuntime()
+            with self.assertRaises(click.UsageError):
+                CliRuntime()
 
     def test_get_org(self):
         config = CliRuntime()

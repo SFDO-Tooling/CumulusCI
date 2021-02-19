@@ -1,49 +1,57 @@
-import datetime
+import collections
+import itertools
+import logging
+import tempfile
+import typing
+from contextlib import contextmanager
+from pathlib import Path
 
-from sqlalchemy import types
-from sqlalchemy import event
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import MetaData
 from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import mapper
+from sqlalchemy.orm import Session
+from simple_salesforce import Salesforce
 
 from cumulusci.core.exceptions import BulkDataException
-
-
-# Create a custom sqlalchemy field type for sqlite datetime fields which are stored as integer of epoch time
-class EpochType(types.TypeDecorator):
-    impl = types.Integer
-
-    epoch = datetime.datetime(1970, 1, 1, 0, 0, 0)
-
-    def process_bind_param(self, value, dialect):
-        return int((value - self.epoch).total_seconds()) * 1000
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            return self.epoch + datetime.timedelta(seconds=value / 1000)
-
-
-# Listen for sqlalchemy column_reflect event and map datetime fields to EpochType
-@event.listens_for(Table, "column_reflect")
-def setup_epoch(inspector, table, column_info):
-    if isinstance(column_info["type"], types.DateTime):
-        column_info["type"] = EpochType()
+from cumulusci.utils.backports.py36 import nullcontext
 
 
 class SqlAlchemyMixin:
+    logger: logging.Logger
+    metadata: MetaData
+    models: dict
+    options: dict
+    session: Session
+    sf: Salesforce
+
     def _sql_bulk_insert_from_records(
         self, *, connection, table, columns, record_iterable
     ):
         """Persist records from the given generator into the local database."""
-        table = self.metadata.tables[table]
-
-        connection.execute(
-            table.insert(), [dict(zip(columns, row)) for row in record_iterable]
+        consume(
+            self._sql_bulk_insert_from_records_incremental(
+                connection=connection,
+                table=table,
+                columns=columns,
+                record_iterable=record_iterable,
+            )
         )
 
-        self.session.flush()
+    def _sql_bulk_insert_from_records_incremental(
+        self, *, connection, table, columns, record_iterable
+    ):
+        """Generator that persists batches of records from the given generator into the local database
+
+        Yields after every batch."""
+        table = self.metadata.tables[table]
+        dict_iterable = (dict(zip(columns, row)) for row in record_iterable)
+        for group in get_batch_iterator(10000, dict_iterable):
+            with connection.begin():
+                yield connection.execute(table.insert(), group)
+            self.session.flush()
 
     def _create_record_type_table(self, table_name):
         """Create a table to store mapping between Record Type Ids and Developer Names."""
@@ -74,6 +82,22 @@ class SqlAlchemyMixin:
                     [rt["Id"], rt["DeveloperName"]] for rt in result["records"]
                 ),
             )
+
+    @contextmanager
+    def _temp_database_url(self):
+        with tempfile.TemporaryDirectory() as t:
+            tempdb = Path(t) / "temp_db.db"
+
+            self.logger.info(f"Using temporary database {tempdb}")
+            database_url = f"sqlite:///{tempdb}"
+            yield database_url
+
+    def _database_url(self):
+        database_url = self.options.get("database_url")
+        if database_url:
+            return nullcontext(enter_result=database_url)
+        else:
+            return self._temp_database_url()
 
 
 def _handle_primary_key(mapping, fields):
@@ -116,12 +140,15 @@ def generate_batches(num_records, batch_size):
 
     Given a number of records to split up, and a batch size, generate a
     stream of batchsize, index pairs"""
-    num_batches = (num_records // batch_size) + 1
+    num_batches, left_over = divmod(num_records, batch_size)
+    if left_over:
+        num_batches += 1  # need an extra batch for the clean-up
     for i in range(0, num_batches):
-        if i == num_batches - 1:  # last batch
-            batch_size = num_records - (batch_size * i)  # leftovers
+        is_last_batch = i == num_batches - 1
+        if is_last_batch and left_over:
+            batch_size = left_over
         if batch_size > 0:
-            yield batch_size, i
+            yield batch_size, i, num_batches
 
 
 class RowErrorChecker:
@@ -143,3 +170,20 @@ class RowErrorChecker:
                 return self.row_error_count
             else:
                 raise BulkDataException(msg)
+
+
+def consume(iterator):
+    """Consume an iterator for its side effects.
+
+    Simplified from the function in https://docs.python.org/3/library/itertools.html
+    """
+    collections.deque(iterator, maxlen=0)
+
+
+def get_batch_iterator(n: int, iterable: typing.Iterable):
+    it = iter(iterable)
+    while True:
+        chunk = tuple(itertools.islice(it, n))
+        if not chunk:
+            return
+        yield chunk

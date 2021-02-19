@@ -229,7 +229,7 @@ class TestSnapshotChanges:
 def test_write_manifest__folder():
     with temporary_dir() as path:
         _write_manifest(
-            [{"MemberType": "ReportFolder", "MemberName": "TestFolder"}], path, "49.0"
+            [{"MemberType": "ReportFolder", "MemberName": "TestFolder"}], path, "50.0"
         )
         package_xml = pathlib.Path(path, "package.xml").read_text()
         assert "<name>Report</name>" in package_xml

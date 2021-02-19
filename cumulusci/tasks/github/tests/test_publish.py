@@ -1,6 +1,8 @@
-import unittest
-from unittest import mock
 import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
 
 import pytest
 import responses
@@ -32,7 +34,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             ServiceConfig(
                 {
                     "username": "TestUser",
-                    "password": "TestPass",
+                    "token": "TestPass",
                     "email": "testuser@testdomain.com",
                 }
             ),
@@ -91,8 +93,9 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             task_config = TaskConfig(
                 {
                     "options": {
-                        "branch": "master",
+                        "branch": "main",
                         "version": "latest",
+                        "create_release": True,
                         "repo_url": self.public_repo_url,
                         "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                     }
@@ -141,7 +144,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         task_config = TaskConfig(
             {
                 "options": {
-                    "branch": "master",
+                    "branch": "main",
                     "version": "latest_beta",
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
@@ -183,8 +186,9 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         task_config = TaskConfig(
             {
                 "options": {
-                    "branch": "master",
+                    "branch": "main",
                     "version": "latest",
+                    "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                 }
@@ -238,8 +242,9 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         task_config = TaskConfig(
             {
                 "options": {
-                    "branch": "master",
+                    "branch": "main",
                     "version": "latest",
+                    "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                 }
@@ -296,6 +301,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "branch": "master",
                     "version": "latest",
+                    "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                 }
@@ -365,6 +371,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "branch": "master",
                     "version": "latest",
+                    "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
                 }
@@ -393,6 +400,130 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         with pytest.raises(TaskOptionsError) as exc:
             PublishSubtree(self.project_config, task_config)
         assert "Either `ref` or `version` option is required" == str(exc.value)
+
+    def test_renames_not_list_error(self):
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "branch": "master",
+                    "repo_url": self.public_repo_url,
+                    "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+                    "renames": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+                }
+            }
+        )
+        with pytest.raises(TaskOptionsError) as exc:
+            PublishSubtree(self.project_config, task_config)
+        assert (
+            "Renamed paths must be a list of dicts with `local:` and `target:` keys."
+            == str(exc.value)
+        )
+
+    def test_renames_wrong_keys_error(self):
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "branch": "master",
+                    "repo_url": self.public_repo_url,
+                    "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+                    "renames": [
+                        {
+                            "wrong_key": "tasks/foo.py",
+                            "target": "unpackaged/pre/foo/package.xml",
+                        }
+                    ],
+                }
+            }
+        )
+        with pytest.raises(TaskOptionsError) as exc:
+            PublishSubtree(self.project_config, task_config)
+        assert (
+            "Renamed paths must be a list of dicts with `local:` and `target:` keys."
+            == str(exc.value)
+        )
+
+    def test_renames_bad_value_error(self):
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "branch": "master",
+                    "repo_url": self.public_repo_url,
+                    "create_release": True,
+                    "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+                    "renames": [
+                        {
+                            "local": "public/target_readme.md",
+                            "target": "",
+                        }
+                    ],
+                }
+            }
+        )
+        with pytest.raises(TaskOptionsError) as exc:
+            PublishSubtree(self.project_config, task_config)
+        assert (
+            "Renamed paths must be a list of dicts with `local:` and `target:` keys."
+            == str(exc.value)
+        )
+
+    def test_path_renames_option(self):
+        test_includes = [
+            "scripts/anon.cls",
+            "scripts/more_anon.cls",
+            "tasks/unmoved.py",
+            "tasks/move_me.py",
+            "public/public_readme.md",
+        ]
+        test_renames = [
+            {"local": "scripts", "target": "apex"},
+            {"local": "tasks/move_me.py", "target": "sample_tasks/was_moved.py"},
+            {"local": "public/public_readme.md", "target": "README.md"},
+            {"local": "missing_path", "target": "should_not_exist"},
+        ]
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "branch": "master",
+                    "ref": "some-branch-name",
+                    "repo_url": self.public_repo_url,
+                    "include": test_includes,
+                    "renames": test_renames,
+                }
+            }
+        )
+        task = PublishSubtree(self.project_config, task_config)
+        with tempfile.TemporaryDirectory() as target:
+            included_paths = [Path(target, local_name) for local_name in test_includes]
+            [
+                include.parent.mkdir(parents=True, exist_ok=True)
+                for include in included_paths
+            ]
+
+            assert all([include.write_text("12345") == 5 for include in included_paths])
+            assert all([include.exists() for include in included_paths])
+
+            # Renames without a local shouldn't exist
+            missing_rename = test_renames.pop()
+            missing_local = Path(target, missing_rename["local"])
+            assert missing_local not in included_paths
+
+            task._rename_files(target)
+
+            assert not Path(target, missing_rename["target"]).exists()
+            unmoved_path = Path(target, "tasks/unmoved.py")
+            assert unmoved_path.exists()
+
+            # All of the paths with renames should be gone
+            included_paths.remove(unmoved_path)
+            assert all([not include.exists() for include in included_paths])
+
+            # All of the renamed paths should exist
+            new_paths = [Path(target, rename["target"]) for rename in test_renames]
+            assert all([rename.exists() for rename in new_paths])
+
+            # Directory renames should work
+            assert Path(target, "apex/anon.cls").exists()
+            assert Path(target, "apex/more_anon.cls").exists()
 
     @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
     @mock.patch("cumulusci.tasks.github.publish.CommitDir.__call__")

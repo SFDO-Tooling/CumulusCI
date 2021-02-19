@@ -14,6 +14,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils import download_extract_github
 from cumulusci.utils import cd
 from cumulusci.utils import temporary_dir
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 INSTALL_VERSION_RE = re.compile(r"^Install .*\d$")
 
@@ -34,8 +35,7 @@ class BaseMetaDeployTask(BaseTask):
             response = self.api.request(method, next_url, **kwargs)
             if response.status_code == 400:
                 raise requests.exceptions.HTTPError(response.content)
-            response.raise_for_status()
-            response = response.json()
+            response = safe_json_from_response(response)
             if "links" in response and collect_pages:
                 results.extend(response["data"])
                 next_url = response["links"]["next"]
@@ -74,7 +74,7 @@ class Publish(BaseMetaDeployTask):
         super(Publish, self)._init_task()
         self.dry_run = self.options.get("dry_run")
         self.publish = not self.dry_run and process_bool_arg(
-            self.options.get("publish", False)
+            self.options.get("publish") or False
         )
         self.tag = self.options.get("tag")
         self.commit = self.options.get("commit")

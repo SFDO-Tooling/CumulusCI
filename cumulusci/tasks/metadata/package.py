@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import re
 import urllib.parse
@@ -226,8 +227,9 @@ class MetadataFolderParser(BaseMetadataParser):
         if not os.path.isdir(path):
             return members
 
-        # Add the member if it is not namespaced
-        if "__" not in item:
+        # Only add the folder itself if its -meta.xml is present
+        # (If there's no -meta.xml, this package is adding items to an existing folder.)
+        if Path(path + "-meta.xml").exists():
             members.append(item)
 
         for subitem in sorted(os.listdir(path)):
@@ -361,6 +363,21 @@ class BundleParser(BaseMetadataParser):
 
         # Skip non-directories
         if not os.path.isdir(path):
+            return members
+
+        # item is a directory; add directory to members and ignore processing directory's files
+        members.append(item)
+
+        return members
+
+
+class LWCBundleParser(BaseMetadataParser):
+    def _parse_item(self, item):
+        members = []
+        path = self.directory + "/" + item
+
+        # Skip non-directories
+        if not os.path.isdir(path) or item.startswith("__"):
             return members
 
         # item is a directory; add directory to members and ignore processing directory's files

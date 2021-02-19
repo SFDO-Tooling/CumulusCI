@@ -1,6 +1,6 @@
-========================
-Robot Framework Debugger
-========================
+==============
+Robot Debugger
+==============
 
 CumulusCI includes a rudimentary debugger which can be enabled by
 setting the ``debug`` option of the **robot** task to ``True``. When

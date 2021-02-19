@@ -1,6 +1,7 @@
-"""Wraps the github3 library to configure request retries."""
-
+import io
 import os
+import re
+
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
@@ -8,9 +9,13 @@ import github3
 from github3 import GitHub
 from github3 import login
 from github3.pulls import ShortPullRequest
+from github3.repos.repo import Repository
 from github3.session import GitHubSession
 
-from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import GithubException, DependencyLookupError
+
+from cumulusci.utils.http.requests_utils import safe_json_from_response
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
 # Prepare request retry policy to be attached to github sessions.
@@ -63,14 +68,15 @@ def get_github_api_for_repo(keychain, owner, repo, session=None):
         gh.login(token=GITHUB_TOKEN)
     else:
         github_config = keychain.get_service("github")
-        gh.login(github_config.username, github_config.password)
+        token = github_config.password or github_config.token
+        gh.login(github_config.username, token)
     return gh
 
 
 def validate_service(options):
     username = options["username"]
-    password = options["password"]
-    gh = get_github_api(username, password)
+    token = options["token"]
+    gh = get_github_api(username, token)
     try:
         gh.rate_limit()
     except Exception as e:
@@ -125,7 +131,7 @@ def get_pull_requests_by_commit(github, repo, commit_sha):
     response = github.session.get(
         endpoint, headers={"Accept": "application/vnd.github.groot-preview+json"}
     )
-    json_list = response.json()
+    json_list = safe_json_from_response(response)
 
     # raises github3.exceptions.IncompleteResposne
     # when these are not present
@@ -177,3 +183,32 @@ def create_gist(github, description, files):
     files - A dict of files in the form of {filename:{'content': content},...}
     """
     return github.create_gist(description, files, public=False)
+
+
+VERSION_ID_RE = re.compile(r"version_id: (\S+)")
+
+
+def get_version_id_from_commit(repo, commit_sha, context):
+    try:
+        commit = repo.commit(commit_sha)
+    except github3.exceptions.NotFoundError:
+        raise DependencyLookupError(f"Could not find commit {commit_sha} on GitHub")
+
+    for status in commit.status().statuses:
+        if status.state == "success" and status.context == context:
+            match = VERSION_ID_RE.search(status.description)
+            if match:
+                return match.group(1)
+
+
+def find_repo_feature_prefix(repo: Repository) -> str:
+    contents = repo.file_contents(
+        "cumulusci.yml",
+        ref=repo.branch(repo.default_branch).commit.sha,
+    )
+    head_cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
+    return (
+        head_cumulusci_yml.get("project", {})
+        .get("git", {})
+        .get("prefix_feature", "feature/")
+    )

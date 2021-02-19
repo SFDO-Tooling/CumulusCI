@@ -7,10 +7,10 @@ import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 from cumulusci.tasks.metadata_etl import MetadataOperation
-from cumulusci.tasks.salesforce import ProfileGrantAllAccess
+from cumulusci.tasks.salesforce.update_profile import ProfileGrantAllAccess
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils.xml import metadata_tree
-from cumulusci.tests.util import create_project_config
+from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
 from .util import create_task
 
@@ -108,6 +108,29 @@ PACKAGE_XML_BEFORE = """<Package xmlns="http://soap.sforce.com/2006/04/metadata"
     <version>39.0</version>
 </Package>"""
 
+PACKAGE_XML_BEFORE__PROFILES = """<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>*</members>
+        <members>Account</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <name>Profile</name>
+        <members>Admin</members>
+        <members>Test</members>
+    </types>
+    <version>39.0</version>
+</Package>"""
+
+PACKAGE_XML_BEFORE__NO_PROFILES = """<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>*</members>
+        <members>Account</members>
+        <name>CustomObject</name>
+    </types>
+    <version>39.0</version>
+</Package>"""
+
 ADMIN_PROFILE_BEFORE__MULTI_OBJECT_RT = b"""<?xml version='1.0' encoding='utf-8'?>
 <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
     <recordTypeVisibilities>
@@ -167,7 +190,6 @@ def test_run_task():
                         "person_account_default": True,
                     }
                 ],
-                "namespaced_org": True,
                 "include_packaged_objects": False,
             },
         )
@@ -198,7 +220,6 @@ def test_transforms_profile():
                     "person_account_default": True,
                 }
             ],
-            "namespaced_org": True,
         },
     )
 
@@ -221,7 +242,6 @@ def test_transforms_profile__multi_object_rt():
                     "person_account_default": True,
                 }
             ],
-            "namespaced_org": True,
         },
     )
 
@@ -236,7 +256,9 @@ def test_transforms_profile__multi_object_rt():
 def test_throws_exception_record_type_not_found():
     task = create_task(
         ProfileGrantAllAccess,
-        {"record_types": [{"record_type": "DOESNT_EXIST"}], "namespaced_org": True},
+        {
+            "record_types": [{"record_type": "DOESNT_EXIST"}],
+        },
     )
 
     with pytest.raises(TaskOptionsError):
@@ -299,14 +321,80 @@ def test_expand_profile_members():
     }
 
 
-def test_expand_profile_members__namespaced_org():
+def test_expand_profile_members__no_api_names():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {
+            "namespace_inject": "ns",
+            "managed": True,
+        },
+    )
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+
+    task._expand_profile_members(package_xml)
+
+    types = package_xml.find("types", name="Profile")
+    assert {elem.text for elem in types.findall("members")} == {"Admin"}
+
+
+def test_expand_profile_members__existing_entries():
     task = create_task(
         ProfileGrantAllAccess,
         {
             "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
             "namespace_inject": "ns",
-            "namespaced_org": True,
+            "managed": True,
         },
+    )
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE__PROFILES)
+
+    task._expand_profile_members(package_xml)
+
+    types = package_xml.find("types", name="Profile")
+
+    assert {elem.text for elem in types.findall("members")} == {
+        "Admin",
+        "Test",
+        "ns__Continuous Integration",
+    }
+
+    assert task.api_names == {"Admin", "ns__Continuous Integration", "Test"}
+
+
+def test_expand_profile_members__no_profile_section():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {
+            "api_names": ["Admin", "%%%NAMESPACE%%%Continuous Integration"],
+            "namespace_inject": "ns",
+            "managed": True,
+        },
+    )
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE__NO_PROFILES)
+
+    task._expand_profile_members(package_xml)
+
+    types = package_xml.find("types", name="Profile")
+
+    assert {elem.text for elem in types.findall("members")} == {
+        "Admin",
+        "ns__Continuous Integration",
+    }
+
+    assert task.api_names == {"Admin", "ns__Continuous Integration"}
+
+
+def test_expand_profile_members__namespaced_org():
+    project_config = create_project_config(namespace="ns")
+    task = create_task(
+        ProfileGrantAllAccess,
+        {
+            "api_names": ["Admin", "%%%NAMESPACED_ORG%%%Continuous Integration"],
+            "namespace_inject": "ns",
+            "namespaced_org": True,
+            "managed": False,
+        },
+        project_config,
     )
     package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
 
@@ -315,50 +403,34 @@ def test_expand_profile_members__namespaced_org():
     types = package_xml.find("types", name="Profile")
     assert {elem.text for elem in types.findall("members")} == {
         "Admin",
-        "Continuous Integration",
+        "ns__Continuous Integration",
     }
-
-
-def test_expand_profile_members__broken_package():
-    task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
-    task.tooling = mock.Mock()
-    task.tooling.query.return_value = {
-        "totalSize": 2,
-        "records": [
-            {"DeveloperName": "Test", "NamespacePrefix": "ns"},
-            {"DeveloperName": "Foo_Bar", "NamespacePrefix": "fb"},
-        ],
-    }
-
-    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
-    types = package_xml.find("types", name="Profile")
-    types.find("name").text = "NotProfile"
-
-    with pytest.raises(CumulusCIException):
-        task._expand_profile_members(package_xml)
 
 
 def test_init_options__general():
-    pc = create_project_config()
-    pc.project__package__namespace = "ns"
-    task = create_task(ProfileGrantAllAccess, {"managed": "true"}, project_config=pc)
+    project_config = create_project_config(namespace="ns")
+    task = create_task(
+        ProfileGrantAllAccess, {"managed": "true"}, project_config=project_config
+    )
     assert task.options["managed"]
     assert not task.options["namespaced_org"]
     assert task.options["namespace_inject"] == "ns"
     assert task.namespace_prefixes == {"managed": "ns__", "namespaced_org": ""}
 
     task = create_task(
-        ProfileGrantAllAccess, {"namespaced_org": "true"}, project_config=pc
+        ProfileGrantAllAccess,
+        {"namespaced_org": "true", "managed": False},
+        project_config=project_config,
     )
-    assert task.options["managed"]
+    assert not task.options["managed"]
     assert task.options["namespaced_org"]
     assert task.options["namespace_inject"] == "ns"
-    assert task.namespace_prefixes == {"managed": "ns__", "namespaced_org": "ns__"}
+    assert task.namespace_prefixes == {"managed": "", "namespaced_org": "ns__"}
 
-    task = create_task(ProfileGrantAllAccess, {}, project_config=pc)
+    task = create_task(ProfileGrantAllAccess, {})
     assert not task.options["managed"]
     assert not task.options["namespaced_org"]
-    assert task.options["namespace_inject"] == "ns"
+    assert task.options["namespace_inject"] is None
     assert task.namespace_prefixes == {"managed": "", "namespaced_org": ""}
 
 
@@ -392,7 +464,7 @@ def test_init_options__api_names():
     assert task.api_names == {"Admin"}
 
     task = create_task(ProfileGrantAllAccess, {"package_xml": "lib/admin_profile.xml"})
-    assert task.api_names == {"*"}
+    assert task.api_names == set()
 
 
 def test_init_options__include_packaged_objects():
@@ -422,6 +494,18 @@ def test_init_options__include_packaged_objects():
     assert task.options["include_packaged_objects"]
 
 
+def test_init_options__namespace_injection():
+    pc = create_project_config(namespace="ns")
+    org_config = DummyOrgConfig({"namespace": "ns"})
+    org_config._installed_packages = {"ns": None}
+    task = create_task(
+        ProfileGrantAllAccess, {}, project_config=pc, org_config=org_config
+    )
+    assert task.options["namespace_inject"] == "ns"
+    assert task.options["namespaced_org"]
+    assert task.options["managed"]
+
+
 def test_generate_package_xml__retrieve():
     with tempfile.TemporaryDirectory() as tmp_dir:
         admin_profile = os.path.join(tmp_dir, "admin_profile.xml")
@@ -440,7 +524,6 @@ def test_generate_package_xml__retrieve():
         task._expand_profile_members = mock.Mock()
         task._expand_package_xml = mock.Mock()
         task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_profile_members.assert_not_called()
         task._expand_package_xml.assert_not_called()
 
         task = create_task(
@@ -451,7 +534,6 @@ def test_generate_package_xml__retrieve():
         task._expand_profile_members = mock.Mock()
         task._expand_package_xml = mock.Mock()
         task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_profile_members.assert_not_called()
         task._expand_package_xml.assert_called_once()
 
         task = create_task(ProfileGrantAllAccess, {"include_packaged_objects": True})
@@ -459,7 +541,6 @@ def test_generate_package_xml__retrieve():
         task._expand_profile_members = mock.Mock()
         task._expand_package_xml = mock.Mock()
         task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_profile_members.assert_called_once()
         task._expand_package_xml.assert_called_once()
 
         task = create_task(ProfileGrantAllAccess, {"include_packaged_objects": False})
@@ -467,13 +548,4 @@ def test_generate_package_xml__retrieve():
         task._expand_profile_members = mock.Mock()
         task._expand_package_xml = mock.Mock()
         task._generate_package_xml(MetadataOperation.RETRIEVE)
-        task._expand_profile_members.assert_called_once()
         task._expand_package_xml.assert_not_called()
-
-
-def test_init_options_raises_combined_options():
-    with pytest.raises(TaskOptionsError):
-        create_task(
-            ProfileGrantAllAccess,
-            {"package_xml": "admin_profile.xml", "profile_name": "test"},
-        )

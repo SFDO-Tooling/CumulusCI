@@ -12,6 +12,7 @@ from cumulusci.core.exceptions import (
     CumulusCIException,
 )
 from cumulusci.core.utils import process_bool_arg, process_list_arg, decode_to_unicode
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 APEX_LIMITS = {
     "Soql": {
@@ -160,7 +161,8 @@ class RunApexTests(BaseSalesforceApiTask):
             "a retry. Set retry_always to True to retry all failed tests if any failure matches."
         },
         "required_org_code_coverage_percent": {
-            "description": "Require at least X percent code coverage across the org following the test run."
+            "description": "Require at least X percent code coverage across the org following the test run.",
+            "usage": "-o required_org_code_coverage_percent PERCENTAGE",
         },
         "verbose": {
             "description": "By default, only failures get detailed output. "
@@ -194,8 +196,6 @@ class RunApexTests(BaseSalesforceApiTask):
             "json_output", "test_results.json"
         )
 
-        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
-
         self.options["retry_failures"] = process_list_arg(
             self.options.get("retry_failures", [])
         )
@@ -211,9 +211,9 @@ class RunApexTests(BaseSalesforceApiTask):
                 )
         self.options["retry_failures"] = compiled_res
         self.options["retry_always"] = process_bool_arg(
-            self.options.get("retry_always", False)
+            self.options.get("retry_always") or False
         )
-        self.verbose = process_bool_arg(self.options.get("verbose", False))
+        self.verbose = process_bool_arg(self.options.get("verbose") or False)
 
         self.counts = {}
 
@@ -239,7 +239,7 @@ class RunApexTests(BaseSalesforceApiTask):
         self.retry_details = None
 
     def _get_namespace_filter(self):
-        if self.options["managed"]:
+        if self.options.get("managed"):
             namespace = self.options.get("namespace")
             if not namespace:
                 raise TaskOptionsError(
@@ -350,7 +350,7 @@ class RunApexTests(BaseSalesforceApiTask):
             )
 
             # In Spring '20, we cannot get symbol tables for managed classes.
-            if self.options["managed"]:
+            if self.options.get("managed"):
                 self.logger.error(
                     f"Cannot access symbol table for managed class {class_name}. Failure will not be retried."
                 )
@@ -488,9 +488,23 @@ class RunApexTests(BaseSalesforceApiTask):
         else:
             body = {"classids": ",".join(class_ids)}
 
-        return self.tooling._call_salesforce(
-            method="POST", url=self.tooling.base_url + "runTestsAsynchronous", json=body
-        ).json()
+        return safe_json_from_response(
+            self.tooling._call_salesforce(
+                method="POST",
+                url=self.tooling.base_url + "runTestsAsynchronous",
+                json=body,
+            )
+        )
+
+    def _init_task(self):
+        super()._init_task()
+        if "managed" in self.options:
+            self.options["managed"] = process_bool_arg(self.options["managed"] or False)
+        else:
+            namespace = self.options.get("namespace")
+            self.options["managed"] = (
+                bool(namespace) and namespace in self.org_config.installed_packages
+            )
 
     def _run_task(self):
         result = self._get_test_classes()

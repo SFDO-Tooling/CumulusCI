@@ -30,8 +30,9 @@ class DeleteData(BaseSalesforceApiTask):
             "description": "If True, allow the operation to continue even if individual rows fail to delete."
         },
         "inject_namespaces": {
-            "description": "If True, the package namespace prefix will be automatically added to objects "
-            "and fields for which it is present in the org. Defaults to True."
+            "description": "If True, the package namespace prefix will be "
+            "automatically added to (or removed from) objects "
+            "and fields based on the name used in the org. Defaults to True."
         },
         "api": {
             "description": "The desired Salesforce API to use, which may be 'rest', 'bulk', or "
@@ -53,12 +54,15 @@ class DeleteData(BaseSalesforceApiTask):
             raise TaskOptionsError(
                 "Criteria cannot be specified if more than one object is specified."
             )
-        self.options["hardDelete"] = process_bool_arg(self.options.get("hardDelete"))
-        self.options["ignore_row_errors"] = process_bool_arg(
-            self.options.get("ignore_row_errors")
+        self.options["hardDelete"] = process_bool_arg(
+            self.options.get("hardDelete") or False
         )
+        self.options["ignore_row_errors"] = process_bool_arg(
+            self.options.get("ignore_row_errors") or False
+        )
+        inject_namespaces = self.options.get("inject_namespaces")
         self.options["inject_namespaces"] = process_bool_arg(
-            self.options.get("inject_namespaces", True)
+            True if inject_namespaces is None else inject_namespaces
         )
         try:
             self.options["api"] = {

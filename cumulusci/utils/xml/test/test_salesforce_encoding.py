@@ -52,11 +52,11 @@ class TestSalesforceEncoding:
                 orig = etree.canonicalize(orig)
                 out = etree.canonicalize(out)
                 c19n_succeeded = True
-            except Exception:
+            except Exception:  # pragma: no cover
                 c19n_succeeded = False
             try:
                 assert orig == out, file
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 details = self._save_exception_for_inspection(
                     file, temp_directory, orig, out, c19n_succeeded, e
                 )
@@ -67,7 +67,7 @@ class TestSalesforceEncoding:
 
     def _save_exception_for_inspection(
         self, file, temp_directory, orig, out, c19n_succeeded, exception
-    ):
+    ):  # pragma: no cover
         filename = Path(file).name
         infile_copy = str(Path(temp_directory) / filename)
         with open(infile_copy, "w") as f:
@@ -151,3 +151,24 @@ class TestSalesforceEncoding:
 
         xml_out = serialize_xml_for_salesforce(tree, xml_declaration=False)
         assert xml_in == xml_out.strip()
+
+    def test_with_element_rather_than_doc(self):
+        xml_in = """
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <label>Account MD Isolation Rollup</label>
+    <protected>false</protected>
+    <values>
+        <field>dlrs__Active__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+</CustomMetadata>""".strip()
+
+        tree = etree.parse(StringIO(xml_in))
+
+        xml_out = serialize_xml_for_salesforce(tree.getroot(), xml_declaration=False)
+        assert xml_in == xml_out.strip()
+
+        xml_out = serialize_xml_for_salesforce(
+            tree.getroot()[-1][0], xml_declaration=False
+        )
+        assert xml_out.strip() == "<field>dlrs__Active__c</field>"

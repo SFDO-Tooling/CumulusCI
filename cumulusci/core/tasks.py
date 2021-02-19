@@ -16,13 +16,14 @@ from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
 
 CURRENT_TASK = threading.local()
-CURRENT_TASK.stack = []
 
 PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
 
 
 @contextlib.contextmanager
 def stacked_task(task):
+    if not hasattr(CURRENT_TASK, "stack"):
+        CURRENT_TASK.stack = []
     CURRENT_TASK.stack.append(task)
     try:
         yield
@@ -54,10 +55,7 @@ class BaseTask(object):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
-        self.poll_count = 0
-        self.poll_interval_level = 0
-        self.poll_interval_s = 1
-        self.poll_complete = False
+        self._reset_poll()
 
         # dict of return_values that can be used by task callers
         self.return_values = {}
@@ -87,9 +85,11 @@ class BaseTask(object):
 
     def _init_options(self, kwargs):
         """ Initializes self.options """
-        self.options = self.task_config.options
-        if self.options is None:
+        if self.task_config.options is None:
             self.options = {}
+        else:
+            self.options = self.task_config.options.copy()
+
         if kwargs:
             self.options.update(kwargs)
 
@@ -97,7 +97,9 @@ class BaseTask(object):
         for option, value in self.options.items():
             if isinstance(value, str):
                 value = PROJECT_CONFIG_RE.sub(
-                    lambda match: getattr(self.project_config, match.group(1), None),
+                    lambda match: str(
+                        getattr(self.project_config, match.group(1), None)
+                    ),
                     value,
                 )
                 self.options[option] = value
@@ -134,7 +136,8 @@ class BaseTask(object):
 
         with stacked_task(self):
             self.working_path = os.getcwd()
-            with cd(self.project_config.repo_root):
+            path = self.project_config.repo_root if self.project_config else None
+            with cd(path):
                 self._log_begin()
                 self.result = self._run_task()
                 return self.return_values
@@ -145,10 +148,10 @@ class BaseTask(object):
 
     def _log_begin(self):
         """ Log the beginning of the task execution """
-        self.logger.info("Beginning task: %s", self.__class__.__name__)
+        self.logger.info(f"Beginning task: {self.__class__.__name__}")
         if self.salesforce_task and not self.flow:
-            self.logger.info("%15s %s", "As user:", self.org_config.username)
-            self.logger.info("%15s %s", "In org:", self.org_config.org_id)
+            self.logger.info(f"As user: {self.org_config.username}")
+            self.logger.info(f"In org: {self.org_config.org_id}")
         self.logger.info("")
 
     def _retry(self):
@@ -178,6 +181,12 @@ class BaseTask(object):
 
     def _is_retry_valid(self, e):
         return True
+
+    def _reset_poll(self):
+        self.poll_complete = False
+        self.poll_count = 0
+        self.poll_interval_level = 0
+        self.poll_interval_s = 1
 
     def _poll(self):
         """ poll for a result in a loop """

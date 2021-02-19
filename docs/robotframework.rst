@@ -265,13 +265,55 @@ The **Run Task Class** keyword is for use cases where you want to use one of Cum
 
 **Run Task Class** accepts a single argument, the **class_path** like would be entered into cumulusci.yml such as **cumulusci.tasks.salesforce.Deploy**.  Like **Run Task**, you can also optionally pass task options in the format **option_name=value**.
 
+Set Test Elapsed Time
+---------------------
+This **Set Test Elapsed Time** keyword captures a computed rather than measured elapsed time for performance-tests.
+
+For example, if you were performance testing a Salesforce batch process, you might want to store the Salesforce-measured elapsed time of the batch process instead of the time measured in the CCI client process.
+
+The keyword takes a single optional argument which is either a number of seconds or a Robot time string
+(https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats).
+
+Using this keyword will automatically add the tag cci_metric_elapsed_time to the test case.
+
+Performance test times are output in the CCI logs and are captured in MetaCI instead of the
+"total elapsed time" measured by Robot Framework.
+
+Start and End Perf Time
+-----------------------
+As a convenience, there are keywords to handle the common case where you want to start
+a timer and then store the result with **Set Test Elapsed Time**. These are **Start Performance Timer**
+and **Stop Performance Timer**.
+
+Set Test Metric
+---------------
+This keyword captures any metric for performance monitoring.
+
+For example: number of queries, rows processed, CPU usage, etc.
+
+Elapsed Time For Last Record
+----------------------------
+The **Elapsed Time For Last Record** queries Salesforce for a value that
+is Salesforce's recorded log of a job. For example, to query an Apex bulk
+job:
+
+.. code-block:: robot
+
+    ${time_in_seconds} =    Elapsed Time For Last Record
+    ...             obj_name=AsyncApexJob
+    ...             where=ApexClass.Name='BlahBlah'
+    ...             start_field=CreatedDate
+    ...             end_field=CompletedDate
+    ...             order_by=CompletedDate
+
 Full Documentation
 ------------------
 
-Use the following links to download generated documentation for both
-the CumulusCI and Salesforce keywords
+Full documentation of the keywords in the CumulusCI and Salesforce
+keyword libraries can be found here:
 
-* :download:`CumulusCI Keyword Documentation <../docs/robot/Keywords.html>`
+* :download:`CumulusCI and Salesforce Keyword Documentation <../docs/robot/Keywords.html>`
+
 
 .. _salesforce-library-overview:
 
@@ -602,7 +644,7 @@ Keyword Documentation
 Use the following links to download generated documentation for both
 the CumulusCI and Salesforce keywords
 
-* :download:`CumulusCI Keyword Documentation <../docs/robot/Keywords.html>`
+* :download:`CumulusCI and Salesforce Keyword Documentation <../docs/robot/Keywords.html>`
 
 CumulusCI Robot Tasks
 =====================
@@ -698,3 +740,87 @@ Like in the example above, all project tests live in .robot files stored under t
 The following document is recommended reading:
 
 https://github.com/robotframework/HowToWriteGoodTestCases/blob/master/HowToWriteGoodTestCases.rst
+
+Using Keywords and Tests from a Different Project
+=================================================
+
+Much like you can :ref:`use tasks and flows from a different
+project<sources>`, you can also use keywords and tests from other
+projects. The keywords are brought into your repository the same way
+as with tasks and flows, via the `sources` configuration option in
+cumulusci.yml. However, they require a little extra configuration
+before they can be used.
+
+.. note::
+   This feature should not be used for general purpose sharing of
+   keywords between multiple projects. This feature was designed
+   specifically for the case where a product is being built on top of
+   another project and needs access to product-specific keywords.
+
+
+Using keywords
+--------------
+
+In order to use the resources from another project you must first
+configure the robot task to use one of the sources that have been
+defined for the project. To do this, add a :code:`sources` option in
+the robot task, and add to it the name of one of the imported sources.
+
+For exmple, if your project is built on top of NPSP and you want to
+use keywords from the NPSP project, you must first add the npsp
+repository as a source in the project's cumulusci.yml like so:
+
+.. code-block:: yaml
+
+    sources:
+        npsp:
+            github: https://github.com/SalesforceFoundation/NPSP
+            release: latest_beta
+
+You must then add :code:`npsp` under the :code:`sources` option for
+the robot task. This is because the project as a whole may use tasks
+or flows from multiple projects, but robot only needs keywords from a
+single project.
+
+.. code-block:: yaml
+
+    tasks:
+       robot:
+         options:
+            sources:
+              - npsp
+
+When the robot task runs, it adds the directory which contains the
+code for the other repository to PYTHONPATH which robot uses when
+resolving references to libraries and keyword files.
+
+Once this configuration has been saved, you can import the resources
+just as if you were in the NPSP repository. For example, in a project
+which has been configured to use npsp as a source, the following
+example shows how NPSP.robot can be imported into a test suite:
+
+.. code-block:: robot
+
+    *** Settings ***
+    Resource   robot/Cumulus/resources/NPSP.robot
+
+.. note::
+   Even with proper configuration, some keywords or keyword libraries
+   might not be usable. You must be careful to not try to use files
+   that have the exact same name in multiple repositories.
+
+
+Running Tests
+-------------
+
+Running a test from another project requires prefixing the path to the
+test with the source name. The path needs to be relative to the root
+of the other repo.
+
+For example, starting from the previous example, to run the
+**create_organization.robot** test suite from NPSP, you would do it
+with something like this:
+
+.. code-block:: console
+
+    $ cci task run robot -o suites npsp:robot/Cumulus/tests/browser/contacts_accounts/create_organization.robot

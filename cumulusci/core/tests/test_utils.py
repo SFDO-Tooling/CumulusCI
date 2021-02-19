@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 
 import pytz
+import pytest
 
 from .. import utils
 
@@ -27,8 +28,16 @@ class TestUtils(unittest.TestCase):
         for arg in (False, "False", "false", "0"):
             self.assertFalse(utils.process_bool_arg(arg))
 
-        for arg in (None, datetime.datetime.now()):
-            self.assertIsNone(utils.process_bool_arg(arg))
+        import warnings
+
+        with warnings.catch_warnings(record=True):
+            assert utils.process_bool_arg(None) is False
+
+        with pytest.raises(TypeError):
+            utils.process_bool_arg(datetime.datetime.now())
+
+        with pytest.raises(TypeError):
+            utils.process_bool_arg("xyzzy")
 
     def test_process_list_arg(self):
         self.assertEqual([1, 2], utils.process_list_arg([1, 2]))
@@ -157,6 +166,20 @@ class TestCleanupCacheDir:
                 with mock.patch("cumulusci.core.utils.rmtree") as rmtree:
                     cleanup_org_cache_dirs(keychain, project_config)
                     assert not rmtree.mock_calls, rmtree.mock_calls
+
+    duration = (
+        (59, "59s"),
+        (70, "1m:10s"),
+        (119, "1m:59s"),
+        (65, "1m:5s"),
+        (4000, "1h:6m:40s"),
+        (7199, "1h:59m:59s"),
+    )
+
+    @pytest.mark.parametrize("val,expected", duration)
+    def test_time_delta(self, val, expected):
+        formatted = utils.format_duration(datetime.timedelta(seconds=val))
+        assert formatted == expected, (formatted, expected)
 
 
 def _touch_test_org_file(directory):

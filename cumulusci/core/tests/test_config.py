@@ -1,20 +1,25 @@
 # -*- coding: utf-8 -*-
 from distutils.version import StrictVersion
+import json
 import os
+import pathlib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
-import pytest
 from unittest import mock
-import responses
 
 from github3.exceptions import NotFoundError
+from simple_salesforce.exceptions import SalesforceError
+import pytest
+import responses
+import yaml
+
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.config.OrgConfig import VersionInfo
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import DependencyResolutionError
@@ -112,6 +117,7 @@ class DummyRepository(object):
         self.owner = owner
         self.name = name
         self.html_url = f"https://github.com/{owner}/{name}"
+        self.clone_url = self.html_url
         self._contents = contents
         self._releases = releases or []
 
@@ -161,6 +167,8 @@ class DummyRepository(object):
         ref = mock.Mock()
         ref.object.sha = "ref_sha"
         return ref
+
+    default_branch = "main"
 
 
 class DummyRelease(object):
@@ -932,6 +940,185 @@ class TestBaseProjectConfig(unittest.TestCase):
                 }
             )
 
+    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
+    def test_find_matching_2gp_release(self, get_version_id):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        get_version_id.return_value = "04t000000000000"
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+
+        assert config.find_matching_2gp_release(repo) == (
+            "04t000000000000",
+            "commit_sha",
+        )
+
+    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
+    def test_find_matching_2gp_release__found_previous_commit(self, get_version_id):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        get_version_id.side_effect = [None, "04t000000000000"]
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+        repo.branch = mock.Mock()
+        repo.branch.return_value.commit.parents = [
+            {"sha": "000"},
+            {"sha": "001"},
+        ]
+        repo.commit = mock.Mock()
+
+        assert config.find_matching_2gp_release(repo) == (
+            "04t000000000000",
+            repo.commit.return_value.sha,
+        )
+
+        get_version_id.assert_has_calls(
+            [
+                mock.call(
+                    repo,
+                    repo.branch.return_value.commit.sha,
+                    config.project__git__2gp_context,
+                ),
+                mock.call(
+                    repo, repo.commit.return_value.sha, config.project__git__2gp_context
+                ),
+            ]
+        )
+
+    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
+    def test_find_matching_2gp_release__not_found(self, get_version_id):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        get_version_id.return_value = None
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+        repo.branch = mock.Mock()
+        repo.branch.return_value.commit.parents = [
+            {"sha": "000"},
+            {"sha": "001"},
+        ]
+        repo.commit = mock.Mock()
+        repo.commit.return_value.parents = [
+            {"sha": "000"},
+            {"sha": "001"},
+        ]
+
+        assert config.find_matching_2gp_release(repo) == (None, None)
+
+    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
+    def test_find_matching_2gp_release__less_than_5_commits(self, get_version_id):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        get_version_id.return_value = None
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+        repo.branch = mock.Mock()
+        repo.branch.return_value.commit.parents = [
+            {"sha": "000"},
+            {"sha": "001"},
+        ]
+        commit_mock_first = mock.Mock()
+        commit_mock_first.parents = [
+            {"sha": "000"},
+            {"sha": "001"},
+        ]
+        commit_mock_second = mock.Mock()
+        commit_mock_second.parents = []
+        repo.commit = mock.Mock()
+        repo.commit.side_effect = [commit_mock_first, commit_mock_second]
+
+        assert config.find_matching_2gp_release(repo) == (None, None)
+        repo.commit.assert_has_calls([mock.call("000"), mock.call("000")])
+
+    def test_find_matching_2gp_release__release_branch_not_found(self):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+        ex = NotFoundError(mock.Mock())
+        repo.branch = mock.Mock(side_effect=[mock.Mock(), ex])
+        assert config.find_matching_2gp_release(repo) == (None, None)
+
+    def test_find_matching_2gp_release__feature_branch_prefix_not_found(self):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        # remove cumulusci.yml
+        github.repositories["CumulusCI-Test-Dep"]._contents = {}
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+        assert config.find_matching_2gp_release(repo) == (None, None)
+
+    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
+    def test_get_ref_for_dependency_uses_2gp(self, get_version_id):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        get_version_id.return_value = "04t000000000000"
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+
+        assert config.get_ref_for_dependency(
+            repo, {"github": "https://github.com/Test/Test"}, match_release_branch=True
+        ) == ("04t000000000000", "commit_sha")
+
+    def test_get_ref_for_dependency_falls_back_from_2gp_to_1gp(self):
+        universal_config = UniversalConfig()
+        config = BaseProjectConfig(universal_config)
+        config.keychain = DummyKeychain()
+        github = self._make_github()
+        config.get_github_api = mock.Mock(return_value=github)
+        config.project__git__prefix_feature = "feature/"
+        config.find_matching_2gp_release = mock.Mock(return_value=(None, None))
+        config.find_latest_release = mock.Mock()
+        config.repo_info["branch"] = "feature/230"
+
+        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
+
+        print(
+            config.get_ref_for_dependency(
+                repo,
+                {"github": "https://github.com/Test/Test"},
+                match_release_branch=True,
+            )
+        )
+        assert config.get_ref_for_dependency(
+            repo, {"github": "https://github.com/Test/Test"}, match_release_branch=True
+        ) == (repo.latest_release(), "tag_sha")
+
     def test_get_task__included_source(self):
         universal_config = UniversalConfig()
         with temporary_dir() as d:
@@ -1070,6 +1257,25 @@ class TestBaseProjectConfig(unittest.TestCase):
         assert info["owner"] == owner
         assert info["url"] == ssh_url
 
+    def test_default_package_path(self):
+        config = BaseProjectConfig(UniversalConfig())
+        assert str(config.default_package_path.relative_to(config.repo_root)) == "src"
+
+    def test_default_package_path__sfdx(self):
+        with temporary_dir() as path:
+            pathlib.Path(path, ".git").mkdir()
+            with pathlib.Path(path, "cumulusci.yml").open("w") as f:
+                yaml.dump({"project": {"source_format": "sfdx"}}, f)
+            with pathlib.Path(path, "sfdx-project.json").open("w") as f:
+                json.dump(
+                    {"packageDirectories": [{"path": "force-app", "default": True}]}, f
+                )
+            config = BaseProjectConfig(UniversalConfig())
+            assert (
+                str(config.default_package_path.relative_to(config.repo_root))
+                == "force-app"
+            )
+
 
 class TestBaseTaskFlowConfig(unittest.TestCase):
     def setUp(self):
@@ -1128,7 +1334,6 @@ class TestOrgConfig(unittest.TestCase):
     @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
     def test_refresh_oauth_token(self, SalesforceOAuth2):
         config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
-        config._client = mock.Mock()
         config._load_userinfo = mock.Mock()
         config._load_orginfo = mock.Mock()
         keychain = mock.Mock()
@@ -1139,7 +1344,38 @@ class TestOrgConfig(unittest.TestCase):
         config.refresh_oauth_token(keychain)
 
         oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
-        assert config._client is None
+
+    @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
+    def test_refresh_oauth_token__bad_refresh_json(self, SalesforceOAuth2):
+        config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
+        SalesforceOAuth2.return_value = oauth = mock.Mock()
+        oauth.refresh_token.return_value = resp = mock.Mock(status_code=200)
+        keychain = mock.Mock()
+        resp.json.side_effect = json.JSONDecodeError("blah", "Blah", 0)
+
+        with pytest.raises(CumulusCIException) as e:
+            config.refresh_oauth_token(keychain)
+        assert "Cannot decode" in str(e.value)
+
+        oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
+
+    @responses.activate
+    def test_load_user_info__bad_json(self):
+        config = OrgConfig(
+            {
+                "refresh_token": mock.sentinel.refresh_token,
+                "instance_url": "http://instance_url_111.com",
+            },
+            "test",
+        )
+        keychain = mock.Mock()
+
+        responses.add(
+            responses.POST, "http://instance_url_111.com/services/oauth2/token"
+        )
+        with pytest.raises(CumulusCIException) as e:
+            config.refresh_oauth_token(keychain)
+        assert "Cannot decode" in str(e.value)
 
     def test_refresh_oauth_token_no_connected_app(self):
         config = OrgConfig({}, "test")
@@ -1158,7 +1394,7 @@ class TestOrgConfig(unittest.TestCase):
 
     @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
     @responses.activate
-    def test_refresh_oauth_token_jwt(self):
+    def test_refresh_oauth_token__jwt(self):
         responses.add(
             "POST",
             "https://login.salesforce.com/services/oauth2/token",
@@ -1179,7 +1415,7 @@ class TestOrgConfig(unittest.TestCase):
 
     @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
     @responses.activate
-    def test_refresh_oauth_token_jwt_sandbox(self):
+    def test_refresh_oauth_token__jwt_sandbox(self):
         responses.add(
             "POST",
             "https://cs00.salesforce.com/services/oauth2/token",
@@ -1192,7 +1428,39 @@ class TestOrgConfig(unittest.TestCase):
             os.environ,
             {"SFDX_CLIENT_ID": "some client id", "SFDX_HUB_KEY": "some private key"},
         ):
-            config = OrgConfig({"instance_url": "https://cs00.salesforce.com"}, "test")
+            config = OrgConfig(
+                {
+                    "instance_url": "https://cs00.salesforce.com",
+                },
+                "test",
+            )
+            config._load_userinfo = mock.Mock()
+            config._load_orginfo = mock.Mock()
+            config.refresh_oauth_token(None)
+            assert config.access_token == "TOKEN"
+
+    @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
+    @responses.activate
+    def test_refresh_oauth_token__jwt_sandbox_instanceless_url(self):
+        responses.add(
+            "POST",
+            "https://nonobvious--sandbox.my.salesforce.com/services/oauth2/token",
+            json={
+                "access_token": "TOKEN",
+                "instance_url": "https://nonobvious--sandbox.my.salesforce.com",
+            },
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"SFDX_CLIENT_ID": "some client id", "SFDX_HUB_KEY": "some private key"},
+        ):
+            config = OrgConfig(
+                {
+                    "instance_url": "https://nonobvious--sandbox.my.salesforce.com",
+                    "id": "https://test.salesforce.com/asdf",
+                },
+                "test",
+            )
             config._load_userinfo = mock.Mock()
             config._load_orginfo = mock.Mock()
             config.refresh_oauth_token(None)
@@ -1220,6 +1488,26 @@ class TestOrgConfig(unittest.TestCase):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"
         assert config.latest_api_version == "42.0"
+
+    @responses.activate
+    def test_get_salesforce_version_bad_json(self):
+        responses.add("GET", "https://na01.salesforce.com/services/data", "NOTJSON!")
+        config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
+        config.access_token = "TOKEN"
+        with pytest.raises(CumulusCIException) as e:
+            assert config.latest_api_version == "42.0"
+        assert "NOTJSON" in str(e.value)
+
+    @responses.activate
+    def test_get_salesforce_version_weird_json(self):
+        responses.add(
+            "GET", "https://na01.salesforce.com/services/data", json=["NOTADICT"]
+        )
+        config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
+        config.access_token = "TOKEN"
+        with pytest.raises(CumulusCIException) as e:
+            assert config.latest_api_version == "42.0"
+        assert "NOTADICT" in str(e.value)
 
     def test_start_url(self):
         config = OrgConfig(
@@ -1260,6 +1548,7 @@ class TestOrgConfig(unittest.TestCase):
                 "OrganizationType": "Enterprise Edition",
                 "IsSandbox": False,
                 "InstanceName": "cs420",
+                "NamespacePrefix": "ns",
             },
         )
 
@@ -1268,6 +1557,7 @@ class TestOrgConfig(unittest.TestCase):
         self.assertEqual("Enterprise Edition", config.org_type)
         self.assertEqual(False, config.is_sandbox)
         self.assertIsNotNone(config.organization_sobject)
+        assert config.namespace == "ns"
 
     @responses.activate
     def test_get_community_info__cached(self):
@@ -1323,94 +1613,143 @@ class TestOrgConfig(unittest.TestCase):
         with self.assertRaisesRegex(Exception, expected_exception):
             config.get_community_info("bogus")
 
-    MOCK_TOOLING_PACKAGE_RESULTS = {
-        "size": 2,
-        "totalSize": 2,
-        "done": True,
-        "records": [
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz4AAG",
-                    "NamespacePrefix": "GW_Volunteers",
+    MOCK_TOOLING_PACKAGE_RESULTS = [
+        {
+            "size": 2,
+            "totalSize": 2,
+            "done": True,
+            "records": [
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz4AAG",
+                        "NamespacePrefix": "GW_Volunteers",
+                    },
+                    "SubscriberPackageVersionId": "04t1T00000070yqQAA",
                 },
-                "SubscriberPackageVersion": {
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz5AAG",
+                        "NamespacePrefix": "GW_Volunteers",
+                    },
+                    "SubscriberPackageVersionId": "04t000000000001AAA",
+                },
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz7AAG",
+                        "NamespacePrefix": "TESTY",
+                    },
+                    "SubscriberPackageVersionId": "04t000000000002AAA",
+                },
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz4AAG",
+                        "NamespacePrefix": "blah",
+                    },
+                    "SubscriberPackageVersionId": "04t0000000BOGUSAAA",
+                },
+                {
+                    "SubscriberPackage": {
+                        "Id": "03350000000DEz8AAG",
+                        "NamespacePrefix": "error",
+                    },
+                    "SubscriberPackageVersionId": "04t0000000ERRORAAA",
+                },
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
+                    "Id": "04t1T00000070yqQAA",
                     "MajorVersion": 3,
                     "MinorVersion": 119,
                     "PatchVersion": 0,
                     "BuildNumber": 5,
                     "IsBeta": False,
-                },
-            },
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz5AAG",
-                    "NamespacePrefix": "GW_Volunteers",
-                },
-                "SubscriberPackageVersion": {
+                }
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
+                    "Id": "04t000000000001AAA",
                     "MajorVersion": 12,
                     "MinorVersion": 0,
-                    "PatchVersion": 0,
+                    "PatchVersion": 1,
                     "BuildNumber": 1,
                     "IsBeta": False,
-                },
-            },
-            {
-                "SubscriberPackage": {
-                    "Id": "03350000000DEz7AAG",
-                    "NamespacePrefix": "TESTY",
-                },
-                "SubscriberPackageVersion": {
+                }
+            ],
+        },
+        {
+            "size": 1,
+            "totalSize": 1,
+            "done": True,
+            "records": [
+                {
+                    "Id": "04t000000000002AAA",
                     "MajorVersion": 1,
                     "MinorVersion": 10,
                     "PatchVersion": 0,
                     "BuildNumber": 5,
                     "IsBeta": True,
-                },
-            },
-        ],
-    }
+                }
+            ],
+        },
+        {"size": 0, "totalSize": 0, "done": True, "records": []},
+        SalesforceError(None, None, None, None),
+    ]
 
-    def test_installed_packages(self):
+    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    def test_installed_packages(self, sf):
         config = OrgConfig({}, "test")
-        config._client = mock.Mock()
-        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
 
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
+        expected = {
+            "GW_Volunteers": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119")),
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1")),
+            ],
+            "GW_Volunteers@3.119": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
+            ],
+            "GW_Volunteers@12.0.1": [
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))
+            ],
+            "TESTY": [VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))],
+            "TESTY@1.10b5": [
+                VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
+            ],
+            "03350000000DEz4AAG": [
+                VersionInfo("04t1T00000070yqQAA", StrictVersion("3.119"))
+            ],
+            "03350000000DEz5AAG": [
+                VersionInfo("04t000000000001AAA", StrictVersion("12.0.1"))
+            ],
+            "03350000000DEz7AAG": [
+                VersionInfo("04t000000000002AAA", StrictVersion("1.10.0b5"))
+            ],
         }
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
-        }
-        config._client.restful.assert_called_once_with(
-            "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
-            "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
-            "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
-            "FROM InstalledSubscriberPackage"
-        )
+        # get it twice so we can make sure it is cached
+        assert config.installed_packages == expected
+        assert config.installed_packages == expected
+        sf.restful.assert_called()
 
-        config._client.restful.reset_mock()
+        sf.restful.reset_mock()
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
         config.reset_installed_packages()
-        assert config.installed_packages == {
-            "GW_Volunteers": [StrictVersion("3.119"), StrictVersion("12.0")],
-            "TESTY": [StrictVersion("1.10.0b5")],
-            "03350000000DEz4AAG": [StrictVersion("3.119")],
-            "03350000000DEz5AAG": [StrictVersion("12.0")],
-            "03350000000DEz7AAG": [StrictVersion("1.10b5")],
-        }
-        config._client.restful.assert_called_once()
+        assert config.installed_packages == expected
+        sf.restful.assert_called()
 
-    def test_has_minimum_package_version(self):
+    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    def test_has_minimum_package_version(self, sf):
         config = OrgConfig({}, "test")
-        config._client = mock.Mock()
-        config._client.restful.return_value = self.MOCK_TOOLING_PACKAGE_RESULTS
+        sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
 
         assert config.has_minimum_package_version("TESTY", "1.9")
         assert config.has_minimum_package_version("TESTY", "1.10b5")
@@ -1553,3 +1892,258 @@ class TestOrgConfig(unittest.TestCase):
         self.assertEqual(
             config._is_person_accounts_enabled, config.is_person_accounts_enabled
         )
+
+    @responses.activate
+    def test_is_multi_currency_enabled__not_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+        assert (
+            config._multiple_currencies_is_enabled is False
+        ), "_multiple_currencies_is_enabled should be initialized as False"
+
+        # Login call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # CurrencyType describe() call.
+        # Since Multiple Currencies is not enabled, CurrencyType Sobject is not exposed.
+        # Therefore, the describe call will result in a 404.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            status=404,
+            json={
+                "errorCode": "NOT_FOUND",
+                "message": "The requested resource does not exist",
+            },
+        )
+
+        # Add a second 404 to demonstrate we always check the describe until we detect Multiple Currencies is enabled.  From then on, we cache the fact that Multiple Currencies is enabled knowing Multiple Currencies cannot be disabled.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            status=404,
+            json={
+                "errorCode": "NOT_FOUND",
+                "message": "The requested resource does not exist",
+            },
+        )
+
+        # Check 1: is_multiple_currencies_enabled should be False since the CurrencyType describe gives a 404.
+        actual = config.is_multiple_currencies_enabled
+        assert (
+            actual is False
+        ), "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
+        assert (
+            config._multiple_currencies_is_enabled is False
+        ), "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+
+        # Check 2: We should still get the CurrencyType describe since we never cached that multiple currencies is enabled.
+        actual = config.is_multiple_currencies_enabled
+        assert (
+            actual is False
+        ), "config.is_multiple_currencies_enabled should be False since the CurrencyType describe returns a 404."
+        assert (
+            config._multiple_currencies_is_enabled is False
+        ), "config._multiple_currencies_is_enabled should still be False since the CurrencyType describe returns a 404."
+
+        # We should have made 3 calls: 1 token call + 2 describe calls
+        assert len(responses.calls) == 1 + 2
+
+    @responses.activate
+    def test_is_multi_currency_enabled__is_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+
+        assert (
+            config._multiple_currencies_is_enabled is False
+        ), "_multiple_currencies_is_enabled should be initialized as False"
+
+        # Token call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # CurrencyType describe() call.
+        # Since Multiple Currencies is enabled, so the describe call returns a 200.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            json={
+                # The actual payload doesn't matter; only matters is we get a 200.
+            },
+        )
+
+        # Check 1: is_multiple_currencies_enabled should be True since the CurrencyType describe gives a 200.
+        actual = config.is_multiple_currencies_enabled
+        assert (
+            actual is True
+        ), "config.is_multiple_currencies_enabled should be True since the CurrencyType describe returns a 200."
+        assert (
+            config._multiple_currencies_is_enabled is True
+        ), "config._multiple_currencies_is_enabled should be True since the CurrencyType describe returns a 200."
+
+        # Check 2: We should have cached that Multiple Currencies is enabled, so we should not make a 2nd descrobe call. This is ok to cache since Multiple Currencies cannot be disabled.
+        actual = config.is_multiple_currencies_enabled
+        assert (
+            actual is True
+        ), "config.is_multiple_currencies_enabled should be True since the our cached value in _multiple_currencies_is_enabled is True."
+        assert (
+            config._multiple_currencies_is_enabled is True
+        ), "config._multiple_currencies_is_enabled should still be True."
+
+        # We should have made 2 calls: 1 token call + 1 describe call
+        assert len(responses.calls) == 1 + 1
+
+    @responses.activate
+    def test_is_advanced_currency_management_enabled__multiple_currencies_not_enabled(
+        self,
+    ):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+
+        # Token call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # DatedConversionRate describe() call.
+        # Since Multiple Currencies is not enabled, DatedConversionRate Sobject is not exposed.
+        # Therefore, the describe call will result in a 404.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            status=404,
+            json={
+                "errorCode": "NOT_FOUND",
+                "message": "The requested resource does not exist",
+            },
+        )
+
+        # is_advanced_currency_management_enabled should be False since:
+        # - DatedConversionRate describe gives a 404 implying the Sobject is not exposed becuase Multiple Currencies is not enabled.
+        actual = config.is_advanced_currency_management_enabled
+        assert (
+            actual is False
+        ), "config.is_advanced_currency_management_enabled should be False since the describe gives a 404."
+
+        # We should have made 2 calls: 1 token call + 1 describe call
+        assert len(responses.calls) == 1 + 1
+
+    @responses.activate
+    def test_is_advanced_currency_management_enabled__multiple_currencies_enabled__acm_not_enabled(
+        self,
+    ):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+
+        # Token call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # DatedConversionRate describe() call.
+        # Since Multiple Currencies is enabled, so the describe call returns a 200.
+        # However, ACM is not enabled so DatedConversionRate is not createable.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            json={"createable": False},
+        )
+
+        # is_advanced_currency_management_enabled should be False:
+        # - DatedConversionRate describe gives a 200, so the Sobject is exposed (because Multiple Currencies is enabled).
+        # - But DatedConversionRate is not creatable implying ACM is not enabled.
+        actual = config.is_advanced_currency_management_enabled
+        assert (
+            actual is False
+        ), 'config.is_advanced_currency_management_enabled should be False since though the describe gives a 200, the describe is not "createable".'
+
+        # We should have made 2 calls: 1 token call + 1 describe call
+        assert len(responses.calls) == 1 + 1
+
+    @responses.activate
+    def test_is_advanced_currency_management_enabled__multiple_currencies_enabled__acm_enabled(
+        self,
+    ):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+
+        # Token call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # DatedConversionRate describe() call.
+        # Since Multiple Currencies is enabled, so the describe call returns a 200.
+        # However, ACM is not enabled so DatedConversionRate is not createable.
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            json={"createable": True},
+        )
+
+        # is_advanced_currency_management_enabled should be False:
+        # - DatedConversionRate describe gives a 200, so the Sobject is exposed (because Multiple Currencies is enabled).
+        # - But DatedConversionRate is not creatable implying ACM is not enabled.
+        actual = config.is_advanced_currency_management_enabled
+        assert (
+            actual is True
+        ), 'config.is_advanced_currency_management_enabled should be False since both the describe gives a 200 and the describe is "createable".'
+
+        # We should have made 2 calls: 1 token call + 1 describe call
+        assert len(responses.calls) == 1 + 1
+
+    def test_resolve_04t_dependencies(self):
+        config = OrgConfig({}, "test")
+        config._installed_packages = {
+            "dep@1.0": [VersionInfo("04t000000000001AAA", "1.0")]
+        }
+        result = config.resolve_04t_dependencies(
+            [{"namespace": "dep", "version": "1.0", "dependencies": []}]
+        )
+        assert result == [
+            {
+                "namespace": "dep",
+                "version": "1.0",
+                "version_id": "04t000000000001AAA",
+                "dependencies": [],
+            }
+        ]
+
+    def test_resolve_04t_dependencies__not_installed(self):
+        config = OrgConfig({}, "test")
+        config._installed_packages = {}
+        with pytest.raises(DependencyResolutionError):
+            config.resolve_04t_dependencies([{"namespace": "dep", "version": "1.0"}])

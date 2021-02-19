@@ -81,9 +81,9 @@ class CreateConnectedApp(SFDXBaseTask):
                 )
             self.options["email"] = github.email
 
-        self.options["connect"] = process_bool_arg(self.options.get("connect", False))
+        self.options["connect"] = process_bool_arg(self.options.get("connect") or False)
         self.options["overwrite"] = process_bool_arg(
-            self.options.get("overwrite", False)
+            self.options.get("overwrite") or False
         )
 
     def _set_default_username(self):
@@ -141,7 +141,7 @@ class CreateConnectedApp(SFDXBaseTask):
                 connected_app = self.project_config.keychain.get_service(
                     "connected_app"
                 )
-            except ServiceNotConfigured:
+            except ServiceNotConfigured:  # pragma: no cover
                 pass
             else:
                 if connected_app is not DEFAULT_CONNECTED_APP:
@@ -166,7 +166,7 @@ class CreateConnectedApp(SFDXBaseTask):
         # Default to sfdx defaultdevhubusername
         if "username" not in self.options:
             self._set_default_username()
-        self.options["command"] += " -u {}".format(self.options.get("username"))
+        command += " -u {}".format(self.options.get("username"))
         command += " -d {}".format(self.tempdir)
         return command
 

@@ -8,15 +8,18 @@ import unittest
 import shutil
 from pathlib import Path
 
+import pytest
 import yaml
 
 from cumulusci.utils import temporary_dir, cd
-from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import SfdxOrgConfig
 from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.core.exceptions import ProjectConfigNotFound
+from cumulusci.core.exceptions import SfdxOrgException
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 
@@ -25,10 +28,10 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 
 @mock.patch("pathlib.Path.home")
 class TestUniversalConfig(unittest.TestCase):
-    def setup_method(self, method):
+    def setUp(self):
         self.tempdir_home = Path(tempfile.mkdtemp())
 
-    def teardown_method(self, method):
+    def tearDown(self):
         shutil.rmtree(self.tempdir_home)
 
     def _create_universal_config_local(self, content):
@@ -52,8 +55,9 @@ class TestUniversalConfig(unittest.TestCase):
 
     def test_load_universal_config_empty_local(self, mock_class):
         self._create_universal_config_local("")
+        # clear cache
+        UniversalConfig.config = None
         mock_class.return_value = self.tempdir_home
-
         config = UniversalConfig()
         with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
@@ -77,6 +81,17 @@ class TestUniversalConfig(unittest.TestCase):
 
 @mock.patch("pathlib.Path.home")
 class TestBaseProjectConfig(unittest.TestCase):
+    def setUp(self):
+        self.tempdir_home = Path(tempfile.mkdtemp())
+        self.tempdir_project = tempfile.mkdtemp()
+        self.project_name = "TestRepo"
+        self.current_commit = "abcdefg1234567890"
+        self.current_branch = "main"
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir_home)
+        shutil.rmtree(self.tempdir_project)
+
     def _create_git_config(self):
 
         filename = os.path.join(self.tempdir_project, ".git", "config")
@@ -123,17 +138,6 @@ class TestBaseProjectConfig(unittest.TestCase):
     def _write_file(self, filename, content):
         with open(filename, "w") as f:
             f.write(content)
-
-    def setup_method(self, method):
-        self.tempdir_home = Path(tempfile.mkdtemp())
-        self.tempdir_project = tempfile.mkdtemp()
-        self.project_name = "TestRepo"
-        self.current_commit = "abcdefg1234567890"
-        self.current_branch = "main"
-
-    def teardown_method(self, method):
-        shutil.rmtree(self.tempdir_home)
-        shutil.rmtree(self.tempdir_project)
 
     def test_load_project_config_not_repo(self, mock_class):
         mock_class.return_value = self.tempdir_home
@@ -272,7 +276,7 @@ class TestScratchOrgConfig(unittest.TestCase):
             stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
         )
 
-        config = ScratchOrgConfig({"username": "test"}, "test")
+        config = ScratchOrgConfig({"username": "test", "created": True}, "test")
         info = config.scratch_info
 
         self.assertEqual(
@@ -287,25 +291,31 @@ class TestScratchOrgConfig(unittest.TestCase):
                 "expiration_date": "1970-01-08",
             },
         )
-        self.assertIs(info, config._scratch_info)
-        for key in ("access_token", "instance_url", "org_id", "password", "username"):
+        self.assertIs(info, config._sfdx_info)
+        for key in (
+            "access_token",
+            "instance_url",
+            "org_id",
+            "password",
+            "username",
+        ):
             assert key in config.config
-        self.assertTrue(config._scratch_info_date)
+        self.assertTrue(config._sfdx_info_date)
 
     def test_scratch_info_memoized(self, Command):
-        config = ScratchOrgConfig({"username": "test"}, "test")
-        config._scratch_info = _marker = object()
+        config = ScratchOrgConfig({"username": "test", "created": True}, "test")
+        config._sfdx_info = _marker = object()
         info = config.scratch_info
         self.assertIs(info, _marker)
 
-    def test_scratch_info_non_json_response(self, Command):
+    def test_sfdx_info_non_json_response(self, Command):
         Command.return_value = mock.Mock(
             stderr=io.BytesIO(b""), stdout=io.BytesIO(b"<html></html>"), returncode=0
         )
 
-        config = ScratchOrgConfig({"username": "test"}, "test")
-        with self.assertRaises(ScratchOrgException):
-            config.scratch_info
+        config = SfdxOrgConfig({"username": "test", "created": True}, "test")
+        with self.assertRaises(SfdxOrgException):
+            config.sfdx_info
 
     def test_scratch_info_command_error(self, Command):
         Command.return_value = mock.Mock(
@@ -313,15 +323,12 @@ class TestScratchOrgConfig(unittest.TestCase):
         )
 
         config = ScratchOrgConfig(
-            {"username": "test", "email_address": "test@example.com"}, "test"
+            {"username": "test", "email_address": "test@example.com", "created": True},
+            "test",
         )
 
-        try:
+        with pytest.raises(SfdxOrgException, match="error"):
             config.scratch_info
-        except ScratchOrgException as err:
-            self.assertEqual(str(err), "\nstderr:\nerror\nstdout:\nout")
-        else:
-            self.fail("Expected ScratchOrgException")
 
     def test_scratch_info_username_not_found(self, Command):
         Command.return_value = mock.Mock(
@@ -338,45 +345,102 @@ class TestScratchOrgConfig(unittest.TestCase):
             with self.assertRaises(ScratchOrgException):
                 config.scratch_info
 
-    def test_scratch_info_password_from_config(self, Command):
-        result = b"""{
-    "result": {
-        "instanceUrl": "url",
-        "accessToken": "access!token",
-        "username": "username",
-        "createdDate": "1970-01-01T00:00:00Z",
-        "expirationDate": "1970-01-08"
-    }
-}"""
-        Command.return_value = mock.Mock(
-            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
-        )
-
-        config = ScratchOrgConfig({"username": "test", "password": "password"}, "test")
-        info = config.scratch_info
-
-        self.assertEqual(info["password"], "password")
-
     def test_access_token(self, Command):
         config = ScratchOrgConfig({}, "test")
         _marker = object()
-        config._scratch_info = {"access_token": _marker}
+        config._sfdx_info = {"access_token": _marker}
         self.assertIs(config.access_token, _marker)
+
+    def test_get_access_token(self, Command):
+        """Verify that get_access_token calls out to sfdx"""
+        sf = mock.Mock()
+        sf.query_all.return_value = {"records": [{"Username": "whatever@example.com"}]}
+
+        sfdx_response = mock.Mock(returncode=0)
+        sfdx_response.stdout_text.read.return_value = (
+            '{"result": {"accessToken": "the-token"}}'
+        )
+        sfdx = mock.Mock(return_value=sfdx_response)
+
+        config = ScratchOrgConfig({}, "test")
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+            with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx):
+                access_token = config.get_access_token(alias="dadvisor")
+                sfdx.assert_called_once_with(
+                    "force:org:display --targetusername=whatever@example.com --json"
+                )
+                assert access_token == "the-token"
+
+    def test_get_access_token__default(self, Command):
+        """Verify that with no args, get_access_token returns the default token"""
+        config = ScratchOrgConfig({}, "test")
+        _marker = object()
+        config._sfdx_info = {"access_token": _marker}
+        access_token = config.get_access_token()
+        assert access_token is _marker
+
+    def test_get_access_token__unknown_user(self, Command):
+        sf = mock.Mock()
+        sf.query_all.return_value = {"records": []}
+
+        config = ScratchOrgConfig({}, "test")
+
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+            with pytest.raises(
+                SfdxOrgException,
+                match="Couldn't find a username for the specified user",
+            ):
+                config.get_access_token(alias="dadvisor")
+
+    def test_get_access_token__multiple_users(self, Command):
+        sf = mock.Mock()
+        sf.query_all.return_value = {
+            "records": [
+                {"Username": "test1@example.com"},
+                {"Username": "test2@example.com"},
+            ]
+        }
+
+        config = ScratchOrgConfig({}, "test")
+
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+            with pytest.raises(
+                SfdxOrgException,
+                match="More than one user matched the search critiera.",
+            ):
+                config.get_access_token(alias="dadvisor")
+
+    def test_get_access_token__no_access_token(self, Command):
+        sf = mock.Mock()
+        sf.query_all.return_value = {"records": [{"Username": "whatever@example.com"}]}
+
+        sfdx_response = mock.Mock(returncode=1)
+        sfdx_response.stdout_text.read.return_value = '{"message": "blah blah..."}'
+        sfdx = mock.Mock(return_value=sfdx_response)
+
+        config = ScratchOrgConfig({}, "test")
+        with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
+            with mock.patch("cumulusci.core.config.sfdx_org_config.sfdx", sfdx):
+                exception = (
+                    "Unable to find access token for whatever@example.com\nblah blah..."
+                )
+                with pytest.raises(SfdxOrgException, match=exception):
+                    config.get_access_token(alias="dadvisor")
 
     def test_instance_url(self, Command):
         config = ScratchOrgConfig({}, "test")
         _marker = object()
-        config._scratch_info = {"instance_url": _marker}
+        config._sfdx_info = {"instance_url": _marker}
         self.assertIs(config.instance_url, _marker)
 
     def test_org_id_from_config(self, Command):
         config = ScratchOrgConfig({"org_id": "test"}, "test")
         self.assertEqual(config.org_id, "test")
 
-    def test_org_id_from_scratch_info(self, Command):
+    def test_org_id_from_sfdx_info(self, Command):
         config = ScratchOrgConfig({}, "test")
         _marker = object()
-        config._scratch_info = {"org_id": _marker}
+        config._sfdx_info = {"org_id": _marker}
         self.assertIs(config.org_id, _marker)
 
     def test_user_id_from_config(self, Command):
@@ -388,27 +452,27 @@ class TestScratchOrgConfig(unittest.TestCase):
         sf.query_all.return_value = {"records": [{"Id": "test"}]}
 
         config = ScratchOrgConfig({"username": "test_username"}, "test")
-        config._scratch_info = {
+        config._sfdx_info = {
             "instance_url": "test_instance",
             "access_token": "token",
         }
         with mock.patch("cumulusci.core.config.OrgConfig.salesforce_client", sf):
             self.assertEqual(config.user_id, "test")
 
-    def test_username_from_scratch_info(self, Command):
+    def test_username_from_sfdx_info(self, Command):
         config = ScratchOrgConfig({}, "test")
         _marker = object()
-        config._scratch_info = {"username": _marker}
+        config._sfdx_info = {"username": _marker}
         self.assertIs(config.username, _marker)
 
     def test_password_from_config(self, Command):
         config = ScratchOrgConfig({"password": "test"}, "test")
         self.assertEqual(config.password, "test")
 
-    def test_password_from_scratch_info(self, Command):
+    def test_password_from_sfdx_info(self, Command):
         config = ScratchOrgConfig({}, "test")
         _marker = object()
-        config._scratch_info = {"password": _marker}
+        config._sfdx_info = {"password": _marker}
         self.assertIs(config.password, _marker)
 
     def test_email_address_from_config(self, Command):
@@ -554,7 +618,8 @@ class TestScratchOrgConfig(unittest.TestCase):
 
     def test_create_org_no_config_file(self, Command):
         config = ScratchOrgConfig({}, "test")
-        self.assertEqual(config.create_org(), None)
+        with pytest.raises(ScratchOrgException, match="missing a config_file"):
+            config.create_org()
         Command.assert_not_called()
 
     def test_create_org_command_error(self, Command):
@@ -654,7 +719,7 @@ class TestScratchOrgConfig(unittest.TestCase):
         )
 
         config = ScratchOrgConfig({"username": "test"}, "test")
-        with self.assertRaises(ScratchOrgException):
+        with self.assertRaises(SfdxOrgException):
             config.force_refresh_oauth_token()
 
     def test_refresh_oauth_token(self, Command):
@@ -672,16 +737,16 @@ class TestScratchOrgConfig(unittest.TestCase):
             stdout=io.BytesIO(result), stderr=io.BytesIO(b""), returncode=0
         )
 
-        config = ScratchOrgConfig({"username": "test"}, "test")
-        config._scratch_info = {}
-        config._scratch_info_date = datetime.now() - timedelta(days=1)
+        config = ScratchOrgConfig({"username": "test", "created": True}, "test")
+        config._sfdx_info = {}
+        config._sfdx_info_date = datetime.now() - timedelta(days=1)
         config.force_refresh_oauth_token = mock.Mock()
         config._load_orginfo = mock.Mock()
 
         config.refresh_oauth_token(keychain=None)
 
         config.force_refresh_oauth_token.assert_called_once()
-        self.assertTrue(config._scratch_info)
+        self.assertTrue(config._sfdx_info)
 
     def test_choose_devhub(self, Command):
         mock_keychain = mock.Mock()

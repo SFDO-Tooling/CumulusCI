@@ -1,22 +1,13 @@
-import base64
-import functools
-import io
-import os
-import zipfile
+import pathlib
+from typing import Optional
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
+from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
     BaseSalesforceMetadataApiTask,
 )
-from cumulusci.utils import cd
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import zip_clean_metaxml
-from cumulusci.utils import inject_namespace
-from cumulusci.utils import strip_namespace
-from cumulusci.utils import process_text_in_zipfile
-from cumulusci.utils.xml import metadata_tree
 
 
 class Deploy(BaseSalesforceMetadataApiTask):
@@ -79,12 +70,21 @@ class Deploy(BaseSalesforceMetadataApiTask):
                 "The specified_tests option and test_level RunSpecifiedTests must be used together."
             )
 
+        self.options["namespace_inject"] = (
+            self.options.get("namespace_inject")
+            or self.project_config.project__package__namespace
+        )
+
     def _get_api(self, path=None):
         if not path:
-            path = self.task_config.options__path
+            path = self.options.get("path")
 
         package_zip = self._get_package_zip(path)
-        self.logger.info("Payload size: {} bytes".format(len(package_zip)))
+        if package_zip is not None:
+            self.logger.info("Payload size: {} bytes".format(len(package_zip)))
+        else:
+            self.logger.warning("Deployment package is empty; skipping deployment.")
+            return
 
         return self.api_class(
             self,
@@ -95,155 +95,38 @@ class Deploy(BaseSalesforceMetadataApiTask):
             run_tests=self.specified_tests,
         )
 
-    def _include_directory(self, root_parts):
-        # include the root directory, all non-lwc directories and sub-directories, and lwc component directories
-        return len(root_parts) == 0 or root_parts[0] != "lwc" or len(root_parts) == 2
+    def _has_namespaced_package(self, ns: Optional[str]) -> bool:
+        if "unmanaged" in self.options:
+            return not process_bool_arg(self.options.get("unmanaged", True))
+        return bool(ns) and ns in self.org_config.installed_packages
 
-    def _include_file(self, root_parts, f):
-        if len(root_parts) == 2 and root_parts[0] == "lwc":
-            # is file of lwc component directory
-            lower_f = f.lower()
-            return lower_f.endswith((".js", ".js-meta.xml", ".html", ".css", ".svg"))
-        return True
-
-    def _get_files_to_package(self):
-        for root, dirs, files in os.walk("."):
-            root_parts = root.split(os.sep)[1:]
-            if self._include_directory(root_parts):
-                for f in files:
-                    if self._include_file(root_parts, f):
-                        yield os.path.join(root, f)
-
-    def _get_static_resource_files(self):
-        for root, dirs, files in os.walk("."):
-            for f in files:
-                yield os.path.join(root, f)
+    def _is_namespaced_org(self, ns: Optional[str]) -> bool:
+        if "namespaced_org" in self.options:
+            return process_bool_arg(self.options.get("namespaced_org", False))
+        return bool(ns) and ns == self.org_config.namespace
 
     def _get_package_zip(self, path):
-        # Build the zip file
-        zip_bytes = io.BytesIO()
-        zipf = zipfile.ZipFile(zip_bytes, "w", zipfile.ZIP_DEFLATED)
+        assert path, f"Path should be specified for {self.__class__.name}"
+        if not pathlib.Path(path).exists():
+            self.logger.warning(f"{path} not found.")
+            return
+        namespace = self.options["namespace_inject"]
+        options = {
+            **self.options,
+            "clean_meta_xml": process_bool_arg(
+                self.options.get("clean_meta_xml", True)
+            ),
+            "namespace_inject": namespace,
+            "unmanaged": not self._has_namespaced_package(namespace),
+            "namespaced_org": self._is_namespaced_org(namespace),
+        }
 
-        with cd(path):
-            for file_to_package in self._get_files_to_package():
-                zipf.write(file_to_package)
-
-        zipf.close()
-
-        zipf_processed = self._process_zip_file(zipfile.ZipFile(zip_bytes))
-        fp = zipf_processed.fp
-        zipf_processed.close()
-        return base64.b64encode(fp.getvalue()).decode("utf-8")
-
-    def _process_zip_file(self, zipf):
-        zipf = self._process_namespace(zipf)
-        zipf = self._process_meta_xml(zipf)
-        zipf = self._process_static_resources(zipf)
-        return zipf
-
-    def _process_namespace(self, zipf):
-        if self.options.get("namespace_inject"):
-            managed = not process_bool_arg(self.options.get("unmanaged", True))
-            if managed:
-                self.logger.info(
-                    "Replacing namespace tokens from metadata with namespace prefix {}__".format(
-                        self.options["namespace_inject"]
-                    )
-                )
-            else:
-                self.logger.info(
-                    "Stripping namespace tokens from metadata for unmanaged deployment"
-                )
-            zipf = process_text_in_zipfile(
-                zipf,
-                functools.partial(
-                    inject_namespace,
-                    namespace=self.options["namespace_inject"],
-                    managed=managed,
-                    namespaced_org=process_bool_arg(
-                        self.options.get("namespaced_org", False)
-                    ),
-                    logger=self.logger,
-                ),
-            )
-        if self.options.get("namespace_strip"):
-            zipf = process_text_in_zipfile(
-                zipf,
-                functools.partial(
-                    strip_namespace,
-                    namespace=self.options["namespace_strip"],
-                    logger=self.logger,
-                ),
-            )
-        return zipf
-
-    def _process_meta_xml(self, zipf):
-        if not process_bool_arg(self.options.get("clean_meta_xml", True)):
-            return zipf
-
-        self.logger.info(
-            "Cleaning meta.xml files of packageVersion elements for deploy"
+        package_zip = MetadataPackageZipBuilder(
+            path=path, options=options, logger=self.logger
         )
-        zipf = zip_clean_metaxml(zipf, logger=self.logger)
-        return zipf
-
-    def _process_static_resources(self, zip_src):
-        relpath = self.options.get("static_resource_path")
-        if not relpath or not os.path.exists(relpath):
-            return zip_src
-        path = os.path.realpath(relpath)
-
-        # We need to build a new zip file so that we can replace package.xml
-        zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-        for name in zip_src.namelist():
-            if name == "package.xml":
-                package_xml = zip_src.open(name)
-            else:
-                content = zip_src.read(name)
-                zip_dest.writestr(name, content)
-
-        # Build static resource bundles and add to package zip
-        with temporary_dir():
-            os.mkdir("staticresources")
-            bundles = []
-            for name in os.listdir(path):
-                bundle_relpath = os.path.join(relpath, name)
-                bundle_path = os.path.join(path, name)
-                if not os.path.isdir(bundle_path):
-                    continue
-                self.logger.info(
-                    "Zipping {} to add to staticresources".format(bundle_relpath)
-                )
-
-                # Add resource-meta.xml file
-                meta_name = "{}.resource-meta.xml".format(name)
-                meta_path = os.path.join(path, meta_name)
-                with open(meta_path, "rb") as f:
-                    zip_dest.writestr("staticresources/{}".format(meta_name), f.read())
-
-                # Add bundle
-                zip_path = os.path.join("staticresources", "{}.resource".format(name))
-                with open(zip_path, "wb") as bundle_fp:
-                    bundle_zip = zipfile.ZipFile(bundle_fp, "w", zipfile.ZIP_DEFLATED)
-                    with cd(bundle_path):
-                        for resource_file in self._get_static_resource_files():
-                            bundle_zip.write(resource_file)
-                    bundle_zip.close()
-                zip_dest.write(zip_path)
-                bundles.append(name)
-
-        # Update package.xml
-        Package = metadata_tree.parse(package_xml)
-        sections = Package.findall("types", name="StaticResource")
-        section = sections[0] if sections else None
-        if not section:
-            section = Package.append("types")
-            section.append("name", text="StaticResource")
-        for name in bundles:
-            section.insert_before(section.find("name"), tag="members", text=name)
-        package_xml = Package.tostring(xml_declaration=True)
-        zip_dest.writestr("package.xml", package_xml)
-        return zip_dest
+        if not package_zip.zf.namelist():
+            return
+        return package_zip.as_base64()
 
     def freeze(self, step):
         steps = super(Deploy, self).freeze(step)

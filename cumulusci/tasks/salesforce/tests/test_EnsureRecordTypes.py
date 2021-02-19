@@ -22,6 +22,7 @@ OPPORTUNITY_METADATA = """<?xml version="1.0" encoding="utf-8"?>
         <active>true</active>
         <businessProcess>NPSP_Default</businessProcess>
         <label>NPSP Default</label>
+        <description></description>
     </recordTypes>
 </CustomObject>
 """
@@ -41,6 +42,7 @@ CASE_METADATA = """<?xml version="1.0" encoding="utf-8"?>
         <active>true</active>
         <businessProcess>NPSP_Default</businessProcess>
         <label>NPSP Default</label>
+        <description>The first 255 characters of record_type_descirption option-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</description>
     </recordTypes>
 </CustomObject>
 """
@@ -53,6 +55,7 @@ ACCOUNT_METADATA = """<?xml version="1.0" encoding="utf-8"?>
         <active>true</active>
         
         <label>NPSP Default</label>
+        <description>Default Account Record Type created by NPSP.</description>
     </recordTypes>
 </CustomObject>
 """  # noqa: W293
@@ -151,6 +154,7 @@ class TestEnsureRecordTypes(unittest.TestCase):
         self.assertNotIn("stage_name", task.options)
 
     def test_generates_record_type_and_business_process(self):
+        # Asserts Record Type Description is optional.
         task = create_task(
             EnsureRecordTypes,
             {
@@ -171,17 +175,20 @@ class TestEnsureRecordTypes(unittest.TestCase):
             task._build_package()
             with open(os.path.join("objects", "Opportunity.object"), "r") as f:
                 opp_contents = f.read()
+                self.assertEqual(OPPORTUNITY_METADATA, opp_contents)
                 self.assertMultiLineEqual(OPPORTUNITY_METADATA, opp_contents)
             with open(os.path.join("package.xml"), "r") as f:
                 pkg_contents = f.read()
                 self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
 
     def test_generates_record_type_and_business_process__case(self):
+        # Asserts Record Type Description is added and truncated to 255 characters.
         task = create_task(
             EnsureRecordTypes,
             {
                 "record_type_developer_name": "NPSP_Default",
                 "record_type_label": "NPSP Default",
+                "record_type_description": "The first 255 characters of record_type_descirption option-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------Everything past here is more than 255 characters",
                 "sobject": "Case",
             },
         )
@@ -201,11 +208,13 @@ class TestEnsureRecordTypes(unittest.TestCase):
                 self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
 
     def test_generates_record_type_only(self):
+        # Asserts Record Type Description is added when the Description is less than 255 characters.
         task = create_task(
             EnsureRecordTypes,
             {
                 "record_type_developer_name": "NPSP_Default",
                 "record_type_label": "NPSP Default",
+                "record_type_description": "Default Account Record Type created by NPSP.",
                 "sobject": "Account",
             },
         )
@@ -243,6 +252,34 @@ class TestEnsureRecordTypes(unittest.TestCase):
 
         self.assertFalse(task.options["generate_business_process"])
         self.assertFalse(task.options["generate_record_type"])
+
+    def test_second_rt_if_force_create(self):
+        # Asserts a second Record Type is added even when RTs already exist when force_create is True
+        task = create_task(
+            EnsureRecordTypes,
+            {
+                "record_type_developer_name": "NPSP_Default",
+                "record_type_label": "NPSP Default",
+                "record_type_description": "Default Account Record Type created by NPSP.",
+                "sobject": "Account",
+                "force_create": True,
+            },
+        )
+
+        task.sf = mock.Mock()
+        task.sf.Account = mock.Mock()
+        # no impact from using opp describe; it's simply representing Record Types as present
+        task.sf.Account.describe = mock.Mock(return_value=OPPORTUNITY_DESCRIBE_WITH_RTS)
+        task._infer_requirements()
+
+        with temporary_dir():
+            task._build_package()
+            with open(os.path.join("objects", "Account.object"), "r") as f:
+                obj_contents = f.read()
+                self.assertMultiLineEqual(ACCOUNT_METADATA, obj_contents)
+            with open(os.path.join("package.xml"), "r") as f:
+                pkg_contents = f.read()
+                self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
 
     def test_executes_deployment(self):
         task = create_task(

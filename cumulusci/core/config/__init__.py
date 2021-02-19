@@ -40,6 +40,9 @@ from cumulusci.core.config.BaseTaskFlowConfig import BaseTaskFlowConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 
 # inherit from OrgConfig
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
+
+# inherit from SfdxOrgConfig
 from cumulusci.core.config.ScratchOrgConfig import ScratchOrgConfig
 
 # inherit from BaseProjectConfig
@@ -56,6 +59,7 @@ __all__ = (
     "TaskConfig",
     "BaseTaskFlowConfig",
     "BaseProjectConfig",
+    "SfdxOrgConfig",
     "ScratchOrgConfig",
     "UniversalConfig",
 )

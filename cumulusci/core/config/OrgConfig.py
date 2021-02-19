@@ -1,23 +1,31 @@
 from collections import defaultdict
+from collections import namedtuple
 from distutils.version import StrictVersion
 import os
 import re
 from contextlib import contextmanager
 from urllib.parse import urlparse
-from cumulusci.utils.fileutils import open_fs_resource
 
 import requests
 from simple_salesforce import Salesforce
+from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotFound
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.exceptions import SalesforceCredentialsException, CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.oauth.salesforce import jwt_session
+from cumulusci.utils.fileutils import open_fs_resource
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
 SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
 MYDOMAIN_RE = re.compile(r"\.my\.(.*)salesforce\.com")
+
+
+VersionInfo = namedtuple("VersionInfo", ["id", "number"])
 
 
 class OrgConfig(BaseConfig):
@@ -32,10 +40,10 @@ class OrgConfig(BaseConfig):
 
         self.name = name
         self._community_info_cache = {}
-        self._client = None
         self._latest_api_version = None
         self._installed_packages = None
         self._is_person_accounts_enabled = None
+        self._multiple_currencies_is_enabled = False
         super(OrgConfig, self).__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
@@ -49,15 +57,16 @@ class OrgConfig(BaseConfig):
 
         Also refreshes user and org info that is cached in the org config.
         """
-        # invalidate memoized simple-salesforce client with old token
-        self._client = None
-
         if not SKIP_REFRESH:
             SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
             if SFDX_CLIENT_ID and SFDX_HUB_KEY:
                 info = jwt_session(
-                    SFDX_CLIENT_ID, SFDX_HUB_KEY, self.username, self.instance_url
+                    SFDX_CLIENT_ID,
+                    SFDX_HUB_KEY,
+                    self.username,
+                    self.instance_url,
+                    auth_url=self.id,
                 )
             else:
                 info = self._refresh_token(keychain, connected_app)
@@ -98,7 +107,7 @@ class OrgConfig(BaseConfig):
             raise SalesforceCredentialsException(
                 f"Error refreshing OAuth token: {resp.text}"
             )
-        return resp.json()
+        return safe_json_from_response(resp)
 
     @property
     def lightning_base_url(self):
@@ -112,14 +121,11 @@ class OrgConfig(BaseConfig):
 
     @property
     def salesforce_client(self):
-        if not self._client:
-            self._client = Salesforce(
-                instance=self.instance_url.replace("https://", ""),
-                session_id=self.access_token,
-                version=self.latest_api_version,
-            )
-
-        return self._client
+        return Salesforce(
+            instance=self.instance_url.replace("https://", ""),
+            session_id=self.access_token,
+            version=self.latest_api_version,
+        )
 
     @property
     def latest_api_version(self):
@@ -128,7 +134,13 @@ class OrgConfig(BaseConfig):
             response = requests.get(
                 self.instance_url + "/services/data", headers=headers
             )
-            self._latest_api_version = str(response.json()[-1]["version"])
+            try:
+                version = safe_json_from_response(response)[-1]["version"]
+            except (KeyError, IndexError, TypeError):
+                raise CumulusCIException(
+                    f"Cannot decode API Version `{response.text[0:100]}``"
+                )
+            self._latest_api_version = str(version)
 
         return self._latest_api_version
 
@@ -165,7 +177,8 @@ class OrgConfig(BaseConfig):
             self.instance_url + "/services/oauth2/userinfo", headers=headers
         )
         if response != self.config.get("userinfo", {}):
-            self.config.update({"userinfo": response.json()})
+            config_data = safe_json_from_response(response)
+            self.config.update({"userinfo": config_data})
 
     def can_delete(self):
         return False
@@ -177,6 +190,7 @@ class OrgConfig(BaseConfig):
             "org_type": self._org_sobject["OrganizationType"],
             "is_sandbox": self._org_sobject["IsSandbox"],
             "instance_name": self._org_sobject["InstanceName"],
+            "namespace": self._org_sobject["NamespacePrefix"],
         }
         self.config.update(result)
 
@@ -234,7 +248,7 @@ class OrgConfig(BaseConfig):
                 f"packages are installed that match this identifier."
             )
 
-        return installed_version[0] >= version_identifier
+        return installed_version[0].number >= version_identifier
 
     @property
     def installed_packages(self):
@@ -246,29 +260,42 @@ class OrgConfig(BaseConfig):
         namespace or 033 Id of the desired package and its version, in 1.2.3 format.
 
         Beta version of a package are represented as "1.2.3b5", where 5 is the build number."""
-        if not self._installed_packages:
-            response = self.salesforce_client.restful(
-                "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, SubscriberPackageVersion.MajorVersion, "
-                "SubscriberPackageVersion.MinorVersion, SubscriberPackageVersion.PatchVersion,  "
-                "SubscriberPackageVersion.BuildNumber, SubscriberPackageVersion.IsBeta "
-                "FROM InstalledSubscriberPackage"
+        if self._installed_packages is None:
+            isp_result = self.salesforce_client.restful(
+                "tooling/query/?q=SELECT SubscriberPackage.Id, SubscriberPackage.NamespacePrefix, "
+                "SubscriberPackageVersionId FROM InstalledSubscriberPackage"
             )
+            _installed_packages = defaultdict(list)
+            for isp in isp_result["records"]:
+                sp = isp["SubscriberPackage"]
+                try:
+                    spv_result = self.salesforce_client.restful(
+                        "tooling/query/?q=SELECT Id, MajorVersion, MinorVersion, PatchVersion, BuildNumber, "
+                        f"IsBeta FROM SubscriberPackageVersion WHERE Id='{isp['SubscriberPackageVersionId']}'"
+                    )
+                except SalesforceError as err:
+                    self.logger.warning(
+                        f"Ignoring error while trying to check installed package {isp['SubscriberPackageVersionId']}: {err.content}"
+                    )
+                    continue
+                if not spv_result["records"]:
+                    # This _shouldn't_ happen, but it is possible in customer orgs.
+                    continue
+                spv = spv_result["records"][0]
 
-            self._installed_packages = defaultdict(list)
-            for package in response["records"]:
-                sp = package["SubscriberPackage"]
-                spv = package["SubscriberPackageVersion"]
-                # PatchVersion is a 0 on a non-patch version.
-                version = (
-                    f"{spv['MajorVersion']}.{spv['MinorVersion']}.{spv['PatchVersion']}"
-                )
+                version = f"{spv['MajorVersion']}.{spv['MinorVersion']}"
+                if spv["PatchVersion"]:
+                    version += f".{spv['PatchVersion']}"
                 if spv["IsBeta"]:
                     version += f"b{spv['BuildNumber']}"
-                self._installed_packages[sp["NamespacePrefix"]].append(
-                    StrictVersion(version)
-                )
-                self._installed_packages[sp["Id"]].append(StrictVersion(version))
+                version_info = VersionInfo(spv["Id"], StrictVersion(version))
+                namespace = sp["NamespacePrefix"]
+                _installed_packages[namespace].append(version_info)
+                namespace_version = f"{namespace}@{version}"
+                _installed_packages[namespace_version].append(version_info)
+                _installed_packages[sp["Id"]].append(version_info)
 
+            self._installed_packages = _installed_packages
         return self._installed_packages
 
     def reset_installed_packages(self):
@@ -329,3 +356,158 @@ class OrgConfig(BaseConfig):
                 for field in self.salesforce_client.Account.describe()["fields"]
             )
         return self._is_person_accounts_enabled
+
+    @property
+    def is_multiple_currencies_enabled(self):
+        """
+        Returns if the org has `Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ enabled by checking if the `CurrencyType <https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_currencytype.htm>`_ Sobject is exposed.
+
+
+        **Notes**
+
+        - Multiple Currencies cannot be disabled once enabled.
+        - Enabling `Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ exposes both the `CurrencyType <https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_currencytype.htm>`_ and the `DatedConversionRate <https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_datedconversionrate.htm>`_ Sobjects.
+
+        **Enable Multiple Currencies programatically**
+
+        `Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ can be enabled with Metadata API by updating the org's `CurrencySettings <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_currencysettings.htm>`_ as the following:
+
+        .. code-block:: xml
+
+            <?xml version="1.0" encoding="UTF-8"?>
+            <CurrencySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+                <!-- Enables Multiple Currencies -->
+                <enableMultiCurrency>true</enableMultiCurrency>
+            </CurrencySettings>
+
+        **Example**
+
+        Selectively run a task in a flow only if Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ is or is not enabled.
+
+        .. code-block:: yaml
+
+            flows:
+                load_storytelling_data:
+                    steps:
+                        1:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/with_multiple_currencies/mapping.yml
+                                sql_path: datasets/with_multiple_currencies/data.sql
+                            when: org_config.is_multiple_currencies_enabled
+                        2:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/without_multple_currencies/mapping.yml
+                                sql_path: datasets/without_multple_currencies/data.sql
+                            when: not org_config.is_multiple_currencies_enabled
+
+        """
+        # When Multiple Currencies is enabled, the CurrencyType Sobject is exposed.
+        # If Mutiple Currencies is not enabled:
+        # - CurrencyType Sobject is not exposed.
+        # - simple_salesforce raises a SalesforceResourceNotFound exception when trying to describe CurrencyType.
+        # NOTE: Multiple Currencies can be enabled through Metadata API by setting CurrencySettings.enableMultiCurrency as "true". Therefore, we should try to dynamically check if Multiple Currencies is enabled.
+        # NOTE: Once enabled, Multiple Currenies cannot be disabled.
+        if not self._multiple_currencies_is_enabled:
+            try:
+                # Multiple Currencies is enabled if CurrencyType can be described (implying the Sobject is exposed).
+                self.salesforce_client.CurrencyType.describe()
+                self._multiple_currencies_is_enabled = True
+            except SalesforceResourceNotFound:
+                # CurrencyType Sobject is not exposed meaning Multiple Currencies is not enabled.
+                # Keep self._multiple_currencies_is_enabled False.
+                pass
+        return self._multiple_currencies_is_enabled
+
+    @property
+    def is_advanced_currency_management_enabled(self):
+        """
+        Returns if the org has `Advanced Currency Management (ACM) <https://help.salesforce.com/articleView?id=administration_enable_advanced_currency_management.htm>`_ enabled by checking if both:
+
+        - `Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ is enabled (which exposes the ``DatedConversionRate`` Sobject).
+        - ``DatedConversionRate`` is createable.
+
+        **Notes**
+
+        - If Advanced Currency Management (ACM) is disabled, ``DatedConversionRate`` is no longer createable.
+        - Multiple Currencies cannot be disabled once enabled.
+
+        **Enable Advanced Currency Managment (ACM) programatically**
+
+        `Advanced Currency Management (ACM) <https://help.salesforce.com/articleView?id=administration_enable_advanced_currency_management.htm>`_ can be enabled with Metadata API by updating the org's `CurrencySettings <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_currencysettings.htm>`_ as the following:
+
+        .. code-block:: xml
+
+            <?xml version="1.0" encoding="UTF-8"?>
+            <CurrencySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+                <!-- Enables Multiple Currencies -->
+                <enableMultiCurrency>true</enableMultiCurrency>
+
+                <!-- Enables Advanced Currency Management (ACM) -->
+                <enableCurrencyEffectiveDates>true</enableCurrencyEffectiveDates>
+            </CurrencySettings>
+
+        **Example**
+
+        Selectively run a task in a flow only if `Advanced Currency Management (ACM) <https://help.salesforce.com/articleView?id=administration_enable_advanced_currency_management.htm>`_ is or is not enabled.
+
+        .. code-block:: yaml
+
+            flows:
+                load_storytelling_data:
+                    steps:
+                        1:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/with_acm/mapping.yml
+                                sql_path: datasets/with_acm/data.sql
+                            when: org_config.is_advanced_currency_management_enabled
+                        2:
+                            task: load_dataset
+                            options:
+                                mapping: datasets/without_acm/mapping.yml
+                                sql_path: datasets/without_acm/data.sql
+                            when: not org_config.is_advanced_currency_management_enabled
+
+        """
+        # NOTE: Advanced Currency Management (ACM) can be enabled via Metadata API by setting:
+        # - CurrencySettings.enableMultiCurrency as "true" to enable Multiple Currencies.
+        # - CurrencySettings.enableCurrencyEffectiveDates as "true" to enable Advanced Currency Management (ACM).
+        # NOTE: Once enabled, Multiple Currenies cannot be disabled.
+        # Avdanced Currency Management (ACM) is enabled if:
+        # - Multiple Currencies is enabled (which exposes the DatedConversionRate Sobject)
+        # - DatedConversionRate Sobject is createable.
+        # Advanced Currency Management (ACM) can be disabled, and if so, DatedConversionRate Sobject will no longer be createable.
+        try:
+            # Always check the describe since ACM can be disabled.
+            return self.salesforce_client.DatedConversionRate.describe()["createable"]
+        except SalesforceResourceNotFound:
+            # DatedConversionRate Sobject is not exposed meaning Multiple Currencies is not enabled.
+            return False
+
+    def resolve_04t_dependencies(self, dependencies):
+        """Look up 04t SubscriberPackageVersion ids for 1gp project dependencies"""
+        new_dependencies = []
+        for dependency in dependencies:
+            dependency = {**dependency}
+
+            if "namespace" in dependency:
+                # get the SubscriberPackageVersion id
+                key = f"{dependency['namespace']}@{dependency['version']}"
+                version_info = self.installed_packages.get(key)
+                if version_info:
+                    dependency["version_id"] = version_info[0].id
+                else:
+                    raise DependencyResolutionError(
+                        f"Could not find 04t id for package {key} in org {self.name}"
+                    )
+
+            # recurse
+            if "dependencies" in dependency:
+                dependency["dependencies"] = self.resolve_04t_dependencies(
+                    dependency["dependencies"]
+                )
+
+            new_dependencies.append(dependency)
+        return new_dependencies

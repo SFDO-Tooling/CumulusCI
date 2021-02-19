@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import date, timedelta
+import io
 import os
 import json
 import shutil
@@ -6,9 +7,10 @@ import random
 import string
 import unittest
 from unittest import mock
+import tempfile
 
 import responses
-from sqlalchemy import Column, Table, Unicode
+from sqlalchemy import Column, Table, Unicode, create_engine
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import LoadData
@@ -17,52 +19,21 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationJobResult,
     DataOperationType,
     DataOperationStatus,
-    BaseDmlOperation,
     DataApi,
 )
-from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.tasks.bulkdata.tests.test_utils import mock_describe_calls
+from cumulusci.tasks.bulkdata.tests.utils import (
+    _make_task,
+    FakeBulkAPI,
+    FakeBulkAPIDmlOperation,
+)
 from cumulusci.utils import temporary_dir
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
+from cumulusci.tests.util import (
+    assert_max_memory_usage,
+    mock_describe_calls,
+)
 
-
-class MockBulkApiDmlOperation(BaseDmlOperation):
-    def __init__(
-        self, *, context, sobject=None, operation=None, api_options=None, fields=None
-    ):
-        super().__init__(
-            sobject=sobject,
-            operation=operation,
-            api_options=api_options,
-            context=context,
-            fields=fields,
-        )
-        self._results = []
-        self.records = []
-
-    def start(self):
-        self.job_id = "JOB"
-
-    def end(self):
-        records_processed = len(self.results)
-        self.job_result = DataOperationJobResult(
-            DataOperationStatus.SUCCESS, [], records_processed, 0
-        )
-
-    def load_records(self, records):
-        self.records.extend(records)
-
-    def get_results(self):
-        return iter(self.results)
-
-    @property
-    def results(self):
-        return self._results
-
-    @results.setter
-    def results(self, results):
-        self._results = results
-        self.end()
+from cumulusci.utils.backports.py36 import nullcontext
 
 
 class TestLoadData(unittest.TestCase):
@@ -99,7 +70,7 @@ class TestLoadData(unittest.TestCase):
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
 
-            step = MockBulkApiDmlOperation(
+            step = FakeBulkAPIDmlOperation(
                 sobject="Contact",
                 operation=DataOperationType.INSERT,
                 api_options={},
@@ -122,14 +93,9 @@ class TestLoadData(unittest.TestCase):
                 ["Test", "User", "test@example.com", "001000000000000"],
                 ["Error", "User", "error@example.com", "001000000000000"],
             ]
-
-            hh_ids = task.session.query(
-                *task.metadata.tables["households_sf_ids"].columns
-            ).one()
-            assert hh_ids == ("1", "001000000000000")
-
-            task.session.close()
-            task.engine.dispose()
+            with create_engine(task.options["database_url"]).connect() as c:
+                hh_ids = next(c.execute("SELECT * from households_sf_ids"))
+                assert hh_ids == ("1", "001000000000000")
 
     def test_run_task__start_step(self):
         task = _make_task(
@@ -142,7 +108,7 @@ class TestLoadData(unittest.TestCase):
                 }
             },
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task.mapping = {}
         task.mapping["Insert Households"] = MappingStep(sf_object="one", fields={})
@@ -161,7 +127,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
         task.mapping = {}
@@ -187,7 +153,7 @@ class TestLoadData(unittest.TestCase):
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
         task.mapping = {}
@@ -228,7 +194,7 @@ class TestLoadData(unittest.TestCase):
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -249,11 +215,6 @@ class TestLoadData(unittest.TestCase):
             ["Test☃", "User", "test@example.com", "001000000000000"],
             ["Error", "User", "error@example.com", "001000000000000"],
         ]
-
-        hh_ids = task.session.query(
-            *task.metadata.tables["households_sf_ids"].columns
-        ).one()
-        assert hh_ids == ("1", "001000000000000")
 
     def test_init_options__missing_input(self):
         with self.assertRaises(TaskOptionsError):
@@ -440,61 +401,46 @@ class TestLoadData(unittest.TestCase):
             ]
         )
 
-        local_ids = []
+        with tempfile.TemporaryFile("w+t") as local_ids:
+            records = list(
+                task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
+            )
+            self.assertEqual(
+                [["001000000005", "001000000007"], ["001000000006", "001000000008"]],
+                records,
+            )
+
+    @responses.activate
+    def test_stream_queried_data__adjusts_relative_dates(self):
+        mock_describe_calls()
+        task = _make_task(
+            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
+        )
+        task.sf = mock.Mock()
+
+        mapping = MappingStep(
+            sf_object="Contact",
+            action="insert",
+            fields=["Birthdate"],
+            anchor_date="2020-07-01",
+        )
+
+        task._query_db = mock.Mock()
+        task._query_db.return_value.yield_per = mock.Mock(
+            return_value=[
+                # Local Id, Loaded Id, EmailBouncedDate
+                ["001000000001", "2020-07-10"],
+                ["001000000003", None],
+            ]
+        )
+
+        local_ids = io.StringIO()
         records = list(
             task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
         )
         self.assertEqual(
-            [["001000000005", "001000000007"], ["001000000006", "001000000008"]],
+            [[(date.today() + timedelta(days=9)).isoformat()], [None]],
             records,
-        )
-
-    def test_get_columns(self):
-        task = _make_task(
-            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
-        )
-
-        fields = {}
-        fields["Id"] = "sf_id"
-        fields["Name"] = "Name"
-
-        self.assertEqual(
-            ["Name", "Industry", "RecordTypeId"],
-            task._get_columns(
-                MappingStep(
-                    sf_object="Account",
-                    fields=fields,
-                    static={"Industry": "Technology"},
-                    record_type="Organization",
-                )
-            ),
-        )
-        self.assertEqual(
-            ["Id", "Name", "Industry", "RecordTypeId"],
-            task._get_columns(
-                MappingStep(
-                    sf_object="Account",
-                    action=DataOperationType.UPDATE,
-                    fields=fields,
-                    static={"Industry": "Technology"},
-                    record_type="Organization",
-                )
-            ),
-        )
-
-        fields["RecordTypeId"] = "recordtypeid"
-        fields["AccountSite"] = "accountsite"
-
-        self.assertEqual(
-            ["Id", "Name", "AccountSite", "Industry", "RecordTypeId"],
-            task._get_columns(
-                MappingStep(
-                    sf_object="Account",
-                    action=DataOperationType.UPDATE,
-                    fields=fields,
-                    static={"Industry": "Technology"},
-                )
-            ),
         )
 
     def test_get_statics(self):
@@ -841,27 +787,22 @@ class TestLoadData(unittest.TestCase):
         # Validate person contact records were not filtered out
         task._filter_out_person_account_records.assert_not_called()
 
-    def test_convert(self):
-        task = _make_task(
-            LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
-        )
-        self.assertIsInstance(task._convert(datetime.now()), str)
-
     def test_initialize_id_table__already_exists(self):
         task = _make_task(
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
         task.mapping = {}
-        task._init_db()
-        id_table = Table(
-            "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
-        )
-        id_table.create()
-        task._initialize_id_table({"table": "test"}, True)
-        new_id_table = task.metadata.tables["test_sf_ids"]
-        self.assertFalse(new_id_table is id_table)
+        with task._init_db():
+            id_table = Table(
+                "test_sf_ids",
+                task.metadata,
+                Column("id", Unicode(255), primary_key=True),
+            )
+            id_table.create()
+            task._initialize_id_table({"table": "test"}, True)
+            new_id_table = task.metadata.tables["test_sf_ids"]
+            self.assertFalse(new_id_table is id_table)
 
     def test_initialize_id_table__already_exists_and_should_not_reset_table(self):
         task = _make_task(
@@ -869,22 +810,24 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
         task.mapping = {}
-        task._init_db()
-        id_table = Table(
-            "test_sf_ids", task.metadata, Column("id", Unicode(255), primary_key=True)
-        )
-        id_table.create()
-        table_name = task._initialize_id_table({"table": "test"}, False)
-        assert table_name == "test_sf_ids"
-        new_id_table = task.metadata.tables["test_sf_ids"]
-        assert new_id_table is id_table
+        with task._init_db():
+            id_table = Table(
+                "test_sf_ids",
+                task.metadata,
+                Column("id", Unicode(255), primary_key=True),
+            )
+            id_table.create()
+            table_name = task._initialize_id_table({"table": "test"}, False)
+            assert table_name == "test_sf_ids"
+            new_id_table = task.metadata.tables["test_sf_ids"]
+            assert new_id_table is id_table
 
     def test_run_task__exception_failure(self):
         task = _make_task(
             LoadData,
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
-        task._init_db = mock.Mock()
+        task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._execute_step = mock.Mock(
             return_value=DataOperationJobResult(
@@ -910,7 +853,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -948,7 +891,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1", "2", "3", "4"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -989,7 +932,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1020,7 +963,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.UPDATE,
             api_options={},
@@ -1079,7 +1022,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1141,7 +1084,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1203,7 +1146,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1265,7 +1208,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1325,7 +1268,7 @@ class TestLoadData(unittest.TestCase):
 
         local_ids = ["1"]
 
-        step = MockBulkApiDmlOperation(
+        step = FakeBulkAPIDmlOperation(
             sobject="Contact",
             operation=DataOperationType.INSERT,
             api_options={},
@@ -1549,11 +1492,11 @@ class TestLoadData(unittest.TestCase):
 
         task._init_mapping()
         task.mapping["Insert Households"]["fields"]["RecordTypeId"] = "RecordTypeId"
-        task._init_db()
-        task._create_record_type_table.assert_called_once_with(
-            "Account_rt_target_mapping"
-        )
-        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists.assert_called_once_with()
+        with task._init_db():
+            task._create_record_type_table.assert_called_once_with(
+                "Account_rt_target_mapping"
+            )
+            task._validate_org_has_person_accounts_enabled_if_person_account_data_exists.assert_called_once_with()
 
     def test_load_record_types(self):
         task = _make_task(
@@ -1600,7 +1543,7 @@ class TestLoadData(unittest.TestCase):
             )
             task.bulk = mock.Mock()
             task.sf = mock.Mock()
-            step = MockBulkApiDmlOperation(
+            step = FakeBulkAPIDmlOperation(
                 sobject="Contact",
                 operation=DataOperationType.INSERT,
                 api_options={},
@@ -1624,12 +1567,9 @@ class TestLoadData(unittest.TestCase):
                 ["Error", "User", "error@example.com", "001000000000000"],
             ]
 
-            hh_ids = task.session.query(
-                *task.metadata.tables["households_sf_ids"].columns
-            ).one()
-            assert hh_ids == ("1", "001000000000000")
-
-            task.session.close()
+            with create_engine(task.options["database_url"]).connect() as c:
+                hh_ids = next(c.execute("SELECT * from households_sf_ids"))
+                assert hh_ids == ("1", "001000000000000")
 
     @responses.activate
     def test_run__complex_lookups(self):
@@ -2003,14 +1943,15 @@ class TestLoadData(unittest.TestCase):
 
             self.assertEqual(expected, actual, f"columns: {columns}")
 
-    def test_filter_out_person_account_records(self):
+    @mock.patch("cumulusci.tasks.bulkdata.load.func.lower")
+    def test_filter_out_person_account_records(self, lower):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
         )
         model = mock.Mock()
         model.__table__ = mock.Mock()
         IsPersonAccount_column = mock.MagicMock()
-        IsPersonAccount_column.__eq__ = mock.Mock()
+        lower.return_value.__eq__ = mock.Mock()
         columns = {
             "sf_id": mock.Mock(),
             "name": mock.Mock(),
@@ -2026,9 +1967,9 @@ class TestLoadData(unittest.TestCase):
 
         self.assertEqual(expected, actual)
 
-        IsPersonAccount_column.__eq__.assert_called_once_with("false")
+        lower.return_value.__eq__.assert_called_once_with("false")
 
-        query.filter.assert_called_once_with(IsPersonAccount_column.__eq__.return_value)
+        query.filter.assert_called_once_with(lower.return_value.__eq__.return_value)
 
     def test_generate_contact_id_map_for_person_accounts(self):
         mapping_file = "mapping-oid.yml"
@@ -2225,3 +2166,88 @@ class TestLoadData(unittest.TestCase):
 
         query_result.fetchmany.assert_has_calls(query_result.fetchmany.expected_calls)
         task.sf.query_all.assert_has_calls(task.sf.query_all.expected_calls)
+
+    @responses.activate
+    def test_load_memory_usage(self):
+        responses.add(
+            method="GET",
+            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            body=json.dumps({"records": [{"Id": "1"}]}),
+            status=200,
+        )
+
+        base_path = os.path.dirname(__file__)
+        sql_path = os.path.join(base_path, "testdata.sql")
+        mapping_path = os.path.join(base_path, self.mapping_file)
+
+        with temporary_dir() as d:
+            tmp_sql_path = os.path.join(d, "testdata.sql")
+            shutil.copyfile(sql_path, tmp_sql_path)
+
+            class NetworklessLoadData(LoadData):
+                def _query_db(self, mapping):
+                    if mapping.sf_object == "Account":
+                        return FakeQueryResult(
+                            ((f"{i}",) for i in range(0, numrecords)), numrecords
+                        )
+                    elif mapping.sf_object == "Contact":
+                        return FakeQueryResult(
+                            (
+                                (f"{i}", "Test☃", "User", "test@example.com", 0)
+                                for i in range(0, numrecords)
+                            ),
+                            numrecords,
+                        )
+
+                def _init_task(self):
+                    super()._init_task()
+                    task.bulk = FakeBulkAPI()
+
+            task = _make_task(
+                NetworklessLoadData,
+                {"options": {"sql_path": tmp_sql_path, "mapping": mapping_path}},
+            )
+
+            numrecords = 5000
+
+            class FakeQueryResult:
+                def __init__(self, results, numrecords=None):
+                    self.results = results
+                    if numrecords is None:
+                        numrecords = len(self.results)
+                    self.numrecords = numrecords
+
+                def yield_per(self, number):
+                    return self.results
+
+                def count(self):
+                    return self.numrecords
+
+            mock_describe_calls()
+
+            def get_results(self):
+                return (
+                    DataOperationResult(i, True, None) for i in range(0, numrecords)
+                )
+
+            def _job_state_from_batches(self, job_id):
+                return DataOperationJobResult(
+                    DataOperationStatus.SUCCESS,
+                    [],
+                    numrecords,
+                    0,
+                )
+
+            MEGABYTE = 2 ** 20
+
+            # FIXME: more anlysis about the number below
+            with mock.patch(
+                "cumulusci.tasks.bulkdata.step.BulkJobMixin._job_state_from_batches",
+                _job_state_from_batches,
+            ), mock.patch(
+                "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation.get_results",
+                get_results,
+            ), assert_max_memory_usage(
+                15 * MEGABYTE
+            ):
+                task()

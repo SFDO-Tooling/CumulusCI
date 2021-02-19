@@ -1,17 +1,25 @@
 import os
+import shlex
 import sys
 import subprocess
+from pathlib import Path
 
 from robot import run as robot_run
+from robot import pythonpathsetter
 from robot.testdoc import testdoc
 
-from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
+from cumulusci.core.exceptions import (
+    RobotTestFailure,
+    TaskOptionsError,
+    NamespaceNotFoundError,
+)
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.utils import process_list_arg
 from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.robotframework.debugger import DebugListener
+from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
 class Robot(BaseSalesforceTask):
@@ -29,8 +37,15 @@ class Robot(BaseSalesforceTask):
             "description": "Pass values to override variables in the format VAR1:foo,VAR2:bar"
         },
         "xunit": {"description": "Set an XUnit format output file for test results"},
+        "sources": {
+            "description": "List of sources defined in cumulusci.yml that are required by the robot task.",
+            "required": False,
+        },
         "options": {
-            "description": "A dictionary of options to robot.run method.  See docs here for format.  NOTE: There is no cci CLI support for this option since it requires a dictionary.  Use this option in the cumulusci.yml when defining custom tasks where you can easily create a dictionary in yaml."
+            "description": "A dictionary of options to robot.run method. "
+            "In simple cases this can be specified on the comand line using "
+            "name:value,name:value syntax. More complex cases can be specified "
+            "in cumulusci.yml using YAML dictionary syntax."
         },
         "name": {"description": "Sets the name of the top level test suite"},
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
@@ -47,7 +62,7 @@ class Robot(BaseSalesforceTask):
     def _init_options(self, kwargs):
         super(Robot, self)._init_options(kwargs)
 
-        for option in ("test", "include", "exclude", "vars"):
+        for option in ("test", "include", "exclude", "vars", "sources", "suites"):
             if option in self.options:
                 self.options[option] = process_list_arg(self.options[option])
         if "vars" not in self.options:
@@ -66,24 +81,27 @@ class Robot(BaseSalesforceTask):
             )
 
         # There are potentially many robot options that are or could
-        # be lists, but the only one we currently care about is the
-        # listener option since we may need to append additional values
-        # onto it.
-        for option in ("listener",):
+        # be lists. The only ones we currently care about are the
+        # listener and tagstatexlude options since we may need to
+        # append additional values onto it.
+        for option in ("listener", "tagstatexclude"):
             if option in self.options["options"]:
                 self.options["options"][option] = process_list_arg(
                     self.options["options"][option]
                 )
 
         listeners = self.options["options"].setdefault("listener", [])
-        if process_bool_arg(self.options.get("verbose")):
+
+        if process_bool_arg(self.options.get("verbose") or False):
             listeners.append(KeywordLogger())
 
-        if process_bool_arg(self.options.get("debug")):
+        if process_bool_arg(self.options.get("debug") or False):
             listeners.append(DebugListener())
 
-        if process_bool_arg(self.options.get("pdb")):
+        if process_bool_arg(self.options.get("pdb") or False):
             patch_statusreporter()
+
+        self.options.setdefault("sources", [])
 
     def _run_task(self):
         self.options["vars"].append("org:{}".format(self.org_config.name))
@@ -96,7 +114,39 @@ class Robot(BaseSalesforceTask):
             os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
         )
 
+        options["tagstatexclude"] = options.get(
+            "tagstatexclude", []
+        ) + self.options.get("tagstatexclude", [])
+        options["tagstatexclude"].append("cci_metric_elapsed_time")
+        options["tagstatexclude"].append("cci_metric")
+        # Set as a return value so other things that want to use
+        # this file (e.g. MetaCI) know where it is
+        self.return_values["robot_outputdir"] = options["outputdir"]
+
+        # get_namespace will potentially download sources that have
+        # yet to be downloaded. For these downloaded sources we'll add
+        # the cached directories to PYTHONPATH before running.
+        source_paths = {}
+        for source in self.options["sources"]:
+            try:
+                source_config = self.project_config.get_namespace(source)
+                source_paths[source] = source_config.repo_root
+            except NamespaceNotFoundError:
+                raise TaskOptionsError(f"robot source '{source}' could not be found")
+
+        # replace namespace prefixes with path to cached folder
+        for i, path in enumerate(self.options["suites"]):
+            prefix, _, path = path.rpartition(":")
+            if prefix in source_paths:
+                self.options["suites"][i] = os.path.join(source_paths[prefix], path)
+
         if self.options["processes"] > 1:
+            # Since pabot runs multiple robot processes, and because
+            # those processes aren't cci tasks, we have to set up the
+            # environment to match what we do with a cci task. Specifically,
+            # we need to add the repo root to PYTHONPATH (via the --pythonpath
+            # option). Otherwise robot won't be able to find libraries and
+            # resource files referenced as relative to the repo root
             cmd = [
                 sys.executable,
                 "-m",
@@ -104,6 +154,8 @@ class Robot(BaseSalesforceTask):
                 "--pabotlib",
                 "--processes",
                 str(self.options["processes"]),
+                "--pythonpath",
+                str(self.project_config.repo_root),
             ]
             # We need to convert options to their commandline equivalent
             for option, value in options.items():
@@ -113,12 +165,48 @@ class Robot(BaseSalesforceTask):
                 else:
                     cmd.extend([f"--{option}", str(value)])
 
-            cmd.append(self.options["suites"])
+            # Add each source to pythonpath. Use --pythonpath since
+            # pybot will need to use that option for each process that
+            # it spawns.
+            for path in source_paths.values():
+                cmd.extend(["--pythonpath", path])
+
+            cmd.extend(self.options["suites"])
+            self.logger.info(
+                f"pabot command: {' '.join([shlex.quote(x) for x in cmd])}"
+            )
             result = subprocess.run(cmd)
             num_failed = result.returncode
 
         else:
-            num_failed = robot_run(self.options["suites"], **options)
+            # Save it so that we can restore it later
+            orig_sys_path = sys.path.copy()
+
+            # Add each source to PYTHONPATH. Robot recommends that we
+            # use pythonpathsetter instead of directly setting
+            # sys.path. <shrug>
+            for path in source_paths.values():
+                pythonpathsetter.add_path(path, end=True)
+
+            # Make sure the path to the repo root is on sys.path. Normally
+            # it will be, but if we're running this task from another repo
+            # it might not be.
+            #
+            # Note: we can't just set the pythonpath option; that
+            # option is specifically called out as not being supported
+            # by robot.run. Plus, robot recommends we call a special
+            # function instead of directly modifying sys.path
+            if self.project_config.repo_root not in sys.path:
+                pythonpathsetter.add_path(self.project_config.repo_root)
+
+            try:
+                num_failed = robot_run(*self.options["suites"], **options)
+            finally:
+                sys.path = orig_sys_path
+
+        output_xml = Path(options["outputdir"]) / "output.xml"
+        if num_failed <= 250 and output_xml.exists():
+            log_perf_summary_from_xml(output_xml, self.logger.info)
 
         # These numbers are from the robot framework user guide:
         # http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#return-codes

@@ -8,7 +8,7 @@ from cumulusci.cli.ui import CliTable
 
 class PackageUpload(BaseSalesforceApiTask):
     name = "PackageUpload"
-    api_version = "38.0"
+    api_version = "48.0"
     task_options = {
         "name": {"description": "The name of the package version.", "required": True},
         "production": {
@@ -53,6 +53,7 @@ class PackageUpload(BaseSalesforceApiTask):
         else:
             self._set_package_version_values_on_self()
             self._set_return_values()
+            self._set_dependencies()
             self._log_package_upload_success()
 
     def _set_package_info(self):
@@ -167,6 +168,14 @@ class PackageUpload(BaseSalesforceApiTask):
             "version_id": self.version_id,
             "package_id": self.package_id,
         }
+
+    def _set_dependencies(self):
+        dependencies = self.project_config.get_static_dependencies(
+            self.project_config.project__dependencies
+        )
+        if dependencies:
+            dependencies = self.org_config.resolve_04t_dependencies(dependencies)
+        self.return_values["dependencies"] = dependencies
 
     def _log_package_upload_success(self):
         self.logger.info(

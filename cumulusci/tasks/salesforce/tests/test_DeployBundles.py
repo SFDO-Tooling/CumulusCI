@@ -58,6 +58,7 @@ class TestDeployBundles(unittest.TestCase):
                                         "repo_name": "TestRepo",
                                         "repo_owner": "TestOwner",
                                         "subfolder": "unpackaged/test",
+                                        "namespace_inject": None,
                                     }
                                 ]
                             },

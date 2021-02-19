@@ -12,8 +12,10 @@ from unittest import mock
 import responses
 
 from cumulusci import utils
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import TaskConfig, FlowConfig
+from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
+from cumulusci.tests.util import create_project_config
 
 
 class FunTestTask(BaseTask):
@@ -25,7 +27,7 @@ class FunTestTask(BaseTask):
         "flavor": {
             "description": "What flavor",
             "required": True,
-            "usage": "-o flavor VANILLA",
+            "usage": "--flavor VANILLA",
             "type": "string",
             "default": "chocolate",
         },
@@ -201,15 +203,15 @@ extra docs
 Command Syntax\n------------------------------------------\n
 ``$ cci task run scoop_icecream``\n\n
 Options\n------------------------------------------\n\n
-``-o flavor VANILLA``
+``--flavor VANILLA``
 \t *Required*\n
 \t What flavor\n
 \t Type: string\n
-``-o color COLOR``
+``--color COLOR``
 \t *Optional*\n
 \t What color\n
 \t Default: black\n
-``-o size SIZE``
+``--size SIZE``
 \t *Optional*\n
 \t How big"""
         )
@@ -226,27 +228,27 @@ Options\n------------------------------------------\n\n
         # Required options should be at the front of the list
         assert option_info[0]["required"]
         assert option_info[0]["description"] == "What flavor"
-        assert option_info[0]["usage"] == "-o flavor VANILLA"
+        assert option_info[0]["usage"] == "--flavor VANILLA"
         assert option_info[0]["name"] == "flavor"
         assert option_info[0]["option_type"] == "string"
         assert option_info[0]["default"] is None
 
         assert not option_info[1]["required"]
         assert option_info[1]["default"] == "black"
-        assert option_info[1]["usage"] == "-o color COLOR"
+        assert option_info[1]["usage"] == "--color COLOR"
 
         assert not option_info[2]["required"]
         assert option_info[2]["default"] is None
-        assert option_info[2]["usage"] == "-o size SIZE"
+        assert option_info[2]["usage"] == "--size SIZE"
 
     def test_get_option_usage_string(self, option_info):
         name = option_info[0]["name"]
         usage_str1 = utils.get_option_usage_string(name, option_info[0])
-        assert usage_str1 == "-o option_one OPTIONONE"
+        assert usage_str1 == "--option_one OPTIONONE"
 
         name = option_info[1]["name"]
         usage_str2 = utils.get_option_usage_string(name, option_info[1])
-        assert usage_str2 == "-o option_two OPTIONTWO"
+        assert usage_str2 == "--option_two OPTIONTWO"
 
     def test_create_task_options_doc(self, option_info):
         option_one_doc = utils.create_task_options_doc(option_info[:1])
@@ -260,6 +262,45 @@ Options\n------------------------------------------\n\n
         ]
 
         assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
+
+    def test_document_flow(self):
+        project_config = create_project_config("TestOwner", "TestRepo")
+        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+        coordinator = FlowCoordinator(project_config, flow_config, name="test_flow")
+        flow_doc = utils.document_flow("test flow", "test description.", coordinator)
+
+        expected_doc = (
+            "test flow"
+            "\n^^^^^^^^^\n"
+            "\n**Description:** test description.\n"
+            "\n**Flow Steps**\n"
+            "\n.. code-block:: console\n"
+        )
+
+        assert expected_doc == flow_doc
+
+    def test_document_flow__additional_info(self):
+        flow_steps = ["1) (Task) Extract"]
+        flow_coordinator = mock.Mock(get_flow_steps=mock.Mock(return_value=flow_steps))
+        other_info = "**this is** just some rst ``formatted`` text."
+
+        flow_doc = utils.document_flow(
+            "test flow",
+            "test description.",
+            flow_coordinator,
+            additional_info=other_info,
+        )
+
+        expected_doc = (
+            "test flow"
+            "\n^^^^^^^^^\n"
+            "\n**Description:** test description.\n"
+            f"\n{other_info}"
+            "\n**Flow Steps**\n"
+            "\n.. code-block:: console\n"
+            "\n\t1) (Task) Extract"
+        )
+        assert expected_doc == flow_doc
 
     @responses.activate
     def test_download_extract_zip(self):

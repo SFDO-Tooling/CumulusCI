@@ -1,4 +1,7 @@
 import csv
+import itertools
+from contextlib import contextmanager
+
 from sqlalchemy import create_engine
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -6,8 +9,6 @@ from sqlalchemy import MetaData
 from sqlalchemy import Table
 from sqlalchemy import Unicode
 from sqlalchemy.orm import create_session, mapper
-from sqlalchemy.ext.automap import automap_base
-import tempfile
 
 from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import (
@@ -22,11 +23,13 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     get_query_operation,
 )
+from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
 from cumulusci.utils import os_friendly_path, log_progress
 from cumulusci.tasks.bulkdata.mapping_parser import (
     parse_from_yaml,
     validate_and_inject_mapping,
 )
+from cumulusci.tasks.bulkdata.utils import consume
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -45,8 +48,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             + "This is useful for keeping data in the repository and allowing diffs."
         },
         "inject_namespaces": {
-            "description": "If True, the package namespace prefix will be automatically added to objects "
-            "and fields for which it is present in the org. Defaults to True."
+            "description": "If True, the package namespace prefix will be "
+            "automatically added to (or removed from) objects "
+            "and fields based on the name used in the org. Defaults to True."
         },
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
@@ -59,60 +63,60 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             # prefer database_url if it's set
             self.options["sql_path"] = None
         elif self.options.get("sql_path"):
-            self.logger.info("Using in-memory sqlite database")
-            self.options["database_url"] = "sqlite://"
             self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
         else:
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
             )
 
+        inject_namespaces = self.options.get("inject_namespaces")
         self.options["inject_namespaces"] = process_bool_arg(
-            self.options.get("inject_namespaces", True)
+            True if inject_namespaces is None else inject_namespaces
         )
         self.options["drop_missing_schema"] = process_bool_arg(
-            self.options.get("drop_missing_schema", False)
+            self.options.get("drop_missing_schema") or False
         )
 
     def _run_task(self):
         self._init_mapping()
-        self._init_db()
+        with self._init_db():
+            for mapping in self.mapping.values():
+                soql = self._soql_for_mapping(mapping)
+                self._run_query(soql, mapping)
 
-        for mapping in self.mapping.values():
-            soql = self._soql_for_mapping(mapping)
-            self._run_query(soql, mapping)
+            self._map_autopks()
 
-        self._map_autopks()
+            if self.options.get("sql_path"):
+                self._sqlite_dump()
 
-        if self.options.get("sql_path"):
-            self._sqlite_dump()
-
+    @contextmanager
     def _init_db(self):
         """Initialize the database and automapper."""
         self.models = {}
 
-        # initialize the DB engine
-        self.engine = create_engine(self.options["database_url"])
+        with self._database_url() as database_url:
 
-        # initialize DB metadata
-        self.metadata = MetaData()
-        self.metadata.bind = self.engine
+            # initialize the DB engine
+            parent_engine = create_engine(database_url)
+            with parent_engine.connect() as connection:
+                # initialize DB metadata
+                self.metadata = MetaData()
+                self.metadata.bind = connection
 
-        # Create the tables
-        self._create_tables()
+                # Create the tables
+                self._create_tables()
 
-        # initialize the automap mapping
-        self.base = automap_base(bind=self.engine, metadata=self.metadata)
-        self.base.prepare(self.engine, reflect=True)
+                # initialize session
+                self.session = create_session(bind=connection, autocommit=False)
 
-        # initialize session
-        self.session = create_session(bind=self.engine, autocommit=False)
+                yield self.session, self.metadata, connection
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
         mapping_file_path = self.options["mapping"]
         if not mapping_file_path:
             raise TaskOptionsError("Mapping file path required")
+        self.logger.info(f"Mapping file: {self.options['mapping']}")
 
         self.mapping = parse_from_yaml(mapping_file_path)
 
@@ -153,6 +157,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         if step.job_result.status is DataOperationStatus.SUCCESS:
             if step.job_result.records_processed:
+                self.logger.info("Downloading and importing records")
                 self._import_results(mapping, step)
             else:
                 self.logger.info(f"No records found for sObject {mapping['sf_object']}")
@@ -177,6 +182,19 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         record_iterator = log_progress(step.get_results(), self.logger)
         if record_type:
             record_iterator = (record + [record_type] for record in record_iterator)
+
+        # Convert relative dates to stable dates.
+        if mapping.anchor_date:
+            date_context = mapping.get_relative_date_context(
+                list(field_map.keys()), self.org_config
+            )
+            if date_context[0] or date_context[1]:
+                record_iterator = (
+                    adjust_relative_dates(
+                        mapping, date_context, record, DataOperationType.QUERY
+                    )
+                    for record in record_iterator
+                )
 
         # Set Name field as blank for Person Account "Account" records.
         if (
@@ -205,27 +223,27 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             )
         else:
             # If using the autogenerated id field, split out the returned records
-            # into two separate files and load into the main table and the sf_id_table
+            # into two separate streams and load into the main table and the sf_id_table
+            values, ids = itertools.tee(record_iterator)
+            f_values = (row[1:] for row in values)
+            f_ids = (row[:1] for row in ids)
 
-            with tempfile.TemporaryFile("w+", newline="", encoding="utf-8") as f_values:
-                with tempfile.TemporaryFile(
-                    "w+", newline="", encoding="utf-8"
-                ) as f_ids:
-                    data_file_values, data_file_ids = self._split_batch_csv(
-                        record_iterator, f_values, f_ids
-                    )
-                    self._sql_bulk_insert_from_records(
-                        connection=conn,
-                        table=mapping.table,
-                        columns=columns[1:],  # Strip off the Id column
-                        record_iterable=csv.reader(data_file_values),
-                    )
-                    self._sql_bulk_insert_from_records(
-                        connection=conn,
-                        table=mapping.get_sf_id_table(),
-                        columns=["sf_id"],
-                        record_iterable=csv.reader(data_file_ids),
-                    )
+            values_chunks = self._sql_bulk_insert_from_records_incremental(
+                connection=conn,
+                table=mapping.table,
+                columns=columns[1:],  # Strip off the Id column
+                record_iterable=f_values,
+            )
+            ids_chunks = self._sql_bulk_insert_from_records_incremental(
+                connection=conn,
+                table=mapping.get_sf_id_table(),
+                columns=["sf_id"],
+                record_iterable=f_ids,
+            )
+
+            # do the inserts one chunk at a time based on all of the
+            # generators nested previously.
+            consume(zip(values_chunks, ids_chunks))
 
         if "RecordTypeId" in mapping.fields:
             self._extract_record_types(
@@ -252,18 +270,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         for mapping in self.mapping.values():
             if mapping["table"] == table:
                 return mapping
-
-    def _split_batch_csv(self, records, f_values, f_ids):
-        """Split the record generator and return two files,
-        one containing Ids only and the other record data."""
-        writer_values = csv.writer(f_values)
-        writer_ids = csv.writer(f_ids)
-        for row in records:
-            writer_values.writerow(row[1:])
-            writer_ids.writerow(row[:1])
-        f_values.seek(0)
-        f_ids.seek(0)
-        return f_values, f_ids
 
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""

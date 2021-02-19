@@ -173,6 +173,48 @@ the same Record Type upon load.
 It's recommended that new datasets use Record Type mapping by including the ``RecordTypeId`` 
 field. Using ``record_type`` will result in CumulusCI issuing a warning.
 
+Relative Dates
+--------------
+
+CumulusCI supports maintaining *relative dates*, helping to keep the dataset relevant by
+ensuring that date and date-time fields are updated when loaded.
+
+Relative dates are enabled by defining an *anchor date*, which is specified in each mapping
+step with the ``anchor_date`` key, whose value is a date in the format ``2020-07-01``.
+
+When you specify a relative date, CumulusCI modifies all date and date-time fields on the
+object such that when loaded, they have the same relationship to today as they did to the
+anchor date. Hence, given a stored date of 2020-07-10 and an anchor date of 2020-07-01,
+if you perform a load on 2020-09-10, the date field will be rendered as 2020-09-19 -
+nine days ahead of today's date, as it was nine days ahead of the anchor date.
+
+Relative dates are also adjusted upon extract so that they remain stable. Extracting the same
+data mentioned above would result in CumulusCI adjusting the date back to 2020-07-10 for
+storage, keeping it relative to the anchor date.
+
+Relative dating is applied to all date and date-time fields on any mapping step that
+contains the ``anchor_date`` clause. If orgs are `configured <https://help.salesforce.com/articleView?id=000334139&language=en_US&type=1&mode=1>`_ to permit setting audit 
+fields upon record creation and the appropriate user permission is enabled,
+CumulusCI can apply relative dating to audit fields, such as ``CreatedDate``.
+For more about how to automate that setup, review the ``create_bulk_data_permission_set``
+task below.
+
+For example, this mapping step:
+
+.. code-block:: yaml
+
+    Contacts:
+        sf_object: Contact
+        fields:
+            - FirstName
+            - LastName
+            - Birthdate
+        anchor_date: 1990-07-01
+
+would adjust the ``Birthdate`` field on both load and extract around the anchor date of
+July 1, 1990. Note that date and datetime fields not mapped, as well as fields on other
+steps, are unaffected.
+
 Person Accounts
 ---------------
 
@@ -200,16 +242,17 @@ CumulusCI supports extracting and loading person account data.  In your dataset 
         - RecordTypeId
 
 Record Types
-************
+++++++++++++
+
 It's recommended, though not required, to extract Account Record Types to support datasets with person accounts so there is consistency in the Account record types loaded.   If Account ``RecordTypeId`` is not extracted, the default business account Record Type and default person account Record Type will be applied to business and person account records respectively.
 
 Extract
-*******
++++++++
 
 During dataset extraction, if the org has person accounts enabled, the ``IsPersonAccount`` field is extracted for **Account** and **Contact** records so CumulusCI can properly load these records later.  Additionally, ``Account.Name`` is not createable for person account **Account** records, so ``Account.Name`` is not extracted for person account **Account** records.
 
 Load
-****
+++++
 
 Before loading, CumulusCI checks if the dataset contains any person account records (i.e. any **Account** or **Contact** records with ``IsPersonAccount`` as ``true``).  If the dataset does contain any person account records, CumulusCI validates the org has person accounts enabled.
 
@@ -259,21 +302,29 @@ the automatic primary key.
 Handling Namespaces
 +++++++++++++++++++
 
-All CumulusCI bulk data tasks support automatic namespace injection. When you build a
-mapping file for a managed package product, it is recommended to start with a non-namespaced,
-unmanaged scratch org, resulting in a mapping that does not contain any references to the
-product's namespace. 
+All CumulusCI bulk data tasks support automatic namespace injection or removal. In other words,
+the same mapping file will work for namespaced and unnamespaced orgs, as well as orgs with
+the package installed managed or unmanaged. If a mapping element has no namespace prefix and
+adding the project's namespace prefix is required to match a name in the org, CumulusCI will
+add one. Similarly, if removing a namespace is necessary, CumulusCI will do so.
 
-CumulusCI by default will automatically resolve these fields to their namespaced versions 
-when data operations are run against an org that contains the project in managed form. In the
-extremely rare circumstance that an org contains the same mapped schema element in both
-namespaced and non-namespaced form, CumulusCI does not perform namespace injection for that element.
+In the extremely rare circumstance that an org contains the same mapped schema element in both
+namespaced and non-namespaced form, CumulusCI does not perform namespace injection or removal
+for that element.
 
 Namespace injection can be deactivated by setting the ``inject_namespaces`` option to ``False``.
 
-It's also possible, and common in existing managed package products, to use multiple mapping files
-to achieve loading the same data set in both namespaced and non-namespaced contexts. A mapping file
-that is converted to use explicit namespacing might look like this:
+The ``generate_dataset_mapping`` generates mapping files with no namespace and this is the
+most common pattern in CumulusCI projects.
+
+Multiple Namespaces Through Multiple Mapping Files
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+It's also possible, and common in older managed package products, to use multiple mapping files
+to achieve loading the same data set in both namespaced and non-namespaced contexts. This is no
+longer recommended practice.
+
+A mapping file that is converted to use explicit namespacing might look like this:
 
 Original version: ::
 
@@ -374,6 +425,29 @@ name (List) or setup owner (Hierarchy) will be updated with the given data.
 
 Dataset Tasks
 =============
+
+``create_bulk_data_permission_set``
+-----------------------------------
+
+Create and assign a Permission Set that enables key features used in Bulk Data
+tasks (Hard Delete and Set Audit Fields) for the current user. The Permission
+Set will be called ``CumulusCI Bulk Data``.
+
+Note that prior to running this task you must ensure that your org is configured
+to allow the use of Set Audit Fields. You can do so by manually updating
+the required setting in the User Interface section of Saleforce Setup, or by
+updating your scratch org configuration to include ::
+
+    "securitySettings": {
+      "enableAuditFieldsInactiveOwner": true
+    }
+
+For more information about the Set Audit Fields feature, review `this Knowledge
+article <https://help.salesforce.com/articleView?id=000213290&type=1>`_.
+
+After this task runs, you'll be able to run the ``delete_data`` task with the
+``hardDelete`` option, and you'll be able to map audit fields like ``CreatedDate``.
+
 
 ``extract_dataset``
 -------------------

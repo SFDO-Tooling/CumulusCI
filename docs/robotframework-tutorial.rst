@@ -1,6 +1,6 @@
-========================
-Robot Framework Tutorial
-========================
+==============
+Robot Tutorial
+==============
 
 This tutorial will step you through writing your first test, then
 enhancing that test with a custom keyword implemented as a page

@@ -2,6 +2,8 @@ import importlib
 import logging
 import re
 import time
+from datetime import datetime
+from dateutil.parser import parse as parse_date, ParserError
 
 from pprint import pformat
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
@@ -73,7 +75,6 @@ class Salesforce(object):
         """
         try:
             version = int(float(self.get_latest_api_version()))
-            self.builtin.set_suite_metadata("Salesforce API Version", version)
         except RobotNotRunningError:
             # Likely this means we are running in the context of
             # documentation generation. Setting the version to
@@ -242,6 +243,20 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     @capture_screenshot_on_error
+    def scroll_element_into_view(self, locator):
+        """Scroll the element identified by 'locator'
+
+        This is a replacement for the keyword of the same name in
+        SeleniumLibrary. The SeleniumLibrary implementation uses
+        an unreliable method on Firefox. This keyword uses
+        a more reliable technique.
+
+        For more info see https://stackoverflow.com/a/52045231/7432
+        """
+        element = self.selenium.get_webelement(locator)
+        self.selenium.driver.execute_script("arguments[0].scrollIntoView()", element)
+
+    @capture_screenshot_on_error
     def load_related_list(self, heading, tries=10):
         """Scrolls down until the specified related list loads.
 
@@ -377,12 +392,32 @@ class Salesforce(object):
                 return oid_match.group(2)
         raise AssertionError("Could not parse record id from url: {}".format(url))
 
+    def field_value_should_be(self, label, expected_value):
+        """Verify that the form field for the given label is the expected value
+
+        Example:
+
+        | Field value should be    Account Name    ACME Labs
+        """
+        value = self.get_field_value(label)
+        self.builtin.should_be_equal(value, expected_value)
+
     def get_field_value(self, label):
         """Return the current value of a form field based on the field label"""
-        input_element_id = self.selenium.get_element_attribute(
-            "xpath://label[contains(., '{}')]".format(label), "for"
-        )
-        value = self.selenium.get_value(input_element_id)
+        api_version = int(float(self.get_latest_api_version()))
+
+        locator = self._get_input_field_locator(label)
+        if api_version >= 51:
+            # this works for both First Name (input) and Account Name (picklist)
+            value = self.selenium.get_value(locator)
+        else:
+            # older releases it's a bit more complex
+            element = self.selenium.get_webelement(locator)
+            if element.get_attribute("role") == "combobox":
+                value = self.selenium.get_text(f"sf:object.field_lookup_value:{label}")
+            else:
+                value = self.selenium.get_value(f"sf:object.field:{label}")
+
         return value
 
     def get_locator(self, path, *args, **kwargs):
@@ -508,6 +543,7 @@ class Salesforce(object):
         """
 
         self._jsclick("sf:app_launcher.button")
+        self.selenium.wait_until_element_is_visible("sf:app_launcher.view_all")
         self._jsclick("sf:app_launcher.view_all")
         self.wait_until_modal_is_open()
         try:
@@ -935,37 +971,65 @@ class Salesforce(object):
         """Constructs and runs a simple SOQL query and returns a list of dictionaries.
 
         By default the results will only contain object Ids. You can
-        specify a SOQL SELECT clase via keyword arguments by passing
+        specify a SOQL SELECT clause via keyword arguments by passing
         a comma-separated list of fields with the ``select`` keyword
         argument.
 
-        Example:
+        You can supply keys and values to match against
+        in keyword arguments, or a full SOQL where-clause
+        in a keyword argument named ``where``. If you supply
+        both, they will be combined with a SOQL "AND".
+
+        ``order_by`` and ``limit`` keyword arguments are also
+        supported as shown below.
+
+        Examples:
 
         The following example searches for all Contacts where the
         first name is "Eleanor". It returns the "Name" and "Id"
         fields and logs them to the robot report:
 
         | @{records}=  Salesforce Query  Contact  select=Id,Name
+        | ...          FirstName=Eleanor
         | FOR  ${record}  IN  @{records}
         |     log  Name: ${record['Name']} Id: ${record['Id']}
         | END
 
+        Or with a WHERE-clause, we can look for the last contact where
+        the first name is NOT Eleanor.
+
+        | @{records}=  Salesforce Query  Contact  select=Id,Name
+        | ...          where=FirstName!='Eleanor'
+        | ...              order_by=LastName desc
+        | ...              limit=1
         """
+        query = self._soql_query_builder(obj_name, **kwargs)
+        self.builtin.log("Running SOQL Query: {}".format(query))
+        return self.cumulusci.sf.query_all(query).get("records", [])
+
+    def _soql_query_builder(
+        self, obj_name, select=None, order_by=None, limit=None, where=None, **kwargs
+    ):
         query = "SELECT "
-        if "select" in kwargs:
-            query += kwargs["select"]
+        if select:
+            query += select
         else:
             query += "Id"
         query += " FROM {}".format(obj_name)
-        where = []
-        for key, value in kwargs.items():
-            if key == "select":
-                continue
-            where.append("{} = '{}'".format(key, value))
+        where_clauses = []
         if where:
-            query += " WHERE " + " AND ".join(where)
-        self.builtin.log("Running SOQL Query: {}".format(query))
-        return self.cumulusci.sf.query_all(query).get("records", [])
+            where_clauses = [where]
+        for key, value in kwargs.items():
+            where_clauses.append("{} = '{}'".format(key, value))
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
+        if order_by:
+            query += " ORDER BY " + order_by
+        if limit:
+            assert int(limit), "Limit should be an integer"
+            query += f" LIMIT {limit}"
+
+        return query
 
     def salesforce_update(self, obj_name, obj_id, **kwargs):
         """Updates a Salesforce object by Id.
@@ -1187,3 +1251,156 @@ class Salesforce(object):
             self.selenium.go_to(login_url)
             return True
         return False
+
+    def elapsed_time_for_last_record(
+        self, obj_name, start_field, end_field, order_by, **kwargs
+    ):
+        """For records representing jobs or processes, compare the record's start-time to its end-time to see how long a process took.
+
+        Arguments:
+            obj_name:   SObject to look for last record
+            start_field: Name of the datetime field that represents the process start
+            end_field: Name of the datetime field that represents the process end
+            order_by: Field name to order by. Should be a datetime field, and usually is just the same as end_field.
+            where:  Optional Where-clause to use for filtering
+            Other keywords are used for filtering as in the Salesforce Query keywordf
+
+        The last matching record queried and summarized.
+
+        Example:
+            ${time_in_seconds} =    Elapsed Time For Last Record
+            ...             obj_name=AsyncApexJob
+            ...             where=ApexClass.Name='BlahBlah'
+            ...             start_field=CreatedDate
+            ...             end_field=CompletedDate
+            ...             order_by=CompletedDate
+        """
+        if len(order_by.split()) != 1:
+            raise Exception("order_by should be a simple field name")
+        query = self._soql_query_builder(
+            obj_name,
+            select=f"{start_field}, {end_field}",
+            order_by=order_by + " DESC NULLS LAST",
+            limit=1,
+            **kwargs,
+        )
+        response = self.soql_query(query)
+        results = response["records"]
+
+        if results:
+            record = results[0]
+            return _duration(record[start_field], record[end_field], record)
+        else:
+            raise Exception(f"Matching record not found: {query}")
+
+    def start_performance_timer(self):
+        """Start an elapsed time stopwatch for performance tests.
+
+        See the docummentation for **Stop Performance Timer** for more
+        information.
+
+        Example:
+
+            Start Performance Timer
+            Do Something
+            Stop Performance Timer
+        """
+        BuiltIn().set_test_variable("${__start_time}", datetime.now())
+
+    def stop_performance_timer(self):
+        """Record the results of a stopwatch. For perf testing.
+
+        This keyword uses Set Test Elapsed Time internally and therefore
+        outputs in all of the ways described there.
+
+        Example:
+
+            Start Performance Timer
+            Do Something
+            Stop Performance Timer
+
+        """
+        builtins = BuiltIn()
+
+        start_time = builtins.get_variable_value("${__start_time}")
+        if start_time:
+            seconds = (datetime.now() - start_time).seconds
+            assert seconds is not None
+            self.set_test_elapsed_time(seconds)
+        else:
+            raise Exception(
+                "Elapsed time clock was not started. "
+                "Use the Start Elapsed Time keyword to do so."
+            )
+
+    def set_test_elapsed_time(self, elapsedtime):
+        """This keyword captures a computed rather than measured elapsed time for performance tests.
+
+        For example, if you were performance testing a Salesforce batch process, you might want to
+        store the Salesforce-measured elapsed time of the batch process instead of the time measured
+        in the CCI client process.
+
+        The keyword takes a single argument which is either a number of seconds or a Robot time string
+        (https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats).
+
+        Using this keyword will automatically add the tag cci_metric_elapsed_time to the test case
+        and ${cci_metric_elapsed_time} to the test's variables. cci_metric_elapsed_time is not
+        included in Robot's html statistical roll-ups.
+
+        Example:
+
+            Set Test Elapsed Time       11655.9
+
+        Performance test times are output in the CCI logs and are captured in MetaCI instead of the
+        "total elapsed time" measured by Robot Framework. The Robot "test message" is also updated."""
+
+        builtins = BuiltIn()
+
+        try:
+            seconds = float(elapsedtime)
+        except ValueError:
+            seconds = timestr_to_secs(elapsedtime)
+        assert seconds is not None
+
+        builtins.set_test_message(f"Elapsed time set by test : {seconds}")
+        builtins.set_tags("cci_metric_elapsed_time")
+        builtins.set_test_variable("${cci_metric_elapsed_time}", seconds)
+
+    def set_test_metric(self, metric: str, value=None):
+        """This keyword captures any metric for performance monitoring.
+
+        For example: number of queries, rows processed, CPU usage, etc.
+
+        The keyword takes a metric name, which can be any string, and a value, which
+        can be any number.
+
+        Using this keyword will automatically add the tag cci_metric to the test case
+        and ${cci_metric_<metric_name>} to the test's variables. These permit downstream
+        processing in tools like CCI and MetaCI.
+
+        cci_metric is not included in Robot's html statistical roll-ups.
+
+        Example:
+
+            Set Test Metric    Max_CPU_Percent    30
+
+        Performance test metrics are output in the CCI logs, log.html and output.xml.
+        MetaCI captures them but does not currently have a user interface for displaying
+        them."""
+
+        builtins = BuiltIn()
+
+        value = float(value)
+
+        builtins.set_tags("cci_metric")
+        builtins.set_test_variable("${cci_metric_%s}" % metric, value)
+
+
+def _duration(start_date: str, end_date: str, record: dict):
+    try:
+        start_date = parse_date(start_date)
+        end_date = parse_date(end_date)
+    except (ParserError, TypeError) as e:
+        raise Exception(f"Date parse error: {e} in record {record}")
+    duration = end_date - start_date
+    return duration.total_seconds()

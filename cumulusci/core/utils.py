@@ -4,12 +4,14 @@ import_global: task class defn import helper
 process_bool_arg: determine true/false for a commandline arg
 decode_to_unicode: get unicode string from sf api """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import copy
 import glob
 import pytz
 import time
 from shutil import rmtree
+from typing import Union
+import warnings
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 
@@ -33,15 +35,37 @@ def parse_datetime(dt_str, format):
     return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
 
 
-def process_bool_arg(arg):
-    """ Determine True/False from argument """
-    if isinstance(arg, bool):
-        return arg
+def process_bool_arg(arg: Union[int, str, None]):
+    """Determine True/False from argument.
+
+    Similar to parts of the Salesforce API, there are a few true-ish and false-ish strings,
+        but "True" and "False" are the canonical ones.
+
+    None is accepted as "False" for backwards compatiblity reasons, but this usage is deprecated.
+    """
+    if isinstance(arg, (int, bool)):
+        return bool(arg)
+    elif arg is None:
+        # backwards compatible behaviour that some tasks
+        # rely upon.
+        import traceback
+
+        warnings.warn("".join(traceback.format_stack(limit=4)), DeprecationWarning)
+        warnings.warn(
+            "Future versions of CCI will not accept 'None' as an argument to process_bool_arg",
+            DeprecationWarning,
+        )
+
+        return False
     elif isinstance(arg, str):
-        if arg.lower() in ["true", "1"]:
+        # these are values that Salesforce's bulk loader accepts
+        # there doesn't seem to be any harm in acccepting the
+        # full list to be coordinated with a "Salesforce standard"
+        if arg.lower() in ["yes", "y", "true", "on", "1"]:
             return True
-        elif arg.lower() in ["false", "0"]:
+        elif arg.lower() in ["no", "n", "false", "off", "0"]:
             return False
+    raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 
 def process_glob_list_arg(arg):
@@ -193,6 +217,15 @@ def cleanup_org_cache_dirs(keychain, project_config):
     project_org_directories = (project_config.cache_dir / "orginfo").glob("*")
     global_org_directories = (keychain.global_config_dir / "orginfo").glob("*")
 
-    for directory in list(project_org_directories) + list(global_org_directories):
-        if directory.name not in domains:
-            rmtree(directory)
+    for path in list(project_org_directories) + list(global_org_directories):
+        if path.is_dir() and path.name not in domains:
+            rmtree(path)
+
+
+def format_duration(duration: timedelta):
+    hours, remainder = divmod(duration.total_seconds(), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    hours = f"{int(hours)}h:" if hours > 0 else ""
+    minutes = f"{int(minutes)}m:" if (hours or minutes) else ""
+    seconds = f"{str(int(seconds))}s"
+    return hours + minutes + seconds

@@ -40,9 +40,6 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
 
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
-        self.base_command = "sfdx force:mdapi:deploy --wait {}".format(
-            CreateConnectedApp.deploy_wait
-        )
         self.label = "Test_Label"
         self.username = "TestUser@Name"
         self.email = "TestUser@Email"
@@ -61,7 +58,6 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         self.task_config.config["options"]["connect"] = True
         self.task_config.config["options"]["overwrite"] = True
         task = CreateConnectedApp(self.project_config, self.task_config)
-        self.assertEqual(task.options["command"], self.task_config.options__command)
         self.assertEqual(task.options["label"], self.label)
         self.assertEqual(task.options["username"], self.username)
         self.assertEqual(task.options["email"], self.email)
@@ -94,17 +90,15 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
             CreateConnectedApp(self.project_config, self.task_config)
 
     @mock.patch("cumulusci.tasks.connectedapp.CreateConnectedApp._run_command")
-    def test_set_default_username(self, run_command_mock):
-        """ _set_default_username calls _run_command """
+    def test_get_command(self, run_command_mock):
+        del self.task_config.config["options"]["username"]
         task = CreateConnectedApp(self.project_config, self.task_config)
         run_command_mock.side_effect = lambda **kw: kw["output_handler"](
             b'{"result":[{"value":"username"}]}'
         )
-        task._set_default_username()
-        run_command_mock.assert_called_once()
-        self.assertEqual(
-            self.task_log["info"], ["Getting username for the default devhub from sfdx"]
-        )
+        task.tempdir = "asdf"
+        command = task._get_command()
+        assert command == "sfdx force:mdapi:deploy --wait 5 -u username -d asdf"
 
     def test_process_json_output(self):
         """ _process_json_output returns valid json """

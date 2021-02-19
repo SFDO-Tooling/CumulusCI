@@ -13,8 +13,10 @@ BarTestPage has two.
 
 """
 
+import sys
 import unittest
 import os.path
+import pytest
 from unittest import mock
 from cumulusci.robotframework import PageObjects
 from cumulusci.robotframework.CumulusCI import CumulusCI
@@ -28,6 +30,7 @@ from cumulusci.robotframework.pageobjects import (
     DetailPage,
     ObjectManagerPage,
 )
+from cumulusci.utils import temporary_dir
 from robot.libraries.BuiltIn import BuiltIn
 import robot.utils
 
@@ -84,8 +87,44 @@ class TestPageObjects(unittest.TestCase):
     def test_PageObject(self, get_context_mock, get_library_instance_mock):
         """Smoke test to make sure the default registry is set up and keywords exist"""
         po = PageObjects()
-        self.assertEqual(po.get_keyword_names(), CORE_KEYWORDS)
-        self.assertEqual(po.registry, BASE_REGISTRY)
+        assert po.get_keyword_names() == CORE_KEYWORDS, (
+            po.get_keyword_names(),
+            CORE_KEYWORDS,
+        )
+        assert len(po.registry) == len(BASE_REGISTRY), (
+            len(po.registry),
+            len(BASE_REGISTRY),
+        )
+        assert po.registry == BASE_REGISTRY, (po.registry, BASE_REGISTRY)
+
+    def test_file_in_pythonpath(self, get_context_mock, get_library_instance_mock):
+        """Verify we can find a page object via PYTHONPATH"""
+        # PageObjects will throw an error if it can't find the file.
+        # As long as this doesn't throw an error, we're golden.
+        if HERE not in sys.path:
+            sys.path.append(HERE)
+        PageObjects("FooTestPage.py")
+
+    def test_exception_not_found(self, get_context_mock, get_library_instance_mock):
+        """Verify we get an assertion of we can't find a page object file"""
+        # make sure the folder isn't on system path by accident
+        if HERE in sys.path:
+            sys.path.remove(HERE)
+        with pytest.raises(
+            ImportError, match="Unable to find page object file 'FooTestPage.py'"
+        ):
+            PageObjects("FooTestPage.py")
+
+    def test_import_failed(self, get_context_mock, get_library_instance_mock):
+        with temporary_dir() as d:
+            with open("busted.py", "w") as f:
+                f.write("class Busted  # incomplete class\n")
+                f.close()
+                sys.path.append(d)
+                with pytest.raises(
+                    ImportError, match="Unable to import page object 'busted.py': .*"
+                ):
+                    PageObjects("busted.py")
 
     def test_PageObject_registry_with_custom_pageobjects(
         self, get_context_mock, get_library_instance_mock

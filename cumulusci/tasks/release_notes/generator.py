@@ -1,5 +1,4 @@
 import github3.exceptions
-
 from cumulusci.core.utils import import_global
 from cumulusci.core.github import (
     markdown_link_to_pr,
@@ -22,6 +21,9 @@ class BaseReleaseNotesGenerator(object):
         self.init_parsers()
         self.init_change_notes()
         self.version_id = None
+        self.trial_info = False
+        self.sandbox_date = None
+        self.production_date = None
 
     def __call__(self):
         self._parse_change_notes()
@@ -71,7 +73,7 @@ class BaseReleaseNotesGenerator(object):
             parser_content = parser.render()
             if parser_content:
                 release_notes.append(parser_content)
-        return u"\r\n\r\n".join(release_notes)
+        return "\r\n\r\n".join(release_notes)
 
 
 class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
@@ -187,6 +189,9 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         has_issues=True,
         include_empty=False,
         version_id=None,
+        trial_info=False,
+        sandbox_date=None,
+        production_date=None,
     ):
         self.github = github
         self.github_info = github_info
@@ -201,6 +206,9 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
         self.version_id = version_id
+        self.trial_info = trial_info
+        self.sandbox_date = sandbox_date
+        self.production_date = production_date
 
     def __call__(self):
         release = self._get_release()
@@ -293,7 +301,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         # add empty PR section
         if self.include_empty_pull_requests:
             new_body.extend(render_empty_pr_section(self.empty_change_notes))
-        content = u"\r\n".join(new_body)
+
+        content = "\r\n".join(new_body)
         return content
 
     def get_repo(self):

@@ -7,8 +7,12 @@ import os.path
 import re
 import sys
 from xml.etree import ElementTree as ET
+from pathlib import Path
+from contextlib import contextmanager
 
-from cumulusci.core.config import TaskConfig
+import responses
+
+from cumulusci.core.config import TaskConfig, UniversalConfig, BaseProjectConfig
 from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
 from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.robotframework import Robot
@@ -17,7 +21,9 @@ from cumulusci.tasks.robotframework import RobotTestDoc
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.robotframework.debugger import DebugListener
 from cumulusci.tasks.robotframework.robotframework import KeywordLogger
-from cumulusci.utils import touch
+from cumulusci.utils import touch, temporary_dir
+from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
+
 
 from cumulusci.tasks.robotframework.libdoc import KeywordFile
 
@@ -81,7 +87,7 @@ class TestRobot(unittest.TestCase):
                 "vars": "uno, dos, tres",
             },
         )
-        for option in ("test", "include", "exclude", "vars"):
+        for option in ("test", "include", "exclude", "vars", "suites"):
             assert isinstance(task.options[option], list)
 
     def test_process_arg_requires_int(self):
@@ -105,10 +111,16 @@ class TestRobot(unittest.TestCase):
             "--pabotlib",
             "--processes",
             "2",
+            "--pythonpath",
+            task.project_config.repo_root,
             "--variable",
             "org:test",
             "--outputdir",
             ".",
+            "--tagstatexclude",
+            "cci_metric_elapsed_time",
+            "--tagstatexclude",
+            "cci_metric",
             "tests",
         ]
         mock_robot_run.assert_not_called()
@@ -123,7 +135,49 @@ class TestRobot(unittest.TestCase):
         task()
         mock_subprocess_run.assert_not_called()
         mock_robot_run.assert_called_once_with(
-            "tests", listener=[], outputdir=".", variable=["org:test"]
+            "tests",
+            listener=[],
+            outputdir=".",
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+        )
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    def test_suites(self, mock_robot_run):
+        """Verify that passing a list of suites is handled properly"""
+        mock_robot_run.return_value = 0
+        task = create_task(Robot, {"suites": "tests,more_tests", "process": 0})
+        task()
+        mock_robot_run.assert_called_once_with(
+            "tests",
+            "more_tests",
+            listener=[],
+            outputdir=".",
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+        )
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    def test_tagstatexclude(self, mock_robot_run):
+        """Verify tagstatexclude is treated as a list"""
+        mock_robot_run.return_value = 0
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "options": {
+                    "tagstatexclude": "this,that",
+                },
+            },
+        )
+        assert type(task.options["options"]["tagstatexclude"]) == list
+        task()
+        mock_robot_run.assert_called_once_with(
+            "test",
+            listener=[],
+            outputdir=".",
+            variable=["org:test"],
+            tagstatexclude=["this", "that", "cci_metric_elapsed_time", "cci_metric"],
         )
 
     def test_default_listeners(self):
@@ -195,6 +249,108 @@ class TestRobot(unittest.TestCase):
         self.assertIn("FakeListener.py", task.options["options"]["listener"])
         self.assertIn(DebugListener, listener_classes)
         self.assertIn(KeywordLogger, listener_classes)
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    @mock.patch(
+        "cumulusci.tasks.robotframework.robotframework.pythonpathsetter.add_path"
+    )
+    def test_sources(self, mock_add_path, mock_robot_run):
+        """Verify that sources get added to PYTHONPATH when task runs"""
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(
+            universal_config,
+            {
+                "sources": {
+                    "test1": {"path": "dummy1"},
+                    "test2": {"path": "dummy2"},
+                }
+            },
+        )
+        # get_namespace returns a config. The only part of the config
+        # that the code uses is the repo_root property, so we don't need
+        # a full blown config.
+        project_config.get_namespace = mock.Mock(
+            side_effect=lambda source: mock.Mock(
+                repo_root=project_config.sources[source]["path"]
+            )
+        )
+
+        task = create_task(
+            Robot,
+            {"suites": "test", "sources": ["test1", "test2"]},
+            project_config=project_config,
+        )
+
+        mock_robot_run.return_value = 0
+        self.assertNotIn("dummy1", sys.path)
+        self.assertNotIn("dummy2", sys.path)
+        task()
+        project_config.get_namespace.assert_has_calls(
+            [mock.call("test1"), mock.call("test2")]
+        )
+        mock_add_path.assert_has_calls(
+            [mock.call("dummy1", end=True), mock.call("dummy2", end=True)]
+        )
+        self.assertNotIn("dummy1", sys.path)
+        self.assertNotIn("dummy2", sys.path)
+        self.assertEquals(".", task.return_values["robot_outputdir"])
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    @mock.patch(
+        "cumulusci.tasks.robotframework.robotframework.pythonpathsetter.add_path"
+    )
+    def test_repo_root_in_sys_path(self, mock_add_path, mock_robot_run):
+        """Verify that the repo root is added to sys.path
+
+        Normally, the repo root is added to sys.path in the __init__
+        of BaseSalesforceTask. However, if we're running a task from
+        another repo, the git root of that other repo isn't added. The
+        robot task will do that; this verifies that.
+
+        """
+        mock_robot_run.return_value = 0
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
+        with temporary_dir() as d:
+            project_config.repo_info["root"] = d
+            task = create_task(
+                Robot, {"suites": "tests"}, project_config=project_config
+            )
+            self.assertNotIn(d, sys.path)
+            task()
+            mock_add_path.assert_called_once_with(d)
+            self.assertNotIn(d, sys.path)
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    def test_sources_not_found(self, mock_robot_run):
+        task = create_task(
+            Robot,
+            {"suites": "test", "sources": ["bogus"]},
+        )
+
+        expected = "robot source 'bogus' could not be found"
+        with pytest.raises(TaskOptionsError, match=expected):
+            task()
+
+
+@mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+def test_outputdir_return_value(mock_run, tmpdir):
+    """Ensure that the task properly sets the outputdir return value"""
+    project_config = BaseProjectConfig(UniversalConfig())
+
+    test_dir = "test-dir"
+    tmpdir.mkdir(test_dir)
+    task = create_task(
+        Robot,
+        {
+            "suites": "test",
+            "options": {"outputdir": test_dir},
+        },
+        project_config=project_config,
+    )
+    mock_run.return_value = 0
+    task()
+    assert test_dir == task.return_values["robot_outputdir"]
 
 
 class TestRobotTestDoc(unittest.TestCase):
@@ -447,3 +603,86 @@ class TestLibdocPageObjects(unittest.TestCase):
         expected = '<div class="description" title="Description"><p>Description of SomethingListingPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
         assert actual == expected
+
+
+class TestRobotPerformanceKeywords:
+    def setup(self):
+        self.datadir = os.path.dirname(__file__)
+
+    @contextmanager
+    def _run_robot_and_parse_xml(
+        self, test_pattern, suite_path="tests/salesforce/performance.robot"
+    ):
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
+        with temporary_dir() as d, mock.patch(
+            "cumulusci.robotframework.Salesforce.Salesforce._init_locators"
+        ), responses.RequestsMock():
+            project_config.repo_info["root"] = d
+            suite = Path(self.datadir) / "../../../robotframework/" / suite_path
+            task = create_task(
+                Robot,
+                {
+                    "test": test_pattern,
+                    "suites": str(suite),
+                    "options": {"outputdir": d, "noncritical": "noncritical"},
+                },
+                project_config=project_config,
+            )
+            task()
+            logger_func = mock.Mock()
+            log_perf_summary_from_xml(Path(d) / "output.xml", logger_func)
+            yield logger_func.mock_calls
+
+    def parse_metric(self, metric):
+        name, value = metric.split(": ")
+        value = value.strip("s ")  # strip seconds unit
+        try:
+            value = float(value)
+        except ValueError:
+            raise Exception(f"Cannot convert to float {value}")
+        return name.strip(), value
+
+    def extract_times(self, pattern, call):
+        first_arg = call[1][0]
+        if pattern in first_arg:
+            metrics = first_arg.split("-")[-1].split(",")
+            return dict(self.parse_metric(metric) for metric in metrics)
+
+    def test_elapsed_time_xml(self):
+        pattern = "Elapsed Time: "
+
+        with self._run_robot_and_parse_xml("Test Perf*") as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            elapsed_times = [next(iter(x.values())) for x in elapsed_times if x]
+            elapsed_times.sort()
+
+            assert elapsed_times[1:] == [53, 11655.9, 18000.0]
+            assert float(elapsed_times[0]) < 3
+
+    def test_metrics(self):
+        pattern = "Max_CPU_Percent: "
+        with self._run_robot_and_parse_xml(
+            "Test Perf Measure Other Metric"
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times))[0]["Max_CPU_Percent"] == 30.0
+
+    def test_empty_test(self):
+        pattern = "Max_CPU_Percent: "
+        with self._run_robot_and_parse_xml(
+            "Test Perf Measure Other Metric"
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times))[0]["Max_CPU_Percent"] == 30.0
+
+    def test_explicit_failures(self):
+        pattern = "Elapsed Time: "
+        suite_path = Path(self.datadir) / "failing_tests.robot"
+        with self._run_robot_and_parse_xml(
+            "Test *", suite_path=suite_path
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times)) == [
+                {"Elapsed Time": 11655.9, "Donuts": 42.3}
+            ]

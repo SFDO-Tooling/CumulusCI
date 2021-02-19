@@ -3,7 +3,6 @@
 from simple_salesforce.exceptions import SalesforceError
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import SalesforceException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 
@@ -78,35 +77,43 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
 
         self.record = None
         for row in query_results["records"]:
-            setupOwnerId = str(row["SetupOwnerId"])
-            if setupOwnerId.startswith("00D"):
+            if row["SetupOwnerId"].startswith("00D"):
                 self.record = row
 
-        if not self.record:
-            raise SalesforceException(
-                "Hierarchical Custom Settings Org Default record not found"
+        if self.record:
+            self.poll_complete = not self._poll_again()
+        else:
+            self.logger.info(
+                f"{self.field_name}: Looking for {self.check_value} and found no custom settings record"
             )
-
-        self.poll_complete = not self._poll_again()
 
     def _poll_again(self):
         return not self.success
 
     def _apply_namespace(self):
         # Process namespace tokens
-        managed = self.options.get("managed") or False
-        namespaced = self.options.get("namespaced") or False
         namespace = self.project_config.project__package__namespace
-        namespace_prefix = ""
-        if managed or namespaced:
-            namespace_prefix = namespace + "__"
+        if "managed" in self.options:
+            managed = process_bool_arg(self.options["managed"])
+        else:
+            managed = (
+                bool(namespace) and namespace in self.org_config.installed_packages
+            )
+        if "namespaced" in self.options:
+            namespaced = process_bool_arg(self.options["namespaced"])
+        else:
+            namespaced = bool(namespace) and self.org_config.namespace == namespace
 
+        namespace_prefix = ""
+        if namespace and (managed or namespaced):
+            namespace_prefix = namespace + "__"
         self.object_name = self.object_name.replace("%%%NAMESPACE%%%", namespace_prefix)
         self.field_name = self.field_name.replace("%%%NAMESPACE%%%", namespace_prefix)
 
     @property
     def success(self):
-        self.field_value = self.record[self.field_name]
+        lower_case_record = {k.lower(): v for k, v in self.record.items()}
+        self.field_value = lower_case_record[self.field_name.lower()]
 
         if isinstance(self.field_value, bool):
             self.check_value = process_bool_arg(self.check_value)

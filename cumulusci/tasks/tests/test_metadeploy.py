@@ -61,6 +61,8 @@ class TestBaseMetaDeployTask(unittest.TestCase):
 
 
 class TestPublish(unittest.TestCase, GithubApiTestMixin):
+    maxDiff = None
+
     @responses.activate
     def test_run_task(self):
         project_config = create_project_config()
@@ -86,7 +88,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         project_config.keychain.set_service(
             "github",
             ServiceConfig(
-                {"username": "foo", "password": "bar", "email": "foo@example.com"}
+                {"username": "foo", "token": "bar", "email": "foo@example.com"}
             ),
         )
 
@@ -222,8 +224,6 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "task_class": "cumulusci.tasks.salesforce.ProfileGrantAllAccess",
                     "task_config": {
                         "options": {
-                            "managed": True,
-                            "namespaced_org": False,
                             "namespace_inject": "ns",
                             "include_packaged_objects": False,
                         },

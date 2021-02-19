@@ -20,7 +20,7 @@ class TestGithubReleaseNotes:
             ServiceConfig(
                 {
                     "username": "TestUser",
-                    "password": "TestPass",
+                    "token": "TestPass",
                     "email": "testuser@testdomain.com",
                 }
             ),
@@ -75,7 +75,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             ServiceConfig(
                 {
                     "username": "TestUser",
-                    "password": "TestPass",
+                    "token": "TestPass",
                     "email": "testuser@testdomain.com",
                 }
             ),

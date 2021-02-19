@@ -32,6 +32,28 @@ class TestCreateRecord:
             {"Name": "HardDelete", "PermissionsBulkApiHardDelete": "true"}
         )
 
+    def test_run_task__dict_tooling(self):
+        task = create_task(
+            InsertRecord,
+            {
+                "object": "PermissionSet",
+                "tooling": True,
+                "values": {"Name": "HardDelete", "PermissionsBulkApiHardDelete": True},
+            },
+        )
+        create = mock.Mock()
+        task.tooling = mock.Mock(create=create)
+        task.tooling.PermissionSet.create.return_value = {
+            "id": "0PS3D000000MKTqWAO",
+            "success": True,
+            "errors": [],
+        }
+
+        task._run_task()
+        task.tooling.PermissionSet.create.assert_called_with(
+            {"Name": "HardDelete", "PermissionsBulkApiHardDelete": True}
+        )
+
     def test_salesforce_error_returned_by_simple_salesforce(self):
         "Tests the just-in-case path where SimpleSalesforce does not raise an exception"
         task = create_task(
@@ -66,7 +88,7 @@ class TestCreateRecord:
         )
         responses.add(
             responses.POST,
-            re.compile(r"https://test.salesforce.com/services/data/v49.0/.*"),
+            re.compile(r"https://test.salesforce.com/services/data/v50.0/.*"),
             content_type="application/json",
             status=404,
             json={

@@ -1,7 +1,8 @@
 from collections import defaultdict
-import datetime
 from unittest.mock import MagicMock
 from typing import Union
+import tempfile
+from contextlib import contextmanager
 
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text, func
 from sqlalchemy.orm import aliased, Session
@@ -9,7 +10,11 @@ from sqlalchemy.ext.automap import automap_base
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, RowErrorChecker
+from cumulusci.tasks.bulkdata.utils import (
+    SqlAlchemyMixin,
+    RowErrorChecker,
+)
+from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
 from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
@@ -56,8 +61,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
         "inject_namespaces": {
-            "description": "If True, the package namespace prefix will be automatically added to objects "
-            "and fields for which it is present in the org. Defaults to True."
+            "description": "If True, the package namespace prefix will be "
+            "automatically added to (or removed from) objects "
+            "and fields based on the name used in the org. Defaults to True."
         },
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
@@ -69,7 +75,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         super(LoadData, self)._init_options(kwargs)
 
         self.options["ignore_row_errors"] = process_bool_arg(
-            self.options.get("ignore_row_errors", False)
+            self.options.get("ignore_row_errors") or False
         )
         if self.options.get("database_url"):
             # prefer database_url if it's set
@@ -88,43 +94,44 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
+        inject_namespaces = self.options.get("inject_namespaces")
         self.options["inject_namespaces"] = process_bool_arg(
-            self.options.get("inject_namespaces", True)
+            True if inject_namespaces is None else inject_namespaces
         )
         self.options["drop_missing_schema"] = process_bool_arg(
-            self.options.get("drop_missing_schema", False)
+            self.options.get("drop_missing_schema") or False
         )
 
     def _run_task(self):
         self._init_mapping()
-        self._init_db()
-        self._expand_mapping()
+        with self._init_db():
+            self._expand_mapping()
 
-        start_step = self.options.get("start_step")
-        started = False
-        for name, mapping in self.mapping.items():
-            # Skip steps until start_step
-            if not started and start_step and name != start_step:
-                self.logger.info(f"Skipping step: {name}")
-                continue
+            start_step = self.options.get("start_step")
+            started = False
+            for name, mapping in self.mapping.items():
+                # Skip steps until start_step
+                if not started and start_step and name != start_step:
+                    self.logger.info(f"Skipping step: {name}")
+                    continue
 
-            started = True
+                started = True
 
-            self.logger.info(f"Running step: {name}")
-            result = self._execute_step(mapping)
-            if result.status is DataOperationStatus.JOB_FAILURE:
-                raise BulkDataException(
-                    f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
-                )
+                self.logger.info(f"Running step: {name}")
+                result = self._execute_step(mapping)
+                if result.status is DataOperationStatus.JOB_FAILURE:
+                    raise BulkDataException(
+                        f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
+                    )
 
-            if name in self.after_steps:
-                for after_name, after_step in self.after_steps[name].items():
-                    self.logger.info(f"Running post-load step: {after_name}")
-                    result = self._execute_step(after_step)
-                    if result.status is DataOperationStatus.JOB_FAILURE:
-                        raise BulkDataException(
-                            f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
-                        )
+                if name in self.after_steps:
+                    for after_name, after_step in self.after_steps[name].items():
+                        self.logger.info(f"Running post-load step: {after_name}")
+                        result = self._execute_step(after_step)
+                        if result.status is DataOperationStatus.JOB_FAILURE:
+                            raise BulkDataException(
+                                f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
+                            )
 
     def _execute_step(
         self, mapping: MappingStep
@@ -136,7 +143,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._load_record_types([mapping.sf_object], conn)
             self.session.commit()
 
-        local_ids = []
         query = self._query_db(mapping)
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
         step = get_dml_operation(
@@ -144,69 +150,54 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             operation=mapping.action,
             api_options={"batch_size": mapping.batch_size, "bulk_mode": bulk_mode},
             context=self,
-            fields=self._get_columns(mapping),
+            fields=mapping.get_load_field_list(),
             api=mapping.api,
             volume=query.count(),
         )
 
-        step.start()
-        step.load_records(self._stream_queried_data(mapping, local_ids, query))
-        step.end()
+        with tempfile.TemporaryFile(mode="w+t") as local_ids:
+            step.start()
+            step.load_records(self._stream_queried_data(mapping, local_ids, query))
+            step.end()
 
-        if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
-            self._process_job_results(mapping, step, local_ids)
+            if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
+                local_ids.seek(0)
+                self._process_job_results(mapping, step, local_ids)
 
-        return step.job_result
+            return step.job_result
 
     def _stream_queried_data(self, mapping, local_ids, query):
         """Get data from the local db"""
 
         statics = self._get_statics(mapping)
-
         total_rows = 0
+
+        if mapping.anchor_date:
+            date_context = mapping.get_relative_date_context(
+                mapping.get_load_field_list(), self.org_config
+            )
 
         for row in query.yield_per(10000):
             total_rows += 1
             # Add static values to row
             pkey = row[0]
             row = list(row[1:]) + statics
-            row = [self._convert(value) for value in row]
+            if mapping.anchor_date and (date_context[0] or date_context[1]):
+                row = adjust_relative_dates(
+                    mapping, date_context, row, DataOperationType.INSERT
+                )
             if mapping.action is DataOperationType.UPDATE:
                 if len(row) > 1 and all([f is None for f in row[1:]]):
                     # Skip update rows that contain no values
                     total_rows -= 1
                     continue
 
-            local_ids.append(pkey)
+            local_ids.write(str(pkey) + "\n")
             yield row
 
         self.logger.info(
-            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}"
+            f"Prepared {total_rows} rows for {mapping['action']} to {mapping['sf_object']}."
         )
-
-    def _get_columns(self, mapping):
-        """Build a flat list of columns for the given mapping,
-        including fields, lookups, and statics."""
-        lookups = mapping.lookups
-
-        # Build the list of fields to import
-        columns = []
-        columns.extend(mapping.fields.keys())
-        # Don't include lookups with an `after:` spec (dependent lookups)
-        columns.extend([f for f in lookups if not lookups[f].after])
-        columns.extend(mapping.static.keys())
-        # If we're using Record Type mapping, `RecordTypeId` goes at the end.
-        if "RecordTypeId" in columns:
-            columns.remove("RecordTypeId")
-        if "RecordType" in columns:
-            columns.remove("RecordType")
-
-        if mapping.action is DataOperationType.INSERT and "Id" in columns:
-            columns.remove("Id")
-        if mapping.record_type or "RecordTypeId" in mapping.fields:
-            columns.append("RecordTypeId")
-
-        return columns
 
     def _load_record_types(self, sobjects, conn):
         """Persist record types for the given sObjects into the database."""
@@ -314,13 +305,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         return query
 
-    def _convert(self, value):
-        """If value is a date, return its ISO8601 representation, otherwise return value."""
-        if value:
-            if isinstance(value, datetime.datetime):
-                return value.isoformat()
-            return value
-
     def _process_job_results(self, mapping, step, local_ids):
         """Get the job results and process the results. If we're raising for
         row-level errors, do so; if we're inserting, store the new Ids."""
@@ -374,6 +358,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         error_checker = RowErrorChecker(
             self.logger, self.options["ignore_row_errors"], self.row_warning_limit
         )
+        local_ids = (lid.strip("\n") for lid in local_ids)
         for result, local_id in zip(step.get_results(), local_ids):
             if result.success:
                 yield (local_id, result.id)
@@ -423,42 +408,42 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 cursor.close()
         # self.session.flush()
 
+    @contextmanager
     def _init_db(self):
         """Initialize the database and automapper."""
         # initialize the DB engine
-        database_url = self.options["database_url"] or "sqlite://"
-        if database_url == "sqlite://":
-            self.logger.info("Using in-memory SQLite database")
-        self.engine = create_engine(database_url)
+        with self._database_url() as database_url:
+            parent_engine = create_engine(database_url)
+            with parent_engine.connect() as connection:
+                # initialize the DB session
+                self.session = Session(connection)
 
-        # initialize the DB session
-        self.session = Session(self.engine)
+                if self.options.get("sql_path"):
+                    self._sqlite_load()
 
-        if self.options.get("sql_path"):
-            self._sqlite_load()
+                # initialize DB metadata
+                self.metadata = MetaData()
+                self.metadata.bind = connection
 
-        # initialize DB metadata
-        self.metadata = MetaData()
-        self.metadata.bind = self.engine
+                # initialize the automap mapping
+                self.base = automap_base(bind=connection, metadata=self.metadata)
+                self.base.prepare(connection, reflect=True)
 
-        # initialize the automap mapping
-        self.base = automap_base(bind=self.engine, metadata=self.metadata)
-        self.base.prepare(self.engine, reflect=True)
+                # Loop through mappings and reflect each referenced table
+                self.models = {}
+                for name, mapping in self.mapping.items():
+                    if mapping.table not in self.models:
+                        self.models[mapping.table] = self.base.classes[mapping.table]
 
-        # Loop through mappings and reflect each referenced table
-        self.models = {}
-        for name, mapping in self.mapping.items():
-            if mapping.table not in self.models:
-                self.models[mapping.table] = self.base.classes[mapping.table]
+                    # create any Record Type tables we need
+                    if "RecordTypeId" in mapping.fields:
+                        self._create_record_type_table(
+                            mapping.get_destination_record_type_table()
+                        )
+                self.metadata.create_all()
 
-            # create any Record Type tables we need
-            if "RecordTypeId" in mapping.fields:
-                self._create_record_type_table(
-                    mapping.get_destination_record_type_table()
-                )
-        self.metadata.create_all()
-
-        self._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+                self._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
+                yield
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
@@ -563,7 +548,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         )
 
     def _filter_out_person_account_records(self, query, model):
-        return query.filter(model.__table__.columns.get("IsPersonAccount") == "false")
+        return query.filter(
+            func.lower(model.__table__.columns.get("IsPersonAccount")) == "false"
+        )
 
     def _generate_contact_id_map_for_person_accounts(
         self, contact_mapping, account_id_lookup, conn

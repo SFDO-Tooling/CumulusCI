@@ -15,7 +15,7 @@ To install homebrew:
 
 2. Enter::
 
-       /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 
 3. If you are prompted for a password, this is your computer's password.
    Enter it to allow your computer to install Homebrew.
@@ -62,7 +62,7 @@ To permanently modify the default environment variables:
 3. To change System variables, you need non-restricted access to your machine
    (i.e. Administrator rights). Add the following paths to your PATH environment variable:
 
-   a. ``%USERPROFILE%\AppData\Roaming\Python\Python37\Scripts``
+   a. ``%USERPROFILE%\AppData\Roaming\Python\Python38\Scripts``
    b. ``%USERPROFILE%\.local\bin``
 
 .. image:: images/env-var.png
@@ -103,7 +103,7 @@ is installed correctly by running ``cci version``:
 
    $ cci version
     CumulusCI version: 3.9.0 (/path/to/bin/cci)
-    Python version: 3.7.4 (/path/to/bin/python)
+    Python version: 3.8.5 (/path/to/bin/python)
 
     You have the latest version of CumulusCI.
 

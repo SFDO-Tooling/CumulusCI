@@ -182,8 +182,8 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 
             # Clear the method level cache on get_push_requests and
             # get_push_request_objs
-            self.push_report.get_push_requests.cache.clear()
-            self.push_report.get_push_request_objs.cache.clear()
+            self.push_report.get_push_requests.cache_clear()
+            self.push_report.get_push_request_objs.cache_clear()
             # Get the push_request again
             self.push_request = self.push_report.get_push_request_objs(
                 "Id = '{}'".format(request_id), limit=1
@@ -390,7 +390,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             # query timeout errors with querying multiple versions
             for included_version in included_versions:
                 # Clear the get_subscribers method cache before each call
-                push_api.get_subscribers.cache.clear()
+                push_api.get_subscribers.cache_clear()
                 push_api.default_where[
                     "PackageSubscriber"
                 ] = "{} AND MetadataPackageVersionId = '{}'".format(

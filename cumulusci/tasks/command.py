@@ -12,7 +12,6 @@ import sys
 import sarge
 
 from cumulusci.core.exceptions import CommandException
-from cumulusci.core.exceptions import BrowserTestFailure
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 
@@ -176,38 +175,3 @@ task_options["use_saucelabs"] = {
     "False to run tests in the local browser.",
     "required": True,
 }
-
-
-class SalesforceBrowserTest(SalesforceCommand):
-    """ Execute a Browser Test command locally or on SauceLabs """
-
-    task_options = task_options
-
-    def _init_options(self, kwargs):
-        super(SalesforceBrowserTest, self)._init_options(kwargs)
-        if (
-            "use_saucelabs" not in self.options
-            or self.options["use_saucelabs"] == "False"
-        ):
-            self.options["use_saucelabs"] = False
-
-        if "extra" in self.options and self.options["extra"]:
-            self.options["command"] = "{command} {extra}".format(**self.options)
-
-    def _get_env(self):
-        env = super(SalesforceBrowserTest, self)._get_env()
-        if self.options["use_saucelabs"]:
-            saucelabs = self.project_config.keychain.get_service("saucelabs")
-            env["SAUCE_NAME"] = saucelabs.username
-            env["SAUCE_KEY"] = saucelabs.api_key
-            env["RUN_ON_SAUCE"] = "True"
-        else:
-            env["RUN_LOCAL"] = "True"
-        return env
-
-    def _handle_returncode(self, returncode, stderr):
-        if returncode == 1:
-            message = "Return code: {}\nstderr: {}".format(returncode, stderr)
-            raise BrowserTestFailure(message)
-        elif returncode:
-            super(SalesforceBrowserTest, self)._handle_returncode(returncode, stderr)

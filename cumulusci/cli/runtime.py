@@ -142,6 +142,20 @@ class CliRuntime(BaseCumulusCI):
                         f"To upgrade, please run this command: {get_cci_upgrade_command()}"
                     )
 
+    def get_available_tasks(self):
+        return (
+            self.project_config.list_tasks()
+            if self.project_config is not None
+            else self.universal_config.list_tasks()
+        )
+
+    def get_available_flows(self):
+        return (
+            self.project_config.list_flows()
+            if self.project_config is not None
+            else self.universal_config.list_flows()
+        )
+
 
 # for backwards-compatibility
 CliConfig = CliRuntime

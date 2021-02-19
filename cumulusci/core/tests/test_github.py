@@ -125,7 +125,7 @@ class TestGithub(GithubApiTestMixin):
     def test_validate_service(self):
         responses.add("GET", "https://api.github.com/rate_limit", status=401)
         with pytest.raises(GithubException):
-            validate_service({"username": "BOGUS", "password": "BOGUS"})
+            validate_service({"username": "BOGUS", "token": "BOGUS"})
 
     @responses.activate
     def test_get_pull_requests_by_head(self, mock_util, repo):

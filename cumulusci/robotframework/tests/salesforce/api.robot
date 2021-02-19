@@ -48,6 +48,49 @@ Salesforce Query
     Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
     Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
 
+Salesforce Query Where
+    &{new_contact} =  Create Contact
+    @{records} =  Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where=FirstName='${new_contact}[FirstName]' AND LastName='${new_contact}[LastName]'
+    &{contact} =  Get From List  ${records}  0
+    Should Be Equal  ${contact}[Id]  ${new_contact}[Id]
+    Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
+    Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
+
+Salesforce Query Where Plus Clauses
+    &{new_contact} =  Create Contact
+    @{records} =  Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where=LastName='${new_contact}[LastName]'
+    ...              FirstName=${new_contact}[FirstName]
+    &{contact} =  Get From List  ${records}  0
+    Should Be Equal  ${contact}[Id]  ${new_contact}[Id]
+    Should Be Equal  ${contact}[FirstName]  ${new_contact}[FirstName]
+    Should Be Equal  ${contact}[LastName]  ${new_contact}[LastName]
+
+Salesforce Query Where Not Equal
+    &{new_contact} =  Create Contact
+    @{records} =  Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where= LastName!='${new_contact}[LastName]'
+    ...              Id=${new_contact}[Id]
+    ${cnt}=    Get length    ${records}
+    Should Be Equal As Numbers   ${cnt}  0
+
+Salesforce Query Where Limit Order
+    &{anon_contact} =  Create Contact
+    &{anon_contact} =  Create Contact
+    ${contact_id} =  Salesforce Insert  Contact  FirstName=xyzzy   LastName=xyzzy
+    @{records} =    Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where= LastName!='xyzzy'
+    ...              order_by=LastName desc
+    ...              limit=2
+    ${cnt}=    Get length    ${records}
+    Should Be Equal As Numbers   ${cnt}  2
+
+
 SOQL Query
     &{new_contact} =  Create Contact
     &{result} =  Soql Query  Select Id, FirstName, LastName from Contact WHERE Id = '${new_contact}[Id]'
@@ -120,3 +163,4 @@ Collection API Errors Test
 Get Version
     ${version} =   Get Latest Api Version
     Should Be True     ${version} > 46
+

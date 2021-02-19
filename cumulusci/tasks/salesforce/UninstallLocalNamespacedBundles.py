@@ -29,7 +29,7 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
     def _init_options(self, kwargs):
         super(UninstallLocalNamespacedBundles, self)._init_options(kwargs)
 
-        self.options["managed"] = self.options.get("managed") or False
+        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
         self.options["purge_on_delete"] = process_bool_arg(
@@ -46,7 +46,7 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
             delete=True,
         )
         namespace = ""
-        if self.options["managed"] in [True, "True", "true"]:
+        if self.options["managed"]:
             if self.options["namespace"]:
                 namespace = self.options["namespace"] + "__"
 

@@ -1,6 +1,7 @@
 import os
 import re
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask, Deploy
 from cumulusci.utils import temporary_dir
 
@@ -25,6 +26,7 @@ SOBJECT_METADATA = """<?xml version="1.0" encoding="utf-8"?>
         <active>true</active>
         {business_process_link}
         <label>{record_type_label}</label>
+        <description>{record_type_description}</description>
     </recordTypes>
 </CustomObject>
 """
@@ -56,9 +58,17 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
             "description": "The Label of the Record Type.",
             "required": True,
         },
+        "record_type_description": {
+            "description": "The Description of the Record Type.  Only uses the first 255 characters.",
+            "required": False,
+        },
         "sobject": {
             "description": "The sObject on which to deploy the Record Type and optional Business Process.",
             "required": True,
+        },
+        "force_create": {
+            "description": "If true, the Record Type will be created even if a default Record Type already exists on this sObject. Defaults to False.",
+            "required": False,
         },
     }
     _deploy = Deploy
@@ -74,9 +84,18 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
                 "Record Type Developer Name value must contain only alphanumeric or underscore characters"
             )
 
+        # Validate Description has 255 characters
+        self.options["record_type_description"] = (
+            str(self.options.get("record_type_description") or "")
+        )[:255]
+
         # We don't currently support standard objects
         if self.options["sobject"].endswith("__c"):
             raise TaskOptionsError("EnsureRecordTypes does not support custom objects")
+
+        self.options["force_create"] = process_bool_arg(
+            self.options.get("force_create") or False
+        )
 
     def _infer_requirements(self):
         # If our sObject is Lead, Opportunity, Case, or Solution,
@@ -93,7 +112,9 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
             rt for rt in describe_results["recordTypeInfos"] if not rt["master"]
         ]
 
-        self.options["generate_record_type"] = len(record_types) == 0
+        self.options["generate_record_type"] = (
+            len(record_types) == 0 or self.options["force_create"]
+        )
 
         if self.options["generate_record_type"] and sobject in SOBJECT_MAP:
             self.options["generate_business_process"] = True
@@ -152,6 +173,7 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
                         "record_type_developer_name"
                     ],
                     record_type_label=self.options["record_type_label"],
+                    record_type_description=self.options["record_type_description"],
                     business_process_metadata=business_process_metadata,
                     business_process_link=business_process_link,
                 )

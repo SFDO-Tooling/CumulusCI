@@ -36,7 +36,7 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(SetTDTMHandlerStatus, self)._init_options(kwargs)
         self.options["handlers"] = process_list_arg(self.options.get("handlers", []))
-        self.options["active"] = process_bool_arg(self.options.get("active", False))
+        self.options["active"] = process_bool_arg(self.options.get("active") or False)
         has_restore_file = (
             self.options.get("restore_file") is not False
             and self.options.get("restore_file") != "False"
