@@ -16,6 +16,7 @@ CumulusCI is developed by the Salesforce.org Release Engineering team:
 * Brandon Parker
 * Josh Kofsky
 * Marcel Pufal
+* David Ray
 
 Developers Emeritus
 -------------------
