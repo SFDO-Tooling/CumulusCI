@@ -76,7 +76,7 @@ List and Retrieve Options
 
 When developing in an org, the changes you're most interested in are sometimes mixed with other changes that aren't relevant to what you're doing.
 
-    Example: Changing schema like ``Custom Objects`` and ``Custom Fields`` often results in changes to ``Page Layouts`` and ``Profiles`` that you don't wish to review or retrieve.
+    Example: Changing schema like Custom Objects and Custom Fields often results in changes to Page Layouts and Profiles that you don't wish to review or retrieve.
 
 It's a common workflow in CumulusCI to use the ``list_changes`` task, combined with the options featured in this subsection, to narrow the scope of changes in the org to the exact elements you desire to retrieve in your project. When the correct set of metadata is listed, run the ``retrieve_changes`` task to bring those changes into the repository.
 
@@ -242,9 +242,9 @@ Manage Dependencies
 
 CumulusCI is built to automate the complexities of dependency management for projects that extend and implement managed packages. CumulusCI currently handles these main types of dependencies for projects.
 
+* **GitHub Repository**: Dynamically resolve a product release, and its own dependencies, from a CumulusCI project on GitHub
 * **Managed Packages**: Require a certain version of a managed package
 * **Unmanaged Metadata**: Require the deployment of unmanaged metadata
-* **GitHub Repository**: Dynamically resolve a product release, and its own dependencies, from a CumulusCI project on GitHub
 
 The ``update_dependencies`` task handles deploying dependencies to a target org, and is included in all flows designed to deploy or install to an org. 
 
@@ -253,6 +253,89 @@ To run the ``update_dependencies`` task:
 .. code-block:: console
 
     $ cci task run update_dependencies
+
+    
+
+GitHub Repository Dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+GitHub repository dependencies create a dynamic dependency between the current project and another CumulusCI project on GitHub.
+
+    Example: Salesforce EDA
+
+.. code-block:: yaml
+ 
+    project:
+        dependencies:
+            - github: https://github.com/SalesforceFoundation/EDA
+
+When ``update_dependencies`` runs, these steps are taken against the referenced repository.
+
+* Look for the ``cumulusci.yml`` file and parse if found.
+* Determine if the project has subfolders under ``unpackaged/pre``.  If found, deploy them first.
+* Determine if the project specifies any dependencies in the ``cumulusci.yml`` file.  If found, recursively resolve those dependencies and any dependencies belonging to them.
+* Determine whether to install the project as as a managed package or unmanaged metadata:
+    * If the project has a namespace configured in the ``cumulusci.yml`` file, treat the project as a managed package unless the unmanaged option is ``True``.
+    * If the project has a namespace and is *not* configured as unmanaged, use the GitHub API to locate the latest managed release of the project and install it.
+* If the project is an unmanaged dependency, the ``src`` or ``force-app`` directory is deployed.
+* Determine if the project has subfolders under ``unpackaged/post``. If found, deploy them next. Namespace tokens are replaced with ``namespace__`` if the project is being installed as a managed package, or an empty string otherwise.
+
+
+
+Reference Unmanaged Projects
+****************************
+
+If the referenced repository does not have a namespace configured, or if the dependency specifies the ``unmanaged`` option as ``True``, the repository is treated as unmanaged.
+
+    Example: Salesforce EDA
+
+.. code-block:: yaml
+
+    project:
+        dependencies:
+            - github: https://github.com/SalesforceFoundation/EDA
+              unmanaged: True
+
+..
+
+    The EDA repository is configured for a namespace, but the dependency  specifies ``unmanaged: True``, so EDA and its dependencies deploy as unmanaged metadata.
+
+
+
+Reference a Specific Tag
+************************
+
+To reference a specific version of the product other than the most recent commit on the main branch (for unmanaged projects) or the most recent production release (for managed packages), use the ``tag`` option to specify a tag from the target repository. This option is most useful for testing against beta versions of underlying packages, or recreating specific org environments for debugging.
+
+    Example: Salesforce EDA
+
+.. code-block:: yaml
+
+    project:
+        dependencies:
+            - github: https://github.com/SalesforceFoundation/EDA
+              tag: beta/1.47-Beta_2
+
+..
+
+    The EDA repository's tag, ``beta/1.47-Beta_2``, is used instead of the latest production release of EDA (1.46, for this example). This tag lets a build environment use features in the next production release of EDA that are already merged but not yet included in a production release.
+
+
+
+Skip ``unpackaged/*`` in Reference Repositories
+***********************************************
+
+If the referenced repository has dependency metadata under ``unpackaged/pre`` or ``unpackaged/post``, use the ``skip`` option to skip deploying that metadata with the dependency.
+
+    Example: Salesforce EDA
+
+.. code-block:: yaml
+
+    project:
+        dependencies:
+            - github: https://github.com/SalesforceFoundation/EDA
+              skip: unpackaged/post/course_connection_record_types
+
 
 
 Managed Package Dependencies
@@ -295,8 +378,9 @@ When the ``update_dependencies`` task runs, it retrieves a list of all managed p
     * If the org has a newer version or a beta version installed, it's uninstalled and ``version 3.6`` is installed.
 
 
+
 Hierarchical Dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^
+*************************
 
 Managed package dependencies can handle a hierarchy of dependencies between packages.
 
@@ -327,6 +411,7 @@ Managed package dependencies can handle a hierarchy of dependencies between pack
     So if the target org currently has ``npe01 version 3.7``, ``npe01`` needs to be uninstalled to downgrade to ``3.6``. However, ``npo02`` requires ``npe01``, so uninstalling ``npe01`` also requires uninstalling ``npo02``. (In this scenario ``npe03``, ``npe04``, and ``npe05`` do not have to be uninstalled to uninstall ``npe01``.)
 
 
+
 Unmanaged Metadata Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -338,7 +423,7 @@ Specify unmanaged metadata to be deployed by specifying a ``zip_url`` and, optio
         dependencies:
             - zip_url: https://SOME_HOST/metadata.zip
 
-When the ``update_dependencies`` task runs, it downloads the zip file and deploys it via the Metadata API's ``deploy`` method. The zip file must contain valid metadata for use with a deploy, including a ``package.xml`` file in the root.
+When the ``update_dependencies`` task runs, it downloads the zip file and deploys it via the Metadata API. The zip file must contain valid metadata for use with a deploy, including a ``package.xml`` file in the root.
 
 
 
@@ -425,86 +510,6 @@ If the metadata in the zip to be deployed has references to a namespace prefix, 
     This example takes the NPSP Reports & Dashboards project's unmanaged metadata and strips the references to ``npsp__`` to deploy it against an unmanaged version of NPSP.
 
 
-GitHub Repository Dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-GitHub repository dependencies create a dynamic dependency between the current project and another CumulusCI project on GitHub.
-
-    Example: Salesforce EDA
-
-.. code-block:: yaml
- 
-    project:
-        dependencies:
-            - github: https://github.com/SalesforceFoundation/EDA
-
-When ``update_dependencies`` runs, these steps are taken against the referenced repository.
-
-* Look for the ``cumulusci.yml`` file and parse if found.
-* Determine if the project has subfolders under ``unpackaged/pre``.  If found, deploy them first.
-* Determine if the project specifies any dependencies in the ``cumulusci.yml`` file.  If found, recursively resolve those dependencies and any dependencies belonging to them.
-* Determine whether to install the project as as a managed package or unmanaged metadata:
-    * If the project has a namespace configured in the ``cumulusci.yml`` file, treat the project as a managed package unless the unmanaged option is ``True``.
-    * If the project has a namespace and is *not* configured as unmanaged, use the GitHub API to locate the latest managed release of the project and install it.
-* If the project is an unmanaged dependency, the ``src`` or ``force-app`` directory is deployed.
-* Determine if the project has subfolders under ``unpackaged/post``. If found, deploy them next. Namespace tokens are replaced with ``namespace__`` if the project is being installed as a managed package, or an empty string otherwise.
-
-
-
-Reference Unmanaged Projects
-****************************
-
-If the referenced repository does not have a namespace configured, or if the dependency specifies the ``unmanaged`` option as ``True``, the repository is treated as an unmanaged repository.
-
-    Example: Salesforce EDA
-
-.. code-block:: yaml
-
-    project:
-        dependencies:
-            - github: https://github.com/SalesforceFoundation/EDA
-              unmanaged: True
-
-..
-
-    The EDA repository is configured for a namespace, but the dependency  specifies ``unmanaged: True``, so the dependency deploys unmanaged EDA and its dependencies.
-
-
-
-Reference a Specific Tag
-************************
-
-To reference a specific version of the product other than the most recent commit on the main branch (for unmanaged projects) or the most recent production release (for managed packages), use the ``tag`` option to specify a tag from the target repository. This option is most useful for testing against beta versions of underlying packages, or recreating specific org environments for debugging.
-
-    Example: Salesforce EDA
-
-.. code-block:: yaml
-
-    project:
-        dependencies:
-            - github: https://github.com/SalesforceFoundation/EDA
-              tag: beta/1.47-Beta_2
-
-..
-
-    The EDA repository's tag, ``beta/1.47-Beta_2``, is used instead of the latest production release of EDA (1.46, for this example). This tag lets a build environment use features in the next production release of EDA that are already merged but not yet included in a production release.
-
-
-
-Skip ``unpackaged/*`` in Reference Repositories
-***********************************************
-
-If the referenced repository has dependency metadata under ``unpackaged/pre`` or ``unpackaged/post``, use the ``skip`` option to skip deploying that metadata with the dependency.
-
-    Example: Salesforce EDA
-
-.. code-block:: yaml
-
-    project:
-        dependencies:
-            - github: https://github.com/SalesforceFoundation/EDA
-              skip: unpackaged/post/course_connection_record_types
-
 
 Automatic Cleaning of ``meta.xml`` Files on Deploy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -515,7 +520,7 @@ This feature supports CumulusCI's automatic dependency resolution by avoiding a 
 
 .. note:: If the metadata being deployed references namespaced metadata that does not exist in the currently installed package, the deployment throws an error as expected.
 
-The automatic cleaning of ``meta.xml`` files can be disabled by setting the ``clean_meta_xml`` option to ``False``. Prior to the addition of this functionality, there were unnecessary delays in the CumulusCI release cycle due to the need to create a new commit on ``main`` (and thus a feature branch, PR, code review, and so on) just to update the ``meta.xml`` files. CumulusCI's GitHub dependency functionality already handles requiring a new production release, so the only reason to do this commit was for the ``meta.xml`` files. Automatically cleaning the meta.xml files on deploy eliminates the need for this commit.
+.. tip:: The automatic cleaning of ``meta.xml`` files can be disabled by setting the ``clean_meta_xml`` option to ``False``.
 
 One drawback of this approach is that developers need to handle the diffs in the ``meta.xml`` files by either ignoring them, or committing them as part of their work in a feature branch. 
 
