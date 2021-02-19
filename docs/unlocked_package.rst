@@ -8,7 +8,7 @@ While CumulusCI was originally created to develop managed packages, it can also 
 Prerequisites
 -------------
 
-To create unlocked package versions, first complete these steps.
+To create unlocked package versions, complete these steps.
 
 * `Enable DevHub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/sfdx_setup_enable_devhub.htm>`_.
 * `Enable Unlocked and Second-Generation Managed Packaging <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_secondgen_pkg.htm>`_.
@@ -26,16 +26,16 @@ To create a new unlocked package version, run the ``create_package_version`` tas
 
     $ cci task run create_package_version --org <org_name> --package_type Unlocked
 
-This task looks in your default DevHub org (as configured in ``sfdx``) for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of the ``cumulusci.yml`` file). If a matching package doesn't exist, the task then submits a request to create the package version. When completed (which can take some time), the task outputs a ``SubscriberPackageVersion`` id, which can be used to install the package in another org.
+This task looks in your default DevHub org (as configured in ``sfdx``) for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of the ``cumulusci.yml`` file). If a matching package doesn't exist, CumulusCI first creates a `Package2 <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_package2.htm>`_ object, and then submits a `request <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_package2versioncreaterequest.htm>`_ to create the package version. When completed (which can take some time), the task outputs a ``SubscriberPackageVersion`` ID, which can be used to install the package in another org.
 
-If a package version already exists with the exact same contents, its ``SubscriberPackageVersion`` id is returned.
+If a package version already exists with the exact same contents, as determined by the hash of the package metadata, its ``SubscriberPackageVersion`` ID is returned rather than creating a new version.
 
 
 
 Handle Dependencies
 ---------------------
 
-CumulusCI tries to convert dependencies configured under the ``project`` section of the ``cumulusci.yml`` file into a ``SubscriberPackageVersion`` id (``04t`` key prefix). This format is required for dependencies in the API to create a package version.
+CumulusCI tries to convert dependencies configured under the ``project`` section of the ``cumulusci.yml`` file into a ``SubscriberPackageVersion`` ID (``04t`` key prefix). This format is required for dependencies in the API to create a package version.
 
 For dependencies that are specified as a managed package namespace and version, or dependencies specified as a GitHub repository with releases that can be resolved to a namespace and version, CumulusCI needs a scratch org with the dependencies installed to execute this conversion in the ``create_package_version`` task.
 
@@ -62,4 +62,4 @@ Install the Unlocked Package
 These are the available methods for installing a package in an org. 
 
 * `Install via the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_cli.htm>`_
-* `Install via an installation URL <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_ui.htm>`_
+* `Install via an Installation URL <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_ui.htm>`_
