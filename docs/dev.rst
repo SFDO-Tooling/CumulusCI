@@ -35,42 +35,6 @@ To run the ``dev_org`` flow against a specific org, use the ``--org`` option:
     $ cci org browser dev
 
 
-Set the Retrieve State
-^^^^^^^^^^^^^^^^^^^^^^
-
-To make changes to retrieve in an org, use the ``snapshot_changes`` task to create a snapshot. A snapshot tells the Salesforce CLI source tracking to set the org's current state as a baseline for changes to be made against.
-
-.. code-block:: console
-
-    $ cci task run snapshot_changes --org dev
-
-.. note:: There's no need to run ``snapshot_changes`` if you've set up a scratch org with any of these flows.
-
-    * ``dev_org``
-    * ``dev_org_namespaced``
-    * ``qa_org``
-    * ``regression_org``
-    * ``install_beta``
-    * ``install_prod``
-    
-    These flows all run ``snapshot_changes`` as their last step.
-
-The ``list_changes`` and ``retrieve_changes`` tasks detect new or modified metadata in an org, but ignore any changes to metadata made prior to the last snapshot.
-
-A snapshot is created successfully when the final line of output for ``list_changes`` and ``retrieve_changes`` reads "Found no changes."
-
-.. code-block:: console
-
-    $ cci task run list_changes --org dev
-
-    YYYY-MM-DD HH:MM:SS: Getting org info from Salesforce CLI for <username>
-    YYYY-MM-DD HH:MM:SS: Beginning task: ListChanges
-    YYYY-MM-DD HH:MM:SS: As user: <username>
-    YYYY-MM-DD HH:MM:SS: In org: <org_name>
-    YYYY-MM-DD HH:MM:SS:
-    YYYY-MM-DD HH:MM:SS: Found no changes.
-
-
 
 List Changes
 ------------
@@ -86,6 +50,8 @@ To see what components have changed in a target org:
     This functionality relies on Salesforce's source tracking feature, which is currently available only in Scratch Orgs, Developer Sandboxes, and Developer Pro Sandboxes.
 
 For more information, see `List and Retrieve Options`_.
+
+
 
 Retrieve Changes
 ----------------
@@ -334,7 +300,7 @@ Hierarchical Dependencies
 
 Managed package dependencies can handle a hierarchy of dependencies between packages.
 
-    Example: Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages, one of which (npo02) is an extension of another (npe01).
+    Example: Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages, one of which (Households) is an extension of another (Contacts & Organizations).
 
     These dependencies are listed under the ``project`` section of the ``cumulusci.yml`` file.
 
