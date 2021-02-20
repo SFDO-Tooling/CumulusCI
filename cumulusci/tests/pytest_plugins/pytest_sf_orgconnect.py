@@ -44,7 +44,6 @@ def org_config(request, fallback_org_config):
     if org_name:
         with unmock_homedir():  # restore real homedir
             runtime = CliRuntime()
-            del os.environ["CUMULUSCI_KEY"]
             runtime.keychain._load_orgs()
             org_name, org_config = runtime.get_org(org_name)
             assert org_config.scratch, "You should only run tests against scratch orgs."

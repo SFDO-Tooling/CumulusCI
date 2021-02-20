@@ -4,7 +4,7 @@ from pathlib import Path
 import tracemalloc
 import gc
 import sys
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import json
 from unittest import mock
 import os
@@ -231,20 +231,31 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
 @contextmanager
 def mock_homedir(home, cumulusci_key="0123456789ABCDEF"):
     real_homedir = str(Path.home())
+    patches = {
+        "HOME": home,
+        "USERPROFILE": home,
+        "REAL_HOME": real_homedir,
+    }
+
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
-        os.environ,
-        {
-            "HOME": home,
-            "USERPROFILE": home,
-            "CUMULUSCI_KEY": cumulusci_key,
-            "REAL_HOME": real_homedir,
-            "REAL_CUMULUSCI_KEY": os.environ.get("CUMULUSCI_KEY", ""),
-        },
+        os.environ, patches
     ):
+        # don't use the real CUMULUSCI_KEY for tests
+        if "CUMULUSCI_KEY" in os.environ:
+            del os.environ["CUMULUSCI_KEY"]
+        elif cumulusci_key is not None:
+            # do use a fake one, if it was supplied
+            os.environ["REAL_CUMULUSCI_KEY"] = os.environ.get("CUMULUSCI_KEY", "")
+            os.environ["CUMULUSCI_KEY"] = cumulusci_key
+
         yield
 
 
 def unmock_homedir():
-    cci_key = os.environ["REAL_CUMULUSCI_KEY"]
-    homedir = os.environ["REAL_HOME"]
-    return mock_homedir(homedir, cci_key)
+    """Reset homedir and CCI environment variable or leave them if they weren't changed"""
+    if "REAL_HOME" in os.environ:
+        cci_key = os.environ.get("REAL_CUMULUSCI_KEY") or None
+        homedir = os.environ["REAL_HOME"]
+        return mock_homedir(homedir, cci_key)
+    else:
+        return nullcontext()

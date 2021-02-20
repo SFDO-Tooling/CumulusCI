@@ -11,13 +11,21 @@ import re
 from .pytest_sf_orgconnect import sf_pytest_orgname
 
 
-def sf_before_record_cb(request):
-    if request.body and "<sessionId>" in request.body.decode():
-        request.body = re.sub(
+def simplify_body(request_or_response_body):
+    decoded = request_or_response_body.decode("utf-8")
+    if "<sessionId>" in decoded:
+        decoded = re.sub(
             r"<sessionId>.*</sessionId>",
             "<sessionId>**Elided**</sessionId>",
-            request.body.decode(),
-        ).encode()
+            decoded,
+        )
+    decoded = re.sub(r"001[\w\d]{15,18}", "001ACCOUNTID", decoded)
+    return decoded.encode()
+
+
+def sf_before_record_request(request):
+    if request.body:
+        request.body = simplify_body(request.body)
     request.uri = re.sub(
         r"//.*.my.salesforce.com", "//orgname.salesforce.com", request.uri
     )
@@ -34,6 +42,8 @@ def sf_before_record_cb(request):
 # junk_headers = ["Public-Key-Pins-Report-Only", ]
 def sf_before_record_response(response):
     response["headers"] = {"Response-Headers": "Elided"}
+    if response.get("body"):
+        response["body"]["string"] = simplify_body(response["body"]["string"])
     return response
 
 
@@ -42,8 +52,9 @@ def vcr_config(request):
 
     orgname = sf_pytest_orgname(request)
 
+    # https://vcrpy.readthedocs.io/en/latest/usage.html#record-modes
     if orgname:
-        record_mode = "all"
+        record_mode = "once"
     else:
         record_mode = "none"
 
@@ -51,7 +62,7 @@ def vcr_config(request):
         "record_mode": record_mode,
         "decode_compressed_response": True,
         "before_record_response": sf_before_record_response,
-        "before_record_request": sf_before_record_cb,
+        "before_record_request": sf_before_record_request,
         # this is redundant, but I guess its a from of
         # security in-depth
         "filter_headers": [
@@ -67,24 +78,26 @@ _version_string = re.compile(r"/v\d\d.0/")
 
 
 def _noversion(s):
-    s = str(s, "utf-8") if isinstance(s, bytes) else s
-    return _version_string.sub(r"/vxx.0/", s) if s is not None else s
+    if s:
+        s = str(s, "utf-8") if isinstance(s, bytes) else s
+        s = _version_string.sub(r"/vxx.0/", s)
+        s = re.sub(r"/00D[\w\d]{10,20}", "/ORGID", s)
+        s = re.sub(r".com//", r".com/", s)
+        return s
 
 
 def explain_mismatch(r1, r2):
-    if r1.method != r2.method:
-        print("MISMATCH", r1.method, "\n!=", r2.method)
-    if _noversion(r1.uri) != _noversion(r2.uri):
-        print("MISMATCH", _noversion(r1.uri), "\n!=", _noversion(r2.uri))
-    if _noversion(r1.body) != _noversion(r2.body):
-        print("MISMATCH", _noversion(r1.body), "\n!=", _noversion(r2.body))
+    for a, b in zip(r1, r2):
+        if a != b:
+            print("MISMATCH\n\t", a, "\n!=\n\t", b)
+    assert False
     return False
 
 
 def salesforce_matcher(r1, r2):
     summary1 = (r1.method, _noversion(r1.uri), _noversion(r1.body))
     summary2 = (r2.method, _noversion(r2.uri), _noversion(r2.body))
-    assert summary1 == summary2  # or explain_mismatch(r1, r2)
+    assert summary1 == summary2 or explain_mismatch(summary1, summary2)
 
 
 def salesforce_vcr(vcr):
