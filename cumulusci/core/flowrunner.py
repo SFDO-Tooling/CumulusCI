@@ -396,6 +396,7 @@ class FlowCoordinator(object):
         self.logger.info("Organization:")
         self.logger.info(f"  Username: {org_config.username}")
         self.logger.info(f"    Org Id: {org_config.org_id}")
+        self.logger.info(f"  Instance: {org_config.instance_name}")
         self._rule(fill="-", new_line=True)
 
         # Give pre_flow callback a chance to alter the steps
@@ -415,7 +416,9 @@ class FlowCoordinator(object):
             for step in self.steps:
                 self._run_step(step)
             flow_name = f"'{self.name}' " if self.name else ""
-            self.logger.info(f"Completed flow {flow_name}on org {org_config.name} successfully!")
+            self.logger.info(
+                f"Completed flow {flow_name}on org {org_config.name} successfully!"
+            )
         finally:
             self.callbacks.post_flow(self)
 

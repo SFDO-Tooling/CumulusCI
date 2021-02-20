@@ -42,6 +42,7 @@ from cumulusci.utils.git import (
     construct_release_branch_name,
     get_release_identifier,
     get_feature_branch_name,
+    split_repo_url,
 )
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.utils.fileutils import open_fs_resource
@@ -253,17 +254,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         self.logger.info("")
 
     def _split_repo_url(self, url):
-        url_parts = url.rstrip("/").split("/")
+        # TODO: deprecate this method
 
-        name = url_parts[-1]
-        if name.endswith(".git"):
-            name = name[:-4]
-
-        owner = url_parts[-2]
-        if "git@github.com" in url:  # ssh url
-            owner = owner.split(":")[-1]
-
-        return {"url": url, "owner": owner, "name": name}
+        return split_repo_url(url)
 
     def git_config_remote_origin_url(self):
         """Returns the url under the [remote origin]
@@ -378,15 +371,22 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.keychain, owner or self.repo_owner, repo or self.repo_name
         )
 
+    def get_github_repo(self, url):
+        owner, name = split_repo_url(url)
+
+        return self.get_github_api(owner, name).repository(owner, name)
+
     def _get_repo(self):
-        gh = self.get_github_api()
-        repo = gh.repository(self.repo_owner, self.repo_name)
+        repo = self.get_github_api(self.repo_owner, self.repo_name).repository(
+            self.repo_owner, self.repo_name
+        )
         if repo is None:
             raise GithubException(
                 f"Github repository not found or not authorized. ({self.repo_url})"
             )
         return repo
 
+    # TODO: These methods are duplicative with `find_latest_release()`
     def get_latest_tag(self, beta=False):
         """ Query Github Releases to find the latest production or beta tag """
         repo = self._get_repo()

@@ -55,6 +55,16 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "or a child branch of a release branch, resolve GitHub managed package dependencies to 2GP builds present on "
             "a matching release branch on the dependency."
         },
+        "prefer_2gp_exact_match_branch": {
+            "description": "If True and this build is on a release branch (feature/NNN, where NNN is an integer), "
+            "or a child branch of a release branch, resolve GitHub managed package dependencies to 2GP builds present on "
+            "a release branch or child branch with the same name on the dependency."
+        },
+        "allow_2gp_previous_release_branch": {
+            "description": "If True and this build is on a release branch (feature/NNN, where NNN is an integer), "
+            "or a child branch of a release branch, resolve GitHub managed package dependencies to 2GP builds present on "
+            "a matching release branch on the dependency, or a release branch up to two integers lower (such as 232 => 230)."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -83,6 +93,21 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
         self.options["prefer_2gp_from_release_branch"] = process_bool_arg(
             self.options.get("prefer_2gp_from_release_branch", False)
         )
+        self.options["prefer_2gp_exact_match_branch"] = process_bool_arg(
+            self.options.get("prefer_2gp_exact_match_branch", False)
+        )
+        self.options["allow_2gp_previous_release_branch"] = process_bool_arg(
+            self.options.get("allow_2gp_previous_release_branch", False)
+        )
+
+        if (
+            self.options["prefer_2gp_exact_match_branch"]
+            or self.options["allow_2gp_previous_release_branch"]
+        ) and not self.options["prefer_2gp_from_release_branch"]:
+            raise TaskOptionsError(
+                "The prefer_2gp_exact_match_branch and allow_2gp_previous_release_branch options "
+                "require prefer_2gp_from_release_branch."
+            )
 
         if "ignore_dependencies" in self.options:
             if any(
