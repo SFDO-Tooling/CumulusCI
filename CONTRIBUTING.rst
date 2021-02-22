@@ -179,3 +179,19 @@ still be quite slow compared to normal unit tests. Nevertheless, if you are chan
 these tests, you should run them periodically.
 
 Do not commit the files ("large_cassettes/\*.yml") to the repository.
+
+Randomized tests
+~~~~~~~~~~~~~~~~
+
+Tests should be executable in any order. You can run this command
+a few times to verify if they are:
+
+    pytest --random-order
+
+It will output something like this:
+
+    Using --random-order-bucket=module
+    Using --random-order-seed=986925
+
+Using those two parameters on the command line, you can
+replicate a particular run later.
