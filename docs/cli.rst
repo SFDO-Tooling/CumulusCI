@@ -10,7 +10,7 @@ Basic Operation
 
     If you're new to working with command line interfaces, the `Install Visual Studio Code <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ Trailhead module covers installing and opening a terminal window in Visual Studio Code.
 
-After installing CumulusCI <TODO link to install section>, use the ``cci`` command in your terminal or command prompt to interact with it.
+After :doc:`installing CumulusCI <get_started>`, use the ``cci`` command in your terminal or command prompt to interact with it.
 
 On any platform, you can use the integrated terminal in Visual Studio Code. Alternately, on macOS, access the terminal via ``Terminal.app``; on Windows, open ``cmd.exe``; or on Linux, use your preferred terminal application.
 
