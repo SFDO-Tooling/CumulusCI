@@ -15,8 +15,9 @@ import traceback
 import runpy
 import webbrowser
 import contextlib
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from urllib.parse import urlencode
 
 import click
 import github3
@@ -912,12 +913,20 @@ def orgname_option_or_argument(*, required):
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
 )
 @orgname_option_or_argument(required=False)
+@click.option(
+    "--path", required=False, help="Navigate to the specified page after logging in."
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def org_browser(runtime, org_name):
+def org_browser(runtime, org_name, path):
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
 
-    webbrowser.open(org_config.start_url)
+    target = org_config.start_url
+    if path:
+        ret_url = urlencode({"retURL": path})
+        target = f"{target}&{ret_url}"
+
+    webbrowser.open(target)
     # Save the org config in case it was modified
     org_config.save()
 
