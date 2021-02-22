@@ -1,9 +1,9 @@
 Connect Persistent Orgs
 =======================
 
-In addition to creating `scratch orgs<TODO>`_ in CumulusCI, you can connect persistent orgs to your project to run tasks and flows on them. This feature supports use cases such as deploying to a Developer Edition org to release a package version, or installing to a sandbox for user acceptance testing.
+In addition to creating :doc:`scratch orgs <scratch_orgs>` in CumulusCI, you can connect persistent orgs to your project to run tasks and flows on them. This feature supports use cases such as deploying to a Developer Edition org to release a package version, or installing to a sandbox for user acceptance testing.
 
-.. note:: A different setup is required to connect to orgs in the context of an automated build. See `continuous integration<TODO>`_ for more information.
+.. note:: A different setup is required to connect to orgs in the context of an automated build. See :doc:`continuous integration <continuous_integration>` for more information.
 
 
 
@@ -107,7 +107,7 @@ Use a Custom Connected App
 
 CumulusCI uses a preconfigured Connected App to authenticate to Salesforce orgs that use OAuth2. In most cases this preconfigured app is all you need to authenticate into orgs. To control the Connected App for specific security or compliance requirements (such as adding a private key to sign a certificate connected with the configuration, or enforcing restrictions on user activity), create your own Connected App and configure CumulusCI to use it when connecting to orgs.
 
-To create a custom Connected App, run the ``connected_app`` task, and then manually `edit its configuration<TODO>`_ to suit your requirements.
+To create a custom Connected App, run the ``connected_app`` task, and then manually `edit its configuration <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_connected_app.htm>`_ to suit your requirements.
 
 .. important :: Make sure to create the Connected App in a production org!
 
@@ -132,4 +132,4 @@ To edit the Connected App's OAuth scopes:
 #. Click "Edit."
 #. Add or remove OAuth scopes as desired.
 
-For a full list of options, see the `connected_app<TODO>`_ task reference documentation.
+For a full list of options, see the :ref:`connected_app` task reference documentation.

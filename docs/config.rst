@@ -22,7 +22,7 @@ A ``cumulusci.yml`` file contains these top-level sections.
 
 * ``plans``: Contains any custom plans purposely defined to install your project into a customer org. See :ref:`configuring plans in MetaDeploy <Publish an Install Plan to MetaDeplo>` for more information.
 
-Last but not least, `cumulusci.yml reference <TODO>`_ has a complete list of values that can be used in each section. 
+Last but not least, :doc:`cumulusci.yml reference <cci_yml_reference>` has a complete list of values that can be used in each section. 
 
 
 
@@ -98,7 +98,7 @@ To define a new task for your project, add the task name under the ``tasks`` sec
 
 Congratulations! You created a new custom task in CumulusCI.
 
-To `write a custom task in Python<TODO>`_ and make it available to other users in the project, add the task under the ``tasks`` section of the ``cumulusci.yml`` file. (Let's assume that your task's class is named ``MyNewTaskClassName`` and exists in the file ``tasks/task_file.py``.)
+To `write a custom task in Python <TODO>`_ and make it available to other users in the project, add the task under the ``tasks`` section of the ``cumulusci.yml`` file. (Let's assume that your task's class is named ``MyNewTaskClassName`` and exists in the file ``tasks/task_file.py``.)
 
 .. code-block:: yaml
 
@@ -171,7 +171,9 @@ To discover what's available for ``return_value``, find the source code for an i
 
 ..
 
-    To see if anything is being set on ``self.return_values``, find the file that defines the class ``cumulusci.tasks.salesforce.PackageUpload``. A little digging yields that this class is defined in the file `package_upload.py<TODO>`_ and has a method called ``_set_return_values()``. `This method <https://github.com/SFDO-Tooling/CumulusCI/blob/3cad07ac1cecf438aaf087cdeff7b781a1fc74a1/cumulusci/tasks/salesforce/package_upload.py#L165>`_ sets ``self.return_values`` to a dictionary with these keys: ``version_number``, ``version_id``, and ``package_id``.
+    To see if anything is being set on ``self.return_values``, find the file that defines the class ``cumulusci.tasks.salesforce.PackageUpload``.
+    A little digging yields that this class is defined in the file `package_upload.py <https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/tasks/salesforce/package_upload.py>`_ 
+    and has a method called ``_set_return_values()``. `This method <https://github.com/SFDO-Tooling/CumulusCI/blob/3cad07ac1cecf438aaf087cdeff7b781a1fc74a1/cumulusci/tasks/salesforce/package_upload.py#L165>`_ sets ``self.return_values`` to a dictionary with these keys: ``version_number``, ``version_id``, and ``package_id``.
 
     Now look at the standard ``release_beta`` flow defined in the universal ``cumulusci.yml`` file:
 
@@ -400,7 +402,8 @@ See `use variables for task options`_ for more information.
 Scratch Org Configurations
 --------------------------
 
-This section defines the scratch org configurations that are available without explicitly running ``cci org scratch`` to create a new configuration. For more information on using scratch orgs with CumulusCI, see `Scratch Org Environments<TODO>`_.
+This section defines the scratch org configurations that are available without explicitly running ``cci org scratch`` to create a new configuration.
+For more information on using scratch orgs with CumulusCI, see the :doc:`Manage Scratch Orgs <scratch_orgs>`.
 
 Override Default Values
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -410,7 +413,7 @@ Override Default Values
 You can override these values for your org.
 
 * ``days`` (integer): Number of days for the scratch org to persist.
-* ``namespaced`` (boolean): Is the scratch org a `namespaced org<TODO sf link?>`_?
+* ``namespaced`` (boolean): Is the scratch org a namespaced or not. 
 * ``config_file`` (string): Path to the org definition file to use when building the scratch org.
 
 .. code-block:: yaml
@@ -581,7 +584,7 @@ Use ``cci task info <name>`` and ``cci flow info <name>`` to see how a given tas
 
 ..
 
-    To change the default value to 30 seconds for all projects on your machine, add the desired value in your global <TODO link to global config subsection> ``cumulusci.yml`` file.
+    To change the default value to 30 seconds for all projects on your machine, add the desired value in your `global <Global Configurations>` ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
