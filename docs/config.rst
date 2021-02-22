@@ -20,7 +20,7 @@ A ``cumulusci.yml`` file contains these top-level sections.
 
 * ``orgs``: Defines the scratch org configurations that are available for your project. See `scratch org configurations`_ for configuration options in this section.
 
-* ``plans``: Contains any custom plans purposely defined to install your project into a customer org. See :ref:`configuring plans in MetaDeploy <Publish an Install Plan to MetaDeplo>`_ for more information.
+* ``plans``: Contains any custom plans purposely defined to install your project into a customer org. See :ref:`configuring plans in MetaDeploy <Publish an Install Plan to MetaDeplo>` for more information.
 
 Last but not least, `cumulusci.yml reference<TODO>`_ has a complete list of values that can be used in each section. 
 
