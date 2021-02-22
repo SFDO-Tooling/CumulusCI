@@ -59,10 +59,11 @@ CumulusCI does not yet provide tools to help promote an unlocked package version
 Install the Unlocked Package
 ----------------------------
 
-There are two methods that can be used to install an unlocked package with CumulusCI.
-You can configure the ``update_dependencies`` and ``install_managed`` tasks to use a specific unlocked package by providing the 04t Id of the desired package.
+To install an unlocked package with Cumulus:
 
-The ``update_dependencies`` task can be configured in the ``cumulusci.yml`` file like so:
+Configure either the ``update_dependencies`` or the ``install_managed`` task to provide the ``SubscriberPackageVersion`` ID of the unlocked package to be used.
+
+The ``update_dependencies`` task can be configured in the ``cumulusci.yml`` file.
 
 .. code-block::yaml
 
@@ -71,13 +72,13 @@ The ``update_dependencies`` task can be configured in the ``cumulusci.yml`` file
         dependencies:
             - version_id: 04t000000000
 
-For the ``install_managed`` task you can run it via ``cci``:
+For the ``install_managed`` task, run it via ``cci``...
 
 .. code-block::console
 
     $ cci task run intsall_managed --version 04t000000000 --org <org_name>
 
-Or configure it in the ``cumulusci.yml`` file:
+Or configure it in the ``cumulusci.yml`` file.
 
 .. code-block::yaml
 
@@ -85,7 +86,7 @@ Or configure it in the ``cumulusci.yml`` file:
     options:
         version: 04t000000000
 
-These are the other methods available for installing unlocked packages in an org that do not use CumulusCI: 
+To install unlocked packages in an org that doesn't use CumulusCI, use one of these methods. 
 
 * `Install via the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_cli.htm>`_
 * `Install via an Installation URL <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_ui.htm>`_
