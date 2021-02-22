@@ -22,7 +22,7 @@ A ``cumulusci.yml`` file contains these top-level sections.
 
 * ``plans``: Contains any custom plans purposely defined to install your project into a customer org. See :ref:`configuring plans in MetaDeploy <Publish an Install Plan to MetaDeplo>` for more information.
 
-Last but not least, `cumulusci.yml reference<TODO>`_ has a complete list of values that can be used in each section. 
+Last but not least, `cumulusci.yml reference <TODO>`_ has a complete list of values that can be used in each section. 
 
 
 
@@ -37,7 +37,7 @@ Override a Task Option
 
 If you repeatedly specify the same value for an option while running a task, you can configure CumulusCI to use that value as a default value.
 
-     Example: Let's enforce a 90% code coverage requirement for Apex code in your project. The `run_tests<TODO>`_ task, which executes all Apex tests in a target org, can enforce code coverage at a given percentage by passing the ``--required_org_code_coverage_percent`` option.
+    Example: Let's enforce a 90% code coverage requirement for Apex code in your project. The `run_tests`_ task, which executes all Apex tests in a target org, can enforce code coverage at a given percentage by passing the ``--required_org_code_coverage_percent`` option.
 
 .. code-block:: yaml
 
