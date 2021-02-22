@@ -62,13 +62,7 @@ Install the Unlocked Package
 There are two methods that can be used to install an unlocked package with CumulusCI.
 You can configure the ``update_dependencies`` and ``install_managed`` tasks to use a specific unlocked package by providing the 04t Id of the desired package.
 
-For the ``update_dependencies`` task this would be:
-
-.. code-block::console
-
-    $ cci run task update_dependencies --dependencies [{'version_id': '04t000000000'}]
-
-Or configured in ``cumulusci.yml`` like:
+The ``update_dependencies`` task can be configured in the ``cumulusci.yml`` file like so:
 
 .. code-block::yaml
 
@@ -77,13 +71,13 @@ Or configured in ``cumulusci.yml`` like:
         dependencies:
             - version_id: 04t000000000
 
-For the ``install_managed`` task this would be:
+For the ``install_managed`` task you can run it via ``cci``:
 
 .. code-block::console
 
-    $ cci task run intsall_managed --version 04t000000000
+    $ cci task run intsall_managed --version 04t000000000 --org <org_name>
 
-Or configured in ``cumulusci.yml``:
+Or configure it in the ``cumulusci.yml`` file:
 
 .. code-block::yaml
 
