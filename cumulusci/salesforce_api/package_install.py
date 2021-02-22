@@ -1,3 +1,6 @@
+from cumulusci.core.config import OrgConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
+from cumulusci.core.dependencies.dependencies import ManagedPackageInstallOptions
 from typing import cast
 import functools
 import logging
@@ -32,7 +35,12 @@ def _wait_for_package_install(tooling, request):
         )
 
 
-def _install_package_version(project_config, org_config, options):
+def _install_package_version(
+    project_config: BaseProjectConfig,
+    org_config: OrgConfig,
+    version_id: str,
+    options: ManagedPackageInstallOptions,
+):
     tooling = get_simple_salesforce_connection(
         project_config, org_config, base_url="tooling"
     )
@@ -42,11 +50,11 @@ def _install_package_version(project_config, org_config, options):
     )
     request = PackageInstallRequest.create(
         {
-            "EnableRss": options.get("activateRSS", True),
-            "NameConflictResolution": options.get("name_conflict_resolution", "Block"),
-            "Password": options.get("password"),
-            "SecurityType": options.get("security_type", "FULL"),
-            "SubscriberPackageVersionKey": options["version_id"],
+            "EnableRss": options.activate_remote_site_settings,
+            "NameConflictResolution": options.name_conflict_resolution,
+            "Password": options.password,
+            "SecurityType": options.security_type,
+            "SubscriberPackageVersionKey": version_id,
         }
     )
     poll(functools.partial(_wait_for_package_install, tooling, request))
@@ -60,8 +68,13 @@ def _should_retry_package_install(err: Exception) -> bool:
     return False
 
 
+# FIXME: update all references to this method to use a ManagedPackageInstallOptions
 def install_package_version(
-    project_config, org_config, install_options, retry_options=None
+    project_config: BaseProjectConfig,
+    org_config: OrgConfig,
+    version_id: str,
+    install_options: ManagedPackageInstallOptions,
+    retry_options=None,
 ):
     retry_options = {
         **(retry_options or {}),
@@ -69,7 +82,11 @@ def install_package_version(
     }
     retry(
         functools.partial(
-            _install_package_version, project_config, org_config, install_options
+            _install_package_version,
+            project_config,
+            org_config,
+            version_id,
+            install_options,
         ),
         **retry_options,
     )

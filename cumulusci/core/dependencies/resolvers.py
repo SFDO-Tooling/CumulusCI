@@ -1,13 +1,15 @@
 import abc
+from cumulusci.core.dependencies.dependencies import (
+    DynamicDependency,
+    GitHubDynamicDependency,
+    ManagedPackageDependency,
+)
 import io
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from github3.exceptions import NotFoundError
-import pydantic
 from cumulusci.core.exceptions import DependencyResolutionError
 from enum import Enum, auto
-from typing import Optional, List, Union, Tuple
-from pydantic import BaseModel
-from cumulusci.core.config import OrgConfig
+from typing import Optional, Tuple
 from cumulusci.core.config.project_config import BaseProjectConfig
 
 from cumulusci.core.github import (
@@ -22,14 +24,6 @@ from cumulusci.utils.git import (
     get_release_identifier,
 )
 
-# We have three total jobs to do:
-# - Resolve dynamic dependencies to a ref, and optionally a managed package version
-# - Flatten dependencies into fully-specified steps
-# - Install flattened dependencies
-
-# This module takes over jobs 1 and 2 from ProjectConfig
-# Dependency objects will have an `install()` method that calls to services elsewhere.
-
 
 class DependencyResolutionStrategy(Enum):
     STRATEGY_STATIC_TAG_REFERENCE = auto()
@@ -39,211 +33,6 @@ class DependencyResolutionStrategy(Enum):
     STRATEGY_BETA_RELEASE_TAG = auto()
     STRATEGY_RELEASE_TAG = auto()
     STRATEGY_UNMANAGED_HEAD = auto()
-
-
-class Dependency(BaseModel, abc.ABC):
-    @property
-    @abc.abstractmethod
-    def is_resolved(self):
-        return False
-
-    @property
-    @abc.abstractmethod
-    def is_flattened(self):
-        return False
-
-
-class DynamicDependency(Dependency, abc.ABC):
-    @property
-    def is_flattened(self):
-        return False
-
-    def resolve(
-        self, context: BaseProjectConfig, strategies: List[DependencyResolutionStrategy]
-    ):
-        if self.is_resolved:
-            return
-
-        for s in strategies:
-            resolver = get_resolver(s, self)
-
-            if resolver.can_resolve(self, context):
-                try:
-                    self.ref, self.managed_dependency = resolver.resolve(self, context)
-                    if self.ref:
-                        break
-                except DependencyResolutionError:
-                    context.logger.info(
-                        f"Resolution strategy {s} failed for dependency {self}."
-                    )
-
-
-class StaticDependency(Dependency, abc.ABC):
-    @abc.abstractmethod
-    def install(self, org_config: OrgConfig):
-        pass
-
-    @property
-    def is_resolved(self):
-        return True
-
-    @property
-    def is_flattened(self):
-        return True
-
-
-class GitHubDynamicDependency(DynamicDependency):
-    github: Optional[str]
-    release: Optional[str]  # latest_beta, previous (?)
-
-    unmanaged: bool = False
-    subfolder: Optional[str]
-    # Do we need the namespace injection ones here too?
-
-    tag: Optional[
-        str
-    ]  # QUESTION: can a `tag` specifier identify a managed release or just a ref for unmanaged?
-    ref: Optional[str]
-
-    repo_owner: Optional[str]  # This should be deprecated as it's GitHub-specific
-    repo_name: Optional[str]  # This should be deprecated as it's GitHub-specific
-
-    dependencies: Optional[List[dict]]  # How do we handle this?
-    skip: Optional[List[str]]
-
-    # UI options
-    name: Optional[str]  # Can this be inferred? Is it ever specified in markup?
-
-    @property
-    def is_resolved(self):
-        return self.ref is not None
-
-    @pydantic.root_validator
-    def check_complete(cls, values):
-        assert "github" in values or (
-            "repo_owner" in values and "repo_name" in values
-        ), "Must specify `github` or `repo_owner` and `repo_name`"
-        assert None in [
-            values.get("tag"),
-            values.get("ref"),
-        ], "Must not specify both `tag` and `ref`"
-        assert None in [
-            values.get("tag"),
-            values.get("release"),
-        ], "Must not specify both `tag` and `release`"
-        assert None in [
-            values.get("release"),
-            values.get("ref"),
-        ], "Must not specify both `release` and `ref`"
-
-    def flatten(self):
-        pass
-
-
-class ManagedPackageDependency(StaticDependency):
-    namespace: Optional[str]
-    version: Optional[str]
-    package_version_id: Optional[str] = pydantic.Field(alias="version_id")
-    package_name: Optional[str]
-
-    @property
-    def is_resolved(self):
-        return True
-
-    @property
-    def is_flattened(self):
-        return True
-
-    @property
-    def package(self):
-        return self.package_name or self.namespace
-
-    @property
-    def step_name(self):
-        return (
-            f"Install {self.package} version {self.package_version_id or self.version}"
-        )
-
-    def install(self):
-        pass  # TODO
-
-    @pydantic.root_validator
-    def validate(cls, values):
-        assert (
-            "namespace" in values and "version" in values
-        ) or "package_version_id" in values, (
-            "Must specify `namespace` and `version`, or `package_version_id`"
-        )
-
-
-class UnmanagedDependency(StaticDependency):
-    zip_url: Optional[str]
-
-    # or
-    repo_owner: Optional[str]  # This should be deprecated as it's GitHub-specific
-    repo_name: Optional[str]  # This should be deprecated as it's GitHub-specific
-
-    # or
-    repo_url: Optional[str]
-
-    # and
-    ref: Optional[str]
-
-    subfolder: Optional[str]
-    namespace_inject: Optional[str]
-    namespace_strip: Optional[str]
-
-    @pydantic.root_validator
-    def validate(cls, values):
-        if "repo_name" in values or "repo_owner" in values:
-            logger.warn(
-                "The repo_name and repo_owner keys are deprecated. Pleas use repo_url."
-            )
-
-        assert (
-            "zip_url" in values
-            or ("repo_url" in values and "ref" in values)
-            or ("repo_name" in values and "repo_owner" in values and "ref" in values)
-        ), "Must specify `zip_url`, or `repo_url` and `ref`"
-
-
-def parse_dependency(
-    dep_dict: dict,
-) -> Optional[Union[DynamicDependency, StaticDependency]]:
-    for dependency_class in [
-        GitHubDynamicDependency,
-        ManagedPackageDependency,
-        UnmanagedDependency,
-    ]:
-        try:
-            dep = dependency_class.parse_obj(dep_dict)
-            if dep:
-                return dep
-        except pydantic.ValidationError:
-            pass
-
-
-## Resolvers
-
-
-# project:
-#    resolutions:
-#        stacks:
-#           allow_betas:
-#            - 2gp_exact_match
-#            - managed_beta
-#            - managed_release
-#           2gp_pref:
-#            - 2gp_exact_match
-#            - managed_release
-#        default_stack: latest_prod
-
-
-# How should per-dependency resolver specification interact with the project-level
-# specification used by the lowest-level dependency?
-#    dependencies:
-#        - github: https://foo/
-#          resolver_stack: latest_beta
 
 
 class Resolver(abc.ABC):
@@ -267,7 +56,7 @@ class GitHubTagResolver(Resolver):
     ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
         try:
             # Find the github release corresponding to this tag.
-            repo = context.get_github_repo(dep.github)
+            repo = dep.get_repo(context)
             release = repo.release_from_tag(dep.tag)
 
             return (
@@ -289,7 +78,7 @@ class GitHubReleaseTagResolver(Resolver):
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
-        repo = context.get_github_repo(dep.github)
+        repo = dep.get_repo(context)
         release = find_latest_release(repo, include_beta=self.include_beta)
         if release:
             ref = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha).object.sha
@@ -325,9 +114,7 @@ class GitHubUnmanagedHeadResolver(Resolver):
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
-        repo = context.get_github_repo(
-            dep.github
-        )  # TODO: all these calls miss the name/owner mechanic
+        repo = dep.get_repo(context)
         return (repo.branch(repo.default_branch).commit.sha, None)
 
 
@@ -348,25 +135,53 @@ def _locate_2gp_package_id(remote_repo, release_branch, context_2gp):
     return version_id, commit
 
 
-class GitHubReleaseBranch2GPResolver(Resolver):
-    branch_depth = 1
-
+class GitHubReleaseBranchMixin:
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        return isinstance(dep, GitHubDynamicDependency) and is_release_branch_or_child(
+        return self.is_valid_repo_context(context) and isinstance(
+            dep, GitHubDynamicDependency
+        )
+
+    def get_release_id(self, context: BaseProjectConfig) -> int:
+        if not context.repo_branch or not context.project__git__prefix_feature:
+            raise DependencyResolutionError(
+                "Cannot get current branch or feature branch prefix"
+            )
+        release_id = get_release_identifier(
             context.repo_branch, context.project__git__prefix_feature
         )
+        if not release_id:
+            raise DependencyResolutionError("Cannot get current release identifier")
+
+        return int(release_id)
+
+    def is_valid_repo_context(self, context) -> bool:
+        return (
+            context.repo_branch
+            and context.project__git__prefix_feature
+            and is_release_branch_or_child(
+                context.repo_branch, context.project__git__prefix_feature
+            )
+        )
+
+
+class GitHubReleaseBranch2GPResolver(Resolver, GitHubReleaseBranchMixin):
+    branch_depth = 1
 
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
-        release_id = int(
-            get_release_identifier(
-                context.repo_branch, context.project__git__prefix_feature
-            )
-            or 0
-        )
+
+        release_id = self.get_release_id(context)
+        if not release_id:
+            raise DependencyResolutionError("Cannot get current release identifier")
+
+        release_id = int(release_id)
 
         repo = context.get_github_repo(dep.github)
+        if not repo:
+            raise DependencyResolutionError(
+                f"Unable to access GitHub repository for {dep.github}"
+            )
 
         try:
             remote_branch_prefix = find_repo_feature_prefix(repo)
@@ -411,23 +226,15 @@ class GitHubPreviousReleaseBranch2GPResolver(GitHubReleaseBranch2GPResolver):
     branch_depth = 3
 
 
-class GitHubReleaseBranchExactMatch2GPResolver(Resolver):
-    def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        return isinstance(dep, GitHubDynamicDependency) and is_release_branch_or_child(
-            context.repo_branch, context.project__git__prefix_feature
-        )
-
+class GitHubReleaseBranchExactMatch2GPResolver(Resolver, GitHubReleaseBranchMixin):
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
-        release_id = int(
-            get_release_identifier(
-                context.repo_branch, context.project__git__prefix_feature
-            )
-            or 0
-        )
+        release_id = self.get_release_id(context)
 
         repo = context.get_github_repo(dep.github)
+        if not repo:
+            raise DependencyResolutionError(f"Unable to access repository {dep.github}")
 
         try:
             remote_branch_prefix = find_repo_feature_prefix(repo)
@@ -448,7 +255,9 @@ class GitHubReleaseBranchExactMatch2GPResolver(Resolver):
             return (None, None)
 
         version_id, commit = _locate_2gp_package_id(
-            repo, release_branch, context.project__git__prefix_feature
+            repo,
+            release_branch,
+            context.project__git__prefix_feature,  # FIXME: This is supposed to be context_2gp
         )
 
         if version_id:
@@ -456,10 +265,10 @@ class GitHubReleaseBranchExactMatch2GPResolver(Resolver):
                 f"Located 2GP package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
             )
 
-            return version_id, commit.sha
+            return commit.sha, ManagedPackageDependency(version_id=version_id)
 
         context.logger.warn(
-            f"No 2GP package version located for release {release_id} on {repo.clone_url}. Falling back to 1GP."
+            f"No 2GP package version located for release {release_id} on {repo.clone_url}."
         )
         return (None, None)
 

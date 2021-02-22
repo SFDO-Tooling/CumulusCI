@@ -392,14 +392,3 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             )
             steps.append(ui_step)
         return steps
-
-    def _flatten(self, dependencies):
-        result = []
-        for dependency in dependencies:
-            subdeps = dependency.pop("dependencies", [])
-            for subdep in self._flatten(subdeps):
-                if subdep not in result:
-                    result.append(subdep)
-            if dependency not in result:
-                result.append(dependency)
-        return result
