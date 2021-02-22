@@ -25,7 +25,7 @@ Projects
 
 When you work with CumulusCI, you do so inside a *project*. A project is an individual Git repository that contains both Salesforce metadata and CumulusCI automation (such as tasks and flows) that builds and releases the project. If you are building multiple packages, we strongly recommend organizing each package as a separate project in its own repository.
 
-        .. Important:: CumulusCI's standard automation assumes that there is one package per repository, so it will work best if you follow this convention.
+.. Important:: CumulusCI's standard automation assumes that there is one package per repository, so it will work best if you follow this convention.
 
 It's important to note that a project doesn't have to contain a package. For example, a project can deliver unpackaged metadata, deliver automation but no metadata at all, or provide test data for QA. A project can contain the entirety of a product offered to customers, or be just one of multiple projects that combine to form a complete product.
 
@@ -102,7 +102,7 @@ See the :doc:`Manage Scratch Org<scratch_orgs>` for more information.
 ^^^^^^^^^^^^
 
 Each project can have one or more ``datasets``: on-disk representations of record data that can be inserted into Salesforce orgs, and that can also be modified and re-captured during the evolution of the project. Datasets are stored in the ``datasets`` directory. 
-Learn more about datasets in [TODO: link Automating Data Operations].
+Learn more about datasets in :doc:`Automate Data Operations`.
 
 ``robot``
 ^^^^^^^^^
