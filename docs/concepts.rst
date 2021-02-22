@@ -76,7 +76,7 @@ Project Directory
 
 The project directory is the root of your CumulusCI project. Because each project is linked to a single GitHub repository, CumulusCI knows which project you are working on by the current working directory of your shell. 
 
-        .. tip:: Avoid headaches by making sure you're in the correct repository for your project before running project-specific commands. Otherwise, your project produces an error. (**Check your repo first** when troubleshooting in CumulusCI and potentially save yourself an extra trip to this guide.)
+.. tip:: Avoid headaches by making sure you're in the correct repository for your project before running project-specific commands. Otherwise, your project produces an error. (**Check your repo first** when troubleshooting in CumulusCI and potentially save yourself an extra trip to this guide.)
 
 In order to be used as a CumulusCI project, a directory must both be a Git repository and contain a ``cumulusci.yml`` configuration file. We cover how to get set up with a new or existing CumulusCI project in the :doc:`Get Started <get_started` section.
 
