@@ -9,7 +9,7 @@ The tools used to implement that support are *unpackaged metadata* and *Metadata
 
 Unpackaged metadata refers to metadata that is not delivered as part of a package, and can include both support metadata delivered to users as well as metadata that operationally configures orgs used by the product. 
 
-Metadata ETL is a suite of tasks that support surgically altering existing metadata in an org. It's a powerful technique that changes the unpackaged configuration in an org without risking damage by overwriting existing customizations with stored metadata. Metadata ETL is relevant for delivering applications to customers safely, and is often a superior alternative to unpackaged metadata.
+Metadata ETL is a suite of tasks that supports surgically altering existing metadata in an org. It's a powerful technique that alters the unpackaged configuration in an org without risking damage to existing customizations by overwriting them with incoming metadata. Metadata ETL is relevant for delivering applications to customers safely, and is often a superior alternative to unpackaged metadata.
 
 To learn more, see `Metadata ETL<TODO>`_.
 
@@ -22,7 +22,7 @@ Roles of Unpackaged Metadata
 ``unpackaged/pre``: Prepare an Org
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some projects require that unpackaged metadata be deployed to finish the customization of an org *before* the project's own code and metadata are deployed.
+Some projects require that unpackaged metadata be deployed to finish the customization of an org *before* the package's own code and metadata are deployed.
 
     Example: The Nonprofit Success Pack (NPSP) must deploy unpackaged Record Types prior to installing its own packages. ``unpackaged/pre`` is the location designed for such metadata, which is stored in subdirectories such as ``unpackaged/pre/first``.
 
@@ -36,15 +36,11 @@ The ``deploy_pre`` task, which is part of the ``dependencies`` flow, is responsi
 ``unpackaged/post``: Configuration After Package Install
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Projects often include metadata that is genuinely part of the application, but either cannot be delivered as part of a managed package for operational reasons. This metadata must be deployed *after* the project's own code and metadata are deployed first and the org is configured.
+Projects often include metadata that is genuinely part of the application, but cannot be delivered as part of a managed package for operational reasons. This metadata must be deployed *after* the package's own code and metadata are deployed first and the org is configured.
 
-    Example: A product that wishes to deliver ``TopicsForObjects`` metadata cannot do so as part of a managed package because that type of metadata is not packageable.
+    Example: A product can't deliver ``TopicsForObjects`` metadata as part of a managed package because that type of metadata is't packageable. ``unpackaged/post`` is the home for this kind of metadata, which is stored in subdirectories such as ``unpackaged/post/first``.
 
 .. note:: To learn more about which components are packageable, see the `Metadata Coverage Report <https://mdcoverage.secure.force.com/docs/metadata-coverage>`_.
-
-..
-
-    ``unpackaged/post`` is the home for this kind of metadata, which is stored in subdirectories such as ``unpackaged/post/first``.
 
 CumulusCI's standard flows that build orgs, such as ``dev_org`` and ``install_prod``, always deploy metadata bundles found in ``unpackaged/post``, making it a full-fledged part of the application. It's also easy to include ``unpackaged/post`` metadata in customer-facing installers run via MetaDeploy.
 
@@ -82,17 +78,17 @@ These trees contain metadata bundles in Metadata API format, represented as a di
 Namespace Injection
 -------------------
 
-Projects that build managed packages often construct their unpackaged metadata to be deployable in multiple contexts.
+Projects that build managed packages often construct their unpackaged metadata to be deployable in multiple contexts, such as:
 
 * Unmanaged deployments, such as developer orgs
 * Unmanaged namespaced scratch orgs
 * Managed contexts, such as a beta test org or a demo org created with ``install_prod``
 
-Because projects that are building an org implementation or a non-namespaced package do not have a namespace, or a distinction between managed and unmanaged contexts, these projects must also build namespaced packages.
+    Example: Metadata located in ``unpackaged/post`` is deployed after the application code in both unmanaged and managed contexts. If that metadata contains references to the application components, it must be deployable when that metadata is namespaced (in a managed context or namespaced scratch org) *and* when it is not (in an unmanaged context).
 
-    Example: Metadata located in ``unpackaged/post`` is deployed after the application code in both unmanaged and managed contexts. If that metadata contains references to the application components, it must be deployable when that metadata is nampespaced (in a managed context or namespaced scratch org) *and* when it is not (in an unmanaged context).
+CumulusCI uses a strategy called *namespace injection* to support this use case. Namespace injection is very powerful, and requires care from the project team to ensure that metadata remains deployable in all contexts.
 
-CumulusCI uses a strategy called *namespace injection* to support this use case. Namespace injection is very powerful, and requires care from application implementors to ensure that metadata remains deployable in all contexts.
+.. important:: Projects that are building an org implementation or a non-namespaced package do not have a namespace, or a distinction between managed and unmanaged contexts. These projects typically don't need to use namespace injection.
 
 Metadata files where a namespace is conditionally applied to components for insertion into different contexts must replace the namespace with a *token*, which CumulusCI replaces with the appropriate value, an empty string, or a default value.
 
@@ -106,7 +102,7 @@ Metadata files where a namespace is conditionally applied to components for inse
 
 ..
 
-    Example: A portion of metadata from the Nonprofit Success Pack (NPSP) is stored in a subdirectory under ``unpackaged/post``, meaning it's deployed after the application metadata. This metadata updates a Compact Layout on the ``Account`` object, and references packaged metadata from the application as well as from other managed packages. To complete these tasks, this metadata requires the use of namespace tokens to represent the ``npsp`` namespace, letting CumulusCI automatically adapt the metadata to deploy into managed and unmanaged contexts.
+    Example: A portion of metadata from the Nonprofit Success Pack (NPSP) is stored in a subdirectory under ``unpackaged/post``, meaning it's deployed after the application metadata. This metadata updates a Compact Layout on the ``Account`` object, and references packaged metadata from the application as well as from other managed packages. To deploy this as a managed context, this metadata requires the use of namespace tokens to represent the ``npsp`` namespace, letting CumulusCI automatically adapt the metadata to deploy into managed and unmanaged contexts.
 
 .. code-block:: xml
 
@@ -123,9 +119,9 @@ Metadata files where a namespace is conditionally applied to components for inse
 
 ..
 
-    Note that only the reference to the NPSP field ``Number_of_Household_Members__c`` is tokenized. (This field is called ``npsp__Number_of_Household_Members__c`` when installed as part of the managed package.) References to NPSP's own managed package dependency, ``npo02``, are not tokenized because this metadata is always namespaced when installed.
+    Note that only the reference to the NPSP field ``Number_of_Household_Members__c`` is tokenized. (When installed as part of the managed package, this field appears as ``npsp__Number_of_Household_Members__c``.) References to NPSP's own managed package dependency, ``npo02``, are not tokenized because this metadata is always namespaced when installed.
 
-    If this metadata isn't tokenized, it fails to deploy into an org containing NPSP as a beta or released managed package.
+    If this metadata isn't tokenized, it fails to deploy into an org containing NPSP as a beta or released managed package (because in that context the field ``Number_of_Household_Members__c`` is namespaced as ``npsp__ Number_of_Household_Members__c``, and must be referred to as such).
 
 .. note:: The resolution of component references in namespaced scratch orgs and in managed installations of the same metadata are not identical. Metadata that is tokenized and deploys cleanly in a namespaced scratch org can still fail in a managed context.
 
@@ -142,7 +138,7 @@ When working with unpackaged metadata, it's important to maintain awareness of k
     Example: If you have changes to make in the application as well as in unpackaged metadata, complete the application changes first, retrieve them, and then make the unpackaged changes and retrieve those. If you conflate changes to components that live in separate elements of your project, it's difficult to untangle them.
 * Whenever possible, build your unpackaged metadata in an org that contains a beta or released managed package. By doing so, the metadata contains namespaces when extracted, which CumulusCI easily replaces with tokens when retrieving metadata. It's difficult to manually tokenize metadata that's retrieved from an unmanaged org without namespaces. 
 
-After building changes to unpackaged metadata in a managed org, retrieve it using ``retrieve_changes`` with the additional ``namespace_tokenize`` option, and use the ``path`` option to direct the retrieved metadata to your desired unpackaged directory.
+After building changes to unpackaged metadata in a managed org, retrieve it using the ``retrieve_changes`` task with the additional ``namespace_tokenize`` option, and use the ``path`` option to direct the retrieved metadata to your desired unpackaged directory.
 
     Example: Run ``retrieve_changes`` to retrieve metadata changes into the ``unpackaged/config/qa`` subdirectory, and replace references to the namespace ``npsp`` with the appropriate token.
 
