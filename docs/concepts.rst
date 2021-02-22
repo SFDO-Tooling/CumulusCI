@@ -65,7 +65,7 @@ Many of the most common flows you'll work with in CumulusCI are designed to buil
 * ``install_prod``: This flow builds a managed org with the latest release installed, for projects that build managed packages.
 * ``regression_org``: This flow builds a managed org that starts with the latest release installed and is then upgraded to the latest beta to simulate a subscriber upgrade for projects that build managed packages. It's typically used with an org whose configuration is ``release``.
 
-CumulusCI derives the library of tasks and flows available for any project by combining its internal standard library with your customizations in ``cumulusci.yml``. Customizations can add new tasks and flows, customize the way tasks behave, and extend, combine, and modify flows to better suit the project's needs. We cover customization in depth in [TODO: reference Customizing CumulusCI].
+CumulusCI derives the library of tasks and flows available for any project by combining its internal standard library with your customizations in ``cumulusci.yml``. Customizations can add new tasks and flows, customize the way tasks behave, and extend, combine, and modify flows to better suit the project's needs. We cover customization in depth in the :doc:`Configure CumulusCI <config>` section.
 
 
 Project Structure
@@ -78,14 +78,14 @@ The project directory is the root of your CumulusCI project. Because each projec
 
         .. tip:: Avoid headaches by making sure you're in the correct repository for your project before running project-specific commands. Otherwise, your project produces an error. (**Check your repo first** when troubleshooting in CumulusCI and potentially save yourself an extra trip to this guide.)
 
-In order to be used as a CumulusCI project, a directory must both be a Git repository and contain a ``cumulusci.yml`` configuration file. We cover how to get set up with a new or existing CumulusCI project in the [TODO link Get Started section].
+In order to be used as a CumulusCI project, a directory must both be a Git repository and contain a ``cumulusci.yml`` configuration file. We cover how to get set up with a new or existing CumulusCI project in the :doc:`Get Started <get_started` section.
 
 ``cumulusci.yml``
 ^^^^^^^^^^^^^^^^^
 
 The ``cumulusci.yml`` file defines a project's automation. It contains all the customizations and configurations that pertain to your project's lifecycle. It can encompass everything from customizing the shapes of scratch orgs to configuring tasks and flows.
 
-Learn more about customizing CumulusCI automation in the [TODO: link Customization section].
+Learn more about customizing CumulusCI automation in the :doc:`Configure CumulusCI <config>` section.
 
 ``force-app`` (or ``src``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -95,19 +95,23 @@ The main body of the project's code and metadata lives in the default package di
 ``orgs`` directory
 ^^^^^^^^^^^^^^^^^^
 
-The ``.json`` files found in the ``orgs`` directory define the Salesforce DX org configurations that are available to the project. We cover scratch org management in depth in [TODO: link Scratch Org Management].
+The ``.json`` files found in the ``orgs`` directory define the Salesforce DX org configurations that are available to the project.
+See the :doc:`Manage Scratch Org<scratch_orgs>` for more information.
 
 ``datasets``
 ^^^^^^^^^^^^
 
-Each project can have one or more ``datasets``: on-disk representations of record data that can be inserted into Salesforce orgs, and that can also be modified and re-captured during the evolution of the project. Datasets are stored in the ``datasets`` directory. Learn more about datasets in [TODO: link Automating Data Operations].
+Each project can have one or more ``datasets``: on-disk representations of record data that can be inserted into Salesforce orgs, and that can also be modified and re-captured during the evolution of the project. Datasets are stored in the ``datasets`` directory. 
+Learn more about datasets in [TODO: link Automating Data Operations].
 
 ``robot``
 ^^^^^^^^^
 
 Robot Framework provides browser automation for end-to-end testing. Each project contains a ``robot`` directory, which stores the project's Robot Framework test suites. New projects start with a simple Robot test case that creates a Contact record.
 
-While Robot Framework is used primarily for automated browser testing, it can also be harnessed to help configure orgs where other strategies and APIs are insufficient [TODO: link Robot Framework].
+While Robot Framework is used primarily for automated browser testing, 
+it can also be harnessed to help configure orgs where other strategies 
+and APIs are insufficient. See :doc:`Automation using Robot Framework <robot>` for more information.
 
 ``unpackaged`` metadata
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -128,7 +132,8 @@ Orgs
 
 Each project has its own set of orgs, including active scratch orgs, persistent orgs like a production or packaging org, and predefined scratch org configurations. CumulusCI securely stores org authentication information in its keychain, making it easy to access connected orgs at any time. The ``cci org list`` command shows all of the orgs connected to a project. Orgs can also be shared across multiple projects.
 
-Configuring orgs in CumulusCI is powerful, but comes with some complexity. For details, see [TODO: link Scratch org environments] and [TODO: link persistent org section].
+Configuring orgs in CumulusCI is powerful, but comes with some complexity.
+For details, see :doc:`Manage Scratch orgs <scratch_org>` and :doc:`Connect Persistent Orgs <connected_orgs>`.
 
 Services
 ^^^^^^^^
