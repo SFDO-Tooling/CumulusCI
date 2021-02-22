@@ -59,9 +59,9 @@ CumulusCI does not yet provide tools to help promote an unlocked package version
 Install the Unlocked Package
 ----------------------------
 
-To install an unlocked package with Cumulus:
+To install an unlocked package with CumulusCI:
 
-Configure either the ``update_dependencies`` or the ``install_managed`` task to provide the ``SubscriberPackageVersion`` ID of the unlocked package to be used.
+Configure either the ``update_dependencies`` or the ``install_managed`` task and provide the ``SubscriberPackageVersion`` ID of the unlocked package to be used.
 
 The ``update_dependencies`` task can be configured in the ``cumulusci.yml`` file.
 
