@@ -7,7 +7,7 @@ CumulusCI helps teams build great applications on the Salesforce platform by aut
 
 **Batteries included.** Out-of-the-box features help you quickly:
 
-* Build sophisticated orgs with automatic installation of dependencies.
+* Build sophisticated orgs with dependencies automatically installed.
 * Load and capture sample datasets to make your orgs feel real.
 * Apply transformations to existing metadata to tailor orgs to your specific requirements.
 * Run builds in continuous integration systems.
