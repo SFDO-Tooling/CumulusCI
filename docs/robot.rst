@@ -1,5 +1,5 @@
-Automation using Robot Framework
-================================
+Automate Robot Framework
+========================
 
 Introduction to Robot Framework
 -------------------------------

@@ -1,4 +1,4 @@
-Automate data operations
+Automate Data Operations
 ========================
 
 The lifecycle of a dataset

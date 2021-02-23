@@ -6,7 +6,7 @@ Get Started
 Install CumulusCI
 -----------------
 
-.. note:: These installation instructions assume some familiarity with entering commands into a terminal.
+.. tip:: These installation instructions assume some familiarity with entering commands into a terminal.
     If that's completely new to you, we recommend visiting the `CumulusCI Setup <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup>`_ module on Trailhead for a step-by-step walkthrough.
 
 
@@ -151,8 +151,7 @@ To set up Salesforce DX:
 
 1. `Install Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm>`_
 2. `Enable Dev Hub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.228.0.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_devhub.htm>`_
-3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_ 
-        .. important:: Be sure to use the ``--setdefaultdevhubusername`` option!
+3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_  - Be sure to use the ``--setdefaultdevhubusername`` option!
 
 If you have the ``sfdx`` command installed, are connected to your devhub, and set the ``defaultdevhubusername`` config setting (use the ``sfdx force:config:list`` command to verify!), you're now ready to use ``cci`` with ``sfdx``.
 
@@ -366,7 +365,7 @@ Retrieve Metadata from the Persistent Org
 
 This documentation assumes that your project currently lives in a persistent org, such as a Developer Edition org or a Sandbox. We recommend retrieving metadata via the Metadata API (using the Salesforce CLI), followed by converting the source from Metadata API to SFDX format.
 
-#. If the metadata you want to retrieve isn't already in a package, create one. See `Create a Package <https://help.salesforce.com/articleView?id=creating_packages.htm>`_ in Salesforce Help.
+#. If the metadata you want to retrieve isn't already in a package, create one. See `creating packages <https://help.salesforce.com/articleView?id=creating_packages.htm>`_ for more info.
     .. note:: If your project contains a managed package, ensure that the package namespace matches the namespace you entered when running ``cci project init``.
 #. Run the `retrieve <https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_mdapi.htm#cli_reference_retrieve>`_ command to extract your package metadata.
 
@@ -374,20 +373,21 @@ This documentation assumes that your project currently lives in a persistent org
 
     $ sfdx force:source:retrieve -n package_name /path/to/project/
 
-That's it! You now have all of the metadata you care about in a single Git repository configured for use with CumulusCI. At this point `add your repo to GitHub`_, or perhaps begin `configuring CumulusCI` <#TODO doc ref>.
+That's it! You now have all of the metadata you care about in a single Git repository configured for use with CumulusCI. At this point `add your repo to GitHub`_, or perhaps begin :doc:`Configure CumulusCI <config>`.
 
 
 
-Org Shape Setup
-^^^^^^^^^^^^^^^
+Setup Scratch Orgs
+^^^^^^^^^^^^^^^^^^
 
-TODO: link to org section
+To see how to use scratch orgs with CumulusCI see the :ref:`Manage Scratch Orgs <scratch_orgs>` section.
+
 
 
 
 Other Conversion Considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* If you or your team have been working with `scratch org definition files <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm>`_ for use with ``sfdx``, see `configuring orgs` <#TODO doc ref> for details on using them with CumulusCI.
-* If you have metadata that you would like deployed pre- or post-deployment, see `#TODO <pre/post ref>`.
-* If you have data that you need to include for testing or production purposes, see `Automating Data Operations` <#TODO doc ref>.
+* If you or your team have been working with `scratch org definition files <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm>`_ for use with ``sfdx``, see :doc:`Manage Scratch Orgs <scratch_orgs>` for details on using them with CumulusCI.
+* If you have metadata that you would like deployed pre- or post-deployment, see :ref:`Roles of Unpackaged Metadata`.
+* If you have data that you need to include for testing or production purposes, see :doc:`Automate Data Operations <data>`.

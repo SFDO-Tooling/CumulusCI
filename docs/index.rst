@@ -19,7 +19,6 @@ Contents
    unlocked_package
    unpackaged
    metadata_etl
-   implementation
    cookbook
    reference
    about

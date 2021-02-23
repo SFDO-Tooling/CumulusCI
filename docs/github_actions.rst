@@ -1,5 +1,3 @@
-.. _GitHub Actions:
-
 Run CumulusCI from Github Actions
 =================================
 In order to follow along, you should already have a repository that is
@@ -8,7 +6,7 @@ we're assuming your project already has a ``cumulusci.yml`` and that you are
 successfully running CumulusCI flows locally.
 
 .. note::
-   GitHub Actions is free for open source (public) repositories.
+   GitHub Actions are free for open source (public) repositories.
    Check with GitHub about pricing for private repositories.
 
 
@@ -291,11 +289,10 @@ particular needs.
 
 Deploy to a Packaging Org
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-When working on a managed package project, there are two out-of-the-box flows that are generally of 
+When working on a managed package project, there are two standard library flows that are generally of 
 interest when deploying to a packaging org: ``deploy_packaging`` and ``ci_master``.
 
-The ``deploy_packaging`` flow...
-
+The ``deploy_packaging`` flow deploys the package's metadata to the packaging org.
 
 The ``ci_master`` flow includes the ``deploy_packaging`` flow, but also takes care of:
 

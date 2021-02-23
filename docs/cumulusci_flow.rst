@@ -6,12 +6,12 @@ CumulusCI Flow is the process that Salesforce.org uses to: develop, test, and re
 This process encompases both a development and testing philosophy as well as a specific GitHub branching structure.
 There are several key reasons we like using CumulusCI Flow:
 
-* Everything done in scratch orgs to eliminate "the org problem" <TODO link?>.  The only persistent org in this process is the packaging org. 
+* Everything is done in scratch orgs to eliminate "state drift" that occurs over time in persistent orgs. The only persistent org in this process is the packaging org. 
 * Changes to branches that are being actively developed are thoroughly tested on each commit.
 * A new Beta Version of the package is created and tested for each commit on a project's ``main`` branch. 
 * Auto-merging functionality keeps branches up-to-date with the ``main`` branch.
 
-CumulusCI Flow is implemented in the out-of-the-box flows provided by CumulusCI, but the approach to working
+CumulusCI Flow is implemented in the standard library flows provided by CumulusCI, but the approach to working
 with a GitHub repository does not require the use of CumulusCI.
 
 .. image:: images/salesforce-org-process.png
@@ -157,8 +157,6 @@ The following shows the default values that CumulusCI comes with:
 These values can be changed to match naming conventions used by your own project.
 
 
-
-.. _auto-merged:
 
 Auto Merging
 ------------

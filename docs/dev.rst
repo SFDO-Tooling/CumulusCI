@@ -12,7 +12,7 @@ The ``dev_org`` flow creates an org to develop on by moving all metadata (manage
 
 .. note:: Run ``cci flow info dev_org`` for a full list of the ``dev_org`` flow steps.
 
-To run the ``dev_org`` flow against the project's `default org<TODO>`_:
+To run the ``dev_org`` flow against the project's :ref:`default org <Set a Default Org>`:
 
 .. code-block:: console
 
@@ -56,8 +56,8 @@ For more information, see `List and Retrieve Options`_.
 Retrieve Changes
 ----------------
 
-The ``retrieve_changes`` task supports both Salesforce DX- and Metadata API-format source code. It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_
-``sObject`` to detect what has changed in an org, and also gives you discretion regarding which components are retrieved when compared to the ``dx_pull`` task.
+The ``retrieve_changes`` task supports both Salesforce DX and Metadata API-format source code. It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_
+``sObject`` to detect what has changed in an org, and also gives you discretion regarding which components are retrieved when compared to the :ref:`dx_pull` task.
 
 Manual tracking of component versions also offers the possibility of retrieving changes into one directory, and then running the task again to retrieve other changes into a different directory.
  
@@ -152,7 +152,7 @@ If your project uses the Metadata API source format, use the ``deploy`` task:
 
     $ cci task run deploy 
 
-The ``deploy`` task has *many* options for handling a number of different scenarios. For a comprehensive list of options, see `deploy tasks <TODO>`_.
+The ``deploy`` task has *many* options for handling a number of different scenarios. For a comprehensive list of options, see the :ref:`deploy` task reference.
 
 
 
@@ -165,7 +165,7 @@ CumulusCI executes Apex tests in an org and can optionally report on test outcom
 
     $ cci task run run_tests --org <org_name>
 
-The ``run_tests`` task has *many* options for running tests. For a comprehensive list of options and examples, see `run_tests <TODO>`_.
+The ``run_tests`` task has *many* options for running tests. For a comprehensive list of options and examples, see the :ref:`run_tests` task reference.
 
 
 
@@ -542,4 +542,4 @@ CumulusCI also makes it possible to use automation (tasks and flows) from anothe
 * Applying configuration from a dependency project, rather than just installing the package.
 * Running Robot Framework tests that are defined in a dependency.
 
-For more information, see `configure cross-project tasks and flows<TODO>`_.
+For more information, see how to `configure tasks and flows from a different project <TODO>`.
