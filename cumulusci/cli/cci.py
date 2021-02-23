@@ -606,10 +606,7 @@ def project_init(runtime):
         else:
             click.echo(
                 click.style(
-                    name
-                    + " file already exists. Please manually edit "
-                    + name
-                    + " to include:",
+                    f"{name} already exists. Please manually edit {name} to include:"
                     fg="red",
                 )
             )
