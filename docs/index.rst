@@ -18,7 +18,6 @@ Contents
    managed_package
    unlocked_package
    unpackaged
-   implementation
    cookbook
    reference
    about
