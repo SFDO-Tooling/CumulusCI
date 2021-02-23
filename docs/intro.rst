@@ -110,7 +110,7 @@ Do you need to know Python to use CumulusCI?
   No. While CumulusCI is written in Python, most CumulusCI users don't need to know Python, in the same way that most Salesforce DX users don't need to know Node.js.
 
 
-What to Read Next
+What to Do Next
 -----------------
 
 (TODO)
