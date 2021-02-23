@@ -61,7 +61,10 @@ Before there was the toolset that we know today as CumulusCI, there was a produc
 Tutorial
 --------
 
-For a tutorial introduction to CumulusCI, complete the `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ trail on Trailhead. This trail walks through an example of using CumulusCI to build an extensible app for food banks.
+For anyone new to CumulusCI, we recommend starting with `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ on Trailhead. This trail walks through an example of building an extensible app for food banks, and shows you how to set up an environment with CumulusCI.
+
+If you already have the Salesforce CLI installed and configured, installing CumulusCI for use across any project is a one-time process that takes 5-10 minutes.
+
 
 
 Demos
