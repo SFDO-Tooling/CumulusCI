@@ -373,20 +373,21 @@ This documentation assumes that your project currently lives in a persistent org
 
     $ sfdx force:source:retrieve -n package_name /path/to/project/
 
-That's it! You now have all of the metadata you care about in a single Git repository configured for use with CumulusCI. At this point `add your repo to GitHub`_, or perhaps begin `configuring CumulusCI` <#TODO doc ref>.
+That's it! You now have all of the metadata you care about in a single Git repository configured for use with CumulusCI. At this point `add your repo to GitHub`_, or perhaps begin :doc:`Configure CumulusCI <config>`.
 
 
 
-Org Shape Setup
-^^^^^^^^^^^^^^^
+Setup Scratch Orgs
+^^^^^^^^^^^^^^^^^^
 
-TODO: link to org section
+To see how to use scratch orgs with CumulusCI see the :ref:`Manage Scratch Orgs <scratch_orgs>` section.
+
 
 
 
 Other Conversion Considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* If you or your team have been working with `scratch org definition files <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm>`_ for use with ``sfdx``, see `configuring orgs` <#TODO doc ref> for details on using them with CumulusCI.
-* If you have metadata that you would like deployed pre- or post-deployment, see `#TODO <pre/post ref>`.
-* If you have data that you need to include for testing or production purposes, see `Automating Data Operations` <#TODO doc ref>.
+* If you or your team have been working with `scratch org definition files <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm>`_ for use with ``sfdx``, see :doc:`Manage Scratch Orgs <scratch_orgs>` for details on using them with CumulusCI.
+* If you have metadata that you would like deployed pre- or post-deployment, see :ref:`Roles of Unpackaged Metadata`.
+* If you have data that you need to include for testing or production purposes, see :doc:`Automate Data Operations <data>`.

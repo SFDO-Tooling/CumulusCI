@@ -1,7 +1,7 @@
 Release a Managed Package
 =========================
 
-This section outlines how to release a first generation (1GP) Salesforce managed package project. Salesforce.org's Release Engineering team practices `CumulusCI Flow<TODO link>`_, which incorporates all of these steps.
+This section outlines how to release a first generation (1GP) Salesforce managed package project. Salesforce.org's Release Engineering team practices :doc:`CumulusCI Flow <cumulusci_flow>`_, which incorporates all of these steps.
 
 
 
@@ -10,9 +10,9 @@ Prerequisites
 
 This section assumes:
 
-* `CumulusCI is installed<TODO: link to install>`_ on your computer.
-* A Salesforce managed package `project has been configured<TODO: setup a project>`_ for use with CumulusCI.
-* A packaging org `is connected<TODO: link to connect at persistent org>`_ to CumulusCI under the name of ``packaging``.
+* :doc:`CumulusCI is installed <get_started>` on your computer.
+* A Salesforce managed package :ref:`project has been configured <Work On an Existing CumulusCI Project>` for use with CumulusCI.
+* A packaging org :doc:`is connected <connected_orgs>` to CumulusCI under the name of ``packaging``.
 
 To verify this setup and display information about the connected packaging org:
 
@@ -46,7 +46,7 @@ CumulusCI deploys to a ``packaging`` org with the ``ci_master`` flow.
 
 .. warning::
 
-    The ``ci_master`` flow runs the `uninstall_packaged_incremental<TODO>`_ task, which deletes any metadata from the package in the target org that's not in the repository.
+    The ``ci_master`` flow runs the :ref:`uninstall_packaged_incremental` task, which deletes any metadata from the package in the target org that's not in the repository.
 
 .. code-block:: console
 
@@ -58,7 +58,7 @@ The ``ci_master`` flow executes these tasks in the target org.
 * Deploys any unpackaged metadata located in the ``pre`` directory
 * Deploys packaged metadata
 * Deploys destructive changes to remove metadata in the target org that is no longer in the local repository
-* Runs the ``config_packaging`` flow, which by default consists only of the `update_admin_profile<TODO>`_ task.
+* Runs the ``config_packaging`` flow, which by default consists only of the :ref:`update_admin_profile` task.
 
 .. tip::
 
@@ -81,9 +81,8 @@ This flow *always* runs against the project's ``packaging`` org where it:
 
 * Uploads a new beta version from the ``packaging`` org
 * Creates a new GitHub release tag for the new beta version. Extension packages that also use CumulusCI require this release tag to find the latest version when this repository is listed as a dependency.
-* `Generates Release Notes <TODO#anchor>`_
-* Syncs feature branches with the ``main`` branch, which automatically integrates the latest changes from ``main``.
-    .. note:: For more information on auto-merging funcitonality, see `some link<TODO: link>`_.
+* :ref:`Generates Release Notes <github_release_notes>`_
+* Syncs feature branches with the ``main`` branch, which automatically integrates the latest changes from ``main``. For more information see :ref:`auto merging`.
 
 .. important::
     
@@ -104,7 +103,7 @@ The ``ci_beta`` flow installs the latest beta version of the project on a scratc
 
 .. code-block:: console
 
-    $ cci flow run ci_beta --org <TODO>
+    $ cci flow run ci_beta --org packaging 
 
 This flow is intended to be run whenever a beta release is created.
 

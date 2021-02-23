@@ -497,8 +497,8 @@ Advanced Configurations
 -----------------------
 
 
-Use Tasks and Flows from a Different Project
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Tasks and Flows from a Different Project
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It's also possible to use tasks and flows from another project with CumulusCI. The other project must be named under the ``sources`` section of the project ``cumulusci.yml`` file.
 

@@ -152,7 +152,7 @@ If your project uses the Metadata API source format, use the ``deploy`` task:
 
     $ cci task run deploy 
 
-The ``deploy`` task has *many* options for handling a number of different scenarios. For a comprehensive list of options, see `deploy tasks <TODO>`_.
+The ``deploy`` task has *many* options for handling a number of different scenarios. For a comprehensive list of options, see the :ref:`deploy` task reference.
 
 
 
@@ -165,7 +165,7 @@ CumulusCI executes Apex tests in an org and can optionally report on test outcom
 
     $ cci task run run_tests --org <org_name>
 
-The ``run_tests`` task has *many* options for running tests. For a comprehensive list of options and examples, see `run_tests <TODO>`_.
+The ``run_tests`` task has *many* options for running tests. For a comprehensive list of options and examples, see the :ref:`run_tests` task reference.
 
 
 
@@ -542,4 +542,4 @@ CumulusCI also makes it possible to use automation (tasks and flows) from anothe
 * Applying configuration from a dependency project, rather than just installing the package.
 * Running Robot Framework tests that are defined in a dependency.
 
-For more information, see `configure cross-project tasks and flows<TODO>`_.
+For more information, see how to `configure tasks and flows from a different project <TODO>`.
