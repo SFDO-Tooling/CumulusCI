@@ -56,6 +56,12 @@ source_suffix = ".rst"
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
+# Set epilog with any variable values we want replaced
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-rst_epilog
+rst_epilog = """
+.. |cumulusci_version| replace:: 3.29.0
+"""
+
 # The master toctree document.
 master_doc = "index"
 
