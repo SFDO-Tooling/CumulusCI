@@ -79,7 +79,7 @@ Love demos? These no-audio screencasts show how to use CumulusCI from a command 
         href="https://cdnjs.cloudflare.com/ajax/libs/asciinema-player/2.4.1/asciinema-player.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/asciinema-player@2.6.1/resources/public/js/asciinema-player.min.js"></script>
 
-The first screencast shows how to initialize a fresh CumulusCI project:
+Initialize a fresh CumulusCI project.
 
 .. raw:: html
 
