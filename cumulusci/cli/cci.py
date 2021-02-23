@@ -635,7 +635,17 @@ def project_init(runtime):
     if not os.path.isdir("orgs"):
         os.mkdir("orgs")
 
+    org_dict = {
+        "beta.json": {"name": "Beta Test Org", "edition": "Developer"},
+        "dev.json": {"name": "Dev Org", "edition": "Developer"},
+        "feature.json": {"name": "Feature Test Org", "edition": "Developer"},
+        "release.json": {"name": "Release Test Org", "edition": "Enterprise"},
+    }
+
     template = env.get_template("scratch_def.json")
+    for org_name in org_dict.keys():
+        click.echo(org_name)
+
     with open(os.path.join("orgs", "beta.json"), "w") as f:
         f.write(
             template.render(
