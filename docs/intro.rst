@@ -70,7 +70,7 @@ The next one shows how to use CumulusCI to retrieve metadata from a Salesforce o
 
     <asciinema-player preload="True" poster="npt:0:01" src="https://raw.githubusercontent.com/SFDO-Tooling/cci-demo-animations/master/build/2_retrieve_changes.cast"></asciinema-player>
 
-The next screencast shows how to use CumulusCI to manage sample or test data.
+Manage sample or test data.
 
 .. raw:: html
 
