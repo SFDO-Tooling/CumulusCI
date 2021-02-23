@@ -76,7 +76,7 @@ Manage sample or test data.
 
     <asciinema-player preload="True" poster="npt:0:01" src="https://raw.githubusercontent.com/SFDO-Tooling/cci-demo-animations/master/build/3_populate_data.cast"></asciinema-player>
 
-The final screencast shows how to customize CumulusCI flows and how to use CumulusCI for QA.
+Customize flows and use CumulusCI for QA.
 
 .. raw:: html
 
