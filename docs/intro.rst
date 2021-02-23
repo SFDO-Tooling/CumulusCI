@@ -82,7 +82,7 @@ Customize flows and use CumulusCI for QA.
 
     <asciinema-player preload="True" poster="npt:0:01" src="https://raw.githubusercontent.com/SFDO-Tooling/cci-demo-animations/master/build/4_qa_org.cast"></asciinema-player>
 
-For a live demo with voiceover, please see Jason Lantz's `PyCon 2020 presentation <https://www.youtube.com/watch?v=XL77lRTVF3g>`_, which gives more context about CumulusCI from about minute 36 through minute 54.
+For a narrated demo, see Jason Lantz's `PyCon 2020 presentation <https://www.youtube.com/watch?v=XL77lRTVF3g>`_ (00:36 through 00:54).
 
 
 Common Misconceptions
