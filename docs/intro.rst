@@ -18,7 +18,7 @@ The CumulusCI suite of tools is part of the not-so-secret sauce that makes it po
 
 **Best practices, proven at scale.** CumulusCI provides a complete development and release process created by Salesforce.org to build and release applications to thousands of users on the Salesforce platform. It's easy to start with the default tasks (single actions) and flows (sequences of actions), or customize by adding your own.
 
-**Batteries included.** Out-of-the-box features help you quickly:
+You can use the very same automation that we use internally to quickly:
 
 * Build sophisticated orgs with dependencies automatically installed.
 * Load and capture sample datasets to make your orgs feel real.
