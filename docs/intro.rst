@@ -31,7 +31,11 @@ The automation defined using CumulusCI is portable. It's stored in a source repo
 Finally, by way of introduction, CumulusCI is more than just a set of tools. It represents our holistic approach to product development. Rather than focusing on just the org (the [org development model](https://trailhead.salesforce.com/en/content/learn/modules/org-development-model)) or on the package (the [package development model](https://trailhead.salesforce.com/en/content/learn/modules/sfdx_dev_model)),  Salesforce.org has implemented its own _product delivery model_ using CumulusCI. It helps us focus on the customer experience, while also paying attention to technical considerations, such as whether an individual component is best distributed within a package, or as additional unpackaged metadata, or as setup automation that runs before or after a package is installed.
 
 No matter how much complexity you're managing in your development lifecycle, we invite you to see how you can enhance customers' experience of your products using CumulusCI.
-**Build for anyone.** Automation defined using CumulusCI can support all roles working on a project:
+Anyone Can Use CumulusCI
+--------
+Salesforce.org uses CumulusCI to develop products for our nonprofit and education constituents–both public, open source products like NPSP, and commercial managed package products that are developed in private GitHub repositories. But anyone developing on the Salesforce platform can use CumulusCI. It's generic tooling that supports both open source and private development.
+
+Automation defined using CumulusCI can support all roles on a project.
 
 * *Developers* can create new development environments for different feature branches.
 * *QAs* can create test environments from feature branches and managed package installs.
