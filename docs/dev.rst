@@ -415,7 +415,10 @@ Managed package dependencies can handle a hierarchy of dependencies between pack
 Unmanaged Metadata Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Specify unmanaged metadata to be deployed by specifying a ``zip_url`` and, optionally, ``subfolder``, ``namespace_inject``, ``namespace_strip``, and ``unmanaged`` under the ``project__dependencies`` section of the cumulusci.yml file.
+
+Specify unmanaged metadata to be deployed by specifying a ``zip_url`` and, optionally,
+``subfolder``, ``namespace_inject``, ``namespace_strip``, and ``unmanaged`` under the
+``project__dependencies`` section of the cumulusci.yml file.
 
 .. code-block:: yaml
 
@@ -423,7 +426,8 @@ Specify unmanaged metadata to be deployed by specifying a ``zip_url`` and, optio
         dependencies:
             - zip_url: https://SOME_HOST/metadata.zip
 
-When the ``update_dependencies`` task runs, it downloads the zip file and deploys it via the Metadata API. The zip file must contain valid metadata for use with a deploy, including a ``package.xml`` file in the root.
+When the ``update_dependencies`` task runs, it downloads the zip file and deploys it via the Metadata API.
+The zip file must contain valid metadata for use with a deploy, including a ``package.xml`` file in the root.
 
 
 
@@ -432,9 +436,11 @@ Specify a Subfolder of the Zip File
 
 Use the ``subfolder`` option to specify a subfolder of the zip file to use for the deployment. 
 
-.. note:: This option is handy when referring to metadata stored in a GitHub repository.
+.. admonition:: Wizard Tip
+    
+    This option is handy when referring to metadata stored in a GitHub repository.
 
-    Example: ``subfolder: CumulusReports-master/record_types``
+Example: ``subfolder: CumulusReports-master/record_types``
 
 .. code-block:: yaml
 
@@ -450,65 +456,10 @@ When ``update_dependencies`` runs, it still downloads the zip from ``zip_url``, 
 Inject Namespace Prefixes
 *************************
 
-CumulusCI has support for tokenizing references to the namespace prefix in code. When tokenized, all occurrences of the namespace prefix (for example, ``npsp__``), is replaced with ``%%%NAMESPACE%%%`` inside of files and ``___NAMESPACE___`` in file names.
+CumulusCI has support for tokenizing references to a package's namespace prefix in code.
+When tokenized, all occurrences of the namespace prefix, are replaced with ``%%%NAMESPACE%%%`` inside of files and ``___NAMESPACE___`` in file names.
 
-If the metadata you are deploying has been tokenized, use the ``namespace_inject`` and ``unmanaged`` options to inject the namespace.
-
-    Example: ``namespace_inject: hed``
-
-.. code-block:: yaml
-
-    project:
-        dependencies:
-            - zip_url: https://github.com/SalesforceFoundation/EDA/archive/master.zip
-              subfolder: EDA-master/dev_config/src/admin_config
-              namespace_inject: hed
-
-..
-
-    The metadata in the zip contains the string tokens ``%%%NAMESPACE%%%`` and ``___NAMESPACE___`` which is replaced with ``hed__`` before the metadata is deployed.
-
-To deploy tokenized metadata without any namespace references, specify both ``namespace_inject`` and ``unmanaged``.
-
-    Example: ``namespace_inject: hed`` and ``unmanaged: True``
-
-.. code-block:: yaml
-
-    project:
-        dependencies:
-            - zip_url: https://github.com/SalesforceFoundation/EDA/archive/master.zip
-              subfolder: EDA-master/dev_config/src/admin_config
-              namespace_inject: hed
-              unmanaged: True
-
-
-..
-
-    The namespace tokens are replaced with an empty string instead of the namespace, effectively stripping the tokens from the files and filenames.
-
-
-
-Strip Namespace Prefixes
-************************
-
-If the metadata in the zip to be deployed has references to a namespace prefix, use the ``namespace_strip`` option to remove them.
-
-    Example: ``namespace_strip: npsp``
-
-.. code-block:: yaml
-
-    project:
-        dependencies:
-            - zip_url: https://github.com/SalesforceFoundation/CumulusReports/archive/main.zip
-              subfolder: CumulusReports-main/src
-              namespace_strip: npsp
-
-..
-
-    When ``update_dependencies`` runs, the zip is retrieved and the string ``npsp__`` is stripped from all files and filenames in the zip before deployment.  This option is most useful when setting up an unmanaged development environment for an extension package that normally uses managed dependencies.
-    
-    This example takes the NPSP Reports & Dashboards project's unmanaged metadata and strips the references to ``npsp__`` to deploy it against an unmanaged version of NPSP.
-
+For more on this topic see :ref:`namespace injection`. 
 
 
 Automatic Cleaning of ``meta.xml`` Files on Deploy

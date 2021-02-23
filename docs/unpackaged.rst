@@ -86,7 +86,8 @@ Projects that build managed packages often construct their unpackaged metadata t
 
     Example: Metadata located in ``unpackaged/post`` is deployed after the application code in both unmanaged and managed contexts. If that metadata contains references to the application components, it must be deployable when that metadata is namespaced (in a managed context or namespaced scratch org) *and* when it is not (in an unmanaged context).
 
-CumulusCI uses a strategy called *namespace injection* to support this use case. Namespace injection is very powerful, and requires care from the project team to ensure that metadata remains deployable in all contexts.
+CumulusCI uses a strategy called *namespace injection* to support this use case.
+Namespace injection is very powerful, and requires care from the project team to ensure that metadata remains deployable in all contexts.
 
 .. important:: Projects that are building an org implementation or a non-namespaced package do not have a namespace, or a distinction between managed and unmanaged contexts. These projects typically don't need to use namespace injection.
 
@@ -100,9 +101,7 @@ Metadata files where a namespace is conditionally applied to components for inse
 * ``%%%NAMESPACE_DOT%%%`` is replaced with the package’s namespace in any context with a namespace (such as a namespaced org or managed org) followed by a period (``.``) rather than two underscores.
     .. note:: This token is used to construct references to packaged Record Types.
 
-..
-
-    Example: A portion of metadata from the Nonprofit Success Pack (NPSP) is stored in a subdirectory under ``unpackaged/post``, meaning it's deployed after the application metadata. This metadata updates a Compact Layout on the ``Account`` object, and references packaged metadata from the application as well as from other managed packages. To deploy this as a managed context, this metadata requires the use of namespace tokens to represent the ``npsp`` namespace, letting CumulusCI automatically adapt the metadata to deploy into managed and unmanaged contexts.
+Example: A portion of metadata from the Nonprofit Success Pack (NPSP) is stored in a subdirectory under ``unpackaged/post``, meaning it's deployed after the application metadata. This metadata updates a Compact Layout on the ``Account`` object, and references packaged metadata from the application as well as from other managed packages. To deploy this as a managed context, this metadata requires the use of namespace tokens to represent the ``npsp`` namespace, letting CumulusCI automatically adapt the metadata to deploy into managed and unmanaged contexts.
 
 .. code-block:: xml
 
@@ -117,13 +116,48 @@ Metadata files where a namespace is conditionally applied to components for inse
         </compactLayouts>
     </CustomObject>
 
-..
+Note that only the reference to the NPSP field ``Number_of_Household_Members__c`` is tokenized. (When installed as part of the managed package, this field appears as ``npsp__Number_of_Household_Members__c``.) References to NPSP's own managed package dependency, ``npo02``, are not tokenized because this metadata is always namespaced when installed.
 
-    Note that only the reference to the NPSP field ``Number_of_Household_Members__c`` is tokenized. (When installed as part of the managed package, this field appears as ``npsp__Number_of_Household_Members__c``.) References to NPSP's own managed package dependency, ``npo02``, are not tokenized because this metadata is always namespaced when installed.
+If this metadata isn't tokenized, it fails to deploy into an org containing NPSP as a beta or released managed package (because in that context the field ``Number_of_Household_Members__c`` is namespaced as ``npsp__ Number_of_Household_Members__c``, and must be referred to as such).
 
-    If this metadata isn't tokenized, it fails to deploy into an org containing NPSP as a beta or released managed package (because in that context the field ``Number_of_Household_Members__c`` is namespaced as ``npsp__ Number_of_Household_Members__c``, and must be referred to as such).
+.. note:: 
+    
+    The resolution of component references in namespaced scratch orgs and in managed installations of the same metadata are not identical.
+    Metadata that is tokenized and deploys cleanly in a namespaced scratch org can still fail in a managed context.
 
-.. note:: The resolution of component references in namespaced scratch orgs and in managed installations of the same metadata are not identical. Metadata that is tokenized and deploys cleanly in a namespaced scratch org can still fail in a managed context.
+
+Configuration
+^^^^^^^^^^^^^
+If the metadata you are deploying has been tokenized, and you want to deploy metadata with a namespace
+use the ``namespace_inject`` option to inject the namespace.
+
+Example: ``namespace_inject: hed``
+
+.. code-block:: yaml
+
+    project:
+        dependencies:
+            - zip_url: https://github.com/SalesforceFoundation/EDA/archive/master.zip
+              subfolder: EDA-master/dev_config/src/admin_config
+              namespace_inject: hed
+
+The metadata in the zip contains the string tokens ``%%%NAMESPACE%%%`` and ``___NAMESPACE___`` which is replaced with ``hed__`` before the metadata is deployed.
+
+To deploy tokenized metadata without any namespace references, specify both ``namespace_inject`` and ``unmanaged``.
+
+Example: ``namespace_inject: hed`` and ``unmanaged: True``
+
+.. code-block:: yaml
+
+    project:
+        dependencies:
+            - zip_url: https://github.com/SalesforceFoundation/EDA/archive/master.zip
+              subfolder: EDA-master/dev_config/src/admin_config
+              namespace_inject: hed
+              unmanaged: True
+
+
+The namespace tokens are replaced with an empty string instead of the namespace, effectively stripping the tokens from the files and filenames.
 
 
 
