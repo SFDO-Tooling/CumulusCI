@@ -119,7 +119,7 @@ class Schema:
         ]
         unexpected = [resp for resp in responses if resp.status not in (200, 304)]
         for unknown in unexpected:
-            logger.warn(
+            logger.warning(
                 f"Unexpected describe reply. An SObject may be missing: {unknown}"
             )
         self._populate_cache_from_describe(changes, last_modified_date)
