@@ -58,16 +58,17 @@ source_suffix = ".rst"
 
 # Set epilog with any variable values we want replaced
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-rst_epilog
-rst_epilog = """
-.. |cumulusci_version| replace:: testing
+cci_version = cumulusci.__version__
+rst_epilog = f"""
+.. |cumulusci_version| replace:: {cci_version}
 """
 
 # The master toctree document.
 master_doc = "index"
 
 # General information about the project.
-project = u"CumulusCI"
-copyright = u"2020, Salesforce.org"
+project = "CumulusCI"
+copyright = "2020, Salesforce.org"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -228,7 +229,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ("index", "cumulusci.tex", u"CumulusCI Documentation", u"Jason Lantz", "manual")
+    ("index", "cumulusci.tex", "CumulusCI Documentation", "Jason Lantz", "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -256,7 +257,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "cumulusci", u"CumulusCI Documentation", [u"Jason Lantz"], 1)]
+man_pages = [("index", "cumulusci", "CumulusCI Documentation", ["Jason Lantz"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -271,8 +272,8 @@ texinfo_documents = [
     (
         "index",
         "cumulusci",
-        u"CumulusCI Documentation",
-        u"Jason Lantz",
+        "CumulusCI Documentation",
+        "Jason Lantz",
         "cumulusci",
         "One line description of project.",
         "Miscellaneous",
