@@ -58,7 +58,7 @@ Why Is It Called CumulusCI?
 --------
 Before there was the toolset that we know today as CumulusCI, there was a product that would go on to become Nonprofit Success Pack. This product had the code name, Cumulus. Early on, we created our own continuous integration (CI) tools for the Cumulus product. This tooling expanded in scope and scale to eventually become CumulusCI. Even though it's used for much more than CI and for many more products than just NPSP, the name has stuck.
 
-Tutorial
+Follow a Trailhead Tutorial to Get Set Up
 --------
 
 For anyone new to CumulusCI, we recommend starting with `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ on Trailhead. This trail walks through an example of building an extensible app for food banks, and shows you how to set up an environment with CumulusCI.
