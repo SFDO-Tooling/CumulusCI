@@ -1,4 +1,4 @@
-Manage unpackaged configuration
+Manage Unpackaged Configuration
 ===============================
 
 Deploy metadata after installing a package
