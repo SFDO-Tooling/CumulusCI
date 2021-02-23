@@ -914,10 +914,19 @@ def orgname_option_or_argument(*, required):
 )
 @orgname_option_or_argument(required=False)
 @click.option(
-    "--path", required=False, help="Navigate to the specified page after logging in."
+    "-p",
+    "--path",
+    required=False,
+    help="Navigate to the specified page after logging in.",
+)
+@click.option(
+    "-r",
+    "--url-only",
+    is_flag=True,
+    help="Display the target URL, but don't open a browser.",
 )
 @pass_runtime(require_project=False, require_keychain=True)
-def org_browser(runtime, org_name, path):
+def org_browser(runtime, org_name, path, url_only):
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
 
@@ -926,7 +935,11 @@ def org_browser(runtime, org_name, path):
         ret_url = urlencode({"retURL": path})
         target = f"{target}&{ret_url}"
 
-    webbrowser.open(target)
+    if url_only:
+        click.echo(target)
+    else:
+        webbrowser.open(target)
+
     # Save the org config in case it was modified
     org_config.save()
 
