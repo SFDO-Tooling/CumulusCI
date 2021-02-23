@@ -100,7 +100,7 @@ To define a new task for your project, add the task name under the ``tasks`` sec
 
 Congratulations! You created a new custom task in CumulusCI.
 
-To `write a custom task in Python <TODO>`_ and make it available to other users in the project, add the task under the ``tasks`` section of the ``cumulusci.yml`` file. (Let's assume that your task's class is named ``MyNewTaskClassName`` and exists in the file ``tasks/task_file.py``.)
+To write a custom task in Python and make it available to other users in the project, add the task under the ``tasks`` section of the ``cumulusci.yml`` file. (Let's assume that your task's class is named ``MyNewTaskClassName`` and exists in the file ``tasks/task_file.py``.)
 
 .. code-block:: yaml
 
