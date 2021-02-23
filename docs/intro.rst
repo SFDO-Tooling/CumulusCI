@@ -42,7 +42,7 @@ Automation defined using CumulusCI can support all roles on a project.
 * *Documentation teams* can create environments to interact with new features and capture screenshots.
 * *Product managers* can create environments to interact with new features and provide feedback on future work.
 * *Release engineers* can create beta and final releases and push them to subscriber orgs.
-* *Partners* can create their own project which builds on top of your package.
+* *Partners* can create their own projects on top of your package.
 * *Customers* can install the product and get set up using the same automation steps used during development and QA.
 
 Where Does CumulusCI Fit in the Toolchain?
