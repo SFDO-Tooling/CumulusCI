@@ -1,7 +1,7 @@
 Release a Managed Package
 =========================
 
-This section outlines how to release a first generation (1GP) Salesforce managed package project. Salesforce.org's Release Engineering team practices :doc:`CumulusCI Flow <cumulusci_flow>`_, which incorporates all of these steps.
+This section outlines how to release a first generation (1GP) Salesforce managed package project. Salesforce.org's Release Engineering team practices :doc:`CumulusCI Flow <cumulusci_flow>`, which incorporates all of these steps.
 
 
 
@@ -81,7 +81,7 @@ This flow *always* runs against the project's ``packaging`` org where it:
 
 * Uploads a new beta version from the ``packaging`` org
 * Creates a new GitHub release tag for the new beta version. Extension packages that also use CumulusCI require this release tag to find the latest version when this repository is listed as a dependency.
-* :ref:`Generates Release Notes <github_release_notes>`_
+* :ref:`Generates Release Notes <github_release_notes>`
 * Syncs feature branches with the ``main`` branch, which automatically integrates the latest changes from ``main``. For more information see :ref:`auto merging`.
 
 .. important::

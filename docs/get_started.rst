@@ -6,7 +6,7 @@ Get Started
 Install CumulusCI
 -----------------
 
-.. note:: These installation instructions assume some familiarity with entering commands into a terminal.
+.. tip:: These installation instructions assume some familiarity with entering commands into a terminal.
     If that's completely new to you, we recommend visiting the `CumulusCI Setup <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup>`_ module on Trailhead for a step-by-step walkthrough.
 
 
@@ -365,7 +365,7 @@ Retrieve Metadata from the Persistent Org
 
 This documentation assumes that your project currently lives in a persistent org, such as a Developer Edition org or a Sandbox. We recommend retrieving metadata via the Metadata API (using the Salesforce CLI), followed by converting the source from Metadata API to SFDX format.
 
-#. If the metadata you want to retrieve isn't already in a package, create one. See `Create a Package <https://help.salesforce.com/articleView?id=creating_packages.htm>`_ in Salesforce Help.
+#. If the metadata you want to retrieve isn't already in a package, create one. See `creating packages <https://help.salesforce.com/articleView?id=creating_packages.htm>`_ for more info.
     .. note:: If your project contains a managed package, ensure that the package namespace matches the namespace you entered when running ``cci project init``.
 #. Run the `retrieve <https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_mdapi.htm#cli_reference_retrieve>`_ command to extract your package metadata.
 

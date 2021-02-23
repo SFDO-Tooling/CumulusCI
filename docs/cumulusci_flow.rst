@@ -11,7 +11,7 @@ There are several key reasons we like using CumulusCI Flow:
 * A new Beta Version of the package is created and tested for each commit on a project's ``main`` branch. 
 * Auto-merging functionality keeps branches up-to-date with the ``main`` branch.
 
-CumulusCI Flow is implemented in the out-of-the-box flows provided by CumulusCI, but the approach to working
+CumulusCI Flow is implemented in the standard library flows provided by CumulusCI, but the approach to working
 with a GitHub repository does not require the use of CumulusCI.
 
 .. image:: images/salesforce-org-process.png

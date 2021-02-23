@@ -3,7 +3,7 @@ Connect Persistent Orgs
 
 In addition to creating :doc:`scratch orgs <scratch_orgs>` in CumulusCI, you can connect persistent orgs to your project to run tasks and flows on them. This feature supports use cases such as deploying to a Developer Edition org to release a package version, or installing to a sandbox for user acceptance testing.
 
-.. note:: A different setup is required to connect to orgs in the context of an automated build. See :doc:`continuous integration <continuous_integration>` for more information.
+.. attention:: A different setup is required to connect to orgs in the context of an automated build. See :doc:`continuous integration <continuous_integration>` for more information.
 
 
 

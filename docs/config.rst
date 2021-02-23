@@ -16,7 +16,7 @@ A ``cumulusci.yml`` file contains these top-level sections.
 
 * ``flows``: Defines the flows that are available to run in your project. See `flow configurations`_ for configuration options in this section.
 
-* ``sources``: References tasks and flows from another CumulusCI project on GitHub. See `use tasks and flows from a different project`_ for more information.
+* ``sources``: References tasks and flows from another CumulusCI project on GitHub. See :ref:`use tasks and flows from a different project <TODO>` for more information.
 
 * ``orgs``: Defines the scratch org configurations that are available for your project. See `scratch org configurations`_ for configuration options in this section.
 
@@ -37,7 +37,7 @@ Override a Task Option
 
 If you repeatedly specify the same value for an option while running a task, you can configure CumulusCI to use that value as a default value.
 
-    Example: Let's enforce a 90% code coverage requirement for Apex code in your project. The `run_tests`_ task, which executes all Apex tests in a target org, can enforce code coverage at a given percentage by passing the ``--required_org_code_coverage_percent`` option.
+    Example: Let's enforce a 90% code coverage requirement for Apex code in your project. The :ref:`run_tests` task, which executes all Apex tests in a target org, can enforce code coverage at a given percentage by passing the ``--required_org_code_coverage_percent`` option.
 
 .. code-block:: yaml
 
@@ -94,7 +94,7 @@ To define a new task for your project, add the task name under the ``tasks`` sec
         options:
             path: unpackaged/config/reports
 
-.. attention:: Be sure to include the value we retrieved for ``class_path``. Also, consider adding a common ``group`` attribute to make it easier to see the tasks specific to your project when running ``cci task list``.
+.. tip:: Be sure to include the value we retrieved for ``class_path``. Also, consider adding a common ``group`` attribute to make it easier to see the tasks specific to your project when running ``cci task list``.
 
 Congratulations! You created a new custom task in CumulusCI.
 

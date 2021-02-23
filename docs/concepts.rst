@@ -25,7 +25,7 @@ Projects
 
 When you work with CumulusCI, you do so inside a *project*. A project is an individual Git repository that contains both Salesforce metadata and CumulusCI automation (such as tasks and flows) that builds and releases the project. If you are building multiple packages, we strongly recommend organizing each package as a separate project in its own repository.
 
-.. Important:: CumulusCI's standard automation assumes that there is one package per repository, so it will work best if you follow this convention.
+.. Important:: CumulusCI's standard library assumes that there is one package per repository, so it will work best if you follow this convention.
 
 It's important to note that a project doesn't have to contain a package. For example, a project can deliver unpackaged metadata, deliver automation but no metadata at all, or provide test data for QA. A project can contain the entirety of a product offered to customers, or be just one of multiple projects that combine to form a complete product.
 
@@ -120,7 +120,7 @@ As we touched upon earlier, project doesn't just encompass the contents of a man
 
 In a CumulusCI project, all unpackaged metadata is stored in subdirectories within the ``unpackaged`` directory. Unpackaged metadata plays multiple roles, including preparing an org for installing packages, adding more customization after the package or application is deployed, and customizing specific orgs that are used in the product's development process.
 
-Learn more about managing unpackaged metadata in [TODO: link Managing unpackaged configuration].
+Learn more in the :doc:`manage unpackaged metadata <unpackaged>` section.
 
 Project Orgs & Services
 -----------------------

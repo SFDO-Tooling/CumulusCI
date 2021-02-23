@@ -21,7 +21,7 @@ CumulusCI in GitHub Actions
 
 GitHub Actions specify custom workflows that run directly in your GitHub repository. These workflows perform a variety of tasks, such as running test suites, performing linting checks on code, and creating code coverage reports. CumulusCI can also execute flows in GitHub Actions, making it possible to run scratch org builds and execute Apex and Robot Framework test passes leveraging the custom automation defined in the ``cumulusci.yml`` file.
 
-To learn more about these custom workflows, see our `template repository <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo>`_ which is configured to run :doc:`CumulusCI Flow <cumulusci_flow>` using :doc:`GitHub actions <github_actions>`_.
+To learn more about these custom workflows, see our `template repository <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo>`_ which is configured to run :doc:`CumulusCI Flow <cumulusci_flow>` using :doc:`GitHub actions <github_actions>`.
 
 
 
@@ -34,7 +34,8 @@ Salesforce.org Release Engineering also maintains a continuous integration syste
 * Scaling efficiently up to 100 parallel builds without reserving permanent capacity
 * Exposing CumulusCI flows through a web UI for users to create scratch orgs
 
-Setting up MetaCI is an involved process that requires experience working with apps on Heroku and CumulusCI. To learn more about MetaCI and how to run it with a project, see `MetaCI <https://github.com/SFDO-Tooling/MetaCI>`_.
+Setting up MetaCI is an involved process that requires experience working with apps on Heroku and CumulusCI.
+To learn more about MetaCI and how to run it with a project, see `MetaCI <https://github.com/SFDO-Tooling/MetaCI>`_.
  
 
 
