@@ -45,6 +45,18 @@ Automation defined using CumulusCI can support all roles on a project.
 * *Partners* can create their own project which builds on top of your package.
 * *Customers* can install the product and get set up using the same automation steps used during development and QA.
 
+Where Does CumulusCI Fit in the Toolchain?
+--------
+
+Developers often ask whether CumulusCI competes with or replaces Salesforce DX, the Salesforce command line interface for development, testing, and continous integration. It doesn't. Like Salesforce DX, CumulusCI is designed to maintain the source of truth for a project in a version-controlled repository, and to make it as easy as possible to set up an org from scratch. CumulusCI uses the Salesforce CLI to perform operations such as creating scratch orgs, and is an alternative to bash scripts for running sequences of Salesforce CLI commands.
+
+CumulusCI builds on top of the commands provided by the Salesforce CLI and helps to manage and orchestrate them into a simple and straightforward user experience. CumulusCI prescribes a complete development, test, and release process out-of-the-box, while the Salesforce CLI is a lower level toolbelt that applies to particular processes within the overall process.
+
+For non-developers, knowing Salesforce DX isn't a requirement for using CumulusCI. Neither is knowing Python, the language CumulusCI is written in (in the same way that most Salesforce DX users don't need to know Node.js). If you're going to get fancy with CumulusCI customizations, then Python comes in handy.
+
+Why Is It Called CumulusCI?
+--------
+Before there was the toolset that we know today as CumulusCI, there was a product that would go on to become Nonprofit Success Pack. This product had the code name, Cumulus. Early on, we created our own continuous integration (CI) tools for the Cumulus product. This tooling expanded in scope and scale to eventually become CumulusCI. Even though it's used for much more than CI and for many more products than just NPSP, the name has stuck.
 
 Tutorial
 --------
