@@ -86,7 +86,7 @@ The first screencast shows how to initialize a fresh CumulusCI project:
 
     <asciinema-player preload="True" poster="npt:0:01" src="https://raw.githubusercontent.com/SFDO-Tooling/cci-demo-animations/master/build/1_setup.cast"></asciinema-player>
 
-The next one shows how to use CumulusCI to retrieve metadata from a Salesforce org and save it in GitHub.
+Retrieve metadata from a Salesforce org and save it in GitHub.
 
 .. raw:: html
 
