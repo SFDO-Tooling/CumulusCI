@@ -1,4 +1,4 @@
-from typing import List, Tuple, NamedTuple
+from typing import List, Tuple, NamedTuple, Optional, Iterable
 
 from logging import getLogger
 from pathlib import Path
@@ -279,13 +279,22 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
 
 
 class DescribeResponse(NamedTuple):
+    """Result of a describe call from Salesforce"""
+
     status: int
     body: dict
     last_modified_date: str = None
     refId: str = None
 
 
-def deep_describe(sf, last_modified_date, objs):
+def deep_describe(
+    sf, last_modified_date: Optional[str], objs: List[str]
+) -> Iterable[DescribeResponse]:
+    """Fetch describe data for changed sobjects
+
+    Fetch describe data for sobjects from the list 'objs'
+    which have changed since last_modified_date (in HTTP
+    proto format) and yield each object as a DescribeResponse object."""
     last_modified_date = last_modified_date or y2k
     with CompositeParallelSalesforce(sf, max_workers=8) as cpsf:
         responses = cpsf.do_composite_requests(
