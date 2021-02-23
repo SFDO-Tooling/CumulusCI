@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 import logging
 
+
 from cumulusci.core.exceptions import (
     CumulusCIException,
     PushApiObjectNotFound,
@@ -489,46 +490,47 @@ def test_schedule_push_org_query_get_org():
 
 @mock.patch("cumulusci.tasks.push.push_api.BulkApiQueryOperation")
 def test_schedule_push_org_bulk_query_get_org(BulkAPI):  # push_api):
+    expected_result = [
+        {
+            "Id": "0Hb0R0000009fPASAY",
+            "MetadataPackageVersionId": "04t1J000000gQziQAE",
+            "InstalledStatus": "i",
+            "OrgName": "CumulusCI-Test Dev Workspace",
+            "OrgKey": "00D0R0000000kN4",
+            "OrgStatus": "Trial",
+            "OrgType": "Sandbox",
+        }
+    ]
     push_api = SalesforcePushApi(
         mock.MagicMock(), mock.MagicMock(), None, None, None, mock.MagicMock()
     )
     bulk_api = mock.MagicMock(get_results=mock.MagicMock())
-    bulk_api.get_results.return_value = PACKAGE_OBJ_SUBSCRIBER["records"]
+    bulk_api.get_results.return_value = [
+        [
+            "0Hb0R0000009fPASAY",
+            "04t1J000000gQziQAE",
+            "i",
+            "CumulusCI-Test Dev Workspace",
+            "00D0R0000000kN4",
+            "Trial",
+            "Sandbox",
+        ]
+    ]
     BulkAPI.return_value = bulk_api
     result = push_api.return_query_records(
-        "SELECT * FROM CONTACTS",
+        "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE (InstalledStatus = 'i' AND (OrgType = 'Sandbox')",
         [
-            "attributes",
             "Id",
-            "NamespacePrefix",
-            "Name",
-            "MetadataPackageId",
-            "PackageVersionId",
-            "ReleaseState",
-            "ScheduledStartTime",
-            "MajorVersion",
-            "MinorVersion",
-            "PatchVersion",
-            "BuildNumber",
-            "Status",
-            "SubscriberOrganizationKey",
             "MetadataPackageVersionId",
             "InstalledStatus",
-            "PackagePushRequestId",
             "OrgName",
             "OrgKey",
             "OrgStatus",
             "OrgType",
-            "PackagePushJobId",
-            "ErrorSeverity",
-            "ErrorType",
-            "ErrorTitle",
-            "ErrorMessage",
-            "ErrorDetails",
         ],
         "foo",
     )
-    assert result == PACKAGE_OBJ_SUBSCRIBER["records"]
+    assert result == expected_result
 
 
 def test_schedule_push_org_list_run_task_with_time_assertion(org_file):

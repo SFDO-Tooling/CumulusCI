@@ -7,6 +7,7 @@ from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import PushApiObjectNotFound
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.utils import process_bool_arg
 
 
 class BaseSalesforcePushTask(BaseSalesforceApiTask):
@@ -228,6 +229,9 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
                 + " Defaults to 200."
             )
         },
+        "dry_run": {
+            "description": "If True, skip creating Github data.  Defaults to False"
+        },
     }
 
     def _init_task(self):
@@ -236,7 +240,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
     def _init_options(self, kwargs):
         super(SchedulePushOrgList, self)._init_options(kwargs)
-
+        self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
         neither_file_option = "orgs" not in self.options and "csv" not in self.options
         both_file_options = "orgs" in self.options and "csv" in self.options
         if neither_file_option or both_file_options:
@@ -283,40 +287,43 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
                 "Scheduling push for %d minutes from now", delay_minutes
             )
             start_time = datetime.utcnow() + timedelta(minutes=delay_minutes)
-
-        self.request_id, num_scheduled_orgs = self.push.create_push_request(
-            version, orgs, start_time
-        )
-
-        self.return_values["request_id"] = self.request_id
-
-        if num_scheduled_orgs > 1000:
-            sleep_time_s = 30
-            self.logger.info(
-                "Delaying {} seconds to allow all jobs to initialize".format(
-                    sleep_time_s
-                )
+        if not self.options["dry_run"]:
+            self.logger.warning(
+                "Skipping push job creation due to dry_run flag enabled."
             )
-            time.sleep(sleep_time_s)
-        elif num_scheduled_orgs == 0:
-            self.logger.warning("Canceling push request with 0 orgs")
-            self.push.cancel_push_request
-            return
+            self.request_id, num_scheduled_orgs = self.push.create_push_request(
+                version, orgs, start_time
+            )
 
-        self.logger.info("Setting status to Pending to queue execution.")
-        self.logger.info("The push upgrade will start at UTC {}".format(start_time))
+            self.return_values["request_id"] = self.request_id
 
-        # Run the job
-        self.logger.info(self.push.run_push_request(self.request_id))
-        self.logger.info(
-            "Push Request {} is queued for execution.".format(self.request_id)
-        )
+            if num_scheduled_orgs > 1000:
+                sleep_time_s = 30
+                self.logger.info(
+                    "Delaying {} seconds to allow all jobs to initialize".format(
+                        sleep_time_s
+                    )
+                )
+                time.sleep(sleep_time_s)
+            elif num_scheduled_orgs == 0:
+                self.logger.warning("Canceling push request with 0 orgs")
+                self.push.cancel_push_request
+                return
 
-        # Report the status if start time is less than 1 minute from now
-        if start_time - datetime.utcnow() < timedelta(minutes=1):
-            self._report_push_status(self.request_id)
-        else:
-            self.logger.info("Exiting early since request is in the future")
+            self.logger.info("Setting status to Pending to queue execution.")
+            self.logger.info("The push upgrade will start at UTC {}".format(start_time))
+
+            # Run the job
+            self.logger.info(self.push.run_push_request(self.request_id))
+            self.logger.info(
+                "Push Request {} is queued for execution.".format(self.request_id)
+            )
+
+            # Report the status if start time is less than 1 minute from now
+            if start_time - datetime.utcnow() < timedelta(minutes=1):
+                self._report_push_status(self.request_id)
+            else:
+                self.logger.info("Exiting early since request is in the future")
 
 
 class SchedulePushOrgQuery(SchedulePushOrgList):
@@ -349,6 +356,9 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
                 + " Ex: 2016-10-19T10:00"
             )
         },
+        "dry_run": {
+            "description": "If True, skip creating Github data.  Defaults to False"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -359,6 +369,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             self.options["namespace"] = self.project_config.project__package__namespace
         if "batch_size" not in self.options:
             self.options["batch_size"] = 200
+        self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
 
     def _get_orgs(self):
         subscriber_where = self.options.get("subscriber_where")
