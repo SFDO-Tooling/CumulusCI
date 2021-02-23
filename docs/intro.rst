@@ -69,7 +69,7 @@ If you already have the Salesforce CLI installed and configured, installing Cumu
 Learn More Through Demos
 -----
 
-Watch the following screencasts to get an idea of how to use CumulusCI from a command line.
+Love demos? These no-audio screencasts show how to use CumulusCI from a command line.
 
 .. raw:: html
 
