@@ -60,7 +60,7 @@ The ``ci_master`` flow executes these tasks in the target org.
 * Deploys destructive changes to remove metadata in the target org that is no longer in the local repository
 * Runs the ``config_packaging`` flow, which by default consists only of the :ref:`update_admin_profile` task.
 
-.. tip::
+.. admonition:: Wizard Tip 
 
     To list each step in the ``ci_master`` flow, run ``cci flow info ci_master``.
 

@@ -94,7 +94,9 @@ To define a new task for your project, add the task name under the ``tasks`` sec
         options:
             path: unpackaged/config/reports
 
-.. tip:: Be sure to include the value we retrieved for ``class_path``. Also, consider adding a common ``group`` attribute to make it easier to see the tasks specific to your project when running ``cci task list``.
+.. admonition:: Wizard Tip
+
+    Be sure to include the value we retrieved for ``class_path``. Also, consider adding a common ``group`` attribute to make it easier to see the tasks specific to your project when running ``cci task list``.
 
 Congratulations! You created a new custom task in CumulusCI.
 
@@ -498,7 +500,7 @@ Advanced Configurations
 
 
 Tasks and Flows from a Different Project
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It's also possible to use tasks and flows from another project with CumulusCI. The other project must be named under the ``sources`` section of the project ``cumulusci.yml`` file.
 

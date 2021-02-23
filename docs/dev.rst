@@ -535,11 +535,11 @@ Developers can also use the ``meta_xml_dependencies`` task to update the ``meta.
 Use Tasks and Flows from a Different Project
 --------------------------------------------
 
-Dependency handling is used in a very specific context: to install dependency packages or metadata bundles in a ``dependencies`` flow that is a component of some other flows.
+Dependency handling is used in a very specific context: to install dependency packages or metadata bundles in a ``dependencies`` flow that is a component of some other flow.
 
 CumulusCI also makes it possible to use automation (tasks and flows) from another CumulusCI project. This feature supports many use cases, including:
 
 * Applying configuration from a dependency project, rather than just installing the package.
 * Running Robot Framework tests that are defined in a dependency.
 
-For more information, see how to `configure tasks and flows from a different project <TODO>`.
+For more information, see how to :ref:`tasks and flows from a different project`.
