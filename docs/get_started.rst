@@ -151,8 +151,7 @@ To set up Salesforce DX:
 
 1. `Install Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm>`_
 2. `Enable Dev Hub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.228.0.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_devhub.htm>`_
-3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_ 
-        .. important:: Be sure to use the ``--setdefaultdevhubusername`` option!
+3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_  - Be sure to use the ``--setdefaultdevhubusername`` option!
 
 If you have the ``sfdx`` command installed, are connected to your devhub, and set the ``defaultdevhubusername`` config setting (use the ``sfdx force:config:list`` command to verify!), you're now ready to use ``cci`` with ``sfdx``.
 

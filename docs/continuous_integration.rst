@@ -12,7 +12,7 @@ CumulusCI Flow
 
 CumulusCI Flow is the process by which Salesforce metadata is developed, tested, and deployed to our customers. It is similar to GitHub Flow with a few tweaks and additions.
 
-To learn which CumulusCI flows are best designed for creating scratch orgs, running CI builds, managing the development process, and more, see `CumulusCI Flow<TODO>`_.
+To learn which CumulusCI flows are best designed for creating scratch orgs, running CI builds, managing the development process, and more, see :doc:`CumulusCI Flow <cumulusci_flow>`.
 
 
 
@@ -21,7 +21,7 @@ CumulusCI in GitHub Actions
 
 GitHub Actions specify custom workflows that run directly in your GitHub repository. These workflows perform a variety of tasks, such as running test suites, performing linting checks on code, and creating code coverage reports. CumulusCI can also execute flows in GitHub Actions, making it possible to run scratch org builds and execute Apex and Robot Framework test passes leveraging the custom automation defined in the ``cumulusci.yml`` file.
 
-To learn more about these custom workflows, see `GitHub Actions<TODO>`_ .
+To learn more about these custom workflows, see our `template repository <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo>`_ which is configured to run :doc:`CumulusCI Flow <cumulusci_flow>` using :doc:`GitHub actions <github_actions>`_.
 
 
 

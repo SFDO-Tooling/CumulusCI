@@ -12,7 +12,7 @@ The ``dev_org`` flow creates an org to develop on by moving all metadata (manage
 
 .. note:: Run ``cci flow info dev_org`` for a full list of the ``dev_org`` flow steps.
 
-To run the ``dev_org`` flow against the project's `default org<TODO>`_:
+To run the ``dev_org`` flow against the project's :ref:`default org <Set a Default Org>`:
 
 .. code-block:: console
 
