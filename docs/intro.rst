@@ -38,7 +38,7 @@ Salesforce.org uses CumulusCI to develop products for our nonprofit and educatio
 Automation defined using CumulusCI can support all roles on a project.
 
 * *Developers* can create new development environments for different feature branches.
-* *QAs* can create test environments from feature branches and managed package installs.
+* *Quality engineers* can create test environments from feature branches and managed package installs.
 * *Doc writers* can create environments to interact with new features and capture screenshots to prepare documentation.
 * *Product managers* can create environments to interact with new features and provide feedback on future work.
 * *Release engineers* can create beta and final releases and push them to subscriber orgs.
