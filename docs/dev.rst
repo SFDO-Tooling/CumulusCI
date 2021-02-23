@@ -56,8 +56,8 @@ For more information, see `List and Retrieve Options`_.
 Retrieve Changes
 ----------------
 
-The ``retrieve_changes`` task supports both Salesforce DX- and Metadata API-format source code. It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_
-``sObject`` to detect what has changed in an org, and also gives you discretion regarding which components are retrieved when compared to the ``dx_pull`` task.
+The ``retrieve_changes`` task supports both Salesforce DX and Metadata API-format source code. It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_
+``sObject`` to detect what has changed in an org, and also gives you discretion regarding which components are retrieved when compared to the :ref:`dx_pull` task.
 
 Manual tracking of component versions also offers the possibility of retrieving changes into one directory, and then running the task again to retrieve other changes into a different directory.
  
