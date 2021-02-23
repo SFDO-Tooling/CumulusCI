@@ -2,6 +2,19 @@ Introduction
 ============
 
 CumulusCI helps development teams build great applications on the Salesforce platform by automating org setup, testing, and deployment.
+Automation and Product Delivery with CumulusCI
+--------
+
+If your product development lifecycle and release process is anything like ours at Salesforce.org, it's complex. You're managing multiple packages, dependencies, orgs, and release versions. Not to mention managing org metadata and all the setup operations that need to run in the right sequence, before or after a package is installed, to create a properly configured org. 
+
+Consider the example of Nonprofit Success Pack (NPSP), one of Salesforce.org's flagship open source products. NPSP is a large, complex, heterogeneous application. It consists of six managed packages, with complex dependency relationships. Using automation, we deploy all five dependent packages in the right sequence, deliver the unpackaged record types for the Account and Opportunity objects, and perform final configurations to make the customer's experience better, like setting up Global Actions and delivering translations. We deliver biweekly NPSP releases to tens of thousands of customer orgs–with the proper configurations and without requiring end users to work through a lengthy setup guide.
+
+The CumulusCI suite of tools is part of the not-so-secret sauce that makes it possible for us to build and release products. We run CumulusCI automation throughout our development lifecycle, starting from feature branches all the way through delivery of the latest release. 
+
+* GitHub repositories serve as our version-controlled source repositories.
+* The CumulusCI command-line interface, CCI, lets us run single-action tasks and multiple-action flows for development and testing.
+* MetaCI uses CumulusCI flows to build Salesforce managed packages from GitHub repositories.
+* MetaDeploy automates setup and configuration of customer orgs.
 
 **Best practices, proven at scale.** CumulusCI provides a complete development and release process created by Salesforce.org to build and release applications to thousands of users on the Salesforce platform. It's easy to start with the default tasks (single actions) and flows (sequences of actions), or customize by adding your own.
 
