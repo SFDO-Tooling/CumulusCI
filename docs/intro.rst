@@ -24,7 +24,7 @@ The CumulusCI suite of tools is part of the not-so-secret sauce that makes it po
 * Load and capture sample datasets to make your orgs feel real.
 * Apply transformations to existing metadata to tailor orgs to your specific requirements.
 * Run builds in continuous integration systems.
-* Create end-to-end browser tests and setup automation using `Robot Framework <https://robotframework.org/>`_.
+* Create end-to-end browser tests and set up automation using `Robot Framework <https://robotframework.org/>`_.
 
 **Build anywhere.** Automation defined using CumulusCI is portable. It is stored in a source repository and can be run from your local command line, from a continuous integration system, or from a customer-facing installer. CumulusCI can run automation on scratch orgs created using the Salesforce CLI, or on persistent orgs like sandboxes, production orgs, and Developer Edition orgs.
 
