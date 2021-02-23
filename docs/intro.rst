@@ -16,7 +16,6 @@ The CumulusCI suite of tools is part of the not-so-secret sauce that makes it po
 * MetaCI uses CumulusCI flows to build Salesforce managed packages from GitHub repositories.
 * MetaDeploy automates setup and configuration of customer orgs.
 
-**Best practices, proven at scale.** CumulusCI provides a complete development and release process created by Salesforce.org to build and release applications to thousands of users on the Salesforce platform. It's easy to start with the default tasks (single actions) and flows (sequences of actions), or customize by adding your own.
 
 You can use the very same automation that we use internally to quickly:
 
