@@ -59,7 +59,7 @@ source_suffix = ".rst"
 # Set epilog with any variable values we want replaced
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-rst_epilog
 rst_epilog = """
-.. |cumulusci_version| replace:: 3.29.0
+.. |cumulusci_version| replace:: testing
 """
 
 # The master toctree document.
