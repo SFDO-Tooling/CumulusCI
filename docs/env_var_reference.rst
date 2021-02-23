@@ -1,5 +1,6 @@
 Environment Variables
 =====================
+
 CumulusCI has environment variables that are useful when CumulusCI is being run inside of web applications such as MetaCI, MetaDeploy, and Metecho.
 The following is a reference list of available environment variables that can be set.
 
@@ -37,7 +38,7 @@ The following is a reference list of available environment variables that can be
 
 ``GITHUB_APP_KEY``
 
-    Contents of a JSON Web Token (JWT) used to authenticate a GitHub app (see `GitHub’s docs <https://developer.github.com/apps/building-github-apps/authenticating-with-github-apps/#authenticating-as-a-github-app>`_).
+    Contents of a JSON Web Token (JWT) used to `authenticate a GitHub app <https://developer.github.com/apps/building-github-apps/authenticating-with-github-apps/#authenticating-as-a-github-app>`_.
 
 
 
