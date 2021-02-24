@@ -97,7 +97,10 @@ def explain_mismatch(r1, r2):
 def salesforce_matcher(r1, r2):
     summary1 = (r1.method, _noversion(r1.uri), _noversion(r1.body))
     summary2 = (r2.method, _noversion(r2.uri), _noversion(r2.body))
-    assert summary1 == summary2 or explain_mismatch(summary1, summary2)
+    # uncomment explain_mismatch if you need to debug.
+    # otherwise it will generate a lot of noise, even when things
+    # are working properlly
+    assert summary1 == summary2  # or explain_mismatch(summary1, summary2)
 
 
 def salesforce_vcr(vcr):
