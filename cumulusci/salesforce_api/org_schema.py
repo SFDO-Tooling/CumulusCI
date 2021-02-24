@@ -157,6 +157,7 @@ class Schema:
 
 
 def create_row(buffered_session: "BufferedSession", model, valuesdict: dict):
+    valuesdict["EXTRA"] = "EXTRA"
     buffered_session.write_single_row(model.__tablename__, valuesdict)
 
 
@@ -190,10 +191,12 @@ class BufferedSession:
 
     def write_single_row(self, tablename: str, row: Dict) -> None:
         # but first, normalize it so all keys have a value. SQLite Requires it.
-        row = {**self.columns[tablename], **row}
+        normalized_row = {}
+        for key, default in self.columns[tablename].items():
+            normalized_row[key] = row.get(key, default)
 
         # cache the value for later insert
-        self.buffered_rows[tablename].append(row)
+        self.buffered_rows[tablename].append(normalized_row)
 
         # flush if buffer is full
         if len(self.buffered_rows[tablename]) > self.max_buffer_size:
