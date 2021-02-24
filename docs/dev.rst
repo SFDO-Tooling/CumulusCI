@@ -10,7 +10,7 @@ Set Up a Dev Org
 
 The ``dev_org`` flow creates an org to develop on by moving all metadata (managed and unmanaged) into the org, and configuring it to be ready for development.
 
-.. note:: Run ``cci flow info dev_org`` for a full list of the ``dev_org`` flow steps.
+.. tip:: Run ``cci flow info dev_org`` for a full list of the ``dev_org`` flow steps.
 
 To run the ``dev_org`` flow against the project's :ref:`default org <Set a Default Org>`:
 
@@ -20,7 +20,7 @@ To run the ``dev_org`` flow against the project's :ref:`default org <Set a Defau
 
 To run the ``dev_org`` flow against a specific org, use the ``--org`` option:
 
-Example: Run the ``dev_org`` flow against the org currently defined as ``dev`` in CumulusCI.
+The following runs the ``dev_org`` flow against the org currently defined as ``dev`` in CumulusCI.
 
 .. code-block:: console
 
@@ -38,7 +38,7 @@ Open the new ``dev`` org to begin development.
 List Changes
 ------------
 
-To see what components have changed in a target org:
+To see what components have changed in a target org use the :ref:`list_changes` task:
 
 .. code-block:: console
 
@@ -46,7 +46,8 @@ To see what components have changed in a target org:
 
 .. note::
     
-    This functionality relies on Salesforce's source tracking feature, which is currently available only in Scratch Orgs, Developer Sandboxes, and Developer Pro Sandboxes.
+    This functionality relies on Salesforce's `source tracking <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_source_tracking_sandboxes.htm>`_
+    feature, which is currently available only in Scratch Orgs, Developer Sandboxes, and Developer Pro Sandboxes.
 
 For more information, see `List and Retrieve Options`_.
 
@@ -55,18 +56,30 @@ For more information, see `List and Retrieve Options`_.
 Retrieve Changes
 ----------------
 
-The ``retrieve_changes`` task supports both Salesforce DX and Metadata API-format source code. It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_
+The :ref:`retrieve_changes` task supports both Salesforce DX and Metadata API-format source code. It utilizes the `SourceMember <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_
 ``sObject`` to detect what has changed in an org, and also gives you discretion regarding which components are retrieved when compared to the :ref:`dx_pull` task.
 
-Manual tracking of component versions also offers the possibility of retrieving changes into one directory, and then running the task again to retrieve other changes into a different directory.
  
-To retrieve all changes in an org:
+To retrieve *all* changes in an org:
 
 .. code-block:: console
 
     $ cci task run retrieve_changes --org dev
 
-For more information, see `List and Retrieve Options`_.
+For information on retrieving specific subsets of changes, see `List and Retrieve Options`_.
+
+
+
+``--path``
+^^^^^^^^^^
+Manual tracking of component versions offers the possibility of retrieving one set of changes into directory A, and retrieving a different set of changes into directory B.
+By default, changes are retrieved into the ``src`` directory when using Metadata API source format, or the default  package directory (``force-app``) when using Salesforce DX source format.
+
+To retrieve metadata into a *different* location use the ``--path`` option:
+
+.. code-block:: console
+
+    $ cci task run retrieve_changes --org dev --path your/unique/path
 
 
 
@@ -75,22 +88,27 @@ List and Retrieve Options
 
 When developing in an org, the changes you're most interested in are sometimes mixed with other changes that aren't relevant to what you're doing.
 
-Example: Changing schema like Custom Objects and Custom Fields often results in changes to Page Layouts and Profiles that you don't wish to review or retrieve.
+For example, changing metadata like Custom Objects and Custom Fields often results in changes to Page Layouts and Profiles that you don't wish to review or retrieve.
 
-It's a common workflow in CumulusCI to use the ``list_changes`` task, combined with the options featured in this subsection, to narrow the scope of changes in the org to the exact elements you desire to retrieve in your project. When the correct set of metadata is listed, run the ``retrieve_changes`` task to bring those changes into the repository.
+It's a common workflow in CumulusCI to use the ``list_changes`` task, combined with the options featured in this subsection,
+to narrow the scope of changes in the org to the exact elements you desire to retrieve in your project.
+When the correct set of metadata is listed, run the ``retrieve_changes`` task to bring those changes into the repository.
 
 
 
 ``--include`` & ``--exclude``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When retrieving metadata from an org, CumulusCI represents each component name as the combination of its type (such as a ``Profile``, ``CustomObject``, or ``ApexClass``) and its API name: ``MemberType: MemberName``. 
+When retrieving metadata from an org, CumulusCI represents each component name as the combination of its type
+(such as a ``Profile``, ``CustomObject``, or ``ApexClass``) and its API name: ``MemberType: MemberName``. 
+An ``ApexClass`` named ``MyTestClass`` would be represented as ``ApexClass: MyTestClass``.
 
-Example: An ``ApexClass`` named ``MyTestClass`` would be represented as ``ApexClass: MyTestClass``.
+The ``--include`` and ``--exclude`` options lets you pass multiple `regular expressions <https://en.wikipedia.org/wiki/Regular_expression>`_
+to match against the names of changed components.
+This metadata is either included or excluded depending on which option the regular expression is passed.
+Multiple regular expressions can be passed in a comma-separated list.
 
-The ``--include`` and ``--exclude`` options lets you pass multiple `regular expressions <https://en.wikipedia.org/wiki/Regular_expression>`_ to match against the names of changed components. This metadata is either included or excluded depending on which option the regular expression is passed. Multiple regular expressions can be passed in a comma-separated list.
-
-Example: List all modified metadata that ends in "Test" and "Data" in the default org.
+The following lists all modified metadata that ends in "Test" and "Data" in the default org.
 
 .. code-block:: console
 
@@ -98,7 +116,7 @@ Example: List all modified metadata that ends in "Test" and "Data" in the defaul
 
 Since the metadata string that CumulusCI processes also includes the ``MemberType``, use exclusions and inclusions that filter whole types of metadata.
 
-Example: Exclude ``Profile`` type.
+The following will list all changes *except for* those with a type of ``Profile``.
 
 .. code-block:: console
 
@@ -108,55 +126,45 @@ Example: Exclude ``Profile`` type.
 ``--types``
 ^^^^^^^^^^^
 
-To list or retrieve changed metadata of the same type, use the ``--types`` option along with the `SourceMember.MemberType <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_ metadata to retrieve.
+To list or retrieve changed metadata of the same type, use the ``--types`` option along with the
+`SourceMember.MemberType <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_ metadata to retrieve.
 
-    Example: Retrieve all changed ``ApexClasses`` and ``ApexComponents`` in the default org.
+The following retrieves all changed ``ApexClasses`` and ``ApexComponents`` in the default org.
 
 .. code-block:: console
 
     $ cci task run retrieve_changes --types ApexClass,ApexComponent
 
 
-``--path``
-^^^^^^^^^^
-
-.. important:: This option only works with the ``retrieve_changes`` task.
-
-By default, changes are retrieved into the ``src`` directory when using Metadata API source format, or the default  package directory (``force-app``) when using Salesforce DX source format.
-
-To retrieve metadata into a different location using the ``--path`` option:
-
-.. code-block:: console
-
-    $ cci task run retrieve_changes --org dev --path your/unique/path
-
-
 
 Push Changes
 ------------
 
-Developers often use an editor or IDE like Visual Studio Code to modify code and metadata stored in the repository. After making changes in an editor, push these changes from your project's local repository to the target org.
+Developers often use an editor or IDE like Visual Studio Code to modify code and metadata stored in the repository.
+After making changes in an editor, push these changes from your project's local repository to the target org.
 
-If your project uses the Salesforce DX source format, use the ``dx_push`` task.
+If your project uses the Salesforce DX source format, use the :ref:`dx_push` task.
 
 .. code-block:: console
 
     $ cci task run dx_push
 
-If your project uses the Metadata API source format, use the ``deploy`` task:
+If your project uses the Metadata API source format, use the :ref:`deploy` task:
 
 .. code-block:: console
 
     $ cci task run deploy 
 
-The ``deploy`` task has *many* options for handling a number of different scenarios. For a comprehensive list of options, see the :ref:`deploy` task reference.
+The ``deploy`` task has *many* options for handling a number of different scenarios.
+For a comprehensive list of options, see the :ref:`deploy` task reference.
 
 
 
 Run Apex Tests
 --------------
 
-CumulusCI executes Apex tests in an org and can optionally report on test outcomes and code coverage. CumulusCI can also retry failed tests automatically.
+CumulusCI can execute Apex tests in an org with the ``run_tests`` task, and optionally report on test outcomes and code coverage.
+Failed tests can also be retried automatically.
 
 .. code-block:: console
 
@@ -169,9 +177,10 @@ The ``run_tests`` task has *many* options for running tests. For a comprehensive
 Set Up a QA Org
 ---------------
 
-The ``qa_org`` flow sets up org environments where quality engineers test features quickly and easily. ``qa_org`` runs the specialized ``config_qa`` flow after deploying the project's (unmanaged) metadata to the org.
+The ``qa_org`` flow sets up org environments where quality engineers test features quickly and easily.
+``qa_org`` runs the specialized ``config_qa`` flow after deploying the project's (unmanaged) metadata to the org.
 
-Example: Run the ``qa_org`` flow against the ``qa`` org.
+The following runs the ``qa_org`` flow against the ``qa`` org.
 
 .. code-block:: console
 
@@ -181,9 +190,11 @@ Example: Run the ``qa_org`` flow against the ``qa`` org.
 Create QA Configurations
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-For the most part ``config_dev`` and ``config_qa`` flows are the same. Many teams have a requirement for additional configurations to be deployed when performing QA, but not when developing a new feature.
+For the most part ``config_dev`` and ``config_qa`` flows are the same.
+Many teams have a requirement for additional configurations to be deployed when performing QA, but not when developing a new feature.
 
-Example: Salesforce.org teams often modify the ``config_qa`` flow to deploy configurations that pertain to large optional features in a package. These configurations are subsequently tested by the product's Robot Framework test suites.
+At Salesforce.org, our product teams often modify the ``config_qa`` flow to deploy configurations that pertain to large optional features in a package.
+These configurations are subsequently tested by the product's Robot Framework test suites.
 
 To retrieve your own QA configurations, spin up a new org...
 
@@ -199,7 +210,7 @@ Make the necessary changes, and run:
 
 This task defaults to retrieving this metadata under ``unpackaged/config/qa``.
 
-.. note:: The configuration metadata can also be stored in a different location by using the ``--path`` option.
+.. tip:: The configuration metadata can also be stored in a different location by using the ``--path`` option.
 
 To delete the org...
 
@@ -282,7 +293,7 @@ Reference Unmanaged Projects
 
 If the referenced repository does not have a namespace configured, or if the dependency specifies the ``unmanaged`` option as ``True``, the repository is treated as unmanaged.
 
-Example: Salesforce EDA
+Here is a project with Salesforce.org's `EDA <https://github.com/SalesforceFoundation/EDA>`_ package listed as an unmanaged dependency:
 
 .. code-block:: yaml
 
@@ -300,8 +311,6 @@ Reference a Specific Tag
 
 To reference a specific version of the product other than the most recent commit on the main branch (for unmanaged projects) or the most recent production release (for managed packages), use the ``tag`` option to specify a tag from the target repository. This option is most useful for testing against beta versions of underlying packages, or recreating specific org environments for debugging.
 
-Example: Salesforce EDA
-
 .. code-block:: yaml
 
     project:
@@ -318,8 +327,6 @@ Skip ``unpackaged/*`` in Reference Repositories
 
 If the referenced repository has dependency metadata under ``unpackaged/pre`` or ``unpackaged/post``, use the ``skip`` option to skip deploying that metadata with the dependency.
 
-Example: Salesforce EDA
-
 .. code-block:: yaml
 
     project:
@@ -333,8 +340,6 @@ Managed Package Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Managed package dependencies are rather simple. Under the ``project__dependencies`` section of the ``cumulusci.yml`` file, specify the namespace of the target package, and the required version number.
-
-Example: ``npe01 version 3.6``
 
 .. code-block:: yaml
 
@@ -350,8 +355,6 @@ Automatic Install, Upgrade, or Uninstall/Install
 
 When the ``update_dependencies`` task runs, it retrieves a list of all managed packages in the target org, and creates a list of the installed packages and their version numbers.
 
-Example: ``npe01 version 3.6``
-    
 .. code-block:: yaml
 
     project:
@@ -402,8 +405,6 @@ So if the target org currently has ``npe01 version 3.7``, ``npe01`` needs to be 
 
 Unmanaged Metadata Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
 Specify unmanaged metadata to be deployed by specifying a ``zip_url`` and, optionally,
 ``subfolder``, ``namespace_inject``, ``namespace_strip``, and ``unmanaged`` under the
 ``project__dependencies`` section of the cumulusci.yml file.
@@ -427,8 +428,6 @@ Use the ``subfolder`` option to specify a subfolder of the zip file to use for t
 .. tip::
     
     This option is handy when referring to metadata stored in a GitHub repository.
-
-Example: ``subfolder: CumulusReports-master/record_types``
 
 .. code-block:: yaml
 
