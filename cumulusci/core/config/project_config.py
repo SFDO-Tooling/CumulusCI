@@ -1,5 +1,4 @@
 from distutils.version import LooseVersion
-import io
 import json
 import os
 import re
@@ -17,7 +16,6 @@ from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
-    DependencyResolutionError,
     GithubException,
     KeychainNotFound,
     NamespaceNotFoundError,
@@ -26,28 +24,18 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.github import (
     get_github_api_for_repo,
-    find_latest_release,
     find_previous_release,
-    find_repo_feature_prefix,
-    get_version_id_from_commit,
 )
 from cumulusci.core.source import GitHubSource
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.core.source import NullSource
 from cumulusci.utils.git import (
     current_branch,
-    get_feature_branch_name,
     git_path,
-    is_release_branch_or_child,
-    construct_release_branch_name,
-    get_release_identifier,
-    get_feature_branch_name,
     split_repo_url,
 )
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.utils.fileutils import open_fs_resource
-
-from github3.exceptions import NotFoundError
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):

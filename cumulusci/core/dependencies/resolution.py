@@ -1,6 +1,11 @@
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.dependencies.dependencies import Dependency
-from typing import List
+from cumulusci.core.dependencies.dependencies import (
+    Dependency,
+    GitHubDynamicDependency,
+    ManagedPackageDependency,
+)
+from typing import Iterable, List
 from cumulusci.core.dependencies.resolvers import DependencyResolutionStrategy
 import itertools
 
@@ -34,8 +39,17 @@ import itertools
 #          resolver_stack: latest_beta
 
 
+def get_resolver_stack(
+    context: BaseProjectConfig, name: str
+) -> List[DependencyResolutionStrategy]:
+    stacks = context.project__resolvers
+    if stacks and name in stacks:
+        return [DependencyResolutionStrategy(n) for n in stacks[name]]
+
+    raise CumulusCIException(f"Resolver stack {name} was not found.")
+
+
 def get_static_dependencies(
-    self,
     dependencies: List[Dependency],
     strategies: List[DependencyResolutionStrategy],
     context: BaseProjectConfig,
@@ -55,25 +69,42 @@ def get_static_dependencies(
             if not d.is_resolved:
                 d.resolve(context, strategies)
 
-        # TODO: unique the dependencies.
+        def unique(it: Iterable):
+            seen = set()
+
+            for each in it:
+                if each not in seen:
+                    seen.add(each)
+                    yield each
+
         dependencies = list(
-            filter(
-                itertools.chain([d.flatten(context) for d in dependencies]),
-                lambda d: not self._should_ignore_dependency(d, ignore_deps),
+            unique(
+                itertools.chain(
+                    [
+                        d.flatten(context)
+                        for d in dependencies
+                        if not _should_ignore_dependency(d, ignore_deps or [])
+                    ]
+                ),
             )
         )
 
-    return dependencies
+    # Make sure, if we had no flattening or resolving to do, that we apply the ignore list.
+    return [
+        d for d in dependencies if not _should_ignore_dependency(d, ignore_deps or [])
+    ]
 
 
-def _should_ignore_dependency(self, dependency, ignore_deps):
-    # TODO: reimplement
+def _should_ignore_dependency(dependency: Dependency, ignore_deps: List[dict]):
     if not ignore_deps:
         return False
 
-    if "github" in dependency:
-        return dependency["github"] in [dep.get("github") for dep in ignore_deps]
-    elif "namespace" in dependency:
-        return dependency["namespace"] in [dep.get("namespace") for dep in ignore_deps]
+    ignore_github = [d["github"] for d in ignore_deps if "github" in d]
+    ignore_namespace = [d["namespace"] for d in ignore_deps if "namespace" in d]
+
+    if isinstance(dependency, ManagedPackageDependency) and dependency.namespace:
+        return dependency.namespace in ignore_namespace
+    if isinstance(dependency, GitHubDynamicDependency) and dependency.github:
+        return dependency.github in ignore_github
 
     return False

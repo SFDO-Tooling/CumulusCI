@@ -1,4 +1,6 @@
 import abc
+
+from github3.repos.repo import Repository
 from cumulusci.core.dependencies.dependencies import (
     DynamicDependency,
     GitHubDynamicDependency,
@@ -8,7 +10,7 @@ import io
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from github3.exceptions import NotFoundError
 from cumulusci.core.exceptions import DependencyResolutionError
-from enum import Enum, auto
+from enum import Enum
 from typing import Optional, Tuple
 from cumulusci.core.config.project_config import BaseProjectConfig
 
@@ -25,14 +27,14 @@ from cumulusci.utils.git import (
 )
 
 
-class DependencyResolutionStrategy(Enum):
-    STRATEGY_STATIC_TAG_REFERENCE = auto()
-    STRATEGY_2GP_EXACT_BRANCH = auto()
-    STRATEGY_2GP_RELEASE_BRANCH = auto()
-    STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH = auto()
-    STRATEGY_BETA_RELEASE_TAG = auto()
-    STRATEGY_RELEASE_TAG = auto()
-    STRATEGY_UNMANAGED_HEAD = auto()
+class DependencyResolutionStrategy(str, Enum):
+    STRATEGY_STATIC_TAG_REFERENCE = "tag"
+    STRATEGY_2GP_EXACT_BRANCH = "exact_branch_2gp"
+    STRATEGY_2GP_RELEASE_BRANCH = "release_branch_2gp"
+    STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH = "previous_release_branch_2gp"
+    STRATEGY_BETA_RELEASE_TAG = "latest_beta"
+    STRATEGY_RELEASE_TAG = "latest_release"
+    STRATEGY_UNMANAGED_HEAD = "unmanaged"
 
 
 class Resolver(abc.ABC):
@@ -47,7 +49,26 @@ class Resolver(abc.ABC):
         pass
 
 
-class GitHubTagResolver(Resolver):
+class GitHubPackageDataMixin:
+    def _get_package_data(
+        self, repo: Repository, ref: str
+    ) -> Tuple[str, Optional[str]]:
+        contents = repo.file_contents("cumulusci.yml", ref=ref)
+        cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
+
+        # Get the namespace from the cumulusci.yml if set
+        package_config = cumulusci_yml.get("project", {}).get("package", {})
+        namespace = package_config.get("namespace")
+        package_name = (
+            package_config.get("name_managed")
+            or package_config.get("name")
+            or "Package"
+        )
+
+        return package_name, namespace
+
+
+class GitHubTagResolver(GitHubPackageDataMixin, Resolver):
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return isinstance(dep, GitHubDynamicDependency) and dep.tag is not None
 
@@ -58,18 +79,30 @@ class GitHubTagResolver(Resolver):
             # Find the github release corresponding to this tag.
             repo = dep.get_repo(context)
             release = repo.release_from_tag(dep.tag)
+            ref = repo.ref(f"tags/{release.tag_name}").object.sha
+            package_name, namespace = self._get_package_data(repo, ref)
 
-            return (
-                repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha).object.sha,
-                ManagedPackageDependency(
-                    namespace=context.project__package__namespace, version=release.name
-                ),
-            )
+            if not dep.unmanaged and not namespace:
+                raise DependencyResolutionError(
+                    f"The tag {dep.tag} in {dep.github} does not identify a managed release"
+                )
+
+            if not dep.unmanaged:
+                return (
+                    repo.tag(ref).object.sha,
+                    ManagedPackageDependency(
+                        namespace=namespace,
+                        version=release.name,
+                        package_name=package_name,
+                    ),
+                )
+            else:
+                return repo.tag(ref).object.sha, None
         except NotFoundError:
             raise DependencyResolutionError(f"No release found for tag {dep.tag}")
 
 
-class GitHubReleaseTagResolver(Resolver):
+class GitHubReleaseTagResolver(GitHubPackageDataMixin, Resolver):
     include_beta = False
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
@@ -82,16 +115,7 @@ class GitHubReleaseTagResolver(Resolver):
         release = find_latest_release(repo, include_beta=self.include_beta)
         if release:
             ref = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha).object.sha
-
-            contents = repo.file_contents("cumulusci.yml", ref=ref)
-            cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
-
-            # Get the namespace from the cumulusci.yml if set
-            package_config = cumulusci_yml.get("project", {}).get("package", {})
-            namespace = package_config.get("namespace")
-            package_name = package_config.get("name_managed") or package_config.get(
-                "name"
-            )
+            package_name, namespace = self._get_package_data(repo, ref)
 
             return (
                 ref,
@@ -103,7 +127,7 @@ class GitHubReleaseTagResolver(Resolver):
         return (None, None)
 
 
-class GitHubBetaReleaseTagResolver(Resolver):
+class GitHubBetaReleaseTagResolver(GitHubReleaseTagResolver):
     include_beta = True
 
 
@@ -164,7 +188,9 @@ class GitHubReleaseBranchMixin:
         )
 
 
-class GitHubReleaseBranch2GPResolver(Resolver, GitHubReleaseBranchMixin):
+class GitHubReleaseBranch2GPResolver(
+    GitHubPackageDataMixin, GitHubReleaseBranchMixin, Resolver
+):
     branch_depth = 1
 
     def resolve(
@@ -172,11 +198,6 @@ class GitHubReleaseBranch2GPResolver(Resolver, GitHubReleaseBranchMixin):
     ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
 
         release_id = self.get_release_id(context)
-        if not release_id:
-            raise DependencyResolutionError("Cannot get current release identifier")
-
-        release_id = int(release_id)
-
         repo = context.get_github_repo(dep.github)
         if not repo:
             raise DependencyResolutionError(
@@ -214,7 +235,11 @@ class GitHubReleaseBranch2GPResolver(Resolver, GitHubReleaseBranchMixin):
                     f"Located 2GP package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
                 )
 
-                return commit.sha, ManagedPackageDependency(version_id=version_id)
+                package_name, _ = self._get_package_data(repo, commit.sha)
+
+                return commit.sha, ManagedPackageDependency(
+                    version_id=version_id, package_name=package_name
+                )
 
         context.logger.warn(
             f"No 2GP package version located for release {release_id} on {repo.clone_url}."
@@ -226,7 +251,9 @@ class GitHubPreviousReleaseBranch2GPResolver(GitHubReleaseBranch2GPResolver):
     branch_depth = 3
 
 
-class GitHubReleaseBranchExactMatch2GPResolver(Resolver, GitHubReleaseBranchMixin):
+class GitHubReleaseBranchExactMatch2GPResolver(
+    GitHubPackageDataMixin, GitHubReleaseBranchMixin, Resolver
+):
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
@@ -265,7 +292,11 @@ class GitHubReleaseBranchExactMatch2GPResolver(Resolver, GitHubReleaseBranchMixi
                 f"Located 2GP package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
             )
 
-            return commit.sha, ManagedPackageDependency(version_id=version_id)
+            package_name, _ = self._get_package_data(repo, commit.sha)
+
+            return commit.sha, ManagedPackageDependency(
+                version_id=version_id, package_name=package_name
+            )
 
         context.logger.warn(
             f"No 2GP package version located for release {release_id} on {repo.clone_url}."

@@ -1,3 +1,7 @@
+from collections import namedtuple
+from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
+from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import ManagedPackageInstallOptions
@@ -13,6 +17,12 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils.waiting import poll, retry
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_PACKAGE_RETRY_OPTIONS = {
+    "retries": 20,
+    "retry_interval": 5,
+    "retry_interval_add": 30,
+}
 
 
 def _wait_for_package_install(tooling, request):
@@ -68,7 +78,45 @@ def _should_retry_package_install(err: Exception) -> bool:
     return False
 
 
-# FIXME: update all references to this method to use a ManagedPackageInstallOptions
+def _install_1gp_package_version(
+    project_config: BaseProjectConfig,
+    org_config: OrgConfig,
+    namespace: str,
+    version: str,
+    install_options: ManagedPackageInstallOptions,
+    retry_options=None,
+):
+    task = namedtuple("TaskContext", ["org_config", "project_config", "logger"])(
+        org_config=org_config, project_config=project_config, logger=logger
+    )
+
+    retry_options = {
+        **(retry_options or {}),
+        "should_retry": _should_retry_1gp_package_install,
+    }
+
+    package_zip = InstallPackageZipBuilder(
+        namespace=namespace,
+        version=version,
+        activateRSS=install_options.activate_remote_site_settings,
+        password=install_options.password,
+        securityType=install_options.security_type,
+    )
+    retry(
+        lambda: ApiDeploy(task, package_zip(), purge_on_delete=False)(),
+        **retry_options,
+    )
+
+
+def _should_retry_1gp_package_install(e: Exception) -> bool:
+    return isinstance(e, MetadataApiError) and (
+        "This package is not yet available" in str(e)
+        or "InstalledPackage version number" in str(e)
+        or "The requested package doesn't yet exist or has been deleted" in str(e)
+        or "unable to obtain exclusive access to this record" in str(e)
+    )
+
+
 def install_package_version(
     project_config: BaseProjectConfig,
     org_config: OrgConfig,
@@ -86,6 +134,31 @@ def install_package_version(
             project_config,
             org_config,
             version_id,
+            install_options,
+        ),
+        **retry_options,
+    )
+
+
+def install_1gp_package_version(
+    project_config: BaseProjectConfig,
+    org_config: OrgConfig,
+    namespace: str,
+    version: str,
+    install_options: ManagedPackageInstallOptions,
+    retry_options=None,
+):
+    retry_options = {
+        **(retry_options or {}),
+        "should_retry": _should_retry_package_install,
+    }
+    retry(
+        functools.partial(
+            _install_1gp_package_version,
+            project_config,
+            org_config,
+            namespace,
+            version,
             install_options,
         ),
         **retry_options,
