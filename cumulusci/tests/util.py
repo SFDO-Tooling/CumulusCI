@@ -244,7 +244,7 @@ def mock_env(home, cumulusci_key="0123456789ABCDEF"):
         # don't use the real CUMULUSCI_KEY for tests
         if "CUMULUSCI_KEY" in os.environ:
             del os.environ["CUMULUSCI_KEY"]
-        elif cumulusci_key is not None:
+        if cumulusci_key is not None:
             # do use a fake one, if it was supplied
             os.environ["REAL_CUMULUSCI_KEY"] = os.environ.get("CUMULUSCI_KEY", "")
             os.environ["CUMULUSCI_KEY"] = cumulusci_key
