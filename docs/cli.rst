@@ -6,13 +6,14 @@ The ``cci`` Command Line
 Basic Operation
 ---------------
 
-.. admonition:: Wizard Tip
+.. tip::
 
     If you're new to working with command line interfaces, the `Install Visual Studio Code <https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci>`_ Trailhead module covers installing and opening a terminal window in Visual Studio Code.
 
 After :doc:`installing CumulusCI <get_started>`, use the ``cci`` command in your terminal or command prompt to interact with it.
 
-On any platform, you can use the integrated terminal in Visual Studio Code. Alternately, on macOS, access the terminal via ``Terminal.app``; on Windows, open ``cmd.exe``; or on Linux, use your preferred terminal application.
+On any platform, you can use the integrated terminal in Visual Studio Code.
+Alternately, on macOS, access the terminal via ``Terminal.app``; on Windows, open ``cmd.exe``; or on Linux, use your preferred terminal application.
 
 To see all available commands, type ``cci`` in your terminal.
 
@@ -36,7 +37,7 @@ To see all available commands, type ``cci`` in your terminal.
 
 To retrieve information on a specific command, type ``cci <command>``.
 
-    Example: ``cci task``
+Let's examine the ``cci task`` command:
 
 .. code-block:: console
 
@@ -54,9 +55,7 @@ To retrieve information on a specific command, type ``cci <command>``.
     list  List available tasks for the current context
     run   Runs a task
 
-The ``cci task`` command also has many useful subcommands, such as ``cci task info <name>``.
-
-
+We can see that the ``cci task`` command has many useful subcommands, such as ``cci task info``.
 
 
 
@@ -101,10 +100,8 @@ Each option available for a given task also lists:
 * The syntax for the option (``--<name> value``).
 * Whether the option is required or optional.
 * A description of the option.
-
-..
    
-    Example:  ``util_sleep``
+Let's examine the ``util_sleep`` task:
 
 .. code-block:: console
 
@@ -143,9 +140,8 @@ Information about specific flows includes:
 * A description of the flow.
 * The ordered steps (and substeps) of a flow.
 
-..
-
-    Example: ``dev_org`` flow shows that it's composed of three subflows, ``dependencies``, ``deploy_unmanaged``, and ``config_dev``, and one task, ``snapshot_changes``. The tasks and flows making up the three subflows are also listed.
+For example, listing the info for the ``dev_org`` flow shows that it's composed of three subflows: ``dependencies``, ``deploy_unmanaged``, and ``config_dev``, and one task: ``snapshot_changes``.
+The tasks and flows making up the three subflows are also listed.
 
 .. code-block:: console
 
@@ -193,7 +189,7 @@ option on the ``update_dependencies`` to ``True``, we would use the following:
 
     $ cci flow run dev_org --org dev -o update_dependencies__allow_newer True
 
-.. tip:: 
+.. note:: 
 
     If the specified task executes more than once in the flow,
     it uses the given option value *each time it executes*.
@@ -214,12 +210,12 @@ Execute a specific task or flow with the ``run`` command.
 
 This command runs the task or flow ``<name>`` against the org ``<org>``. 
 
-.. note::
+.. tip::
 
     You can see a list of available orgs by running ``cci org list``.
-..
 
-    Example: The ``run_tests`` task executes Apex unit tests. Assuming there exists an org named ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``.
+For example, the ``run_tests`` task executes Apex unit tests in a given org.
+Assuming there exists an org named ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``.
 
 
 
