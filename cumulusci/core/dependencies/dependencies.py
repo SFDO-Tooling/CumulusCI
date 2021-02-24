@@ -1,6 +1,5 @@
 import abc
 import io
-from enum import Enum
 import logging
 from typing import List, Optional
 
@@ -99,7 +98,18 @@ class DynamicDependency(Dependency, abc.ABC):
             raise DependencyResolutionError(f"Unable to resolve dependency {self}")
 
 
-class GitHubDynamicDependency(DynamicDependency):
+class GitHubRepoMixin:
+    def get_repo(self, context: BaseProjectConfig) -> Repository:
+        repo = context.get_github_repo(self.github)
+        if repo is None:
+            raise DependencyResolutionError(
+                f"Github repository {self.github} not found or not authorized."
+            )
+
+        return repo
+
+
+class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
     github: Optional[AnyUrl]
 
     repo_owner: Optional[str]  # Deprecate - use full URL
@@ -157,15 +167,6 @@ class GitHubDynamicDependency(DynamicDependency):
             values[
                 "github"
             ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
-
-    def get_repo(self, context: BaseProjectConfig) -> Repository:
-        repo = context.get_github_repo(self.github)
-        if repo is None:
-            raise DependencyResolutionError(
-                f"Github repository {self.github} not found or not authorized."
-            )
-
-        return repo
 
     def _flatten_unpackaged(
         self,
@@ -362,7 +363,7 @@ class ManagedPackageDependency(StaticDependency):
         return f"Dependency: {self.package} version {self.package_version_id or self.version}"
 
 
-class UnmanagedDependency(StaticDependency):
+class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
     zip_url: Optional[AnyUrl]
 
     # or
@@ -375,6 +376,7 @@ class UnmanagedDependency(StaticDependency):
     # and
     ref: Optional[str]
 
+    unmanaged: Optional[bool]
     subfolder: Optional[str]
     namespace_inject: Optional[str]
     namespace_strip: Optional[str]  # FIXME: Should this be deprecated?
@@ -412,7 +414,7 @@ class UnmanagedDependency(StaticDependency):
             context.logger.info(
                 f"Deploying unmanaged metadata from /{self.subfolder} of {self.github} at {self.ref}"
             )
-            repo = self.get_repo()
+            repo = self.get_repo(context)
 
             zip_src = download_extract_github_from_repo(
                 repo,
@@ -422,12 +424,13 @@ class UnmanagedDependency(StaticDependency):
 
         if zip_src:
             # Determine whether to inject namespace prefixes or not
-            options = dependency.copy()
-            if "unmanaged" not in options:
-                namespace = options.get("namespace_inject")
-                options["unmanaged"] = (
-                    not namespace
-                ) or namespace not in org.installed_packages
+            namespace = self.namespace_inject
+            options = {
+                "unmanaged": self.unmanaged
+                or ((not namespace) or namespace not in org.installed_packages),
+                "namespace_inject": self.namespace_inject,
+                "namespace_strip": self.namespace_strip,
+            }
 
             package_zip = MetadataPackageZipBuilder.from_zipfile(
                 zip_src, options=options, logger=logger
