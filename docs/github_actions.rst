@@ -5,6 +5,10 @@ hosted on GitHub and configured as a CumulusCI project. In other words,
 we're assuming your project already has a ``cumulusci.yml`` and that you are
 successfully running CumulusCI flows locally.
 
+There is also a `template repository <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo>`_ that is
+setup to run :ref:`CumulusCI Flow` with GitHub actions. This repository can be used as a starting
+point for implementing your own project or as a reference for the following material.
+
 .. note::
    GitHub Actions are free for open source (public) repositories.
    Check with GitHub about pricing for private repositories.
@@ -287,6 +291,8 @@ It could also mean that you want to deploy changes in a project to a production 
 The following sections cover which tasks and flows you would want to consider based on your project's
 particular needs.
 
+
+
 Deploy to a Packaging Org
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 When working on a managed package project, there are two standard library flows that are generally of 
@@ -311,9 +317,49 @@ In most cases, ``deploy_unmanaged`` will have the desired outcome. This will dep
 
 Build Managed Package Versions
 ------------------------------
-If you want 
+Once new metadata has been added to the packaging org it is often desirable to create a new beta version for your managed package so that it can be tested.
+We can use the ``release_beta`` flow to accomplish this.
+The following shows a snippet from the `main <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/main/.github/workflows/main.yml>` workflow
+in our demo repository. 
 
+.. code-block:: yaml
 
+  release_beta:
+    name: "Upload Managed Beta"
+    runs-on: ubuntu-latest
+    needs: deploy_packaging
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install sfdx
+        run: |
+          mkdir sfdx
+          wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz | tar xJ -C sfdx --strip-components 1
+          ./sfdx/install
+          echo ${{ secrets.SFDX_AUTH_URL }} > sfdx_auth
+          sfdx force:auth:sfdxurl:store -f sfdx_auth -d
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.8"
+      - name: Install CumulusCI
+        run: |
+          python -m pip install -U pip
+          pip install cumulusci
+      - run: |
+          cci flow run release_beta --org packaging
+
+After installing ``sfdx``, Python, and CumulusCI, the workflow executes the ``release_beta`` flow against the packaging org.
+This flow does several things:
+
+* Uploads a new Beta Version of the package in the packaging org
+* Creates a GitHub release for the beta version
+* Generates sample release notes for the beta version
+* Merges the latest commit on the main branch into all open feature branches
+  
+.. important::
+
+  CumulusCI is able to connect to the  ``packaging`` org via ``CUMULUSCI_ORG_packaging`` 
+  environment variable defined at the `top of the workflow <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11>`.
 
 
 
