@@ -186,9 +186,8 @@ You can reference how flows are defined in the `universal cumulusci.yml <https:/
 Add a Flow Step
 ^^^^^^^^^^^^^^^
 
-To add a step to a flow, use ``cci flow info <name>`` first to see the existing steps.
-
-    Example: ``dev_org``
+To add a step to a flow, first run ``cci flow info <name>`` to see the existing steps.
+In the following example we run this for the ``dev_org`` flow.
 
 .. code-block:: console
 
@@ -216,17 +215,16 @@ To add a step to a flow, use ``cci flow info <name>`` first to see the existing 
 
 Of this flow's four steps, the first three are themselves flows, and the last is a task.
 
-All *non-negative numbers and decimals* are valid as step numbers in a flow. You can add steps before, between, or after existing flow steps.
+All *non-negative numbers and decimals* are valid as step numbers in a flow.
+You can add steps before, between, or after existing flow steps.
 
-Example: ``dev_org``
+The following shows examples of values that you would use for the various scenarios:
 
 * Add a step *before* step 1 by inserting a step number greater than or equal to zero and less than 1 (such as 0, 0.3, or even 0.89334).
 * Add a step *between* steps 2 and 3 by inserting a step number greater than 2 or less than 3.
 * Add a step *after* all steps in the flow by inserting a step number greater than 4.
 
-You can also add an additional log line output during the execution of a flow.
-
-Example: ``dev_org``
+You could also customize the ``dev_org`` flow to output an additional log line as its final step:
 
 .. code-block:: yaml
 
@@ -252,7 +250,7 @@ Example: To skip the fourth step of the ``dev_org`` flow, insert this code under
             4:
                 task: None
 
-.. note::
+.. important::
 
     The key of ``task`` must be used when skipping a flow step that is a task.
     The key of ``flow`` must be used when skipping a flow step that corresponds to a flow.
@@ -332,11 +330,37 @@ This flow specifies that when the subflow ``dependencies`` runs, the ``include_b
 ``when`` Clauses
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Specify a ``when`` clause in a flow step to conditionally run that step. A ``when`` clause is written in a Pythonic syntax that can evaluate to a boolean (``True`` or ``False``) result.
+Specify a ``when`` clause in a flow step to conditionally run that step.
+A ``when`` clause is written in a Pythonic syntax that should evaluate to a boolean (``True`` or ``False``) result.
 
-The variables that are available for reference in ``when`` clauses [TO BE ADDED]
+You can use the ``project_config`` object to reference values from the ``cumulusci.yml`` file
+to help with creation of the ``when`` clauses condition.
+You can use the double underscore (``__``) syntax to indicate values at subsequent levels of
+the file. For example, you can reference a projects namespace with ``project_config.project__package__namespace``.
 
-A common use case is checking [TO BE ADDED]
+``when`` clauses are frequently used in CumulusCI's standard library to conditionally run a step
+in a flow based on the source code format of the project. Below is the configuration
+for the standard library flow ``build_feature_test_package``.
+The ``update_package_xml`` task will execute *only if*:want the project's source code format is not equal to "``sfdx``".
+
+.. code-block:: yaml
+        
+    build_feature_test_package:
+        group: Release Operations
+        description: Create a 2gp managed package version
+        steps:
+            1:
+                task: update_package_xml
+                when: project_config.project__source_format != "sfdx"
+            2:
+                task: create_package_version
+                options:
+                    package_type: Managed
+                    package_name: $project_config.project__package__name Managed Feature Test
+                    version_base: latest_github_release
+                    version_type: minor
+                    skip_validation: True
+
 
 See `use variables for task options`_ for more information.
 
