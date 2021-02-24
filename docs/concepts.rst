@@ -8,13 +8,20 @@ Let's review some important concepts when building and testing features using Cu
 Packages
 --------
 
-If you've come this far in your search for customization tools, we're guessing you're familiar with packages as well as their role in customizing a Salesforce org. However, because most everything that you build in CumulusCI is deployed via packages, it's essential to review the basics once more.
+If you've come this far in your search for customization tools, we're guessing you're familiar with packages as well as their role in customizing a Salesforce org.
+However, because most everything that you build in CumulusCI is deployed via packages, it's essential to review the basics once more.
 
-A *package* is a container for something as small as an individual component or as large as a sophisticated application. After creating a package, you can distribute it to other Salesforce users and organizations, including those outside your company.
+A *package* is a container for something as small as an individual component or as large as a sophisticated application.
+After creating a package, you can distribute it to other Salesforce users and organizations, including those outside your company.
 
-*Unmanaged packages* are typically used to distribute open-source (non-proprietary) features or application templates to provide developers with the basic building blocks for an application. After the components are installed from an unmanaged package in a specific org, it's what's known as an *org implementation*. These freshly installed components can be edited by the owners of the implementation. The developer who created and uploaded the unmanaged package has no control over the installed components, and can't change or upgrade them.
+*Unmanaged packages* are typically used to distribute open-source (non-proprietary) features or application templates to provide developers with the basic building blocks for an application.
+After the components are installed from an unmanaged package in a specific org, it's what's known as an *org implementation*.
+These freshly installed components can be edited by the owners of the implementation.
+The developer who created and uploaded the unmanaged package has no control over the installed components, and can't change or upgrade them.
  
-*Managed packages* are typically used by Salesforce partners to distribute and sell applications to customers. They are proprietary code that can be upgraded and deployed only by the developer that built them. To ensure seamless upgrades, we prevent certain destructive changes, such as deleting objects or fields.
+*Managed packages* are typically used by Salesforce partners to distribute and sell applications to customers.
+They are proprietary code that can be upgraded and deployed only by the developer that built them.
+To ensure seamless upgrades, we prevent certain destructive changes, such as deleting objects or fields.
 
 In CumulusCI, packages are built and deployed via projects.
 
@@ -23,11 +30,17 @@ In CumulusCI, packages are built and deployed via projects.
 Projects
 --------
 
-When you work with CumulusCI, you do so inside a *project*. A project is an individual Git repository that contains both Salesforce metadata and CumulusCI automation (such as tasks and flows) that builds and releases the project. If you are building multiple packages, we strongly recommend organizing each package as a separate project in its own repository.
+When you work with CumulusCI, you do so inside a *project*.
+A project is an individual Git repository that contains both Salesforce metadata and CumulusCI automation (such as tasks and flows) that builds and releases the project.
+If you are building multiple packages, we strongly recommend organizing each package as a separate project in its own repository.
 
-.. Important:: CumulusCI's standard library assumes that there is one package per repository, so it will work best if you follow this convention.
+.. important::
 
-It's important to note that a project doesn't have to contain a package. For example, a project can deliver unpackaged metadata, deliver automation but no metadata at all, or provide test data for QA. A project can contain the entirety of a product offered to customers, or be just one of multiple projects that combine to form a complete product.
+        CumulusCI's standard library assumes that there is one package per repository, so it will work best if you follow this convention.
+
+It's important to note that a project doesn't have to contain a package.
+For example, a project can deliver unpackaged metadata, deliver automation but no metadata at all, or provide test data for QA.
+A project can contain the entirety of a product offered to customers, or be just one of multiple projects that combine to form a complete product.
 
 To sum up, although a project doesn't require a package, a package requires a project to be built and deployed.
 
@@ -37,7 +50,9 @@ Tasks and Flows
 
 CumulusCI uses a framework of *tasks* and *flows* to organize the automation that is available to each project.
 
-Tasks are units of automation. A task can perform a deployment, load a dataset, retrieve data from an org, install a managed package, or do many other things. CumulusCI ships with scores of tasks out of the box.
+Tasks are units of automation.
+A task can perform a deployment, load a dataset, retrieve data from an org, install a managed package, or do many other things.
+CumulusCI ships with scores of tasks in its standard library. You can run ``cci task list`` to view them all.
 
 Popular task commands include:
 
@@ -45,9 +60,11 @@ Popular task commands include:
 * ``cci task info <name>``: Learn more about a task ``<name>`` and how to configure its options.
 * ``cci task run <name> --org <org>``: Run the task ``<name>`` against the org ``<org>``.
 
-        Example: The ``run_tests`` task executes Apex unit tests. If you have an org called ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``.
+For example, the ``run_tests`` task executes Apex unit tests.
+If you have an org called ``dev``, you can run this task against it with the command ``cci task run run_tests --org dev``.
 
-Many operations in CumulusCI, including creating new orgs, use flows. Flows are ordered sequences of tasks (and even other flows!) that produce a cohesive outcome, such as an org that's configured to suit a workflow like development, QA, or product demonstration.
+Many operations in CumulusCI, including creating new orgs, use flows.
+Flows are ordered sequences of tasks (and even other flows!) that produce a cohesive outcome, such as an org that's configured to suit a workflow like development, QA, or product demonstration.
 
 Popular flow commands include:
 
@@ -55,7 +72,8 @@ Popular flow commands include:
 * ``cci flow info <name>``: Learn more about the flow ``<name>`` and the tasks it contains.
 * ``cci flow run <name> --org <org>``: Run the flow ``<name>`` against the org ``<org>``.
 
-        Example: The ``dev_org`` flow sets up an org for development purposes. If you have an org called ``dev``, you can run this flow against it with the command ``cci flow run dev_org --org dev``.
+For example, the ``dev_org`` flow sets up an org for development purposes.
+If you have an org called ``dev``, you can run this flow against it with the command ``cci flow run dev_org --org dev``.
 
 Many of the most common flows you'll work with in CumulusCI are designed to build and configure specific orgs for you. Here's a few of the most common flows that build orgs.
 
