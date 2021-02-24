@@ -1194,6 +1194,26 @@ project:
                     title: Installation Info
     test:
         name_match: '%_TEST%'
+    resolutions:
+        exact_2gp:
+            - tag
+            - exact_branch_2gp
+            - release_branch_2gp
+            - previous_release_branch_2gp
+            - latest_beta
+            - latest_release
+            - unmanaged
+        beta:
+            - tag
+            - release_branch_2gp
+            - previous_release_branch_2gp
+            - latest_beta
+            - latest_release
+            - unmanaged
+        production:
+            - tag
+            - latest_release
+            - unmanaged
     dependencies:
 
 orgs:
