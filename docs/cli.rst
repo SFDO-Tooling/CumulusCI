@@ -193,10 +193,13 @@ option on the ``update_dependencies`` to ``True``, we would use the following:
 
     $ cci flow run dev_org --org dev -o update_dependencies__allow_newer True
 
-.. admonition:: Wizard Scroll 
+.. tip:: 
 
     If the specified task executes more than once in the flow,
     it uses the given option value *each time it executes*.
+
+If you want to configure specific task options on flows without explicitly
+listing them see :ref:`Configure Options on Tasks in Flows`.
 
 
 Run Tasks and Flows
