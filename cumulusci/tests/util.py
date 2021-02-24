@@ -4,7 +4,8 @@ from pathlib import Path
 import tracemalloc
 import gc
 import sys
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
+from cumulusci.utils.backports.py36 import nullcontext
 import json
 from unittest import mock
 import os
