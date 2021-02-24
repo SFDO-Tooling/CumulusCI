@@ -1,5 +1,7 @@
 import io
 import os
+from contextlib import contextmanager
+
 from http.client import HTTPMessage
 from unittest import mock
 import pytest
@@ -7,6 +9,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from pytest import fixture
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from cumulusci.salesforce_api.org_schema_models import Base
 from cumulusci.core.github import get_github_api
 from cumulusci.tests.pytest_plugins.pytest_sf_vcr import vcr_config, salesforce_vcr
 from cumulusci.tests.util import DummyOrgConfig, mock_env, DummyKeychain
@@ -85,3 +91,20 @@ def patch_home_and_env(request):
         Path(home, ".cumulusci").mkdir()
         Path(home, ".cumulusci/cumulusci.yml").touch()
         yield
+
+
+@pytest.fixture()
+def temp_db():
+    with TemporaryDirectory() as t:
+
+        @contextmanager
+        def open_db():
+            engine = create_engine(f"sqlite:///{t}/tempfile.db")
+            with engine.connect() as connection:
+                Session = sessionmaker(bind=connection)
+                Base.metadata.bind = engine
+                Base.metadata.create_all()
+                session = Session()
+                yield connection, Base.metadata, session
+
+        yield open_db
