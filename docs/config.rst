@@ -1,7 +1,8 @@
 Configure CumulusCI
 =====================
 
-The ``cumulusci.yml`` file is located in the project root directory. This is where you define project dependencies, configure new tasks and flows, customize standard tasks and flows for your project, and so much more! 
+The ``cumulusci.yml`` file is located in the project root directory.
+This is where you define project dependencies, configure new tasks and flows, customize standard tasks and flows for your project, and so much more!
 
 
 
@@ -16,20 +17,21 @@ A ``cumulusci.yml`` file contains these top-level sections.
 
 * ``flows``: Defines the flows that are available to run in your project. See `flow configurations`_ for configuration options in this section.
 
-* ``sources``: References tasks and flows from another CumulusCI project on GitHub. See :ref:`use tasks and flows from a different project <TODO>` for more information.
+* ``sources``: References tasks and flows from another CumulusCI project on GitHub. See :ref:`tasks and flows from a different project` for more information.
 
 * ``orgs``: Defines the scratch org configurations that are available for your project. See `scratch org configurations`_ for configuration options in this section.
 
 * ``plans``: Contains any custom plans purposely defined to install your project into a customer org. See :ref:`configuring plans in MetaDeploy <Publish an Install Plan to MetaDeplo>` for more information.
 
-Last but not least, :doc:`cumulusci.yml reference <cci_yml_reference>` has a complete list of values that can be used in each section. 
+Last but not least, :doc:`cumulusci.yml reference <cci_yml_reference>` has a complete list of values that can be used in each section.
 
 
 
 Task Configurations
 -------------------
 
-Each task configuration under the ``tasks`` section of your ``cumulusci.yml`` file defines a task that can be run using the ``cci task run`` command, or included in a flow step. With a few simple changes to this section, you can configure build automation functionality without ever touching Python code.
+Each task configuration under the ``tasks`` section of your ``cumulusci.yml`` file defines a task that can be run using the ``cci task run`` command, or included in a flow step.
+With a few simple changes to this section, you can configure build automation functionality without ever touching Python code.
 
 
 Override a Task Option
@@ -37,7 +39,7 @@ Override a Task Option
 
 If you repeatedly specify the same value for an option while running a task, you can configure CumulusCI to use that value as a default value.
 
-    Example: Let's enforce a 90% code coverage requirement for Apex code in your project. The :ref:`run_tests` task, which executes all Apex tests in a target org, can enforce code coverage at a given percentage by passing the ``--required_org_code_coverage_percent`` option.
+Example: Let's enforce a 90% code coverage requirement for Apex code in your project. The :ref:`run_tests` task, which executes all Apex tests in a target org, can enforce code coverage at a given percentage by passing the ``--required_org_code_coverage_percent`` option.
 
 .. code-block:: yaml
 
@@ -45,11 +47,9 @@ If you repeatedly specify the same value for an option while running a task, you
         options:
             required_org_code_coverage_percent: 90
 
-..
+When the ``tasks`` section of the ``cumulusci.yml`` file specifies this option, CumulusCI overrides the default option with a value of ``90``. Whenever this automated task is called, its override value applies unless it's further overridden for a particular flow step.
 
-    When the ``tasks`` section of the ``cumulusci.yml`` file specifies this option, CumulusCI overrides the default option with a value of ``90``. Whenever this automated task is called, its override value applies unless it's further overridden for a particular flow step.
-
-    Verify the change by looking for a default option value when running ``cci task info <name>``.
+Verify the change by looking for a default option value when running ``cci task info <name>``.
 
 .. code-block:: yaml
 
@@ -79,24 +79,25 @@ Add a Custom Task
 
 To define a new task for your project, add the task name under the ``tasks`` section of your ``cumulusci.yml`` file.
 
-    Example: Let's create a custom task named ``deploy_reports`` that deploys a set of reports stored in your project's unpackaged metadata located in ``unpackaged/config/reports``.
+Example: Let's create a custom task named ``deploy_reports`` that deploys a set of reports stored in your project's unpackaged metadata located in ``unpackaged/config/reports``.
 
-    First, look up the Python class associated with the standard task ``deploy``. From there we see that the ``deploy`` task has a ``class_path`` value of ``cumulusci.tasks.salesforce.Deploy``.
+First, look up the Python class associated with the standard task ``deploy``. From there we see that the ``deploy`` task has a ``class_path`` value of ``cumulusci.tasks.salesforce.Deploy``.
 
-    Store the task under the ``tasks`` section of the ``cumulusci.yml`` file.
+Store the task under the ``tasks`` section of the ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
     deploy_reports:
-        description: Deploy Reports 
+        description: Deploy Reports
         class_path: cumulusci.tasks.salesforce.Deploy
         group: projectName
         options:
             path: unpackaged/config/reports
 
-.. admonition:: Wizard Tip
+.. tip::
 
-    Be sure to include the value we retrieved for ``class_path``. Also, consider adding a common ``group`` attribute to make it easier to see the tasks specific to your project when running ``cci task list``.
+    Be sure to include the value we retrieved for ``class_path``.
+    Also, consider adding a common ``group`` attribute to make it easier to see the tasks specific to your project when running ``cci task list``.
 
 Congratulations! You created a new custom task in CumulusCI.
 
@@ -113,27 +114,28 @@ To write a custom task in Python and make it available to other users in the pro
 
 
 Use Variables for Task Options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To reference a specific value within the ``tasks`` section of the ``cumulusci.yml`` file, use the ``$project_config`` variable.
 
-    Example: NPSP uses a variable for the project's namespace by setting a value of ``$project_config.project__package__namespace``. This variable is then referenced in the project's custom ``deploy_qa_config`` task where it's passed as the value for the ``namespace_inject`` option.
+Example: NPSP uses a variable for the project's namespace by setting a value of ``$project_config.project__package__namespace``. This variable is then referenced in the project's custom ``deploy_qa_config`` task where it's passed as the value for the ``namespace_inject`` option.
 
-.. note:: A double underscore ( ``__`` ) allows access to different levels of the ``cumulusci.yml`` file.
+.. note::
+
+    A double underscore (``__``) refers to a subsequent level in the ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
     deploy_qa_config:
-            description: Deploys additional fields used for QA purposes only
-            class_path: cumulusci.tasks.salesforce.Deploy
-            group: Salesforce Metadata
-            options:
-                path: unpackaged/config/qa
-                namespace_inject: $project_config.project__package__namespace
+        description: Deploys additional fields used for QA purposes only
+        class_path: cumulusci.tasks.salesforce.Deploy
+        group: Salesforce Metadata
+        options:
+            path: unpackaged/config/qa
+            namespace_inject: $project_config.project__package__namespace
 
-..
-
-    In this instance, CumulusCI replaces the variable with the value under project -> package -> namespace in the ``cumulusci.yml`` file. Here is the ``project`` section of NPSP's ``cumulusci.yml`` file specifying ``npsp`` as the namespace value.
+In this instance, CumulusCI replaces the variable with the value under project -> package -> namespace in the ``cumulusci.yml`` file.
+Here is the ``project`` section of NPSP's ``cumulusci.yml`` file specifying ``npsp`` as the namespace value.
 
 .. code-block:: yaml
 
@@ -149,78 +151,18 @@ To reference a specific value within the ``tasks`` section of the ``cumulusci.ym
 
 
 
-Reference Task Return Values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Tasks can set an internal ``return_value`` on themselves while executing. This attribute lets one task in a flow reference the ``return_value`` set on another task that executed prior to it.
-
-To reference a return value on a previous task:
-
-.. code-block:: yaml
-
-    ^^prior_task.return_value
-
-To discover what's available for ``return_value``, find the source code for an individual task.
-
-    Example: Let's examine how CumulusCI defines the standard ``upload_beta`` task in the universal ``cumulusci.yml`` file.
-
-.. code-block:: yaml
-
-    upload_beta:
-            description: Uploads a beta release of the metadata currently in the packaging org
-            class_path: cumulusci.tasks.salesforce.PackageUpload
-            group: Release Operations
-
-..
-
-    To see if anything is being set on ``self.return_values``, find the file that defines the class ``cumulusci.tasks.salesforce.PackageUpload``.
-    A little digging yields that this class is defined in the file `package_upload.py <https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/tasks/salesforce/package_upload.py>`_ 
-    and has a method called ``_set_return_values()``. `This method <https://github.com/SFDO-Tooling/CumulusCI/blob/3cad07ac1cecf438aaf087cdeff7b781a1fc74a1/cumulusci/tasks/salesforce/package_upload.py#L165>`_ sets ``self.return_values`` to a dictionary with these keys: ``version_number``, ``version_id``, and ``package_id``.
-
-    Now look at the standard ``release_beta`` flow defined in the universal ``cumulusci.yml`` file:
-
-.. code-block:: yaml
-
-   release_beta:
-        description: Upload and release a beta version of the metadata currently in packaging
-        steps:
-            1:
-                task: upload_beta
-                options:
-                    name: Automated beta release
-            2:
-                task: github_release
-                options:
-                    version: ^^upload_beta.version_number
-            3:
-                task: github_release_notes
-                ignore_failure: True  # Attempt to generate release notes but don't fail build
-                options:
-                    link_pr: True
-                    publish: True
-                    tag: ^^github_release.tag_name
-                    include_empty: True
-                    version_id: ^^upload_beta.version_id
-            4:
-                task: github_master_to_feature
-
-.. 
-
-    This flow shows how subsequent tasks can reference the return values of a prior task. In this case, the ``github_release`` task uses the ``version_numer`` set by the ``upload_beta`` task as an option value with the ``^^upload_beta.version_number`` syntax. Similarly, the ``github_release_notes`` task uses the ``version_id`` set by the ``upload_beta`` task as an option value with the ``^^upload_beta.version_id`` syntax.
-
-
-
 Flow Configurations
 -------------------
 
-Each flow configuration listed under the ``flows`` section of your ``cumulusci.yml`` file defines a flow that can be run using the ``cci flow run`` command, or included in a flow step. With a few simple changes to this section, you can configure build automation functionality without ever touching Python code.
+Each flow configuration listed under the ``flows`` section of your ``cumulusci.yml`` file defines a flow that can be run using the ``cci flow run`` command, or included in a flow step.
+With a few simple changes to this section, you can configure build automation functionality without ever touching Python code.
 
 Add a Custom Flow
 ^^^^^^^^^^^^^^^^^
 
 To define a new flow for your project, add the flow name under the ``flows`` section of your ``cumulusci.yml`` file.
 
-    Example: ``greet_and_sleep``
+Example: ``greet_and_sleep``
 
 .. code-block:: yaml
 
@@ -231,14 +173,13 @@ To define a new flow for your project, add the flow name under the ``flows`` sec
             1:
                 task: command
                 options:
-                    command: echo 'Hello there!' 
+                    command: echo 'Hello there!'
             2:
                 task: util_sleep
 
-.. 
 
-    This flow is comprised of two tasks: ``command`` greets the user by echoing a string, and ``util_sleep`` then tells CumulusCI to sleep for five seconds.
-    
+This flow is comprised of two tasks: ``command`` greets the user by echoing a string, and ``util_sleep`` then tells CumulusCI to sleep for five seconds.
+
 You can reference how flows are defined in the `universal cumulusci.yml <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ file.
 
 
@@ -277,15 +218,15 @@ Of this flow's four steps, the first three are themselves flows, and the last is
 
 All *non-negative numbers and decimals* are valid as step numbers in a flow. You can add steps before, between, or after existing flow steps.
 
-    Example: ``dev_org``
+Example: ``dev_org``
 
-    * Add a step *before* step 1 by inserting a step number greater than or equal to zero and less than 1 (such as 0, 0.3, or even 0.89334).
-    * Add a step *between* steps 2 and 3 by inserting a step number greater than 2 or less than 3.
-    * Add a step *after* all steps in the flow by inserting a step number greater than 4.
+* Add a step *before* step 1 by inserting a step number greater than or equal to zero and less than 1 (such as 0, 0.3, or even 0.89334).
+* Add a step *between* steps 2 and 3 by inserting a step number greater than 2 or less than 3.
+* Add a step *after* all steps in the flow by inserting a step number greater than 4.
 
 You can also add an additional log line output during the execution of a flow.
 
-    Example: ``dev_org``
+Example: ``dev_org``
 
 .. code-block:: yaml
 
@@ -302,7 +243,7 @@ Skip a Flow Step
 
 To skip a flow step, set the task or flow for that step number to the value of ``None``.
 
-    Example: To skip the fourth step of the ``dev_org`` flow, insert this code under the ``flows`` section of your ``cumulusci.yml`` file.
+Example: To skip the fourth step of the ``dev_org`` flow, insert this code under the ``flows`` section of your ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
@@ -312,7 +253,9 @@ To skip a flow step, set the task or flow for that step number to the value of `
                 task: None
 
 .. note::
-    The key of ``task`` must be used when skipping a flow step that is a task. The key of ``flow`` must be used when skipping a flow step that corresponds to a flow.
+
+    The key of ``task`` must be used when skipping a flow step that is a task.
+    The key of ``flow`` must be used when skipping a flow step that corresponds to a flow.
 
 When CumulusCI detects a task or flow with a value of ``None``, the task or flow is skipped.
 
@@ -324,7 +267,7 @@ Replace a Flow Step
 
 To replace a flow step, name the task or flow to run instead of the current step.
 
-    Example: To replace the default fourth step of the ``dev_org`` flow with a custom task that loads data into a dev environment, specify the custom task to run instead.
+Example: To replace the default fourth step of the ``dev_org`` flow with a custom task that loads data into a dev environment, specify the custom task to run instead.
 
 .. code-block:: yaml
 
@@ -333,9 +276,8 @@ To replace a flow step, name the task or flow to run instead of the current step
             4:
                 task: load_data_dev
 
-..
 
-    Or to replace the existing task with a flow as the fourth step of the ``dev_org`` flow, first set the task to ``None`` and then insert the new flow.
+Or to replace the existing task with a flow as the fourth step of the ``dev_org`` flow, first set the task to ``None`` and then insert the new flow.
 
 .. code-block:: yaml
 
@@ -348,10 +290,10 @@ To replace a flow step, name the task or flow to run instead of the current step
 Swap two steps in a flow by replacing one with the other. If the steps are of different types (task/flow), the types being replaced must first be set to ``None``.
 
 
-Configure Options on Tasks When Running a Subflow
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Configure Options on Tasks in Flows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Specify options on tasks in subflows with this syntax:
+Specify options on specific tasks in a flow with this syntax:
 
 .. code-block:: yaml
 
@@ -365,7 +307,7 @@ Specify options on tasks in subflows with this syntax:
 
 Replace all objects with ``<>`` with the desired values.
 
-    Example: Let's examine the definition of the ``ci_master`` flow from the universal ``cumulusci.yml`` file.
+Example: Let's examine the definition of the ``ci_master`` flow from the universal ``cumulusci.yml`` file.
 
 .. code-block::
 
@@ -383,15 +325,14 @@ Replace all objects with ``<>`` with the desired values.
             3:
                 flow: config_packaging
 
-..
 
-    This flow specifies that when the subflow ``dependencies`` runs, the ``include_beta`` option passes a value of ``False`` to the ``update_dependencies`` task (which itself executes in the ``dependencies`` subflow). 
+This flow specifies that when the subflow ``dependencies`` runs, the ``include_beta`` option passes a value of ``False`` to the ``update_dependencies`` task (which itself executes in the ``dependencies`` subflow).
 
 
 ``when`` Clauses
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Specify a ``when`` clause in a flow step to conditionally run that step. A ``when`` clause is written in a Pythonic syntax that can evaluate to a boolean (``True`` or ``False``) result. 
+Specify a ``when`` clause in a flow step to conditionally run that step. A ``when`` clause is written in a Pythonic syntax that can evaluate to a boolean (``True`` or ``False``) result.
 
 The variables that are available for reference in ``when`` clauses [TO BE ADDED]
 
@@ -407,19 +348,23 @@ Scratch Org Configurations
 This section defines the scratch org configurations that are available without explicitly running ``cci org scratch`` to create a new configuration.
 For more information on using scratch orgs with CumulusCI, see the :doc:`Manage Scratch Orgs <scratch_orgs>`.
 
+
+
 Override Default Values
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. note:: These overrides pertain only to scratch orgs.
+.. note::
+
+    These overrides pertain only to scratch orgs.
 
 You can override these values for your org.
 
 * ``days`` (integer): Number of days for the scratch org to persist.
-* ``namespaced`` (boolean): Is the scratch org a namespaced or not. 
+* ``namespaced`` (boolean): Is the scratch org a namespaced or not.
 * ``config_file`` (string): Path to the org definition file to use when building the scratch org.
 
 .. code-block:: yaml
-    
+
     orgs:
         scratch:
             <org_name>:
@@ -427,7 +372,7 @@ You can override these values for your org.
 
 Replace all objects with ``<>`` with the desired values.
 
-    Example: Override the default number of days from 7 to 15 in the ``dev`` org.
+Example: Override the default number of days from 7 to 15 in the ``dev`` org.
 
 .. code-block:: yaml
 
@@ -474,7 +419,8 @@ Local Project Configurations
 
 **Windows:** ``%homepath%\.cumulusci\project_name\cumulusci.yml``
 
-Configurations in this ``cumulusci.yml`` file apply solely to the project with the given <project_name>, and take precedence over *all other* configuration scopes except the universal ``cumulusci.yml`` file. If you want to make customizations to a project, but don't need them to be available to other team members, make those customizations here.
+Configurations in this ``cumulusci.yml`` file apply solely to the project with the given <project_name>, and take precedence over *all other* configuration scopes except the universal ``cumulusci.yml`` file.
+If you want to make customizations to a project, but don't need them to be available to other team members, make those customizations here.
 
 
 Global Configurations
@@ -484,7 +430,8 @@ Global Configurations
 
 **Windows:** ``%homepath%\.cumulusci\cumulusci.yml``
 
-Configuration of *all* CumulusCI projects on your machine. Configurations in this file have a low precedence, and are overridden by *all other* configurations except for those that are in the universal ``cumulusci.yml`` file.
+Configuration of *all* CumulusCI projects on your machine.
+Configurations in this file have a low precedence, and are overridden by *all other* configurations except for those that are in the universal ``cumulusci.yml`` file.
 
 
 Universal Configurations
@@ -492,11 +439,71 @@ Universal Configurations
 
 There is one more configuration file that exists: the `universal cumulusci.yml <https://github.com/SFDO-Tooling/CumulusCI/blob/master/cumulusci/cumulusci.yml>`_ file that ships with CumulusCI itself. This file actually holds the lowest precedence of all, as all other scopes override this file's contents. That said, it contains all of the definitions for the tasks, flows, and org configurations that come standard with CumulusCI.
 
-The commands ``cci task info`` and ``cci flow info`` display all of the information about a task's or flow's configuration. They display the information in the standard library alongside any customizations defined in your cumulusci.yml file.
+The commands ``cci task info`` and ``cci flow info`` display all of the information about a task's or flow's configuration.
+They display the information in the standard library alongside any customizations defined in your cumulusci.yml file.
+
 
 
 Advanced Configurations
 -----------------------
+
+Reference Task Return Values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Tasks can set an internal ``return_value`` on themselves while executing.
+This attribute lets one task in a flow reference the ``return_value`` set on another task that executed prior to it.
+
+To reference a return value on a previous task:
+
+.. code-block:: yaml
+
+    ^^prior_task.return_value
+
+To discover what's available for ``return_value``, find the source code for an individual task.
+
+Example: Let's examine how CumulusCI defines the standard ``upload_beta`` task in the universal ``cumulusci.yml`` file.
+
+.. code-block:: yaml
+
+    upload_beta:
+        description: Uploads a beta release of the metadata currently in the packaging org
+        class_path: cumulusci.tasks.salesforce.PackageUpload
+        group: Release Operations
+
+
+To see if anything is being set on ``self.return_values``, find the file that defines the class ``cumulusci.tasks.salesforce.PackageUpload``.
+A little digging yields that this class is defined in the file `package_upload.py <https://github.com/SFDO-Tooling/CumulusCI/blob/main/cumulusci/tasks/salesforce/package_upload.py>`_
+and has a method called ``_set_return_values()``. `This method <https://github.com/SFDO-Tooling/CumulusCI/blob/3cad07ac1cecf438aaf087cdeff7b781a1fc74a1/cumulusci/tasks/salesforce/package_upload.py#L165>`_ sets ``self.return_values`` to a dictionary with these keys: ``version_number``, ``version_id``, and ``package_id``.
+
+Now look at the standard ``release_beta`` flow defined in the universal ``cumulusci.yml`` file:
+
+.. code-block:: yaml
+
+    release_beta:
+        description: Upload and release a beta version of the metadata currently in packaging
+        steps:
+            1:
+                task: upload_beta
+                options:
+                    name: Automated beta release
+            2:
+                task: github_release
+                options:
+                    version: ^^upload_beta.version_number
+            3:
+                task: github_release_notes
+                ignore_failure: True  # Attempt to generate release notes but don't fail build
+                options:
+                    link_pr: True
+                    publish: True
+                    tag: ^^github_release.tag_name
+                    include_empty: True
+                    version_id: ^^upload_beta.version_id
+            4:
+                task: github_master_to_feature
+
+This flow shows how subsequent tasks can reference the return values of a prior task. In this case, the ``github_release`` task uses the ``version_numer`` set by the ``upload_beta`` task as an option value with the ``^^upload_beta.version_number`` syntax. Similarly, the ``github_release_notes`` task uses the ``version_id`` set by the ``upload_beta`` task as an option value with the ``^^upload_beta.version_id`` syntax.
+
 
 
 Tasks and Flows from a Different Project
@@ -504,7 +511,7 @@ Tasks and Flows from a Different Project
 
 It's also possible to use tasks and flows from another project with CumulusCI. The other project must be named under the ``sources`` section of the project ``cumulusci.yml`` file.
 
-    Example: When tasks or flows are referenced using the `npsp` namespace, CumulusCI fetches the source from the NPSP GitHub repository.
+Example: When tasks or flows are referenced using the `npsp` namespace, CumulusCI fetches the source from the NPSP GitHub repository.
 
 .. code-block:: yaml
 
@@ -515,7 +522,9 @@ It's also possible to use tasks and flows from another project with CumulusCI. T
 By default, CumulusCI fetches the most recent release, or the default branch if there are no releases.
 
 .. note::
-    This feature requires that the referenced repository be readable (for example, it's public, or CumulusCI's GitHub service is configured with the token of a user who has read access to it).
+
+    This feature requires that the referenced repository be readable (for example,
+    it's public, or CumulusCI's GitHub service is configured with the token of a user who has read access to it).
 
 
 It's also possible to fetch a specific ``tag``...
@@ -546,12 +555,12 @@ Or even create a new flow that uses a flow from NPSP:
 .. code-block:: yaml
 
     flows:
-      install_npsp:
-        steps:
-          1:
-            flow: npsp:install_prod
-          2:
-            flow: dev_org
+        install_npsp:
+            steps:
+            1:
+                flow: npsp:install_prod
+            2:
+                flow: dev_org
 
 This flow uses NPSP's ``install_prod`` flow to install NPSP as a managed package, and then run this project's own ``dev_org`` flow.
 
@@ -562,7 +571,7 @@ Troubleshoot Configurations
 
 Use ``cci task info <name>`` and ``cci flow info <name>`` to see how a given task or flow behaves with current configurations.
 
-    Example: The ``util_sleep`` task has a ``seconds`` option with a default value of 5 seconds.
+Example: The ``util_sleep`` task has a ``seconds`` option with a default value of 5 seconds.
 
 .. code-block:: console
 
@@ -584,9 +593,7 @@ Use ``cci task info <name>`` and ``cci flow info <name>`` to see how a given tas
         The number of seconds to sleep
         Default: 5
 
-..
-
-    To change the default value to 30 seconds for all projects on your machine, add the desired value in your `global <Global Configurations>` ``cumulusci.yml`` file.
+To change the default value to 30 seconds for all projects on your machine, add the desired value in your `global <Global Configurations>` ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
@@ -595,9 +602,7 @@ Use ``cci task info <name>`` and ``cci flow info <name>`` to see how a given tas
             options:
                 seconds: 30
 
-..
-
-    Now ``cci task info util_sleep`` shows a default of 30 seconds.
+Now ``cci task info util_sleep`` shows a default of 30 seconds.
 
 .. code-block:: console
 
@@ -621,4 +626,7 @@ Use ``cci task info <name>`` and ``cci flow info <name>`` to see how a given tas
 
 Displaying the active configuration for a given task or flow can help with cross-correlating which configuration scope affects a specific scenario.
 
-.. tip :: The `cci task info` and `cci flow info` commands show information about how a task or flow is *currently* configured. The information output by these commands change as you make further customizations to your project's `cumulusci.yml` file.
+.. tip::
+
+    The ``cci task info`` and ``cci flow info`` commands show information about how a task or flow is *currently* configured.
+    The information output by these commands change as you make further customizations to your project's ``cumulusci.yml`` file.
