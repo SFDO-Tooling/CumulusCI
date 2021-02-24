@@ -6,7 +6,7 @@ interactions:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.salesforce.com/services/data/v49.0/composite
+    uri: https://orgname.my.salesforce.com/services/data/v49.0/composite
   response:
     body:
       string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : [ {\n      \"errorCode\"

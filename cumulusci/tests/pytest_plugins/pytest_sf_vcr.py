@@ -27,10 +27,10 @@ def sf_before_record_request(request):
     if request.body:
         request.body = simplify_body(request.body)
     request.uri = re.sub(
-        r"//.*.my.salesforce.com", "//orgname.salesforce.com", request.uri
+        r"//.*.my.salesforce.com", "//orgname.my.salesforce.com", request.uri
     )
     request.uri = re.sub(
-        r"//.*\d+.*.salesforce.com/", "//orgname.salesforce.com/", request.uri
+        r"//.*\d+.*.salesforce.com/", "//orgname.my.salesforce.com/", request.uri
     )
     request.uri = re.sub(r"00D[\w\d]{15,18}", "Organization/ORGID", request.uri)
 

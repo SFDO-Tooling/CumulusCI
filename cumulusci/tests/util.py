@@ -63,7 +63,7 @@ class DummyOrgConfig(OrgConfig):
     def __init__(self, config=None, name=None, keychain=None, global_org=False):
         if config is None:
             config = {
-                "instance_url": "https://orgname.salesforce.com",
+                "instance_url": "https://orgname.my.salesforce.com",
                 "access_token": "pytest_sf_orgconnect_abc123",
                 "id": "ORGID/ORGID",
                 "username": "sfuser@example.com",
