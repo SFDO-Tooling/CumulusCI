@@ -21,7 +21,7 @@ A ``cumulusci.yml`` file contains these top-level sections.
 
 * ``orgs``: Defines the scratch org configurations that are available for your project. See `scratch org configurations`_ for configuration options in this section.
 
-* ``plans``: Contains any custom plans purposely defined to install your project into a customer org. See :ref:`configuring plans in MetaDeploy <Publish an Install Plan to MetaDeplo>` for more information.
+* ``plans``: Contains any custom plans purposely defined to install your project into a customer org. See :ref:`configuring plans in MetaDeploy <Publish an Install Plan to MetaDeploy>` for more information.
 
 Last but not least, :doc:`cumulusci.yml reference <cci_yml_reference>` has a complete list of values that can be used in each section.
 
@@ -39,7 +39,7 @@ Override a Task Option
 
 If you repeatedly specify the same value for an option while running a task, you can configure CumulusCI to use that value as a default value.
 
-Example: Let's enforce a 90% code coverage requirement for Apex code in your project. The :ref:`run_tests` task, which executes all Apex tests in a target org, can enforce code coverage at a given percentage by passing the ``--required_org_code_coverage_percent`` option.
+For example: Let's enforce a 90% code coverage requirement for Apex code in your project. The :ref:`run_tests` task, which executes all Apex tests in a target org, can enforce code coverage at a given percentage by passing the ``--required_org_code_coverage_percent`` option.
 
 .. code-block:: yaml
 
@@ -79,7 +79,7 @@ Add a Custom Task
 
 To define a new task for your project, add the task name under the ``tasks`` section of your ``cumulusci.yml`` file.
 
-Example: Let's create a custom task named ``deploy_reports`` that deploys a set of reports stored in your project's unpackaged metadata located in ``unpackaged/config/reports``.
+For example, let's create a custom task named ``deploy_reports`` that deploys a set of reports stored in your project's unpackaged metadata located in ``unpackaged/config/reports``.
 
 First, look up the Python class associated with the standard task ``deploy``. From there we see that the ``deploy`` task has a ``class_path`` value of ``cumulusci.tasks.salesforce.Deploy``.
 
@@ -118,7 +118,7 @@ Use Variables for Task Options
 
 To reference a specific value within the ``tasks`` section of the ``cumulusci.yml`` file, use the ``$project_config`` variable.
 
-Example: NPSP uses a variable for the project's namespace by setting a value of ``$project_config.project__package__namespace``. This variable is then referenced in the project's custom ``deploy_qa_config`` task where it's passed as the value for the ``namespace_inject`` option.
+For example, NPSP uses a variable for the project's namespace by setting a value of ``$project_config.project__package__namespace``. This variable is then referenced in the project's custom ``deploy_qa_config`` task where it's passed as the value for the ``namespace_inject`` option.
 
 .. note::
 
@@ -161,8 +161,7 @@ Add a Custom Flow
 ^^^^^^^^^^^^^^^^^
 
 To define a new flow for your project, add the flow name under the ``flows`` section of your ``cumulusci.yml`` file.
-
-Example: ``greet_and_sleep``
+Let's define a new ``greet_and_sleep`` flow:
 
 .. code-block:: yaml
 
@@ -241,7 +240,7 @@ Skip a Flow Step
 
 To skip a flow step, set the task or flow for that step number to the value of ``None``.
 
-Example: To skip the fourth step of the ``dev_org`` flow, insert this code under the ``flows`` section of your ``cumulusci.yml`` file.
+For example, to skip the fourth step of the ``dev_org`` flow, insert this code under the ``flows`` section of your ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
@@ -265,7 +264,7 @@ Replace a Flow Step
 
 To replace a flow step, name the task or flow to run instead of the current step.
 
-Example: To replace the default fourth step of the ``dev_org`` flow with a custom task that loads data into a dev environment, specify the custom task to run instead.
+For example, to replace the default fourth step of the ``dev_org`` flow with a custom task that loads data into a dev environment, specify the custom task to run instead.
 
 .. code-block:: yaml
 
@@ -305,7 +304,7 @@ Specify options on specific tasks in a flow with this syntax:
 
 Replace all objects with ``<>`` with the desired values.
 
-Example: Let's examine the definition of the ``ci_master`` flow from the universal ``cumulusci.yml`` file.
+For example, let's examine the definition of the ``ci_master`` flow from the universal ``cumulusci.yml`` file.
 
 .. code-block::
 
@@ -396,7 +395,7 @@ You can override these values for your org.
 
 Replace all objects with ``<>`` with the desired values.
 
-Example: Override the default number of days from 7 to 15 in the ``dev`` org.
+For example, override the default number of days from 7 to 15 in the ``dev`` org.
 
 .. code-block:: yaml
 
@@ -419,11 +418,13 @@ You can configure files at these scope levels: *Project*, *Local Project* and *G
 
 One override only cascades over another when two configurations set a value for the same element on a task or flow.
 
-    Example: Task ``T`` takes two options, ``o1`` and ``o2``.
+Take for example, task ``T`` which takes two options, ``opt1`` and ``opt2``.
 
-    You can specify a default value for ``o1`` in your project ``cumulusci.yml`` file and a default value for ``o2`` in your global ``cumulusci.yml`` file, and you'll see the expected result: both values are available in the project. (The default of ``o1`` is not exposed to other projects.)
+You can specify a default value for ``opt1`` in your project ``cumulusci.yml`` file and a default value for ``opt2`` in your global ``cumulusci.yml`` file,
+and you'll see the expected result: both values are available in the project.
+(The default of ``opt1`` is not exposed to other projects.)
 
-    If you change your project ``cumulusci.yml`` file to also specify a default value for ``o2``, this new default ``o2`` value takes precedence over the default ``o2`` value specified in your global ``cumulusci.yml`` file.
+If you change your project ``cumulusci.yml`` file to also specify a default value for ``opt2``, this new default ``opt2`` value takes precedence over the default ``opt2`` value specified in your global ``cumulusci.yml`` file.
 
 
 Project Configurations
@@ -474,18 +475,24 @@ Advanced Configurations
 Reference Task Return Values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Tasks can set an internal ``return_value`` on themselves while executing.
-This attribute lets one task in a flow reference the ``return_value`` set on another task that executed prior to it.
+.. attention::
 
-To reference a return value on a previous task:
+    Current task return values are *not* documented, so finding return values set by a specific
+    task (if any) requires you to read the source code for the given task.
+
+It is sometimes useful for return values to be used as input by a subsequent task in the context of a flow.
+Tasks can set arbitrary return values on themselves while executing.
+These values can then be referenced by subsequent tasks in a flow.
+
+To reference a return value on a previous task use the following syntax:
 
 .. code-block:: yaml
 
     ^^prior_task.return_value
 
-To discover what's available for ``return_value``, find the source code for an individual task.
+To discover what's available for ``return_value``, find the source code for an individual task in the `CumulusCI repository<https://github.com/SFDO-Tooling/CumulusCI/>`_.
 
-Example: Let's examine how CumulusCI defines the standard ``upload_beta`` task in the universal ``cumulusci.yml`` file.
+For example, let's examine how CumulusCI defines the standard ``upload_beta`` task in the universal ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
@@ -535,7 +542,7 @@ Tasks and Flows from a Different Project
 
 It's also possible to use tasks and flows from another project with CumulusCI. The other project must be named under the ``sources`` section of the project ``cumulusci.yml`` file.
 
-Example: When tasks or flows are referenced using the `npsp` namespace, CumulusCI fetches the source from the NPSP GitHub repository.
+For example, when tasks or flows are referenced using the `npsp` namespace, CumulusCI fetches the source from the NPSP GitHub repository.
 
 .. code-block:: yaml
 
@@ -595,7 +602,7 @@ Troubleshoot Configurations
 
 Use ``cci task info <name>`` and ``cci flow info <name>`` to see how a given task or flow behaves with current configurations.
 
-Example: The ``util_sleep`` task has a ``seconds`` option with a default value of 5 seconds.
+For example, the ``util_sleep`` task has a ``seconds`` option with a default value of 5 seconds.
 
 .. code-block:: console
 
@@ -650,7 +657,7 @@ Now ``cci task info util_sleep`` shows a default of 30 seconds.
 
 Displaying the active configuration for a given task or flow can help with cross-correlating which configuration scope affects a specific scenario.
 
-.. tip::
+.. info::
 
     The ``cci task info`` and ``cci flow info`` commands show information about how a task or flow is *currently* configured.
     The information output by these commands change as you make further customizations to your project's ``cumulusci.yml`` file.
