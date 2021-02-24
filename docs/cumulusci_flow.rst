@@ -1,9 +1,7 @@
-.. _CumulusCI Flow:
-
 CumulusCI Flow
 ==============
-CumulusCI Flow is the process that Salesforce.org uses to: develop, test, and release, our products.
-This process encompases both a development and testing philosophy as well as a specific GitHub branching structure.
+CumulusCI Flow is the process that Salesforce.org uses to develop, test, and release our products.
+This process encompasses both a development and testing philosophy as well as a specific GitHub branching structure.
 There are several key reasons we like using CumulusCI Flow:
 
 * Everything is done in scratch orgs to eliminate "state drift" that occurs over time in persistent orgs. The only persistent org in this process is the packaging org. 
@@ -44,7 +42,7 @@ To test that we can package main, we upload a beta release on every commit to ma
 beta release in a variety of Salesforce org environments concurrently.
 Build times vary widely depending on the project and, a passing build is proof we can package main at any point in time.
 
-When the upload of the beta release is completed, the main branch is auto-merged_ into all open feature branches.
+When the upload of the beta release is completed, the main branch is :ref:`auto-merged <Auto Merging>` into all open feature branches.
 New betas are published on GitHub as a GitHub Release, along with automatically generated release
 notes drawn from the content of the Pull Requests merged since the last production release.
 
@@ -225,13 +223,13 @@ The parent to child merge functionality works across *multiple levels* of branch
 The effects of automerging remains the same, with children only receiving merges from their parents only (e.g. no merges from grandparents)
 This allows us to have branching structures such as:
 
-   * ``main``
-   * ``feature/large-feature``
-   * ``feature/large-feature__section1``
-   * ``feature/large-feature__section1__work-item1``
-   * ``feature/large-feature__section1__work-item2``
-   * ``feature/large-feature__section2``
-   * ``feature/large-feature__section2__work-item1``
+* ``main``
+* ``feature/large-feature``
+* ``feature/large-feature__section1``
+* ``feature/large-feature__section1__work-item1``
+* ``feature/large-feature__section1__work-item2``
+* ``feature/large-feature__section2``
+* ``feature/large-feature__section2__work-item1``
 
 In this scenario, a commit to the ``main`` branch triggers the ``github_automerge_main``
 task to run and will automerge that commit into ``feature/large-feature``.
@@ -251,14 +249,14 @@ To alleviate this pain point, CumulusCI can ensure that all release branches pro
 
 Consider the following branches in a GitHub repository:
 
-   * ``main`` - Source of Truth for Production
-   * ``feature/002`` - The next major production release
-   * ``feature/002__feature1`` - A single feature associated with release ``002``
-   * ``feature/002__large_feature`` - A large feature associated with release ``002``
-   * ``feature/002__large_feature__child1`` - First chunk of work for the large feature
-   * ``feature/002__large_feature__child2`` - Second chunk of work for the large feature
-   * ``feature/003`` - The release that comes after ``002``
-   * ``feature/003__feature1`` - A single feature associated with release ``003``
+* ``main`` - Source of Truth for Production
+* ``feature/002`` - The next major production release
+* ``feature/002__feature1`` - A single feature associated with release ``002``
+* ``feature/002__large_feature`` - A large feature associated with release ``002``
+* ``feature/002__large_feature__child1`` - First chunk of work for the large feature
+* ``feature/002__large_feature__child2`` - Second chunk of work for the large feature
+* ``feature/003`` - The release that comes after ``002``
+* ``feature/003__feature1`` - A single feature associated with release ``003``
 
 In this scenario, CumulusCI ensures that when ``feature/002`` receives a commit, that that commit is also merged into ``feature/003``.
 This kicks off tests in our CI system and ensures that functionality going into ``feature/002`` doesn't break work being done for future releases.
