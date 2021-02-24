@@ -600,13 +600,13 @@ def project_init(runtime):
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
         template = env.get_template(name)
-        if not os.path.isfile(name):
+        if not name.is_file():
             with open(name, "w") as f:
                 f.write(template.render(**context))
         else:
             click.echo(
                 click.style(
-                    f"{name} already exists. Please manually edit {name} to include:"
+                    f"{name} already exists. Please manually edit {name} to include:",
                     fg="red",
                 )
             )
@@ -633,52 +633,37 @@ def project_init(runtime):
         os.mkdir("orgs")
 
     org_dict = {
-        "beta.json": {"name": "Beta Test Org", "edition": "Developer"},
-        "dev.json": {"name": "Dev Org", "edition": "Developer"},
-        "feature.json": {"name": "Feature Test Org", "edition": "Developer"},
-        "release.json": {"name": "Release Test Org", "edition": "Enterprise"},
+        "beta.json": {
+            "org_name": "Beta Test Org",
+            "edition": "Developer",
+            "managed": True,
+        },
+        "dev.json": {"org_name": "Dev Org", "edition": "Developer", "managed": False},
+        "feature.json": {
+            "org_name": "Feature Test Org",
+            "edition": "Developer",
+            "managed": False,
+        },
+        "release.json": {
+            "org_name": "Release Test Org",
+            "edition": "Enterprise",
+            "managed": True,
+        },
     }
 
     template = env.get_template("scratch_def.json")
     for org_name in org_dict.keys():
-        click.echo(org_name)
-
-    with open(os.path.join("orgs", "beta.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Beta Test Org",
-                edition="Developer",
-                managed=True,
-            )
-        )
-    with open(os.path.join("orgs", "dev.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Dev Org",
-                edition="Developer",
-                managed=False,
-            )
-        )
-    with open(os.path.join("orgs", "feature.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Feature Test Org",
-                edition="Developer",
-                managed=False,
-            )
-        )
-    with open(os.path.join("orgs", "release.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Release Test Org",
-                edition="Enterprise",
-                managed=True,
-            )
-        )
+        org_path = os.path.join("orgs", org_name)
+        if not org_path.is_file():
+            with open(org_path, "w") as f:
+                f.write(
+                    template.render(
+                        package_name=context["package_name"],
+                        org_name=org_dict[org_name].get("name"),
+                        edition=org_dict[org_name].get("edition"),
+                        managed=org_dict[org_name].get("managed"),
+                    )
+                )
 
     # create robot folder structure and starter files
     if not os.path.isdir("robot"):
