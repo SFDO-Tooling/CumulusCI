@@ -211,6 +211,14 @@ def _log_yaml_error(logger, error: ErrorDict):
     logger.warning("CumulusCI Parsing Error:")
     loc = " -> ".join((repr(x) for x in error["loc"]))
     logger.warning("%s : %s", loc, error["msg"])
+    logger.error(
+        "NOTE: These errors will cause major problems in future versions of CumulusCI."
+    )
+    logger.error("Please correct them before May 1, 2021.")
+    logger.error(
+        "If you think your YAML has no error, please report the bug to the CumulusCI team."
+    )
+    logger.error("https://github.com/SFDO-Tooling/CumulusCI/")
 
 
 def cci_safe_load(
