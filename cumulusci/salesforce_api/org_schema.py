@@ -157,7 +157,6 @@ class Schema:
 
 
 def create_row(buffered_session: "BufferedSession", model, valuesdict: dict):
-    valuesdict["EXTRA"] = "EXTRA"
     buffered_session.write_single_row(model.__tablename__, valuesdict)
 
 
