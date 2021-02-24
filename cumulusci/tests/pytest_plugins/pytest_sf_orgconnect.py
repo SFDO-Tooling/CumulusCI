@@ -4,7 +4,7 @@ import os.path
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.config import TaskConfig
-from cumulusci.tests.util import unmock_homedir
+from cumulusci.tests.util import unmock_env
 
 
 def pytest_addoption(parser, pluginmanager):
@@ -42,7 +42,7 @@ def org_config(request, fallback_org_config):
     """
     org_name = sf_pytest_orgname(request)
     if org_name:
-        with unmock_homedir():  # restore real homedir
+        with unmock_env():  # restore real homedir
             runtime = CliRuntime()
             runtime.keychain._load_orgs()
             org_name, org_config = runtime.get_org(org_name)

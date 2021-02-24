@@ -65,7 +65,7 @@ class DummyOrgConfig(OrgConfig):
             config = {
                 "instance_url": "https://orgname.my.salesforce.com",
                 "access_token": "pytest_sf_orgconnect_abc123",
-                "id": "ORGID/ORGID",
+                "id": "https://test.salesforce.com/id/ORGID/USERID",
                 "username": "sfuser@example.com",
             }
 
@@ -229,7 +229,7 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
 
 
 @contextmanager
-def mock_homedir(home, cumulusci_key="0123456789ABCDEF"):
+def mock_env(home, cumulusci_key="0123456789ABCDEF"):
     real_homedir = str(Path.home())
     patches = {
         "HOME": home,
@@ -251,11 +251,11 @@ def mock_homedir(home, cumulusci_key="0123456789ABCDEF"):
         yield
 
 
-def unmock_homedir():
+def unmock_env():
     """Reset homedir and CCI environment variable or leave them if they weren't changed"""
     if "REAL_HOME" in os.environ:
         cci_key = os.environ.get("REAL_CUMULUSCI_KEY") or None
         homedir = os.environ["REAL_HOME"]
-        return mock_homedir(homedir, cci_key)
+        return mock_env(homedir, cci_key)
     else:
         return nullcontext()
