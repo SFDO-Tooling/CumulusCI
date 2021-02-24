@@ -108,10 +108,8 @@ the Value, enter the following JSON:
 
 Click the "Add secret" button to save the secret.
 
-.. info::
-
-    Replace ``USERNAME`` with your GitHub username, ``TOKEN`` with the Personal
-    Access Token you just created, and ``EMAIL`` with your email address.
+Replace ``USERNAME`` with your GitHub username, ``TOKEN`` with the Personal
+Access Token you just created, and ``EMAIL`` with your email address.
 
 
 
@@ -120,14 +118,15 @@ Click the "Add secret" button to save the secret.
 CumulusCI needs to be able to access a Salesforce org with the Dev Hub feature enabled in order to create scratch orgs.
 The easiest way to do this is to set up this connection locally, then copy its sfdx auth URL to a secret on GitHub.
 
-Since you already have CumulusCI working locally, you should be able to run ``sfdx force:org:list`` to identify the username that is configured as the default Dev Hub username it is marked with ``(D)``.
+Since you already have CumulusCI working locally, you should be able to run ``sfdx force:org:list`` to identify the
+username that is configured as the default Dev Hub username (it is marked with ``(D)``).
 
 Now run ``sfdx force:org:display --verbose -u [username]``, replacing ``[username]`` with your Dev Hub username.
 Look for the ``Sfdx Auth Url`` and copy it.
 
-.. warning::
-   *Important: Treat this URL like a password. It provides access to log in
-   as this user!*
+.. attention::
+
+   Treat this URL like a password. It provides access to log in as this user!*
 
 Now in your repository's Secrets settings, click the 'Add a new secret' link.
 Enter ``SFDX_AUTH_URL`` as the Name of the secret, and the URL from above as the Value.
@@ -237,15 +236,60 @@ DX Developer Guide to get this set up:
 * `Create a Connected app <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_connected_app.htm>`_
 
 Once the connected app has been created, you can configure CumulusCI to use this connected
-app by setting the following environment variables:
+app to login to a persistent or by setting the following environment variables.
 
-* ``CUMULUSCI_KEYCHAIN_CLASS`` - Set this equal to ``EnvironmentProjectKeychain``.
-  This instructs CumulusCI to look for org configurations in environment variables instead of files.
-* ``CUMULUSCI_ORG_orgName`` - Set this equal to the following json string: ``{“username”: “USERNAME”, “instance_url”: “INSTANCE_URL”}``
-  (replacing USERNAME and INSTANCE_URL with actual values). The instance_url should begin with the https:// schema. Note that the text which comes after
-  ``CUMULUSCI_ORG_`` is the name you will use for the ``--org`` option when executing ``cci`` commands in the workflow `yaml` file.
-  In this case it would be ``--org orgName``. 
+* ``CUMULUSCI_KEYCHAIN_CLASS``
+* ``CUMULUSCI_ORG_orgName``
+* ``SFDX_CLIENT_ID``
+* ``SFDX_HUB_KEY``
+
+See the below entries for the values to use with each.
+
+.. important::
+
+  Setting the above environment variables negates the need to use the ``cci org connect`` command.
+  You can simply run a ``cci`` command and pass the ``--org orgName`` option, where ``orgName``
+  corresponds to the name used in the ``CUMULUSCI_ORG_*`` environment variable.
+
+In the context of GitHub Actions, all of these environment variables would be delcared under the ``env`` section of a workflow.
+Below is an example of what this would look like:
+
+.. code-block:: yaml
+
+    env:
+        CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
+        CUMULUSCI_ORG_sandbox: {"username": "just.in@salesforce.org", "instance_url": "https://sfdo--sbxname.my.salesforce.com"}
+        SFDX_CLIENT_ID: {{ $secrets.client_id }}
+        SFDX_HUB_KEY: {{ $secrets.server_key }}
+
+
+The above assumes that you have ``client_id`` and ``server_key`` setup in your GitHub
+`encrypted secrets <https://docs.github.com/en/free-pro-team@latest/actions/reference/encrypted-secrets>`_
+
+
+``CUMULUSCI_KEYCHAIN_CLASS``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Set this equal to ``EnvironmentProjectKeychain``.
+This instructs CumulusCI to look for org configurations in environment variables instead of files.
+
+``CUMULUSCI_ORG_orgName``
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Set this equal to the following json string:
+
+.. code-block:: JSON
   
+    {
+        “username”: “USERNAME”,
+        “instance_url”: “INSTANCE_URL”
+    }
+
+* ``USERNAME`` - The username of the user you will login to the org as.
+* ``INSTANCE_URL`` - The instance URL for the org. Should begin with the ``https://`` schema.
+
+The text that comes after ``CUMULUSCI_ORG_`` *is the name you will use* for the ``--org`` option when executing ``cci`` commands in the workflow `yaml` file.
+
+You can see an example of setting this environment variable in a GitHub actions workflow in our `demo repository <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11>`_.
+
 .. note:: 
 
   If the target org's instance URL is instanceless (i.e. does not contain a segment like 
@@ -253,32 +297,23 @@ app by setting the following environment variables:
   ``SFDX_AUDIENCE_URL`` to ``https://test.salesforce.com". This instructs CumulusCI to set
   the correct ``aud`` value in the JWT (which is normally determined from the instance URL).
 
-* ``Set SFDX_CLIENT_ID`` - Set this to your connected app client id.
-* ``SFDX_HUB_KEY`` - Set this to the private key associated with your connected app
-  (this is the contents of your ``server.key`` file). This instructs CumulusCI to
-  authenticate to the org using jwt instead of the web auth flow.
 
-.. info::
 
-  Setting the above environment variables negates the need to use the ``cci org connect`` command.
-  You can simply run a ``cci`` command and pass the ``--org orgName`` option, where ``orgName``
-  corresponds to the name used in the ``CUMULUSCI_ORG_*`` environment variable.
+``SFDX_CLIENT_ID``
+^^^^^^^^^^^^^^^^^^^^^^
+Set this to your connected app client id.
+This combined with the ``SFDX_HUB_KEY`` variable instructs CumulusCI to authenticate
+to the org using the `JWT Bearer Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm#sfdx_dev_auth_jwt_flow>`_ instead
+of the `Web Server Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm#!>`_.
+
+
+``SFDX_HUB_KEY``
+^^^^^^^^^^^^^^^^
+Set this to the private key associated with your connected app (this is the contents of your ``server.key`` file).
+This combined with the ``SFDX_CLIENT_ID`` variable instructs CumulusCI to authenticate
+to the org using the `JWT Bearer Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm#sfdx_dev_auth_jwt_flow>`_ instead
+of the `Web Server Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm#!>`_.
   
-In the context of GitHub Actions, all of these environment variables would occur under the ``env`` section of the workflow.
-Below is an example of what this would look like:
-
-.. code-block:: yaml
-
-   env:
-     CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
-     CUMULUSCI_ORG_sandbox: {"username": "peter.gibbons@initech.co", "instance_url": "https://initech--sbxname.my.salesforce.com"}
-     SFDX_CLIENT_ID: {{ $secrets.client_id }}
-     SFDX_HUB_KEY: {{ $secrets.server_key }}
-
-.. note::
-
-  The above assumes that you have ``client_id`` and ``server_key`` setup in your GitHub
-  `encrypted secrets <https://docs.github.com/en/free-pro-team@latest/actions/reference/encrypted-secrets>`_
 
 
 Deploy to a Persistent Org
