@@ -6,10 +6,10 @@ from unittest.mock import MagicMock, Mock, patch
 from pytest import mark, raises
 import pytest
 
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import YAMLParseException
 from cumulusci.utils import temporary_dir
+from cumulusci.utils.yaml.safer_loader import load_yaml_data, _replace_nbsp
 from cumulusci.utils.yaml.cumulusci_yml import (
-    _replace_nbsp,
     cci_safe_load,
     parse_from_yaml,
 )
@@ -157,7 +157,8 @@ def cci_yml_file():
 def test_simple_load(caplog):
     yaml = """xyz:
         y: abc"""
-    cciyml = cci_safe_load(StringIO(yaml))
+    cciyml = load_yaml_data(StringIO(yaml))
+    assert not caplog.text
 
     assert isinstance(cciyml, dict)  # should parse despite funny character
     assert cciyml["xyz"]["y"] == "abc", cciyml
@@ -166,7 +167,7 @@ def test_simple_load(caplog):
 def test_convert_nbsp(caplog):
     yaml = """xyz:
         \u00A0 y: abc"""
-    cciyml = cci_safe_load(StringIO(yaml))
+    cciyml = load_yaml_data(StringIO(yaml))
     assert "space character" in caplog.text
 
     assert isinstance(cciyml, dict)  # should parse despite funny character
@@ -197,29 +198,29 @@ def test_invalid_cumulusci_yml_file(cci_yml_file):
     cci_yml_file.seek(0)
 
     with pytest.raises(
-        CumulusCIException,
-        match="cumulusci.yml at line 1, column 1.\nError message: expected chomping or indentation indicators, but found '>'",
+        YAMLParseException,
+        match="An error occurred parsing yaml file at line 2, column 1.*",
     ):
-        cci_safe_load(cci_yml_file)
+        load_yaml_data(cci_yml_file)
 
 
 def test_invalid_string_io():
     invalid_yml_string = """xyz: abc   \n>>>\nefg: lmn\n"""
-    with pytest.raises(CumulusCIException) as error:
-        cci_safe_load(StringIO(invalid_yml_string))
+    with pytest.raises(YAMLParseException) as error:
+        load_yaml_data(StringIO(invalid_yml_string))
 
     assert "Error message: " in error.value.args[0]
 
 
-@patch("cumulusci.utils.yaml.cumulusci_yml.safe_load")
+@patch("cumulusci.utils.yaml.safer_loader.yaml.safe_load")
 def test_generic_exception__with_name_attr(safe_load, cci_yml_file):
     invalid_yml = """xyz: abc   \n>>>\nefg: lmn\n"""
     cci_yml_file.write(invalid_yml)
     cci_yml_file.seek(0)
 
     safe_load.side_effect = Exception("generic")
-    with pytest.raises(CumulusCIException):
-        cci_safe_load(cci_yml_file)
+    with pytest.raises(YAMLParseException):
+        load_yaml_data(cci_yml_file)
 
     def test_mutually_exclusive_options(self):
         logger = MagicMock()
@@ -227,12 +228,12 @@ def test_generic_exception__with_name_attr(safe_load, cci_yml_file):
             cci_safe_load(StringIO(""), on_error=lambda *args: args, logger=logger)
 
 
-@patch("cumulusci.utils.yaml.cumulusci_yml.yaml.safe_load")
+@patch("cumulusci.utils.yaml.safer_loader.yaml.safe_load")
 def test_generic_exception__without_name_attr(safe_load):
     invalid_yaml = """xyz: abc   \n>>>\nefg: lmn\n"""
     safe_load.side_effect = Exception("generic")
     with pytest.raises(
-        CumulusCIException,
-        match="An error occurred parsing a yaml file. Error message: generic",
+        YAMLParseException,
+        match="An error occurred parsing a yaml file.\nError message: generic",
     ):
-        cci_safe_load(StringIO(invalid_yaml))
+        load_yaml_data(StringIO(invalid_yaml))

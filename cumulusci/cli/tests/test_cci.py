@@ -925,10 +925,57 @@ Environment Info: Rossian / x68_46
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)
 
-        run_click_command(cci.org_browser, runtime=runtime, org_name="test")
+        run_click_command(
+            cci.org_browser, runtime=runtime, org_name="test", path=None, url_only=False
+        )
 
         org_config.refresh_oauth_token.assert_called_once()
         browser_open.assert_called_once()
+        org_config.save.assert_called_once_with()
+
+    @mock.patch("webbrowser.open")
+    def test_org_browser_path(self, browser_open):
+        start_url = "https://random-word-1234-dev-ed.cs42.my.salesforce.com//secur/frontdoor.jsp?sid=00Dorgid!longtoken"
+        target_path = "/lightning/setup/Package/home"
+
+        org_config = mock.Mock()
+        org_config.start_url = start_url
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
+
+        run_click_command(
+            cci.org_browser,
+            runtime=runtime,
+            org_name="test",
+            path=target_path,
+            url_only=False,
+        )
+
+        org_config.refresh_oauth_token.assert_called_once()
+        expected_query = "&retURL=%2Flightning%2Fsetup%2FPackage%2Fhome"
+        browser_open.assert_called_once_with(start_url + expected_query)
+        org_config.save.assert_called_once_with()
+
+    @mock.patch("click.echo")
+    @mock.patch("webbrowser.open")
+    def test_org_browser_url_only(self, browser_open, click_echo):
+        start_url = "https://random-word-1234-dev-ed.cs42.my.salesforce.com//secur/frontdoor.jsp?sid=00Dorgid!longtoken"
+        org_config = mock.Mock()
+        org_config.start_url = start_url
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
+
+        run_click_command(
+            cci.org_browser,
+            runtime=runtime,
+            org_name="test",
+            path=None,
+            url_only=True,
+        )
+
+        org_config.refresh_oauth_token.assert_called_once()
+        browser_open.assert_not_called()
+        click_echo.assert_called_once_with(start_url)
         org_config.save.assert_called_once_with()
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")

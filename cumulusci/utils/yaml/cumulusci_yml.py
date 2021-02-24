@@ -1,15 +1,14 @@
 import re
-from io import StringIO
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, Sequence
 
 from typing_extensions import Literal, TypedDict
 from pydantic import Field
-from yaml import safe_load
 
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel
+from cumulusci.utils.yaml.safer_loader import load_yaml_data
 
 default_logger = getLogger(__name__)
 
@@ -112,6 +111,10 @@ class Plan(CCIDictModel):  # MetaDeploy plans
     steps: Dict[str, Union[FlowReference, TaskReference]]
     checks: List[Check] = None
     group: str = None
+    error_message: str = None
+    error_message: str = None
+    post_install_message: str = None
+    preflight_message: str = None
 
 
 class Project(CCIDictModel):
@@ -154,6 +157,11 @@ class Source(CCIDictModel):
     release: str = None
 
 
+class CumulusCLIConfig(CCIDictModel):
+    show_stacktraces: bool = None
+    plain_output: bool = None
+
+
 class CumulusCIRoot(CCIDictModel):
     tasks: Dict[str, Task] = {}
     flows: Dict[str, Flow] = {}
@@ -164,6 +172,7 @@ class CumulusCIRoot(CCIDictModel):
     plans: Dict[str, Plan] = []
     minimum_cumulusci_version: str = None
     sources: Dict[str, Source] = []
+    cli: CumulusCLIConfig = None
 
 
 class CumulusCIFile(CCIDictModel):
@@ -190,29 +199,6 @@ def validate_data(
     return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
 
 
-def _replace_nbsp(origdata, filename, logger=default_logger):
-    "Replace nbsp characters in leading whitespace in a YAML file."
-    counter = 0
-
-    def _replacer_func(matchobj):
-        nonlocal counter
-        counter += 1
-        string = matchobj.group(0)
-        rc = string.replace(NBSP, " ")
-        return rc
-
-    data = pattern.sub(_replacer_func, origdata)
-
-    if counter:
-        plural = "s were" if counter > 1 else " was"
-        logger.warning(
-            f"Note: {counter} lines with non-breaking space character{plural} detected in {filename}.\n"
-            "Perhaps you cut and pasted from a Web page?\n"
-            "Future versions of CumulusCI may disallow these characters.\n"
-        )
-    return data
-
-
 class ErrorDict(TypedDict):
     "The structure of a Pydantic error dictionary. Google TypedDict if its new to you."
     loc: Sequence[Union[str, int]]
@@ -235,17 +221,13 @@ def cci_safe_load(
     assert not (
         on_error and logger
     ), "Please specify either on_error or logger but not both"
+    on_error = on_error or (lambda error: _log_yaml_error(logger, error))
 
     logger = logger or default_logger
 
     with load_from_source(source) as (filename, data_stream):
-        # this is inelegant but the _replace_nbsp code is a lot easier
-        # to write with regexps and Python regexps don't work with streams
-        cleaned_up_data = _replace_nbsp(data_stream.read(), data_stream, logger)
-        data = safe_load(StringIO(cleaned_up_data))
+        data = load_yaml_data(data_stream, filename)
         context = context or filename
-
-        on_error = on_error or (lambda error: _log_yaml_error(logger, error))
 
         try:
             validate_data(data, context=context, on_error=on_error)
@@ -262,3 +244,27 @@ def cci_safe_load(
                 )
             pass
         return data
+
+
+# validate YML files as a CLI option
+if __name__ == "__main__":
+    import sys
+    from glob import glob
+    from pprint import pprint
+
+    def main():
+
+        globs = sys.argv[1:]
+        errors = []
+        for g in globs:
+            filenames = glob(g)
+            for filename in filenames:
+                print("Validating", filename)
+
+                def logger(val):
+                    errors.append(val)
+
+                cci_safe_load(filename, filename, logger)
+        pprint(errors)
+
+    main()

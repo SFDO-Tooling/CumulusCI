@@ -267,3 +267,7 @@ class PackageUploadFailure(CumulusCIFailure):
 
 class PackageInstallError(Exception):
     """Error installing a 2GP package version"""
+
+
+class YAMLParseException(CumulusCIException):
+    """Error parsing a YAML File"""
