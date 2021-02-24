@@ -132,8 +132,9 @@ Now in your repository's Secrets settings, click the 'Add a new secret' link.
 Enter ``SFDX_AUTH_URL`` as the Name of the secret, and the URL from above as the Value.
 Click the 'Add secret' button to save the secret.
 
-.. note::
-   Advanced note: These instructions connect sfdx to your Dev Hub using
+.. admonition:: Advanced Note
+
+   These instructions connect sfdx to your Dev Hub using
    the standard Salesforce CLI connected app and a refresh token. It is
    also possible to authenticate sfdx using the ``force:auth:jwt:grant``
    command with a custom connected app client id and private key.
@@ -236,7 +237,7 @@ DX Developer Guide to get this set up:
 * `Create a Connected app <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_connected_app.htm>`_
 
 Once the connected app has been created, you can configure CumulusCI to use this connected
-app to login to a persistent or by setting the following environment variables.
+app to login to a persistent org by setting the following environment variables.
 
 * ``CUMULUSCI_KEYCHAIN_CLASS``
 * ``CUMULUSCI_ORG_orgName``
@@ -251,7 +252,7 @@ See the below entries for the values to use with each.
   You can simply run a ``cci`` command and pass the ``--org orgName`` option, where ``orgName``
   corresponds to the name used in the ``CUMULUSCI_ORG_*`` environment variable.
 
-In the context of GitHub Actions, all of these environment variables would be delcared under the ``env`` section of a workflow.
+In the context of GitHub Actions, all of these environment variables would be declared under the ``env`` section of a workflow.
 Below is an example of what this would look like:
 
 .. code-block:: yaml
@@ -274,7 +275,10 @@ This instructs CumulusCI to look for org configurations in environment variables
 
 ``CUMULUSCI_ORG_orgName``
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-Set this equal to the following json string:
+The name of this environment variable dictates what name to use for the value of the ``--org`` option. 
+For example, a value of ``CUMULUSCI_ORG_mySandbox`` would mean you use ``--org mySandbox`` to use this org in a ``cci`` command.
+
+Set this variable equal to the following json string:
 
 .. code-block:: JSON
   
@@ -286,22 +290,20 @@ Set this equal to the following json string:
 * ``USERNAME`` - The username of the user you will login to the org as.
 * ``INSTANCE_URL`` - The instance URL for the org. Should begin with the ``https://`` schema.
 
-The text that comes after ``CUMULUSCI_ORG_`` *is the name you will use* for the ``--org`` option when executing ``cci`` commands in the workflow `yaml` file.
-
 You can see an example of setting this environment variable in a GitHub actions workflow in our `demo repository <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11>`_.
 
 .. note:: 
 
   If the target org's instance URL is instanceless (i.e. does not contain a segment like 
   cs46 identifying the instance), then for sandboxes it is also necessary to set 
-  ``SFDX_AUDIENCE_URL`` to ``https://test.salesforce.com". This instructs CumulusCI to set
+  ``SFDX_AUDIENCE_URL`` to ``https://test.salesforce.com"``. This instructs CumulusCI to set
   the correct ``aud`` value in the JWT (which is normally determined from the instance URL).
 
 
 
 ``SFDX_CLIENT_ID``
 ^^^^^^^^^^^^^^^^^^^^^^
-Set this to your connected app client id.
+Set this to your connected app's client id.
 This combined with the ``SFDX_HUB_KEY`` variable instructs CumulusCI to authenticate
 to the org using the `JWT Bearer Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm#sfdx_dev_auth_jwt_flow>`_ instead
 of the `Web Server Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm#!>`_.
@@ -394,7 +396,7 @@ This flow does several things:
 .. important::
 
   CumulusCI is able to connect to the  ``packaging`` org via ``CUMULUSCI_ORG_packaging`` 
-  environment variable defined at the `top of the workflow <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11>`.
+  environment variable defined at the `top of the workflow <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11>`_.
 
 
 
