@@ -153,9 +153,11 @@ To set up Salesforce DX:
 2. `Enable Dev Hub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.228.0.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_devhub.htm>`_
 3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_  - Be sure to use the ``--setdefaultdevhubusername`` option!
 
-If you have the ``sfdx`` command installed, are connected to your devhub, and set the ``defaultdevhubusername`` config setting (use the ``sfdx force:config:list`` command to verify!), you're now ready to use ``cci`` with ``sfdx``.
+If you have the ``sfdx`` command installed, are connected to your devhub, and set the ``defaultdevhubusername`` config setting (use ``sfdx force:config:list`` to verify), you're now ready to use ``cci`` with ``sfdx``.
 
-.. note:: SFDX supports multiple DevHubs, so CumulusCI uses the one set as ``defaultdevhubusername`` when creating scratch orgs.
+.. important:: 
+    
+    SFDX supports multiple DevHubs, so CumulusCI uses the one set as ``defaultdevhubusername`` when creating scratch orgs.
 
 Learn more about Salesforce DX at https://developer.salesforce.com/platform/dx.
 
@@ -193,7 +195,9 @@ If you'd like to work on an existing CumulusCI project on GitHub, these are the 
 #. `Install Git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
 #. `Clone the Project's GitHub Repository <https://docs.github.com/en/free-pro-team@latest/desktop/contributing-and-collaborating-using-github-desktop/adding-and-cloning-repositories>`_
 
- .. note:: CumulusCI does not support projects stored on other Git hosts such as BitBucket or GitLab at this time.
+.. note::
+    
+    CumulusCI does not support projects stored on other Git hosts such as BitBucket or GitLab at this time.
 
 You can change directories into the project's root directory and begin executing ``cci`` commands.
 
