@@ -523,7 +523,7 @@ represents the current page. Each page object may use its own method
 for making the determination, but the built-in page objects all
 compare the page location to an expected pattern
 (eg: ``.../lightning/o/...``). If the assertion passes, the keywords for
-that page object will autoamtically be loaded.
+that page object will automatically be loaded.
 
 This keyword is useful if you get to a page via a button or some other
 form of navigation, in that it allows you to both assert that you are
