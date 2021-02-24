@@ -20,15 +20,14 @@ To run the ``dev_org`` flow against the project's :ref:`default org <Set a Defau
 
 To run the ``dev_org`` flow against a specific org, use the ``--org`` option:
 
-    Example: Run the ``dev_org`` flow against the org currently defined as ``dev`` in CumulusCI.
+Example: Run the ``dev_org`` flow against the org currently defined as ``dev`` in CumulusCI.
 
 .. code-block:: console
 
     $ cci flow run dev_org --org dev
 
-..
 
-    Open the new ``dev`` org to begin development.
+Open the new ``dev`` org to begin development.
 
 .. code-block:: console
 
@@ -76,7 +75,7 @@ List and Retrieve Options
 
 When developing in an org, the changes you're most interested in are sometimes mixed with other changes that aren't relevant to what you're doing.
 
-    Example: Changing schema like Custom Objects and Custom Fields often results in changes to Page Layouts and Profiles that you don't wish to review or retrieve.
+Example: Changing schema like Custom Objects and Custom Fields often results in changes to Page Layouts and Profiles that you don't wish to review or retrieve.
 
 It's a common workflow in CumulusCI to use the ``list_changes`` task, combined with the options featured in this subsection, to narrow the scope of changes in the org to the exact elements you desire to retrieve in your project. When the correct set of metadata is listed, run the ``retrieve_changes`` task to bring those changes into the repository.
 
@@ -87,21 +86,19 @@ It's a common workflow in CumulusCI to use the ``list_changes`` task, combined w
 
 When retrieving metadata from an org, CumulusCI represents each component name as the combination of its type (such as a ``Profile``, ``CustomObject``, or ``ApexClass``) and its API name: ``MemberType: MemberName``. 
 
-    Example: An ``ApexClass`` named ``MyTestClass`` would be represented as ``ApexClass: MyTestClass``.
+Example: An ``ApexClass`` named ``MyTestClass`` would be represented as ``ApexClass: MyTestClass``.
 
 The ``--include`` and ``--exclude`` options lets you pass multiple `regular expressions <https://en.wikipedia.org/wiki/Regular_expression>`_ to match against the names of changed components. This metadata is either included or excluded depending on which option the regular expression is passed. Multiple regular expressions can be passed in a comma-separated list.
 
-    Example: List all modified metadata that ends in "Test" and "Data" in the default org.
+Example: List all modified metadata that ends in "Test" and "Data" in the default org.
 
 .. code-block:: console
 
     $ cci task run list_changes --include "Test$,Data$"
 
-..
+Since the metadata string that CumulusCI processes also includes the ``MemberType``, use exclusions and inclusions that filter whole types of metadata.
 
-    Since the metadata string that CumulusCI processes also includes the ``MemberType``, use exclusions and inclusions that filter whole types of metadata.
-    
-        Example: Exclude ``Profile`` type.
+Example: Exclude ``Profile`` type.
 
 .. code-block:: console
 
@@ -174,7 +171,7 @@ Set Up a QA Org
 
 The ``qa_org`` flow sets up org environments where quality engineers test features quickly and easily. ``qa_org`` runs the specialized ``config_qa`` flow after deploying the project's (unmanaged) metadata to the org.
 
-    Example: Run the ``qa_org`` flow against the ``qa`` org.
+Example: Run the ``qa_org`` flow against the ``qa`` org.
 
 .. code-block:: console
 
@@ -186,7 +183,7 @@ Create QA Configurations
 
 For the most part ``config_dev`` and ``config_qa`` flows are the same. Many teams have a requirement for additional configurations to be deployed when performing QA, but not when developing a new feature.
 
-    Example: Salesforce.org teams often modify the ``config_qa`` flow to deploy configurations that pertain to large optional features in a package. These configurations are subsequently tested by the product's Robot Framework test suites.
+Example: Salesforce.org teams often modify the ``config_qa`` flow to deploy configurations that pertain to large optional features in a package. These configurations are subsequently tested by the product's Robot Framework test suites.
 
 To retrieve your own QA configurations, spin up a new org...
 
@@ -203,8 +200,6 @@ Make the necessary changes, and run:
 This task defaults to retrieving this metadata under ``unpackaged/config/qa``.
 
 .. note:: The configuration metadata can also be stored in a different location by using the ``--path`` option.
-
-..
 
 To delete the org...
 
@@ -287,7 +282,7 @@ Reference Unmanaged Projects
 
 If the referenced repository does not have a namespace configured, or if the dependency specifies the ``unmanaged`` option as ``True``, the repository is treated as unmanaged.
 
-    Example: Salesforce EDA
+Example: Salesforce EDA
 
 .. code-block:: yaml
 
@@ -296,9 +291,7 @@ If the referenced repository does not have a namespace configured, or if the dep
             - github: https://github.com/SalesforceFoundation/EDA
               unmanaged: True
 
-..
-
-    The EDA repository is configured for a namespace, but the dependency  specifies ``unmanaged: True``, so EDA and its dependencies deploy as unmanaged metadata.
+The EDA repository is configured for a namespace, but the dependency  specifies ``unmanaged: True``, so EDA and its dependencies deploy as unmanaged metadata.
 
 
 
@@ -307,7 +300,7 @@ Reference a Specific Tag
 
 To reference a specific version of the product other than the most recent commit on the main branch (for unmanaged projects) or the most recent production release (for managed packages), use the ``tag`` option to specify a tag from the target repository. This option is most useful for testing against beta versions of underlying packages, or recreating specific org environments for debugging.
 
-    Example: Salesforce EDA
+Example: Salesforce EDA
 
 .. code-block:: yaml
 
@@ -316,9 +309,7 @@ To reference a specific version of the product other than the most recent commit
             - github: https://github.com/SalesforceFoundation/EDA
               tag: beta/1.47-Beta_2
 
-..
-
-    The EDA repository's tag, ``beta/1.47-Beta_2``, is used instead of the latest production release of EDA (1.46, for this example). This tag lets a build environment use features in the next production release of EDA that are already merged but not yet included in a production release.
+The EDA repository's tag, ``beta/1.47-Beta_2``, is used instead of the latest production release of EDA (1.46, for this example). This tag lets a build environment use features in the next production release of EDA that are already merged but not yet included in a production release.
 
 
 
@@ -327,7 +318,7 @@ Skip ``unpackaged/*`` in Reference Repositories
 
 If the referenced repository has dependency metadata under ``unpackaged/pre`` or ``unpackaged/post``, use the ``skip`` option to skip deploying that metadata with the dependency.
 
-    Example: Salesforce EDA
+Example: Salesforce EDA
 
 .. code-block:: yaml
 
@@ -343,7 +334,7 @@ Managed Package Dependencies
 
 Managed package dependencies are rather simple. Under the ``project__dependencies`` section of the ``cumulusci.yml`` file, specify the namespace of the target package, and the required version number.
 
-    Example: ``npe01 version 3.6``
+Example: ``npe01 version 3.6``
 
 .. code-block:: yaml
 
@@ -359,7 +350,7 @@ Automatic Install, Upgrade, or Uninstall/Install
 
 When the ``update_dependencies`` task runs, it retrieves a list of all managed packages in the target org, and creates a list of the installed packages and their version numbers.
 
-    Example: ``npe01 version 3.6``
+Example: ``npe01 version 3.6``
     
 .. code-block:: yaml
 
@@ -368,14 +359,13 @@ When the ``update_dependencies`` task runs, it retrieves a list of all managed p
             - namespace: npe01
               version: 3.6
     
-..    
     
-    Depending on whether or not the package with namespace ``npe01`` is installed, the ``update_dependencies`` task runs these steps. 
+Depending on whether or not the package with namespace ``npe01`` is installed, the ``update_dependencies`` task runs these steps. 
 
-    * If ``npe01`` is not installed, ``npe01 version 3.6`` is installed.
-    * If the org already has ``npe01 version 3.6`` installed, no changes take place.
-    * If the org has an older version installed, it's upgraded to ``version 3.6``.
-    * If the org has a newer version or a beta version installed, it's uninstalled and ``version 3.6`` is installed.
+* If ``npe01`` is not installed, ``npe01 version 3.6`` is installed.
+* If the org already has ``npe01 version 3.6`` installed, no changes take place.
+* If the org has an older version installed, it's upgraded to ``version 3.6``.
+* If the org has a newer version or a beta version installed, it's uninstalled and ``version 3.6`` is installed.
 
 
 
@@ -384,9 +374,9 @@ Hierarchical Dependencies
 
 Managed package dependencies can handle a hierarchy of dependencies between packages.
 
-    Example: Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages, one of which (Households) is an extension of another (Contacts & Organizations).
+Example: Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages, one of which (Households) is an extension of another (Contacts & Organizations).
 
-    These dependencies are listed under the ``project`` section of the ``cumulusci.yml`` file.
+These dependencies are listed under the ``project`` section of the ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
@@ -404,11 +394,9 @@ Managed package dependencies can handle a hierarchy of dependencies between pack
             - namespace: npe5
               version: 3.5
 
-..
+The project requires ``npo02 version 3.8``, which itself requires ``npe01 version 3.6``. By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently.
 
-    The project requires ``npo02 version 3.8``, which itself requires ``npe01 version 3.6``. By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently.
-
-    So if the target org currently has ``npe01 version 3.7``, ``npe01`` needs to be uninstalled to downgrade to ``3.6``. However, ``npo02`` requires ``npe01``, so uninstalling ``npe01`` also requires uninstalling ``npo02``. (In this scenario ``npe03``, ``npe04``, and ``npe05`` do not have to be uninstalled to uninstall ``npe01``.)
+So if the target org currently has ``npe01 version 3.7``, ``npe01`` needs to be uninstalled to downgrade to ``3.6``. However, ``npo02`` requires ``npe01``, so uninstalling ``npe01`` also requires uninstalling ``npo02``. (In this scenario ``npe03``, ``npe04``, and ``npe05`` do not have to be uninstalled to uninstall ``npe01``.)
 
 
 
@@ -436,7 +424,7 @@ Specify a Subfolder of the Zip File
 
 Use the ``subfolder`` option to specify a subfolder of the zip file to use for the deployment. 
 
-.. admonition:: Wizard Tip
+.. tip::
     
     This option is handy when referring to metadata stored in a GitHub repository.
 
@@ -469,15 +457,19 @@ To let CumulusCI fully manage the project's dependencies, the ``deploy`` task (a
 
 This feature supports CumulusCI's automatic dependency resolution by avoiding a need for projects to manually update XML files to reflect current dependency package versions.
 
-.. note:: If the metadata being deployed references namespaced metadata that does not exist in the currently installed package, the deployment throws an error as expected.
+.. note:: 
 
-.. tip:: The automatic cleaning of ``meta.xml`` files can be disabled by setting the ``clean_meta_xml`` option to ``False``.
+    If the metadata being deployed references namespaced metadata that does not exist in the currently installed package, the deployment throws an error as expected.
+
+.. tip:: 
+
+    The automatic cleaning of ``meta.xml`` files can be disabled by setting the ``clean_meta_xml`` option to ``False``.
 
 One drawback of this approach is that developers need to handle the diffs in the ``meta.xml`` files by either ignoring them, or committing them as part of their work in a feature branch. 
 
-    Example: The diffs come from a scenario of Package B, which extends Package A. When a new production release of Package A is published, the ``update_dependencies`` task for Package B installs the new version. When metadata is then retrieved from the org, the ``meta.xml`` files reference the new version while the repository's ``meta.xml`` files reference an older version.
+Example: The diffs come from a scenario of Package B, which extends Package A. When a new production release of Package A is published, the ``update_dependencies`` task for Package B installs the new version. When metadata is then retrieved from the org, the ``meta.xml`` files reference the new version while the repository's ``meta.xml`` files reference an older version.
 
-    The main difference between this situation and one where the ``meta.xml`` file is automatically cleaned is that avoiding the diffs in ``meta.xml`` files is a convenience for developers rather than a requirement for builds and releases. 
+The main difference between this situation and one where the ``meta.xml`` file is automatically cleaned is that avoiding the diffs in ``meta.xml`` files is a convenience for developers rather than a requirement for builds and releases. 
     
 Developers can also use the ``meta_xml_dependencies`` task to update the ``meta.xml`` files locally using the versions from CumulusCI's calculated project dependencies.
 
