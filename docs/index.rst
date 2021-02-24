@@ -18,9 +18,7 @@ Contents
    managed_package
    unlocked_package
    unpackaged
-   implementation
-   customize
-   internals
+   metadata_etl
    cookbook
    reference
    about

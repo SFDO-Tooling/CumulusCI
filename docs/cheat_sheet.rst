@@ -1,9 +1,13 @@
+
 Cheat Sheet
 ===========
+
 CumulusCI offers a great deal of functionality out of the box.
 This cheat sheet is intended to provide a very brief summary of the most
 important commands to start working in scratch orgs using CumulusCI,
 using the basic flows and tasks supplied with the tool. 
+
+
 
 Naming and Manipulating Orgs
 ----------------------------
@@ -211,3 +215,43 @@ Retrieve changes to local repository
 .. code-block::
 
     $ cci task run retrieve_changes
+=======
+Common Development Tasks
+------------------------
+
+List Changes
+^^^^^^^^^^^^
+* ``list_changes``
+
+
+
+.. _retrieve changes:
+
+Retrieve Changes
+^^^^^^^^^^^^^^^^
+*  ``dx_pull``
+*  ``retrieve_changes``
+*  ``retrieve_src``
+* ``retrieve_packaged``
+* ``retrieve_src``
+* ``retrieve_unpackaged``
+
+
+
+Push Changes
+^^^^^^^^^^^^
+* ``dx_push``
+
+Common Development Flows
+------------------------
+* ``dev_org`` - Create new org
+
+
+Common QA Tasks
+---------------
+
+
+
+Common Release Engineering Tasks
+--------------------------------
+

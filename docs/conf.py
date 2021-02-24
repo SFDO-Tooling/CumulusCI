@@ -56,12 +56,19 @@ source_suffix = ".rst"
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
+# Set epilog with any variable values we want replaced
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-rst_epilog
+cci_version = cumulusci.__version__
+rst_epilog = f"""
+.. |cumulusci_version| replace:: {cci_version}
+"""
+
 # The master toctree document.
 master_doc = "index"
 
 # General information about the project.
-project = u"CumulusCI"
-copyright = u"2020, Salesforce.org"
+project = "CumulusCI"
+copyright = "2020, Salesforce.org"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -121,10 +128,7 @@ html_theme = "furo"
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {
-    "show_relbars": True,
-    "extra_nav_links": {"GitHub": "https://github.com/SFDO-Tooling/CumulusCI"},
-}
+# html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
@@ -225,7 +229,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ("index", "cumulusci.tex", u"CumulusCI Documentation", u"Jason Lantz", "manual")
+    ("index", "cumulusci.tex", "CumulusCI Documentation", "Jason Lantz", "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -253,7 +257,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "cumulusci", u"CumulusCI Documentation", [u"Jason Lantz"], 1)]
+man_pages = [("index", "cumulusci", "CumulusCI Documentation", ["Jason Lantz"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -268,8 +272,8 @@ texinfo_documents = [
     (
         "index",
         "cumulusci",
-        u"CumulusCI Documentation",
-        u"Jason Lantz",
+        "CumulusCI Documentation",
+        "Jason Lantz",
         "cumulusci",
         "One line description of project.",
         "Miscellaneous",
