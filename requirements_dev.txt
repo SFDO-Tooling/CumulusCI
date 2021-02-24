@@ -6,6 +6,7 @@ coveralls==3.0.0
 flake8==3.8.4
 pre-commit==2.10.1
 pytest==6.2.2
+pytest-random-order==1.0.4
 pytest-vcr==1.0.2
 responses==0.12.1
 Sphinx==3.5.1
