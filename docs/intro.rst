@@ -2,22 +2,24 @@ Introduction
 ============
 
 CumulusCI helps development teams build great applications on the Salesforce platform by automating org setup, testing, and deployment.
-Automation and Product Delivery with CumulusCI
---------
+
+
+
+Automation with CumulusCI
+-------------------------
 
 If your product development lifecycle and release process is anything like ours at Salesforce.org, it's complex. You're managing multiple packages, dependencies, orgs, and release versions. Not to mention managing org metadata and all the setup operations that need to run in the right sequence, before or after a package is installed, to create a properly configured org. 
 
-Consider the example of Nonprofit Success Pack (NPSP), one of Salesforce.org's flagship open source products. NPSP is a large, complex, heterogeneous application. It consists of six managed packages, with complex dependency relationships. Using automation, we deploy all five dependent packages in the right sequence, deliver the unpackaged record types for the Account and Opportunity objects, and perform final configurations to make the customer's experience better, like setting up Global Actions and delivering translations. We deliver biweekly NPSP releases to tens of thousands of customer orgs–with the proper configurations and without requiring end users to work through a lengthy setup guide.
+Consider the example of Nonprofit Success Pack (NPSP), one of Salesforce.org's flagship open source products. NPSP is a large, complex, heterogeneous application. It consists of six managed packages, with complex dependency relationships. Using automation, all five dependent packages are deployed in the right sequence, the unpackaged record types for the Account and Opportunity objects are delivered, and the final configurations to make the customer's experience better, such as setting up Global Actions and delivering translations, are performed. Biweekly NPSP releases are released to tens of thousands of customer orgs -- with the proper configurations, and without requiring end users to work through a lengthy setup guide.
 
-The CumulusCI suite of tools is part of the not-so-secret sauce that makes it possible for us to build and release products. We run CumulusCI automation throughout our development lifecycle, starting from feature branches all the way through delivery of the latest release. 
+The CumulusCI suite of tools is part of the not-so-secret sauce that makes it possible to build and release products. CumulusCI automation runs throughout our development lifecycle, starting from feature branches through the delivery of the latest release. 
 
-* GitHub repositories serve as our version-controlled source repositories.
-* The CumulusCI command-line interface, CCI, lets us run single-action tasks and multiple-action flows for development and testing.
+* GitHub repositories serve as version-controlled source repositories.
+* The CumulusCI command-line interface, ``cci``, runs single-action tasks and multiple-action flows for development and testing.
 * MetaCI uses CumulusCI flows to build Salesforce managed packages from GitHub repositories.
 * MetaDeploy automates setup and configuration of customer orgs.
 
-
-You can use the very same automation that we use internally to quickly:
+You can use the very same automation used internally by Salesforce to quickly:
 
 * Build sophisticated orgs with dependencies automatically installed.
 * Load and capture sample datasets to make your orgs feel real.
@@ -27,12 +29,23 @@ You can use the very same automation that we use internally to quickly:
 
 The automation defined using CumulusCI is portable. It's stored in a source repository and can be run from your local command line, from a continuous integration system, or from a customer-facing installer. CumulusCI can run automation on scratch orgs created using the Salesforce CLI, or on persistent orgs like sandboxes, production orgs, and Developer Edition orgs.
 
-Finally, by way of introduction, CumulusCI is more than just a set of tools. It represents our holistic approach to product development. Rather than focusing on just the org (the [org development model](https://trailhead.salesforce.com/en/content/learn/modules/org-development-model)) or on the package (the [package development model](https://trailhead.salesforce.com/en/content/learn/modules/sfdx_dev_model)),  Salesforce.org has implemented its own _product delivery model_ using CumulusCI. It helps us focus on the customer experience, while also paying attention to technical considerations, such as whether an individual component is best distributed within a package, or as additional unpackaged metadata, or as setup automation that runs before or after a package is installed.
+Finally, by way of introduction, CumulusCI is more than just a set of tools. It represents our holistic approach to product development. Rather than focusing on just the `Org Development Model <https://trailhead.salesforce.com/en/content/learn/modules/org-development-model>`_ or the `Package Development Model <https://trailhead.salesforce.com/en/content/learn/modules/sfdx_dev_model>`_,  Salesforce.org has implemented its own *Product Delivery Model* using CumulusCI. 
 
-No matter how much complexity you're managing in your development lifecycle, we invite you to see how you can enhance customers' experience of your products using CumulusCI.
+
+
+The Product Delivery Model
+--------------------------
+
+The Product Delivery Model focuses on the customer experience, not on the technical artifacts you're delivering. When building a product, there are detailed technical considerations for whether an individual component is best distributed within a package, or as additional unpackaged metadata, or as setup automation that runs before or after a package is installed. CumulusCI makes it possible to deliver a first class, fully configured product that makes use of these different techniques. 
+
+CumulusCI automation, which makes it easy to create products that span multiple package repositories and include complex setup operations, best implements the Product Delivery Model, along with MetaDeploy and other applications in CumulusCI.
+
+
+
 Anyone Can Use CumulusCI
---------
-Salesforce.org uses CumulusCI to develop products for our nonprofit and education constituents–both public, open source products like NPSP, and commercial managed package products that are developed in private GitHub repositories. But anyone developing on the Salesforce platform can use CumulusCI. It's generic tooling that supports both open source and private development.
+------------------------
+
+Salesforce.org uses CumulusCI to develop products for our nonprofit and education constituents -- both public, open source products like NPSP, and commercial managed package products that are developed in private GitHub repositories. But anyone developing on the Salesforce platform can use CumulusCI. It's generic tooling that supports both open source and private development.
 
 Automation defined using CumulusCI can support all roles on a project.
 
@@ -44,21 +57,28 @@ Automation defined using CumulusCI can support all roles on a project.
 * *Partners* can create their own projects on top of your package.
 * *Customers* can install the product and get set up using the same automation steps used during development and QA.
 
+
+
 Where Does CumulusCI Fit in the Toolchain?
---------
+------------------------------------------
 
 Developers often ask whether CumulusCI competes with or replaces Salesforce DX, the Salesforce command line interface for development, testing, and continous integration. It doesn't. Like Salesforce DX, CumulusCI is designed to maintain the source of truth for a project in a version-controlled repository, and to make it as easy as possible to set up an org from scratch. CumulusCI uses the Salesforce CLI to perform operations such as creating scratch orgs, and is an alternative to bash scripts for running sequences of Salesforce CLI commands.
 
-CumulusCI builds on top of the commands provided by the Salesforce CLI and helps to manage and orchestrate them into a simple and straightforward user experience. CumulusCI prescribes a complete development, test, and release process out-of-the-box, while the Salesforce CLI is a lower level toolbelt that applies to particular processes within the overall process.
+CumulusCI builds on top of the commands provided by the Salesforce CLI and helps to manage and orchestrate them into a simple and straightforward user experience. CumulusCI prescribes a complete development, test, and release process that comes with its standard library, while the Salesforce CLI is a lower level toolbelt that applies to particular processes within the overall process.
 
-For non-developers, knowing Salesforce DX isn't a requirement for using CumulusCI. Neither is knowing Python, the language CumulusCI is written in (in the same way that most Salesforce DX users don't need to know Node.js). If you're going to get fancy with CumulusCI customizations, then Python comes in handy.
+For non-developers, knowing Salesforce DX isn't a requirement for using CumulusCI. Neither is knowing Python, the language CumulusCI is written in (in the same way that most Salesforce DX users don't need to know Node.js). If you're going to get fancy with CumulusCI customizations, only then does Python come in handy.
+
+
 
 Why Is It Called CumulusCI?
---------
-Before there was the toolset that we know today as CumulusCI, there was a product that would go on to become Nonprofit Success Pack. This product had the code name, Cumulus. Early on, we created our own continuous integration (CI) tools for the Cumulus product. This tooling expanded in scope and scale to eventually become CumulusCI. Even though it's used for much more than CI and for many more products than just NPSP, the name has stuck.
+---------------------------
+
+Before there was the toolset that we know today as CumulusCI, there was a product that would go on to become Nonprofit Success Pack (NPSP). This product had the code name Cumulus. Early on, we created our own continuous integration (CI) tools for the Cumulus product. This tooling expanded in scope and scale to eventually become CumulusCI. Even though it's used for much more than CI, and for many more products than just NPSP, the name has stuck.
+
+
 
 Follow a Trailhead Tutorial to Get Set Up
---------
+-----------------------------------------
 
 For anyone new to CumulusCI, we recommend starting with `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ on Trailhead. This trail walks through an example of building an extensible app for food banks, and shows you how to set up an environment with CumulusCI.
 
@@ -67,7 +87,7 @@ If you already have the Salesforce CLI installed and configured, installing Cumu
 
 
 Learn More Through Demos
------
+------------------------
 
 Love demos? These no-audio screencasts show how to use CumulusCI from a command line.
 
@@ -106,58 +126,39 @@ Customize flows and use CumulusCI for QA.
 For a narrated demo, see Jason Lantz's `PyCon 2020 presentation <https://www.youtube.com/watch?v=XL77lRTVF3g>`_ (00:36 through 00:54).
 
 
-Common Misconceptions
----------------------
-
-Why is it called CumulusCI?
-  CumulusCI was originally created to power continuous integration (CI) for Cumulus, which was the code name for Salesforce.org's Nonprofit Success Pack. These days, it is used for many projects and supports activities beyond just CI, but the name has stuck.
-
-Is CumulusCI hard to install?
-  No. If you already have the Salesforce CLI installed and configured, installing CumulusCI for use across any project is a one-time process that takes 5-10 minutes.
-
-Is CumulusCI specific to Salesforce.org or the nonprofit and education verticals?
-  No. It is generic tooling and we aim to provide a best-practice process for anyone doing development on the Salesforce platform.
-
-Is CumulusCI only for Open Source projects?
-  No. Salesforce.org uses CumulusCI for both free, public Open Source products and for commercial managed package products developed in private GitHub repositories.
-
-Is CumulusCI a replacement for the Salesforce CLI?
-  No. CumulusCI builds on top of the commands provided by the Salesforce CLI and helps to manage and orchestrate them into a simple and straightforward user experience. CumulusCI prescribes a complete development, test, and release process out-of-the-box, while the Salesforce CLI is a lower level toolbelt that more agnostic to a particular process.
-
-Does CumulusCI compete with Salesforce DX?
-  No. CumulusCI shares a similar philosophy to Salesforce DX: the source of truth for a project should be in a version-controlled repository, and it should be as easy as possible to set up an org from scratch. CumulusCI uses the Salesforce CLI to perform certain operations such as creating scratch orgs, and is an alternative to bash scripts for running sequences of Salesforce CLI commands.
-
-Do you need to know Python to use CumulusCI?
-  No. While CumulusCI is written in Python, most CumulusCI users don't need to know Python, in the same way that most Salesforce DX users don't need to know Node.js.
-
 
 What to Do Next
------------------
+---------------
 
 (TODO)
 
-Depending on your role, certain aspects of CumulusCI may pertain to you more than others.
-Use this section as a guide for which parts of the documentation are most likely to be relevant to you.
+Depending on your role, certain aspects of CumulusCI to you more than others. Use this section as a guide for which parts of the documentation are most likely to be relevant to you.
+
 
 For everyone
 ^^^^^^^^^^^^
+
 
 Developers
 ^^^^^^^^^^
     * Tutorial
 
+
 Quality Engineers
 ^^^^^^^^^^^^^^^^^
 Text here.
+
 
 Product Managers
 ^^^^^^^^^^^^^^^^
 Text here.
 
+
 Doc Writers
 ^^^^^^^^^^^
     * :doc:`Automated Release Notes`
     * Parent/Child branch name stuff
+
 
 Release Engineers
 ^^^^^^^^^^^^^^^^^
