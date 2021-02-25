@@ -131,7 +131,7 @@ In a new terminal window, verify that CumulusCI installed correctly by running `
 .. code-block:: console
 
     $ cci version
-    CumulusCI version: |cumulusci_version| (/path/to/bin/cci)
+    CumulusCI version: 3.29.0 (/path/to/bin/cci)
     Python version: 3.8.5 (/path/to/bin/python)
 
     You have the latest version of CumulusCI.
