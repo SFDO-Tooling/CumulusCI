@@ -1,13 +1,12 @@
 Release a Managed Package
 =========================
-
-This section outlines how to release a first generation (1GP) Salesforce managed package project. Salesforce.org's Release Engineering team practices :doc:`CumulusCI Flow <cumulusci_flow>`, which incorporates all of these steps.
+This section outlines how to release a first generation (1GP) Salesforce managed package project.
+Salesforce.org's Release Engineering team practices :doc:`CumulusCI Flow <cumulusci_flow>`, which incorporates all of these steps.
 
 
 
 Prerequisites
 -------------
-
 This section assumes:
 
 * :doc:`CumulusCI is installed <get_started>` on your computer.
@@ -42,7 +41,7 @@ If you haven't created a managed package project, follow these steps:
 Deploy to a Packaging Org
 -------------------------
 
-CumulusCI deploys to a ``packaging`` org with the ``ci_master`` flow.
+CumulusCI deploys metadata to a ``packaging`` org with the ``ci_master`` flow.
 
 .. warning::
 
@@ -60,7 +59,7 @@ The ``ci_master`` flow executes these tasks in the target org.
 * Deploys destructive changes to remove metadata in the target org that is no longer in the local repository
 * Runs the ``config_packaging`` flow, which by default consists only of the :ref:`update_admin_profile` task.
 
-.. admonition:: Wizard Tip 
+.. tip:: 
 
     To list each step in the ``ci_master`` flow, run ``cci flow info ci_master``.
 
@@ -189,13 +188,12 @@ To set up MetaDeploy as a service:
 
     $ cci service connect metadeploy --url <metadeploy_url> --token <token_name>
 
-..
-
-    Replace ``<metadeploy_url>`` with the main url to your instance of MetaDeploy, and ``<token_name>`` with a MetaDeploy API token generated from ``<metadeploy_url/admin/authtoken/token>``.
+Replace ``<metadeploy_url>`` with the main url to your instance of MetaDeploy, and ``<token_name>`` with a MetaDeploy API token generated from ``<metadeploy_url/admin/authtoken/token>``.
 
 Confirm that metadeploy is set up by running ``cci service list``, and that the line for ``metadeploy`` has a checkmark in the ``Configured`` column.
 
 .. image:: images/cci_service_list.png
+    :alt: Output from "cci service list" command
 
 To publish an install plan to MetaDeploy, use the ``metadeploy_publish`` task.
 
@@ -228,14 +226,11 @@ CumulusCI can also schedule push upgrades with the ``push_all`` task.
 
     $ cci task run push_all --version <version> 
 
-..
-
-    Replace ``<version>`` with the version of the managed package to be pushed.
+ Replace ``<version>`` with the version of the managed package to be pushed.
 
 By default, push upgrades are scheduled to run immediately.
 
-To schedule the push upgrades to occur at a specific time, use the ``--start_time`` option with a time value in UTC. (Time values are
-given in the following format: ``YYYY-MM-DDTHH:MM``.)
+To schedule the push upgrades to occur at a specific time, use the ``--start_time`` option with a time value in UTC. 
 
 .. code-block:: console
 
@@ -243,8 +238,8 @@ given in the following format: ``YYYY-MM-DDTHH:MM``.)
 
 There are additional tasks related to push upgrades in the CumulusCI standard library.
 
-* ``push_failure_report``: Produces a ``csv`` report of the failed and otherwise anomalous push jobs
-* ``push_list``: Schedules a push upgrade of a package version to all orgs listed in a specified file
-* ``push_qa``: Schedules a push upgrade of a package version to all orgs listed in ``push/orgs_qa.txt``
-* ``push_sandbox``: Schedules a push upgrade of a package version to all subscribers' sandboxes
-* ``push_trial``: Schedules a push upgrade of a package version to Trialforce Template orgs listed in ``push/orgs_trial.txt``
+* :ref:`push_failure_report`: Produces a ``csv`` report of the failed and otherwise anomalous push jobs
+* :ref:`push_list`: Schedules a push upgrade of a package version to all orgs listed in a specified file
+* :ref:`push_qa`: Schedules a push upgrade of a package version to all orgs listed in ``push/orgs_qa.txt``
+* :ref:`push_sandbox`: Schedules a push upgrade of a package version to all subscribers' sandboxes
+* :ref:`push_trial`: Schedules a push upgrade of a package version to Trialforce Template orgs listed in ``push/orgs_trial.txt``
