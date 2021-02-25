@@ -15,8 +15,8 @@ class CCIModel(BaseModel):
     @classmethod
     def parse_from_yaml(cls, source: Union[str, Path, IO]):
         "Parse from a path, url, path-like or file-like"
-        with load_from_source(source) as (path, file):
-            data = load_yaml_data(file)
+        with load_from_source(source) as (f, path):
+            data = load_yaml_data(f)
             return cls.parse_obj(data, path).__root__
 
     @classmethod

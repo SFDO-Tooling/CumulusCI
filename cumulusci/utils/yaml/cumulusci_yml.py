@@ -209,7 +209,7 @@ class ErrorDict(TypedDict):
 def _log_yaml_error(logger, error: ErrorDict):
     "Format and log a Pydantic-style error dictionary"
     logger.warning("CumulusCI Parsing Error:")
-    loc = " -> ".join((repr(x) for x in error["loc"]))
+    loc = " -> ".join(repr(x) for x in error["loc"] if x != "__root__")
     logger.warning("%s : %s", loc, error["msg"])
     logger.error(
         "NOTE: These errors will cause major problems in future versions of CumulusCI."
@@ -218,7 +218,7 @@ def _log_yaml_error(logger, error: ErrorDict):
     logger.error(
         "If you think your YAML has no error, please report the bug to the CumulusCI team."
     )
-    logger.error("https://github.com/SFDO-Tooling/CumulusCI/")
+    logger.error("https://github.com/SFDO-Tooling/CumulusCI/issues/")
 
 
 def cci_safe_load(
@@ -233,7 +233,7 @@ def cci_safe_load(
 
     logger = logger or default_logger
 
-    with load_from_source(source) as (filename, data_stream):
+    with load_from_source(source) as (data_stream, filename):
         data = load_yaml_data(data_stream, filename)
         context = context or filename
 
@@ -254,13 +254,14 @@ def cci_safe_load(
         return data
 
 
-# validate YML files as a CLI option
+# validate YML files as a CLI for smoke testing
 if __name__ == "__main__":
     import sys
     from glob import glob
     from pprint import pprint
 
     def main():
+        "Validate YML files from CLI for smoke testing"
 
         globs = sys.argv[1:]
         errors = []
@@ -269,10 +270,7 @@ if __name__ == "__main__":
             for filename in filenames:
                 print("Validating", filename)
 
-                def logger(val):
-                    errors.append(val)
-
-                cci_safe_load(filename, filename, logger)
+                cci_safe_load(filename, filename, logger=getLogger(__name__))
         pprint(errors)
 
     main()

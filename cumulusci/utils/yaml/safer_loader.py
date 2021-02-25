@@ -53,7 +53,7 @@ def load_yaml_data(
     If you use this method directly (or, heaven forbid, yaml.safe_load)
     consider making a CCIModel subclass instead.
     """
-    with load_from_source(source) as (filename, f_config):
+    with load_from_source(source) as (f_config, filename):
         if filename == "<stream>":
             filename = "a yaml file"
         context = context or filename
