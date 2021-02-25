@@ -39,16 +39,16 @@ metadata from the org, *transform* it to include the desired values (as well as 
 customization), and *load* the transformed metadata back into the org. CumulusCI now ships
 with a task, ``add_standard_value_set_entries``, that makes it easy to do just this:
 
-  .. code-block:: yaml
+.. code-block:: yaml
 
-    add_standard_value_set_entries:
-        options:
-            entries:
-                - fullName: "New_Value"
-                  label: "New Value"
-                  closed: False
-            api_names:
-                - CaseStatus
+  add_standard_value_set_entries:
+      options:
+          entries:
+              - fullName: "New_Value"
+                label: "New Value"
+                closed: False
+          api_names:
+              - CaseStatus
 
 This task would retrieve the existing ``Case.Status`` picklist value set from the org,
 add the ``New_Value`` entry to it, and redeploy the modified metadata - ensuring that
