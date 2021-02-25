@@ -122,7 +122,7 @@ To create a custom Connected App, run the ``connected_app`` task, and then manua
     Make sure to create the Connected App in a production org!
 
 
-Example: Create a Connected App in the DevHub org connected to ``sfdx`` with the label ``cumulusci`` and set it as the ``connected_app`` service in CumulusCI.
+This command will create a Connected App in the DevHub org connected to ``sfdx`` with the label ``cumulusci`` and set it as the ``connected_app`` service in CumulusCI.
 
 .. code-block:: console
 
@@ -133,6 +133,17 @@ After the Connected App has been created, verify that it's connected to CumulusC
 .. code-block:: console
 
     $ cci service list
+    +Services--------------------------------------------------------------------------------------------------------+
+    | Name           Description                                                                          Configured |
+    +----------------------------------------------------------------------------------------------------------------+
+    | connected_app  A Connected App is required to connect to and run commands against persistent orgs.  ✔          |
+    | devhub         Configure which SFDX org to use as a Dev Hub for creating scratch orgs               ✔          |
+    | github         Configure connection for github tasks, e.g. Create Release                           ✔          |
+    | metaci         Connect with a MetaCI site to run builds of projects from this repository                       |
+    | metadeploy     Connect with a MetaDeploy site to publish installers from this repository            ✔          |
+    | apextestsdb    Configure connection for ApexTestsDB tasks, e.g. ApextestsdbUpload                              |
+    | saucelabs      Configure connection for saucelabs tasks.                                                       |
+    +----------------------------------------------------------------------------------------------------------------+
 
 To edit the Connected App's OAuth scopes:
 
