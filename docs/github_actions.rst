@@ -292,7 +292,7 @@ Set this variable equal to the following json string:
 
 You can see an example of setting this environment variable in a GitHub actions workflow in our `demo repository <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11>`_.
 
-.. note:: 
+.. admonition:: Wizard Note
 
   If the target org's instance URL is instanceless (i.e. does not contain a segment like 
   cs46 identifying the instance), then for sandboxes it is also necessary to set 
