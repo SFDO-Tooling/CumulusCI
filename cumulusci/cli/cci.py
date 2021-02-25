@@ -1610,7 +1610,9 @@ class RunTaskCommand(click.MultiCommand):
             finally:
                 RUNTIME.alert(f"Task complete: {task_name}")
 
-        return click.Command(task_name, params=params, callback=run_task)
+        cmd = click.Command(task_name, params=params, callback=run_task)
+        cmd.help = task_config.description
+        return cmd
 
     def format_help(self, ctx, formatter):
         """Custom help for `cci task run`"""
