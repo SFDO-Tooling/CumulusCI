@@ -1,4 +1,5 @@
 import typing as T
+from cumulusci.utils.backports.py37 import TypedDict
 
 
 class CumulusCIException(Exception):
@@ -276,7 +277,7 @@ class YAMLParseException(CumulusCIException):
     """Error parsing a YAML File"""
 
 
-class ErrorDict(T.TypedDict):
+class ErrorDict(TypedDict):
     "The structure of a Pydantic error dictionary. Google TypedDict if its new to you."
     loc: T.Sequence[T.Union[str, int]]
     msg: str
