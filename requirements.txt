@@ -7,6 +7,7 @@ coloredlogs==15.0
 cryptography==3.3.2
 docutils==0.16
 Faker==6.1.1
+furo==2020.10.15b13
 fs==2.4.12
 github3.py==1.3.0
 humanfriendly==9.1
