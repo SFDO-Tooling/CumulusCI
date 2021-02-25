@@ -62,10 +62,9 @@ Verify Your Connected Orgs
 --------------------------
 
 Run ``cci org list`` to see your org listed under the "Connected Org" table.
+This example output shows a single persistent org connected to CumulusCI with the name ``devhub``.
 
-    Example: A single persistent org connected to CumulusCI with the name ``devhub``.
-
-.. code-block:: yaml
+.. code-block:: console
 
     $ cci org list
 
