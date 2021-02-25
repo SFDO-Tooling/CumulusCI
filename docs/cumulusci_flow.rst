@@ -145,12 +145,12 @@ The following shows the default values that CumulusCI comes with:
 
 .. code-block:: yaml
 
-   project:
-      git:
-         default_branch: main
-         prefix_feature: feature/
-         prefix_beta: beta/
-         prefix_release: release/
+  project:
+    git:
+      default_branch: main
+      prefix_feature: feature/
+      prefix_beta: beta/
+      prefix_release: release/
 
 These values can be changed to match naming conventions used by your own project.
 
