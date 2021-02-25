@@ -44,7 +44,7 @@ To see what components have changed in a target org use the :ref:`list_changes` 
 
     $ cci task run list_changes --org dev
 
-.. note::
+.. admonition:: Wizard Note
     
     This functionality relies on Salesforce's `source tracking <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_source_tracking_sandboxes.htm>`_
     feature, which is currently available only in Scratch Orgs, Developer Sandboxes, and Developer Pro Sandboxes.
@@ -266,8 +266,7 @@ GitHub Repository Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 GitHub repository dependencies create a dynamic dependency between the current project and another CumulusCI project on GitHub.
-
-    Example: Salesforce EDA
+This is an example of listing Salesforce.org's `EDA <https://github.com/SalesforceFoundation/EDA>`_ product as a dependency.
 
 .. code-block:: yaml
  
@@ -374,10 +373,9 @@ Depending on whether or not the package with namespace ``npe01`` is installed, t
 
 Hierarchical Dependencies
 *************************
-
 Managed package dependencies can handle a hierarchy of dependencies between packages.
-
-Example: Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages, one of which (Households) is an extension of another (Contacts & Organizations).
+Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages,
+one of which (Households) is an extension of another (Contacts & Organizations).
 
 These dependencies are listed under the ``project`` section of the ``cumulusci.yml`` file.
 
@@ -397,9 +395,12 @@ These dependencies are listed under the ``project`` section of the ``cumulusci.y
             - namespace: npe5
               version: 3.5
 
-The project requires ``npo02 version 3.8``, which itself requires ``npe01 version 3.6``. By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently.
+The project requires ``npo02 version 3.8``, which itself requires ``npe01 version 3.6``.
+By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently.
 
-So if the target org currently has ``npe01 version 3.7``, ``npe01`` needs to be uninstalled to downgrade to ``3.6``. However, ``npo02`` requires ``npe01``, so uninstalling ``npe01`` also requires uninstalling ``npo02``. (In this scenario ``npe03``, ``npe04``, and ``npe05`` do not have to be uninstalled to uninstall ``npe01``.)
+So if the target org currently has ``npe01 version 3.7``, ``npe01`` needs to be uninstalled to downgrade to ``3.6``.
+However, ``npo02`` requires ``npe01``, so uninstalling ``npe01`` also requires uninstalling ``npo02``.
+(In this scenario ``npe03``, ``npe04``, and ``npe05`` do not have to be uninstalled to uninstall ``npe01``.)
 
 
 
@@ -466,7 +467,9 @@ This feature supports CumulusCI's automatic dependency resolution by avoiding a 
 
 One drawback of this approach is that developers need to handle the diffs in the ``meta.xml`` files by either ignoring them, or committing them as part of their work in a feature branch. 
 
-Example: The diffs come from a scenario of Package B, which extends Package A. When a new production release of Package A is published, the ``update_dependencies`` task for Package B installs the new version. When metadata is then retrieved from the org, the ``meta.xml`` files reference the new version while the repository's ``meta.xml`` files reference an older version.
+For example, the diffs come from a scenario of Package B, which extends Package A.
+When a new production release of Package A is published, the ``update_dependencies`` task for Package B installs the new version.
+When metadata is then retrieved from the org, the ``meta.xml`` files reference the new version while the repository's ``meta.xml`` files reference an older version.
 
 The main difference between this situation and one where the ``meta.xml`` file is automatically cleaned is that avoiding the diffs in ``meta.xml`` files is a convenience for developers rather than a requirement for builds and releases. 
     
