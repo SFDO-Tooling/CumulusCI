@@ -1,9 +1,13 @@
 Connect Persistent Orgs
 =======================
 
-In addition to creating :doc:`scratch orgs <scratch_orgs>` in CumulusCI, you can connect persistent orgs to your project to run tasks and flows on them. This feature supports use cases such as deploying to a Developer Edition org to release a package version, or installing to a sandbox for user acceptance testing.
+In addition to creating :doc:`scratch orgs <scratch_orgs>` in CumulusCI, you can connect persistent orgs to your project to run tasks and flows on them.
+This feature supports use cases such as deploying to a Developer Edition org to release a package version, or installing to a sandbox for user acceptance testing.
 
-.. attention:: A different setup is required to connect to orgs in the context of an automated build. See :doc:`continuous integration <continuous_integration>` for more information.
+.. attention::
+
+    A different setup is required to connect to orgs in the context of an automated build.
+    See :doc:`continuous integration <continuous_integration>` for more information.
 
 
 
@@ -16,12 +20,14 @@ To connect to a persistent org:
 
     $ cci org connect <org_name>
 
-This command automatically opens a browser window pointed to a Salesforce login page. The provided ``<org_name>`` is the org that CumulusCI directs you to log into.
+This command automatically opens a browser window pointed to a Salesforce login page.
+The provided ``<org_name>`` is the alias that CumulusCI will assign to the persistent org.
 
 .. note::
+
     Connecting an org via ``cci org connect`` does *not* expose that org to the Salesforce CLI.
 
-If your org has a custom domain, use the ``--login-url`` option along with the org's login url.
+If your org has a custom domain, use the ``--login-url`` option along with the corresponding login url.
 
 .. code-block:: console
 
@@ -30,8 +36,8 @@ If your org has a custom domain, use the ``--login-url`` option along with the o
 
 Production and Developer Edition Orgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-No options are needed for these org types. Just run the same command you normally would to connect to a persistent org.
+No options are needed for these org types.
+Just run the same command you normally would to connect to a persistent org.
 
 .. code-block:: console
 
@@ -46,7 +52,9 @@ For sandboxes, pass the ``--sandbox`` flag along with the org name.
 
     $ cci org connect <org_name> --sandbox
 
-.. note:: The ``--sandbox`` flag can also be used for connecting a scratch org created externally to CumulusCI.
+.. note::
+    
+    The ``--sandbox`` flag can also be used for connecting a scratch org created externally to CumulusCI.
 
 
 
@@ -91,8 +99,8 @@ Verify a successful connection to the org by logging in.
 
 Global Orgs
 -----------
-
-By default, ``cci org connect`` stores the OAuth credentials for connected orgs in a *project-specific* keychain. Using a project-specific keychain means that an org connected in Project A's directory isn't available when you're working in Project B's directory.
+By default, ``cci org connect`` stores the OAuth credentials for connected orgs in a *project-specific* keychain.
+Using a project-specific keychain means that an org connected in Project A's directory isn't available when you're working in Project B's directory.
 
 Connect an org and make it available to *all* CumulusCI projects on your computer by passing the ``--global-org`` flag.
 
@@ -104,16 +112,18 @@ Connect an org and make it available to *all* CumulusCI projects on your compute
 
 Use a Custom Connected App
 ----------------------------
-
-CumulusCI uses a preconfigured Connected App to authenticate to Salesforce orgs that use OAuth2. In most cases this preconfigured app is all you need to authenticate into orgs. To control the Connected App for specific security or compliance requirements (such as adding a private key to sign a certificate connected with the configuration, or enforcing restrictions on user activity), create your own Connected App and configure CumulusCI to use it when connecting to orgs.
+CumulusCI uses a preconfigured Connected App to authenticate to Salesforce orgs that use OAuth2.
+In most cases this preconfigured app is all you need to authenticate into orgs.
+To control the Connected App for specific security or compliance requirements (such as adding a private key to sign a certificate connected with the configuration, or enforcing restrictions on user activity), create your own Connected App and configure CumulusCI to use it when connecting to orgs.
 
 To create a custom Connected App, run the ``connected_app`` task, and then manually `edit its configuration <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_connected_app.htm>`_ to suit your requirements.
 
-.. important :: Make sure to create the Connected App in a production org!
+.. important::
 
-..
+    Make sure to create the Connected App in a production org!
 
-    Example: Create a Connected App in the DevHub org connected to ``sfdx`` with the label ``cumulusci`` and set it as the ``connected_app`` service in CumulusCI.
+
+Example: Create a Connected App in the DevHub org connected to ``sfdx`` with the label ``cumulusci`` and set it as the ``connected_app`` service in CumulusCI.
 
 .. code-block:: console
 
