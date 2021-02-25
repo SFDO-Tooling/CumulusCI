@@ -5,8 +5,6 @@ Reference
    :maxdepth: 1
 
    cheat_sheet
-   commands
    tasks
    flows
-   cci_yml_reference
    env_var_reference
