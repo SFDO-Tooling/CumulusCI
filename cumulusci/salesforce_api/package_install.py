@@ -4,10 +4,10 @@ from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.dependencies.dependencies import ManagedPackageInstallOptions
-from typing import cast
+from typing import Optional, cast
 import functools
 import logging
+import pydantic
 
 from simple_salesforce.api import SFType
 from simple_salesforce.exceptions import SalesforceMalformedRequest
@@ -17,6 +17,14 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils.waiting import poll, retry
 
 logger = logging.getLogger(__name__)
+
+
+class ManagedPackageInstallOptions(pydantic.BaseModel):
+    activate_remote_site_settings: bool = True
+    name_conflict_resolution: str = "Block"
+    password: Optional[str]
+    security_type: str = "FULL"
+
 
 DEFAULT_PACKAGE_RETRY_OPTIONS = {
     "retries": 20,

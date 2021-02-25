@@ -22,7 +22,7 @@ class CCIModel(BaseModel):
             return cls.parse_obj(data, path).__root__
 
     @classmethod
-    def parse_obj(cls, data: [dict, list], path: str = None):
+    def parse_obj(cls, data: Union[dict, list], path: str = None):
         "Parse a structured dict or list into Model objects"
         try:
             return super().parse_obj(data)

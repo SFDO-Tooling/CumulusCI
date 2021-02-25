@@ -203,7 +203,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 self.logger.info(
                     "CUMULUSCI_REPO_URL found, using its value as the repo url, owner, and name"
                 )
-            url_info = self._split_repo_url(repo_url)
+            url_info = self._split_repo_url(repo_url)  # FIXME: refactor
             info.update(url_info)
 
     def _override_repo_env_var(self, repo_env_var, local_var, info):
@@ -281,7 +281,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         url_line = self.git_config_remote_origin_url()
-        return self._split_repo_url(url_line)["name"]
+        return split_repo_url(url_line)[1]
 
     @property
     def repo_url(self):
@@ -305,7 +305,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         url_line = self.git_config_remote_origin_url()
-        return self._split_repo_url(url_line)["owner"]
+        return split_repo_url(url_line)[0]
 
     @property
     def repo_branch(self):
@@ -492,9 +492,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
     def get_repo_from_url(self, url):
-        splits = self._split_repo_url(url)
-        gh = self.get_github_api(splits["owner"], splits["name"])
-        repo = gh.repository(splits["owner"], splits["name"])
+        owner, name = split_repo_url(url)
+        gh = self.get_github_api(owner, name)
+        repo = gh.repository(owner, name)
 
         return repo
 

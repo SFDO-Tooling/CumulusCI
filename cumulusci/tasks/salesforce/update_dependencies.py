@@ -1,10 +1,9 @@
+from cumulusci.salesforce_api.package_install import ManagedPackageInstallOptions
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.core.dependencies.dependencies import (
+    DependencyResolutionStrategy,
     ManagedPackageDependency,
     parse_dependency,
-)
-from cumulusci.core.dependencies.resolvers import DependencyResolutionStrategy
-from cumulusci.core.dependencies.resolution import (
     get_resolver_stack,
     get_static_dependencies,
 )
@@ -85,80 +84,84 @@ class UpdateDependencies(BaseSalesforceTask):
                     "An invalid dependency was specified for ignore_dependencies."
                 )
 
-        if "resolvers" not in self.options:
-            raise TaskOptionsError("The `resolvers` option is required.")
         self.resolvers = get_resolver_stack(
-            self.project_config, self.options.get("resolvers")
+            self.project_config, self.options.get("resolvers") or "production"
         )
 
         # Be backwards-compatible: if `include_beta` is set and False,
         # remove the `latest_beta` resolver from the stack.
-        if (
-            DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG in self.resolvers
-            and (
-                (
-                    "include_beta" in self.options
-                    and not process_bool_arg(self.options.get("include_beta", False))
+        if DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG in self.resolvers:
+            if "include_beta" in self.options and not process_bool_arg(
+                self.options.get("include_beta", False)
+            ):
+                self.resolvers.remove(
+                    DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
                 )
-                or not self.org_config.scratch
-            )
-        ):
-            self.resolvers.remove(
-                DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
-            )
+            elif not self.org_config.scratch:
+                self.logger.warning(
+                    "Target org is a persistent org; removing the Beta resolver."
+                )
+                self.resolvers.remove(
+                    DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
+                )
 
         # Likewise remove 2GP resolution strategies if prefer_2gp_from_release_branch
         # is explicitly False
+        resolvers_2gp = [
+            DependencyResolutionStrategy.STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH,
+            DependencyResolutionStrategy.STRATEGY_2GP_RELEASE_BRANCH,
+            DependencyResolutionStrategy.STRATEGY_2GP_EXACT_BRANCH,
+            DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG,
+        ]
+
+        if "prefer_2gp_from_release_branch" in self.options and not process_bool_arg(
+            self.options.get("prefer_2gp_from_release_branch", False)
+        ):
+            self.resolvers = [r for r in self.resolvers if r not in resolvers_2gp]
+
+        unsafe_prod_resolvers = [
+            *resolvers_2gp,
+            DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG,
+        ]
+        if not self.org_config.scratch and any(
+            r in self.resolvers for r in unsafe_prod_resolvers
+        ):
+            self.logger.warning(
+                "Target org is a persistent org; removing Beta resolvers. Consider selecting the `production` resolver stack."
+            )
+            self.resolvers = [
+                r for r in self.resolvers if r not in unsafe_prod_resolvers
+            ]
+
         if (
             "prefer_2gp_from_release_branch" in self.options
-            and not process_bool_arg(
-                self.options.get("prefer_2gp_from_release_branch", False)
+            or "include_beta" in self.options
+        ):
+            self.logger.warn(
+                "The include_beta and prefer_2gp_from_release_branch options "
+                "for update_dependencies are deprecated. Use resolver stacks instead."
             )
-        ) or not self.org_config.scratch:
-            if DependencyResolutionStrategy.STRATEGY_2GP_EXACT_BRANCH in self.resolvers:
-                self.resolvers.remove(
-                    DependencyResolutionStrategy.STRATEGY_2GP_EXACT_BRANCH
-                )
-            if (
-                DependencyResolutionStrategy.STRATEGY_2GP_RELEASE_BRANCH
-                in self.resolvers
-            ):
-                self.resolvers.remove(
-                    DependencyResolutionStrategy.STRATEGY_2GP_RELEASE_BRANCH
-                )
-            if (
-                DependencyResolutionStrategy.STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH
-                in self.resolvers
-            ):
-                self.resolvers.remove(
-                    DependencyResolutionStrategy.STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH
-                )
 
-            if (
-                "prefer_2gp_from_release_branch" in self.options
-                or "include_beta" in self.options
-            ):
-                self.logger.warn(
-                    "The include_beta and prefer_2gp_from_release_branch options "
-                    "for update_dependencies are deprecated. Use resolver stacks instead."
-                )
+        self.install_options = ManagedPackageInstallOptions(
+            security_type=self.options.get("security_type", "FULL"),
+        )
 
     def _run_task(self):
         if not self.options["dependencies"]:
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
-        self.logger.info("Preparing static dependencies map")
+        self.logger.info("Resolving dependencies...")
         dependencies = get_static_dependencies(
             self.options["dependencies"],
             self.resolvers,
             self.project_config,
             ignore_deps=self.options.get("ignore_dependencies"),
         )
+        self.logger.info("Collected dependencies:")
 
-        self.logger.info("Dependencies:")
         for d in dependencies:
-            self.logger.info(d)
+            self.logger.info(f"    {d}")
 
         for d in dependencies:
             self._install_dependency(d)
@@ -177,10 +180,14 @@ class UpdateDependencies(BaseSalesforceTask):
                 )
             ):
                 dependency.install(
-                    self.org_config, self.managed_package_install_options
+                    self.project_config, self.org_config, self.install_options
+                )
+            else:
+                self.logger.info(
+                    f"{dependency} or a newer version is already installed; skipping."
                 )
         else:
-            dependency.install(self.org_config)
+            dependency.install(self.project_config, self.org_config)
 
     def freeze(self, step):  # TODO: reimplement
         ui_options = self.task_config.config.get("ui_options", {})

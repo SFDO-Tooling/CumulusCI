@@ -630,7 +630,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolvers: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -654,7 +654,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolvers: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -684,7 +684,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: False
+                        resolvers: production
             2:
                 flow: deploy_packaging
             3:
@@ -765,7 +765,7 @@ flows:
             1:
                 task: update_dependencies
                 options:
-                    include_beta: True
+                    resolvers: preproduction
             2:
                 task: deploy_pre
 
@@ -847,7 +847,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolvers: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -863,7 +863,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolvers: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -944,9 +944,8 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolvers: preproduction
                         dependencies: ^^github_package_data.dependencies
-                        prefer_2gp_from_release_branch: True
             3:
                 task: install_managed
                 options:
@@ -960,7 +959,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolvers: preproduction
             2:
                 task: install_managed_beta
             3:
@@ -1000,7 +999,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolvers: preproduction
             2:
                 task: install_managed
             3:
@@ -1195,25 +1194,28 @@ project:
     test:
         name_match: '%_TEST%'
     resolutions:
-        exact_2gp:
-            - tag
-            - exact_branch_2gp
-            - release_branch_2gp
-            - previous_release_branch_2gp
-            - latest_beta
-            - latest_release
-            - unmanaged
-        beta:
-            - tag
-            - release_branch_2gp
-            - previous_release_branch_2gp
-            - latest_beta
-            - latest_release
-            - unmanaged
-        production:
-            - tag
-            - latest_release
-            - unmanaged
+        preproduction: latest_release
+        production: latest_release
+        resolver_stacks:
+            exact_2gp:
+                - tag
+                - exact_branch_2gp
+                - release_branch_2gp
+                - previous_release_branch_2gp
+                - latest_beta
+                - latest_release
+                - unmanaged
+            include_beta:
+                - tag
+                - release_branch_2gp
+                - previous_release_branch_2gp
+                - latest_beta
+                - latest_release
+                - unmanaged
+            latest_release:
+                - tag
+                - latest_release
+                - unmanaged
     dependencies:
 
 orgs:
