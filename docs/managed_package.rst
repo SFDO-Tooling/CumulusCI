@@ -226,7 +226,7 @@ CumulusCI can also schedule push upgrades with the ``push_all`` task.
 
     $ cci task run push_all --version <version> 
 
- Replace ``<version>`` with the version of the managed package to be pushed.
+Replace ``<version>`` with the version of the managed package to be pushed.
 
 By default, push upgrades are scheduled to run immediately.
 
