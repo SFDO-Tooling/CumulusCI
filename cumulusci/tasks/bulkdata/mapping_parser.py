@@ -216,7 +216,7 @@ class MappingStep(CCIDictModel):
     @classmethod
     def fixup_lookup_names(cls, v):
         "Allow lookup objects to know the key they were attached to in the mapping file."
-        for name, lookup in v["lookups"].items():
+        for name, lookup in v.get("lookups", {}).items():
             lookup.name = name
         return v
 

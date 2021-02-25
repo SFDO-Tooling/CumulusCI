@@ -1,10 +1,11 @@
 from typing import Union, IO
-from pathlib import Path, Sequence
+from pathlib import Path
 
 from pydantic import BaseModel, ValidationError
-from pydantic.error_wrappers import ErrorWrapper
 
 from cumulusci.utils.yaml.safer_loader import load_from_source, load_yaml_data
+from cumulusci.utils.yaml.line_number_annotator import LineNumberAnnotator
+from cumulusci.core.exceptions import ConfigValidationError
 
 
 class CCIModel(BaseModel):
@@ -14,23 +15,32 @@ class CCIModel(BaseModel):
 
     @classmethod
     def parse_from_yaml(cls, source: Union[str, Path, IO]):
-        "Parse from a path, url, path-like or file-like"
+        """Parse from a path, url, path-like or file-like.py
+
+        Raise an ConfigValidationError on validation error."""
         with load_from_source(source) as (f, path):
-            data = load_yaml_data(f)
-            return cls.parse_obj(data, path).__root__
+            data, linenos = load_yaml_data(f)
+            return cls.parse_obj(data, linenos, path).__root__
 
     @classmethod
-    def parse_obj(cls, data: [dict, list], path: str = None):
+    def parse_obj(
+        cls, data: [dict, list], linenos: LineNumberAnnotator, path: str = None
+    ):
         "Parse a structured dict or list into Model objects"
+        assert linenos
         try:
             return super().parse_obj(data)
         except ValidationError as e:
-            _add_filenames(e, path)
-            raise e
+            newerr = linenos.enhance_locations(e, path)
+            raise newerr
 
     @classmethod
     def validate_data(
-        cls, data: Union[dict, list], context: str = None, on_error: callable = None
+        cls,
+        data: Union[dict, list],
+        linenums: LineNumberAnnotator,
+        context: str = None,
+        on_error: callable = None,
     ):
         """Validate data which has already been loaded into a dictionary or list.
 
@@ -40,12 +50,11 @@ class CCIModel(BaseModel):
         https://pydantic-docs.helpmanual.io/usage/models/#error-handling
         """
         try:
-            cls.parse_obj(data, context)
+            cls.parse_obj(data, linenums, context)
             return True
-        except ValidationError as e:
+        except ConfigValidationError as e:
             if on_error:
-                for error in e.errors():
-                    on_error(error)
+                on_error(e)
 
             return False
 
@@ -128,19 +137,3 @@ class CCIDictModel(CCIModel):
         if name in self._magic_fields:
             name = self._alias_for_field(name)
         del self.__dict__[name]
-
-
-def _add_filenames(e: ValidationError, filename):
-    def _recursively_add_filenames(val):
-        processed = False
-        if isinstance(val, Sequence):
-            for e in val:
-                _recursively_add_filenames(e)
-            processed = True
-        elif isinstance(val, ErrorWrapper):
-            val._loc = (filename, val._loc)
-
-            processed = True
-        assert processed, f"Should have processed by now {val}, {repr(val)}"
-
-    _recursively_add_filenames(e.raw_errors)

@@ -1,5 +1,4 @@
 import re
-import yaml
 
 from io import StringIO
 from logging import getLogger
@@ -10,6 +9,7 @@ from yaml.error import MarkedYAMLError
 
 from cumulusci.core.exceptions import YAMLParseException
 from cumulusci.utils.fileutils import load_from_source, FSResource
+from cumulusci.utils.yaml.line_number_annotator import safe_load_with_linenums
 
 
 NBSP = "\u00A0"
@@ -44,11 +44,13 @@ def _replace_nbsp(origdata, filename, logger=default_logger):
 
 def load_yaml_data(
     source: T.Union[str, T.IO[T.Text], Path, FSResource], context: str = None
-):
+) -> T.Tuple[T.Union[T.Dict, T.List]]:
     """Load a file, convert NBSP->space and parse it in YAML.
 
     Raises YAMLParseException with a nicely formatted error message
     if an error occurs while parsing.
+
+    Returns a pair of data, line_number_manager
 
     If you use this method directly (or, heaven forbid, yaml.safe_load)
     consider making a CCIModel subclass instead.
@@ -59,7 +61,7 @@ def load_yaml_data(
         context = context or filename
         data = _replace_nbsp(f_config.read(), context)
         try:
-            rc = yaml.safe_load(StringIO(data))
+            data, linenums = safe_load_with_linenums(StringIO(data), filename)
         except MarkedYAMLError as e:
             line_num = e.problem_mark.line + 1
             column_num = e.problem_mark.column
@@ -73,4 +75,4 @@ def load_yaml_data(
             message = f"An error occurred parsing {filename}.\nError message: {e}"
             raise YAMLParseException(message)
 
-        return rc
+        return data, linenums

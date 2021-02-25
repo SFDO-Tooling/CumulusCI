@@ -5,7 +5,10 @@ import pytest
 from cumulusci.utils.yaml.model_parser import (
     CCIDictModel,
     CCIModel,
-    ValidationError,
+)
+from cumulusci.utils.yaml.line_number_annotator import (
+    LineNumberAnnotator,
+    ConfigValidationError,
 )
 from pydantic import Field
 
@@ -17,6 +20,14 @@ class Foo(CCIModel):
 
 class Document(CCIModel):
     __root__: Foo
+
+
+class FakeLineNoHandler:
+    def enhance_locations(self, e, path):
+        return ConfigValidationError(e.errors())
+
+
+fake_lna = FakeLineNoHandler()
 
 
 class TestCCIModel:
@@ -34,18 +45,21 @@ class TestCCIModel:
         assert foo.fields == ["a", "b"]
 
     def test_parse_from_dict(self):
-        assert Document.parse_obj({"bar": "blah"})
+        assert Document.parse_obj({"bar": "blah"}, fake_lna)
 
     def test_validate_data__success(self):
-        assert Document.validate_data({"bar": "blah"})
+        assert Document.validate_data({"bar": "blah"}, fake_lna)
 
     def test_validate_data__without_error_handler(self):
-        assert not Document.validate_data({"foo": "fail"}, context="pytest")
+        assert not Document.validate_data({"foo": "fail"}, fake_lna, context="pytest")
 
     def test_validate_data__with_error_handler(self):
         lf = Mock()
+        lna = LineNumberAnnotator()
+        lna.annotated_data = {}  # not realistic, but convenient
+        lna.line_numbers = {}  # not realistic, but convenient
         assert not Document.validate_data(
-            {"foo": "fail"}, context="pytest", on_error=lf
+            {"foo": "fail"}, lna, context="pytest", on_error=lf
         )
         lf.assert_called()
         assert "pytest" in str(lf.mock_calls[0][1][0])
@@ -53,12 +67,12 @@ class TestCCIModel:
 
     def test_validate_on_error_param(self):
         with pytest.raises(Exception) as e:
-            assert not Document.validate_data({"qqq": "zzz"}, on_error="barn")
+            assert not Document.validate_data({"qqq": "zzz"}, fake_lna, on_error="barn")
         assert e.value.__class__ in [ValueError, TypeError]
 
     def test_getattr_missing(self):
         with pytest.raises(AttributeError):
-            x = Document.parse_obj({})
+            x = Document.parse_obj({}, fake_lna)
             assert x
             x.foo
 
@@ -71,7 +85,7 @@ class TestCCIModel:
 
         s = StringIO("{bar: 'blah'}")
         s.name = "some_filename"
-        with pytest.raises(ValidationError) as e:
+        with pytest.raises(ConfigValidationError) as e:
             DocumentWithError.parse_from_yaml(s)
         assert "some_filename" in str(e.value)
 
@@ -90,7 +104,7 @@ class TestCCIModel:
 
         s = StringIO("{bar: {foo: {}}}")
         s.name = "some_filename"
-        with pytest.raises(ValidationError) as e:
+        with pytest.raises(ConfigValidationError) as e:
             Document.parse_from_yaml(s)
         assert "some_filename" in str(e.value)
 
@@ -98,7 +112,7 @@ class TestCCIModel:
         class Foo(CCIDictModel):
             bar: str = None
 
-        x = Foo.parse_obj({})
+        x = Foo.parse_obj({}, fake_lna)
         assert x
         with pytest.raises(AttributeError):
             x.fields
@@ -139,7 +153,7 @@ class TestCCIDictModel:
             bar: str = None
             fields_ = Field([], alias="fields")
 
-        x = Foo.parse_obj({})
+        x = Foo.parse_obj({}, fake_lna)
         assert x
         with pytest.raises(IndexError):
             x["foo"]
@@ -153,7 +167,7 @@ class TestCCIDictModel:
             bar: str = None
             fields_ = Field([], alias="fields")
 
-        x = Foo.parse_obj({"bar": "q"})
+        x = Foo.parse_obj({"bar": "q"}, fake_lna)
         assert x.get("bar") == x.bar == x["bar"] == "q"
         assert x.get("xyzzy", 0) == 0
         assert x.get("xyzzy") is None
@@ -164,7 +178,7 @@ class TestCCIDictModel:
             bar: str = None
             fields_ = Field([], alias="fields")
 
-        x = Foo.parse_obj({"bar": "q"})
+        x = Foo.parse_obj({"bar": "q"}, fake_lna)
         assert x["bar"] == x.bar == "q"
         assert "bar" in x
         del x["bar"]
@@ -176,3 +190,18 @@ class TestCCIDictModel:
         del x["fields"]
         assert "fields" not in x
         assert x.get("fields") is None
+
+
+class TestEnhanceLocations:
+    def test_enhance_locations__1(self):
+        # JSON is YAML. Strange but true.
+        with pytest.raises(ConfigValidationError) as err:
+            Document.parse_from_yaml(StringIO("{zzzz: 'blah'}"))
+
+        assert "<stream>:1" in str(err.value), str(err.value)
+        assert "zzzz" in str(err.value), str(err.value)
+
+    # def test_enhance_locations__2(self):
+    #     error = ValidationError(model='MappingSteps', errors=[{'loc': ('__root__', 'foo', 'sf_object'), 'msg': 'field required', 'type': 'value_error.missing'}, {'loc': ('__root__', 'foo', 'bar'), 'msg': 'extra fields not permitted', 'type': 'value_error.extra'}, {'loc': ('__root__', 'jah', 'sf_object'), 'msg': 'field required', 'type': 'value_error.missing'}, {'loc': ('__root__', 'jah', 'lookups', 'zzzz'), 'msg': 'value is not a valid dict', 'type': 'type_error.dict'}])
+    #     res = _enhance_locations(error)
+    #     assert 0, res

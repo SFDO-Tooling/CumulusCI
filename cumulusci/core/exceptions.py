@@ -1,3 +1,6 @@
+import typing as T
+
+
 class CumulusCIException(Exception):
     """ Base class for all CumulusCI Exceptions """
 
@@ -271,3 +274,25 @@ class PackageInstallError(Exception):
 
 class YAMLParseException(CumulusCIException):
     """Error parsing a YAML File"""
+
+
+class ErrorDict(T.TypedDict):
+    "The structure of a Pydantic error dictionary. Google TypedDict if its new to you."
+    loc: T.Sequence[T.Union[str, int]]
+    msg: str
+    type: str
+
+
+class ConfigValidationError(ConfigError):
+    def __init__(self, errors: ErrorDict):
+        self.errors = errors
+
+    def __str__(self):
+        def format_loc(loc):
+            return " -> ".join(map(str, loc[1:]))
+
+        def format_error(e):
+            return f"{e['loc'][0]} : {e['msg']} : {format_loc(e['loc'])}"
+
+        rc = "".join(f"Validation Error: {format_error(e)}\n" for e in self.errors)
+        return rc

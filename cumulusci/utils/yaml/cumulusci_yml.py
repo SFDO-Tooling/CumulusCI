@@ -1,14 +1,15 @@
 import re
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, Sequence
+from typing import Any, Dict, List, Optional, Union
 
-from typing_extensions import Literal, TypedDict
+from typing_extensions import Literal
 from pydantic import Field
 
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel
 from cumulusci.utils.yaml.safer_loader import load_yaml_data
+from cumulusci.utils.yaml.line_number_annotator import LineNumberAnnotator
 
 default_logger = getLogger(__name__)
 
@@ -186,6 +187,7 @@ def parse_from_yaml(source):
 
 def validate_data(
     data: Union[dict, list],
+    linenums: LineNumberAnnotator,
     context: str = None,
     on_error: callable = None,
 ):
@@ -196,29 +198,25 @@ def validate_data(
 
     https://pydantic-docs.helpmanual.io/usage/models/#error-handling
     """
-    return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
+    return CumulusCIFile.validate_data(
+        data, linenums, context=context, on_error=on_error
+    )
 
 
-class ErrorDict(TypedDict):
-    "The structure of a Pydantic error dictionary. Google TypedDict if its new to you."
-    loc: Sequence[Union[str, int]]
-    msg: str
-    type: str
-
-
-def _log_yaml_error(logger, error: ErrorDict):
+def _log_yaml_error(logger, error):
     "Format and log a Pydantic-style error dictionary"
-    logger.warning("CumulusCI Parsing Error:")
-    loc = " -> ".join(repr(x) for x in error["loc"] if x != "__root__")
-    logger.warning("%s : %s", loc, error["msg"])
+    logger.warning("")
+    logger.warning("> CumulusCI Parsing Error:")
+    logger.warning(f"> {error}")
     logger.error(
-        "NOTE: These errors will cause major problems in future versions of CumulusCI."
+        "> NOTE: These errors will cause major problems in future versions of CumulusCI."
     )
-    logger.error("Please correct them before May 1, 2021.")
+    logger.error("> Please correct them before May 1, 2021.")
     logger.error(
-        "If you think your YAML has no error, please report the bug to the CumulusCI team."
+        "> If you think your YAML has no error, please report the incorrect warning to the CumulusCI team."
     )
-    logger.error("https://github.com/SFDO-Tooling/CumulusCI/issues/")
+    logger.error("> https://github.com/SFDO-Tooling/CumulusCI/issues/")
+    logger.error("")
 
 
 def cci_safe_load(
@@ -234,11 +232,11 @@ def cci_safe_load(
     logger = logger or default_logger
 
     with load_from_source(source) as (data_stream, filename):
-        data = load_yaml_data(data_stream, filename)
+        data, linenums = load_yaml_data(data_stream, filename)
         context = context or filename
 
         try:
-            validate_data(data, context=context, on_error=on_error)
+            validate_data(data, linenums, context=context, on_error=on_error)
         except Exception as e:
             # should never be executed
             print(f"Error validating cumulusci.yml {e}")

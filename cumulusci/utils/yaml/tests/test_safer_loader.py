@@ -19,7 +19,7 @@ def incorrect_yaml_file(tmp_path):
 def test_simple_load(caplog):
     yaml = """xyz:
         y: abc"""
-    cciyml = load_yaml_data(StringIO(yaml))
+    cciyml, linenos = load_yaml_data(StringIO(yaml))
     assert not caplog.text
 
     assert isinstance(cciyml, dict)  # should parse despite funny character
@@ -29,7 +29,7 @@ def test_simple_load(caplog):
 def test_convert_nbsp(caplog):
     yaml = """xyz:
         \u00A0 y: abc"""
-    cciyml = load_yaml_data(StringIO(yaml))
+    cciyml, lineos = load_yaml_data(StringIO(yaml))
     assert "space character" in caplog.text
 
     assert isinstance(cciyml, dict)  # should parse despite funny character
@@ -70,14 +70,14 @@ def test_invalid_string_io():
     assert "Error message: " in error.value.args[0]
 
 
-@patch("cumulusci.utils.yaml.safer_loader.yaml.safe_load")
+@patch("cumulusci.utils.yaml.safer_loader.safe_load_with_linenums")
 def test_generic_exception__with_name_attr(safe_load, incorrect_yaml_file):
     safe_load.side_effect = Exception("generic")
     with pytest.raises(YAMLParseException):
         load_yaml_data(incorrect_yaml_file)
 
 
-@patch("cumulusci.utils.yaml.safer_loader.yaml.safe_load")
+@patch("cumulusci.utils.yaml.safer_loader.safe_load_with_linenums")
 def test_generic_exception__without_name_attr(safe_load):
     invalid_yaml = """xyz: abc   \n>>>\nefg: lmn\n"""
     safe_load.side_effect = Exception("generic")

@@ -13,12 +13,12 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     MappingStep,
     parse_from_yaml,
     validate_and_inject_mapping,
-    ValidationError,
     CaseInsensitiveDict,
 )
 from cumulusci.tasks.bulkdata.step import DataOperationType
 from cumulusci.tests.util import DummyOrgConfig, mock_describe_calls
 from cumulusci.tasks.bulkdata.step import DataApi
+from cumulusci.core.exceptions import ConfigValidationError
 
 
 class TestMappingParser:
@@ -70,28 +70,28 @@ class TestMappingParser:
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
             data = f.read().replace("record_type", "xyzzy")
-            with pytest.raises(ValidationError):
+            with pytest.raises(ConfigValidationError):
                 parse_from_yaml(StringIO(data))
 
     def test_bad_mapping_id_mode(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
             data = f.read().replace("Name: name", "Id: sf_id")
-            with pytest.raises(ValidationError):
+            with pytest.raises(ConfigValidationError):
                 parse_from_yaml(StringIO(data))
 
     def test_bad_mapping_oid_as_pk(self):
         base_path = Path(__file__).parent / "mapping_v1.yml"
         with open(base_path, "r") as f:
             data = f.read().replace("api: bulk", "oid_as_pk: True`")
-            with pytest.raises(ValidationError):
+            with pytest.raises(ConfigValidationError):
                 parse_from_yaml(StringIO(data))
 
     def test_bad_mapping_batch_size(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
             data = f.read().replace("record_type: HH_Account", "batch_size: 500")
-            with pytest.raises(ValidationError):
+            with pytest.raises(ConfigValidationError):
                 parse_from_yaml(StringIO(data))
 
     def test_default_table_to_sobject_name(self):
