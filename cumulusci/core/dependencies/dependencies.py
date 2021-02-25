@@ -187,7 +187,7 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
 
     @pydantic.root_validator
     def check_deprecations(cls, values):
-        if "repo_owner" or "repo_name" in values:
+        if values.get("repo_owner") or values.get("repo_name"):
             logger.warning(
                 "The dependency keys `repo_owner` and `repo_name` are deprecated. Use `github` instead."
             )
@@ -434,8 +434,8 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
 
     @pydantic.root_validator
     def validate(cls, values):
-        if "repo_name" in values or "repo_owner" in values:
-            logger.warn(
+        if values.get("repo_owner") or values.get("repo_name"):
+            logger.warning(
                 "The repo_name and repo_owner keys are deprecated. Please use the github key."
             )
 

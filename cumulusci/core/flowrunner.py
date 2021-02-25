@@ -267,7 +267,12 @@ class TaskRunner(object):
         for key, info in task.task_options.items():
             value = task.options.get(key)
             if value is not None:
-                task.logger.info(f"  {key}: {value}")
+                if type(value) is not list:
+                    task.logger.info(f"  {key}: {value}")
+                else:
+                    task.logger.info(f"  {key}:")
+                    for v in value:
+                        task.logger.info(f"    - {v}")
 
 
 class FlowCoordinator(object):
