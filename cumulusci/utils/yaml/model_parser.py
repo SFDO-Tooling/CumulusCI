@@ -31,7 +31,7 @@ class CCIModel(BaseModel):
         try:
             return super().parse_obj(data)
         except ValidationError as e:
-            newerr = linenos.enhance_locations(e, path)
+            newerr = linenos.exception_with_line_numbers(e, path)
             raise newerr
 
     @classmethod

@@ -23,7 +23,7 @@ class Document(CCIModel):
 
 
 class FakeLineNoHandler:
-    def enhance_locations(self, e, path):
+    def exception_with_line_numbers(self, e, path):
         return ConfigValidationError(e.errors())
 
 
@@ -193,7 +193,7 @@ class TestCCIDictModel:
 
 
 class TestEnhanceLocations:
-    def test_enhance_locations__1(self):
+    def test_exception_with_line_numbers__1(self):
         # JSON is YAML. Strange but true.
         with pytest.raises(ConfigValidationError) as err:
             Document.parse_from_yaml(StringIO("{zzzz: 'blah'}"))
@@ -201,7 +201,14 @@ class TestEnhanceLocations:
         assert "<stream>:1" in str(err.value), str(err.value)
         assert "zzzz" in str(err.value), str(err.value)
 
-    # def test_enhance_locations__2(self):
-    #     error = ValidationError(model='MappingSteps', errors=[{'loc': ('__root__', 'foo', 'sf_object'), 'msg': 'field required', 'type': 'value_error.missing'}, {'loc': ('__root__', 'foo', 'bar'), 'msg': 'extra fields not permitted', 'type': 'value_error.extra'}, {'loc': ('__root__', 'jah', 'sf_object'), 'msg': 'field required', 'type': 'value_error.missing'}, {'loc': ('__root__', 'jah', 'lookups', 'zzzz'), 'msg': 'value is not a valid dict', 'type': 'type_error.dict'}])
-    #     res = _enhance_locations(error)
-    #     assert 0, res
+    def test_exception_with_line_numbers__2(self):
+        # JSON is YAML. Strange but true.
+        yaml = """
+            bar: baz
+            xyzzy: blah
+            """
+        with pytest.raises(ConfigValidationError) as err:
+            Document.parse_from_yaml(StringIO(yaml))
+
+        assert "<stream>:3" in str(err.value), str(err.value)
+        assert "xyzzy" in str(err.value), str(err.value)
