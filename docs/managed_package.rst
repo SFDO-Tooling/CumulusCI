@@ -203,7 +203,10 @@ To publish an install plan to MetaDeploy, use the ``metadeploy_publish`` task.
 
 .. note::
 
-    By default, the ``--publish`` option is set to false. The ``is_listed`` checkbox must be manually enabled on the plan version to make it visible to external users.
+    By default, the ``--publish`` option is set to false.
+    This means that external users are only able to access the plan version if they know its URL.
+    To make the plan version available to all external users a MetaDeploy admin will need to set
+    the ``is_listed`` checkbox to true (checked) manually on the plan version via the Django admin UI.
 
 To view the steps that this task performs without publishing, use the ``--dry_run True`` option.
 
@@ -215,7 +218,6 @@ To view the steps that this task performs without publishing, use the ``--dry_ru
 
 Manage Push Upgrades
 --------------------
-
 CumulusCI can also schedule push upgrades with the ``push_all`` task. 
 
 .. warning::
