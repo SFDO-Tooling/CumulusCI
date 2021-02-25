@@ -19,6 +19,5 @@ Contents
    unlocked_package
    unpackaged
    metadata_etl
-   cookbook
    reference
    about
