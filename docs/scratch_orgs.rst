@@ -27,7 +27,10 @@ Set Up the Salesforce CLI
 
 Scratch orgs in CumulusCI allow teams to be confident that the orgs they develop and test in are as close to their production environments as possible. We recommend working with scratch orgs created by Salesforce DX.
 
-.. tip:: For a detailed introduction on how to set up Salesforce CLI and Visual Studio Code to work with CumulusCI, review the `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ module on Trailhead.
+.. tip::
+
+    For a detailed introduction on how to set up Salesforce CLI and Visual Studio Code to work with CumulusCI, review 
+    the `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ module on Trailhead.
 
 To set up Salesforce DX:
 
@@ -35,13 +38,18 @@ To set up Salesforce DX:
 2. `Enable Dev Hub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.228.0.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_devhub.htm>`_
 3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_ 
 
-.. important :: Be sure to use the ``--setdefaultdevhubusername`` option!
+If you have ``sfdx`` installed, are connected to your DevHub, and set the ``defaultdevhubusername`` config setting, you're now ready to use ``cci`` with ``sfdx``.
 
-If you have the ``sfdx`` command installed, are connected to your DevHub, and set the ``defaultdevhubusername`` config setting, you're now ready to use ``cci`` with ``sfdx``.
+.. important:: 
 
-.. note:: SFDX supports multiple DevHubs, so CumulusCI uses the one set as ``defaultdevhubusername`` when creating scratch orgs. Use ``sfdx force:config:list`` to verify the current value of ``defaultdevhubusername`` on your machine.
+    Be sure to use the ``--setdefaultdevhubusername`` option!
 
-The Salesforce Developers site has comprehensive documentation on `Salesforce DX <https://developer.salesforce.com/platform/dx>`_.
+.. note::
+
+    SFDX supports multiple DevHubs, so CumulusCI uses the one set as ``defaultdevhubusername`` when creating scratch orgs.
+    Use ``sfdx force:config:list`` to verify the current value of ``defaultdevhubusername`` on your machine.
+
+See the Salesforce Developers site for comprehensive documentation on `Salesforce DX <https://developer.salesforce.com/platform/dx>`_.
 
 
 
@@ -88,23 +96,22 @@ To create a scratch org from a configuration, use it as the target of a command,
 
     $ cci org info dev
 
-..
-
-    When the org is created, it's associated with the name ``dev`` in the CumulusCI keychain and can be used with other commands until it expires. When an org expires or is removed, its associated configuration is left in place, and can be recreated whenever needed.
+When the org is created, it's associated with the name ``dev`` in the CumulusCI keychain and can be used with other commands until it expires. When an org expires or is removed, its associated configuration is left in place, and can be recreated whenever needed.
 
 It's possible to create new orgs in the keychain that inherit their configuration from a built-in org.
 
-    Example: Create a new org that uses the same configuration as type ``dev``, but is still independent of ``dev`` org.  
+Here we create a new org that uses the ``orgs/dev.json`` configuration file and has the alias ``myDevOrg``:
     
-.. code-block ::
+.. code-block::
 
-    $ cci org scratch dev <org_name>
+    $ cci org scratch dev myDevOrg
 
-..
 
-    Verify that there is now an org with the name of ``<org_name>`` that is associated with the ``orgs/dev.json`` definition file by running ``cci org list``.     
+Verify that there is now an org with the name of ``<org_name>`` that
+is associated with the ``orgs/dev.json`` definition file by running ``cci org list``.     
 
-You can have as many named orgs as you wish, or none at all. Many CumulusCI users work only with built-in orgs.
+You can have as many named orgs as you wish, or none at all.
+Many CumulusCI users work only with built-in orgs.
 
 
 Scratch Org Limits
@@ -122,49 +129,9 @@ Scratch org limits are based on your DevHub's edition and your Salesforce contra
 
 
 
-
 List Orgs
 ---------
-
 When inside a project repository, run ``cci org list`` to see all the orgs you have configured or connected.
-
-
-
-Open Orgs in the Browser
----------------------------
-
-Run ``cci org browser <org_name>`` to log into any org in the keychain in a new browser tab.
-
-
-
-Delete Scratch Orgs
--------------------
-
-If an org defined in the keychain has created a scratch org, delete the scratch org but leave the configuration to regenerate it in the keychain.
-
-.. code-block:: console
-
-    $ cci org scratch_delete <org_name>
-
-Using ``scratch_delete`` doesn't remove the org ``<org_name>`` from your org list.  This default behavior lets you easily recreate scratch orgs from a stored, standardized configuration.
-
-To permanently remove an org from the org list:
-
-.. code-block:: console
-
-    $ cci org remove
-
-To delete a scratch org created from the config:
-
-.. code-block:: console
-
-    $ cci org remove <org_name>
-
-It's not necessary to explicitly remove or delete expired orgs. CumulusCI recreates an expired org the first time you attempt to use it. To clean up expired orgs from the keychain:
-
-.. code-block:: console
-
-    $ cci org prune
 
 
 
@@ -198,14 +165,54 @@ To remove the existing default org:
 
 
 
+Open Orgs in the Browser
+------------------------
+Run ``cci org browser <org_name>`` to log into any org in the keychain in a new browser tab.
+
+
+
+Delete Scratch Orgs
+-------------------
+
+If an org defined in the keychain has created a scratch org, delete the scratch org but leave the configuration to regenerate it in the keychain.
+
+.. code-block:: console
+
+    $ cci org scratch_delete <org_name>
+
+Using ``scratch_delete`` doesn't remove the org ``<org_name>`` from your org list.  This default behavior lets you easily recreate scratch orgs from a stored, standardized configuration.
+
+To permanently remove an org from the org list:
+
+.. code-block:: console
+
+    $ cci org remove
+
+To delete a scratch org created from the config:
+
+.. code-block:: console
+
+    $ cci org remove <org_name>
+
+It's not necessary to explicitly remove or delete expired orgs. CumulusCI recreates an expired org the first time you attempt to use it.
+To clean up expired orgs from the keychain:
+
+.. code-block:: console
+
+    $ cci org prune
+
+
+
 Configure Predefined Orgs
 -------------------------
-
 Projects can customize the set of configurations available out of the box, and add further predefined orgs to meet project-specific needs. 
 
-An org configuration has a name, such as ``dev`` or ``qa``, and is defined by options set in the ``cumulusci.yml`` file as well as in the contents of a specific ``.json`` scratch org definition file in the ``orgs`` directory. For orgs like ``dev`` and ``qa`` that are predefined for all projects, the configuration is located in the CumulusCI standard library, but can be customized by projects in the ``cumulusci.yml`` file.
+An org configuration has a name, such as ``dev`` or ``qa``, and is defined by options set in the ``cumulusci.yml`` file as well as in the contents of a specific ``.json`` scratch org definition file in the ``orgs`` directory.
+For orgs like ``dev`` and ``qa`` that are predefined for all projects, the configuration is located in the CumulusCI standard library, but can be customized by projects in the ``cumulusci.yml`` file.
 
-When developing a managed package project, it is often useful to test inside of a namespaced scratch org. Many projects configure an org called ``dev_namespaced``, a developer org that has a namespace. This org is defined under the  ``orgs__scratch`` section in the ``cumulusci.yml`` file.
+When developing a managed package project, it is often useful to test inside of a namespaced scratch org.
+Many projects configure an org called ``dev_namespaced``, a developer org that has a namespace.
+This org is defined under the  ``orgs__scratch`` section in the ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
@@ -216,11 +223,13 @@ When developing a managed package project, it is often useful to test inside of 
                 days: 7
                 namespaced: True
 
-This org uses the same scratch org definition file as the ``dev`` org, but has a different configuration in the ``cumulusci.yml`` file, resulting in a different org shape and a different use case. The key facets of the org shape that are defined in the ``cumulusci.yml`` file are whether or not the org has a namespace, and the length of the org's lifespan.
+This org uses the same scratch org definition file as the ``dev`` org, but has a different configuration in the ``cumulusci.yml`` file, resulting in a different org shape and a different use case.
+The key facets of the org shape that are defined in the ``cumulusci.yml`` file are whether or not the org has a namespace, and the length of the org's lifespan.
 
 Org definition files stored in the ``orgs`` directory are configured as specified in the `Salesforce DX Developer Guide <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm>`_.
 
-Many projects never add a new org definition ``.json`` file, and instead add specific features and settings to the files shipped with CumulusCI. However, new definitions can be added and referenced under the ``orgs__scratch`` section of the ``cumulusci.yml`` file to establish org configurations that are completely customized for a project.
+Many projects never add a new org definition ``.json`` file, and instead add specific features and settings to the files shipped with CumulusCI.
+However, new definitions can be added and referenced under the ``orgs__scratch`` section of the ``cumulusci.yml`` file to establish org configurations that are completely customized for a project.
 
 
 
@@ -235,12 +244,14 @@ CumulusCI can import existing orgs from the Salesforce CLI keychain.
 
 For ``sfdx_alias``, specify the alias or username of the org in the Salesforce CLI keychain. For ``cci_alias``, provide the name to use in CumulusCI's keychain.
 
-.. important:: CumulusCI cannot automatically refresh orgs imported from Salesforce CLI when they expire.
+.. important::
+
+    CumulusCI cannot automatically refresh orgs imported from Salesforce CLI when they expire.
 
 
 
 Use a Non-Default DevHub
--------------------------
+------------------------
 
 By default, CumulusCI creates scratch orgs using the DevHub org configured as the ``defaultdevhubusername`` in ``sfdx``. Switch to a different DevHub org within a project by configuring the ``devhub`` service.
 
