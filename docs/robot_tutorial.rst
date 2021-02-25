@@ -287,7 +287,7 @@ Setup`` only accepts a single keyword, we can use the built-in keyword
 ``Run keywords`` to run more than one keyword in the setup.
 
 Change the suite setup to look like the following, again using robot's
-continuation characters to spread the code across multipe rows for
+continuation characters to spread the code across multiple rows for
 readability.
 
 .. note::
