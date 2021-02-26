@@ -1,6 +1,6 @@
-========================
-Automate Robot Framework
-========================
+=============================================
+Automate Browser Testing with Robot Framework
+=============================================
 
 This document provides details about CumulusCI's integration with `Robot Framework <http://robotframework.org>`_ for automating tests using the CumulusCI, Salesforce API's, and Selenium.
 

@@ -68,7 +68,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "CumulusCI"
-copyright = "2020, Salesforce.org"
+copyright = "2021, Salesforce.org"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
