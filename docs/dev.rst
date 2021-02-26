@@ -1,6 +1,5 @@
 Develop a Project
 =================
-
 A general overview on how to develop a Salesforce project with CumulusCI.
 
 
@@ -368,39 +367,6 @@ Depending on whether or not the package with namespace ``npe01`` is installed, t
 * If the org already has ``npe01 version 3.6`` installed, no changes take place.
 * If the org has an older version installed, it's upgraded to ``version 3.6``.
 * If the org has a newer version or a beta version installed, it's uninstalled and ``version 3.6`` is installed.
-
-
-
-Hierarchical Dependencies
-*************************
-Managed package dependencies can handle a hierarchy of dependencies between packages.
-Salesforce.org's Nonprofit Success Pack (NPSP), an extension of five other managed packages,
-one of which (Households) is an extension of another (Contacts & Organizations).
-
-These dependencies are listed under the ``project`` section of the ``cumulusci.yml`` file.
-
-.. code-block:: yaml
-
-    project:
-        dependencies:
-            - namespace: npo02
-              version: 3.8
-              dependencies:
-                  - namespace: npe01
-                    version: 3.6
-            - namespace: npe03
-              version: 3.9
-            - namespace: npe4
-              version: 3.5
-            - namespace: npe5
-              version: 3.5
-
-The project requires ``npo02 version 3.8``, which itself requires ``npe01 version 3.6``.
-By specifying the dependency hierarchy, the ``update_dependencies`` task is capable of uninstalling and upgrading packages intelligently.
-
-So if the target org currently has ``npe01 version 3.7``, ``npe01`` needs to be uninstalled to downgrade to ``3.6``.
-However, ``npo02`` requires ``npe01``, so uninstalling ``npe01`` also requires uninstalling ``npo02``.
-(In this scenario ``npe03``, ``npe04``, and ``npe05`` do not have to be uninstalled to uninstall ``npe01``.)
 
 
 

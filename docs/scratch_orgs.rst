@@ -25,31 +25,10 @@ CumulusCI offers tools that make it easy to discover predefined org configuratio
 Set Up the Salesforce CLI
 -------------------------
 
-Scratch orgs in CumulusCI allow teams to be confident that the orgs they develop and test in are as close to their production environments as possible. We recommend working with scratch orgs created by Salesforce DX.
+Scratch orgs in CumulusCI allow teams to be confident that the orgs they develop and test in are as close to their production environments as possible.
+We recommend working with scratch orgs created by Salesforce DX.
 
-.. tip::
-
-    For a detailed introduction on how to set up Salesforce CLI and Visual Studio Code to work with CumulusCI, review 
-    the `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ module on Trailhead.
-
-To set up Salesforce DX:
-
-1. `Install Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm>`_
-2. `Enable Dev Hub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.228.0.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_devhub.htm>`_
-3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_ 
-
-If you have ``sfdx`` installed, are connected to your DevHub, and set the ``defaultdevhubusername`` config setting, you're now ready to use ``cci`` with ``sfdx``.
-
-.. important:: 
-
-    Be sure to use the ``--setdefaultdevhubusername`` option!
-
-.. note::
-
-    SFDX supports multiple DevHubs, so CumulusCI uses the one set as ``defaultdevhubusername`` when creating scratch orgs.
-    Use ``sfdx force:config:list`` to verify the current value of ``defaultdevhubusername`` on your machine.
-
-See the Salesforce Developers site for comprehensive documentation on `Salesforce DX <https://developer.salesforce.com/platform/dx>`_.
+See the :ref:`Set Up SFDX` section for instructions.
 
 
 

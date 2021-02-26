@@ -14,7 +14,6 @@ For example, Nonprofit Success Pack (NPSP), one of Salesforce.org's flagship ope
 
 The CumulusCI suite of tools is part of the not-so-secret sauce that makes it possible to build and release products. CumulusCI automation runs throughout the Salesforce development lifecycle, starting from feature branches through the delivery of the latest release. 
 
-* GitHub repositories serve as version-controlled source repositories.
 * The CumulusCI command-line interface, ``cci``, runs single-action tasks and multiple-action flows for development and testing.
 * MetaCI uses CumulusCI flows to build Salesforce managed packages from GitHub repositories.
 * MetaDeploy automates setup and configuration of customer orgs.

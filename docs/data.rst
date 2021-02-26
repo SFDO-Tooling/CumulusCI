@@ -1,6 +1,6 @@
-==========================
-Automating Data Operations
-==========================
+========================
+Automate Data Operations
+========================
 
 CumulusCI offers a suite of tasks to help you to manage data as part of your project
 automation. Within your repository, you can define one or several *datasets*,

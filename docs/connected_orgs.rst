@@ -152,4 +152,4 @@ To edit the Connected App's OAuth scopes:
 #. Click "Edit."
 #. Add or remove OAuth scopes as desired.
 
-For a full list of options, see the :ref:`connected_app` task reference documentation.
+For a full list of options, run the :ref:`connected_app` task reference documentation.

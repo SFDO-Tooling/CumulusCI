@@ -1,5 +1,3 @@
-.. _key concepts:
-
 Key Concepts
 ============
 

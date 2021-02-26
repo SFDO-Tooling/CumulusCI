@@ -143,7 +143,7 @@ Still need help? Feel free to submit a question on our `Trailblazer community gr
 
 
 Set Up SFDX 
-------------
+-----------
 
 Scratch orgs in CumulusCI allow teams to be confident that the orgs they develop and test in are as close to their production environments as possible. We recommend working with scratch orgs created by Salesforce DX.
 
@@ -158,6 +158,11 @@ If you have the ``sfdx`` command installed, are connected to your devhub, and se
 .. important:: 
     
     SFDX supports multiple DevHubs, so CumulusCI uses the one set as ``defaultdevhubusername`` when creating scratch orgs.
+
+.. tip::
+
+    For a detailed introduction on how to set up Salesforce CLI and Visual Studio Code to work with CumulusCI, review 
+    the `Build Applications with CumulusCI <https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci>`_ module on Trailhead.
 
 Learn more about Salesforce DX at https://developer.salesforce.com/platform/dx.
 
