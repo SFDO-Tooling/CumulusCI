@@ -14,7 +14,7 @@ Install CumulusCI
 On macOS
 ^^^^^^^^
 
-`Homebrew <https://brew.sh/>`_ is a prerequisite for installing CumulusCI on macOS. Start there.
+`Homebrew <https://brew.sh/>`_ is a prerequisite for installing CumulusCI on macOS. Follow the instructions on the Homebrew website to install Homebrew before continuing.
 
 
 Install via ``pipx``
@@ -145,7 +145,7 @@ Still need help? Feel free to submit a question on our `Trailblazer community gr
 Set Up SFDX 
 -----------
 
-Scratch orgs in CumulusCI allow teams to be confident that the orgs they develop and test in are as close to their production environments as possible. We recommend working with scratch orgs created by Salesforce DX.
+Scratch orgs created by Salesforce DX allow teams to work efficiently in individual, fully-configured environments that are easy to create and destroy. We recommend working with scratch orgs throughout the development process.
 
 To set up Salesforce DX:
 
@@ -153,11 +153,11 @@ To set up Salesforce DX:
 2. `Enable Dev Hub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.228.0.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_devhub.htm>`_
 3. `Connect SFDX to Your Dev Hub Org <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm>`_  - Be sure to use the ``--setdefaultdevhubusername`` option!
 
-If you have the ``sfdx`` command installed, are connected to your devhub, and set the ``defaultdevhubusername`` config setting (use ``sfdx force:config:list`` to verify), you're now ready to use ``cci`` with ``sfdx``.
+If you have the ``sfdx`` command installed, are connected to your Dev Hub, and set the ``defaultdevhubusername`` config setting (use ``sfdx force:config:list`` to verify), you're now ready to use ``cci`` with ``sfdx`` to build scratch orgs.
 
 .. important:: 
     
-    SFDX supports multiple DevHubs, so CumulusCI uses the one set as ``defaultdevhubusername`` when creating scratch orgs.
+    SFDX supports multiple Dev Hubs, so CumulusCI uses the one set as ``defaultdevhubusername`` when creating scratch orgs.
 
 .. tip::
 
@@ -171,7 +171,7 @@ Learn more about Salesforce DX at https://developer.salesforce.com/platform/dx.
 Connect to GitHub
 -----------------
 
-In order to allow CumlusCI to work with your CumulusCI projects in GitHub, connect GitHub as a service in ``cci``.
+In order to allow CumulusCI to work with your repositories in GitHub, connect GitHub as a service in ``cci``.
 
 First, `create a new personal access token <https://github.com/settings/tokens/new>`_ with both **repo** and **gist** scopes specified. (Scopes appear as checkboxes when creating the personal access token in GitHub.) Copy the access token to use as the password when configuring the GitHub service.
 
@@ -266,7 +266,7 @@ Run the following commands to create a directory with your project's name, navig
     $ cd cci_project
     $ git init
 
-Initialize the project as a CumulusCI project.
+Then, initialize the project as a CumulusCI project.
 
 
 
@@ -329,7 +329,7 @@ Verify successful project initialization by verifying that ``cumulusci.yml`` exi
 
 The ``cumulusci.yml`` file configures your project-specific tasks, flows, and customizations.
 
-You can even add and commit it to your Git repository.
+Once you're satisfied, add and commit it to your Git repository.
 
 .. code-block:: console
 
@@ -382,7 +382,7 @@ This documentation assumes that your project currently lives in a persistent org
 
     $ sfdx force:source:retrieve -n package_name /path/to/project/
 
-That's it! You now have all of the metadata you care about in a single Git repository configured for use with CumulusCI. At this point `add your repo to GitHub`_, or perhaps begin :doc:`Configure CumulusCI <config>`.
+That's it! You now have all of the metadata you care about in a single Git repository configured for use with CumulusCI. At this point `add your repo to GitHub`_, or perhaps begin to :doc:`Configure CumulusCI <config>`.
 
 
 
