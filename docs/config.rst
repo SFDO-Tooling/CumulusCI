@@ -509,7 +509,7 @@ Local Project Configurations
 
 **Windows:** ``%homepath%\.cumulusci\project_name\cumulusci.yml``
 
-Configurations in this ``cumulusci.yml`` file apply solely to the project with the given <project_name>, and take precedence over *all other* configuration scopes except the universal ``cumulusci.yml`` file.
+Configurations in this ``cumulusci.yml`` file apply solely to the project with the given <project_name>, and take precedence over *all other* configuration scopes.
 If you want to make customizations to a project, but don't need them to be available to other team members, make those customizations here.
 
 
