@@ -1612,6 +1612,9 @@ class RunTaskCommand(click.MultiCommand):
 
         cmd = click.Command(task_name, params=params, callback=run_task)
         cmd.help = task_config.description
+        if task_class.task_docs:
+            task_docs = f"\n\n{rst2ansi(task_class.task_docs.encode('utf-8'))}"
+            cmd.help += task_docs
         return cmd
 
     def format_help(self, ctx, formatter):
