@@ -10,8 +10,7 @@ Let's review some important concepts when building and testing features using Cu
 Packages
 --------
 
-If you've come this far in your search for customization tools, we're guessing you're familiar with packages as well as their role in customizing a Salesforce org.
-However, because most everything that you build in CumulusCI is deployed via packages, it's essential to review the basics once more.
+CumulusCI works well with both managed package projects and org implementations. However, packages always play a role in how projects are built and deployed.
 
 A *package* is a container for something as small as an individual component or as large as a sophisticated application.
 After creating a package, you can distribute it to other Salesforce users and organizations, including those outside your company.
@@ -23,7 +22,7 @@ The developer who created and uploaded the unmanaged package has no control over
  
 *Managed packages* are typically used by Salesforce partners to distribute and sell applications to customers.
 They are proprietary code that can be upgraded and deployed only by the developer that built them.
-To ensure seamless upgrades, we prevent certain destructive changes, such as deleting objects or fields.
+To ensure seamless upgrades, managed packages don't allow certain destructive changes, such as deleting objects or fields.
 
 In CumulusCI, packages are built and deployed via projects.
 
@@ -98,7 +97,7 @@ The project directory is the root of your CumulusCI project. Because each projec
 
 .. tip:: Avoid headaches by making sure you're in the correct repository for your project before running project-specific commands. Otherwise, your project produces an error. (**Check your repo first** when troubleshooting in CumulusCI and potentially save yourself an extra trip to this guide.)
 
-In order to be used as a CumulusCI project, a directory must both be a Git repository and contain a ``cumulusci.yml`` configuration file. We cover how to get set up with a new or existing CumulusCI project in the :doc:`Get Started <get_started` section.
+In order to be used as a CumulusCI project, a directory must both be a Git repository and contain a ``cumulusci.yml`` configuration file. We cover how to get set up with a new or existing CumulusCI project in the :doc:`Get Started <get_started>` section.
 
 ``cumulusci.yml``
 ^^^^^^^^^^^^^^^^^
@@ -110,18 +109,18 @@ Learn more about customizing CumulusCI automation in the :doc:`Configure Cumulus
 ``force-app`` (or ``src``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The main body of the project's code and metadata lives in the default package directory, which is the ``force-app`` directory for Salesforce DX-format projects and the ``src`` directory for Metadata API-format projects. ``force-app`` defines what's included when you release a managed package from your CumulusCI project. (Or when you release an unlocked package; or if you're not releasing a package at all but running the ``deploy`` task to get the metadata into an org in unmanaged form.)
+The main body of the project's code and metadata lives in the default package directory, which is the ``force-app`` directory for Salesforce DX-format projects and the ``src`` directory for Metadata API-format projects. ``force-app`` defines what's included when you release a managed package from your CumulusCI project. (Or when you release an unlocked package, or if you're not releasing a package at all but running the ``deploy`` task to get the metadata into an org in unmanaged form.)
 
 ``orgs`` directory
 ^^^^^^^^^^^^^^^^^^
 
 The ``.json`` files found in the ``orgs`` directory define the Salesforce DX org configurations that are available to the project.
-See the :doc:`Manage Scratch Org<scratch_orgs>` for more information.
+See :doc:`Manage Scratch Orgs<scratch_orgs>` for more information.
 
 ``datasets``
 ^^^^^^^^^^^^
 
-Each project can have one or more ``datasets``: on-disk representations of record data that can be inserted into Salesforce orgs, and that can also be modified and re-captured during the evolution of the project. Datasets are stored in the ``datasets`` directory. 
+Each project can have one or more datasets: on-disk representations of record data that can be inserted into Salesforce orgs, and that can also be modified and re-captured during the evolution of the project. Datasets are stored in the ``datasets`` directory. 
 Learn more about datasets in :doc:`Automate Data Operations`.
 
 ``robot``
@@ -131,16 +130,18 @@ Robot Framework provides browser automation for end-to-end testing. Each project
 
 While Robot Framework is used primarily for automated browser testing, 
 it can also be harnessed to help configure orgs where other strategies 
-and APIs are insufficient. See :doc:`Automation using Robot Framework <robot>` for more information.
+and APIs are insufficient. 
+
+See :doc:`Automation using Robot Framework <robot>` for more information.
 
 ``unpackaged`` metadata
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-As we touched upon earlier, project doesn't just encompass the contents of a managed package or a single deployment. It also includes *unpackaged metadata*: extra bundles of Salesforce metadata that further tailor an org or complete the product.
+As we touched upon earlier, a project doesn't just encompass the contents of a managed package or a single deployment. It also includes *unpackaged metadata*: extra bundles of Salesforce metadata that further tailor an org or complete the product.
 
 In a CumulusCI project, all unpackaged metadata is stored in subdirectories within the ``unpackaged`` directory. Unpackaged metadata plays multiple roles, including preparing an org for installing packages, adding more customization after the package or application is deployed, and customizing specific orgs that are used in the product's development process.
 
-Learn more in the :doc:`manage unpackaged metadata <unpackaged>` section.
+Learn more in the :doc:`Manage Unpackaged Configuration <unpackaged>` section.
 
 Project Orgs & Services
 -----------------------
@@ -153,7 +154,7 @@ Orgs
 Each project has its own set of orgs, including active scratch orgs, persistent orgs like a production or packaging org, and predefined scratch org configurations. CumulusCI securely stores org authentication information in its keychain, making it easy to access connected orgs at any time. The ``cci org list`` command shows all of the orgs connected to a project. Orgs can also be shared across multiple projects.
 
 Configuring orgs in CumulusCI is powerful, but comes with some complexity.
-For details, see :doc:`Manage Scratch orgs <scratch_org>` and :doc:`Connect Persistent Orgs <connected_orgs>`.
+For details, see :doc:`Manage Scratch Orgs <scratch_orgs>` and :doc:`Connect Persistent Orgs <connected_orgs>`.
 
 Services
 ^^^^^^^^
