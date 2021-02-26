@@ -357,7 +357,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             )
         },
         "dry_run": {
-            "description": "If True, skip creating Github data.  Defaults to False"
+            "description": "If True, output how many orgs were selected but do not actually create a push request. Defaults to False"
         },
     }
 
