@@ -4,9 +4,9 @@ CumulusCI Flow is the process that Salesforce.org uses to develop, test, and rel
 This process encompasses both a development and testing philosophy as well as a specific GitHub branching structure.
 There are several key reasons we like using CumulusCI Flow:
 
-* Everything is done in scratch orgs to eliminate "state drift" that occurs over time in persistent orgs. The only persistent org in this process is the packaging org. 
+* Everything is done in scratch orgs to eliminate "state drift" that occurs over time in persistent orgs. The only persistent org in this process is the packaging org or production org.
 * Changes to branches that are being actively developed are thoroughly tested on each commit.
-* A new Beta Version of the package is created and tested for each commit on a project's ``main`` branch. 
+* For managed package projects, a new beta version of the package is created and tested for each commit on a project's ``main`` branch. 
 * Auto-merging functionality keeps branches up-to-date with the ``main`` branch.
 
 CumulusCI Flow is implemented in the standard library flows provided by CumulusCI, but the approach to working
@@ -35,12 +35,12 @@ CumulusCI Flow was designed for use with Salesforce development projects, which 
 
 Main Builds
 -----------
-The main goal of the CumulusCI Flow is to always have the main branch ready to cut into a package.
+The main goal of the CumulusCI Flow is to always have the main branch ready to release.
 This way, we can merge a fix and cut an emergency release at any time in the development process.
 
 To test that we can package main, we upload a beta release on every commit to main and then test that
 beta release in a variety of Salesforce org environments concurrently.
-Build times vary widely depending on the project and, a passing build is proof we can package main at any point in time.
+A passing build is proof we can package main at any point in time.
 
 When the upload of the beta release is completed, the main branch is :ref:`auto-merged <Auto Merging>` into all open feature branches.
 New betas are published on GitHub as a GitHub Release, along with automatically generated release
@@ -192,7 +192,7 @@ The ``release_beta`` flow is run, in CumulusCI Flow, on new commits to the ``mai
 
 Parent to Child Merges
 ^^^^^^^^^^^^^^^^^^^^^^
-There is sometimes a need for multiple developer to collaborate on different parts of a single larger feature. 
+There is sometimes a need for multiple developers to collaborate on different parts of a single larger feature. 
 To enable this collaboration CumulusCI expands the concept of auto-merging main-to-feature branches to also 
 handle the concept of Parent and Child Feature Branches.
 
@@ -234,7 +234,7 @@ This allows us to have branching structures such as:
 In this scenario, a commit to the ``main`` branch triggers the ``github_automerge_main``
 task to run and will automerge that commit into ``feature/large-feature``.
 This triggers a build to run against ``feature/large-feature``, and assuming the build passes, runs the ``github_automerge_feature`` task.
-This task detects two child branches of ``feature/large-feature``; ``feature/large_feature__section1`` and ``feature/large-feature__section2``.
+This task detects two child branches of ``feature/large-feature``: ``feature/large_feature__section1`` and ``feature/large-feature__section2``.
 The task automerges the commit from the parent, into the child branches, and builds begin to run against those branches.
 If the build for ``feature/large-feature__section1`` fails, it doest not trigger ``github_automerge_feature`` to merge to its child branches.
 This means that despite ``feature/large-feature__section1`` having two child branches, they would not receive automerges until the parent branch tests successfully.

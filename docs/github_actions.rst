@@ -1,5 +1,8 @@
 Run CumulusCI from Github Actions
 =================================
+
+CumulusCI can be used to run continuous integration builds with GitHub Actions.
+
 In order to follow along, you should already have a repository that is
 hosted on GitHub and configured as a CumulusCI project. In other words,
 we're assuming your project already has a ``cumulusci.yml`` and that you are
@@ -116,7 +119,7 @@ Access Token you just created, and ``EMAIL`` with your email address.
 ``SFDX_AUTH_URL``
 ^^^^^^^^^^^^^^^^^
 CumulusCI needs to be able to access a Salesforce org with the Dev Hub feature enabled in order to create scratch orgs.
-The easiest way to do this is to set up this connection locally, then copy its sfdx auth URL to a secret on GitHub.
+The easiest way to do this is to set up this connection locally, then copy its SFDX auth URL to a secret on GitHub.
 
 Since you already have CumulusCI working locally, you should be able to run ``sfdx force:org:list`` to identify the
 username that is configured as the default Dev Hub username (it is marked with ``(D)``).
@@ -126,7 +129,7 @@ Look for the ``Sfdx Auth Url`` and copy it.
 
 .. attention::
 
-   Treat this URL like a password. It provides access to log in as this user!*
+   Treat this URL like a password. It provides access to log in as this user!
 
 Now in your repository's Secrets settings, click the 'Add a new secret' link.
 Enter ``SFDX_AUTH_URL`` as the Name of the secret, and the URL from above as the Value.
@@ -134,10 +137,10 @@ Click the 'Add secret' button to save the secret.
 
 .. admonition:: Advanced Note
 
-   These instructions connect sfdx to your Dev Hub using
-   the standard Salesforce CLI connected app and a refresh token. It is
-   also possible to authenticate sfdx using the ``force:auth:jwt:grant``
-   command with a custom connected app client id and private key.
+   These instructions connect ``sfdx`` to your Dev Hub using
+   the standard Salesforce CLI Connected App and a refresh token. It is
+   also possible to authenticate ``sfdx`` using the ``force:auth:jwt:grant``
+   command with a custom Connected App client id and private key.
 
 Your Secrets should look like this:
 
@@ -229,15 +232,15 @@ Connect a Persistent Org
 Using the JWT flow for authentication is the recommended approach when running
 CumulusCI in a non-interactive environment for continuous integration with an existing org.
 
-First, you need a Connected app that is configured with a certificate in the
+First, you need a Connected App that is configured with a certificate in the
 "Use digital signatures" setting in its OAuth settings. You can follow the Salesforce
 DX Developer Guide to get this set up:
 
 * `Create a private key and self-signed certificate <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_key_and_cert.htm>`_
-* `Create a Connected app <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_connected_app.htm>`_
+* `Create a Connected App <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_connected_app.htm>`_
 
-Once the connected app has been created, you can configure CumulusCI to use this connected
-app to login to a persistent org by setting the following environment variables.
+Once the Connected App has been created, you can configure CumulusCI to use this Connected
+App to login to a persistent org by setting the following environment variables.
 
 * ``CUMULUSCI_KEYCHAIN_CLASS``
 * ``CUMULUSCI_ORG_orgName``
@@ -283,8 +286,8 @@ Set this variable equal to the following json string:
 .. code-block:: JSON
   
     {
-        “username”: “USERNAME”,
-        “instance_url”: “INSTANCE_URL”
+        "username": "USERNAME",
+        "instance_url": "INSTANCE_URL"
     }
 
 * ``USERNAME`` - The username of the user you will login to the org as.
@@ -303,15 +306,15 @@ You can see an example of setting this environment variable in a GitHub actions 
 
 ``SFDX_CLIENT_ID``
 ^^^^^^^^^^^^^^^^^^^^^^
-Set this to your connected app's client id.
-This combined with the ``SFDX_HUB_KEY`` variable instructs CumulusCI to authenticate
+Set this to your Connected App's client id.
+This, combined with the ``SFDX_HUB_KEY`` variable instructs CumulusCI to authenticate
 to the org using the `JWT Bearer Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm#sfdx_dev_auth_jwt_flow>`_ instead
 of the `Web Server Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm#!>`_.
 
 
 ``SFDX_HUB_KEY``
 ^^^^^^^^^^^^^^^^
-Set this to the private key associated with your connected app (this is the contents of your ``server.key`` file).
+Set this to the private key associated with your Connected App (this is the contents of your ``server.key`` file).
 This combined with the ``SFDX_CLIENT_ID`` variable instructs CumulusCI to authenticate
 to the org using the `JWT Bearer Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm#sfdx_dev_auth_jwt_flow>`_ instead
 of the `Web Server Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm#!>`_.
@@ -320,8 +323,8 @@ of the `Web Server Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_
 
 Deploy to a Persistent Org
 --------------------------
-The final step in a CI pipeline is often deploying newly verified changes into a production environment.
-In the context of a Salesforce this could mean a couple of different things.
+The final step in a CI pipeline is often deploying newly-verified changes into a production environment.
+In the context of a Salesforce project, this could mean a couple of different things.
 It could mean that you want to deploy changes in a managed package project into a packaging org.
 It could also mean that you want to deploy changes in a project to a production org.
 
@@ -349,12 +352,12 @@ Deploy to a Production Org
 Deployments to a Production org environment will typically want to utilize either
 the  ``deploy_unmanaged`` flow or the ``deploy`` task. 
 
-In most cases, ``deploy_unmanaged`` will have the desired outcome. This will deploy
+In most cases, ``deploy_unmanaged`` will have the desired outcome. This will deploy metadata, but also unschedule Scheduled Apex and uninstall previously-deployed components that have been removed from the source repository. If you do not want incremental component removal or Apex unscheduling, use the ``deploy`` task.
 
 
 Build Managed Package Versions
 ------------------------------
-Once new metadata has been added to the packaging org it is often desirable to create a new beta version for your managed package so that it can be tested.
+Once new metadata has been added to the packaging org, it is often desirable to create a new beta version for your managed package so that it can be tested.
 We can use the ``release_beta`` flow to accomplish this.
 The following shows a snippet from the `main <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/main/.github/workflows/main.yml>` workflow
 in our demo repository. 

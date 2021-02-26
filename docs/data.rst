@@ -317,8 +317,8 @@ Namespace injection can be deactivated by setting the ``inject_namespaces`` opti
 The ``generate_dataset_mapping`` generates mapping files with no namespace and this is the
 most common pattern in CumulusCI projects.
 
-Multiple Namespaces Through Multiple Mapping Files
-++++++++++++++++++++++++++++++++++++++++++++++++++
+Namespace Handing with Multiple Mapping Files
++++++++++++++++++++++++++++++++++++++++++++++
 
 It's also possible, and common in older managed package products, to use multiple mapping files
 to achieve loading the same data set in both namespaced and non-namespaced contexts. This is no
@@ -497,8 +497,7 @@ Inspect an org and generate a dataset definition for the schema found there.
 
 This task is intended to streamline the process of creating a dataset definition.
 To use it, first build an org (scratch or persistent) containing all of the schema
-needed for the dataset. Carefully consider whether the org is namespaced, and 
-whether the project is installed managed or unmanaged. 
+needed for the dataset. 
 
 Then, execute ``generate_dataset_mapping``. The task inspects the target org and 
 creates a dataset definition encompassing the project's schema, attempting to be
@@ -640,7 +639,7 @@ The counting works like this:
 So if your recipe creates 10 Accounts, 5 Contacts and 15 Opportunities,
 then when you run the command above it will run the recipe
 100 times (100*10=1000) which will generate 1000 Accounts, 500 Contacts
-and 1500 Opportunites.
+and 1500 Opportunities.
 
 Batch Sizes
 -----------
@@ -665,9 +664,9 @@ This isn't usually a problem though.
 The more common problem arises from the fact that Salesforce bulk
 uploads are always done in batches of records a particular SObject.
 So in the case above, it would upload 1000 Accounts, then 500
-Contacts, then 1500 Opportunites. (remember that our scenario
+Contacts, then 1500 Opportunities. (remember that our scenario
 involves a recipe that generates 10 Accounts, 5 Contacts and 15
-Opportunites).
+Opportunities).
 
 Imagine if the numbers were more like 1M, 500K and 1.5M. And further,
 imagine if your network crashed after 1M Accounts and 499K Contacts 
