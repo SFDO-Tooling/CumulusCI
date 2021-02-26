@@ -409,14 +409,6 @@ This feature supports CumulusCI's automatic dependency resolution by avoiding a 
 
     The automatic cleaning of ``meta.xml`` files can be disabled by setting the ``clean_meta_xml`` option to ``False``.
 
-One drawback of this approach is that developers need to handle the diffs in the ``meta.xml`` files by either ignoring them, or committing them as part of their work in a feature branch. 
-
-For example, the diffs come from a scenario of Package B, which extends Package A.
-When a new production release of Package A is published, the ``update_dependencies`` task for Package B installs the new version.
-When metadata is then retrieved from the org, the ``meta.xml`` files reference the new version while the repository's ``meta.xml`` files reference an older version.
-
-The main difference between this situation and one where the ``meta.xml`` file is automatically cleaned is that avoiding the diffs in ``meta.xml`` files is a convenience for developers rather than a requirement for builds and releases. 
-    
 Developers can also use the ``meta_xml_dependencies`` task to update the ``meta.xml`` files locally using the versions from CumulusCI's calculated project dependencies.
 
 
