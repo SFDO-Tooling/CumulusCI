@@ -3,6 +3,9 @@ Release an Unlocked Package
 
 While CumulusCI was originally created to develop managed packages, it can also be used to develop and release `unlocked packages <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_intro.htm>`_.
 
+.. warning::
+
+    We do not currently support setting the Ancestor Id for a 2GP package.
 
 
 Prerequisites
