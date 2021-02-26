@@ -18,9 +18,7 @@ To run the ``dev_org`` flow against the project's :ref:`default org <Set a Defau
 
     $ cci flow run dev_org
 
-To run the ``dev_org`` flow against a specific org, use the ``--org`` option:
-
-The following runs the ``dev_org`` flow against the org currently defined as ``dev`` in CumulusCI.
+To run the ``dev_org`` flow against a specific org, use the ``--org`` option. The following runs the ``dev_org`` flow against the org named ``dev``.
 
 .. code-block:: console
 
@@ -127,9 +125,9 @@ The following will list all changes *except for* those with a type of ``Profile`
 ^^^^^^^^^^^
 
 To list or retrieve changed metadata of the same type, use the ``--types`` option along with the
-`SourceMember.MemberType <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm>`_ metadata to retrieve.
+`metadata type <https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_types_list.htm>`_  to retrieve.
 
-The following retrieves all changed ``ApexClasses`` and ``ApexComponents`` in the default org.
+The following retrieves all changed ``ApexClass`` and ``ApexComponent`` entities in the default org.
 
 .. code-block:: console
 
@@ -178,7 +176,7 @@ Set Up a QA Org
 ---------------
 
 The ``qa_org`` flow sets up org environments where quality engineers test features quickly and easily.
-``qa_org`` runs the specialized ``config_qa`` flow after deploying the project's (unmanaged) metadata to the org.
+``qa_org`` runs the specialized ``config_qa`` flow after deploying the project's unmanaged metadata to the org.
 
 The following runs the ``qa_org`` flow against the ``qa`` org.
 
@@ -190,13 +188,13 @@ The following runs the ``qa_org`` flow against the ``qa`` org.
 Create QA Configurations
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-For the most part ``config_dev`` and ``config_qa`` flows are the same.
+Out of the box, and even in some active projects, the ``config_dev`` and ``config_qa`` flows are the same.
 Many teams have a requirement for additional configurations to be deployed when performing QA, but not when developing a new feature.
 
 At Salesforce.org, our product teams often modify the ``config_qa`` flow to deploy configurations that pertain to large optional features in a package.
 These configurations are subsequently tested by the product's Robot Framework test suites.
 
-To retrieve your own QA configurations, spin up a new org...
+To retrieve your own QA configurations, spin up a new org:
 
 .. code-block::
 
@@ -230,16 +228,16 @@ Then run the ``deploy_qa_config`` to deploy the previously retrieved configurati
 
     $ cci task run deploy_qa_config --org qa
 
-To require that the ``qa_org`` flow always runs this task, add a ``deploy_qa_config`` task step under the ``flows__qa_config`` section of the ``cumulusci.yml`` file.
+To require that the ``qa_org`` flow always runs this task, add a ``deploy_qa_config`` task step under the ``flows__config_qa`` section of the ``cumulusci.yml`` file.
 
 .. code-block:: yaml
 
-    qa_config:
+    config_qa:
         steps:
             3:
                 task: deploy_qa_config
 
-So now ``qa_config`` (which is included in the ``qa_org`` flow) executes the ``deploy_qa_config`` task as the third step in the flow.
+Now ``config_qa`` (which is included in the ``qa_org`` flow) executes the ``deploy_qa_config`` task as the third step in the flow.
 
 
 
@@ -248,13 +246,13 @@ Manage Dependencies
 
 CumulusCI is built to automate the complexities of dependency management for projects that extend and implement managed packages. CumulusCI currently handles these main types of dependencies for projects.
 
-* **GitHub Repository**: Dynamically resolve a product release, and its own dependencies, from a CumulusCI project on GitHub
-* **Managed Packages**: Require a certain version of a managed package
-* **Unmanaged Metadata**: Require the deployment of unmanaged metadata
+* **GitHub Repository**: Dynamically resolve a product release, and its own dependencies, from a CumulusCI project on GitHub.
+* **Managed Packages**: Require a specific version of a managed package.
+* **Unmanaged Metadata**: Require the deployment of unmanaged metadata.
 
-The ``update_dependencies`` task handles deploying dependencies to a target org, and is included in all flows designed to deploy or install to an org. 
+The ``update_dependencies`` task handles deploying dependencies to a target org, and is included in all flows designed to deploy or install to an org, such as ``dev_org``, ``qa_org``, ``install_prod``, and others.
 
-To run the ``update_dependencies`` task: 
+To run the ``update_dependencies`` task manually:
 
 .. code-block:: console
 
@@ -280,10 +278,10 @@ When ``update_dependencies`` runs, these steps are taken against the referenced 
 * Determine if the project has subfolders under ``unpackaged/pre``.  If found, deploy them first.
 * Determine if the project specifies any dependencies in the ``cumulusci.yml`` file.  If found, recursively resolve those dependencies and any dependencies belonging to them.
 * Determine whether to install the project as as a managed package or unmanaged metadata:
-    * If the project has a namespace configured in the ``cumulusci.yml`` file, treat the project as a managed package unless the unmanaged option is ``True``.
+    * If the project has a namespace configured in the ``cumulusci.yml`` file, treat the project as a managed package unless the ``unmanaged`` option is set to ``True`` in the dependency.
     * If the project has a namespace and is *not* configured as unmanaged, use the GitHub API to locate the latest managed release of the project and install it.
-* If the project is an unmanaged dependency, the ``src`` or ``force-app`` directory is deployed.
-* Determine if the project has subfolders under ``unpackaged/post``. If found, deploy them next. Namespace tokens are replaced with ``namespace__`` if the project is being installed as a managed package, or an empty string otherwise.
+* If the project is an unmanaged dependency, the main source directory is deployed as unmanaged metadata.
+* Determine if the project has subfolders under ``unpackaged/post``. If found, deploy them next. Namespace tokens are replaced with ``<namespace>__`` if the project is being installed as a managed package, or an empty string otherwise.
 
 
 
@@ -301,30 +299,30 @@ Here is a project with Salesforce.org's `EDA <https://github.com/SalesforceFound
             - github: https://github.com/SalesforceFoundation/EDA
               unmanaged: True
 
-The EDA repository is configured for a namespace, but the dependency  specifies ``unmanaged: True``, so EDA and its dependencies deploy as unmanaged metadata.
+The EDA repository is configured for a namespace, but the dependency  specifies ``unmanaged: True``, so EDA  deploys as unmanaged metadata.
 
 
 
 Reference a Specific Tag
 ************************
 
-To reference a specific version of the product other than the most recent commit on the main branch (for unmanaged projects) or the most recent production release (for managed packages), use the ``tag`` option to specify a tag from the target repository. This option is most useful for testing against beta versions of underlying packages, or recreating specific org environments for debugging.
+To reference a specific version of the product other than the most recent commit on the main branch (for unmanaged projects) or the most recent production release (for managed packages), use the ``tag`` option to specify a tag from the target repository. This option is useful for testing against specific package versions, pinning a dependency to a version rather than using the latest release, and recreating org environments for debugging.
 
 .. code-block:: yaml
 
     project:
         dependencies:
             - github: https://github.com/SalesforceFoundation/EDA
-              tag: beta/1.47-Beta_2
+              tag: rel/1.105
 
-The EDA repository's tag, ``beta/1.47-Beta_2``, is used instead of the latest production release of EDA (1.46, for this example). This tag lets a build environment use features in the next production release of EDA that are already merged but not yet included in a production release.
+The EDA repository's tag ``rel/1.105`` is used instead of the latest production release of EDA (1.111, for this example).
 
 
 
 Skip ``unpackaged/*`` in Reference Repositories
 ***********************************************
 
-If the referenced repository has dependency metadata under ``unpackaged/pre`` or ``unpackaged/post``, use the ``skip`` option to skip deploying that metadata with the dependency.
+If the referenced repository has unpackaged metadata under ``unpackaged/pre`` or ``unpackaged/post``, use the ``skip`` option to skip deploying that metadata with the dependency.
 
 .. code-block:: yaml
 
@@ -347,6 +345,7 @@ Managed package dependencies are rather simple. Under the ``project__dependencie
             - namespace: npe01
               version: 3.6
 
+Managed package dependencies can include any package, whether or not it is built as a CumulusCI project.
 
 
 Automatic Install, Upgrade, or Uninstall/Install
@@ -445,7 +444,7 @@ Inject Namespace Prefixes
 *************************
 
 CumulusCI has support for tokenizing references to a package's namespace prefix in code.
-When tokenized, all occurrences of the namespace prefix, are replaced with ``%%%NAMESPACE%%%`` inside of files and ``___NAMESPACE___`` in file names.
+When tokenized, all occurrences of the namespace prefix, are replaced with ``%%%NAMESPACE%%%`` inside of files and ``___NAMESPACE___`` in file names. The ``namespace_inject`` option instructs CumulusCI to replace these tokens with the specified namespace before deploying the unpackaged dependency.
 
 For more on this topic see :ref:`namespace injection`. 
 
