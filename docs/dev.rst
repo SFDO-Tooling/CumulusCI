@@ -347,27 +347,6 @@ Managed package dependencies are rather simple. Under the ``project__dependencie
 Managed package dependencies can include any package, whether or not it is built as a CumulusCI project.
 
 
-Automatic Install, Upgrade, or Uninstall/Install
-************************************************
-
-When the ``update_dependencies`` task runs, it retrieves a list of all managed packages in the target org, and creates a list of the installed packages and their version numbers.
-
-.. code-block:: yaml
-
-    project:
-        dependencies:
-            - namespace: npe01
-              version: 3.6
-    
-    
-Depending on whether or not the package with namespace ``npe01`` is installed, the ``update_dependencies`` task runs these steps. 
-
-* If ``npe01`` is not installed, ``npe01 version 3.6`` is installed.
-* If the org already has ``npe01 version 3.6`` installed, no changes take place.
-* If the org has an older version installed, it's upgraded to ``version 3.6``.
-* If the org has a newer version or a beta version installed, it's uninstalled and ``version 3.6`` is installed.
-
-
 
 Unmanaged Metadata Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
