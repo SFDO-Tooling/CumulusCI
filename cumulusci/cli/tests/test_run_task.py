@@ -14,7 +14,10 @@ color_opts = {"options": {"color": {}}}
 multiple_opts = {"options": {"foo": {}, "bar": {}, "baz": {}}}
 
 test_tasks = {
-    "dummy-task": {"class_path": "cumulusci.cli.tests.utils.DummyTask"},
+    "dummy-task": {
+        "class_path": "cumulusci.cli.tests.utils.DummyTask",
+        "description": "This is a dummy task.",
+    },
     "dummy-derived-task": {
         "class_path": "cumulusci.cli.tests.test_run_task.DummyDerivedTask"
     },
@@ -84,6 +87,14 @@ def test_task_run__debug_after(runtime):
                 debug_after=True,
                 runtime=runtime,
             )
+
+
+def test_task_run__help(runtime):
+    DummyTask._run_task = Mock()
+    multi_cmd = cci.RunTaskCommand()
+    cmd = multi_cmd.get_command(Mock, "dummy-task")
+
+    assert cmd.help == "This is a dummy task."
 
 
 def test_task_run__list_commands(runtime):
