@@ -76,11 +76,11 @@ The ``release_beta`` flow groups the common tasks that must be executed for the 
 
     $ cci flow run release_beta --org packaging
 
-This flow *always* runs against the project's ``packaging`` org where it:
+This flow *always* runs against the project's ``packaging`` org, where it:
 
-* Uploads a new beta version from the ``packaging`` org
+* Uploads a new beta version of the managed package.
 * Creates a new GitHub release tag for the new beta version. Extension packages that also use CumulusCI require this release tag to find the latest version when this repository is listed as a dependency.
-* :ref:`Generates Release Notes <github_release_notes>`
+* :ref:`Generates Release Notes <github_release_notes>`.
 * Syncs feature branches with the ``main`` branch, which automatically integrates the latest changes from ``main``. For more information see :ref:`auto merging`.
 
 .. important::
@@ -98,11 +98,11 @@ To create a new beta version for your project without the bells and whistles, us
 Test a Beta Version
 -------------------
 
-The ``ci_beta`` flow installs the latest beta version of the project on a scratch org, and runs Apex tests against it.
+The ``ci_beta`` flow installs the latest beta version of the project in a scratch org, and runs Apex tests against it.
 
 .. code-block:: console
 
-    $ cci flow run ci_beta --org packaging 
+    $ cci flow run ci_beta --org beta 
 
 This flow is intended to be run whenever a beta release is created.
 
@@ -111,7 +111,7 @@ This flow is intended to be run whenever a beta release is created.
 Generate Release Notes
 ----------------------
 
-The ``github_release_notes`` task fetches the text from pull requests that were merged between two given tags. The task then searches for specific titles (Critical Changes, Changes, Issues Closed, New Metadata, Installation Info, and so on) in the pull request bodies, and aggregates the text together under those titles in the GitHub tag description.
+The ``github_release_notes`` task fetches the text from Pull Requests that were merged between two given tags. The task then searches for specific titles (Critical Changes, Changes, Issues Closed, New Metadata, Installation Info, and so on) in the Pull Request bodies, and aggregates the text together under those titles in the GitHub tag description.
 
 To see what the release notes look like without publishing them to GitHub:
 
@@ -164,13 +164,13 @@ To upload the new production version without creating the GitHub tag and generat
 
 .. code-block::
 
-    $ cci task run upload_beta --name v1.2.1 --production True
+    $ cci task run upload_production --name v1.2.1
 
 To test the new package version:
 
 .. code-block::
 
-    $ cci flow run ci_release
+    $ cci flow run ci_release --org release
 
 The ``ci_release`` flow installs the latest production release version, and runs the Apex tests from the managed package on a scratch org.
 
@@ -190,7 +190,7 @@ To set up MetaDeploy as a service:
 
 Replace ``<metadeploy_url>`` with the main url to your instance of MetaDeploy, and ``<token_name>`` with a MetaDeploy API token generated from ``<metadeploy_url/admin/authtoken/token>``.
 
-Confirm that metadeploy is set up by running ``cci service list``, and that the line for ``metadeploy`` has a checkmark in the ``Configured`` column.
+Confirm that the ``metadeploy`` service is set up by running ``cci service list``, and that the line for ``metadeploy`` has a checkmark in the ``Configured`` column.
 
 .. image:: images/cci_service_list.png
     :alt: Output from "cci service list" command
@@ -218,7 +218,7 @@ To view the steps that this task performs without publishing, use the ``--dry_ru
 
 Manage Push Upgrades
 --------------------
-CumulusCI can also schedule push upgrades with the ``push_all`` task. 
+If your packaging org is enabled to use push upgrades, CumulusCI can schedule push upgrades with the ``push_sandbox`` and ``push_all`` tasks. 
 
 .. warning::
 
@@ -226,7 +226,7 @@ CumulusCI can also schedule push upgrades with the ``push_all`` task.
 
 .. code-block:: console
 
-    $ cci task run push_all --version <version> 
+    $ cci task run push_all --version <version> --org packaging
 
 Replace ``<version>`` with the version of the managed package to be pushed.
 
@@ -236,12 +236,12 @@ To schedule the push upgrades to occur at a specific time, use the ``--start_tim
 
 .. code-block:: console
 
-    $ cci task run push_all --version <version> --start_time 2020-10-19T10:00
+    $ cci task run push_all --version <version> --start_time 2020-10-19T10:00 --org packaging
 
 There are additional tasks related to push upgrades in the CumulusCI standard library.
 
-* :ref:`push_failure_report`: Produces a ``csv`` report of the failed and otherwise anomalous push jobs
-* :ref:`push_list`: Schedules a push upgrade of a package version to all orgs listed in a specified file
-* :ref:`push_qa`: Schedules a push upgrade of a package version to all orgs listed in ``push/orgs_qa.txt``
-* :ref:`push_sandbox`: Schedules a push upgrade of a package version to all subscribers' sandboxes
-* :ref:`push_trial`: Schedules a push upgrade of a package version to Trialforce Template orgs listed in ``push/orgs_trial.txt``
+* :ref:`push_failure_report`: Produces a ``csv`` report of the failed and otherwise anomalous push jobs.
+* :ref:`push_list`: Schedules a push upgrade of a package version to all orgs listed in a specified file.
+* :ref:`push_qa`: Schedules a push upgrade of a package version to all orgs listed in ``push/orgs_qa.txt``.
+* :ref:`push_sandbox`: Schedules a push upgrade of a package version to all subscribers' sandboxes.
+* :ref:`push_trial`: Schedules a push upgrade of a package version to Trialforce Template orgs listed in ``push/orgs_trial.txt``.

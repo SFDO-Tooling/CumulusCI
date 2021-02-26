@@ -66,7 +66,7 @@ Projects can come with more than one supported configuration in their CumulusCI 
 For example, projects often support distinct, tailored ``dev_org``, ``qa_org``, and ``install_prod`` flows, each of which performs a unique setup for their specific use case.
 
 Unpackaged metadata stored in ``unpackaged/config`` is a tool to support operational needs that tailor orgs to different configurations. 
-For instance, a testing-oriented scratch org needs to deploy a customized set of Page Layouts to help testers easily visualize data under test. Such page layouts are stored in ``unpackaged/config/qa``.
+For instance, a testing-oriented scratch org may need to deploy a customized set of Page Layouts to help testers easily visualize data under test. Such page layouts are stored in ``unpackaged/config/qa``.
 
 
 
@@ -79,7 +79,7 @@ All unpackaged metadata is stored in the ``unpackaged`` directory tree, which co
 * ``unpackaged/post``
 * ``unpackaged/config``
 
-These trees contain metadata bundles in Metadata API format, represented as a directory containing a ``package.xml`` manifest and Metadata API-format source code. CumulusCI does not support Salesforce DX format for unpackaged bundles.
+These trees contain metadata bundles in Metadata API or Salesforce DX format. CumulusCI automatically converts Salesforce DX-format unpackaged bundles to Metadata API format before deploying them.
 
 
 
@@ -88,9 +88,9 @@ Namespace Injection
 
 Projects that build managed packages often construct their unpackaged metadata to be deployable in multiple contexts, such as:
 
-* Unmanaged deployments, such as developer orgs
-* Unmanaged namespaced scratch orgs
-* Managed contexts, such as a beta test org or a demo org created with ``install_prod``
+* Unmanaged deployments, such as developer orgs.
+* Unmanaged namespaced scratch orgs.
+* Managed contexts, such as a beta test org or a demo org created with ``install_prod``.
 
 For example, metadata located in ``unpackaged/post`` is deployed after the application code in both unmanaged and managed contexts.
 If that metadata contains references to the application components, it must be deployable when that metadata is namespaced (in a managed context or namespaced scratch org) *and* when it is not (in an unmanaged context).
@@ -103,7 +103,7 @@ Namespace injection is very powerful, and requires care from the project team to
     Projects that are building an org implementation or a non-namespaced package do not have a namespace, or a distinction between managed and unmanaged contexts.
     These projects typically don't need to use namespace injection.
 
-Metadata files where a namespace is conditionally applied to components for insertion into different contexts must replace the namespace with a *token*, which CumulusCI replaces with the appropriate value, an empty string, or a default value.
+Metadata files where a namespace is conditionally applied to components for insertion into different contexts must replace the namespace with a *token*, which CumulusCI replaces with the appropriate value or with an empty string as appropriate to the context.
 
 * ``%%%NAMESPACE%%%`` is replaced with the package’s namespace in any context with a namespace (such as a namespaced org or managed org). Otherwise, it remains blank.
 * ``%%%NAMESPACED_ORG%%%`` is replaced with the package’s namespace in a namespaced org *only*, not in a managed installation. Otherwise, it remains blank.
@@ -111,7 +111,7 @@ Metadata files where a namespace is conditionally applied to components for inse
 * ``%%%NAMESPACE_OR_C%%%`` is replaced with the package’s namespace in any context with a namespace (such as a namespaced org or managed org). Otherwise, it is replaced with ``c``, the generic namespace used in Lightning components.
 * ``%%%NAMESPACED_ORG_OR_C%%%`` is replaced with the package's namespace in a namespaced org *only*, not in a managed installation. Otherwise, it is replaced with ``c``, the generic namespace used in Lightning components.
 * ``%%%NAMESPACE_DOT%%%`` is replaced with the package’s namespace in any context with a namespace (such as a namespaced org or managed org) followed by a period (``.``) rather than two underscores.
-    .. note:: This token is used to construct references to packaged Record Types.
+    .. note:: This token is used to construct references to packaged Record Types and Apex classes.
 
 An example case for namespace injection can be found in Salesforce.org's `Nonprofit Success Pack (NPSP) <https://github.com/SalesforceFoundation/NPSP>`_ managed package.
 A portion of metadata from NPSP is stored in a subdirectory under ``unpackaged/post``, meaning it's deployed after the application metadata.
@@ -133,7 +133,7 @@ To deploy this as a managed context, this metadata requires the use of namespace
 
 Note that only the reference to the NPSP field ``Number_of_Household_Members__c`` is tokenized. (When installed as part of the managed package, this field appears as ``npsp__Number_of_Household_Members__c``.) References to NPSP's own managed package dependency, ``npo02``, are not tokenized because this metadata is always namespaced when installed.
 
-If this metadata isn't tokenized, it fails to deploy into an org containing NPSP as a beta or released managed package (because in that context the field ``Number_of_Household_Members__c`` is namespaced as ``npsp__ Number_of_Household_Members__c``, and must be referred to as such).
+If this metadata isn't tokenized, it fails to deploy into an org containing NPSP as a beta or released managed package (because in that context the field ``Number_of_Household_Members__c`` is namespaced as ``npsp__Number_of_Household_Members__c``, and must be referred to as such).
 
 .. note:: 
     
@@ -143,7 +143,9 @@ If this metadata isn't tokenized, it fails to deploy into an org containing NPSP
 
 Configuration
 ^^^^^^^^^^^^^
-If the metadata you are deploying has been tokenized, and you want to deploy metadata with a namespace
+Most CumulusCI tasks can intelligently determine whether or not to inject the namespace based on the target org. For example, if tokenized metadata is being deployed into an org that contains the project installed as a managed package, CumulusCI knows to inject the namespace; otherwise, it replaces namespace tokens with an empty string for an unmanaged installation.
+
+You can also specify explicit configuration for namespace injection in circumstances where CumulusCI's automatic functionality does not meet your needs, such as when deploying tokenized metadata from another project. If the metadata you are deploying has been tokenized, and you want to deploy metadata with a namespace,
 use the ``namespace_inject: <namespace>`` option to inject the namespace.
 
 .. code-block:: yaml
@@ -224,7 +226,6 @@ Projects that use ``unpackaged/config/qa`` often define a ``deploy_qa_config`` t
         class_path: cumulusci.tasks.salesforce.Deploy
         options:
             path: unpackaged/config/qa
-            namespace_inject: $project_config.project__package__namespace
 
 This task is then added to relevant flows, such as ``config_qa``.
 
@@ -235,7 +236,7 @@ This task is then added to relevant flows, such as ``config_qa``.
             3:
                 task: deploy_qa_config
 
-When deployment tasks are used in managed or namespaced contexts, it's important to use the ``unmanaged: False`` option so that CumulusCI injects the namespace appropriately.
+In most cases, CumulusCI intelligently determines whether or not to inject the namespace. It's rarely necessary to explicitly configure an injection mode. If you need to do so, use the ``unmanaged`` option:
 
 .. code-block:: yaml
 

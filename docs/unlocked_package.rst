@@ -12,8 +12,8 @@ To create unlocked package versions, complete these steps.
 
 * `Enable DevHub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/sfdx_setup_enable_devhub.htm>`_.
 * `Enable Unlocked and Second-Generation Managed Packaging <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_secondgen_pkg.htm>`_.
-* Connect the DevHub org to the CumulusCI keychain by running ``cci org connect devhub``. (This is necessary even if ``sfdx`` has already authenticated to the DevHub.)
-* To create an unlocked package with a namespace, you must also create a new Developer Edition org to `Create and Register Your Namespace <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_namespace.htm>`_, and link the namespace to your DevHub.
+* Connect the Dev Hub org to the CumulusCI keychain by running ``cci org connect devhub``. (This is necessary even if ``sfdx`` has already authenticated to the Dev Hub).
+* To create an unlocked package with a namespace, you must also create a new Developer Edition org to `Create and Register Your Namespace <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_namespace.htm>`_, and link the namespace to your Dev Hub.
 
 
 
@@ -26,7 +26,7 @@ To create a new unlocked package version, run the ``create_package_version`` tas
 
     $ cci task run create_package_version --org <org_name> --package_type Unlocked
 
-This task looks in your default DevHub org (as configured in ``sfdx``) for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of the ``cumulusci.yml`` file). If a matching package doesn't exist, CumulusCI first creates a `Package2 <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_package2.htm>`_ object, and then submits a `request <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_package2versioncreaterequest.htm>`_ to create the package version. When completed (which can take some time), the task outputs a ``SubscriberPackageVersion`` ID, which can be used to install the package in another org.
+This task looks in your default Dev Hub org (as configured in ``sfdx``) for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of the ``cumulusci.yml`` file). If a matching package doesn't exist, CumulusCI first creates a `Package2 <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_package2.htm>`_ object, and then submits a `request <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_package2versioncreaterequest.htm>`_ to create the package version. When completed (which can take some time), the task outputs a ``SubscriberPackageVersion`` ID, which can be used to install the package in another org.
 
 If a package version already exists with the exact same contents, as determined by the hash of the package metadata, its ``SubscriberPackageVersion`` ID is returned rather than creating a new version.
 
@@ -70,13 +70,13 @@ The ``update_dependencies`` task can be configured in the ``cumulusci.yml`` file
     task: update_dependencies
     options:
         dependencies:
-            - version_id: 04t000000000
+            - version_id: 04t000000000000
 
 For the ``install_managed`` task, run it via ``cci``...
 
 .. code-block::console
 
-    $ cci task run intsall_managed --version 04t000000000 --org <org_name>
+    $ cci task run intsall_managed --version 04t000000000000 --org <org_name>
 
 Or configure it in the ``cumulusci.yml`` file.
 
@@ -84,7 +84,7 @@ Or configure it in the ``cumulusci.yml`` file.
 
     task: install_managed
     options:
-        version: 04t000000000
+        version: 04t000000000000
 
 To install unlocked packages in an org that doesn't use CumulusCI, use one of these methods. 
 
