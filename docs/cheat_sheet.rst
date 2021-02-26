@@ -146,7 +146,7 @@ This flow builds a managed org with the latest release installed. Should be used
 ******************
 This flow builds a managed org that starts with the latest release installed and is then upgraded to the latest beta to simulate a subscriber upgrade. Should be used with an org whose configuration is ``release``
 
-Your project may provide additional org building flows.
+Your project may provide additional org-building flows.
 Consult the project's automation documentation for more details.
 
 .. caution::
@@ -215,43 +215,5 @@ Retrieve changes to local repository
 .. code-block::
 
     $ cci task run retrieve_changes
-=======
-Common Development Tasks
-------------------------
 
-List Changes
-^^^^^^^^^^^^
-* ``list_changes``
-
-
-
-.. _retrieve changes:
-
-Retrieve Changes
-^^^^^^^^^^^^^^^^
-*  ``dx_pull``
-*  ``retrieve_changes``
-*  ``retrieve_src``
-* ``retrieve_packaged``
-* ``retrieve_src``
-* ``retrieve_unpackaged``
-
-
-
-Push Changes
-^^^^^^^^^^^^
-* ``dx_push``
-
-Common Development Flows
-------------------------
-* ``dev_org`` - Create new org
-
-
-Common QA Tasks
----------------
-
-
-
-Common Release Engineering Tasks
---------------------------------
 

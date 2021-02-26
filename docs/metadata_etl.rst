@@ -17,14 +17,14 @@ that extend other managed packages or that perform complex setup operations
 during installations, such as through MetaDeploy. By using Metadata ETL
 tasks, projects can often avoid storing and deploying unpackaged metadata
 by instead extracting metadata from the target org, making changes, and
-then re-deploying. This mode of configuration is lower-risk and lower-
-maintenance than storing extensive unpackaged metadata, which may
+then re-deploying. This mode of configuration is lower-risk and lower-maintenance 
+than storing extensive unpackaged metadata, which may
 become out-of-sync, incur accidental feature dependencies, or entail more destructive deployment operations.
 
 A primary example use case for Metadata ETL is deployment of Standard Value Sets.
 Standard Value Sets, which define the picklist values available on standard fields
 like ``Opportunity.StageName``, are not packageable, and as such must be part of an
-application's unpackaged metadata. They're critical to many applications: A Business
+application's unpackaged metadata. They're critical to many applications: a Business
 Process, for example, will fail to deploy if the Stage values it includes are not available.
 And lastly, they come with a serious danger for deployment into subscriber orgs:
 deploying Standard Value Sets is an overwrite operation, so all existing values in the
@@ -60,7 +60,7 @@ Standard Metadata ETL Tasks
 ---------------------------
 
 CumulusCI includes several Metadata ETL tasks in its standard library.
-For information about all of the available tasks, see TODO: link Metadata Transformations task group.
+For information about all of the available tasks, see ``cci org list`` for tasks in the group Metadata Transformations.
 
 Most Metadata ETL tasks accept the option ``api_names``, which specifies the developer names of the specific metadata components which should be included in the operation.
 In most cases, more than one entity may be transformed in a single operation.
@@ -84,7 +84,7 @@ with the project's namespace; if ``False``, the token will simply be removed. Se
 
 
 Implementation of Metadata ETL Tasks
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 
 This section covers internals of the Metadata ETL framework, and is intended for
 users who wish to build their own Metadata ETL tasks.
@@ -152,7 +152,7 @@ The ``SetDuplicateRuleStatus`` class is a simple example of implementing a
 
 
 Advanced Metadata ETL Base Classes
-**********************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Most Metadata ETL tasks subclass ``MetadataSingleEntityTransformTask``. However, the
 framework also includes classes that provide more flexibility for complex metadata
