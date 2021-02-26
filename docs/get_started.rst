@@ -390,7 +390,7 @@ That's it! You now have all of the metadata you care about in a single Git repos
 Setup Scratch Orgs
 ^^^^^^^^^^^^^^^^^^
 
-To see how to use scratch orgs with CumulusCI see the :ref:`Manage Scratch Orgs <scratch_orgs>` section.
+To see how to use scratch orgs with CumulusCI see the :doc:`Manage Scratch Orgs <scratch_orgs>` section.
 
 
 
