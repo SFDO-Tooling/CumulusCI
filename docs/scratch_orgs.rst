@@ -1,11 +1,11 @@
 Manage Scratch Orgs
 ===================
 
-Scratch orgs are temporary Salesforce orgs that can be quickly set up "from scratch," and which last for no more than 30 days. There are several reasons why scratch orgs are encouraged for development and testing over sandboxes or Developer Edition orgs. To start, scratch orgs:
+Scratch orgs are temporary Salesforce orgs that can be quickly set up "from scratch," and which last for no more than 30 days. There are several reasons why scratch orgs are encouraged for development and testing over sandboxes or Developer Edition orgs. Scratch orgs:
 
-* Provide a repeatable starting point without the challenge of managing persistent orgs' state over time
-* Are scalable and ensure that individual, customized environments are available to everyone in the development lifecycle
-* Facilitate a fully source-driven development process built around best practices
+* Provide a repeatable starting point without the challenge of managing persistent orgs' state over time.
+* Are scalable and ensure that individual, customized environments are available to everyone in the development lifecycle.
+* Facilitate a fully source-driven development process built around best practices.
 
 CumulusCI offers tools for working with all types of Salesforce orgs, but provides the most value when working with scratch orgs. CumulusCI automation helps realize the promise of scratch orgs as low cost, repeatable, source-driven environments for every phase of the product lifecycle.
 
@@ -16,7 +16,7 @@ This section focuses on managing scratch orgs in a CumulusCI project. To learn a
 What Is an Org in CumulusCI?
 ----------------------------
 
-An org in CumulusCI's keychain starts out as a named configuration, tailored for a specific purpose within the lifecycle of the project (such as development, feature, beta, and so on). CumulusCI creates and uses scratch orgs that are portable and repeatable. In fact, a scratch org is only generated the first time you use the scratch org. When it's expired or been deleted, a new one can be created again with the same configuration.
+An org in CumulusCI's keychain starts out as a named configuration, tailored for a specific purpose within the lifecycle of the project (such as development, QA, beta testing, and so on). CumulusCI creates and uses scratch orgs based on these configurations on demand. In fact, a scratch org is only generated the first time you use the scratch org. When it's expired or been deleted, a new one can be created again with the same configuration.
 
 CumulusCI offers tools that make it easy to discover predefined org configurations, create scratch orgs based on those configurations, and define new orgs and new configurations.
 
@@ -25,7 +25,6 @@ CumulusCI offers tools that make it easy to discover predefined org configuratio
 Set Up the Salesforce CLI
 -------------------------
 
-Scratch orgs in CumulusCI allow teams to be confident that the orgs they develop and test in are as close to their production environments as possible. We recommend working with scratch orgs created by Salesforce DX.
 
 .. tip::
 
@@ -65,14 +64,14 @@ CumulusCI comes with predefined org configurations. Every project's keychain sta
 +-------------+--------------------------+-----------------------+----------+
 | ``qa``      | Testing workflows        | ``orgs/dev.json``     | 7 days   |
 +-------------+--------------------------+-----------------------+----------+
-| ``feature`` | Continuous Integration   | ``orgs/dev.json``     | 1 day    |
+| ``feature`` | Continuous integration   | ``orgs/dev.json``     | 1 day    |
 +-------------+--------------------------+-----------------------+----------+
-| ``beta``    | | Continuous Integration | ``orgs/beta.json``    | 1 day    |
-|             | | Hands-On Testing       |                       |          |
+| ``beta``    | | Continuous integration | ``orgs/beta.json``    | 1 day    |
+|             | | Hands-on testing       |                       |          |
 +-------------+--------------------------+-----------------------+----------+
-| ``release`` | | Continuous Integration | ``orgs/release.json`` | 1 day    |
-|             | | Hands-On Testing       |                       |          |
-|             | | Demo Workflow          |                       |          |
+| ``release`` | | Continuous integration | ``orgs/release.json`` | 1 day    |
+|             | | Hands-on testing       |                       |          |
+|             | | Product demos          |                       |          |
 +-------------+--------------------------+-----------------------+----------+
 
 To see the predefined orgs in your project:
@@ -100,7 +99,7 @@ When the org is created, it's associated with the name ``dev`` in the CumulusCI 
 
 It's possible to create new orgs in the keychain that inherit their configuration from a built-in org.
 
-Here we create a new org that uses the ``orgs/dev.json`` configuration file and has the alias ``myDevOrg``:
+Here we create a new org that uses the same configuration as the built-in org ``dev`` and has the alias ``myDevOrg``:
     
 .. code-block::
 
@@ -108,7 +107,7 @@ Here we create a new org that uses the ``orgs/dev.json`` configuration file and 
 
 
 Verify that there is now an org with the name of ``<org_name>`` that
-is associated with the ``orgs/dev.json`` definition file by running ``cci org list``.     
+is associated with the ``dev`` configuration by running ``cci org list``.     
 
 You can have as many named orgs as you wish, or none at all.
 Many CumulusCI users work only with built-in orgs.
@@ -117,15 +116,15 @@ Many CumulusCI users work only with built-in orgs.
 Scratch Org Limits
 ^^^^^^^^^^^^^^^^^^
 
-Each scratch org you create is counted against limits in your DevHub. Scratch orgs count against an *active* scratch org limit, which controls how many orgs can exist at the same time, and a *daily* scratch org limit, which controls how many total orgs can be created per day.
+Each scratch org you create is counted against limits in your Dev Hub. Scratch orgs count against an *active* scratch org limit, which controls how many orgs can exist at the same time, and a *daily* scratch org limit, which controls how many total orgs can be created per day.
 
-Scratch org limits are based on your DevHub's edition and your Salesforce contract. To review limits and consumption:
+Scratch org limits are based on your Dev Hub's edition and your Salesforce contract. To review limits and consumption, run the command:
 
 .. code-block:: console
 
     $ sfdx force:limits:api:display -u <username>
 
-``<username>`` is your DevHub username. The limit names are ``ActiveScratchOrgs`` and ``DailyScratchOrgs``.
+``<username>`` is your Dev Hub username. The limit names are ``ActiveScratchOrgs`` and ``DailyScratchOrgs``.
 
 
 
@@ -174,7 +173,7 @@ Run ``cci org browser <org_name>`` to log into any org in the keychain in a new 
 Delete Scratch Orgs
 -------------------
 
-If an org defined in the keychain has created a scratch org, delete the scratch org but leave the configuration to regenerate it in the keychain.
+If an org defined in the keychain has created a scratch org, you can delete the scratch org but leave the configuration in the keychain to reuse it later.
 
 .. code-block:: console
 
@@ -182,13 +181,7 @@ If an org defined in the keychain has created a scratch org, delete the scratch 
 
 Using ``scratch_delete`` doesn't remove the org ``<org_name>`` from your org list.  This default behavior lets you easily recreate scratch orgs from a stored, standardized configuration.
 
-To permanently remove an org from the org list:
-
-.. code-block:: console
-
-    $ cci org remove
-
-To delete a scratch org created from the config:
+To permanently remove an org from the org list, and also delete the associated scratch org:
 
 .. code-block:: console
 
@@ -250,7 +243,7 @@ For ``sfdx_alias``, specify the alias or username of the org in the Salesforce C
 
 
 
-Use a Non-Default DevHub
+Use a Non-Default Dev Hub
 ------------------------
 
 By default, CumulusCI creates scratch orgs using the DevHub org configured as the ``defaultdevhubusername`` in ``sfdx``. Switch to a different DevHub org within a project by configuring the ``devhub`` service.
