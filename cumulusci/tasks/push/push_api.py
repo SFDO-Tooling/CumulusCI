@@ -114,7 +114,7 @@ class MetadataPackageVersion(BasePushApiObject):
                 "minor": greater_than_version.minor,
                 "patch": greater_than_version.patch,
             }
-            greater_than_where = f" AND (MajorVersion > {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion > {version_info['minor']}))"
+            greater_than_where = f" AND (MajorVersion >= {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion >= {version_info['minor']}))"
             if greater_than_version.patch:
                 patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion > {version_info['patch']})"
                 greater_than_where = (
