@@ -340,12 +340,14 @@ A ``when`` clause is written in a Pythonic syntax that should evaluate to a bool
 You can use the ``project_config`` object to reference values from the ``cumulusci.yml`` file
 to help with creation of the ``when`` clause's condition.
 You can use the double underscore (``__``) syntax to indicate values at subsequent levels of
-the file. For example, you can reference a projects namespace with ``project_config.project__package__namespace``.
+the file. For example, you can reference a project's namespace with ``project_config.project__package__namespace``.
+
+You can also reference values on the ``org_config`` object in ``when`` clauses. For example, it's common to reference ``org_config.scratch`` when building automation that needs to behave differently in a scratch org and a persistent org.
 
 ``when`` clauses are frequently used in CumulusCI's standard library to conditionally run a step
 in a flow based on the source code format of the project. Below is the configuration
 for the standard library flow ``build_feature_test_package``.
-The ``update_package_xml`` task will execute *only if*:want the project's source code format is not equal to "``sfdx``".
+The ``update_package_xml`` task will execute *only if* the project's source code format is not equal to "``sfdx``".
 
 .. code-block:: yaml
         

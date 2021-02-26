@@ -169,35 +169,6 @@ The tasks and flows making up the three subflows are also listed.
 
 
 
-Specify Task Options When Running Flows
-***************************************
-When executing a flow with ``cci flow run``, you cap specify
-options on specific tasks in the flow with the following syntax:
-
-.. code-block::
-
-    $ cci flow run <flow_name> -o <task_name>__<option_name> <value>
-
-``<flow_name>`` is the name of the flow to execute, <task_name> is the name
-of the task you wish to specify an option for, <option_name> is the option on the
-task you want to specify, and <value> is the actual value you want to assign to the task option.
-
-For example, in the above output from ``cci flow info dev_org`` if we wanted to set the ``allow_newer``
-option on the ``update_dependencies`` to ``True``, we would use the following:
-
-.. code-block::
-
-    $ cci flow run dev_org --org dev -o update_dependencies__allow_newer True
-
-.. note:: 
-
-    If the specified task executes more than once in the flow,
-    it uses the given option value *each time it executes*.
-
-If you want to configure specific task options on flows without explicitly
-listing them see :ref:`Configure Options on Tasks in Flows`.
-
-
 Run Tasks and Flows
 -------------------
 
@@ -249,6 +220,46 @@ When the ``--help`` flag is specified for a command, the output includes:
     run   Runs a task
 
 If you're just getting started with CumulusCI and aren't sure which of the many tasks and flows to use, don't worry. We show you specific tasks and flows in later sections of the documentation. 
+
+
+
+Specify Task Options When Running Flows
+***************************************
+When executing a flow with ``cci flow run``, you can specify
+options on specific tasks in the flow with the following syntax:
+
+.. code-block::
+
+    $ cci flow run <flow_name> -o <task_name>__<option_name> <value>
+
+``<flow_name>`` is the name of the flow to execute, <task_name> is the name
+of the task you wish to specify an option for, <option_name> is the option on the
+task you want to specify, and <value> is the actual value you want to assign to the task option.
+
+For example, in the above output from ``cci flow info dev_org`` if we wanted to set the ``allow_newer``
+option on the ``update_dependencies`` to ``True``, we would use the following:
+
+.. code-block::
+
+    $ cci flow run dev_org --org dev -o update_dependencies__allow_newer True
+
+.. note:: 
+
+    If the specified task executes more than once in the flow,
+    it uses the given option value *each time it executes*.
+
+If you want to configure specific task options on flows without explicitly
+listing them see :ref:`Configure Options on Tasks in Flows`.
+
+
+
+Access and Manage Orgs
+----------------------
+
+CumulusCI makes it easy to create, connect, and manage orgs. The ``cci org`` top-level command helps you work with orgs.
+
+To learn about working with orgs in detail, read :doc:`Manage Scratch Orgs <scratch_orgs>`
+and :doc:`Connect Persistent Orgs <connected_orgs>`.
 
 
 
