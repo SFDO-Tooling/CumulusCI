@@ -18,37 +18,37 @@ an overview of CumulusCI / Robot Framework integration.
 Part 1: Folder Structure
 ========================
 
-We recommend that all robot tests, keywords, data, and log and report files live under
-a folder named **robot**, at the root of your repository. If you worked
+We recommend that all Robot tests, keywords, data, and log and report files live under
+a folder named ``robot``, at the root of your repository. If you worked
 through the CumulusCI :doc:`tutorial`, the following folders will
-have been created under **MyProject/robot/MyProject**:
+have been created under ``MyProject/robot/MyProject``:
 
-- **doc** - a place to put documentation for your tests
-- **resources** - a place to put robot libraries and keyword files that
+- ``doc`` - a place to put documentation for your tests
+- ``resources`` - a place to put Robot libraries and keyword files that
   are unique to your project
-- **results** - a place for robot to write its log and report files
-- **tests** - a place for all of your tests.
+- ``results`` - a place for Robot to write its log and report files
+- ``tests`` - a place for all of your tests.
 
 
 Part 2: Creating a custom object
 ================================
 
-For this tutorial we're going to use a custom object named
-``MyObject`` (e.g. ``MyObject__c``). In addition, we need a custom tab that is associated
+For this tutorial we're going to use a Custom Object named
+``MyObject`` (e.g. ``MyObject__c``). In addition, we need a Custom Tab that is associated
 with that object.
 
 If you want to run the tests and keywords in this tutorial verbatim,
 you will need to go to Setup and create the following:
 
-1. A custom object with the name ``MyObject``.
-2. A custom tab associated with this object.
+1. A Custom Object with the name ``MyObject``.
+2. A Custom Tab associated with this object.
 
 
-Part 3: Creating and running your first robot test
+Part 3: Creating and running your first Robot test
 ==================================================
 
 The first thing we want to do is create a test that verifies
-we can get to the listing page of the custom object. This will
+we can get to the listing page of the Custom Object. This will
 let us know that everything is configured properly.
 
 Open up your favorite editor and create a file named ``MyObject.robot``
@@ -71,7 +71,7 @@ following into this file, and then save it.
 
 .. note::
 
-   The above code uses ``Go to page`` and ``Current page should be``
+   The above code uses ``Go to page`` and ``Current page should be``,
    which accept a page type (``Listing``) and object name
    (``MyObject__c``). Even though we have yet to create that page object,
    the keywords will work by using a generic implementation. Later,
@@ -137,7 +137,7 @@ class to inherit from the ``ListingPage`` class.
     Our class also needs to use the ``pageobject`` decorator, so we must
     import that along with the ``ListingPage`` class.
 
-To get started, create a new file named **MyObjectPages.py** in the
+To get started, create a new file named ``MyObjectPages.py`` in the
 folder ``robot/MyProject/resources``. At the top of the new keyword
 file, add the following import statement:
 
@@ -162,14 +162,14 @@ Creating the keyword
 
 At this point, all we need to do to create the keyword is to create a
 method on this object. The method name should be all lowercase, with
-underscores instead of spaces. When called from a robot test, the case
+underscores instead of spaces. When called from a Robot test, the case
 is ignored and all spaces are converted to underscores.
 
 In this case we want to create a method named
 ``click_on_the_row_with_name``. All we want it to do is to find a
 link with the given name, click on the link, and then wait for the new
 page to load. To make the code more bulletproof, it will use a keyword
-from SeleniumLibrary to wait until the page contains the link before
+from ``SeleniumLibrary`` to wait until the page contains the link before
 clicking on it. While probably not strictly necessary on this page,
 waiting for elements before interacting with them is a good habit to
 get into.
@@ -217,7 +217,7 @@ import page object files into a test case.
 
 To import a file with one or more page objects you need to supply the
 path to the page object file as an argument when importing
-``PageObjects``. The easiest way is to use robot's continuation
+``PageObjects``. The easiest way is to use Robot's continuation
 characters ``...`` on a separate line.
 
 Modify the import statements at the top of ``MyObject.robot`` to look
@@ -286,14 +286,14 @@ addition to calling the ``Open Test Browser`` keyword. Since ``Suite
 Setup`` only accepts a single keyword, we can use the built-in keyword
 ``Run keywords`` to run more than one keyword in the setup.
 
-Change the suite setup to look like the following, again using robot's
+Change the suite setup to look like the following, again using Robot's
 continuation characters to spread the code across multiple rows for
 readability.
 
 .. note::
 
     It is critical that you use all caps for ``AND``, as
-    that's the way robot knows where one keyword ends and the next
+    that's the way Robot knows where one keyword ends and the next
     begins.
 
 .. code-block:: robotframework
@@ -308,7 +308,7 @@ records created by ``Salesforce Insert``. This makes it possible to
 both create and later clean up temporary data used for a test.
 
 It is important to note that the suite teardown isn't guaranteed to run
-if you forcibly kill a running robot test. For that reason, we added a
+if you forcibly kill a running Robot test. For that reason, we added a
 step in ``Create test data`` to check for an existing record
 before adding it. If a previous test was interrupted and the record
 already exists, there's no reason to create a new record.
