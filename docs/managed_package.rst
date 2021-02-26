@@ -176,46 +176,6 @@ The ``ci_release`` flow installs the latest production release version, and runs
 
 
 
-Publish an Install Plan to MetaDeploy
--------------------------------------
-
-If you are running your own instance of `MetaDeploy <https://github.com/SFDO-Tooling/MetaDeploy>`_, you can
-publish a new install plan directly from CumulusCI.
-
-To set up MetaDeploy as a service:
-
-.. code-block:: console
-
-    $ cci service connect metadeploy --url <metadeploy_url> --token <token_name>
-
-Replace ``<metadeploy_url>`` with the main url to your instance of MetaDeploy, and ``<token_name>`` with a MetaDeploy API token generated from ``<metadeploy_url/admin/authtoken/token>``.
-
-Confirm that the ``metadeploy`` service is set up by running ``cci service list``, and that the line for ``metadeploy`` has a checkmark in the ``Configured`` column.
-
-.. image:: images/cci_service_list.png
-    :alt: Output from "cci service list" command
-
-To publish an install plan to MetaDeploy, use the ``metadeploy_publish`` task.
-
-.. code-block:: console
-
-    $ cci task run metadeploy_publish
-
-.. note::
-
-    By default, the ``--publish`` option is set to false.
-    This means that external users are only able to access the plan version if they know its URL.
-    To make the plan version available to all external users a MetaDeploy admin will need to set
-    the ``is_listed`` checkbox to true (checked) manually on the plan version via the Django admin UI.
-
-To view the steps that this task performs without publishing, use the ``--dry_run True`` option.
-
-.. code-block:: console
-
-    $ cci task run metadeploy_publish --dry_run True
-
-
-
 Manage Push Upgrades
 --------------------
 If your packaging org is enabled to use push upgrades, CumulusCI can schedule push upgrades with the ``push_sandbox`` and ``push_all`` tasks. 
