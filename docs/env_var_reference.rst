@@ -1,7 +1,7 @@
 Environment Variables
 =====================
 
-CumulusCI has environment variables that are useful when CumulusCI is being run inside of web applications such as MetaCI, MetaDeploy, and Metecho.
+CumulusCI has environment variables that are useful when CumulusCI is being run inside of web applications, such as MetaCI, MetaDeploy, and Metecho.
 The following is a reference list of available environment variables that can be set.
 
 
@@ -26,7 +26,7 @@ An alphanumeric string used to encrypt org credentials at rest when an OS keycha
 
 ``CUMULUSCI_REPO_URL``
 ---------------------- 
-Used for specifying a Github Repository for CumulusCI to use when running in a CI environment.
+Used for specifying a GitHub Repository for CumulusCI to use when running in a CI environment.
 
 
 
@@ -68,7 +68,7 @@ Client ID for a Connected App used to authenticate to a persistent org, e.g. a D
 
 ``SFDX_HUB_KEY``
 ----------------    
-Contents of JSON Web Token (JWT) used to authenticate to a persistent org, e.g. a Developer Hub.  Set with SFDX_CLIENT_ID.
+Contents of JSON Web Token (JWT) used to authenticate to a persistent org, e.g. a Dev Hub.  Set with SFDX_CLIENT_ID.
 
 
 
