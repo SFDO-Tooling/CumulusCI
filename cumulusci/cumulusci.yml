@@ -630,7 +630,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        resolvers: preproduction
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -654,7 +654,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        resolvers: preproduction
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -684,7 +684,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        resolvers: production
+                        resolution_strategy: production
             2:
                 flow: deploy_packaging
             3:
@@ -765,7 +765,7 @@ flows:
             1:
                 task: update_dependencies
                 options:
-                    resolvers: preproduction
+                    resolution_strategy: preproduction
             2:
                 task: deploy_pre
 
@@ -847,7 +847,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        resolvers: preproduction
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -863,7 +863,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        resolvers: preproduction
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -944,7 +944,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        resolvers: preproduction
+                        resolution_strategy: preproduction
                         dependencies: ^^github_package_data.dependencies
             3:
                 task: install_managed
@@ -959,7 +959,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        resolvers: preproduction
+                        resolution_strategy: preproduction
             2:
                 task: install_managed_beta
             3:
@@ -999,7 +999,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        resolvers: preproduction
+                        resolution_strategy: preproduction
             2:
                 task: install_managed
             3:
@@ -1193,10 +1193,10 @@ project:
                     title: Installation Info
     test:
         name_match: '%_TEST%'
-    resolutions:
+    dependency_resolutions:
         preproduction: latest_release
         production: latest_release
-        resolver_stacks:
+        resolution_strategies:
             exact_2gp:
                 - tag
                 - exact_branch_2gp

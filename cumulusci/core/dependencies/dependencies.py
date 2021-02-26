@@ -1,7 +1,8 @@
+from collections import namedtuple
 from cumulusci.utils.yaml.model_parser import CCIModel
 import io
 import logging
-from typing import ForwardRef, Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 import pydantic
 from github3.exceptions import NotFoundError
@@ -48,7 +49,7 @@ logger = logging.getLogger(__name__)
 class HashableBaseModel(CCIModel):
     # See https://github.com/samuelcolvin/pydantic/issues/1303
     def __hash__(self):
-        return hash((type(self),) + tuple(self.__dict__.values()))
+        return hash((type(self),) + tuple(self.json()))
 
 
 class DependencyResolutionStrategy(str, Enum):
@@ -211,7 +212,7 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
             values.get("ref"),
         ], "Must not specify both `release` and `ref`"
 
-        # Populate the `github` and `repo_name, `repo_owner` properties if not already populated.
+        # Populate the `github` and `repo_name`, `repo_owner` properties if not already populated.
         if not values.get("repo_name"):
             values["repo_owner"], values["repo_name"] = split_repo_url(values["github"])
 
@@ -232,23 +233,21 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
     ) -> List[StaticDependency]:
         unpackaged = []
         try:
-            contents = repo.directory_contents(
-                "unpackaged/pre", return_as=dict, ref=self.ref
-            )
+            contents = repo.directory_contents(subfolder, return_as=dict, ref=self.ref)
         except NotFoundError:
             contents = None
 
         if contents:
             for dirname in list(contents.keys()):
-                subfolder = f"{subfolder}/{dirname}"
-                if subfolder in skip:
+                this_subfolder = f"{subfolder}/{dirname}"
+                if this_subfolder in skip:
                     continue
 
                 unpackaged.append(
                     UnmanagedDependency(
-                        repo_url=self.github,
+                        github=self.github,
                         ref=self.ref,
-                        subfolder=subfolder,
+                        subfolder=this_subfolder,
                         unmanaged=not managed,
                         namespace_inject=namespace if namespace and managed else None,
                         namespace_strip=namespace
@@ -269,9 +268,6 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
 
         context.logger.info(f"Collecting dependencies from Github repo {self.github}")
         repo = self.get_repo(context)
-
-        # TODO: handle subdependencies
-        # They are allowed in cumulusci.yml, but should be deprecated or even removed now.
 
         # Get the cumulusci.yml file
         contents = repo.file_contents("cumulusci.yml", ref=self.ref)
@@ -312,7 +308,7 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
             if contents:
                 deps.append(
                     UnmanagedDependency(
-                        repo_url=self.github,
+                        github=self.github,
                         ref=self.ref,
                         subfolder="src",  # TODO: support SFDX format unmanaged deps.
                         unmanaged=self.unmanaged,
@@ -323,15 +319,14 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
                     )
                 )
         else:
-            if namespace:
-                if self.managed_dependency is None:
-                    raise DependencyResolutionError(
-                        f"Could not find latest release for {namespace}"
-                    )
+            if self.managed_dependency is None:
+                raise DependencyResolutionError(
+                    f"Could not find latest release for {self}"
+                )
 
-                deps.append(self.managed_dependency)
+            deps.append(self.managed_dependency)
 
-        # We always inject the project's namespace into unpackaged/post metadata
+        # We always inject the project's namespace into unpackaged/post metadata if managed
         deps.extend(
             self._flatten_unpackaged(
                 repo,
@@ -427,7 +422,7 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
     # and
     ref: Optional[str]
 
-    unmanaged: Optional[bool]
+    unmanaged: Optional[bool]  # ??
     subfolder: Optional[str]
     namespace_inject: Optional[str]
     namespace_strip: Optional[str]  # FIXME: Should this be deprecated?
@@ -446,10 +441,12 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
         ), "Must specify `zip_url`, or `github` and `ref`"
 
         # Populate the `github` and `repo_name, `repo_owner` properties if not already populated.
-        if not values.get("repo_name") or not values.get("repo_owner"):
+        if (not values.get("repo_name") or not values.get("repo_owner")) and values.get(
+            "github"
+        ):
             values["repo_owner"], values["repo_name"] = split_repo_url(values["github"])
 
-        if not values.get("github"):
+        if not values.get("github") and values.get("repo_name"):
             values[
                 "github"
             ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
@@ -477,10 +474,14 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
 
         if zip_src:
             # Determine whether to inject namespace prefixes or not
-            namespace = self.namespace_inject
+            # If and only if we have no explicit configuration.
+            if self.unmanaged is None and self.namespace_inject:
+                unmanaged = self.namespace_inject not in org.installed_packages
+            else:
+                unmanaged = self.unmanaged
+
             options = {
-                "unmanaged": self.unmanaged
-                or ((not namespace) or namespace not in org.installed_packages),
+                "unmanaged": unmanaged,
                 "namespace_inject": self.namespace_inject,
                 "namespace_strip": self.namespace_strip,
             }
@@ -488,7 +489,11 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
             package_zip = MetadataPackageZipBuilder.from_zipfile(
                 zip_src, options=options, logger=logger
             ).as_base64()
-            api = ApiDeploy(self, package_zip)
+            task = namedtuple(
+                "TaskContext", ["org_config", "project_config", "logger"]
+            )(org_config=org, project_config=context, logger=logger)
+
+            api = ApiDeploy(task, package_zip)
             return api()
 
     def __str__(self):
@@ -809,10 +814,10 @@ def get_resolver(
 def get_resolver_stack(
     context: BaseProjectConfig, name: str
 ) -> List[DependencyResolutionStrategy]:
-    resolutions = context.project__resolutions
-    stacks = context.project__resolutions__resolver_stacks
+    resolutions = context.projectdependency_resolutions
+    stacks = context.projectdependency_resolutions__resolution_strategies
 
-    if name in resolutions and name != "resolver_stacks":
+    if name in resolutions and name != "resolution_strategies":
         name = resolutions[name]
 
     if stacks and name in stacks:

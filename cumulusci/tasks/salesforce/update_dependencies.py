@@ -46,8 +46,8 @@ class UpdateDependencies(BaseSalesforceTask):
             "or a child branch of a release branch, resolve GitHub managed package dependencies to 2GP builds present on "
             "a matching release branch on the dependency."
         },
-        "resolvers": {
-            "description": "The name of a sequence of resolvers (from project__resolutions) to apply to dynamic dependencies."
+        "resolution_strategy": {
+            "description": "The name of a sequence of resolution_strategy (from projectdependency_resolutions) to apply to dynamic dependencies."
         },
     }
 
@@ -84,24 +84,27 @@ class UpdateDependencies(BaseSalesforceTask):
                     "An invalid dependency was specified for ignore_dependencies."
                 )
 
-        self.resolvers = get_resolver_stack(
-            self.project_config, self.options.get("resolvers") or "production"
+        self.resolution_strategy = get_resolver_stack(
+            self.project_config, self.options.get("resolution_strategy") or "production"
         )
 
         # Be backwards-compatible: if `include_beta` is set and False,
         # remove the `latest_beta` resolver from the stack.
-        if DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG in self.resolvers:
+        if (
+            DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
+            in self.resolution_strategy
+        ):
             if "include_beta" in self.options and not process_bool_arg(
                 self.options.get("include_beta", False)
             ):
-                self.resolvers.remove(
+                self.resolution_strategy.remove(
                     DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
                 )
             elif not self.org_config.scratch:
                 self.logger.warning(
                     "Target org is a persistent org; removing the Beta resolver."
                 )
-                self.resolvers.remove(
+                self.resolution_strategy.remove(
                     DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
                 )
 
@@ -117,20 +120,24 @@ class UpdateDependencies(BaseSalesforceTask):
         if "prefer_2gp_from_release_branch" in self.options and not process_bool_arg(
             self.options.get("prefer_2gp_from_release_branch", False)
         ):
-            self.resolvers = [r for r in self.resolvers if r not in resolvers_2gp]
+            self.resolution_strategy = [
+                r for r in self.resolvers if r not in resolvers_2gp
+            ]
 
         unsafe_prod_resolvers = [
             *resolvers_2gp,
             DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG,
         ]
         if not self.org_config.scratch and any(
-            r in self.resolvers for r in unsafe_prod_resolvers
+            r in self.resolution_strategy for r in unsafe_prod_resolvers
         ):
             self.logger.warning(
                 "Target org is a persistent org; removing Beta resolvers. Consider selecting the `production` resolver stack."
             )
-            self.resolvers = [
-                r for r in self.resolvers if r not in unsafe_prod_resolvers
+            self.resolution_strategy = [
+                r
+                for r in self.resolution_strategy
+                if r not in unsafe_prod_resolution_strategy
             ]
 
         if (
@@ -154,7 +161,7 @@ class UpdateDependencies(BaseSalesforceTask):
         self.logger.info("Resolving dependencies...")
         dependencies = get_static_dependencies(
             self.options["dependencies"],
-            self.resolvers,
+            self.resolution_strategy,
             self.project_config,
             ignore_deps=self.options.get("ignore_dependencies"),
         )
@@ -170,13 +177,22 @@ class UpdateDependencies(BaseSalesforceTask):
 
     def _install_dependency(self, dependency):
         if isinstance(dependency, ManagedPackageDependency):
+            if dependency.version and "Beta" in dependency.version:
+                version_string = dependency.version.split(" ")[0]
+                beta = dependency.version.split(" ")[-1].strip(")")
+                version = f"{version_string}.{beta}"
+            else:
+                version = (
+                    dependency.version
+                )  # TODO: abstract out a version-parsing routine.
             if (
                 dependency.package_version_id
                 and dependency.package_version_id
                 not in self.org_config.installed_packages
             ) or (
                 not self.org_config.has_minimum_package_version(
-                    dependency.namespace, dependency.version
+                    dependency.namespace,
+                    version,  # FIXME: This is not working for betas
                 )
             ):
                 dependency.install(
@@ -189,7 +205,7 @@ class UpdateDependencies(BaseSalesforceTask):
         else:
             dependency.install(self.project_config, self.org_config)
 
-    def freeze(self, step):  # TODO: reimplement
+    def freeze(self, step):  # FIXME: reimplement
         ui_options = self.task_config.config.get("ui_options", {})
         dependencies = self.project_config.get_static_dependencies(
             self.options["dependencies"],
