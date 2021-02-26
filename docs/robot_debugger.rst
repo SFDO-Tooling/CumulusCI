@@ -2,10 +2,10 @@
 Robot Debugger
 ==============
 
-CumulusCI includes a rudimentary debugger which can be enabled by
-setting the ``debug`` option of the **robot** task to ``True``. When
+CumulusCI includes a rudimentary Robot debugger which can be enabled by
+setting the ``debug`` option of the ``robot`` task to ``True``. When
 the debugger is enabled you can use the ``Breakpoint`` keyword from
-the **Salesforce** keyword library to pause execution.
+the ``Salesforce`` keyword library to pause execution.
 
 Once the ``Breakpoint`` keyword is encountered you will be given a
 prompt from which you can interactively issue commands.
@@ -31,15 +31,14 @@ Enabling the debugger
 ---------------------
 
 To enable the debugger you must set the ``debug`` option to ``True``
-for the robot task. **You should never do this in your cumulusci.yml
-file.** Doing so could cause tests to block when run on a CI server such
-as MetaCI.
+for the ``robot`` task. **You should never do this in your ``cumulusci.yml``
+file.** Doing so could cause tests to block when run on a CI server like MetaCI.
 
 Instead, you should set it from the command line when running tests
 locally.
 
 For example, assuming you have the example test in a file named
-**example.robot**, you can enable the debugger by running the robot
+``example.robot``, you can enable the debugger by running the ``robot``
 task like this:
 
 .. code-block:: console
@@ -88,9 +87,9 @@ Getting Help
 ------------
 
 Whenever you see the debugger prompt ``rdb>``, you can request help
-by typing **help** or **?** and pressing return. You will be given a
+by typing ``help`` or ``?`` and pressing return. You will be given a
 list of available commands. To get help with a specific command you
-can type **help** followed by the command you want help on.
+can type ``help`` followed by the command you want help on.
 
 .. code-block:: console
 
@@ -108,7 +107,7 @@ can type **help** followed by the command you want help on.
 Examining Variables
 -------------------
 
-There are two ways you can examine the current value of a robot
+There are two ways you can examine the current value of a Robot
 variable. The simplest method is to enter the name of a variable at
 the prompt and press return. The debugger will show you the value of
 that single variable:
@@ -119,7 +118,7 @@ that single variable:
     chrome
 
 To see a list of all variables and their values, enter the command
-**vars**.
+``vars``.
 
 .. code-block:: console
 
@@ -135,11 +134,11 @@ To see a list of all variables and their values, enter the command
     ├────────────────────────────────────┼──────────────────────────────────────────────────┤
     ... <more output> ...
 
-Executing robot keywords
+Executing Robot keywords
 ------------------------
 
-You can execute robot keywords at the prompt by entering the command
-**shell** (or the shortcut **!**) followed by the keyword and
+You can execute Robot keywords at the prompt by entering the command
+``shell`` (or the shortcut ``!``) followed by the keyword and
 arguments just as you would in a test. The following example runs the
 SeleniumLibrary keyword
 `Get Location <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Get%20Location>`_:
@@ -150,13 +149,13 @@ SeleniumLibrary keyword
     status: PASS
     result: https://ability-enterprise-4887-dev-ed.lightning.force.com/lightning/setup/SetupOneHome/home
 
-Notice that the **shell** command will run the keyword and then report
+Notice that the ``shell`` command will run the keyword and then report
 the status of the keyword and display the return value.
 
 Note: just like in a test, you must separate arguments from keywords
 by two or more spaces.
 
-Setting robot variables
+Setting Robot variables
 -----------------------
 
 To capture the output of a keyword into a variable, you do it the same
@@ -172,7 +171,7 @@ spaces, then the keyword:
     https://ability-enterprise-4887-dev-ed.lightning.force.com/lightning/setup/SetupOneHome/home
 
 In addition to setting variables from the results of keywords, you can
-also set variables with the **shell** command using the built-in keywords
+also set variables with the ``shell`` command using the built-in keywords
 `Set Test Variable <http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Test%20Variable>`_,
 `Set Suite Variable <http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Suite%20Variable>`_, or
 `Set Global Variable <http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Global%20Variable>`_.
@@ -206,13 +205,13 @@ The elements will be highlighted with a yellow border:
 
 
 To remove the highlighting you can use the debugger command
-**reset_elements**
+``reset_elements``
 
 Step through the test
 ---------------------
 
 The debugger allows you to step through a test one keyword at a
-time. From the rdb prompt, enter the command **step** to continue to
+time. From the rdb prompt, enter the command ``step`` to continue to
 the next step in the test.
 
 .. code-block:: console
@@ -225,7 +224,7 @@ the next step in the test.
 
 The last two lines help to give context. It is showing that you are
 currently right before the keyword ``BuiltIn.Log  this is step 2``. To
-get a full stack you can issue the command **where**
+get a full stack you can issue the command ``where``
 
 .. code-block:: console
 
@@ -234,10 +233,10 @@ get a full stack you can issue the command **where**
     1:   -> Example.Example test case
     2:     -> BuiltIn.Log
 
-Continuing or Quitting the test
+Continuing or quitting the test
 -------------------------------
 
 To let the test continue to the end, or to the next ``Breakpoint``
-keyword, issue the command **continue**. To stop execution gracefully
+keyword, issue the command ``continue``. To stop execution gracefully
 (ie: allow all test and suite teardowns to run), issue the command
-**quit**.
+``quit``.
