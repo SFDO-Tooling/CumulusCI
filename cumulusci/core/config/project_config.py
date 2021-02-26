@@ -554,7 +554,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 break
 
         if version_id is None:
-            self.logger.warn(
+            self.logger.warning(
                 f"No 2GP package version located for release {release_id} on {remote_repo.clone_url}. Falling back to 1GP."
             )
             return (None, None)

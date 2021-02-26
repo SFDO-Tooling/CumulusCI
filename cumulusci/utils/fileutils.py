@@ -207,6 +207,10 @@ class FSResource:
     def __contains__(self, other):
         return other in str(self.geturl())
 
+    @property
+    def suffix(self):
+        return Path(self).suffix
+
     def __truediv__(self, other):
         return self.joinpath(other)
 

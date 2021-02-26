@@ -6,9 +6,8 @@ import logging
 import pytest
 
 import responses
-from yaml import YAMLError
 
-from cumulusci.core.exceptions import BulkDataException
+from cumulusci.core.exceptions import BulkDataException, YAMLParseException
 from cumulusci.tasks.bulkdata.mapping_parser import (
     MappingLookup,
     MappingStep,
@@ -62,7 +61,9 @@ class TestMappingParser:
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
             data = f.read().replace(":", ": abcd")
-            with pytest.raises(YAMLError):
+            with pytest.raises(
+                YAMLParseException, match="An error occurred parsing yaml file .*"
+            ):
                 parse_from_yaml(StringIO(data))
 
     def test_bad_mapping_grammar(self):

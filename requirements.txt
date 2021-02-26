@@ -22,6 +22,7 @@ python-dateutil==2.8.1
 pytz==2021.1
 PyYAML==5.4.1
 requests==2.25.1
+requests-futures==1.0.0
 robotframework==3.2.2
 robotframework-pabot==1.10.1
 robotframework-requests==0.8.1
