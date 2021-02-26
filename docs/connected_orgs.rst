@@ -122,7 +122,7 @@ To create a custom Connected App, run the ``connected_app`` task, and then manua
     Make sure to create the Connected App in a production org!
 
 
-This command will create a Connected App in the DevHub org connected to ``sfdx`` with the label ``cumulusci`` and set it as the ``connected_app`` service in CumulusCI.
+This command will create a Connected App in the Dev Hub org connected to ``sfdx`` with the label ``cumulusci`` and set it as the ``connected_app`` service in CumulusCI.
 
 .. code-block:: console
 
