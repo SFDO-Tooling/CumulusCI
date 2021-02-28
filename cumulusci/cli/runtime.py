@@ -17,6 +17,16 @@ from cumulusci.utils import random_alphanumeric_underscore
 
 
 class CliRuntime(BaseCumulusCI):
+    _instance = None
+
+    @classmethod
+    def get_instance(cls, load_keychain=False):
+        """Public method that provides access to one
+        instance of the CliRuntime object"""
+        if not cls._instance:
+            cls._instance = CliRuntime(load_keychain=load_keychain)
+        return cls._instance
+
     def __init__(self, *args, **kwargs):
         try:
             super(CliRuntime, self).__init__(*args, **kwargs)

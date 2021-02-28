@@ -156,21 +156,17 @@ def render_recursive(data, indent=None):
                 click.echo(f"{indent_str}{key_str} {value}")
 
 
-# global reference to active runtime
-RUNTIME = None
-
-
 def pass_runtime(func=None, require_project=True, require_keychain=False):
     """Decorator which passes the CCI runtime object as the first arg to a click command."""
 
     def decorate(func):
         def new_func(*args, **kw):
-            runtime = RUNTIME
+            runtime = CliRuntime.get_instance()
             if require_project and runtime.project_config is None:
                 raise runtime.project_config_error
             if require_keychain:
                 runtime._load_keychain()
-            func(RUNTIME, *args, **kw)
+            func(runtime, *args, **kw)
 
         return functools.update_wrapper(new_func, func)
 
@@ -217,16 +213,15 @@ def main(args=None):
             args.remove("--debug")
 
         # Load CCI config
-        global RUNTIME
         try:
-            RUNTIME = CliRuntime(load_keychain=False)
+            runtime = CliRuntime.get_instance(load_keychain=False)
         except Exception as e:
             handle_exception(e, is_error_command, tempfile_path, debug)
             sys.exit(1)
 
-        RUNTIME.check_cumulusci_version()
+        runtime.check_cumulusci_version()
 
-        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
+        should_show_stacktraces = runtime.universal_config.cli__show_stacktraces
 
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
@@ -775,7 +770,8 @@ class ConnectServiceCommand(click.MultiCommand):
 
     def list_commands(self, ctx):
         """ list the services that can be configured """
-        services = self._get_services_config(RUNTIME)
+        runtime = CliRuntime.get_instance()
+        services = self._get_services_config(runtime)
         return sorted(services.keys())
 
     def _build_param(self, attribute, details):
@@ -783,9 +779,9 @@ class ConnectServiceCommand(click.MultiCommand):
         return click.Option((f"--{attribute}",), prompt=req, required=req)
 
     def get_command(self, ctx, name):
-        runtime = RUNTIME
+        runtime = CliRuntime.get_instance(load_keychain=True)
         runtime._load_keychain()
-        services = self._get_services_config(RUNTIME)
+        services = self._get_services_config(runtime)
         try:
             service_config = services[name]
         except KeyError:
@@ -1440,8 +1436,8 @@ def task_list(runtime, plain, print_json):
     is_flag=True,
     help="If true, write output to a file (./docs/project_tasks.rst or ./docs/cumulusci_tasks.rst)",
 )
-@pass_runtime(require_project=False)
-def task_doc(runtime, project=False, write=False):
+def task_doc(project=False, write=False):
+    runtime = CliRuntime.get_instance()
     if project and runtime.project_config is None:
         raise click.UsageError(
             "The --project option can only be used inside a project."
@@ -1554,14 +1550,16 @@ class RunTaskCommand(click.MultiCommand):
     }
 
     def list_commands(self, ctx):
-        tasks = RUNTIME.get_available_tasks()
+        runtime = CliRuntime.get_instance()
+        tasks = runtime.get_available_tasks()
         return sorted([t["name"] for t in tasks])
 
     def get_command(self, ctx, task_name):
-        if RUNTIME.project_config is None:
-            raise RUNTIME.project_config_error
-        RUNTIME._load_keychain()
-        task_config = RUNTIME.project_config.get_task(task_name)
+        runtime = CliRuntime.get_instance()
+        if runtime.project_config is None:
+            raise runtime.project_config_error
+        runtime._load_keychain()
+        task_config = runtime.project_config.get_task(task_name)
 
         if "options" not in task_config.config:
             task_config.config["options"] = {}
@@ -1574,7 +1572,7 @@ class RunTaskCommand(click.MultiCommand):
 
         def run_task(*args, **kwargs):
             """Callback function that executes when the command fires."""
-            org, org_config = RUNTIME.get_org(
+            org, org_config = runtime.get_org(
                 kwargs.pop("org", None), fail_if_missing=False
             )
 
@@ -1608,14 +1606,15 @@ class RunTaskCommand(click.MultiCommand):
                     pdb.set_trace()
 
             finally:
-                RUNTIME.alert(f"Task complete: {task_name}")
+                runtime.alert(f"Task complete: {task_name}")
 
         return click.Command(task_name, params=params, callback=run_task)
 
     def format_help(self, ctx, formatter):
         """Custom help for `cci task run`"""
-        tasks = RUNTIME.get_available_tasks()
-        plain = RUNTIME.universal_config.cli__plain_output or False
+        runtime = CliRuntime.get_instance()
+        tasks = runtime.get_available_tasks()
+        plain = runtime.universal_config.cli__plain_output or False
         task_groups = group_items(tasks)
         for group, tasks in task_groups.items():
             data = [["Task", "Description"]]
@@ -1866,7 +1865,8 @@ def gist(runtime):
     }
 
     try:
-        gh = RUNTIME.keychain.get_service("github")
+        runtime = CliRuntime.get_instance(load_keychain=True)
+        gh = runtime.keychain.get_service("github")
         gist = create_gist(
             get_github_api(gh.username, gh.password or gh.token),
             "CumulusCI Error Output",
