@@ -23,13 +23,15 @@ test_tasks = {
 
 @pytest.fixture
 def runtime():
-    runtime = CliRuntime(load_keychain=False)
-    runtime.project_config.config["tasks"] = {**test_tasks}
+    runtime_instance = CliRuntime(load_keychain=False)
+    runtime_instance.project_config.config["tasks"] = {**test_tasks}
 
-    runtime.keychain = Mock()
-    runtime.keychain.get_default_org.return_value = (None, None)
+    runtime_instance.keychain = Mock()
+    runtime_instance.keychain.get_default_org.return_value = (None, None)
 
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
+    runtime = Mock()
+    runtime.get_instance.return_value = runtime_instance
+    with patch("cumulusci.cli.cci.CliRuntime", runtime):
         yield runtime
 
 
@@ -44,8 +46,10 @@ def test_task_run(runtime):
 
 
 def test_task_run__no_project(runtime):
-    runtime.project_config = None
-    runtime.project_config_error = Exception("Broken")
+    runtime_instance = runtime.get_instance()
+    runtime_instance.project_config = None
+    runtime_instance.project_config_error = Exception("Broken")
+
     with pytest.raises(Exception, match="Broken"):
         cci.RunTaskCommand().get_command(Mock, "dummy-task")
 

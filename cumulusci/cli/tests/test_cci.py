@@ -159,7 +159,7 @@ class TestCCI(unittest.TestCase):
 
         check_latest_version.assert_called_once()
         init_logger.assert_called_once()
-        CliRuntime.assert_called_once()
+        CliRuntime.get_instance.assert_called_once()
         cli.assert_called_once()
         tee.assert_called_once()
 
@@ -189,7 +189,7 @@ class TestCCI(unittest.TestCase):
 
         check_latest_version.assert_called_once()
         init_logger.assert_called_once_with(log_requests=True)
-        CliRuntime.assert_called_once()
+        CliRuntime.get_instance.assert_called_once()
         cli.assert_called_once()
         post_mortem.assert_called_once()
         sys_exit.assert_called_once_with(1)
@@ -217,7 +217,7 @@ class TestCCI(unittest.TestCase):
     ):
         runtime = mock.Mock()
         runtime.universal_config.cli__show_stacktraces = True
-        CliRuntime.return_value = runtime
+        CliRuntime.get_instance.return_value = runtime
         cli.side_effect = Exception
         get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
 
@@ -226,7 +226,7 @@ class TestCCI(unittest.TestCase):
 
         check_latest_version.assert_called_once()
         init_logger.assert_called_once_with(log_requests=False)
-        CliRuntime.assert_called_once()
+        CliRuntime.get_instance.assert_called_once()
         cli.assert_called_once()
         post_mortem.assert_not_called()
 
@@ -267,7 +267,7 @@ class TestCCI(unittest.TestCase):
     ):
         runtime = mock.Mock()
         runtime.universal_config.cli__show_stacktraces = False
-        CliRuntime.return_value = runtime
+        CliRuntime.get_instance.return_value = runtime
 
         expected_logfile_content = "Hello there, I'm a logfile."
         logfile_path.is_file.return_value = True
@@ -280,7 +280,7 @@ class TestCCI(unittest.TestCase):
 
         check_latest_version.assert_called_once()
         init_logger.assert_called_once_with(log_requests=False)
-        CliRuntime.assert_called_once()
+        CliRuntime.get_instance.assert_called_once()
         cli.assert_called_once()
         post_mortem.call_count == 0
         sys_exit.assert_called_once_with(1)
@@ -293,7 +293,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     def test_main__CliRuntime_error(self, CliRuntime, get_tempfile_logger, tee):
-        CliRuntime.side_effect = CumulusCIException("something happened")
+        CliRuntime.get_instance.side_effect = CumulusCIException("something happened")
         get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
 
         with contextlib.redirect_stderr(io.StringIO()) as stderr:
@@ -349,12 +349,15 @@ class TestCCI(unittest.TestCase):
         # get_tempfile_logger doesn't clean up after itself which breaks other tests
         get_tempfile_logger.return_value = mock.Mock(), ""
 
-        CliRuntime().keychain.get_default_org.return_value = ("xyzzy4", None)
+        CliRuntime.get_instance().keychain.get_default_org.return_value = (
+            "xyzzy4",
+            None,
+        )
         with contextlib.redirect_stdout(io.StringIO()) as stdout:
             cci.main(["cci", "org", "default"])
         assert "xyzzy4 is the default org" in stdout.getvalue(), stdout.getvalue()
 
-        CliRuntime().keychain.get_default_org.return_value = (None, None)
+        CliRuntime.get_instance().keychain.get_default_org.return_value = (None, None)
         with contextlib.redirect_stdout(io.StringIO()) as stdout:
             cci.main(["cci", "org", "default"])
         assert "There is no default org" in stdout.getvalue(), stdout.getvalue()
@@ -810,80 +813,92 @@ Environment Info: Rossian / x68_46
 
     def test_service_connect_list(self):
         multi_cmd = cci.ConnectServiceCommand()
-        runtime = mock.Mock()
-        runtime.project_config.services = {"test": {}}
+        runtime_instance = mock.Mock()
+        runtime_instance.project_config.services = {"test": {}}
         ctx = mock.Mock()
 
-        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+        runtime = mock.Mock()
+        runtime.get_instance.return_value = runtime_instance
+        with mock.patch("cumulusci.cli.cci.CliRuntime", runtime):
             result = multi_cmd.list_commands(ctx)
         self.assertEqual(["test"], result)
 
     def test_service_connect_list_global_keychain(self):
         multi_cmd = cci.ConnectServiceCommand()
-        runtime = mock.Mock()
-        runtime.project_config = None
-        runtime.universal_config.services = {"test": {}}
+        runtime_instance = mock.Mock()
+        runtime_instance.project_config = None
+        runtime_instance.universal_config.services = {"test": {}}
         ctx = mock.Mock()
 
-        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+        runtime = mock.Mock()
+        runtime.get_instance.return_value = runtime_instance
+        with mock.patch("cumulusci.cli.cci.CliRuntime", runtime):
             result = multi_cmd.list_commands(ctx)
         self.assertEqual(["test"], result)
 
     def test_service_connect(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        runtime = mock.MagicMock()
-        runtime.project_config.services = {
+        runtime_instance = mock.MagicMock()
+        runtime_instance.project_config.services = {
             "test": {"attributes": {"attr": {"required": False}}}
         }
 
-        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+        runtime = mock.Mock()
+        runtime.get_instance.return_value = runtime_instance
+        with mock.patch("cumulusci.cli.cci.CliRuntime", runtime):
             cmd = multi_cmd.get_command(ctx, "test")
             run_click_command(cmd, project=True)
 
-        runtime.keychain.set_service.assert_called_once()
+        runtime_instance.keychain.set_service.assert_called_once()
 
         run_click_command(cmd, project=False)
 
     def test_service_connect_global_keychain(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        runtime = mock.MagicMock()
-        runtime.project_config = None
-        runtime.universal_config.services = {
+        runtime_instance = mock.MagicMock()
+        runtime_instance.project_config = None
+        runtime_instance.universal_config.services = {
             "test": {"attributes": {"attr": {"required": False}}}
         }
 
-        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+        runtime = mock.Mock()
+        runtime.get_instance.return_value = runtime_instance
+        with mock.patch("cumulusci.cli.cci.CliRuntime", runtime):
             cmd = multi_cmd.get_command(ctx, "test")
             run_click_command(cmd, project=True)
 
-        runtime.keychain.set_service.assert_called_once()
+        runtime_instance.keychain.set_service.assert_called_once()
 
         run_click_command(cmd, project=False)
 
     def test_service_connect_invalid_service(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        runtime = mock.MagicMock()
-        runtime.project_config.services = {}
+        runtime_instance = mock.MagicMock()
+        runtime_instance.project_config.services = {}
 
-        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+        runtime = mock.Mock()
+        runtime.get_instance.return_value = runtime_instance
+        with mock.patch("cumulusci.cli.cci.CliRuntime", runtime):
             with self.assertRaises(click.UsageError):
                 multi_cmd.get_command(ctx, "test")
 
     def test_service_connect_validator(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
-        runtime = mock.MagicMock()
-        runtime.project_config.services = {
+        runtime_instance = mock.MagicMock()
+        runtime_instance.project_config.services = {
             "test": {
                 "attributes": {},
                 "validator": "cumulusci.cli.tests.test_cci.validate_service",
             }
         }
 
-        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+        runtime = mock.Mock()
+        runtime.get_instance.return_value = runtime_instance
+        with mock.patch("cumulusci.cli.cci.CliRuntime", runtime):
             cmd = multi_cmd.get_command(ctx, "test")
             with self.assertRaises(Exception) as cm:
                 run_click_command(cmd, project=True)
