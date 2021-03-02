@@ -1,40 +1,39 @@
-===============
-Robot Framework
-===============
+=============================================
+Automate Browser Testing with Robot Framework
+=============================================
 
-This document provides details about CumulusCI's integration with `Robot Framework <http://robotframework.org>`_ for automating tests using the CumulusCI, Salesforce API's, and Selenium.
+This document provides details about CumulusCI's integration with `Robot Framework <http://robotframework.org>`_ for automating tests using CumulusCI, Salesforce APIs, and Selenium.
 
 Why Robot Framework?
 ====================
 
-Robot Framework provides an abstraction layer for writing automated test scenarios in Python and via text keywords in .robot files.  Since Robot Framework is written in Python (like CumulusCI) and has a robust SeleniumLibrary for automated browser testing, it was an easy integration providing a lot of power.
+Robot Framework provides an abstraction layer for writing automated test scenarios in Python and via text keywords in ``.robot`` files.  Since Robot Framework is written in Python (like CumulusCI) and has a robust SeleniumLibrary for automated browser testing, it works well with CumulusCI projects.
 
 CumulusCI's integration with Robot Framework allows building automated test scenarios useful to Salesforce projects:
 
-* Browser testing with Selenium
-* API only tests interacting with the Salesforce REST, Bulk, and Tooling API's
-* Complex org automation via CumulusCI
-* Combinations of all of the above
+* Browser testing with Selenium.
+* API-only tests interacting with the Salesforce REST, Bulk, and Tooling APIs.
+* Complex org automation via CumulusCI.
+* Combinations of all of the above.
 
-The ability to create rich, single file integration tests that interact with CumulusCI's project specific automation, Salesforce's APIs, and the Salesforce UI in a browser is the most exciting feature of the integration with Robot Framework.
+The ability to create rich, single-file integration tests that interact with CumulusCI's project-specific automation, Salesforce's APIs, and the Salesforce UI in a browser is the most exciting feature of the integration with Robot Framework. Robot Framework makes it easy to automate even complex regression scenarios and tests for edge-case bugs, just by writing Robot Framework test suites and with no need to change project automation in ``cumulusci.yml``.
 
-The integration with Robot Framework adds a new dimension to CumulusCI.  Before, automating the recreation of a test environment for an edge case bug reported in a custom org would have required creating new tasks in cumulusci.yml which pollute the project's task list used by everyone on the project for an obscure scenario needed only for regression testing.  Now, you can create the test scenario in a .robot test file and run it through the standard **robot** task in CumulusCI.  Adding a new test scenario just adds a new file in the repository rather than a new task in CumulusCI.
 
 Included Libraries
 ==================
 
-CumulusCI comes bundled with the following additional third-party keyword libraries in addition to the libraries that come with robot framework itself:
+CumulusCI comes bundled with additional third-party keyword libraries, in addition to the libraries that come with Robot Framework itself:
 
 * `SeleniumLibrary <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html>`_ for browser testing
 * `RequestsLibrary <https://marketsquare.github.io/robotframework-requests/doc/RequestsLibrary.html>`_  for testing REST APIs
 
-SeleniumLibrary is automatically imported when you import Salesforce.robot. To use RequestsLibrary you need to explicitly import it in the settings section of your robot test.
+SeleniumLibrary is automatically imported when you import ``Salesforce.robot``. To use ``RequestsLibrary`` you need to explicitly import it in the settings section of your Robot test.
 
 
 Example Robot Test
 ==================
 
-The following test file placed under **robot/ExampleProject/tests/create_contact.robot** in your project's repository automates the testing of creating a Contact through the Salesforce UI in a browser and via the API.  As an added convenience, it automatically deletes the created Contacts in the Suite Teardown step:
+The following test file placed under ``robot/ExampleProject/tests/create_contact.robot`` in your project's repository automates the testing of creating a Contact through the Salesforce UI in a browser and via the API.  As an added convenience, it automatically deletes the created Contacts in the Suite Teardown step:
 
 .. code-block:: robotframework
 
@@ -101,9 +100,9 @@ The following test file placed under **robot/ExampleProject/tests/create_contact
 Settings
 --------
 
-The Settings section of the robot file sets up the entire test suite.  By including the Resource cumulusci/robotframework/Salesforce.robot which comes with CumulusCI, we inherit a lot of useful configuration and keywords for Salesforce testing automatically.
+The Settings section of the ``.robot`` file sets up the entire test suite.  By including the Resource ``cumulusci/robotframework/Salesforce.robot``, which comes with CumulusCI, we inherit a lot of useful configuration and keywords for Salesforce testing automatically.
 
-The Suite Setup and Suite Teardown are run at the start and end of the entire test suite.  In the example test, we're using the **Open Test Browser** keyword from the Salesforce.robot file to open a test browser.  We're also using the **Delete Records and Close Browser** keyword from Salesforce.robot to automatically delete all records created in the org during the session and close the test browser.
+The Suite Setup and Suite Teardown are run at the start and end of the entire test suite.  In the example test, we're using the ``Open Test Browser`` keyword from the ``Salesforce.robot`` file to open a test browser.  We're also using the ``Delete Records and Close Browser`` keyword from ``Salesforce.robot`` to automatically delete all records created in the org during the session and close the test browser.
 
 Test Cases
 ----------
@@ -113,30 +112,29 @@ The two test cases test the same operation done through two different paths: the
 Via API
 ^^^^^^^
 
-This test case uses the **Get fake data** keyword to generate a first and last name.  It then uses the **Salesforce Insert** keyword from the Salesforce Library (included via Salesforce.robot) to insert a Contact using the same technique for generating test data. Next, it uses **Salesforce Get** to retrieve the Contact's information as a dictionary.
+This test case uses the ``Get fake data`` keyword to generate a first and last name.  It then uses the ``Salesforce Insert`` keyword from the Salesforce Library (included via ``Salesforce.robot``) to insert a Contact using the same technique for generating test data. Next, it uses ``Salesforce Get`` to retrieve the Contact's information as a dictionary.
 
-Finally, the test calls the **Validate Contact** keyword explained in the Keywords section below.
+Finally, the test calls the ``Validate Contact`` keyword explained in the Keywords section below.
 
 Via UI
 ^^^^^^
 
-This test case also uses **Get fake data** for the first and last name, but instead uses the test browser to create a Contact via the Salesforce UI.  Using keywords from the Salesforce Library, it navigates to the Contact home page and clicks the **New** button to open a modal form.  It then uses **Populate Form** to fill in the First Name and Last Name fields (selected by field label) and uses **Click Modal Button** to click the **Save** button and **Wait Until Modal Is Closed** to wait for the modal to close.
+This test case also uses ``Get fake data`` for the first and last name, but instead uses the test browser to create a Contact via the Salesforce UI.  Using keywords from the Salesforce Library, it navigates to the Contact home page and clicks the ``New`` button to open a modal form.  It then uses ``Populate Form`` to fill in the First Name and Last Name fields (selected by field label) and uses ``Click Modal Button`` to click the ``Save`` button and ``Wait Until Modal Is Closed`` to wait for the modal to close.
 
-At this point, we should be on the record view for the new Contact.  We use the **Get Current Record Id** keyword to parse the Contact's ID from the url in the browser and the **Store Session Record** keyword to register the Contact in the session records list.  The session records list stores the type and id of all records created in the session which is used by the **Delete Records and Close Browser** keyword on Suite Teardown to delete all the records created during the test.  In the **Via API** test, we didn't have to register the record since the **Salesforce Insert** keyword does that for us automatically.  In the **Via UI** test, we created the Contact in the browser and thus need to store its ID manually for it to be deleted.
+At this point, we should be on the record view for the new Contact.  We use the ``Get Current Record Id`` keyword to parse the Contact's ID from the URL in the browser and the ``Store Session Record`` keyword to register the Contact in the session records list.  The session records list stores the type and Id of all records created in the session, which is used by the ``Delete Records and Close Browser`` keyword on Suite Teardown to delete all the records created during the test.  In the ``Via API`` test, we didn't have to register the record since the ``Salesforce Insert`` keyword does that for us automatically.  In the ``Via UI`` test, we created the Contact in the browser and thus need to store its ID manually for it to be deleted.
 
 Keywords
 --------
 
-The **Keywords** section allows you to define keywords useful in the context of the current test suite.  This allows you to encapsulate logic you want to reuse in multiple tests.  In this case, we've defined the **Validate Contact** keyword which accepts the contact id, first, and last names as argument and validates the Contact via the UI in a browser and via the API via **Salesforce Get**.  By abstracting out this keyword, we avoid duplication of logic in the test file and ensure that we're validating the same thing in both test scenarios.
+The ``Keywords`` section allows you to define keywords useful in the context of the current test suite.  This allows you to encapsulate logic you want to reuse in multiple tests.  In this case, we've defined the ``Validate Contact`` keyword which accepts the Contact id, first, and last names as argument and validates the Contact via the UI in a browser and via the API via ``Salesforce Get``.  By abstracting out this keyword, we avoid duplication of logic in the test file and ensure that we're validating the same thing in both test scenarios.
 
 Running the Test Suite
 ----------------------
 
-This simple test file can then be run via the **robot** task in CumulusCI:
+This simple test file can be run via the ``robot`` task in CumulusCI:
 
 .. code-block:: console
 
-   $ cd ~/dev/MyProject
    $ cci task run robot -o suites robot/MyProject/tests/create_contact.robot -o vars BROWSER:firefox
    2019-04-26 09:47:24: Getting scratch org info from Salesforce DX
    2019-04-26 09:47:28: Beginning task: Robot
@@ -168,23 +166,23 @@ This simple test file can then be run via the **robot** task in CumulusCI:
    automatically retried the wait for the modal window to close after
    creating a contact in a browser.
 
-If you put all of your tests inside that **robot/<project name>/tests** folder you don't have to use the **suite** option. By default the robot task will run all tests in the folder and all subfolders. For example, to run all tests and use the default browser you just have to issue the command `cci task run robot`.
+If you put all of your tests inside that ``robot/<project name>/tests`` folder you don't have to use the ``suite`` option. By default the ``robot`` task will run all tests in the folder and all subfolders. For example, to run all tests and use the default browser you just have to issue the command ``cci task run robot``.
 
 
-Salesforce.robot
-================
+``Salesforce.robot``
+====================
 
-Keywords can be defined in a test suite file, but they can also be defined in libraries and resource files. Libraries are written in python, and resource files are written in the robot syntax. Resource files are almost identical to a test file, except that they have no tests and can be imported into other test files. In addition to containing keywords, resource files can also define variables and they can import other libraries.
+Keywords can be defined in a test suite file, but they can also be defined in libraries and resource files. Libraries are written in Python, and resource files are written in the Robot syntax. Resource files are almost identical to a test file, except that they have no tests and can be imported into other test files. In addition to containing keywords, resource files can also define variables and can import other libraries.
 
-The file **cumulusci/robotframework/Salesforce.robot** was designed to be the way to import all of the keywords and variables provided by CumulusCI. It should be the first item imported in a test file. It will import the :ref:`salesforce-library-overview` and :ref:`cumulusci-library-overview`, as well as the most commonly used robot libraries
+The file ``cumulusci/robotframework/Salesforce.robot`` was designed to be the way to import all of the keywords and variables provided by CumulusCI. It should be the first item imported in a test file. It will import the :ref:`salesforce-library-overview` and :ref:`cumulusci-library-overview`, as well as the most commonly used robot libraries
 (`Collections <http://robotframework.org/robotframework/latest/libraries/Collections.html>`_,
 `OperatingSystem <http://robotframework.org/robotframework/latest/libraries/OperatingSystem.html>`_,
 `String <http://robotframework.org/robotframework/latest/libraries/String.html>`_, and
 `XML <http://robotframework.org/robotframework/latest/libraries/XML.html>`_)
 
-Variables defined in resource files are accessible to all tests in a suite which imports the resource file. They can be set in your cumulusci.yml file, or specified with the `vars` option to the robot task. When doing so, the variables need to be referenced without the dollar sign and curly braces. Variable names are case-insensitive.
+Variables defined in resource files are accessible to all tests in a suite which imports the resource file. They can be set in your cumulusci.yml file, or specified with the ``vars`` option to the robot task. When doing so, the variables need to be referenced without the dollar sign and curly braces. Variable names are case-insensitive.
 
-For example, here is how to set the browser to firefox and the default timeout to 20 seconds in a cumulusci.yml file:
+For example, here is how to set the browser to Firefox and the default timeout to 20 seconds in a ``cumulusci.yml`` file:
 
 .. code-block:: yaml
 
@@ -205,7 +203,7 @@ The same variables can be set from the command line to override the config file 
 Supported Variables
 -------------------
 
-The following variables defined in **Salesforce.robot** are all used by the ``Open Test Browser`` keyword:
+The following variables defined in ``Salesforce.robot`` are all used by the ``Open Test Browser`` keyword:
 
 .. list-table::
    :widths:  1 3
@@ -227,13 +225,13 @@ The following variables defined in **Salesforce.robot** are all used by the ``Op
        Default: ``7 seconds``
 
    * - ``${SELENIUM_SPEED}``
-     - This defines a delay added after every selenium command. It is
+     - This defines a delay added after every Selenium command. It is
        automatically passed to the `Set Selenium Speed
        <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Speed>`_ keyword.
        Default: ``0 seconds``
 
    * - ``${TIMEOUT}``
-     - This sets the default amount of time selenium commands will wait before timing out. It is
+     - This sets the default amount of time Selenium commands will wait before timing out. It is
        automatically passed to the `Set Selenium Timeout
        <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Timeout>`_ keyword.
        Default: ``30 seconds``
@@ -244,30 +242,30 @@ The following variables defined in **Salesforce.robot** are all used by the ``Op
 CumulusCI Library
 =================
 
-The CumulusCI Library for Robot Framework provides access to CumulusCI's functionality from inside a robot test.  It is mostly used to get credentials to a Salesforce org and to run more complex automation to set up the test environment in the org.
+The CumulusCI Library for Robot Framework provides access to CumulusCI's functionality from inside a Robot test.  It is mostly used to get credentials to a Salesforce org and to run more complex automation to set up the test environment in the org.
 
 Logging Into An Org
 -------------------
 
-The **Login Url*** keyword returns a url with an updated OAuth access token to automatically log into the CumulusCI org from CumulusCI's project keychain.
+The ``Login Url``* keyword returns a url with an updated OAuth access token to automatically log into the CumulusCI org from CumulusCI's project keychain.
 
 Run Task
 --------
 
-The **Run Task** keyword is used to run named CumulusCI tasks configured for the project.  These can be any of CumulusCI's built in tasks as well as project specific custom tasks from the project's cumulusci.yml file.
+The ``Run Task`` keyword is used to run named CumulusCI tasks configured for the project.  These can be any of CumulusCI's built in tasks as well as project specific custom tasks from the project's cumulusci.yml file.
 
-**Run Task** accepts a single argument, the task name.  It optionally accepts task options in the format **option_name=value**.
+``Run Task`` accepts a single argument, the task name.  It optionally accepts task options in the format ``option_name=value``.
 
 Run Task Class
 --------------
 
-The **Run Task Class** keyword is for use cases where you want to use one of CumulusCI's Python task classes to automate part of a test scenario but don't want to have to map a custom named task at the project level.
+The ``Run Task Class`` keyword is for use cases where you want to use one of CumulusCI's Python task classes to automate part of a test scenario but don't want to have to map a custom named task at the project level.
 
-**Run Task Class** accepts a single argument, the **class_path** like would be entered into cumulusci.yml such as **cumulusci.tasks.salesforce.Deploy**.  Like **Run Task**, you can also optionally pass task options in the format **option_name=value**.
+``Run Task Class`` accepts a single argument, the ``class_path``, as it would be entered into ``cumulusci.yml``, such as ``cumulusci.tasks.salesforce.Deploy``.  Like ``Run Task``, you can also optionally pass task options in the format ``option_name=value``.
 
 Set Test Elapsed Time
 ---------------------
-This **Set Test Elapsed Time** keyword captures a computed rather than measured elapsed time for performance-tests.
+This ``Set Test Elapsed Time`` keyword captures a computed rather than measured elapsed time for performance-tests.
 
 For example, if you were performance testing a Salesforce batch process, you might want to store the Salesforce-measured elapsed time of the batch process instead of the time measured in the CCI client process.
 
@@ -282,8 +280,8 @@ Performance test times are output in the CCI logs and are captured in MetaCI ins
 Start and End Perf Time
 -----------------------
 As a convenience, there are keywords to handle the common case where you want to start
-a timer and then store the result with **Set Test Elapsed Time**. These are **Start Performance Timer**
-and **Stop Performance Timer**.
+a timer and then store the result with ``Set Test Elapsed Time``. These are ``Start Performance Timer``
+and ``Stop Performance Timer``.
 
 Set Test Metric
 ---------------
@@ -293,7 +291,7 @@ For example: number of queries, rows processed, CPU usage, etc.
 
 Elapsed Time For Last Record
 ----------------------------
-The **Elapsed Time For Last Record** queries Salesforce for a value that
+The ``Elapsed Time For Last Record`` queries Salesforce for a value that
 is Salesforce's recorded log of a job. For example, to query an Apex bulk
 job:
 
@@ -325,7 +323,7 @@ The Salesforce Library provides a set of useful keywords for interacting with Sa
 UI Keywords
 -----------
 
-The goal of the UI keywords in the Salesforce Library is to abstract out common interactions with Salesforce from interactions with your application's UI.  The Salesforce Library itself has an extensive suite of robot tests which are regularly run to alert us to any changes in the base Salesforce UI.  By centralizing these interactions and regularly testing them, the Salesforce Library provides a more stable framework on which to build your product tests.
+The goal of the UI keywords in the Salesforce Library is to abstract out common interactions with Salesforce from interactions with your application's UI.  The Salesforce Library itself has an extensive suite of Robot tests which are regularly run to alert us to any changes in the base Salesforce UI.  By centralizing these interactions and regularly testing them, the Salesforce Library provides a more stable framework on which to build your product tests.
 
 There are too many keywords relating to UI interactions to cover here.  Please reference the full Salesforce Library documentation below.
 
@@ -339,22 +337,22 @@ API Keywords
 
 In addition to browser interactions, the Salesforce Library also provides the following keywords for interacting with the Salesforce REST API:
 
-* **Salesforce Collection Insert**: used for bulk creation of objects
-  based on a template
-* **Salesforce Collection Update**: used for the bulk updating of
-  objects
-* **Salesforce Delete**: Deletes a record using its type and ID
-* **Salesforce Get**: Gets a dictionary of a record from its ID
-* **Salesforce Insert**: Inserts a record using its type and field values.  Returns the ID.
-* **Salesforce Query**: Runs a simple query using the object type and field=value syntax.  Returns a list of matching record dictionaries.
-* **Salesforce Update**: Updates a record using its type, ID, and field=value syntax
-* **SOQL Query**: Runs a SOQL query and returns a REST API result dictionary
+* ``Salesforce Collection Insert``: used for bulk creation of objects
+  based on a template.
+* ``Salesforce Collection Update``: used for the bulk updating of
+  objects.
+* ``Salesforce Delete``: Deletes a record using its type and ID.
+* ``Salesforce Get``: Gets a dictionary of a record from its ID.
+* ``Salesforce Insert``: Inserts a record using its type and field values.  Returns the ID.
+* ``Salesforce Query``: Runs a simple query using the object type and field=value syntax.  Returns a list of matching record dictionaries.
+* ``Salesforce Update``: Updates a record using its type, ID, and field=value syntax.
+* ``SOQL Query``: Runs a SOQL query and returns a REST API result dictionary.
 
 PageObjects Library
 ===================
 
-The **PageObjects** library provides support for page objects,
-Robot Framework-style. Even though robot is a keyword-driven framework,
+The ``PageObjects`` library provides support for page objects,
+Robot Framework-style. Even though Robot is a keyword-driven framework,
 we've implemented a way to dynamically load in keywords that are
 unique to a page or an object on the page.
 
@@ -373,32 +371,32 @@ keyword libraries, you may define multiple sets of keywords in a
 single file.
 
 When you create a page object class, you start by inheriting from one
-of the provided base classes. No matter which class your inherit from,
+of the provided base classes. No matter which class you inherit from,
 your class gets the following predefined properties:
 
-- **self.object_name** is the name of the object related to the
-  class. This is defined via the `object_name` parameter to the
+- ``self.object_name`` is the name of the object related to the
+  class. This is defined via the ``object_name`` parameter to the
   ``pageobject`` decorator. You should not add the namespace
   prefix in the decorator. This attribute will automatically add the
-  prefix from cumulusci.yml when necessary.
+  prefix from ``cumulusci.yml`` when necessary.
 
-- **self.builtin** is a reference to the robot framework
+- ``self.builtin`` is a reference to the robot framework
   ``BuiltIn`` library, and can be used to directly call built-in
   keywords. Any built-in keyword can be called by converting the name
   to all lowercase, and replacing all spaces with underscores (eg:
   ``self.builtin.log``, ``self.builtin.get_variable_value``, etc).
 
-- **self.cumulusci** is a reference to the CumulusCI keyword
+- ``self.cumulusci`` is a reference to the CumulusCI keyword
   library. You can call any keyword in this library by converting the
   name to all lowercase, and replacing all spaces with underscores (eg:
   ``self.cumulusci.get_org_info``, etc).
 
-- **self.salesforce** is a reference to the Salesforce keyword
+- ``self.salesforce`` is a reference to the Salesforce keyword
   library. You can call any keyword in this library by converting the
   name to all lowercase, and replacing all spaces with underscores (eg:
   ``self.salesforce.wait_until_loading_is_complete``, etc).
 
-- **self.selenium** is a reference to SeleniumLibrary. You can call
+- ``self.selenium`` is a reference to SeleniumLibrary. You can call
   any keyword in this library by converting the name to all lowercase,
   and replacing all spaces with underscores (eg:
   ``self.selenim.wait_until_page_contains_element``, etc)
@@ -409,20 +407,20 @@ your class gets the following predefined properties:
 Page Object Base Classes
 ------------------------
 
-Presently, cumulusci provides the following base classes,
+Presently, CumulusCI provides the following base classes,
 which should be used for all classes that use the ``pageobject`` decorator:
 
 - ``cumulusci.robotframework.pageobjects.BasePage`` - a generic base
   class used by the other base classes. It can be used when creating
   custom page objects when none of the other base classes make sense.
 - ``cumulusci.robotframework.pageobjects.DetailPage`` - a class
-  for a page object which represents a detail page
+  for a page object which represents a detail page.
 - ``cumulusci.robotframework.pageobjects.HomePage`` - a class for a
-  page object which represents a home page
+  page object which represents a home page.
 - ``cumulusci.robotframework.pageobjects.ListingPage`` - a class for a
-  page object which represents a listing page
+  page object which represents a listing page.
 - ``cumulusci.robotframework.pageobject.NewModal`` - a class for a
-  page object which represents the "new object" modal
+  page object which represents the "new object" modal.
 - ``cumulusci.robotframework.pageobject.ObjectManagerPage`` - a class
   for interacting with the object manager.
 
@@ -436,7 +434,7 @@ Example Page Object
 -------------------
 
 The following example shows the definition of a page
-object for the listing page of a custom object named MyObject__c. It adds a new
+object for the listing page of a custom object named ``MyObject__c``. It adds a new
 keyword named :code:`Click on the row with name`:
 
 .. code-block:: python
@@ -460,17 +458,17 @@ types ("Detail", "Home", "Listing", "New"), and standard object names.
 Importing the library into a test
 ---------------------------------
 
-The **PageObjects** library is somewhat unique in that it is not only a
+The ``PageObjects`` library is somewhat unique in that it is not only a
 keyword library, but also the mechanism by which you can import files
 which contain page object classes. This is done by providing the paths
 to one or more Python files which implement page objects. You may also
-import **PageObjects** without passing any files to it in order to take
+import ``PageObjects`` without passing any files to it in order to take
 advantage of some general purpose page objects.
 
 For example, consider the case where you've created two files that
 each have one or more page object definitions. For example, lets say
-in **robot/MyProject/resources** you have the files **PageObjects.py** and
-**MorePageObjects.py**. You can import these page objects into a test
+in ``robot/MyProject/resources`` you have the files ``PageObjects.py`` and
+``MorePageObjects.py``. You can import these page objects into a test
 suite like so:
 
 .. code-block:: robotframework
@@ -486,15 +484,15 @@ Using Page Objects
 
 There are two things that must be done in order to use the keywords in
 a page object. The first has already been covered, and that is to
-import the **PageObjects** library and any custom page object files you
+import the ``PageObjects`` library and any custom page object files you
 wish to use.
 
 The second thing you must do is either explicitly load the keywords
 for a page object, or reference a page object with one of the generic
-keywords provided by the **PageObjects** library.
+keywords provided by the ``PageObjects`` library.
 
 To explicitly load the keywords for a page object you can use the
-:code:`load page object` keyword provided by the **PageObjects**
+:code:`load page object` keyword provided by the ``PageObjects``
 library. Other keywords provided by that library will automatically
 import the keywords if they are successful. For example, you can call
 :code:`Go To Page` followed by a page object reference, and if that page is
@@ -503,7 +501,7 @@ able to be navigated to, its keywords will automatically be loaded.
 Page Object Keywords
 --------------------
 
-The **PageObjects** library provides the following keywords:
+The ``PageObjects`` library provides the following keywords:
 
 * Current Page Should Be
 * Get Page Object
@@ -523,7 +521,7 @@ represents the current page. Each page object may use its own method
 for making the determination, but the built-in page objects all
 compare the page location to an expected pattern
 (eg: ``.../lightning/o/...``). If the assertion passes, the keywords for
-that page object will autoamtically be loaded.
+that page object will automatically be loaded.
 
 This keyword is useful if you get to a page via a button or some other
 form of navigation, in that it allows you to both assert that you are
@@ -563,8 +561,8 @@ Load Page Object
 
 Example: :code:`Load page object  Listing  Contact`
 
-This will load the page object for the given **page_type** and
-**object_name_**. It is useful when you want to use the keywords from a
+This will load the page object for the given ``page_type`` and
+``object_name_``. It is useful when you want to use the keywords from a
 page object without first navigating to that page (i.e. when you are
 already on the page and don't want to navigate away).
 
@@ -595,14 +593,14 @@ Generic Page Objects
 You do not need to create a page object in order to take advantage of
 the new page object keywords. If you use one of the page object
 keywords for a page that does not have its own page object, the
-**PageObjects** library will try to find a generic page.
+``PageObjects`` library will try to find a generic page.
 
 For example, if you use :code:`Current page should be  Home  Event` and
 there is no page object by that name, a generic :code:`Home` page object
 will be loaded, and its object name will be set to :code:`Event`.
 
 Let's say your project has created a custom object named
-**Island**. You don't have a home page, but the object does have a
+``Island``. You don't have a home page, but the object does have a
 standard listing page. Without creating any page objects, this test
 should work by using generic implementations of the Home and Listing
 page objects:
@@ -620,16 +618,16 @@ page objects:
 
 CumulusCI provides the following generic page objects:
 
-- **Detail** (eg: :code:`Go to page  Detail  Contact  ${contact id}`)
+- ``Detail`` (eg: :code:`Go to page  Detail  Contact  ${contact id}`)
   Detail pages refer to pages with a URL that matches the
   pattern "<host>/lightning/r/<object name>/<object id>/view"
-- **Home** (eg: :code:`Go to page  Home  Contact`)
+- ``Home`` (eg: :code:`Go to page  Home  Contact`)
   Home pages refer to pages with a URL that matches the pattern
   "<host>/lightning/o/<object name>/home"
-- **Listing** (eg: :code:`Go to  page  Listing  Contact`)
+- ``Listing`` (eg: :code:`Go to  page  Listing  Contact`)
   Listing pages refer to pages with a URL that matches the pattern
   "<host>b/lightning/o/<object name>/list"
-- **New** (eg: :code:`Wait for modal  New  Contact`)
+- ``New`` (eg: :code:`Wait for modal  New  Contact`)
   The New page object refers to the modal that pops up
   when creating a new object.
 
@@ -651,11 +649,11 @@ CumulusCI Robot Tasks
 
 CumulusCI includes several tasks for working with Robot Framework tests and keyword libraries:
 
-* **robot**: Runs robot test suites.  By default, recursively runs all tests located under the folder **robot/<project name>/tests/**.  Test suites can be overridden via the **suites** keyword and variables inside robot files can be overridden using the **vars** option with the syntax VAR:value (ex: BROWSER:firefox).
-* **robot_testdoc**: Generates html documentation of your whole robot test suite and writes to **robot/<project name>/doc/<project_name>.html**.
-* **robot_lint**: Performs static analysis of robot files (files with
+* ``robot``: Runs Robot test suites.  By default, recursively runs all tests located under the folder ``robot/<project name>/tests/``.  Test suites can be overridden via the ``suites`` keyword and variables inside robot files can be overridden using the ``vars`` option with the syntax ``VAR:value`` (ex: ``BROWSER:firefox``).
+* ``robot_testdoc``: Generates html documentation of your whole robot test suite and writes to ``robot/<project name>/doc/<project_name>.html``.
+* ``robot_lint``: Performs static analysis of robot files (files with
   .robot and .resource), flagging issues that may reduce the quality of the code.
-* **robot_libdoc**:  This task can be wired up to generate library
+* ``robot_libdoc``:  This task can be wired up to generate library
   documentation if you choose to create a library of robot keywords
   for your project.
 
@@ -663,9 +661,9 @@ Configuring the libdoc task
 ---------------------------
 
 If you have defined a robot resource file named MyProject.resource and
-placed it in the **resources** folder, you can add the following
+placed it in the ``resources`` folder, you can add the following
 configuration to your cumulusci.yml file in order to enable the
-**robot_libdoc** task to generate documentation:
+``robot_libdoc`` task to generate documentation:
 
 .. code-block:: yaml
 
@@ -678,7 +676,7 @@ configuration to your cumulusci.yml file in order to enable the
 
 
 You can generate documentation for more than one keyword file or
-library by giving a comma-separated list of files for the **path**
+library by giving a comma-separated list of files for the ``path``
 option, or by defining path as a list in cumulusci.yml.  In the
 following example, documentation will be generated for MyLibrary.py
 and MyLibrary.resource:
@@ -695,8 +693,8 @@ and MyLibrary.resource:
               output: robot/MyProject/doc/MyProject_Library.html
 
 You can also use basic filesystem wildcards. For example,
-to document all robot files in robot/MyProject/resources you could
-configure your yaml file like this:
+to document all Robot files in ``robot/MyProject/resources`` you could
+configure your YAML file like this:
 
 .. code-block:: yaml
 
@@ -712,30 +710,30 @@ configure your yaml file like this:
 Robot Directory Structure
 =========================
 
-When you use `cci project init`, it creates a folder named **robot** at the root of your repository. Immediately under that is a folder for your project robot files. If your project depends on keywords from other projects, they would also be in the **robot** folder under their own project name.
+When you use ``cci project init``, it creates a folder named ``robot`` at the root of your repository. Immediately under that is a folder for your project Robot files. If your project depends on keywords from other projects, they would also be in the ``robot`` folder under their own project name.
 
 .. code-block:: console
 
    MyProject/
    ├── robot
-   │   └── MyProject
-   │       ├── doc
-   │       ├── resources
-   │       ├── results
-   │       └── tests
+   │   └── MyProject
+   │       ├── doc
+   │       ├── resources
+   │       ├── results
+   │       └── tests
 
-With the project folder inside the **robot** folder are the following additional folders:
+With the project folder inside the ``robot`` folder are the following additional folders:
 
-* **doc**: the location where generated documentation will be placed.
-* **resources**: this folder is where you can put your own keyword files. You can create `robot keyword files <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#creating-user-keywords>`_ (.resource or .robot) as well as `keyword libraries <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#creating-test-libraries>`_ (.py). For keyword files we recommend using the **.resource** suffix.
-* **results**: this folder isn't created by `cci project init`. Instead, it will automatically be created the first time you run your tests. It will contain all of the generated logs and screenshots.
-* **tests**: this is where you should put your test suites. You are free to organize this however you wish, including adding subfolders.
+* ``doc``: the location where generated documentation will be placed.
+* ``resources``: this folder is where you can put your own keyword files. You can create `robot keyword files <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#creating-user-keywords>`_ (.resource or .robot) as well as `keyword libraries <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#creating-test-libraries>`_ (.py). For keyword files we recommend using the ``.resource`` suffix.
+* ``results``: this folder isn't created by `cci project init`. Instead, it will automatically be created the first time you run your tests. It will contain all of the generated logs and screenshots.
+* ``tests``: this is where you should put your test suites. You are free to organize this however you wish, including adding subfolders.
 
 
 Creating Project Tests
 ======================
 
-Like in the example above, all project tests live in .robot files stored under the **robot/<project name>/tests/** directory in the project.  You can choose how you want to structure the .robot files into directories by just moving the files around.  Directories are treated by robot as a parent test suite so a directory named "standard_objects" would become the "Standard Objects" test suite.
+Like in the example above, all project tests live in ``.robot`` files stored under the ``robot/<project name>/tests/`` directory in the project.  You can choose how you want to structure the ``.robot`` files into directories by just moving the files around.  Directories are treated by Robot as a parent test suite, so a directory named "standard_objects" would become the "Standard Objects" test suite.
 
 The following document is recommended reading:
 
@@ -747,8 +745,8 @@ Using Keywords and Tests from a Different Project
 Much like you can :ref:`use tasks and flows from a different
 project<sources>`, you can also use keywords and tests from other
 projects. The keywords are brought into your repository the same way
-as with tasks and flows, via the `sources` configuration option in
-cumulusci.yml. However, they require a little extra configuration
+as with tasks and flows, via the ``sources`` configuration option in
+``cumulusci.yml``. However, they require a little extra configuration
 before they can be used.
 
 .. note::
@@ -762,13 +760,13 @@ Using keywords
 --------------
 
 In order to use the resources from another project you must first
-configure the robot task to use one of the sources that have been
+configure the ``robot`` task to use one of the sources that have been
 defined for the project. To do this, add a :code:`sources` option in
-the robot task, and add to it the name of one of the imported sources.
+the ``robot`` task, and add to it the name of one of the imported sources.
 
 For exmple, if your project is built on top of NPSP and you want to
-use keywords from the NPSP project, you must first add the npsp
-repository as a source in the project's cumulusci.yml like so:
+use keywords from the NPSP project, you must first add the NPSP
+repository as a source in the project's ``cumulusci.yml``:
 
 .. code-block:: yaml
 
@@ -779,7 +777,7 @@ repository as a source in the project's cumulusci.yml like so:
 
 You must then add :code:`npsp` under the :code:`sources` option for
 the robot task. This is because the project as a whole may use tasks
-or flows from multiple projects, but robot only needs keywords from a
+or flows from multiple projects, but ``robot`` only needs keywords from a
 single project.
 
 .. code-block:: yaml
@@ -790,14 +788,14 @@ single project.
             sources:
               - npsp
 
-When the robot task runs, it adds the directory which contains the
-code for the other repository to PYTHONPATH which robot uses when
+When the ``robot`` task runs, it adds the directory which contains the
+code for the other repository to ``PYTHONPATH``, which Robot uses when
 resolving references to libraries and keyword files.
 
 Once this configuration has been saved, you can import the resources
 just as if you were in the NPSP repository. For example, in a project
-which has been configured to use npsp as a source, the following
-example shows how NPSP.robot can be imported into a test suite:
+which has been configured to use NPSP as a source, the following
+example shows how ``NPSP.robot`` can be imported into a test suite:
 
 .. code-block:: robot
 
@@ -818,9 +816,20 @@ test with the source name. The path needs to be relative to the root
 of the other repo.
 
 For example, starting from the previous example, to run the
-**create_organization.robot** test suite from NPSP, you would do it
+``create_organization.robot`` test suite from NPSP, you would do it
 with something like this:
 
 .. code-block:: console
 
     $ cci task run robot -o suites npsp:robot/Cumulus/tests/browser/contacts_accounts/create_organization.robot
+
+
+Further Reading
+===============
+
+.. toctree::
+    :maxdepth: 1
+
+    robot_tutorial.rst
+    robot_debugger.rst
+
