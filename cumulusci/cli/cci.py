@@ -600,9 +600,9 @@ def project_init(runtime):
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
         template = env.get_template(name)
-        if not name.is_file():
-            with open(name, "w") as f:
-                f.write(template.render(**context))
+        file_path = Path(name)
+        if not file_path.is_file():
+            file_path.write_text(template.render(**context))
         else:
             click.echo(
                 click.style(
@@ -652,18 +652,15 @@ def project_init(runtime):
     }
 
     template = env.get_template("scratch_def.json")
-    for org_name in org_dict.keys():
-        org_path = os.path.join("orgs", org_name)
-        if not org_path.is_file():
-            with open(org_path, "w") as f:
-                f.write(
-                    template.render(
-                        package_name=context["package_name"],
-                        org_name=org_dict[org_name].get("name"),
-                        edition=org_dict[org_name].get("edition"),
-                        managed=org_dict[org_name].get("managed"),
-                    )
+    for org_name, properties in org_dict.items():
+        org_path = Path("orgs/" + org_name)
+        if not org_path.is_file():  # need path object
+            org_path.write_text(
+                template.render(
+                    package_name=context["package_name"],
+                    **properties,
                 )
+            )
 
     # create robot folder structure and starter files
     if not os.path.isdir("robot"):
