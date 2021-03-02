@@ -74,6 +74,8 @@ def _perf_logger(logger_func: Callable, formatter_func: Callable):
 
 
 pattern = r"\${cci_metric_(?P<metric>.*)} = (?P<value>.*)"
+# used also in MetaCI
+ELAPSED_TIME_PATTERN = re.compile(pattern)
 
 
 class PerfSummarizer(ResultVisitor):
@@ -90,7 +92,7 @@ class PerfSummarizer(ResultVisitor):
                 for message in keyword.messages:
                     message = str(message or "")
                     if message:
-                        match = re.match(pattern, message)
+                        match = ELAPSED_TIME_PATTERN.match(message)
                         if match:
                             try:
                                 metrics[match["metric"]] = float(match["value"])
