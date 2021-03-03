@@ -5,7 +5,10 @@ import pytest
 import responses
 
 from cumulusci.core.config import OrgConfig
-from cumulusci.salesforce_api.package_install import install_package_version
+from cumulusci.salesforce_api.package_install import (
+    ManagedPackageInstallOptions,
+    install_package_version,
+)
 from cumulusci.tests.util import create_project_config
 
 
@@ -32,7 +35,9 @@ def test_install_package_version(caplog):
     org_config = OrgConfig(
         {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
     )
-    install_package_version(project_config, org_config, {"version_id": "04t"})
+    install_package_version(
+        project_config, org_config, "04t", ManagedPackageInstallOptions()
+    )
     assert "Success" in caplog.text
 
 
@@ -61,7 +66,9 @@ def test_install_package_version__error():
         {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
     )
     with pytest.raises(PackageInstallError, match="We have a problem."):
-        install_package_version(project_config, org_config, {"version_id": "04t"})
+        install_package_version(
+            project_config, org_config, "04t", ManagedPackageInstallOptions()
+        )
 
 
 @responses.activate
@@ -88,6 +95,8 @@ def test_install_package_version__not_propagated(caplog):
     org_config = OrgConfig(
         {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
     )
-    install_package_version(project_config, org_config, {"version_id": "04t"})
+    install_package_version(
+        project_config, org_config, "04t", ManagedPackageInstallOptions()
+    )
     assert "Retrying" in caplog.text
     assert "Success" in caplog.text
