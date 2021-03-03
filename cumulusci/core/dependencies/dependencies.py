@@ -1,4 +1,5 @@
 from collections import namedtuple
+from re import L
 from cumulusci.utils.yaml.model_parser import CCIModel
 import io
 import logging
@@ -196,21 +197,10 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
 
     @pydantic.root_validator
     def check_complete(cls, values):
-        assert "github" in values or (
-            "repo_owner" in values and "repo_name" in values
+        assert values.get("github") or (
+            values.get("repo_owner") and values.get("repo_name")
         ), "Must specify `github` or `repo_owner` and `repo_name`"
-        assert None in [
-            values.get("tag"),
-            values.get("ref"),
-        ], "Must not specify both `tag` and `ref`"
-        assert None in [
-            values.get("tag"),
-            values.get("release"),
-        ], "Must not specify both `tag` and `release`"
-        assert None in [
-            values.get("release"),
-            values.get("ref"),
-        ], "Must not specify both `release` and `ref`"
+        assert values["ref"] is None, "Must not specify `ref` at creation."
 
         # Populate the `github` and `repo_name`, `repo_owner` properties if not already populated.
         if not values.get("repo_name"):
@@ -367,11 +357,14 @@ class ManagedPackageDependency(StaticDependency):
 
     @pydantic.root_validator
     def validate(cls, values):
-        assert (
-            "namespace" in values and "version" in values
-        ) or "package_version_id" in values, (
-            "Must specify `namespace` and `version`, or `package_version_id`"
-        )
+        assert (values.get("namespace") and values.get("version")) or values.get(
+            "package_version_id"
+        ), "Must specify `namespace` and `version`, or `version_id`"
+
+        assert None in [
+            values.get("namespace"),
+            values.get("package_version_id"),
+        ], "Must not specify `namespace`/`version` and `version_id`"
         return values
 
     def install(
@@ -433,12 +426,27 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
             logger.warning(
                 "The repo_name and repo_owner keys are deprecated. Please use the github key."
             )
-
         assert (
-            "zip_url" in values
-            or ("github" in values and "ref" in values)
-            or ("repo_name" in values and "repo_owner" in values and "ref" in values)
+            values.get("zip_url")
+            or (values.get("github") and values.get("ref"))
+            or (
+                values.get("repo_name")
+                and values.get("repo_owner")
+                and values.get("ref")
+            )
         ), "Must specify `zip_url`, or `github` and `ref`"
+        assert None in [
+            values.get("zip_url"),
+            values.get("github"),
+        ], "Must specify `zip_url`, or `github` and `ref`, but not both."
+        assert None in [
+            values.get("zip_url"),
+            values.get("repo_owner"),
+        ], "Must specify `zip_url`, or `github` and `ref`, but not both."
+        assert None in [
+            values.get("repo_owner"),
+            values.get("github"),
+        ], "Must specify `repo_owner` or `github`, but not both."
 
         # Populate the `github` and `repo_name, `repo_owner` properties if not already populated.
         if (not values.get("repo_name") or not values.get("repo_owner")) and values.get(
@@ -455,6 +463,7 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
 
     def install(self, context: BaseProjectConfig, org: OrgConfig):
         zip_src = None
+
         if self.zip_url:
             context.logger.info(
                 f"Deploying unmanaged metadata from /{self.subfolder} of {self.zip_url}"
@@ -475,13 +484,9 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
         if zip_src:
             # Determine whether to inject namespace prefixes or not
             # If and only if we have no explicit configuration.
-            if self.unmanaged is None and self.namespace_inject:
-                unmanaged = self.namespace_inject not in org.installed_packages
-            else:
-                unmanaged = self.unmanaged
 
             options = {
-                "unmanaged": unmanaged,
+                "unmanaged": self._get_unmanaged(org),
                 "namespace_inject": self.namespace_inject,
                 "namespace_strip": self.namespace_strip,
             }
@@ -495,6 +500,12 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
 
             api = ApiDeploy(task, package_zip)
             return api()
+
+    def _get_unmanaged(self, org: OrgConfig):
+        if self.unmanaged is None and self.namespace_inject:
+            return self.namespace_inject not in org.installed_packages
+
+        return self.unmanaged
 
     def __str__(self):
         subfolder = f"/{self.subfolder}" if self.subfolder else ""
@@ -814,8 +825,8 @@ def get_resolver(
 def get_resolver_stack(
     context: BaseProjectConfig, name: str
 ) -> List[DependencyResolutionStrategy]:
-    resolutions = context.projectdependency_resolutions
-    stacks = context.projectdependency_resolutions__resolution_strategies
+    resolutions = context.project__dependency_resolutions
+    stacks = context.project__dependency_resolutions__resolution_strategies
 
     if name in resolutions and name != "resolution_strategies":
         name = resolutions[name]
