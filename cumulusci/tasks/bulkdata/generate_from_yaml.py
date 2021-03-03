@@ -12,9 +12,10 @@ from cumulusci.core.utils import process_list_of_pairs_dict_arg
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
-from snowfakery.output_streams import SqlOutputStream
+from snowfakery.output_streams import SqlDbOutputStream
 from snowfakery.data_generator import generate, StoppingCriteria
 from snowfakery.generate_mapping_from_recipe import mapping_from_recipe_templates
+from snowfakery.salesforce import create_cci_record_type_tables
 
 
 class GenerateDataFromYaml(BaseGenerateDataTask):
@@ -150,7 +151,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
             yield None
 
     def generate_data(self, db_url, num_records, current_batch_num):
-        output_stream = SqlOutputStream.from_url(db_url, self.mapping)
+        output_stream = SqlDbOutputStream.from_url(db_url, self.mapping)
         old_continuation_file = self.get_old_continuation_file()
         if old_continuation_file:
             # reopen to ensure file pointer is at starting point
@@ -183,3 +184,5 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 yaml.safe_dump(
                     mapping_from_recipe_templates(summary), f, sort_keys=False
                 )
+
+        create_cci_record_type_tables(db_url)
