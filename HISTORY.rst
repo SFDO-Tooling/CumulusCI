@@ -23,11 +23,11 @@ Critical changes:
   
   All dependencies should be listed in install order. 
   
-  - We recommend reformatting nested dependencies and discontinuing use of ``allow_newer`` and package uninstalls now to prepare for these future changes. 
+  We recommend reformatting nested dependencies and discontinuing use of ``allow_newer`` and package uninstalls now to prepare for these future changes. 
 
 Changes:
 
-- We released a new suite of documentation for CumulusCI, available at cumulusci.readthedocs.io.
+- We released a `new suite of documentation for CumulusCI <https://cumulusci.readthedocs.io/en/latest/>`_.
 - CumulusCI now caches org describe data in a local database to provide significant performance gains, especially in ``generate_dataset_mapping``.
 - The ``cci org browser`` command now has a ``--path`` option to open a specific page and a ``--url-only`` option to output the login URL without spawning a browser.
 - We improved CumulusCI's behavior when loading Record Type data from Snowfakery to avoid showing a warning to the user.
