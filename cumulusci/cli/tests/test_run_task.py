@@ -1,6 +1,5 @@
 """Tests for the RunTaskCommand class"""
 
-from unittest import mock
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.cci import RunTaskCommand
 import click
@@ -96,13 +95,6 @@ def test_task_run__help(runtime):
     cmd = multi_cmd.get_command(Mock, "dummy-task")
 
     assert "This is a dummy task." in cmd.help  # task description
-    assert "Some task docs." in cmd.help  # task_doc
-
-    with mock.patch("cumulusci.cli.tests.utils.DummyTask.task_docs", None):
-        cmd = multi_cmd.get_command(Mock, "dummy-task")
-
-    assert "This is a dummy task." in cmd.help
-    assert "Some task docs." not in cmd.help
 
 
 def test_task_run__list_commands(runtime):
